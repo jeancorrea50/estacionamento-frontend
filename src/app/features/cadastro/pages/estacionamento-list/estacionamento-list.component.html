@@ -10,14 +10,42 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Id</th>
-              <th>Descrição</th>
-              <th>Tipo</th>
-              <th>Nome / Razão Social</th>
-              <th>Documento</th>
-              <th>E-mail</th>
-              <th>Ativo</th>
-              <th>Ações</th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('id')">
+                  Id <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('id') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('descricao')">
+                  Nome fantasia <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('descricao') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('nomeRazaoSocial')">
+                  Nome / Razão social <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('nomeRazaoSocial') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('documento')">
+                  Documento <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('documento') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('capacidadeVeiculo')">
+                  Capacidade <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('capacidadeVeiculo') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('tamanhoTerreno')">
+                  Tamanho <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('tamanhoTerreno') }}</span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('ativo')">
+                  Ativo <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('ativo') }}</span>
+                </button>
+              </th>
+              <th scope="col" class="data-table__th--acoes">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -25,11 +53,17 @@
               <tr>
                 <td>{{ item.id }}</td>
                 <td>{{ item.descricao }}</td>
-                <td>{{ tipoPessoaLabel(item.tipoPessoa) }}</td>
                 <td>{{ item.nomeRazaoSocial }}</td>
                 <td>{{ formatDocumento(item) }}</td>
-                <td>{{ item.email }}</td>
-                <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                <td>{{ item.capacidadeVeiculo ?? '-' }}</td>
+                <td>{{ item.tamanhoTerreno || '-' }}</td>
+                <td>
+                  @if (item.ativo) {
+                    <span class="cell-ativo cell-ativo--sim">Sim</span>
+                  } @else {
+                    <span class="cell-ativo cell-ativo--nao">Não</span>
+                  }
+                </td>
                 <td class="acoes-cell">
                   <a
                     class="btn btn-primary btn--sm"

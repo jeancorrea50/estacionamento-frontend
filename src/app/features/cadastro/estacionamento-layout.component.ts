@@ -22,7 +22,7 @@ import {
 })
 export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
-  private stepService = inject(EstacionamentoFormStepService);
+  readonly stepService = inject(EstacionamentoFormStepService);
   readonly toolbar = inject(EstacionamentoToolbarService);
 
   /** True quando a rota é novo ou editar (formulário com stepper). */
@@ -63,7 +63,7 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
       case 'nomeRazaoSocial':
         return 'Digite o nome / razão social';
       case 'descricao':
-        return 'Digite a descrição';
+        return 'Digite o nome fantasia';
       case 'email':
         return 'Digite o e-mail';
       case 'id':
@@ -85,5 +85,10 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
     if (step === 1 || step === 2 || step === 3) {
       this.stepService.setStep(step);
     }
+  }
+
+  /** Salvar no cabeçalho: delega ao formulário (Cadastro ou Dados Bancários). */
+  onHeaderSalvar(): void {
+    this.stepService.requestSaveFromHeader();
   }
 }

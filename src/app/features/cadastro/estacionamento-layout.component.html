@@ -21,6 +21,9 @@
           }
         </nav>
         <div class="page-header__actions">
+          @if (stepService.currentStep() === 1 || stepService.currentStep() === 2) {
+            <button type="button" class="btn btn-primary" (click)="onHeaderSalvar()">Salvar</button>
+          }
           <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
         </div>
       </div>
@@ -40,7 +43,7 @@
             <option value="geral">Busca geral</option>
             <option value="cnpj">CNPJ</option>
             <option value="nomeRazaoSocial">Nome / Razão social</option>
-            <option value="descricao">Descrição</option>
+            <option value="descricao">Nome fantasia</option>
             <option value="email">E-mail</option>
             <option value="id">ID</option>
           </select>

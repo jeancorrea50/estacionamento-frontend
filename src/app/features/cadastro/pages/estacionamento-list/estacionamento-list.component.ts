@@ -6,13 +6,23 @@ import {
   EstacionamentoSearchField,
   EstacionamentoToolbarService
 } from '../../services/estacionamento-toolbar.service';
-import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamento.dto';
+import { EstacionamentoListItemDTO } from '../../models/estacionamento.dto';
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
 
 const TAMANHO_PAGINA = 50;
+
+/** Colunas ordenáveis (mapeadas para `Propriedade` na API). */
+type EstacionamentoListaSortCol =
+  | 'id'
+  | 'descricao'
+  | 'nomeRazaoSocial'
+  | 'documento'
+  | 'capacidadeVeiculo'
+  | 'tamanhoTerreno'
+  | 'ativo';
 
 @Component({
   selector: 'app-Estacionamento-list',
@@ -38,6 +48,10 @@ export class EstacionamentoListComponent {
   numeroPagina = 1;
   totalCount = 0;
   tamanhoPagina = TAMANHO_PAGINA;
+
+  /** Ordenação no backend (`Propriedade` + `Sort`). */
+  sortCol: EstacionamentoListaSortCol | null = null;
+  sortDir: 'Asc' | 'Desc' = 'Asc';
 
   constructor() {
     effect(() => {
@@ -65,7 +79,10 @@ export class EstacionamentoListComponent {
   carregar(): void {
     const field = this.toolbar.searchField();
     const term = this.normalizeSearchTerm(this.toolbar.searchTerm(), field);
-    const propriedade = this.resolveSearchProperty(field);
+    const filterPropriedade = this.resolveSearchProperty(field);
+    const sortPropriedade = this.sortCol ? this.mapSortColToPropriedade(this.sortCol) : undefined;
+    const propriedade = sortPropriedade ?? filterPropriedade;
+    const sort = sortPropriedade ? this.sortDir : undefined;
     this.loading = true;
     this.erro = null;
     this.EstacionamentoService
@@ -73,7 +90,8 @@ export class EstacionamentoListComponent {
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPagina,
         ...(term ? { Termo: term } : {}),
-        ...(propriedade ? { Propriedade: propriedade } : {})
+        ...(propriedade ? { Propriedade: propriedade } : {}),
+        ...(sort ? { Sort: sort } : {})
       })
       .subscribe({
         next: (paged) => {
@@ -97,6 +115,46 @@ export class EstacionamentoListComponent {
           });
         }
       });
+  }
+
+  /** Cabeçalho clicável: alterna Asc/Desc na mesma coluna. */
+  ordenarPor(col: EstacionamentoListaSortCol): void {
+    if (this.sortCol === col) {
+      this.sortDir = this.sortDir === 'Asc' ? 'Desc' : 'Asc';
+    } else {
+      this.sortCol = col;
+      this.sortDir = 'Asc';
+    }
+    this.numeroPagina = 1;
+    if (this.toolbar.trigger() > 0) {
+      this.carregar();
+    }
+  }
+
+  sortIndicador(col: EstacionamentoListaSortCol): string {
+    if (this.sortCol !== col) return '';
+    return this.sortDir === 'Asc' ? '↑' : '↓';
+  }
+
+  private mapSortColToPropriedade(col: EstacionamentoListaSortCol): string {
+    switch (col) {
+      case 'id':
+        return 'Id';
+      case 'descricao':
+        return 'Descricao';
+      case 'nomeRazaoSocial':
+        return 'NomeRazaoSocial';
+      case 'documento':
+        return 'Documento';
+      case 'capacidadeVeiculo':
+        return 'CapacidadeVeiculo';
+      case 'tamanhoTerreno':
+        return 'TamanhoTerreno';
+      case 'ativo':
+        return 'Ativo';
+      default:
+        return 'Id';
+    }
   }
 
   private resolveSearchProperty(field: EstacionamentoSearchField): string | undefined {
@@ -136,16 +194,18 @@ export class EstacionamentoListComponent {
     this.carregar();
   }
 
-  tipoPessoaLabel(tipo: TipoPessoa): string {
-    return tipo === 1 ? 'PF' : 'PJ';
-  }
-
-  /** Exibe documento formatado: CNPJ para PJ, CPF para PF. */
+  /** Exibe documento formatado por tamanho: CNPJ (14) ou CPF (11). */
   formatDocumento(item: EstacionamentoListItemDTO): string {
     const doc = String(item.documento ?? '').replace(/\D/g, '');
-    if (item.tipoPessoa === 2 && doc.length === 14) return formatCnpj(doc);
-    if (item.tipoPessoa === 1 && doc.length === 11) return formatCpf(doc);
+    if (doc.length === 14) return formatCnpj(doc);
+    if (doc.length === 11) return formatCpf(doc);
     return item.documento ?? '';
+  }
+
+  private shouldRetryDeleteWithPessoaId(err: unknown): boolean {
+    const api = err as ApiError | null;
+    const msg = String(api?.message ?? '').toLowerCase();
+    return /pessoa/.test(msg) && /(nao|não)\s*localiz/.test(msg);
   }
 
   excluir(item: EstacionamentoListItemDTO): void {
@@ -163,10 +223,39 @@ export class EstacionamentoListComponent {
           this.cdr.markForCheck();
         });
       },
-      error: () => {
-        this.ngZone.run(() => {
-          this.excluindoId = null;
-          this.cdr.markForCheck();
+      error: (err: unknown) => {
+        const pessoaId = Number(item.pessoaId ?? 0) || 0;
+        const podeTentarPessoaId = pessoaId > 0 && pessoaId !== item.id && this.shouldRetryDeleteWithPessoaId(err);
+        if (!podeTentarPessoaId) {
+          this.ngZone.run(() => {
+            const msg = (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string')
+              ? (err as ApiError).message
+              : 'Não foi possível excluir o estacionamento.';
+            this.toast.error(msg);
+            this.excluindoId = null;
+            this.cdr.markForCheck();
+          });
+          return;
+        }
+        this.EstacionamentoService.excluir(pessoaId).subscribe({
+          next: () => {
+            this.ngZone.run(() => {
+              this.excluindoId = null;
+              this.toast.success('Estacionamento excluído.');
+              this.carregar();
+              this.cdr.markForCheck();
+            });
+          },
+          error: (errPessoa: unknown) => {
+            this.ngZone.run(() => {
+              const msg = (errPessoa && typeof errPessoa === 'object' && 'message' in errPessoa && typeof (errPessoa as ApiError).message === 'string')
+                ? (errPessoa as ApiError).message
+                : 'Não foi possível excluir o estacionamento.';
+              this.toast.error(msg);
+              this.excluindoId = null;
+              this.cdr.markForCheck();
+            });
+          }
         });
       }
     });

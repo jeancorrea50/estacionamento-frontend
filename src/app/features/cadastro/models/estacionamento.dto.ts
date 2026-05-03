@@ -21,12 +21,15 @@ export interface EstacionamentoDTO {
 /** Item resumido para listagem (conforme retorno da API de listagem) */
 export interface EstacionamentoListItemDTO {
   id: number;
+  pessoaId?: number | null;
   descricao: string;
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
   documento: string;
   email: string;
   ativo: boolean;
+  capacidadeVeiculo?: number | null;
+  tamanhoTerreno?: string | null;
 }
 
 /** Endereço retornado em ObterPorId (pessoa.enderecos) */
@@ -71,7 +74,7 @@ export interface PessoaObterPorIdDTO {
 export interface EstacionamentoPayloadMergeContext {
   estacionamentoDataCriacao?: string;
   estacionamentoDataAtualizacao?: string | null;
-  /** Primeiro item bruto de contaBancaria da API (clone superficial). */
+  /** Objeto bruto de contaBancaria da API (ou primeiro item se vier em lista; clone superficial). */
   contaBancariaPreserved?: Record<string, unknown> | null;
   pessoaDescricao?: string | null;
   pessoaDataCriacao?: string;

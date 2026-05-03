@@ -260,22 +260,83 @@ export class EstacionamentoService {
     return empty();
   }
 
-  /** Mapeia item do Buscar para EstacionamentoListItemDTO (aceita PascalCase e tipo/tipoPessoa). */
+  /** Mapeia item do Buscar para EstacionamentoListItemDTO (aceita PascalCase, aninhamentos e tipo/tipoPessoa). */
   private mapBuscarItemToListItem(row: Record<string, unknown>): EstacionamentoListItemDTO {
     if (!row || typeof row !== 'object') {
-      return { id: 0, descricao: '', tipoPessoa: 2, nomeRazaoSocial: '', documento: '', email: '', ativo: true };
+      return {
+        id: 0,
+        pessoaId: null,
+        descricao: '',
+        tipoPessoa: 2,
+        nomeRazaoSocial: '',
+        documento: '',
+        email: '',
+        ativo: true,
+        capacidadeVeiculo: null,
+        tamanhoTerreno: ''
+      };
     }
-    const g = (k: string) => row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
+    const getKey = (obj: Record<string, unknown>, k: string): unknown =>
+      obj[k] ?? obj[k.charAt(0).toUpperCase() + k.slice(1)];
+    const rowBases = (): Record<string, unknown>[] => {
+      const bases: Record<string, unknown>[] = [row];
+      for (const nestKey of ['estacionamento', 'Estacionamento']) {
+        const nested = row[nestKey];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          bases.push(nested as Record<string, unknown>);
+        }
+      }
+      return bases;
+    };
+    const firstOfKeys = (keys: string[]): unknown => {
+      for (const base of rowBases()) {
+        for (const k of keys) {
+          const v = getKey(base, k);
+          if (v == null) continue;
+          if (typeof v === 'string' && v.trim() === '') continue;
+          return v;
+        }
+      }
+      return undefined;
+    };
+    const g = (k: string) => getKey(row, k);
+    const pessoaRow = row['pessoa'] ?? row['Pessoa'];
+    const pessoaObj =
+      pessoaRow && typeof pessoaRow === 'object' && !Array.isArray(pessoaRow)
+        ? (pessoaRow as Record<string, unknown>)
+        : null;
+    const gPessoa = (k: string) => (pessoaObj ? getKey(pessoaObj, k) : undefined);
     const tipoRaw = g('tipo') ?? g('tipoPessoa');
     const tipoNum = Number(tipoRaw);
+    const capacidadeRaw = firstOfKeys([
+      'capacidadeVeiculo',
+      'capacidade',
+      'qtdVeiculos',
+      'quantidadeVeiculos',
+      'vagas'
+    ]);
+    const capacidade =
+      capacidadeRaw == null || String(capacidadeRaw).trim() === ''
+        ? null
+        : Number(capacidadeRaw);
+    const tamanhoRaw = firstOfKeys(['tamanhoTerreno', 'tamanho', 'areaTerreno', 'metrosQuadrados', 'area']);
+    const nomeRazao =
+      String(g('nomeRazaoSocial') ?? gPessoa('nomeRazaoSocial') ?? gPessoa('nome') ?? '').trim();
+    const doc = String(g('documento') ?? gPessoa('documento') ?? '').trim();
+    const email = String(g('email') ?? gPessoa('email') ?? '').trim();
+    const descricao =
+      String(g('descricao') ?? gPessoa('nomeFantasia') ?? gPessoa('descricao') ?? '').trim();
     return {
       id: Number(g('id')) || 0,
-      descricao: String(g('descricao') ?? ''),
+      pessoaId: Number(g('pessoaId')) || Number(gPessoa('id')) || null,
+      descricao,
       tipoPessoa: (tipoNum === 1 ? 1 : 2) as 1 | 2,
-      nomeRazaoSocial: String(g('nomeRazaoSocial') ?? ''),
-      documento: String(g('documento') ?? ''),
-      email: String(g('email') ?? ''),
-      ativo: g('ativo') !== false
+      nomeRazaoSocial: nomeRazao,
+      documento: doc,
+      email,
+      ativo: g('ativo') !== false && (pessoaObj ? getKey(pessoaObj, 'ativo') !== false : true),
+      capacidadeVeiculo: Number.isFinite(capacidade as number) ? (capacidade as number) : null,
+      tamanhoTerreno: tamanhoRaw != null ? String(tamanhoRaw).trim() : ''
     };
   }
 
@@ -334,10 +395,13 @@ export class EstacionamentoService {
     const p = r.pessoa;
     const telefone = p?.contatos?.find((c) => c.principal)?.numero ?? p?.contatos?.[0]?.numero ?? '';
     const raw = r as unknown as Record<string, unknown>;
-    const contaBancariaList = (raw['contaBancaria'] ?? raw['ContaBancaria']) as Array<Record<string, unknown>> | undefined;
-    const contaBancaria = Array.isArray(contaBancariaList) && contaBancariaList.length > 0
-      ? contaBancariaList[0]
-      : undefined;
+    const contaBancariaRaw = (raw['contaBancaria'] ?? raw['ContaBancaria']) as unknown;
+    const contaBancaria =
+      Array.isArray(contaBancariaRaw) && contaBancariaRaw.length > 0
+        ? (contaBancariaRaw[0] as Record<string, unknown>)
+        : contaBancariaRaw != null && typeof contaBancariaRaw === 'object' && !Array.isArray(contaBancariaRaw)
+          ? (contaBancariaRaw as Record<string, unknown>)
+          : undefined;
     const banco = contaBancaria?.['banco'] ?? contaBancaria?.['Banco'] ?? r.banco ?? '';
     const agenciaNumero = contaBancaria?.['agencia'] ?? contaBancaria?.['Agencia'] ?? r.agencia ?? '';
     const agenciaDigito = contaBancaria?.['agenciaDigito'] ?? contaBancaria?.['AgenciaDigito'] ?? '';
@@ -377,21 +441,35 @@ export class EstacionamentoService {
         (pObj['dataAtualizacao'] ?? pObj['DataAtualizacao'] ?? p?.dataAtualizacao ?? null) as string | null
     };
 
+    const descricaoRoot =
+      String(raw['descricao'] ?? raw['Descricao'] ?? '').trim() ||
+      String(p?.nomeFantasia ?? '').trim() ||
+      String(p?.nomeRazaoSocial ?? '').trim();
+
+    const responsavelEmailRaw =
+      raw['responsavelLegalEmail'] ??
+      raw['ResponsavelLegalEmail'] ??
+      raw['emailResponsavel'] ??
+      raw['EmailResponsavel'];
+
     return {
       id: r.id,
-      descricao: p?.nomeFantasia ?? '',
+      descricao: descricaoRoot,
       pessoaId: r.pessoaId,
       pessoa: {
         id: p?.id ?? 0,
         tipoPessoa: (p?.tipoPessoa === 1 ? 1 : 2) as 1 | 2,
         nomeRazaoSocial: p?.nomeRazaoSocial ?? '',
-        nomeFantasia: p?.nomeFantasia ?? '',
+        nomeFantasia:
+          String(raw['descricao'] ?? raw['Descricao'] ?? '').trim() ||
+          String(p?.nomeFantasia ?? pObj['nomeFantasia'] ?? pObj['NomeFantasia'] ?? '').trim(),
         documento: p?.documento ?? '',
         email: p?.email ?? '',
         ativo: p?.ativo ?? true
       },
       responsavelLegalNome: r.resposanvelLegal ?? '',
       responsavelLegalCpf: r.responsavelCpf ?? '',
+      responsavelLegalEmail: String(responsavelEmailRaw ?? '').trim(),
       contatoTelefone: telefone,
       capacidadeVeiculos: r.capacidadeVeiculo ?? null,
       tamanho: r.tamanhoTerreno ?? '',

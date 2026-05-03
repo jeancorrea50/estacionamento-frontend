@@ -23,26 +23,61 @@
             <section class="card card--cadastro-section">
             <div class="card__header">
               <h2 class="card__title">Estacionamento</h2>
-              <p class="card__description">Campos obrigatórios marcados com *</p>
+              <p class="card__description">Dados da pessoa jurídica do estacionamento. Campos obrigatórios marcados com *</p>
             </div>
-            <div class="form-compact__body">
+            <div class="form-compact__body" formGroupName="pessoa">
               <div class="form-row">
-                <label for="descricao">Nome do Estacionamento <span class="required">*</span></label>
+                <label for="documento">CNPJ <span class="required">*</span></label>
                 <div class="form-row__input">
                   <input
-                    id="descricao"
+                    id="documento"
                     class="field__input"
                     type="text"
-                    formControlName="descricao"
-                    placeholder="Nome do Estacionamento"
+                    formControlName="documento"
+                    placeholder="00.000.000/0001-00"
+                    maxlength="18"
+                    appCnpjFormat
+                    (blur)="onDocumentoCnpjBlur()"
                   />
-                  @if (form.get('descricao')?.invalid && form.get('descricao')?.touched) {
-                    <span class="field__error">
-                      @if (form.get('descricao')?.errors?.['required']) { Nome obrigatório. }
-                      @if (form.get('descricao')?.errors?.['minlength']) { Mín. 2 caracteres. }
-                    </span>
+                  @if (cnpjLoading) {
+                    <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
+                  }
+                  @if (cnpjSuccess) {
+                    <span class="field__hint cnpj-success">{{ cnpjSuccess }}</span>
+                  }
+                  @if (cnpjError) {
+                    <span class="field__error">{{ cnpjError }}</span>
+                  }
+                  @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched && !cnpjError) {
+                    <span class="field__error">{{ documentoErrorMessage }}</span>
                   }
                 </div>
+              </div>
+              <div class="form-row">
+                <label for="nomeRazaoSocial">Razão social <span class="required">*</span></label>
+                <div class="form-row__input">
+                  <input
+                    id="nomeRazaoSocial"
+                    class="field__input"
+                    type="text"
+                    formControlName="nomeRazaoSocial"
+                    placeholder="Razão social"
+                  />
+                  @if (form.get('pessoa.nomeRazaoSocial')?.invalid && form.get('pessoa.nomeRazaoSocial')?.touched) {
+                    <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                  }
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="nomeFantasia">Nome fantasia</label>
+                <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
+              </div>
+              <div class="form-row form-row--checkbox">
+                <label>Status</label>
+                <label class="field__label--checkbox">
+                  <input type="checkbox" formControlName="ativo" />
+                  Ativo
+                </label>
               </div>
             </div>
             <h3 class="card__subtitle">Contrato</h3>
@@ -75,84 +110,79 @@
             </div>
             </section>
 
-            <section class="card card--cadastro-section" formGroupName="pessoa">
+            <section class="card card--cadastro-section">
               <div class="card__header">
-                <h2 class="card__title">Pessoa (responsável)</h2>
-                <p class="card__description">Campos obrigatórios marcados com *</p>
+                <h2 class="card__title">Pessoa responsável</h2>
+                <p class="card__description">Responsável legal (pessoa física). Campos obrigatórios marcados com *</p>
               </div>
               <div class="form-compact__body">
-              <div class="form-row">
-                <label for="nomeRazaoSocial">Razão Social <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="nomeRazaoSocial"
-                    class="field__input"
-                    type="text"
-                    formControlName="nomeRazaoSocial"
-                    placeholder="Razão Social"
-                  />
-                  @if (form.get('pessoa.nomeRazaoSocial')?.invalid && form.get('pessoa.nomeRazaoSocial')?.touched) {
-                    <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
-                  }
+                <div class="form-row">
+                  <label for="responsavelLegalNome">Nome completo <span class="required">*</span></label>
+                  <div class="form-row__input">
+                    <input
+                      id="responsavelLegalNome"
+                      class="field__input"
+                      type="text"
+                      formControlName="responsavelLegalNome"
+                      placeholder="Nome completo"
+                    />
+                    @if (form.get('responsavelLegalNome')?.invalid && form.get('responsavelLegalNome')?.touched) {
+                      <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                    }
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="responsavelLegalCpf">CPF <span class="required">*</span></label>
+                  <div class="form-row__input">
+                    <input
+                      id="responsavelLegalCpf"
+                      class="field__input"
+                      type="text"
+                      formControlName="responsavelLegalCpf"
+                      appCpfFormat
+                      maxlength="14"
+                      placeholder="000.000.000-00"
+                    />
+                    @if (form.get('responsavelLegalCpf')?.invalid && form.get('responsavelLegalCpf')?.touched) {
+                      <span class="field__error">CPF obrigatório com 11 dígitos.</span>
+                    }
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="responsavelLegalEmail">E-mail <span class="required">*</span></label>
+                  <div class="form-row__input">
+                    <input
+                      id="responsavelLegalEmail"
+                      class="field__input"
+                      type="email"
+                      formControlName="responsavelLegalEmail"
+                      placeholder="email@exemplo.com"
+                    />
+                    @if (form.get('responsavelLegalEmail')?.invalid && form.get('responsavelLegalEmail')?.touched) {
+                      <span class="field__error">
+                        @if (form.get('responsavelLegalEmail')?.errors?.['required']) { Obrigatório. }
+                        @if (form.get('responsavelLegalEmail')?.errors?.['email']) { E-mail inválido. }
+                      </span>
+                    }
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="contatoTelefone">Telefone <span class="required">*</span></label>
+                  <div class="form-row__input">
+                    <input
+                      id="contatoTelefone"
+                      class="field__input"
+                      type="tel"
+                      formControlName="contatoTelefone"
+                      appTelefoneFormat
+                      placeholder="(00) 00000-0000"
+                    />
+                    @if (form.get('contatoTelefone')?.invalid && form.get('contatoTelefone')?.touched) {
+                      <span class="field__error">Informe um telefone com DDD (mín. 10 dígitos).</span>
+                    }
+                  </div>
                 </div>
               </div>
-              <div class="form-row">
-                <label for="nomeFantasia">Nome Fantasia</label>
-                <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
-              </div>
-              <div class="form-row">
-                <label for="documento">CNPJ <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="documento"
-                    class="field__input"
-                    type="text"
-                    formControlName="documento"
-                    placeholder="00.000.000/0001-00"
-                    maxlength="18"
-                    appCnpjFormat
-                    (blur)="onDocumentoCnpjBlur()"
-                  />
-                  @if (cnpjLoading) {
-                    <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
-                  }
-                  @if (cnpjSuccess) {
-                    <span class="field__hint cnpj-success">{{ cnpjSuccess }}</span>
-                  }
-                  @if (cnpjError) {
-                    <span class="field__error">{{ cnpjError }}</span>
-                  }
-                  @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched && !cnpjError) {
-                    <span class="field__error">{{ documentoErrorMessage }}</span>
-                  }
-                </div>
-              </div>
-              <div class="form-row">
-                <label for="email">E-mail <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="email"
-                    class="field__input"
-                    type="email"
-                    formControlName="email"
-                    placeholder="email@exemplo.com"
-                  />
-                  @if (form.get('pessoa.email')?.invalid && form.get('pessoa.email')?.touched) {
-                    <span class="field__error">
-                      @if (form.get('pessoa.email')?.errors?.['required']) { Obrigatório. }
-                      @if (form.get('pessoa.email')?.errors?.['email']) { E-mail inválido. }
-                    </span>
-                  }
-                </div>
-              </div>
-              <div class="form-row form-row--checkbox">
-                <label>Status</label>
-                <label class="field__label--checkbox">
-                  <input type="checkbox" formControlName="ativo" />
-                  Ativo
-                </label>
-              </div>
-            </div>
             </section>
 
           <section class="card card--cadastro-section card--accordion card--complementares" [class.card--open]="complementaresOpen">
@@ -313,48 +343,11 @@
 
           <section class="card card--cadastro-section card--accordion card--contatos" [class.card--open]="contatosOpen">
             <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
-              <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
+              <h2 class="card__title">Contatos complementares</h2>
               <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
             </button>
             @if (contatosOpen) {
               <div class="card__body contatos-body">
-                <div class="contatos-block">
-                  <h3 class="card__subtitle">Responsável legal</h3>
-                  <div class="form-compact__body">
-                    <div class="form-row">
-                      <label for="responsavelLegalNome">Nome</label>
-                      <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" placeholder="Nome do responsável" />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelLegalCpf">CPF</label>
-                      <input
-                        id="responsavelLegalCpf"
-                        class="field__input"
-                        type="text"
-                        formControlName="responsavelLegalCpf"
-                        appCpfFormat
-                        maxlength="14"
-                        placeholder="000.000.000-00"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label for="contatoTelefone">Telefone</label>
-                      <input
-                        id="contatoTelefone"
-                        class="field__input"
-                        type="tel"
-                        formControlName="contatoTelefone"
-                        appTelefoneFormat
-                        placeholder="(00) 00000-0000"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelLegalEmail">E-mail</label>
-                      <input id="responsavelLegalEmail" class="field__input" type="email" formControlName="responsavelLegalEmail" placeholder="email@exemplo.com" />
-                    </div>
-                  </div>
-                </div>
-
                 <div class="contatos-complementares-actions">
                   <button
                     type="button"
@@ -507,6 +500,8 @@
                         <li
                           role="option"
                           class="banco-combo__item"
+                          [class.banco-combo__item--selected]="form.get('banco')?.value === bancoToOption(b)"
+                          [attr.aria-selected]="form.get('banco')?.value === bancoToOption(b) ? 'true' : 'false'"
                           (mousedown)="selecionarBanco(bancoToOption(b)); $event.preventDefault()"
                         >
                           {{ bancoToOption(b) }}
@@ -601,6 +596,8 @@
                         <li
                           role="option"
                           class="tipo-conta-combo__item"
+                          [class.tipo-conta-combo__item--selected]="form.get('tipoConta')?.value === op.value"
+                          [attr.aria-selected]="form.get('tipoConta')?.value === op.value ? 'true' : 'false'"
                           (mousedown)="selecionarTipoConta(op.value); $event.preventDefault()"
                         >
                           {{ op.label }}

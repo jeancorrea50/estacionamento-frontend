@@ -7,7 +7,8 @@ import type { EstacionamentoPayloadMergeContext } from '../../models/estacioname
 
 export interface FormValue {
   id: number;
-  descricao: string;
+  /** Legado / opcional: no fluxo atual `descricao` do estacionamento é derivada de Nome Fantasia / Razão Social no mapper. */
+  descricao?: string;
   pessoaId: number;
   pessoa: {
     id: number;
@@ -123,12 +124,17 @@ export function contaBancariaRegistroComDadosRelevantes(item: unknown): boolean 
   );
 }
 
-/** Primeiro nível: lista `contaBancaria` do JSON do GET. */
+/**
+ * Primeiro nível: `contaBancaria` do JSON do GET.
+ * A API pode devolver lista ou um único objeto; normalizamos para array interno.
+ */
 export function extrairContaBancariaDaRespostaApi(raw: unknown): unknown[] {
   if (raw == null || typeof raw !== 'object') return [];
   const o = raw as Record<string, unknown>;
   const list = o['contaBancaria'] ?? o['ContaBancaria'];
-  return Array.isArray(list) ? list : [];
+  if (Array.isArray(list)) return list;
+  if (list != null && typeof list === 'object') return [list];
+  return [];
 }
 
 /**
@@ -294,6 +300,10 @@ export function montarPayloadEstacionamento(
     String(value.pessoa?.nomeRazaoSocial ?? '').trim() ||
     '';
 
+  const emailPessoa =
+    String(value.responsavelLegalEmail ?? '').trim() ||
+    String(value.pessoa?.email ?? '').trim();
+
   const pessoa: Record<string, unknown> = {
     id: value.pessoa?.id ?? 0,
     descricao: pessoaDescricao,
@@ -303,7 +313,7 @@ export function montarPayloadEstacionamento(
     nomeRazaoSocial: value.pessoa?.nomeRazaoSocial ?? '',
     nomeFantasia: value.pessoa?.nomeFantasia ?? '',
     documento: doc,
-    email: value.pessoa?.email ?? '',
+    email: emailPessoa,
     ativo: value.pessoa?.ativo ?? true,
     enderecos,
     contatos
@@ -313,11 +323,14 @@ export function montarPayloadEstacionamento(
   const capacidade = value.capacidadeVeiculos != null ? Number(value.capacidadeVeiculos) : 0;
   const estacionamentoIdRoot = Number(value.id ?? 0) || 0;
 
+  const descricaoEstacionamento =
+    String(value.pessoa?.nomeFantasia ?? '').trim() ||
+    String(value.pessoa?.nomeRazaoSocial ?? '').trim() ||
+    String(value.descricao ?? '').trim();
+
   const preservedConta = merge?.contaBancariaPreserved ?? null;
   const mergedConta = buildContaBancariaMerged(preservedConta, value, estacionamentoIdRoot, nowIso);
-  const contaBancariaPayload = contaBancariaRegistroComDadosRelevantes(mergedConta)
-    ? [mergedConta]
-    : [];
+  const contaBancariaPayload = contaBancariaRegistroComDadosRelevantes(mergedConta) ? mergedConta : undefined;
 
   const estDataCriacao =
     merge?.estacionamentoDataCriacao != null && String(merge.estacionamentoDataCriacao).trim() !== ''
@@ -326,10 +339,10 @@ export function montarPayloadEstacionamento(
 
   const payload: Record<string, unknown> = {
     id: value.id ?? 0,
-    descricao: value.descricao ?? '',
+    descricao: descricaoEstacionamento,
     dataCriacao: estDataCriacao,
     dataAtualizacao: nowIso,
-    pessoaId: value.pessoaId ?? 0,
+    pessoaId,
     capacidadeVeiculo: capacidade,
     tamanhoTerreno: value.tamanho != null ? String(value.tamanho) : '',
     resposanvelLegal: value.responsavelLegalNome ?? '',
@@ -339,9 +352,12 @@ export function montarPayloadEstacionamento(
     tipoCobranca,
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
-    pessoa,
-    contaBancaria: contaBancariaPayload
+    pessoa
   };
+
+  if (contaBancariaPayload) {
+    payload['contaBancaria'] = contaBancariaPayload;
+  }
 
   const fotos = fotosBase64?.filter((f) => typeof f === 'string' && f.length > 0) ?? [];
   if (fotos.length > 0) {
@@ -377,9 +393,9 @@ export function montarPayloadSalvarAbaDadosBancarios(
   const base = montarPayloadEstacionamento(value, enderecosCarregados ?? null, [], merge);
   const merged = buildContaBancariaMerged(merge?.contaBancariaPreserved ?? null, value, estacionamentoId, nowIso);
   if (!contaBancariaRegistroComDadosRelevantes(merged)) {
-    base['contaBancaria'] = [];
+    delete base['contaBancaria'];
   } else {
-    base['contaBancaria'] = [merged];
+    base['contaBancaria'] = merged;
     base['dataAtualizacao'] = nowIso;
   }
   return stripUndefinedDeep(base) as Record<string, unknown>;

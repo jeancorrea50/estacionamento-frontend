@@ -109,10 +109,60 @@
     font-weight: 600;
     font-size: 0.75rem;
     background: var(--surface-2);
+    vertical-align: middle;
+  }
+
+  th.data-table__th--acoes {
+    color: var(--muted);
   }
 
   td {
     color: var(--text);
+  }
+
+  .data-table__sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 4px 2px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .data-table__sort-btn:hover {
+    background: var(--table-row-hover, rgba(255, 255, 255, 0.06));
+    color: var(--text);
+  }
+
+  .data-table__sort-btn:focus-visible {
+    outline: 2px solid var(--focus, #5b7cff);
+    outline-offset: 2px;
+  }
+
+  .data-table__sort-mark {
+    font-size: 0.7rem;
+    opacity: 0.85;
+    min-width: 0.75em;
+  }
+
+  .cell-ativo {
+    font-weight: 600;
+  }
+
+  .cell-ativo--sim {
+    color: var(--success, #22c55e);
+  }
+
+  .cell-ativo--nao {
+    color: var(--danger, #ef4444);
   }
 
   tbody tr:hover {

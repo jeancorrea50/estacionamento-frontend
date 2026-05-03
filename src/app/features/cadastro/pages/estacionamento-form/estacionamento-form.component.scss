@@ -649,19 +649,19 @@
   width: 40px;
   padding: 0;
   border: 1px solid var(--input-border, var(--color-border));
-  border-left: 1px solid #3f4354;
+  border-left: 1px solid var(--input-border, var(--color-border));
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  background: #262938;
-  color: #fff;
+  background: var(--surface-2, var(--input-bg));
+  color: var(--input-text, var(--color-text));
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .banco-combo__trigger:hover,
 .tipo-conta-combo__trigger:hover {
-  background: #2e3142;
+  background: var(--table-row-hover, rgba(255, 255, 255, 0.08));
 }
 
 .banco-combo__input-wrap:focus-within .banco-combo__trigger,
@@ -681,31 +681,43 @@
   top: 100%;
   left: 0;
   right: 0;
-  margin: 0;
+  margin: 4px 0 0;
   padding: 0;
   list-style: none;
-  max-height: 220px;
+  max-height: min(280px, 50vh);
   overflow-y: auto;
-  background: #1e293b;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  z-index: 10;
+  overflow-x: hidden;
+  background: var(--input-bg, var(--surface));
+  border: 1px solid var(--input-border, var(--color-border));
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.12));
+  z-index: 40;
 }
 
 .banco-combo__item,
 .tipo-conta-combo__item {
   padding: var(--space-8) var(--space-12);
   font-size: var(--input-size);
-  color: var(--color-text);
+  color: var(--input-text, var(--color-text));
   cursor: pointer;
-  transition: background 0.1s ease;
-  background: #1e293b;
+  transition: background 0.12s ease, font-weight 0.12s ease;
+  background: transparent;
 }
 
 .banco-combo__item:hover,
 .tipo-conta-combo__item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--table-row-hover, rgba(255, 255, 255, 0.08));
+}
+
+.banco-combo__item--selected,
+.tipo-conta-combo__item--selected {
+  background: var(--surface-2, rgba(0, 0, 0, 0.04));
+  font-weight: 600;
+}
+
+.banco-combo__item--selected:hover,
+.tipo-conta-combo__item--selected:hover {
+  background: var(--table-row-hover, rgba(255, 255, 255, 0.1));
 }
 
 .banco-combo__item--empty,

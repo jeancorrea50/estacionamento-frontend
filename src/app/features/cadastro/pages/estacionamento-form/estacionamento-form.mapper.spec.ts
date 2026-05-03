@@ -4,6 +4,7 @@ import {
   montarPayloadEstacionamento,
   buildAgencia,
   buildConta,
+  extrairContaBancariaDaRespostaApi,
   type FormValue
 } from './estacionamento-form.mapper';
 import type { EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
@@ -11,7 +12,6 @@ import type { EstacionamentoPayloadMergeContext } from '../../models/estacioname
 describe('Estacionamento-form.mapper', () => {
   const baseFormValue: FormValue = {
     id: 0,
-    descricao: 'Estacionamento Teste',
     pessoaId: 0,
     pessoa: {
       id: 0,
@@ -19,11 +19,12 @@ describe('Estacionamento-form.mapper', () => {
       nomeRazaoSocial: 'Razão Social LTDA',
       nomeFantasia: 'Fantasia',
       documento: '12.345.678/0001-90',
-      email: 'contato@teste.com',
+      email: '',
       ativo: true
     },
     responsavelLegalNome: 'Alexsander Penna',
     responsavelLegalCpf: '060.064.311-57',
+    responsavelLegalEmail: 'resp@exemplo.com',
     contatoTelefone: '(11) 98765-4321',
     capacidadeVeiculos: 50,
     tamanho: '500',
@@ -38,7 +39,7 @@ describe('Estacionamento-form.mapper', () => {
     const payload = formValueToEstacionamentoPayload(baseFormValue);
 
     expect(payload).toHaveProperty('id', 0);
-    expect(payload).toHaveProperty('descricao', 'Estacionamento Teste');
+    expect(payload).toHaveProperty('descricao', 'Fantasia');
     expect(payload).toHaveProperty('dataCriacao');
     expect(payload).toHaveProperty('dataAtualizacao');
     expect(payload).toHaveProperty('pessoaId', 0);
@@ -52,10 +53,10 @@ describe('Estacionamento-form.mapper', () => {
     expect(payload).toHaveProperty('cobrancaPorcentagem', 10);
     expect(payload).toHaveProperty('cobrancaValor', 0);
     expect(payload).toHaveProperty('pessoa');
-    expect(Array.isArray(payload['contaBancaria'])).toBe(true);
-    expect((payload['contaBancaria'] as unknown[]).length).toBe(0);
+    expect(payload['contaBancaria']).toBeUndefined();
     const pessoaRoot = payload['pessoa'] as Record<string, unknown>;
     expect(pessoaRoot['descricao']).toBe('Fantasia');
+    expect(pessoaRoot['email']).toBe('resp@exemplo.com');
     expect(typeof pessoaRoot['dataCriacao']).toBe('string');
     expect(typeof pessoaRoot['dataAtualizacao']).toBe('string');
   });
@@ -146,16 +147,16 @@ describe('Estacionamento-form.mapper', () => {
       contaDigito: '6'
     };
     const payload = formValueToEstacionamentoPayload(value);
-    const conta = payload['contaBancaria'] as Array<Record<string, unknown>> | undefined;
-    expect(Array.isArray(conta)).toBe(true);
-    expect(conta?.[0]?.['agencia']).toBe('1216');
-    expect(conta?.[0]?.['agenciaDigito']).toBe('0');
-    expect(conta?.[0]?.['conta']).toBe('12345');
-    expect(conta?.[0]?.['contaDigito']).toBe('6');
-    expect(conta?.[0]?.['estacionamentoId']).toBe(5);
-    expect(String(conta?.[0]?.['descricao'] ?? '').length).toBeGreaterThan(0);
-    expect(typeof conta?.[0]?.['dataCriacao']).toBe('string');
-    expect(typeof conta?.[0]?.['dataAtualizacao']).toBe('string');
+    const conta = payload['contaBancaria'] as Record<string, unknown> | undefined;
+    expect(conta && typeof conta === 'object' && !Array.isArray(conta)).toBe(true);
+    expect(conta?.['agencia']).toBe('1216');
+    expect(conta?.['agenciaDigito']).toBe('0');
+    expect(conta?.['conta']).toBe('12345');
+    expect(conta?.['contaDigito']).toBe('6');
+    expect(conta?.['EstacionamentoId']).toBe(5);
+    expect(String(conta?.['descricao'] ?? '').length).toBeGreaterThan(0);
+    expect(typeof conta?.['dataCriacao']).toBe('string');
+    expect(typeof conta?.['dataAtualizacao']).toBe('string');
   });
 
   it('montarPayloadEstacionamento com merge preserva dataCriacao do estacionamento e mescla conta da API', () => {
@@ -188,10 +189,18 @@ describe('Estacionamento-form.mapper', () => {
     const pessoa = payload['pessoa'] as Record<string, unknown>;
     expect(pessoa['descricao']).toBe('Descr merge');
     expect(pessoa['dataCriacao']).toBe('2021-05-01T10:00:00.000Z');
-    const contas = payload['contaBancaria'] as Array<Record<string, unknown>>;
-    expect(contas[0]['id']).toBe(77);
-    expect(contas[0]['dataCriacao']).toBe('2021-07-01T08:00:00.000Z');
-    expect(contas[0]['campoExtraDaApi']).toBe('mantido');
-    expect(contas[0]['estacionamentoId']).toBe(10);
+    const conta = payload['contaBancaria'] as Record<string, unknown>;
+    expect(conta['id']).toBe(77);
+    expect(conta['dataCriacao']).toBe('2021-07-01T08:00:00.000Z');
+    expect(conta['campoExtraDaApi']).toBe('mantido');
+    expect(conta['EstacionamentoId']).toBe(10);
+  });
+
+  it('extrairContaBancariaDaRespostaApi aceita contaBancaria como objeto único', () => {
+    const lista = extrairContaBancariaDaRespostaApi({
+      contaBancaria: { id: 1, banco: '001' }
+    });
+    expect(lista.length).toBe(1);
+    expect((lista[0] as Record<string, unknown>)['id']).toBe(1);
   });
 });

@@ -9,7 +9,7 @@
     "test": "ng test",
     "test:e2e": "playwright test",
     "generate:api": "openapi-typescript http://108.174.145.123:5000/swagger/v1/swagger.json -o src/app/core/api/generated/api-types.ts",
-    "generate:api:deploy": "openapi-typescript http://108.174.145.123:5000:5000/swagger/v1/swagger.json -o src/app/core/api/generated/api-types.ts"
+    "generate:api:deploy": "openapi-typescript http://108.174.145.123:5000/swagger/v1/swagger.json -o src/app/core/api/generated/api-types.ts"
   },
   "prettier": {
     "printWidth": 100,

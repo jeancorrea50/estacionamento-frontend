@@ -253,52 +253,28 @@ input:focus {
   margin-top: 8px;
   width: 100%;
   height: 48px;
-  border-radius: 14px;
-  border: 1px solid rgba(29, 78, 216, 0.62);
+  border-radius: var(--btn-radius, 6px);
   cursor: pointer;
   font-weight: 600;
-  background: transparent;
-  color: #93c5fd;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.08s ease;
+  font-size: var(--font-body, 14px);
+  box-sizing: border-box;
+  background: var(--btn-primary-bg, #2563eb);
+  color: var(--btn-primary-text, #ffffff);
+  border: 1px solid var(--btn-primary-border, #1d4ed8);
+  box-shadow: var(--btn-shadow, 0 1px 2px rgba(0, 0, 0, 0.12));
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn:hover:not(:disabled) {
-  background: linear-gradient(90deg, #1e3a8a 0%, #1d4ed8 100%);
-  color: #fff;
-  border-color: transparent;
-  filter: brightness(1.06);
-  transform: translateY(-1px);
+  background: var(--btn-primary-bg-hover, #1d4ed8);
+  color: var(--btn-primary-text, #ffffff);
+  border-color: var(--btn-primary-border, #1d4ed8);
+  box-shadow: var(--btn-shadow-hover, 0 2px 4px rgba(0, 0, 0, 0.14));
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
-  filter: none;
-  transform: none;
-}
-
-/** WHITE MODE: botão Entrar — mesmo primário global (Etapa 4 ~50%) */
-:host-context(html.theme-light) .btn:not(:disabled) {
-  background: rgba(48, 128, 208, 0.5);
-  color: #0a3890;
-  border: 1px solid #3080d0;
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-:host-context(html.theme-light) .btn:hover:not(:disabled) {
-  background: rgba(48, 128, 208, 0.65);
-  border-color: #3080d0;
-  color: #0a3890;
-  filter: none;
-  transform: translateY(-1px);
-}
-
-:host-context(html.theme-light) .btn:disabled {
-  background: rgba(48, 128, 208, 0.12);
-  color: rgba(10, 56, 144, 0.42);
-  border-color: var(--color-border-light, #e0ecf8);
-  opacity: 1;
 }
 
 

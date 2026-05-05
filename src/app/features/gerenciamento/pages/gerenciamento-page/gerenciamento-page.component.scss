@@ -410,7 +410,7 @@
 
 .perfil-select-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -418,6 +418,17 @@
 .perfil-select-row .input-control {
   flex: 1;
   min-width: 140px;
+  min-height: 40px;
+}
+
+.perfil-select-row .btn {
+  flex-shrink: 0;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  height: auto !important;
 }
 
 .novo-perfil-inline {
@@ -661,37 +672,17 @@
   left: 0;
   right: 0;
   top: 100%;
-  margin: 0;
-  padding: 4px 0;
   list-style: none;
-  background: var(--card-bg);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 1100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: var(--ds-select-panel-z, 1100);
 }
 
 .autocomplete-dropdown li button {
   width: 100%;
-  padding: 10px 12px;
   border: none;
   background: none;
-  color: var(--text);
-  font-size: 0.9375rem;
   text-align: left;
   cursor: pointer;
-}
-
-.autocomplete-dropdown li button:hover {
-  background: var(--table-row-hover);
-}
-
-.autocomplete-empty {
-  padding: 10px 12px;
-  font-size: 0.9375rem;
-  color: var(--muted);
+  font-family: inherit;
 }
 
 .detail-list {

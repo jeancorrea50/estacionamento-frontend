@@ -10,7 +10,8 @@ import type {
   RedefinirSenhaRequest,
   RedefinirSenhaResultDto,
   RegistroResult,
-  RegisterInput,
+  RegisterInputRegister,
+  RegisterInputUpdate,
   UsuarioDetalheOutput,
   UsuarioOutput
 } from '../types/usuario-api.types';
@@ -92,7 +93,7 @@ export class UsuarioApiService {
    * POST api/auth/Usuario/Register
    * @returns conteúdo de result (pode conter RegistroResult).
    */
-  register(dto: RegisterInput): Observable<RegistroResult | unknown> {
+  register(dto: RegisterInputRegister): Observable<RegistroResult | unknown> {
     return this.http.post<unknown>(`${USUARIO_BASE}/Register`, dto).pipe(
       timeout(HTTP_TIMEOUT_MS),
       map((body) => unwrapServiceResult<RegistroResult | unknown>(body))
@@ -100,7 +101,7 @@ export class UsuarioApiService {
   }
 
   /** PUT api/auth/Usuario/{id} */
-  atualizar(id: string | number, dto: RegisterInput): Observable<unknown> {
+  atualizar(id: string | number, dto: RegisterInputUpdate): Observable<unknown> {
     return this.http
       .put<unknown>(`${USUARIO_BASE}/${encodeURIComponent(idSeg(id))}`, dto)
       .pipe(

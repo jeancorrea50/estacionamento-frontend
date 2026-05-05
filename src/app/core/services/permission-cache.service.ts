@@ -19,8 +19,21 @@ export class PermissionCacheService {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
-        const p = JSON.parse(raw) as string[];
-        if (Array.isArray(p)) return p;
+        const p = JSON.parse(raw) as unknown[];
+        if (Array.isArray(p)) {
+          const normalized = Array.from(
+            new Set(p.map((k) => normalizePermissionKey(String(k))).filter(Boolean))
+          );
+          const serialized = JSON.stringify(normalized);
+          if (serialized !== raw) {
+            try {
+              localStorage.setItem(LS_KEY, serialized);
+            } catch {
+              /* ignore */
+            }
+          }
+          return normalized;
+        }
       }
     } catch {
       /* ignore */
@@ -29,8 +42,15 @@ export class PermissionCacheService {
   }
 
   setKeys(keys: string[]): void {
-    this.keys.set(keys);
-    localStorage.setItem(LS_KEY, JSON.stringify(keys));
+    const normalized = Array.from(
+      new Set(keys.map((k) => normalizePermissionKey(k)).filter(Boolean))
+    );
+    this.keys.set(normalized);
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(normalized));
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Logout: remove permissões em memória e no storage. */

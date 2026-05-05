@@ -39,15 +39,15 @@ export interface UsuarioDetalheOutput {
 }
 
 /**
- * POST Register / PUT {id} — corpo (RegisterInput).
- * Senha opcional no PUT; se preencher, confirmPassword deve coincidir.
+ * PUT `api/auth/Usuario/{id}` — mesmo shape que Register no Swagger; senha opcional na edição.
+ * Alinhado a `components.schemas.RegisterInput` em api-types.ts (`EstacionamentoId` opcional).
  */
-export interface RegisterInput {
+export interface RegisterInputUpdate {
   userName: string;
   password?: string;
   confirmPassword?: string;
   email?: string;
-  EstacionamentoId: number;
+  EstacionamentoId?: number;
   pessoa: {
     id: number;
     nome: string;
@@ -58,6 +58,14 @@ export interface RegisterInput {
     name: string;
   };
 }
+
+/**
+ * POST `api/auth/Usuario/Register` — o OpenAPI marca `password` como obrigatório no cadastro.
+ */
+export type RegisterInputRegister = RegisterInputUpdate & { password: string };
+
+/** Alias legado — use {@link RegisterInputUpdate} ou {@link RegisterInputRegister} conforme o verbo HTTP. */
+export type RegisterInput = RegisterInputUpdate;
 
 /** Resposta de POST Register (quando a API retorna detalhe do fluxo de e-mail). */
 export interface RegistroResult {

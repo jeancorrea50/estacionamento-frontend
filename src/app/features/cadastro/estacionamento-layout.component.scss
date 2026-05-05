@@ -8,6 +8,8 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Não criar scrollport extra — rolagem fica no .main-content (sticky do resumo lateral). */
+  overflow: visible;
 }
 
 .page-header {
@@ -28,6 +30,29 @@
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.estacao-page-header__row--top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.estacao-page-header__titles {
+  flex: 1;
+  min-width: min(100%, 280px);
+}
+
+.estacao-page-header__actions {
+  flex-shrink: 0;
+}
+
+.estacao-tabs {
+  width: 100%;
+  max-width: 100%;
 }
 
 .page-header__row--1 {
@@ -63,6 +88,12 @@
   box-shadow: var(--shadow-sm);
 }
 
+.estacao-tabs.tabs {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .tab {
   height: 36px;
   padding: 0 16px;
@@ -87,6 +118,17 @@
   color: var(--text);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
+}
+
+/* Cadastro Estacionamento: aba ativa (teal claro / azul escuro) */
+html.theme-light .estacao-tabs .tab.tab--active {
+  color: #0f766e;
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.25);
+}
+
+html.theme-dark .estacao-tabs .tab.tab--active {
+  color: #93c5fd;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
 }
 
 .page-header__actions {
@@ -143,7 +185,9 @@
 
 .page-content {
   flex: 1;
-  overflow-y: auto;
+  /* Rolagem única no main-layout (.main-content); evita scroll aninhado que quebra position:sticky no formulário */
+  overflow-x: hidden;
+  overflow-y: visible;
   min-height: 0;
   position: relative;
   padding: 0;
@@ -157,6 +201,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: visible;
 
   &.tab-panel--hidden {
     position: absolute;
@@ -168,6 +213,16 @@
 .filter-card,
 .data-card {
   width: 100%;
+  min-width: 0;
+}
+
+/*
+ * Global (styles.css) aplica overflow-x: hidden em .data-card, o que no CSS força o eixo Y
+ * a computar como "auto" e cria scrollport interno — quebra position:sticky do resumo lateral.
+ * Aqui forçamos overflow totalmente visível; listagens usam .table-wrap para scroll horizontal.
+ */
+:host .data-card {
+  overflow: visible !important;
 }
 
 .dev-card {

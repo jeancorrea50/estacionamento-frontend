@@ -1,22 +1,26 @@
 <div class="page-container">
-  <header class="page-header page-header-card">
-    <div class="page-header__row page-header__row--1">
-      <h1 class="page-title">Cadastro Transportadora</h1>
-      <p class="page-subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
-    </div>
-    <div class="page-header__row page-header__row--2">
-      @if (listView) {
-      } @else {
-        <nav class="tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'motoristas'" [attr.aria-selected]="activeTab === 'motoristas'" (click)="setTab('motoristas')">Motoristas</button>
-        </nav>
-        <div class="page-header__actions">
+  <header class="page-header page-header-card estacao-page-header">
+    <div class="estacao-page-header__row estacao-page-header__row--top">
+      <div class="estacao-page-header__titles">
+        <h1 class="page-title">Cadastro Transportadora</h1>
+        <p class="page-subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
+      </div>
+      @if (!listView) {
+        <div class="page-header__actions estacao-page-header__actions">
           <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
+          @if (activeTab === 'cadastro') {
+            <button type="button" class="btn btn-primary" (click)="salvarTransportadora()" [disabled]="salvando">Salvar</button>
+          }
         </div>
       }
     </div>
+    @if (!listView) {
+      <nav class="tabs estacao-tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
+        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
+        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
+        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'motoristas'" [attr.aria-selected]="activeTab === 'motoristas'" (click)="setTab('motoristas')">Motoristas</button>
+      </nav>
+    }
   </header>
 
   <div class="page-content">
@@ -93,211 +97,319 @@
           </section>
         } @else {
           <div class="tab-panel tab-panel--form">
-            <div class="container container--form">
-              @if (erroForm) {
-                <p class="error-banner">{{ erroForm }}</p>
-              }
-              <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact cadastro-transportadora-form">
-                <input type="hidden" formControlName="id" />
+            <div class="cadastro-module-form-wrapper est-cadastro">
+              <div class="est-cadastro__container">
+                @if (erroForm) {
+                  <p class="error-banner">{{ erroForm }}</p>
+                }
+                <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact cadastro-transportadora-form">
+                  <input type="hidden" formControlName="id" />
 
-                <div class="cadastro-stack">
-                  <section class="card card--cadastro-section" formGroupName="pessoa">
-                    <div class="card__header">
-                      <h2 class="card__title">Pessoa (responsável)</h2>
-                      <p class="card__description">Campos obrigatórios marcados com *</p>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="razaoSocial">Razão Social <span class="required">*</span></label>
-                        <div class="form-row__input">
-                          <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
-                          @if (transportadoraForm.get('pessoa.razaoSocial')?.invalid && transportadoraForm.get('pessoa.razaoSocial')?.touched) {
-                            <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="form-row">
-                        <label for="nomeFantasia">Nome Fantasia</label>
-                        <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
-                      </div>
-                      <div class="form-row">
-                        <label for="cnpj">CNPJ <span class="required">*</span></label>
-                        <div class="form-row__input">
-                          <input
-                            id="cnpj"
-                            class="field__input"
-                            type="text"
-                            formControlName="cnpj"
-                            placeholder="00.000.000/0001-00"
-                            maxlength="18"
-                            appCnpjFormat
-                            (blur)="onCnpjBlur()"
-                          />
-                          @if (cnpjLoading) {
-                            <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
-                          }
-                          @if (cnpjSuccess) {
-                            <span class="field__hint cnpj-success">{{ cnpjSuccess }}</span>
-                          }
-                          @if (cnpjError) {
-                            <span class="field__error">{{ cnpjError }}</span>
-                          }
-                          @if (transportadoraForm.get('pessoa.cnpj')?.invalid && transportadoraForm.get('pessoa.cnpj')?.touched && !cnpjError) {
-                            <span class="field__error">CNPJ obrigatório.</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="form-row">
-                        <label for="email-pessoa">E-mail <span class="required">*</span></label>
-                        <div class="form-row__input">
-                          <input id="email-pessoa" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                          @if (transportadoraForm.get('pessoa.email')?.invalid && transportadoraForm.get('pessoa.email')?.touched) {
-                            <span class="field__error">Informe um e-mail válido.</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="form-row">
-                        <label for="inscricaoEstadual">Inscrição Estadual</label>
-                        <input id="inscricaoEstadual" class="field__input" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
-                      </div>
-                      <div class="form-row form-row--checkbox">
-                        <label>Status</label>
-                        <label class="field__label--checkbox">
-                          <input type="checkbox" formControlName="ativo" />
-                          Ativo
-                        </label>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="card card--cadastro-section card--contatos">
-                    <button
-                      type="button"
-                      class="card__header card__header--collapsible"
-                      (click)="toggleContatosSection()"
-                      [attr.aria-expanded]="contatosSectionExpanded"
-                    >
-                      <div class="card__header-text">
-                        <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
-                      </div>
-                      <span class="material-symbols-outlined card__collapse-icon" aria-hidden="true">{{ contatosSectionExpanded ? 'expand_less' : 'expand_more' }}</span>
-                    </button>
-                    <div class="form-compact__body" [hidden]="!contatosSectionExpanded">
-                        <div class="contato-bloco" formGroupName="responsavelLegal">
-                          <p class="contato-bloco__subtitle">Responsável legal</p>
-                          <div class="form-row">
-                            <label for="rl-nome">Nome</label>
-                            <input id="rl-nome" class="field__input" type="text" formControlName="nome" placeholder="Nome do responsável" />
-                          </div>
-                          <div class="form-row">
-                            <label for="rl-cpf">CPF</label>
-                            <input id="rl-cpf" class="field__input" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
-                          </div>
-                          <div class="form-row">
-                            <label for="rl-tel">Telefone</label>
-                            <input id="rl-tel" class="field__input" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
-                          </div>
-                          <div class="form-row">
-                            <label for="rl-email">E-mail</label>
-                            <div class="form-row__input">
-                              <input id="rl-email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                              @if (transportadoraForm.get('responsavelLegal.email')?.invalid && transportadoraForm.get('responsavelLegal.email')?.touched) {
-                                <span class="field__error">E-mail inválido.</span>
-                              }
+                  <div class="est-page-grid">
+                    <div class="est-page-grid__main">
+                      <div class="cadastro-stack">
+                        <section class="card card--cadastro-section est-card">
+                          <div class="est-card__head">
+                            <span class="est-card__icon material-symbols-outlined" aria-hidden="true">local_shipping</span>
+                            <div>
+                              <h2 class="card__title est-card__title">Dados da Transportadora</h2>
+                              <p class="card__description est-card__lede">Pessoa jurídica. Obrigatórios com <span class="required">*</span></p>
                             </div>
                           </div>
-                        </div>
-
-                        <div formArrayName="contatosComplementares">
-                          @for (ctrl of contatosComplementares.controls; track $index) {
-                            <div class="contato-bloco contato-bloco--complementar" [formGroupName]="$index">
-                              <div class="contato-bloco__head">
-                                <span class="contato-bloco__subtitle">Contato complementar</span>
-                                <button type="button" class="btn btn-danger btn--outline btn--sm" (click)="removerContatoComplementar($index)">Remover</button>
-                              </div>
-                              <div class="form-row">
-                                <label [attr.for]="'cc-nome-' + $index">Nome</label>
-                                <input [id]="'cc-nome-' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
-                              </div>
-                              <div class="form-row">
-                                <label [attr.for]="'cc-cpf-' + $index">CPF</label>
-                                <input [id]="'cc-cpf-' + $index" class="field__input" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
-                              </div>
-                              <div class="form-row">
-                                <label [attr.for]="'cc-tel-' + $index">Telefone</label>
-                                <input [id]="'cc-tel-' + $index" class="field__input" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
-                              </div>
-                              <div class="form-row">
-                                <label [attr.for]="'cc-email-' + $index">E-mail</label>
+                          <div class="est-card__body" formGroupName="pessoa">
+                            <div class="est-field-grid est-field-grid--3">
+                              <div class="est-field">
+                                <label class="est-field__label" for="cnpj-trans">CNPJ <span class="required">*</span></label>
                                 <div class="form-row__input">
-                                  <input [id]="'cc-email-' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                                  @if (ctrl.get('email')?.invalid && ctrl.get('email')?.touched) {
-                                    <span class="field__error">E-mail inválido.</span>
+                                  <input
+                                    id="cnpj-trans"
+                                    class="field__input est-field__control"
+                                    type="text"
+                                    formControlName="cnpj"
+                                    placeholder="00.000.000/0001-00"
+                                    maxlength="18"
+                                    appCnpjFormat
+                                    (blur)="onCnpjBlur()"
+                                  />
+                                  @if (cnpjLoading) {
+                                    <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
+                                  }
+                                  @if (cnpjSuccess) {
+                                    <span class="field__hint cnpj-success">{{ cnpjSuccess }}</span>
+                                  }
+                                  @if (cnpjError) {
+                                    <span class="field__error">{{ cnpjError }}</span>
+                                  }
+                                  @if (transportadoraForm.get('pessoa.cnpj')?.invalid && transportadoraForm.get('pessoa.cnpj')?.touched && !cnpjError) {
+                                    <span class="field__error">CNPJ obrigatório.</span>
+                                  }
+                                </div>
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="razaoSocial">Razão social <span class="required">*</span></label>
+                                <div class="form-row__input">
+                                  <input id="razaoSocial" class="field__input est-field__control" type="text" formControlName="razaoSocial" placeholder="Razão social" />
+                                  @if (transportadoraForm.get('pessoa.razaoSocial')?.invalid && transportadoraForm.get('pessoa.razaoSocial')?.touched) {
+                                    <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                                  }
+                                </div>
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="nomeFantasia">Nome fantasia</label>
+                                <input id="nomeFantasia" class="field__input est-field__control" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
+                              </div>
+                            </div>
+                            <div class="est-field-grid est-field-grid--2">
+                              <div class="est-field">
+                                <label class="est-field__label" for="inscricaoEstadual">Inscrição estadual</label>
+                                <input id="inscricaoEstadual" class="field__input est-field__control" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="email-pessoa">E-mail <span class="required">*</span></label>
+                                <div class="form-row__input">
+                                  <input id="email-pessoa" class="field__input est-field__control" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                                  @if (transportadoraForm.get('pessoa.email')?.invalid && transportadoraForm.get('pessoa.email')?.touched) {
+                                    <span class="field__error">Informe um e-mail válido.</span>
                                   }
                                 </div>
                               </div>
                             </div>
+                            <div class="est-field est-field--status-row">
+                              <span class="est-field__label">Status</span>
+                              <label class="est-switch">
+                                <input type="checkbox" formControlName="ativo" />
+                                <span class="est-switch__track"></span>
+                                <span class="est-switch__text">
+                                  @if (transportadoraForm.get('pessoa.ativo')?.value) {
+                                    Ativo
+                                  } @else {
+                                    Inativo
+                                  }
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        </section>
+
+                        <section class="card card--cadastro-section est-card" formGroupName="responsavelLegal">
+                          <div class="est-card__head">
+                            <span class="est-card__icon material-symbols-outlined" aria-hidden="true">badge</span>
+                            <div>
+                              <h2 class="card__title est-card__title">Pessoa responsável</h2>
+                              <p class="card__description est-card__lede">Responsável legal (PF).</p>
+                            </div>
+                          </div>
+                          <div class="est-card__body">
+                            <div class="est-field-grid est-field-grid--2">
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-nome">Nome completo</label>
+                                <input id="rl-nome" class="field__input est-field__control" type="text" formControlName="nome" placeholder="Nome do responsável" />
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-cpf">CPF</label>
+                                <input id="rl-cpf" class="field__input est-field__control" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                              </div>
+                            </div>
+                            <div class="est-field-grid est-field-grid--2">
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-email">E-mail</label>
+                                <div class="form-row__input">
+                                  <input id="rl-email" class="field__input est-field__control" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                                  @if (transportadoraForm.get('responsavelLegal.email')?.invalid && transportadoraForm.get('responsavelLegal.email')?.touched) {
+                                    <span class="field__error">E-mail inválido.</span>
+                                  }
+                                </div>
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-tel">Telefone</label>
+                                <input id="rl-tel" class="field__input est-field__control" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
+                              </div>
+                            </div>
+                          </div>
+                        </section>
+
+                        <section class="card card--cadastro-section card--accordion card--complementares" [class.card--open]="complementaresOpen">
+                          <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
+                            <h2 class="card__title">Endereço</h2>
+                            <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
+                          </button>
+                          @if (complementaresOpen) {
+                            <div class="card__body complementares-body" formGroupName="endereco">
+                              <div class="form-compact__body">
+                                <div class="form-row form-row--cep">
+                                  <label for="cep">CEP</label>
+                                  <div class="field__group field__group--cep">
+                                    <input id="cep" class="field__input est-field__control" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
+                                    <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                                  </div>
+                                </div>
+                                <div class="form-row">
+                                  <label for="logradouro">Logradouro</label>
+                                  <input id="logradouro" class="field__input est-field__control" type="text" formControlName="logradouro" placeholder="Rua, Av." />
+                                </div>
+                                <div class="form-row">
+                                  <label for="numero">Número</label>
+                                  <input id="numero" class="field__input est-field__control" type="text" formControlName="numero" placeholder="Nº" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="complemento">Complemento</label>
+                                  <input id="complemento" class="field__input est-field__control" type="text" formControlName="complemento" placeholder="Opcional" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="bairro">Bairro</label>
+                                  <input id="bairro" class="field__input est-field__control" type="text" formControlName="bairro" placeholder="Bairro" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="cidade">Cidade</label>
+                                  <input id="cidade" class="field__input est-field__control" type="text" formControlName="cidade" placeholder="Cidade" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="estado">Estado</label>
+                                  <input id="estado" class="field__input est-field__control" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
+                                </div>
+                              </div>
+                            </div>
+                          }
+                        </section>
+
+                        <section class="card card--cadastro-section card--accordion card--contatos" [class.card--open]="contatosOpen">
+                          <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
+                            <h2 class="card__title">Contatos complementares</h2>
+                            <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
+                          </button>
+                          @if (contatosOpen) {
+                            <div class="card__body contatos-body">
+                              <div formArrayName="contatosComplementares" class="form-compact__body form-compact__body--contatos-list">
+                                @for (ctrl of contatosComplementares.controls; track $index) {
+                                  <div class="est-contato-complementar-block" [formGroupName]="$index">
+                                    <div class="est-contato-complementar-block__toolbar">
+                                      <span class="est-contato-complementar-block__title">
+                                        Contato complementar
+                                        @if (contatosComplementares.length > 1) {
+                                          <span class="est-contato-complementar-block__n">&nbsp;{{ $index + 1 }}</span>
+                                        }
+                                      </span>
+                                      <button type="button" class="btn btn-danger btn--outline btn--sm" (click)="removerContatoComplementar($index)">Remover</button>
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-nome-' + $index">Nome</label>
+                                      <input [id]="'cc-nome-' + $index" class="field__input est-field__control" type="text" formControlName="nome" placeholder="Nome" />
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-cpf-' + $index">CPF</label>
+                                      <input [id]="'cc-cpf-' + $index" class="field__input est-field__control" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-tel-' + $index">Telefone</label>
+                                      <input [id]="'cc-tel-' + $index" class="field__input est-field__control" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-email-' + $index">E-mail</label>
+                                      <div class="form-row__input">
+                                        <input [id]="'cc-email-' + $index" class="field__input est-field__control" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                                        @if (ctrl.get('email')?.invalid && ctrl.get('email')?.touched) {
+                                          <span class="field__error">E-mail inválido.</span>
+                                        }
+                                      </div>
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                              <div class="contatos-add-footer">
+                                <button type="button" class="btn btn-secondary btn--outline contatos-add-btn" (click)="adicionarContatoComplementar()">
+                                  <span class="material-symbols-outlined contatos-add-btn__icon" aria-hidden="true">add</span>
+                                  Adicionar contato complementar
+                                </button>
+                              </div>
+                            </div>
+                          }
+                        </section>
+                      </div>
+
+                      @if (transportadoraForm.invalid) {
+                        <p class="form-invalid-hint" role="alert">
+                          Corrija os campos destacados em vermelho para habilitar o botão Salvar.
+                        </p>
+                      }
+
+                      <footer class="cadastro-form-footer">
+                        <div class="cadastro-form-footer__left">
+                          @if (transportadoraForm.get('id')?.value) {
+                            <button type="button" class="btn btn-danger btn--outline" (click)="excluirTransportadora()">Excluir</button>
                           }
                         </div>
-
-                        <button type="button" class="btn btn-secondary btn--outline btn--add-contato" (click)="adicionarContatoComplementar()">
-                          + Adicionar contato complementar
-                        </button>
+                        <div class="cadastro-form-footer__right">
+                          <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
+                          <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar' }}</button>
+                        </div>
+                      </footer>
                     </div>
-                  </section>
 
-                  <section class="card card--cadastro-section" formGroupName="endereco">
-                    <div class="card__header">
-                      <h2 class="card__title">Endereço</h2>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row form-row--cep">
-                        <label for="cep">CEP</label>
-                        <div class="field__group field__group--cep">
-                          <input id="cep" class="field__input" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
-                          <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                    <aside class="est-aside" aria-label="Resumo do cadastro">
+                      <div class="est-aside-card">
+                        <div
+                          class="est-aside__status"
+                          [class.est-aside__status--inactive]="!transportadoraForm.get('pessoa.ativo')?.value"
+                        >
+                          <span class="material-symbols-outlined est-aside__status-icon" aria-hidden="true">check_circle</span>
+                          @if (transportadoraForm.get('pessoa.ativo')?.value) {
+                            <span>Cadastro ativo</span>
+                          } @else {
+                            <span>Cadastro inativo</span>
+                          }
+                        </div>
+                        <div class="est-aside__progress-block">
+                          <div class="est-aside__progress-head">
+                            <span class="est-aside__progress-label">Preenchimento</span>
+                            <span class="est-aside__progress-value">{{ cadastroFillProgressPercent }}%</span>
+                          </div>
+                          <div class="est-aside__progress-track" role="progressbar" [attr.aria-valuenow]="cadastroFillProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                            <div class="est-aside__progress-fill" [style.width.%]="cadastroFillProgressPercent"></div>
+                          </div>
+                          <p class="est-aside__progress-hint">Complete os obrigatórios e o endereço para concluir o cadastro.</p>
+                        </div>
+                        <div class="est-aside__block">
+                          <h3 class="est-aside__block-title">Informações principais</h3>
+                          <ul class="est-aside__list">
+                            <li>
+                              <span class="est-aside__k">CNPJ</span>
+                              <span class="est-aside__v">{{ resumoCnpjFormatado() || '—' }}</span>
+                            </li>
+                            <li>
+                              <span class="est-aside__k">Razão social</span>
+                              <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.razaoSocial')?.value || '—' }}</span>
+                            </li>
+                            <li>
+                              <span class="est-aside__k">Nome fantasia</span>
+                              <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.nomeFantasia')?.value || '—' }}</span>
+                            </li>
+                            <li>
+                              <span class="est-aside__k">E-mail</span>
+                              <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.email')?.value || '—' }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div class="est-aside__tip" role="note">
+                          <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">lightbulb</span>
+                          @let reqPendentes = cadastroObrigatoriosPendentesLabels;
+                          <div class="est-aside__tip-body">
+                            @if (reqPendentes.length === 0) {
+                              <p class="est-aside__tip-ok">Todos os obrigatórios desta etapa estão preenchidos.</p>
+                            } @else {
+                              <p class="est-aside__tip-lead">Ainda falta:</p>
+                              <ul class="est-aside__tip-list">
+                                @for (item of reqPendentes; track item) {
+                                  <li>{{ item }}</li>
+                                }
+                              </ul>
+                            }
+                          </div>
                         </div>
                       </div>
-                      <div class="form-row">
-                        <label for="logradouro">Logradouro</label>
-                        <input id="logradouro" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, Av." />
-                      </div>
-                      <div class="form-row">
-                        <label for="numero">Número</label>
-                        <input id="numero" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
-                      </div>
-                      <div class="form-row">
-                        <label for="complemento">Complemento</label>
-                        <input id="complemento" class="field__input" type="text" formControlName="complemento" placeholder="Opcional" />
-                      </div>
-                      <div class="form-row">
-                        <label for="bairro">Bairro</label>
-                        <input id="bairro" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
-                      </div>
-                      <div class="form-row">
-                        <label for="cidade">Cidade</label>
-                        <input id="cidade" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
-                      </div>
-                      <div class="form-row">
-                        <label for="estado">Estado</label>
-                        <input id="estado" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
-                      </div>
-                    </div>
-                  </section>
-                </div>
-
-                <div class="form-actions-bar">
-                  <div class="form-actions-bar__left">
-                    @if (transportadoraForm.get('id')?.value) {
-                      <button type="button" class="btn btn-danger btn--outline" (click)="excluirTransportadora()">Excluir</button>
-                    }
+                    </aside>
                   </div>
-                  <div class="form-actions-bar__right">
-                    <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar cadastro' }}</button>
-                  </div>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         }
@@ -305,7 +417,8 @@
 
       @case ('frota') {
         <div class="tab-panel frota-panel">
-          <div class="frota-actions">
+          <div class="tab-toolbar">
+            <div class="tab-toolbar__actions">
             <button
               type="button"
               class="btn btn-primary"
@@ -321,17 +434,17 @@
             >
               Importar frota
             </button>
+            </div>
+            @if (transportadoraId == null) {
+              <p class="tab-toolbar__hint frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar veículos nesta aba. Cada veículo é enviado em uma requisição própria para a API.</p>
+            }
           </div>
-
-          @if (transportadoraId == null) {
-            <p class="frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar veículos nesta aba. Cada veículo é enviado em uma requisição própria para a API.</p>
-          }
 
           @if (transportadoraId != null || veiculos.length > 0) {
             @if (loadingVeiculos) {
               <p class="loading-msg">Carregando frota...</p>
             } @else {
-              <section class="card frota-list-card">
+              <section class="card list-card frota-list-card">
                 <div class="card__header">
                   <h2 class="card__title">Frota cadastrada</h2>
                   <p class="card__description">Veículos vinculados a esta transportadora.</p>
@@ -359,10 +472,14 @@
                           <td>{{ v.anoFabricacao ?? v.anoModelo ?? '—' }}</td>
                           <td>{{ v.tipoVeiculo ?? '—' }}</td>
                           <td>{{ v.centroCusto ?? '—' }}</td>
-                          <td>{{ v.ativo ? 'Ativo' : 'Inativo' }}</td>
                           <td>
-                            <button type="button" class="btn btn-primary btn--sm" (click)="editarVeiculo(v)">Editar</button>
-                            <button type="button" class="btn btn-secondary btn--sm" (click)="excluirVeiculo(v)">Excluir</button>
+                            <span class="status-pill" [class.status-pill--inactive]="!v.ativo">{{ v.ativo ? 'Ativo' : 'Inativo' }}</span>
+                          </td>
+                          <td class="table-cell--actions">
+                            <div class="table-actions">
+                              <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v)">Editar</button>
+                              <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirVeiculo(v)">Excluir</button>
+                            </div>
                           </td>
                         </tr>
                       }
@@ -382,58 +499,74 @@
       }
 
       @case ('motoristas') {
-        <div class="tab-panel">
-          <div class="page-header__actions condutores-actions">
-            <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar motorista</button>
-            <button
-              type="button"
-              class="btn btn-secondary"
-              [disabled]="transportadoraId == null"
-              (click)="abrirImportarCondutores()"
-            >
-              Importar Motoristas
-            </button>
+        <div class="tab-panel motoristas-panel">
+          <div class="tab-toolbar">
+            <div class="tab-toolbar__actions">
+              <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar motorista</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="transportadoraId == null"
+                (click)="abrirImportarCondutores()"
+              >
+                Importar motoristas
+              </button>
+            </div>
+            @if (transportadoraId == null) {
+              <p class="tab-toolbar__hint frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar motoristas nesta aba. Cada motorista é enviado em uma requisição própria para a API.</p>
+            }
           </div>
-          @if (transportadoraId == null) {
-            <p class="frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar motoristas nesta aba. Cada motorista é enviado em uma requisição própria para a API.</p>
-          }
-          @if (loadingCondutores) {
-            <p class="loading-msg">Carregando motoristas...</p>
-          }
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CPF</th>
-                  <th>E-mail</th>
-                  <th>CNH</th>
-                  <th>Venc. CNH</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (c of condutores; track c.id) {
-                  <tr>
-                    <td>{{ c.nomeCompleto }}</td>
-                    <td>{{ formatCpfCondutor(c.cpf) }}</td>
-                    <td>{{ c.email || '—' }}</td>
-                    <td>{{ c.cnh || '—' }}</td>
-                    <td>{{ c.vencimentoCnh || '—' }}</td>
-                    <td>{{ c.ativo ? 'Ativo' : 'Inativo' }}</td>
-                    <td>
-                      <button type="button" class="btn btn-primary btn--sm" (click)="editarCondutor(c)">Editar</button>
-                      <button type="button" class="btn btn-secondary btn--sm" (click)="excluirCondutor(c)">Excluir</button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          @if (!loadingCondutores && condutores.length === 0) {
-            <p class="empty-msg">Nenhum motorista cadastrado para esta transportadora.</p>
-          }
+          <section class="card list-card motoristas-list-card">
+            <div class="card__header">
+              <h2 class="card__title">Motoristas cadastrados</h2>
+              <p class="card__description">Condutores vinculados a esta transportadora.</p>
+            </div>
+            @if (loadingCondutores) {
+              <p class="loading-msg loading-msg--card">Carregando motoristas...</p>
+            } @else {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>CPF</th>
+                      <th>E-mail</th>
+                      <th>CNH</th>
+                      <th>Venc. CNH</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of condutores; track c.id) {
+                      <tr>
+                        <td>{{ c.nomeCompleto }}</td>
+                        <td>{{ formatCpfCondutor(c.cpf) }}</td>
+                        <td>{{ c.email || '—' }}</td>
+                        <td>{{ c.cnh || '—' }}</td>
+                        <td>{{ c.vencimentoCnh || '—' }}</td>
+                        <td>
+                          <span class="status-pill" [class.status-pill--inactive]="!c.ativo">{{ c.ativo ? 'Ativo' : 'Inativo' }}</span>
+                        </td>
+                        <td class="table-cell--actions">
+                          <div class="table-actions">
+                            <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarCondutor(c)">Editar</button>
+                            <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirCondutor(c)">Excluir</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (condutores.length === 0) {
+                <div class="frota-empty">
+                  <p class="frota-empty__text">Nenhum motorista cadastrado.</p>
+                  <p class="frota-empty__hint">Use <strong>Adicionar motorista</strong> ou <strong>Importar motoristas</strong> para começar.</p>
+                </div>
+              }
+            }
+          </section>
         </div>
       }
     }

@@ -14,7 +14,7 @@ import {
 } from './services/estacionamento-form-step.service';
 
 @Component({
-  selector: 'app-Estacionamento-layout',
+  selector: 'app-estacionamento-layout',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, FormsModule],
   templateUrl: './estacionamento-layout.component.html',

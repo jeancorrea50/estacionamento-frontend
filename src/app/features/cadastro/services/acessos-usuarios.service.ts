@@ -1,7 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { map, Observable, throwError } from 'rxjs';
 import { UsuarioApiService } from '../../../core/api/services/usuario-api.service';
-import type { RegisterInput, UsuarioDetalheOutput, UsuarioOutput } from '../../../core/api/types/usuario-api.types';
+import type {
+  RegisterInputRegister,
+  RegisterInputUpdate,
+  UsuarioDetalheOutput,
+  UsuarioOutput
+} from '../../../core/api/types/usuario-api.types';
 import { unwrapServiceResult } from '../../../core/api/utils/service-result.util';
 
 export const USUARIO_ENDPOINT_NAO_DISPONIVEL = 'Não foi possível criar o usuário com os dados informados.';
@@ -163,7 +168,9 @@ export class AcessosUsuariosService {
     return 1;
   }
 
-  private toRegisterInput(input: UsuarioCreateInput, isEdit: boolean): RegisterInput {
+  private toRegisterInput(input: UsuarioCreateInput, isEdit: false): RegisterInputRegister;
+  private toRegisterInput(input: UsuarioCreateInput, isEdit: true): RegisterInputUpdate;
+  private toRegisterInput(input: UsuarioCreateInput, isEdit: boolean): RegisterInputRegister | RegisterInputUpdate {
     const email = String(input.email ?? '').trim();
     const login = String(input.login ?? '').trim();
     const userName = (login || email).trim();
@@ -208,7 +215,7 @@ export class AcessosUsuariosService {
       typeof input.pessoaId === 'number' && Number.isFinite(input.pessoaId) ? input.pessoaId : 0;
     const tipoPessoa = this.inferTipoPessoa(input);
 
-    const payload: RegisterInput = {
+    const base: RegisterInputUpdate = {
       userName,
       EstacionamentoId,
       pessoa: {
@@ -221,19 +228,23 @@ export class AcessosUsuariosService {
     };
 
     if (email) {
-      payload.email = email;
+      base.email = email;
     }
     if (!isEdit) {
-      payload.password = senha;
-      payload.confirmPassword = conf;
-    } else {
-      if (senha) {
-        payload.password = senha;
-        payload.confirmPassword = conf;
-      }
+      return {
+        ...base,
+        password: senha,
+        confirmPassword: conf
+      } satisfies RegisterInputRegister;
     }
-
-    return payload;
+    if (senha) {
+      return {
+        ...base,
+        password: senha,
+        confirmPassword: conf
+      };
+    }
+    return base;
   }
 
   /** Uso em testes e chamadas manuais ao envelope. */

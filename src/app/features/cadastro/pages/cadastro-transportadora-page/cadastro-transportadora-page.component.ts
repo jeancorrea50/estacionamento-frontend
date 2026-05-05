@@ -90,8 +90,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   /** Corpo bruto do GET /api/Transportadora/{id} para merge correto no PUT (datas, ids). */
   private transportadoraMergeRaw: Record<string, unknown> | null = null;
 
-  /** Seção Contatos expansível (referência visual). */
-  contatosSectionExpanded = true;
+  /** Accordion Endereço (campos do grupo `endereco`). */
+  complementaresOpen = false;
+
+  /** Accordion Contatos complementares (RL já está no card superior; aqui só complementares). */
+  contatosOpen = true;
 
   // --- Aba Frota (Veículos) ---
   veiculos: VeiculoListItemDTO[] = [];
@@ -148,6 +151,66 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     if (forceTab === 'motoristas') {
       this.setTab('motoristas');
     }
+  }
+
+  /**
+   * Obrigatórios ainda pendentes no painel lateral: validadores do formulário (PJ + e-mail)
+   * e endereço principal com o mesmo critério do preenchimento (%).
+   */
+  get cadastroObrigatoriosPendentesLabels(): string[] {
+    if (!this.transportadoraForm) return [];
+    const f = this.transportadoraForm;
+    const p: string[] = [];
+    if (f.get('pessoa.razaoSocial')?.invalid) p.push('Razão social');
+    const cnpjOk = String(f.get('pessoa.cnpj')?.value ?? '').replace(/\D/g, '').length === 14;
+    if (!cnpjOk) p.push('CNPJ');
+    if (f.get('pessoa.email')?.invalid) p.push('E-mail');
+    const eg = f.get('endereco') as FormGroup;
+    const cep = String(eg?.get('cep')?.value ?? '').replace(/\D/g, '');
+    const log = String(eg?.get('logradouro')?.value ?? '').trim();
+    const cid = String(eg?.get('cidade')?.value ?? '').trim();
+    if (cep.length < 8) p.push('CEP do endereço');
+    if (log.length < 2) p.push('Logradouro do endereço');
+    if (cid.length < 2) p.push('Cidade do endereço');
+    return p;
+  }
+
+  /** Progresso do preenchimento (0–100) para o painel lateral — espelha a lógica do cadastro estacionamento. */
+  get cadastroFillProgressPercent(): number {
+    if (!this.transportadoraForm) return 0;
+    const f = this.transportadoraForm;
+    let ok = 0;
+    const total = 10;
+    const doc = String(f.get('pessoa.cnpj')?.value ?? '').replace(/\D/g, '');
+    if (doc.length === 14) ok++;
+    if (String(f.get('pessoa.razaoSocial')?.value ?? '').trim().length >= 2) ok++;
+    if (String(f.get('responsavelLegal.nome')?.value ?? '').trim().length >= 2) ok++;
+    const cpf = String(f.get('responsavelLegal.cpf')?.value ?? '').replace(/\D/g, '');
+    if (cpf.length === 11) ok++;
+    const emailPj = String(f.get('pessoa.email')?.value ?? '').trim();
+    if (emailPj.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPj)) ok++;
+    const tel = String(f.get('responsavelLegal.telefone')?.value ?? '').replace(/\D/g, '');
+    if (tel.length >= 10) ok++;
+    if (String(f.get('pessoa.nomeFantasia')?.value ?? '').trim().length > 0) ok++;
+    const eg = f.get('endereco') as FormGroup;
+    const cep = String(eg?.get('cep')?.value ?? '').replace(/\D/g, '');
+    const log = String(eg?.get('logradouro')?.value ?? '').trim();
+    const cid = String(eg?.get('cidade')?.value ?? '').trim();
+    if (cep.length >= 8 && log.length >= 2 && cid.length >= 2) ok += 3;
+    return Math.min(100, Math.round((ok / total) * 100));
+  }
+
+  resumoCnpjFormatado(): string {
+    const raw = String(this.transportadoraForm?.get('pessoa.cnpj')?.value ?? '');
+    return formatCnpj(raw);
+  }
+
+  toggleComplementares(): void {
+    this.complementaresOpen = !this.complementaresOpen;
+  }
+
+  toggleContatos(): void {
+    this.contatosOpen = !this.contatosOpen;
   }
 
   setTab(tab: TransportadoraTab): void {
@@ -216,11 +279,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   removerContatoComplementar(index: number): void {
     this.contatosComplementares.removeAt(index);
-    this.cdr.markForCheck();
-  }
-
-  toggleContatosSection(): void {
-    this.contatosSectionExpanded = !this.contatosSectionExpanded;
     this.cdr.markForCheck();
   }
 

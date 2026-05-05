@@ -40,7 +40,7 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { documentoValidator } from '../../validators/documento.validator';
 import { TipoPessoa, type EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
-import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
+import { CnpjFormatDirective, formatCnpj as formatCnpjDigits } from '../../directives/cnpj-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import {
@@ -152,6 +152,79 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   get currentStep(): 1 | 2 | 3 {
     return this.stepService.currentStep();
+  }
+
+  /**
+   * Campos obrigatórios da etapa Cadastro ainda incorretos ou vazios (painel lateral).
+   * Espelha validadores do formulário; em criação, inclui endereço principal como em `validarCamposMinimosCriacao`.
+   */
+  get cadastroObrigatoriosPendentesLabels(): string[] {
+    if (!this.form) return [];
+    const p: string[] = [];
+    if (this.form.get('pessoa.documento')?.invalid) p.push('CNPJ');
+    if (this.form.get('pessoa.nomeRazaoSocial')?.invalid) p.push('Razão social');
+    if (this.form.get('responsavelLegalNome')?.invalid) p.push('Nome do responsável legal');
+    if (this.form.get('responsavelLegalCpf')?.invalid) p.push('CPF do responsável legal');
+    if (this.form.get('responsavelLegalEmail')?.invalid) p.push('E-mail do responsável legal');
+    if (this.form.get('contatoTelefone')?.invalid) p.push('Telefone de contato');
+    if (this.isNovo) {
+      p.push(...this.pendenciasEnderecoPrincipalNovo());
+    }
+    return p;
+  }
+
+  /** Regras de endereço principal na criação (alinhado a `validarCamposMinimosCriacao`). */
+  private pendenciasEnderecoPrincipalNovo(): string[] {
+    const out: string[] = [];
+    if (this.enderecosArray.length === 0) {
+      out.push('Endereço principal');
+      return out;
+    }
+    const principal =
+      (this.enderecosArray.controls.find(
+        (ctrl) => Boolean((ctrl as FormGroup).get('principal')?.value)
+      ) as FormGroup | undefined) ?? (this.enderecosArray.at(0) as FormGroup);
+    const getValue = (key: string) => String(principal.get(key)?.value ?? '').trim();
+    if (!getValue('cep')) out.push('CEP do endereço principal');
+    if (!getValue('logradouro')) out.push('Logradouro do endereço principal');
+    if (!getValue('numero')) out.push('Número do endereço principal');
+    if (!getValue('bairro')) out.push('Bairro do endereço principal');
+    if (!getValue('cidade')) out.push('Cidade do endereço principal');
+    if (!getValue('estado')) out.push('UF do endereço principal');
+    return out;
+  }
+
+  /** Progresso do preenchimento da aba Cadastro (0–100) para o painel lateral. */
+  get cadastroFillProgressPercent(): number {
+    if (!this.form) return 0;
+    const f = this.form;
+    let ok = 0;
+    const total = 10;
+    const doc = String(f.get('pessoa.documento')?.value ?? '').replace(/\D/g, '');
+    if (doc.length === 14) ok++;
+    if (String(f.get('pessoa.nomeRazaoSocial')?.value ?? '').trim().length >= 2) ok++;
+    if (String(f.get('responsavelLegalNome')?.value ?? '').trim().length >= 2) ok++;
+    const cpf = String(f.get('responsavelLegalCpf')?.value ?? '').replace(/\D/g, '');
+    if (cpf.length === 11) ok++;
+    const email = String(f.get('responsavelLegalEmail')?.value ?? '').trim();
+    if (email.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ok++;
+    const tel = String(f.get('contatoTelefone')?.value ?? '').replace(/\D/g, '');
+    if (tel.length >= 10) ok++;
+    if (String(f.get('pessoa.nomeFantasia')?.value ?? '').trim().length > 0) ok++;
+    const enderecos = this.enderecosArray;
+    if (enderecos.length > 0) {
+      const eg = enderecos.at(0) as FormGroup;
+      const cep = String(eg?.get('cep')?.value ?? '').replace(/\D/g, '');
+      const log = String(eg?.get('logradouro')?.value ?? '').trim();
+      const cid = String(eg?.get('cidade')?.value ?? '').trim();
+      if (cep.length >= 8 && log.length >= 2 && cid.length >= 2) ok += 3;
+    }
+    return Math.min(100, Math.round((ok / total) * 100));
+  }
+
+  resumoCnpjFormatado(): string {
+    const raw = String(this.form?.get('pessoa.documento')?.value ?? '');
+    return formatCnpjDigits(raw);
   }
 
   ngOnInit(): void {
@@ -501,7 +574,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   get titularCnpjFormatted(): string {
     const raw = this.form.get('titularCnpj')?.value ?? '';
     const digits = String(raw).replace(/\D/g, '');
-    return digits.length === 14 ? formatCnpj(digits) : raw;
+    return digits.length === 14 ? formatCnpjDigits(digits) : raw;
   }
 
   /** Validação só dos campos da aba Dados Bancários (titular diferente). */
@@ -711,7 +784,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
             this.atualizarFlagsTitularDoDto(dto);
             const doc = this.form.get('pessoa.documento')?.value;
             if (doc != null && String(doc).replace(/\D/g, '').length === 14) {
-              this.form.get('pessoa')?.patchValue({ documento: formatCnpj(String(doc)) });
+              this.form.get('pessoa')?.patchValue({ documento: formatCnpjDigits(String(doc)) });
             }
             this.atualizarValidadoresDocumento();
             if (dto.capacidadeVeiculos != null || dto.tamanho || dto.tipoTaxaMensalidade ||

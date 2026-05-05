@@ -1,32 +1,34 @@
 <div class="page-container">
-  <header class="page-header page-header-card">
-    <div class="page-header__row page-header__row--1">
-      <h1 class="page-title">Cadastro Estacionamento</h1>
-      <p class="page-subtitle">Cadastre e gerencie os dados do estacionamento.</p>
-    </div>
-    @if (showStepper()) {
-      <div class="page-header__row page-header__row--2">
-        <nav class="tabs" role="tablist" aria-label="Etapas do cadastro">
-          @for (step of [1, 2, 3]; track step) {
-            <button
-              type="button"
-              class="tab"
-              role="tab"
-              [class.tab--active]="currentStep === step"
-              [attr.aria-selected]="currentStep === step"
-              (click)="goToStep(step)"
-            >
-              {{ getStepLabel(step) }}
-            </button>
-          }
-        </nav>
-        <div class="page-header__actions">
+  <header class="page-header page-header-card estacao-page-header">
+    <div class="estacao-page-header__row estacao-page-header__row--top">
+      <div class="estacao-page-header__titles">
+        <h1 class="page-title">Cadastro Estacionamento</h1>
+        <p class="page-subtitle">Cadastre e gerencie os dados do estacionamento.</p>
+      </div>
+      @if (showStepper()) {
+        <div class="page-header__actions estacao-page-header__actions">
+          <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
           @if (stepService.currentStep() === 1 || stepService.currentStep() === 2) {
             <button type="button" class="btn btn-primary" (click)="onHeaderSalvar()">Salvar</button>
           }
-          <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
         </div>
-      </div>
+      }
+    </div>
+    @if (showStepper()) {
+      <nav class="tabs estacao-tabs" role="tablist" aria-label="Etapas do cadastro">
+        @for (step of [1, 2, 3]; track step) {
+          <button
+            type="button"
+            class="tab"
+            role="tab"
+            [class.tab--active]="currentStep === step"
+            [attr.aria-selected]="currentStep === step"
+            (click)="goToStep(step)"
+          >
+            {{ getStepLabel(step) }}
+          </button>
+        }
+      </nav>
     }
   </header>
 

@@ -1,5 +1,5 @@
-<div class="estacionamento-form-wrapper">
-  <div class="container">
+<div class="estacionamento-form-wrapper est-cadastro">
+  <div class="est-cadastro__container">
       @if (loading) {
         <p class="loading">Carregando...</p>
       } @else {
@@ -19,19 +19,24 @@
           <input type="hidden" formControlName="pessoaId" />
 
           @if (currentStep === 1) {
+          <div class="est-page-grid">
+            <div class="est-page-grid__main">
           <div class="cadastro-stack">
-            <section class="card card--cadastro-section">
-            <div class="card__header">
-              <h2 class="card__title">Estacionamento</h2>
-              <p class="card__description">Dados da pessoa jurídica do estacionamento. Campos obrigatórios marcados com *</p>
+            <section class="card card--cadastro-section est-card">
+            <div class="est-card__head">
+              <span class="est-card__icon material-symbols-outlined" aria-hidden="true">apartment</span>
+              <div>
+                <h2 class="card__title est-card__title">Dados do Estacionamento</h2>
+                <p class="card__description est-card__lede">Pessoa jurídica e contrato. Obrigatórios com <span class="required">*</span></p>
+              </div>
             </div>
-            <div class="form-compact__body" formGroupName="pessoa">
-              <div class="form-row">
-                <label for="documento">CNPJ <span class="required">*</span></label>
-                <div class="form-row__input">
+            <div class="est-card__body" formGroupName="pessoa">
+              <div class="est-field-grid est-field-grid--3">
+                <div class="est-field">
+                  <label class="est-field__label" for="documento">CNPJ <span class="required">*</span></label>
                   <input
                     id="documento"
-                    class="field__input"
+                    class="field__input est-field__control"
                     type="text"
                     formControlName="documento"
                     placeholder="00.000.000/0001-00"
@@ -52,13 +57,11 @@
                     <span class="field__error">{{ documentoErrorMessage }}</span>
                   }
                 </div>
-              </div>
-              <div class="form-row">
-                <label for="nomeRazaoSocial">Razão social <span class="required">*</span></label>
-                <div class="form-row__input">
+                <div class="est-field">
+                  <label class="est-field__label" for="nomeRazaoSocial">Razão social <span class="required">*</span></label>
                   <input
                     id="nomeRazaoSocial"
-                    class="field__input"
+                    class="field__input est-field__control"
                     type="text"
                     formControlName="nomeRazaoSocial"
                     placeholder="Razão social"
@@ -67,33 +70,39 @@
                     <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
                   }
                 </div>
+                <div class="est-field">
+                  <label class="est-field__label" for="nomeFantasia">Nome fantasia</label>
+                  <input id="nomeFantasia" class="field__input est-field__control" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
+                </div>
               </div>
-              <div class="form-row">
-                <label for="nomeFantasia">Nome fantasia</label>
-                <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
-              </div>
-              <div class="form-row form-row--checkbox">
-                <label>Status</label>
-                <label class="field__label--checkbox">
-                  <input type="checkbox" formControlName="ativo" />
-                  Ativo
-                </label>
-              </div>
-            </div>
-            <h3 class="card__subtitle">Contrato</h3>
-            <div class="form-compact__body">
-              <div class="form-row form-row--file">
-                <label>Anexar PDF (contrato)</label>
-                <div class="form-row__input">
-                  <div class="file-upload">
+              <div class="est-field-grid est-field-grid--2 est-field-grid--align-end">
+                <div class="est-field est-field--status-row">
+                  <span class="est-field__label">Status</span>
+                  <label class="est-switch">
+                    <input type="checkbox" formControlName="ativo" />
+                    <span class="est-switch__track"></span>
+                    <span class="est-switch__text">
+                      @if (form.get('pessoa.ativo')?.value) {
+                        Ativo
+                      } @else {
+                        Inativo
+                      }
+                    </span>
+                  </label>
+                </div>
+                <div class="est-field est-field--file">
+                  <label class="est-field__label" for="contrato-pdf-est">Contrato / PDF</label>
+                  <div class="file-upload est-file-upload">
                     <input
+                      id="contrato-pdf-est"
                       type="file"
                       class="file-upload__input"
                       accept=".pdf,application/pdf"
                       (change)="onContratoPdfChange($event)"
                       #contratoPdfInput
                     />
-                    <button type="button" class="file-upload__btn" (click)="contratoPdfInput.click()">
+                    <button type="button" class="file-upload__btn est-btn-upload" (click)="contratoPdfInput.click()">
+                      <span class="material-symbols-outlined" aria-hidden="true">attach_file</span>
                       {{ contratoPdf ? contratoPdf.name : 'Selecionar PDF' }}
                     </button>
                     @if (contratoPdf) {
@@ -110,18 +119,21 @@
             </div>
             </section>
 
-            <section class="card card--cadastro-section">
-              <div class="card__header">
-                <h2 class="card__title">Pessoa responsável</h2>
-                <p class="card__description">Responsável legal (pessoa física). Campos obrigatórios marcados com *</p>
+            <section class="card card--cadastro-section est-card">
+              <div class="est-card__head">
+                <span class="est-card__icon material-symbols-outlined" aria-hidden="true">badge</span>
+                <div>
+                  <h2 class="card__title est-card__title">Pessoa responsável</h2>
+                  <p class="card__description est-card__lede">Responsável legal (PF). Campos com <span class="required">*</span></p>
+                </div>
               </div>
-              <div class="form-compact__body">
-                <div class="form-row">
-                  <label for="responsavelLegalNome">Nome completo <span class="required">*</span></label>
-                  <div class="form-row__input">
+              <div class="est-card__body">
+                <div class="est-field-grid est-field-grid--2">
+                  <div class="est-field">
+                    <label class="est-field__label" for="responsavelLegalNome">Nome completo <span class="required">*</span></label>
                     <input
                       id="responsavelLegalNome"
-                      class="field__input"
+                      class="field__input est-field__control"
                       type="text"
                       formControlName="responsavelLegalNome"
                       placeholder="Nome completo"
@@ -130,13 +142,11 @@
                       <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
                     }
                   </div>
-                </div>
-                <div class="form-row">
-                  <label for="responsavelLegalCpf">CPF <span class="required">*</span></label>
-                  <div class="form-row__input">
+                  <div class="est-field">
+                    <label class="est-field__label" for="responsavelLegalCpf">CPF <span class="required">*</span></label>
                     <input
                       id="responsavelLegalCpf"
-                      class="field__input"
+                      class="field__input est-field__control"
                       type="text"
                       formControlName="responsavelLegalCpf"
                       appCpfFormat
@@ -148,12 +158,12 @@
                     }
                   </div>
                 </div>
-                <div class="form-row">
-                  <label for="responsavelLegalEmail">E-mail <span class="required">*</span></label>
-                  <div class="form-row__input">
+                <div class="est-field-grid est-field-grid--2">
+                  <div class="est-field">
+                    <label class="est-field__label" for="responsavelLegalEmail">E-mail <span class="required">*</span></label>
                     <input
                       id="responsavelLegalEmail"
-                      class="field__input"
+                      class="field__input est-field__control"
                       type="email"
                       formControlName="responsavelLegalEmail"
                       placeholder="email@exemplo.com"
@@ -165,13 +175,11 @@
                       </span>
                     }
                   </div>
-                </div>
-                <div class="form-row">
-                  <label for="contatoTelefone">Telefone <span class="required">*</span></label>
-                  <div class="form-row__input">
+                  <div class="est-field">
+                    <label class="est-field__label" for="contatoTelefone">Telefone <span class="required">*</span></label>
                     <input
                       id="contatoTelefone"
-                      class="field__input"
+                      class="field__input est-field__control"
                       type="tel"
                       formControlName="contatoTelefone"
                       appTelefoneFormat
@@ -188,7 +196,7 @@
           <section class="card card--cadastro-section card--accordion card--complementares" [class.card--open]="complementaresOpen">
             <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
               <h2 class="card__title">Dados complementares</h2>
-              <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
+              <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
             </button>
             @if (complementaresOpen) {
               <div class="card__body complementares-body">
@@ -344,41 +352,29 @@
           <section class="card card--cadastro-section card--accordion card--contatos" [class.card--open]="contatosOpen">
             <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
               <h2 class="card__title">Contatos complementares</h2>
-              <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
+              <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
             </button>
             @if (contatosOpen) {
               <div class="card__body contatos-body">
-                <div class="contatos-complementares-actions">
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn--sm contatos-add-btn"
-                    (click)="adicionarContatoComplementar()"
-                    [disabled]="!podeAdicionarContatoComplementar"
-                    aria-label="Adicionar contato complementar"
-                  >
-                    <span class="material-symbols-outlined contatos-add-btn__icon">add</span>
-                    Adicionar contato complementar
-                  </button>
-                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
-                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
-                  }
-                </div>
-
-                <div formArrayName="contatosComplementares">
-                @for (item of contatosComplementaresArray.controls; track $index) {
-                  <div class="contatos-block contatos-block--complementar" [formGroupName]="$index">
-                    <div class="contatos-block__header">
-                      <h3 class="card__subtitle">Contato complementar {{ $index + 1 }}</h3>
-                      <button
-                        type="button"
-                        class="btn btn-danger btn--outline btn--sm"
-                        (click)="removerContatoComplementar($index)"
-                        aria-label="Remover contato complementar"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                    <div class="form-compact__body">
+                <div formArrayName="contatosComplementares" class="form-compact__body form-compact__body--contatos-list">
+                  @for (item of contatosComplementaresArray.controls; track $index) {
+                    <div class="est-contato-complementar-block" [formGroupName]="$index">
+                      <div class="est-contato-complementar-block__toolbar">
+                        <span class="est-contato-complementar-block__title">
+                          Contato complementar
+                          @if (contatosComplementaresArray.length > 1) {
+                            <span class="est-contato-complementar-block__n">&nbsp;{{ $index + 1 }}</span>
+                          }
+                        </span>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn--outline btn--sm"
+                          (click)="removerContatoComplementar($index)"
+                          aria-label="Remover contato complementar"
+                        >
+                          Remover
+                        </button>
+                      </div>
                       <div class="form-row">
                         <label [attr.for]="'compNome' + $index">Nome</label>
                         <input [id]="'compNome' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
@@ -411,18 +407,98 @@
                         <input [id]="'compEmail' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
                       </div>
                     </div>
-                  </div>
-                }
+                  }
+                </div>
+                <div class="contatos-add-footer">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--outline contatos-add-btn"
+                    (click)="adicionarContatoComplementar()"
+                    [disabled]="!podeAdicionarContatoComplementar"
+                    aria-label="Adicionar contato complementar"
+                  >
+                    <span class="material-symbols-outlined contatos-add-btn__icon" aria-hidden="true">add</span>
+                    Adicionar contato complementar
+                  </button>
+                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
+                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
+                  }
                 </div>
               </div>
             }
           </section>
           </div>
+          </div>
+          <aside class="est-aside" aria-label="Resumo do cadastro">
+            <div class="est-aside-card">
+              <div
+                class="est-aside__status"
+                [class.est-aside__status--inactive]="!form.get('pessoa.ativo')?.value"
+              >
+                <span class="material-symbols-outlined est-aside__status-icon" aria-hidden="true">check_circle</span>
+                @if (form.get('pessoa.ativo')?.value) {
+                  <span>Cadastro ativo</span>
+                } @else {
+                  <span>Cadastro inativo</span>
+                }
+              </div>
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Preenchimento</span>
+                  <span class="est-aside__progress-value">{{ cadastroFillProgressPercent }}%</span>
+                </div>
+                <div class="est-aside__progress-track" role="progressbar" [attr.aria-valuenow]="cadastroFillProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                  <div class="est-aside__progress-fill" [style.width.%]="cadastroFillProgressPercent"></div>
+                </div>
+                <p class="est-aside__progress-hint">Complete os obrigatórios e o endereço principal para avançar.</p>
+              </div>
+              <div class="est-aside__block">
+                <h3 class="est-aside__block-title">Informações principais</h3>
+                <ul class="est-aside__list">
+                  <li>
+                    <span class="est-aside__k">CNPJ</span>
+                    <span class="est-aside__v">{{ resumoCnpjFormatado() || '—' }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Razão social</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ form.get('pessoa.nomeRazaoSocial')?.value || '—' }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Nome fantasia</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ form.get('pessoa.nomeFantasia')?.value || '—' }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">E-mail</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ form.get('responsavelLegalEmail')?.value || '—' }}</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">lightbulb</span>
+                @let reqPendentes = cadastroObrigatoriosPendentesLabels;
+                <div class="est-aside__tip-body">
+                  @if (reqPendentes.length === 0) {
+                    <p class="est-aside__tip-ok">Todos os obrigatórios desta etapa estão preenchidos.</p>
+                  } @else {
+                    <p class="est-aside__tip-lead">Ainda falta:</p>
+                    <ul class="est-aside__tip-list">
+                      @for (item of reqPendentes; track item) {
+                        <li>{{ item }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+            </div>
+          </aside>
+          </div>
           }
 
           @if (currentStep === 2) {
+          <div class="est-page-grid">
+          <div class="est-page-grid__main">
           <div class="cadastro-stack">
-          <section class="card card--cadastro-section card--dados-bancarios">
+          <section class="card card--cadastro-section card--dados-bancarios est-card">
             <div class="card__header card__header--row">
               <div class="card__header-text">
                 <h2 class="card__title">Dados Bancários</h2>
@@ -617,11 +693,34 @@
             </div>
           </section>
           </div>
+          </div>
+          <aside class="est-aside est-aside--bank" aria-label="Resumo dados bancários">
+            <div class="est-aside-card">
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Etapa</span>
+                  <span class="est-aside__progress-value">Dados Bancários</span>
+                </div>
+                <p class="est-aside__progress-hint">Opcional — preencha se houver repasse. Salvar grava apenas esta aba.</p>
+              </div>
+              <div class="est-aside__block">
+                <h3 class="est-aside__block-title">Titular da conta</h3>
+                <p class="est-aside__para">{{ form.get('titularRazaoSocial')?.value || '—' }}</p>
+              </div>
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">account_balance</span>
+                <p>Use o botão Salvar nesta etapa para persistir banco e PIX sem alterar o cadastro principal.</p>
+              </div>
+            </div>
+          </aside>
+          </div>
           }
 
           @if (currentStep === 3) {
+          <div class="est-page-grid">
+          <div class="est-page-grid__main">
           <div class="cadastro-stack">
-          <section class="card card--cadastro-section">
+          <section class="card card--cadastro-section est-card">
             <div class="card__header">
               <h2 class="card__title">Fotos</h2>
               <p class="card__description">Imagem do Estacionamento (opcional). Máximo {{ maxFotos }} fotos. Listagem, envio e remoção via backend (Azure).</p>
@@ -707,6 +806,23 @@
               </div>
             </div>
           </section>
+          </div>
+          </div>
+          <aside class="est-aside est-aside--fotos" aria-label="Resumo de fotos">
+            <div class="est-aside-card">
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Galeria</span>
+                  <span class="est-aside__progress-value">{{ fotoItems.length }} / {{ maxFotos }}</span>
+                </div>
+                <p class="est-aside__progress-hint">Envie até {{ maxFotos }} imagens. É necessário cadastro salvo com ID.</p>
+              </div>
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">photo_camera</span>
+                <p>Use JPEG, PNG ou WebP. Cada arquivo até 5 MB.</p>
+              </div>
+            </div>
+          </aside>
           </div>
           @if (fotoAmpliadaUrl) {
             <div class="foto-ampliada" role="dialog" aria-modal="true" aria-label="Foto em tamanho maior">

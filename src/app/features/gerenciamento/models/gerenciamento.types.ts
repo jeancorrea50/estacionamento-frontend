@@ -1,6 +1,6 @@
 /**
  * Tipos da tela Gerenciamento / Acessos, alinhados a GET/POST/PUT/DELETE
- * de `api/auth/Usuario` e RegisterInput.
+ * de `api/auth/Usuario` e RegisterInputUpdate.
  */
 
 /** Item da grid (após mapear UsuarioOutput). */

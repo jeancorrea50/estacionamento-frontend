@@ -49,26 +49,6 @@
   gap: 8px;
 }
 
-.btn-danger {
-  border-color: var(--danger, #e85d6f);
-  color: var(--danger, #e85d6f);
-  background: transparent;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: rgba(232, 93, 111, 0.12);
-}
-
-.btn-danger.btn--outline {
-  border: 1px solid var(--danger, #e85d6f);
-  color: var(--danger, #e85d6f);
-  background: transparent;
-}
-
-.btn-danger.btn--outline:hover:not(:disabled) {
-  background: rgba(232, 93, 111, 0.12);
-}
-
 .btn-danger:disabled {
   opacity: 0.5;
   cursor: not-allowed;

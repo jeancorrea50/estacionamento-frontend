@@ -73,7 +73,8 @@
   margin-left: var(--sidebar-width);
   min-width: 0;
   min-height: 0;
-  overflow-x: hidden;
+  /* Evita criar containing block de sticky por overflow em ancestor do conteúdo. */
+  overflow: visible;
   transition: margin-left 0.3s ease;
   border-left: 1px solid var(--layout-right-border, rgba(80, 120, 255, 0.12));
   box-shadow: var(--layout-right-inset, inset 1px 0 0 rgba(255, 255, 255, 0.04));

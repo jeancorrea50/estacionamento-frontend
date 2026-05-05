@@ -113,6 +113,7 @@ export class GerenciamentoService {
     return [];
   }
 
+  /** Lista pode vir com `EstacionamentoId` (PascalCase) ou `estacionamentoId` (camelCase) conforme serialização JSON. */
   private toGerenciamentoItem(item: UsuarioListItem, estMap: Map<number, string>): UsuarioGerenciamentoItem {
     const rawItem = item as UsuarioListItem & {
       estacionamentoId?: number | null;

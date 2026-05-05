@@ -1,72 +1,4 @@
-// ========== Tokens locais (espaçamento compacto para menos scroll); cores vêm do tema (styles.css)
-:host {
-  --space-4: 4px;
-  --space-6: 6px;
-  --space-8: 8px;
-  --space-10: 10px;
-  --space-12: 12px;
-  --space-16: 16px;
-  --space-20: 20px;
-  --space-24: 24px;
-
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
-
-  --input-height: 38px;
-  --input-padding-x: 10px;
-
-  --label-size: 0.8125rem;   /* ~13px */
-  --input-size: 0.9375rem;   /* ~15px */
-
-  --max-width: none;
-  --container-padding: 16px;
-  --card-padding: 14px;
-  --field-gap: 10px;
-}
-
-// ========== Shell (form dentro do layout Cadastro — mesma pilha que Transportadora)
-.estacionamento-form-wrapper {
-  height: 100%;
-  min-height: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: var(--container-padding) 0;
-  overflow-x: visible;
-  overflow-y: auto;
-  align-items: stretch;
-}
-
-/* ========== Pilha de cards (referência: cadastro Transportadora) ========== */
-.cadastro-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-16);
-  margin-bottom: var(--space-16);
-  min-width: 0;
-}
-
-.card--cadastro-section {
-  width: 100%;
-}
-
-.container {
-  width: 100%;
-  max-width: var(--max-width);
-  margin: 0;
-  padding-left: var(--container-padding);
-  padding-right: var(--container-padding);
-  box-sizing: border-box;
-  min-width: 0;
-  overflow: visible;
-}
-
-.form {
-  width: 100%;
-  min-width: 0;
-  overflow: visible;
-}
+@use '../../styles/cadastro-est-shared' as *;
 
 .loading,
 .error-banner {
@@ -242,45 +174,7 @@
   margin-left: var(--space-8);
 }
 
-// Accordion (Dados complementares – colapsado por padrão, trigger compacto)
-.card--accordion .card__trigger {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-12) var(--card-padding);
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.card--accordion .card__trigger:hover {
-  background: var(--surface-2);
-}
-
-.card__trigger .card__title {
-  margin: 0;
-}
-
-.card__chevron {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.card--accordion .card__body {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-12);
-  padding-bottom: var(--card-padding);
-}
-
-/* Espaçamento reduzido entre accordions */
-.card--accordion + .card--accordion {
-  margin-top: var(--space-12);
-}
+// Accordion: estilos em cadastro-est-shared.scss (.est-cadastro …)
 
 // Dados complementares: corpo e grid interno
 .complementares-body,
@@ -302,8 +196,7 @@
   min-width: 0;
 }
 
-.complementares-block .card__subtitle,
-.contatos-block .card__subtitle {
+.complementares-block .card__subtitle {
   margin-top: 0;
   margin-bottom: var(--space-8);
 }
@@ -331,48 +224,10 @@
   grid-column: 1 / -1;
 }
 
-.contatos-complementares-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-12);
-  margin-top: var(--space-12);
-  margin-bottom: var(--space-8);
-}
-
 .contatos-add-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-8);
-}
-
-.contatos-add-btn__icon {
-  font-size: 20px;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
-.contatos-complementares-limit {
-  font-size: var(--label-size);
-  color: var(--color-text-muted);
-}
-
-.contatos-block--complementar {
-  margin-top: var(--space-12);
-  padding-top: var(--space-12);
-  border-top: 1px solid var(--color-border);
-}
-
-.contatos-block__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-8);
-  margin-bottom: var(--space-8);
-}
-
-.contatos-block__header .card__subtitle {
-  margin-bottom: 0;
 }
 
 // Endereço (lista em Dados complementares)
@@ -675,60 +530,17 @@
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* Lista/hover/itens: padrão global em styles.css (--ds-*) */
+
 .banco-combo__list,
 .tipo-conta-combo__list {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  margin: 4px 0 0;
-  padding: 0;
+  margin: 0;
   list-style: none;
-  max-height: min(280px, 50vh);
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--input-bg, var(--surface));
-  border: 1px solid var(--input-border, var(--color-border));
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.12));
-  z-index: 40;
-}
-
-.banco-combo__item,
-.tipo-conta-combo__item {
-  padding: var(--space-8) var(--space-12);
-  font-size: var(--input-size);
-  color: var(--input-text, var(--color-text));
-  cursor: pointer;
-  transition: background 0.12s ease, font-weight 0.12s ease;
-  background: transparent;
-}
-
-.banco-combo__item:hover,
-.tipo-conta-combo__item:hover {
-  background: var(--table-row-hover, rgba(255, 255, 255, 0.08));
-}
-
-.banco-combo__item--selected,
-.tipo-conta-combo__item--selected {
-  background: var(--surface-2, rgba(0, 0, 0, 0.04));
-  font-weight: 600;
-}
-
-.banco-combo__item--selected:hover,
-.tipo-conta-combo__item--selected:hover {
-  background: var(--table-row-hover, rgba(255, 255, 255, 0.1));
-}
-
-.banco-combo__item--empty,
-.tipo-conta-combo__item--empty {
-  color: var(--color-text-muted);
-  cursor: default;
-}
-
-.banco-combo__item--empty:hover,
-.tipo-conta-combo__item--empty:hover {
-  background: transparent;
+  z-index: var(--ds-select-panel-z, 1100);
 }
 
 .field__label {
@@ -1175,54 +987,6 @@ select.field__input.ng-invalid.ng-touched {
   color: #5b7cff;
 }
 
-// ========== Buttons
-.btn {
-  padding: var(--space-10) var(--space-20);
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: var(--input-size);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  border: none;
-  transition: opacity 0.15s ease, background 0.15s ease;
-}
-
-.btn--primary {
-  background: #5b7cff;
-  color: #fff;
-}
-
-.btn--primary:hover:not(:disabled) {
-  opacity: 0.92;
-}
-
-.btn--secondary {
-  background: transparent;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.btn--secondary:hover {
-  background: var(--surface-2);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-danger.btn--outline {
-  background: transparent;
-  color: var(--danger, #dc3545);
-  border: 1px solid var(--danger, #dc3545);
-}
-
-.btn-danger.btn--outline:hover:not(:disabled) {
-  background: rgba(220, 53, 69, 0.1);
-}
-
 // ========== Actions (footer compacto)
 .actions {
   display: flex;
@@ -1233,6 +997,11 @@ select.field__input.ng-invalid.ng-touched {
   border-top: 1px solid var(--color-border);
 }
 
+.est-cadastro .actions {
+  border-top-color: var(--est-border);
+  margin-top: var(--space-8);
+}
+
 // ========== Responsive
 @media (max-width: 640px) {
   :host {
@@ -1240,7 +1009,7 @@ select.field__input.ng-invalid.ng-touched {
   }
 
   .card__header,
-  .card--accordion .card__trigger {
+  .est-cadastro .card--accordion .card__trigger {
     padding-left: var(--space-16);
     padding-right: var(--space-16);
   }

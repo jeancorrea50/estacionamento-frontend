@@ -224,7 +224,7 @@ export class TransportadoraService {
       id: Number(get('id')) || 0,
       razaoSocial: String(get('razaoSocial') ?? getPessoa('nomeRazaoSocial') ?? ''),
       nomeFantasia: String(get('nomeFantasia') ?? getPessoa('nomeFantasia') ?? ''),
-      cnpj: String(get('cnpj') ?? getPessoa('documento') ?? ''),
+      cnpj: String(get('cnpj') ?? getPessoa('cnpj') ?? getPessoa('documento') ?? ''),
       inscricaoEstadual: get('inscricaoEstadual') != null ? String(get('inscricaoEstadual')) : undefined,
       email: String(get('email') ?? getPessoa('email') ?? ''),
       telefone: telefoneDto,
@@ -360,7 +360,7 @@ export class TransportadoraService {
       id: returnedId ?? pid,
       razaoSocial: String(pessoa['nomeRazaoSocial'] ?? ''),
       nomeFantasia: String(pessoa['nomeFantasia'] ?? ''),
-      cnpj: String(pessoa['documento'] ?? ''),
+      cnpj: String(pessoa['cnpj'] ?? pessoa['documento'] ?? ''),
       email: String(pessoa['email'] ?? ''),
       telefone:
         legal?.numero != null && String(legal.numero).trim() !== ''

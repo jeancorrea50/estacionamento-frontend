@@ -90,11 +90,11 @@ export class EstacionamentoLookupService {
   private itemToOption(row: Record<string, unknown>): LookupOption {
     const id = Number(row['id']) || 0;
     const nomeRazao = String(row['nomeRazaoSocial'] ?? row['descricao'] ?? '');
-    const doc = String(row['documento'] ?? '');
+    const cnpj = String(row['cnpj'] ?? row['documento'] ?? '');
     return {
       id,
-      label: nomeRazao ? `${nomeRazao} — ${doc || '-'}` : String(id),
-      cnpj: doc,
+      label: nomeRazao ? `${nomeRazao} — ${cnpj || '-'}` : String(id),
+      cnpj,
     };
   }
 }

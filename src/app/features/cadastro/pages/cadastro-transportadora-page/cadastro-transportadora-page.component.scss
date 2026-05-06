@@ -16,8 +16,12 @@
 
 .page-header {
   padding: 18px 20px;
-  border: 0;
   flex-shrink: 0;
+}
+
+/* Mantém o chrome global de .page-header-card (borda + radius); não zerar border aqui */
+.page-header.page-header-card {
+  box-sizing: border-box;
 }
 
 .estacao-page-header__row--top {
@@ -124,6 +128,28 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+/*
+ * Listagem: card externo + .table-wrap com painel alinhado ao combobox (tokens --ds-* em styles.css).
+ */
+
+:host-context(html.theme-light) .filter-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+:host-context(html.theme-dark) .filter-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-panel--form {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
 }
 
 .tab-panel {
@@ -278,12 +304,12 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   color: var(--muted);
 }
 
-/* ========== Cards (igual Estacionamento) */
+/* ========== Cards (igual Estacionamento) — sombra leve via token */
 .card {
   background: var(--surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
   margin-bottom: var(--space-20);
   min-width: 0;
   overflow: visible;
@@ -571,11 +597,9 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   font-size: 0.9375rem;
 }
 
+/* Moldura/cores alinhadas ao painel do combobox (styles.css + tokens --ds-*) */
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--est-border);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--est-surface) 92%, var(--est-bg-page));
   margin-bottom: 0;
 }
 
@@ -583,32 +607,27 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.875rem;
+  font-size: var(--ds-select-font-size, 0.875rem);
 }
 
 .data-table th,
 .data-table td {
-  padding: 11px 14px;
   text-align: left;
-  border-bottom: 1px solid color-mix(in srgb, var(--est-border) 90%, transparent);
   vertical-align: middle;
   white-space: nowrap;
 }
 
 .data-table th {
-  color: var(--est-text-muted);
-  font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  background: color-mix(in srgb, var(--est-surface) 85%, var(--est-bg-page));
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
 .data-table tbody tr:hover {
-  background: color-mix(in srgb, var(--est-primary) 5%, var(--est-surface));
+  background: var(--ds-select-item-hover-bg, var(--table-row-hover));
 }
 
 .data-table tbody tr:last-child td {
@@ -716,18 +735,54 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   gap: var(--space-16);
 }
 
+/* Barra de ações das abas Frota / Motoristas: mesmo peso visual do filter-card */
 .tab-toolbar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-10);
-  padding: 2px 0;
+  gap: var(--space-12);
+  padding: var(--space-18, 18px) var(--space-20, 20px);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
 }
 
 .tab-toolbar__actions {
   display: flex;
   align-items: center;
-  gap: var(--space-10);
+  gap: var(--space-12);
   flex-wrap: wrap;
+}
+
+/* Botões alinhados ao fundo do card: sem sombra extra no primário; secundário legível no dark */
+.tab-toolbar .btn-primary {
+  box-shadow: none;
+}
+
+.tab-toolbar .btn-primary:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+:host-context(html.theme-dark) .tab-toolbar .btn-secondary:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+}
+
+:host-context(html.theme-dark) .tab-toolbar .btn-secondary:hover:not(:disabled) {
+  background: var(--table-row-hover, rgba(255, 255, 255, 0.06));
+  border-color: var(--border);
+}
+
+:host-context(html.theme-light) .tab-toolbar .btn-secondary:not(:disabled) {
+  box-shadow: none;
+}
+
+.tab-toolbar__actions + .tab-toolbar__hint {
+  padding-top: var(--space-14);
+  margin-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
 }
 
 .tab-toolbar__hint {
@@ -812,7 +867,7 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   border: var(--border-card, 1px solid rgba(255, 255, 255, 0.08));
   border-radius: 22px;
   padding: 0;
-  max-width: 480px;
+  max-width: 1160px;
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
@@ -825,42 +880,407 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0.875rem 1.25rem 0.75rem;
+  gap: 12px;
+  padding: 1rem 1.5rem 0.9rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
 .modal-content--frota .modal-header h2 {
   margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 600;
+  font-size: 1.55rem;
+  font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
 }
 
+.modal-content--frota .modal-header--frota .modal-header__main {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-content--frota .modal-header--frota .modal-header__icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 36%, transparent);
+  color: color-mix(in srgb, var(--primary) 68%, #fff);
+}
+
+.modal-content--frota .modal-header--frota .modal-header__icon-wrap .material-symbols-outlined {
+  font-size: 1.35rem;
+}
+
+.frota-modal-topbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--surface-2, #1e2a45) 82%, transparent);
+}
+
+.frota-modal-tab {
+  height: 56px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.frota-modal-tab:hover {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  color: var(--text);
+}
+
+.frota-modal-tab--active {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+
 .modal-content--frota .modal-body {
-  padding: 1rem 1.25rem;
+  padding: 1.1rem 1.5rem 1.2rem;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
 }
 
-/* Modal Frota: layout compacto — label e campo na mesma linha */
-.modal-content--frota .modal-body--frota-compact {
+/* Modal Frota: layout de referência em 2 colunas */
+.modal-content--frota .modal-body--frota {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.frota-tab-panel--hidden {
+  display: none !important;
+}
+
+.modal-frota-hint {
+  margin: 0;
+  padding: 11px 14px;
+  font-size: 0.95rem;
+  color: var(--color-text-muted, var(--muted));
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  border-radius: 10px;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.modal-frota-hint .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: color-mix(in srgb, var(--primary) 55%, var(--text));
+  margin-top: 1px;
+}
+
+.modal-content--frota .frota-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
+}
+
+.modal-content--frota .frota-modal-grid__col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-content--frota .modal-body--frota .form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.modal-content--frota .modal-body--frota .form-row label {
+  margin: 0;
+  font-size: 1.03rem;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text) 84%, transparent);
+}
+
+.modal-content--frota .modal-body--frota .form-row .input-control {
+  min-height: 48px;
+  height: 48px;
+}
+
+.modal-content--frota .es-lookup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.modal-content--frota .frota-lookup-btn {
+  min-height: 48px;
+  height: 48px;
+  border-radius: 10px;
+  padding: 0 14px;
+}
+
+.modal-content--frota .frota-lookup-btn--clear {
+  min-width: 94px;
+}
+
+.modal-content--frota .frota-vinculos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 240px;
+}
+
+.modal-content--frota .frota-vinculos__header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-content--frota .frota-linked-panel {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.modal-frota-hint {
-  margin: 0 0 8px 0;
+.frota-linked-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.frota-linked-panel__head h3 {
+  margin: 0;
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.frota-linked-panel__head .material-symbols-outlined {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.frota-linked-panel__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.btn-link-inline {
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--primary) 75%, #fff);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-content--frota .frota-vinculos__toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.modal-content--frota .frota-vinculos__busca {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.modal-content--frota .frota-vinculo-busca-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.modal-content--frota .frota-vinculo-busca-btn {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 10px;
+}
+
+.modal-content--frota .frota-vinculo-busca-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.modal-content--frota .frota-vinculos__add-btn {
+  height: 42px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+}
+
+.modal-content--frota .frota-vinculos__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, transparent);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.frota-selector-dropdown {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
+  border-radius: 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+}
+
+.frota-selector-dropdown__search {
+  padding: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+}
+
+.frota-selector-dropdown__list {
+  display: flex;
+  flex-direction: column;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.frota-selector-item {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+  cursor: pointer;
+  text-align: left;
+}
+
+.frota-selector-item:hover {
+  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
+}
+
+.frota-selector-item__avatar,
+.frota-vinculo-item__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #dbeafe;
+  background: color-mix(in srgb, var(--primary) 34%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 52%, transparent);
+}
+
+.frota-selector-item__meta {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.frota-selector-item__meta strong {
+  font-size: 0.88rem;
+}
+
+.frota-selector-item__meta small {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.frota-selector-dropdown__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.frota-selector-dropdown__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.frota-vinculos__empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  border-radius: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.frota-vinculo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 10px 12px;
-  font-size: var(--label-size);
-  color: var(--color-text-muted, var(--muted));
-  background: rgba(255, 193, 7, 0.12);
-  border-radius: 6px;
-  line-height: 1.4;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 78%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+}
+
+.frota-vinculo-item__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.frota-vinculo-item__nome {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.frota-vinculo-item__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--primary) 80%, #fff);
+  border: 1px solid color-mix(in srgb, var(--primary) 52%, transparent);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.frota-vinculo-item__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mantém o modal de motorista no formato compacto existente */
+.modal-content--frota .modal-body--frota-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .modal-content--frota .modal-body--frota-compact .form-row {
@@ -876,15 +1296,6 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--muted);
-  flex-shrink: 0;
-}
-
-.modal-content--frota .modal-body--frota-compact .form-row .input-control {
-  min-height: 38px;
-}
-
-.modal-content--frota .modal-body--frota-compact .form-row--checkbox .field__label--checkbox-inline {
-  margin: 0;
 }
 
 @media (max-width: 420px) {
@@ -927,7 +1338,7 @@ html.theme-dark .estacao-tabs .tab.tab--active {
 .modal-content--frota .modal-body .input-control {
   width: 100%;
   box-sizing: border-box;
-  min-height: 44px;
+  min-height: 48px;
   padding: 0 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -974,7 +1385,7 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 0.75rem 1.25rem 1rem;
+  padding: 0.9rem 1.5rem 1.1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
   background: var(--surface-2, #1e2a45);
@@ -986,8 +1397,8 @@ html.theme-dark .estacao-tabs .tab.tab--active {
 }
 
 .modal-content--frota .modal-close {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: none;
   background: var(--surface-2, #1e2a45);
@@ -1047,6 +1458,39 @@ html.theme-dark .estacao-tabs .tab.tab--active {
 :host-context(html.theme-light) .modal-content--frota .modal-close:hover {
   background: var(--table-row-hover);
   color: var(--text);
+}
+
+@media (max-width: 960px) {
+  .modal-content {
+    max-width: 92vw;
+  }
+
+  .frota-modal-topbar {
+    padding: 0 1rem;
+  }
+
+  .frota-modal-tab {
+    font-size: 1rem;
+    height: 50px;
+  }
+
+  .modal-content--frota .frota-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .frota-vinculo-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .frota-vinculo-item__actions {
+    width: 100%;
+  }
+
+  .modal-content--frota .frota-vinculos__busca {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ========== Modal Importar frota */

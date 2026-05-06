@@ -18,7 +18,7 @@ describe('Estacionamento-form.mapper', () => {
       tipoPessoa: 2,
       nomeRazaoSocial: 'Razão Social LTDA',
       nomeFantasia: 'Fantasia',
-      documento: '12.345.678/0001-90',
+      cnpj: '12.345.678/0001-90',
       email: '',
       ativo: true
     },
@@ -61,7 +61,7 @@ describe('Estacionamento-form.mapper', () => {
     expect(typeof pessoaRoot['dataAtualizacao']).toBe('string');
   });
 
-  it('deve enviar documento da pessoa apenas com dígitos', () => {
+  it('deve enviar CNPJ da pessoa apenas com dígitos', () => {
     const payload = formValueToEstacionamentoPayload(baseFormValue);
     const pessoa = payload['pessoa'] as Record<string, unknown>;
     expect(pessoa['documento']).toBe('12345678000190');

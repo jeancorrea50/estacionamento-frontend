@@ -56,7 +56,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   form = {
     nome: '',
     email: '',
-    cpfCnpj: '',
+    cpf: '',
     senha: '',
     ativo: true,
     perfilId: '' as string,
@@ -353,7 +353,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     this.form = {
       nome: '',
       email: '',
-      cpfCnpj: '',
+      cpf: '',
       senha: '',
       ativo: true,
       perfilId: '',
@@ -385,7 +385,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     this.form = {
       nome: item.nome ?? '',
       email: item.emailOuLogin ?? '',
-      cpfCnpj: (item as { cpfCnpj?: string }).cpfCnpj ?? '',
+      cpf: (item as { cpf?: string }).cpf ?? '',
       senha: '',
       ativo: item.ativo ?? true,
       perfilId: '',
@@ -590,6 +590,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   validarFormulario(): boolean {
     if (!this.form.nome.trim()) return false;
     if (!this.form.email.trim()) return false;
+    if (String(this.form.cpf ?? '').replace(/\D/g, '').length !== 11) return false;
     if (!this.isEdit() && !this.form.senha.trim()) return false;
     if (this.EstacionamentoObrigatorio && (this.form.EstacionamentoId == null || this.form.EstacionamentoId === 0)) {
       return false;
@@ -603,7 +604,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   salvar(): void {
     this.saveError.set(null);
     if (!this.validarFormulario()) {
-      this.saveError.set('Preencha os campos obrigatórios (nome, email, senha no cadastro e vínculo quando exigido).');
+      this.saveError.set('Preencha os campos obrigatórios (nome, email, CPF válido, senha no cadastro e vínculo quando exigido).');
       this.cdr.markForCheck();
       return;
     }
@@ -611,7 +612,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     const payload = {
       nome: this.form.nome.trim(),
       email: this.form.email.trim(),
-      cpfCnpj: this.form.cpfCnpj.trim() || undefined,
+      cpf: this.form.cpf.trim() || undefined,
       senha: this.form.senha || undefined,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
@@ -630,7 +631,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
           login: (this.editItem() as { userName?: string })?.userName,
           senha: payload.senha,
           confirmarSenha: payload.senha,
-          cpfCnpj: payload.cpfCnpj,
+          cpf: payload.cpf,
           perfilId: payload.perfilId,
           perfilNome: payload.perfilNome,
           EstacionamentoId: payload.EstacionamentoId,

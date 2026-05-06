@@ -3,6 +3,32 @@
   height: 100%;
 }
 
+/*
+ * styles.css aplica borda + fundo + padding em .data-card; dentro vai .est-cadastro com outra superfície,
+ * gerando contorno duplo e cantos inconsistentes (principalmente à direita).
+ * Neutralizamos o “shell” externo: uma única hierarquia visual (.est-cadastro + cards internos).
+ */
+:host .data-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Filtros permanecem como único cartão discreto acima da lista/formulário */
+:host-context(html.theme-light) .filter-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+:host-context(html.theme-dark) .filter-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
 .page-container {
   height: 100%;
   display: flex;

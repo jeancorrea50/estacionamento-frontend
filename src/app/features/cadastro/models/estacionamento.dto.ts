@@ -6,7 +6,7 @@ export interface PessoaDTO {
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
   nomeFantasia: string;
-  documento: string;
+  cnpj: string;
   email: string;
   ativo: boolean;
 }
@@ -25,7 +25,7 @@ export interface EstacionamentoListItemDTO {
   descricao: string;
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
-  documento: string;
+  cnpj: string;
   email: string;
   ativo: boolean;
   capacidadeVeiculo?: number | null;
@@ -60,7 +60,7 @@ export interface PessoaObterPorIdDTO {
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
   nomeFantasia: string;
-  documento: string;
+  cnpj: string;
   email: string;
   ativo: boolean;
   enderecos?: EnderecoDTO[];

@@ -15,11 +15,15 @@ import {
   UsuarioGerenciamentoForm,
   UsuarioGerenciamentoItem
 } from '../../models/gerenciamento.types';
-import { AcessosPerfisService, ApplicationRole } from '../../../cadastro/services/acessos-perfis.service';
+import { ApplicationRole } from '../../../cadastro/services/acessos-perfis.service';
 import {
   EstacionamentoLookupService,
   LookupOption as EstacionamentoOption
 } from '../../../cadastro/services/estacionamento-lookup.service';
+import {
+  TransportadoraLookupService,
+  LookupOption as TransportadoraOption
+} from '../../../cadastro/services/transportadora-lookup.service';
 import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
@@ -35,8 +39,8 @@ import { ApiError } from '../../../../core/api/models';
 })
 export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private gerenciamentoService = inject(GerenciamentoService);
-  private perfisService = inject(AcessosPerfisService);
   private EstacionamentoLookup = inject(EstacionamentoLookupService);
+  private transportadoraLookup = inject(TransportadoraLookupService);
   private profileStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
   private toast = inject(ToastService);
@@ -64,15 +68,21 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   saveError = signal<string | null>(null);
   saving = signal(false);
   carregandoDetalhe = signal(false);
-
-  showNovoPerfilForm = false;
-  novoPerfilNome = '';
-  savingPerfil = false;
+  mostrarSenha = false;
+  mostrarConfirmarSenha = false;
 
   form: UsuarioGerenciamentoForm = this.getEmptyForm();
 
   EstacionamentoOptions = signal<EstacionamentoOption[]>([]);
   EstacionamentoCarregando = signal(false);
+  transportadoraOptions = signal<TransportadoraOption[]>([]);
+  transportadoraCarregando = signal(false);
+  estacionamentoBuscaTermo = '';
+  transportadoraBuscaTermo = '';
+  perfilBuscaTermo = '';
+  vinculoBuscaErro: string | null = null;
+  vinculoDropdownOpen = signal(false);
+  perfilDropdownOpen = signal(false);
   private subs = new Subscription();
   private buscaSub?: Subscription;
 
@@ -98,6 +108,17 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   onPerfilFormChange(): void {
     this.profilePermissions;
     this.cdr.markForCheck();
+  }
+
+  get perfisFiltrados(): ApplicationRole[] {
+    const termo = this.perfilBuscaTermo.trim().toLowerCase();
+    if (!termo) return this.perfisList;
+    return this.perfisList.filter((p) => {
+      const candidatos = [p.name, p.perfil, p.nome, p.normalizedName, p.id]
+        .filter((v): v is string | number => v != null)
+        .map((v) => String(v).toLowerCase());
+      return candidatos.some((v) => v.includes(termo));
+    });
   }
 
   private findPerfilBySelectedValue(value: string | number): ApplicationRole | undefined {
@@ -128,7 +149,10 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       confirmarSenha: '',
       EstacionamentoId: 0,
       EstacionamentoLabel: '',
-      documento: '',
+      vinculoTipo: 'estacionamento',
+      transportadoraId: 0,
+      transportadoraLabel: '',
+      cpf: '',
       tipoPessoa: 1,
       pessoaId: null,
       perfilId: '',
@@ -160,6 +184,26 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       error: () => {
         this.EstacionamentoCarregando.set(false);
         this.toast.error('Não foi possível carregar Estacionamentos.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private carregarTransportadorasParaModal(): void {
+    if (this.transportadoraOptions().length > 0 || this.transportadoraCarregando()) {
+      return;
+    }
+    this.transportadoraCarregando.set(true);
+    this.cdr.markForCheck();
+    this.transportadoraLookup.list().subscribe({
+      next: (opts) => {
+        this.transportadoraCarregando.set(false);
+        this.transportadoraOptions.set(opts);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.transportadoraCarregando.set(false);
+        this.toast.error('Não foi possível carregar Transportadoras.');
         this.cdr.markForCheck();
       }
     });
@@ -203,11 +247,18 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     }
     this.saveError.set(null);
     this.form = this.getEmptyForm();
-    this.showNovoPerfilForm = false;
-    this.novoPerfilNome = '';
     this.isEdit.set(false);
+    this.mostrarSenha = false;
+    this.mostrarConfirmarSenha = false;
     this.editItem.set(null);
-    this.carregarEstacionamentosParaModal();
+    this.estacionamentoBuscaTermo = '';
+    this.transportadoraBuscaTermo = '';
+    this.perfilBuscaTermo = '';
+    this.EstacionamentoOptions.set([]);
+    this.transportadoraOptions.set([]);
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+    this.perfilDropdownOpen.set(false);
     this.modalFormOpen.set(true);
     this.cdr.markForCheck();
   }
@@ -223,10 +274,17 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.saveError.set(null);
     this.editItem.set(item);
     this.isEdit.set(true);
-    this.showNovoPerfilForm = false;
-    this.novoPerfilNome = '';
+    this.mostrarSenha = false;
+    this.mostrarConfirmarSenha = false;
     this.form = this.getEmptyForm();
-    this.carregarEstacionamentosParaModal();
+    this.estacionamentoBuscaTermo = '';
+    this.transportadoraBuscaTermo = '';
+    this.perfilBuscaTermo = '';
+    this.EstacionamentoOptions.set([]);
+    this.transportadoraOptions.set([]);
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+    this.perfilDropdownOpen.set(false);
     this.carregandoDetalhe.set(true);
     this.modalFormOpen.set(true);
     this.cdr.markForCheck();
@@ -245,7 +303,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   private preencherFormDoDetalhe(
-    d: UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpfCnpj?: string }
+    d: UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }
   ): void {
     const p = d.pessoa;
     const perf = d.perfil;
@@ -266,12 +324,26 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
           ? d.EstacionamentoId
           : 0,
       EstacionamentoLabel: '',
-      documento: p?.documento ?? d.cpfCnpj ?? '',
-      tipoPessoa: p?.tipoPessoa === 2 ? 2 : 1,
+      vinculoTipo:
+        typeof d.EstacionamentoId === 'number' && d.EstacionamentoId > 0
+          ? 'estacionamento'
+          : 'transportadora',
+      transportadoraId: 0,
+      transportadoraLabel: '',
+      cpf: p?.cpf ?? d.cpf ?? '',
+      tipoPessoa: 1,
       pessoaId: typeof p?.id === 'number' ? p.id : null,
       perfilId: (matchPerfil?.id ?? matchPerfil?.name ?? perf?.id ?? perf?.name ?? '') as string,
       ativo: this.form.ativo
     };
+    const perfilSelecionado = this.findPerfilBySelectedValue(this.form.perfilId);
+    this.perfilBuscaTermo = String(
+      perfilSelecionado?.name ??
+        perfilSelecionado?.perfil ??
+        perfilSelecionado?.nome ??
+        this.form.perfilId ??
+        ''
+    );
     if (this.form.EstacionamentoId != null) {
       const fromList = this.EstacionamentoOptions().find(
         (o) => o.id === this.form.EstacionamentoId
@@ -291,8 +363,19 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   fecharModalForm(): void {
     this.modalFormOpen.set(false);
     this.saveError.set(null);
-    this.showNovoPerfilForm = false;
-    this.novoPerfilNome = '';
+    this.mostrarSenha = false;
+    this.mostrarConfirmarSenha = false;
+    this.perfilDropdownOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  toggleMostrarSenha(): void {
+    this.mostrarSenha = !this.mostrarSenha;
+    this.cdr.markForCheck();
+  }
+
+  toggleMostrarConfirmarSenha(): void {
+    this.mostrarConfirmarSenha = !this.mostrarConfirmarSenha;
     this.cdr.markForCheck();
   }
 
@@ -321,43 +404,196 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   onEstacionamentoFieldFocus(): void {
-    this.carregarEstacionamentosParaModal();
+    // Busca sob demanda via lupa.
   }
 
-  abrirNovoPerfil(): void {
-    this.showNovoPerfilForm = true;
-    this.novoPerfilNome = '';
+  onTransportadoraFieldFocus(): void {
+    // Busca sob demanda via lupa.
+  }
+
+  onVinculoTipoChange(tipo: 'estacionamento' | 'transportadora'): void {
+    this.form.vinculoTipo = tipo;
+    this.form.EstacionamentoId = 0;
+    this.form.EstacionamentoLabel = '';
+    this.form.transportadoraId = 0;
+    this.form.transportadoraLabel = '';
+    this.estacionamentoBuscaTermo = '';
+    this.transportadoraBuscaTermo = '';
+    this.EstacionamentoOptions.set([]);
+    this.transportadoraOptions.set([]);
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+    if (tipo === 'estacionamento') {
+      // Busca sob demanda.
+    } else {
+      // Busca sob demanda.
+    }
     this.cdr.markForCheck();
   }
 
-  cancelarNovoPerfil(): void {
-    this.showNovoPerfilForm = false;
-    this.novoPerfilNome = '';
+  onTransportadoraIdChange(v: number | null | undefined): void {
+    if (v == null || v === 0) {
+      this.form.transportadoraId = 0;
+      this.form.transportadoraLabel = '';
+    } else {
+      this.form.transportadoraId = v;
+      const o = this.transportadoraOptions().find((e) => e.id === v);
+      this.form.transportadoraLabel = o?.label ?? '';
+    }
     this.cdr.markForCheck();
   }
 
-  criarPerfil(): void {
-    const name = this.novoPerfilNome?.trim();
-    if (!name) {
-      this.toast.error('Informe o nome do perfil.');
+  limparTransportadora(): void {
+    this.form.transportadoraId = 0;
+    this.form.transportadoraLabel = '';
+    this.cdr.markForCheck();
+  }
+
+  onVinculoBuscaKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.buscarVinculo();
+    }
+  }
+
+  onVinculoBuscaInput(): void {
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+    if (this.form.vinculoTipo === 'estacionamento') {
+      this.form.EstacionamentoId = 0;
+      this.form.EstacionamentoLabel = '';
+    } else {
+      this.form.transportadoraId = 0;
+      this.form.transportadoraLabel = '';
+    }
+    this.cdr.markForCheck();
+  }
+
+  selecionarEstacionamentoBusca(opt: EstacionamentoOption): void {
+    this.form.EstacionamentoId = opt.id;
+    this.form.EstacionamentoLabel = opt.label;
+    this.estacionamentoBuscaTermo = opt.label;
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  selecionarTransportadoraBusca(opt: TransportadoraOption): void {
+    this.form.transportadoraId = opt.id;
+    this.form.transportadoraLabel = opt.label;
+    this.transportadoraBuscaTermo = opt.label;
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  fecharVinculoDropdownComDelay(): void {
+    setTimeout(() => {
+      this.vinculoDropdownOpen.set(false);
+      this.cdr.markForCheck();
+    }, 180);
+  }
+
+  onPerfilBuscaInput(): void {
+    this.perfilDropdownOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  onPerfilBuscaKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.perfilDropdownOpen.set(true);
+      this.cdr.markForCheck();
+    }
+  }
+
+  abrirPerfilDropdown(): void {
+    this.perfilDropdownOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  fecharPerfilDropdownComDelay(): void {
+    setTimeout(() => {
+      this.perfilDropdownOpen.set(false);
+      this.cdr.markForCheck();
+    }, 180);
+  }
+
+  selecionarPerfilBusca(perfil: ApplicationRole): void {
+    const valor = String(perfil.name ?? perfil.perfil ?? perfil.nome ?? perfil.id ?? '').trim();
+    this.form.perfilId = valor;
+    this.perfilBuscaTermo = valor;
+    this.onPerfilFormChange();
+    this.perfilDropdownOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  buscarVinculo(): void {
+    this.vinculoBuscaErro = null;
+    if (this.form.vinculoTipo === 'estacionamento') {
+      this.buscarEstacionamentosPorTermo();
+    } else {
+      this.buscarTransportadorasPorTermo();
+    }
+  }
+
+  private buscarEstacionamentosPorTermo(): void {
+    const termo = this.estacionamentoBuscaTermo.trim();
+    if (!termo) {
+      this.vinculoBuscaErro = 'Informe um termo para buscar Estacionamentos.';
+      this.EstacionamentoOptions.set([]);
+      this.cdr.markForCheck();
       return;
     }
-    this.savingPerfil = true;
-    this.cdr.markForCheck();
-    this.perfisService.gravar({ name }).subscribe({
-      next: (res) => {
-        this.savingPerfil = false;
-        this.showNovoPerfilForm = false;
-        this.novoPerfilNome = '';
-        const created = res as { id?: string; name?: string };
-        this.form.perfilId = created?.id ?? created?.name ?? name;
-        this.carregarPerfis();
-        this.toast.success('Perfil criado.');
+    this.EstacionamentoCarregando.set(true);
+    this.EstacionamentoLookup.search(termo).subscribe({
+      next: (opts) => {
+        this.EstacionamentoCarregando.set(false);
+        this.EstacionamentoOptions.set(opts);
+        if (opts.length === 0) {
+          this.vinculoBuscaErro = 'Nenhum estacionamento encontrado para o termo informado.';
+          this.vinculoDropdownOpen.set(false);
+        } else {
+          this.vinculoDropdownOpen.set(true);
+        }
         this.cdr.markForCheck();
       },
-      error: (err) => {
-        this.savingPerfil = false;
-        this.toast.error(err?.error?.message ?? err?.message ?? 'Erro ao criar perfil.');
+      error: () => {
+        this.EstacionamentoCarregando.set(false);
+        this.EstacionamentoOptions.set([]);
+        this.vinculoBuscaErro = 'Não foi possível buscar Estacionamentos.';
+        this.vinculoDropdownOpen.set(false);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private buscarTransportadorasPorTermo(): void {
+    const termo = this.transportadoraBuscaTermo.trim();
+    if (!termo) {
+      this.vinculoBuscaErro = 'Informe um termo para buscar Transportadoras.';
+      this.transportadoraOptions.set([]);
+      this.cdr.markForCheck();
+      return;
+    }
+    this.transportadoraCarregando.set(true);
+    this.transportadoraLookup.search(termo).subscribe({
+      next: (opts) => {
+        this.transportadoraCarregando.set(false);
+        this.transportadoraOptions.set(opts);
+        if (opts.length === 0) {
+          this.vinculoBuscaErro = 'Nenhuma transportadora encontrada para o termo informado.';
+          this.vinculoDropdownOpen.set(false);
+        } else {
+          this.vinculoDropdownOpen.set(true);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.transportadoraCarregando.set(false);
+        this.transportadoraOptions.set([]);
+        this.vinculoBuscaErro = 'Não foi possível buscar Transportadoras.';
+        this.vinculoDropdownOpen.set(false);
         this.cdr.markForCheck();
       }
     });
@@ -367,6 +603,38 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.saveError.set(null);
     if (!this.form.nome?.trim() || !this.form.email?.trim()) {
       this.saveError.set('Preencha nome e e-mail.');
+      this.cdr.markForCheck();
+      return;
+    }
+    const emailNorm = this.form.email.trim();
+    if (!this.isEmailFormatoValido(emailNorm)) {
+      this.saveError.set('Informe um e-mail válido (ex.: nome@dominio.com).');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (!this.form.perfilId?.toString().trim()) {
+      this.saveError.set('Selecione o perfil do usuário.');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.form.vinculoTipo === 'estacionamento' && (!this.form.EstacionamentoId || this.form.EstacionamentoId <= 0)) {
+      this.saveError.set('Selecione o estacionamento para o vínculo.');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.form.vinculoTipo === 'transportadora' && (!this.form.transportadoraId || this.form.transportadoraId <= 0)) {
+      this.saveError.set('Selecione a transportadora para o vínculo.');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.form.vinculoTipo === 'transportadora') {
+      this.saveError.set('O contrato atual do endpoint de usuário não possui campo transportadoraId. Cadastre com vínculo de estacionamento até a API suportar transportadora.');
+      this.cdr.markForCheck();
+      return;
+    }
+    const cpfDigits = String(this.form.cpf ?? '').replace(/\D/g, '');
+    if (cpfDigits.length !== 11) {
+      this.saveError.set('Informe o CPF com 11 dígitos (obrigatório no cadastro).');
       this.cdr.markForCheck();
       return;
     }
@@ -409,13 +677,16 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       login: (this.form.login || this.form.email).trim(),
       senha: this.form.senha || undefined,
       confirmarSenha: this.form.confirmarSenha || undefined,
-      cpfCnpj: this.form.documento?.trim() || undefined,
-      tipoPessoa: this.form.tipoPessoa,
+      cpf: this.form.cpf?.trim() || undefined,
+      tipoPessoa: 1,
       pessoaId,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
       perfilNome,
-      EstacionamentoId: typeof this.form.EstacionamentoId === 'number' ? this.form.EstacionamentoId : 0,
+      EstacionamentoId:
+        this.form.vinculoTipo === 'estacionamento' && typeof this.form.EstacionamentoId === 'number'
+          ? this.form.EstacionamentoId
+          : 0,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {})
     };
     const req = this.isEdit()
@@ -443,16 +714,39 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         this.buscar();
         this.cdr.markForCheck();
       },
-      error: (err: ApiError) => {
+      error: (err: unknown) => {
         this.saving.set(false);
-        this.saveError.set(
-          (err as { error?: { message?: string } })?.error?.message ??
-            (err as { message?: string })?.message ??
-            'Erro ao salvar.'
-        );
+        this.saveError.set(this.mensagemErroSalvar(err));
         this.cdr.markForCheck();
       }
     });
+  }
+
+  /** Valida formato mínimo de e-mail (evita envio que gera 400 na API). */
+  private isEmailFormatoValido(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
+  /** ApiError do interceptor usa `message` na raiz; erros legados podem ser instância de Error. */
+  private mensagemErroSalvar(err: unknown): string {
+    const api = err as ApiError;
+    let msg =
+      (typeof api?.message === 'string' && api.message.trim() ? api.message.trim() : '') ||
+      (err instanceof Error ? err.message : '');
+    const fe = api?.fieldErrors;
+    if (fe && typeof fe === 'object') {
+      const detalhes = Object.entries(fe)
+        .flatMap(([campo, msgs]) =>
+          (Array.isArray(msgs) ? msgs : [String(msgs)]).map((m) =>
+            m ? `${campo}: ${m}` : ''
+          )
+        )
+        .filter(Boolean);
+      if (detalhes.length > 0) {
+        msg = [msg || 'Corrija os campos indicados.', ...detalhes].join(' ');
+      }
+    }
+    return msg || 'Erro ao salvar.';
   }
 
   excluir(item: UsuarioGerenciamentoItem): void {

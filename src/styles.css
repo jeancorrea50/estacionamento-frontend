@@ -289,16 +289,16 @@ html.theme-dark {
   --layout-right-inset: inset 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
-/* ========== Tema: WHITE MODE — fundos azulados + contraste + tokens outline ========== */
+/* ========== Tema: WHITE MODE — canvas neutro; cartões e blocos com contraste suave ========== */
 html.theme-light {
-  --color-bg-main: #dbeafe;
-  --color-bg-page: #dbeafe;
+  --color-bg-main: #f3f4f6;
+  --color-bg-page: #f3f4f6;
 
-  --color-bg-card: #eaf3ff;
-  --color-bg-card-secondary: #d8e9fb;
-  --color-bg-section: #d4e6f8;
+  --color-bg-card: #ffffff;
+  --color-bg-card-secondary: #f1f5f9;
+  --color-bg-section: #e8ecf2;
 
-  --color-bg-input: #f8fbff;
+  --color-bg-input: #ffffff;
   --color-border: #9fc3eb;
   --color-border-light: #b9d4f2;
 
@@ -315,7 +315,7 @@ html.theme-light {
   --color-sidebar-active: #5088d0;
   --color-sidebar-border: #9fc3eb;
 
-  --color-topbar-bg: #f8fbff;
+  --color-topbar-bg: #ffffff;
   --color-topbar-border: #9fc3eb;
 
   --color-btn-primary: #3080d0;
@@ -641,6 +641,7 @@ html.theme-light .dev-badge {
   font-weight: var(--font-weight-section, 600);
 }
 
+/* Listagem tabular: mesma linguagem do painel do combobox (.banco-combo__list / tokens --ds-*) */
 .table-wrap,
 .table-wrapper {
   width: 100%;
@@ -648,9 +649,10 @@ html.theme-light .dev-badge {
   min-width: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-lg, 12px);
-  background: var(--surface);
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle, rgba(255, 255, 255, 0.1)));
+  border-radius: var(--ds-select-radius, var(--radius-md, 10px));
+  background: var(--surface-2, var(--surface));
+  box-shadow: none;
 }
 
 .data-table {
@@ -667,12 +669,18 @@ html.theme-light .dev-badge {
 
 .data-table th,
 .data-table td {
-  padding: var(--space-sm, 8px) var(--space-md, 12px);
+  padding: var(--ds-select-item-pad-y, 10px) var(--ds-select-item-pad-x, 12px);
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
 }
 
+.data-table th {
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000 12%);
+  font-weight: var(--font-weight-section, 600);
+  color: var(--muted);
+}
+
 .data-table tbody tr:hover {
-  background: var(--table-row-hover, rgba(255, 255, 255, 0.04));
+  background: var(--ds-select-item-hover-bg, var(--table-row-hover, rgba(255, 255, 255, 0.08)));
 }
 
 /* Texto padrão e registros: 14px */
@@ -803,6 +811,10 @@ html.theme-dark {
   --bg: #07111f;
   --surface: #111c33;
   --surface-2: #14213d;
+  --color-bg-main: var(--bg);
+  --color-bg-page: var(--bg);
+  --color-bg-card: var(--surface);
+  --color-bg-card-secondary: var(--surface-2);
   --sidebar-bg: #081426;
   --sidebar-border: rgba(80, 120, 255, 0.18);
   --border: rgba(80, 120, 255, 0.18);
@@ -818,10 +830,7 @@ html.theme-dark {
 }
 
 html.theme-dark body {
-  background:
-    radial-gradient(1200px 500px at 84% -10%, rgba(79, 107, 255, 0.16), transparent 55%),
-    radial-gradient(900px 400px at 10% 120%, rgba(0, 212, 255, 0.08), transparent 55%),
-    linear-gradient(160deg, #07111f 0%, #0b1628 100%);
+  background: var(--color-bg-main);
 }
 
 html.theme-dark .page-hero,
@@ -836,9 +845,7 @@ html.theme-dark .page-header {
 }
 
 html.theme-dark .content-card,
-html.theme-dark .ui-panel,
-html.theme-dark .table-wrap,
-html.theme-dark .dk-table-wrap {
+html.theme-dark .ui-panel {
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -847,6 +854,19 @@ html.theme-dark .dk-table-wrap {
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, rgba(20, 33, 61, 0.8), rgba(17, 28, 51, 0.78));
   box-shadow: 0 10px 30px rgba(3, 8, 20, 0.28);
+}
+
+/* Tabelas: painel sólido plano, alinhado ao combobox (não o “card” com gradiente) */
+html.theme-dark .table-wrap,
+html.theme-dark .dk-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: var(--ds-select-radius, var(--radius-md, 10px));
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
+  background: var(--surface-2, var(--surface));
+  box-shadow: none;
 }
 
 /* DARK MODE — botões preenchidos (opacos), sem glow neon */
@@ -1118,9 +1138,7 @@ html.theme-light .page-header {
 }
 
 html.theme-light .content-card,
-html.theme-light .ui-panel,
-html.theme-light .table-wrap,
-html.theme-light .dk-table-wrap {
+html.theme-light .ui-panel {
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -1129,6 +1147,19 @@ html.theme-light .dk-table-wrap {
   border: 1px solid var(--border-subtle);
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
+}
+
+/* Listagens: superfície secundária + radius combobox (não o mesmo bloco que cards brancos) */
+html.theme-light .table-wrap,
+html.theme-light .dk-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: var(--ds-select-radius, var(--radius-md, 10px));
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
+  background: var(--surface-2, var(--color-bg-card-secondary));
+  box-shadow: none;
 }
 
 /* WHITE MODE — botões opacos (referência dashboard) */
@@ -1740,4 +1771,102 @@ select:not([multiple]):not([size]):disabled {
   justify-content: center;
   min-height: var(--ds-select-height);
   height: auto !important;
+}
+
+/* =============================================================================
+ * UI plana: evita borda dupla / efeito 3D (tabela, filtros e blocos dentro de card).
+ * Escopo: todas as rotas no MainLayout, exceto `/app/movimentos` (.app-layout--movimentos).
+ * ============================================================================= */
+
+/* Dentro de card: listagem com moldura própria (como painel .banco-combo__list), sem sombra extra */
+html.theme-light .layout:not(.app-layout--movimentos) .data-card .table-wrap,
+html.theme-light .layout:not(.app-layout--movimentos) .data-card .dk-table-wrap,
+html.theme-light .layout:not(.app-layout--movimentos) .filter-card .table-wrap,
+html.theme-light .layout:not(.app-layout--movimentos) .filter-card .dk-table-wrap,
+html.theme-dark .layout:not(.app-layout--movimentos) .data-card .table-wrap,
+html.theme-dark .layout:not(.app-layout--movimentos) .data-card .dk-table-wrap,
+html.theme-dark .layout:not(.app-layout--movimentos) .filter-card .table-wrap,
+html.theme-dark .layout:not(.app-layout--movimentos) .filter-card .dk-table-wrap {
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle)) !important;
+  box-shadow: none !important;
+  background: var(--surface-2, var(--surface)) !important;
+  border-radius: var(--ds-select-radius, var(--radius-md, 10px)) !important;
+}
+
+/* Sub-painéis de conteúdo continuam sem segunda moldura */
+html.theme-light .layout:not(.app-layout--movimentos) .data-card .content-card,
+html.theme-light .layout:not(.app-layout--movimentos) .data-card .ui-panel,
+html.theme-light .layout:not(.app-layout--movimentos) .filter-card .content-card,
+html.theme-dark .layout:not(.app-layout--movimentos) .data-card .content-card,
+html.theme-dark .layout:not(.app-layout--movimentos) .data-card .ui-panel,
+html.theme-dark .layout:not(.app-layout--movimentos) .filter-card .content-card {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0;
+}
+
+/* Cards principais: sombra leve (sem “relevo” forte) */
+html.theme-light .layout:not(.app-layout--movimentos) .filter-card,
+html.theme-light .layout:not(.app-layout--movimentos) .data-card {
+  box-shadow: var(--shadow-sm);
+}
+
+html.theme-light .layout:not(.app-layout--movimentos) .page-header-card {
+  box-shadow: var(--shadow-sm);
+}
+
+html.theme-dark .layout:not(.app-layout--movimentos) .filter-card,
+html.theme-dark .layout:not(.app-layout--movimentos) .data-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+html.theme-dark .layout:not(.app-layout--movimentos) .page-header-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Cabeçalhos de página: mesma linguagem plana (dark: sem gradiente “vidro”) */
+html.theme-light .layout:not(.app-layout--movimentos) .page-hero,
+html.theme-light .layout:not(.app-layout--movimentos) .page-header {
+  box-shadow: var(--shadow-sm);
+}
+
+html.theme-dark .layout:not(.app-layout--movimentos) .page-hero,
+html.theme-dark .layout:not(.app-layout--movimentos) .page-header {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+}
+
+/* Blocos de tabela/painel soltos (fora de .data-card): cards com sombra leve; tabelas planas como lista --ds-* */
+html.theme-light .layout:not(.app-layout--movimentos) .content-card,
+html.theme-light .layout:not(.app-layout--movimentos) .ui-panel {
+  box-shadow: var(--shadow-sm);
+}
+
+html.theme-light .layout:not(.app-layout--movimentos) .table-wrap,
+html.theme-light .layout:not(.app-layout--movimentos) .dk-table-wrap {
+  background: var(--surface-2, var(--surface));
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
+  box-shadow: none;
+  border-radius: var(--ds-select-radius, var(--radius-md, 10px));
+}
+
+html.theme-dark .layout:not(.app-layout--movimentos) .content-card,
+html.theme-dark .layout:not(.app-layout--movimentos) .ui-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+html.theme-dark .layout:not(.app-layout--movimentos) .table-wrap,
+html.theme-dark .layout:not(.app-layout--movimentos) .dk-table-wrap {
+  background: var(--surface-2, var(--surface));
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
+  box-shadow: none;
+  border-radius: var(--ds-select-radius, var(--radius-md, 10px));
 }

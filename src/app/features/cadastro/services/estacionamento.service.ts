@@ -28,7 +28,7 @@ export interface EstacionamentoFormValue {
     tipoPessoa: 1 | 2;
     nomeRazaoSocial: string;
     nomeFantasia: string;
-    documento: string;
+    cnpj: string;
     email: string;
     ativo: boolean;
   };
@@ -269,7 +269,7 @@ export class EstacionamentoService {
         descricao: '',
         tipoPessoa: 2,
         nomeRazaoSocial: '',
-        documento: '',
+        cnpj: '',
         email: '',
         ativo: true,
         capacidadeVeiculo: null,
@@ -322,7 +322,7 @@ export class EstacionamentoService {
     const tamanhoRaw = firstOfKeys(['tamanhoTerreno', 'tamanho', 'areaTerreno', 'metrosQuadrados', 'area']);
     const nomeRazao =
       String(g('nomeRazaoSocial') ?? gPessoa('nomeRazaoSocial') ?? gPessoa('nome') ?? '').trim();
-    const doc = String(g('documento') ?? gPessoa('documento') ?? '').trim();
+    const cnpj = String(g('cnpj') ?? g('documento') ?? gPessoa('cnpj') ?? gPessoa('documento') ?? '').trim();
     const email = String(g('email') ?? gPessoa('email') ?? '').trim();
     const descricao =
       String(g('descricao') ?? gPessoa('nomeFantasia') ?? gPessoa('descricao') ?? '').trim();
@@ -332,7 +332,7 @@ export class EstacionamentoService {
       descricao,
       tipoPessoa: (tipoNum === 1 ? 1 : 2) as 1 | 2,
       nomeRazaoSocial: nomeRazao,
-      documento: doc,
+      cnpj,
       email,
       ativo: g('ativo') !== false && (pessoaObj ? getKey(pessoaObj, 'ativo') !== false : true),
       capacidadeVeiculo: Number.isFinite(capacidade as number) ? (capacidade as number) : null,
@@ -463,7 +463,7 @@ export class EstacionamentoService {
         nomeFantasia:
           String(raw['descricao'] ?? raw['Descricao'] ?? '').trim() ||
           String(p?.nomeFantasia ?? pObj['nomeFantasia'] ?? pObj['NomeFantasia'] ?? '').trim(),
-        documento: p?.documento ?? '',
+        cnpj: p?.cnpj ?? String((pObj['documento'] ?? pObj['Documento'] ?? '') || ''),
         email: p?.email ?? '',
         ativo: p?.ativo ?? true
       },

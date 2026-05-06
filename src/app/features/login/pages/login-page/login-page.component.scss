@@ -135,7 +135,8 @@
   background: var(--card-bg);
   border-radius: 16px;
   padding: 40px;
-  box-shadow: var(--card-shadow);
+  /* Visual plano: sem sombra de elevação atrás do card */
+  box-shadow: none;
   border: var(--border-card, 1px solid var(--card-border));
   color: var(--text);
 }
@@ -143,7 +144,7 @@
 :host-context(html.theme-dark) .card {
   background: rgba(17, 28, 51, 0.92);
   border-color: rgba(148, 163, 184, 0.18);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
 }
 
 .login-header {

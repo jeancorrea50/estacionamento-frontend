@@ -53,6 +53,17 @@ function toApiError(res: HttpErrorResponse): ApiError {
       if (typeof msg === 'string' && msg.trim()) message = msg.trim();
     }
     if (b.errors) fieldErrors = parseFieldErrors(b.errors as Record<string, string[]> | string[]);
+    if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+      const flat = Object.values(fieldErrors)
+        .flat()
+        .filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+      const generic =
+        message === DEFAULT_MESSAGES[status] ||
+        /validation error|requisição inválida|one or more validation/i.test(message);
+      if (flat.length > 0 && generic) {
+        message = flat.join(' ');
+      }
+    }
   } else if (typeof body === 'string' && body.trim()) {
     message = body.trim();
   }
@@ -81,6 +92,12 @@ function isPasswordResetPublicRequest(req: HttpRequest<unknown>): boolean {
   return u.includes('auth/usuario/esqueci-senha') || u.includes('auth/usuario/redefinir-senha');
 }
 
+/** Cadastro de usuário: a tela (modal) exibe a mensagem; evita toast duplicado. */
+function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
+  const u = req.url;
+  return u.includes('auth/Usuario/Register') || u.includes('auth/Usuario/Registrar');
+}
+
 /**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
@@ -98,7 +115,8 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         !isLoginRequest(req) &&
         !isBrasilApiCnpjRequest(req) &&
         !isConfirmarEmailRequest(req) &&
-        !isPasswordResetPublicRequest(req)
+        !isPasswordResetPublicRequest(req) &&
+        !isUsuarioRegisterRequest(req)
       ) {
         toast.error(apiError.message);
       }

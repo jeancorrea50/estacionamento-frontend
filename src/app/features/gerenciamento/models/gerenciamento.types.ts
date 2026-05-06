@@ -31,7 +31,10 @@ export interface UsuarioGerenciamentoForm {
   /** 0 = sem vínculo (contrato API). */
   EstacionamentoId: number;
   EstacionamentoLabel: string;
-  documento: string;
+  vinculoTipo: 'estacionamento' | 'transportadora';
+  transportadoraId: number;
+  transportadoraLabel: string;
+  cpf: string;
   tipoPessoa: 1 | 2;
   pessoaId: number | null;
   perfilId: string;

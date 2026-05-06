@@ -36,9 +36,9 @@ export class GerenciamentoService {
     );
   }
 
-  obterDetalhe(id: string): Observable<UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpfCnpj?: string }> {
+  obterDetalhe(id: string): Observable<UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }> {
     return this.usuariosService.obterPorId(id) as Observable<
-      UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpfCnpj?: string }
+      UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }
     >;
   }
 

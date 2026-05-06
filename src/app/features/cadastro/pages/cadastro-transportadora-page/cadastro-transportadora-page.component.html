@@ -422,7 +422,7 @@
             <button
               type="button"
               class="btn btn-primary"
-              (click)="abrirNovoVeiculo()"
+              (click)="abrirNovoVeiculo($event)"
             >
               Cadastrar frota
             </button>
@@ -477,7 +477,7 @@
                           </td>
                           <td class="table-cell--actions">
                             <div class="table-actions">
-                              <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v)">Editar</button>
+                              <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v, $event)">Editar</button>
                               <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirVeiculo(v)">Excluir</button>
                             </div>
                           </td>
@@ -573,7 +573,7 @@
   </div>
 
   @if (showVeiculoForm) {
-    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalFrota()" role="presentation">
+    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalFrota($event)" role="presentation">
       <div
         class="modal-content modal-content--frota"
         role="dialog"
@@ -581,90 +581,211 @@
         aria-labelledby="modal-frota-title"
         (click)="$event.stopPropagation()"
       >
-        <div class="modal-header">
-          <h2 id="modal-frota-title">{{ veiculoEditId ? 'Editar veículo' : 'Cadastrar frota' }}</h2>
+        <div class="modal-header modal-header--frota">
+          <div class="modal-header__main">
+            <span class="modal-header__icon-wrap" aria-hidden="true">
+              <span class="material-symbols-outlined">local_shipping</span>
+            </span>
+            <h2 id="modal-frota-title">{{ veiculoEditId ? 'Editar veículo' : 'Cadastrar frota' }}</h2>
+          </div>
           <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalFrota()">&times;</button>
         </div>
+        <div class="frota-modal-topbar" role="tablist" aria-label="Seções do cadastro de frota">
+          <button
+            type="button"
+            class="frota-modal-tab"
+            [class.frota-modal-tab--active]="modalFrotaTabAtual === 'veiculo'"
+            [attr.aria-selected]="modalFrotaTabAtual === 'veiculo'"
+            role="tab"
+            (click)="setModalFrotaTab('veiculo')"
+          >
+            Veículo
+          </button>
+          <button
+            type="button"
+            class="frota-modal-tab"
+            [class.frota-modal-tab--active]="modalFrotaTabAtual === 'motoristasVinculados'"
+            [attr.aria-selected]="modalFrotaTabAtual === 'motoristasVinculados'"
+            role="tab"
+            (click)="setModalFrotaTab('motoristasVinculados')"
+          >
+            Motoristas vinculados
+          </button>
+        </div>
         <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
-          <div class="modal-body modal-body--frota-compact">
+          <div class="modal-body modal-body--frota">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Salve primeiro o cadastro da transportadora na aba <strong>Cadastro</strong>. Depois disso, use <strong>Salvar veículo</strong> para enviar apenas os dados do veículo à API.</p>
+              <p class="modal-frota-hint" role="alert">
+                <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                <span>Salve primeiro o cadastro da transportadora na aba <strong>Cadastro</strong>. Depois disso, use <strong>Salvar veículo</strong> para enviar apenas os dados do veículo à API.</span>
+              </p>
             }
-            <div class="form-row">
-              <label for="frota-placa">Placa <span class="required">*</span></label>
-              <input
-                id="frota-placa"
-                type="text"
-                class="input-control"
-                placeholder="Ex.: ABC1D23"
-                maxlength="7"
-                formControlName="placa"
-                (input)="formatarPlacaFrota($any($event.target).value)"
-                (blur)="onPlacaBlur()"
-              />
-            </div>
-            <div class="form-row">
-              <label for="frota-motorista-display">Motorista</label>
-              <div class="es-lookup">
-                <input
-                  id="frota-motorista-display"
-                  type="text"
-                  class="input-control es-lookup__input"
-                  [value]="frotaMotoristaTexto"
-                  (input)="onFrotaMotoristaCampoInput($event)"
-                  autocomplete="off"
-                  placeholder="Digite parte do nome e use a lupa"
-                />
-                <button type="button" class="btn btn-secondary btn--sm" (click)="abrirBuscaMotoristaFrota()" title="Buscar motorista">
-                  <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
-                </button>
-                <button type="button" class="btn btn-secondary btn--sm" (click)="limparMotoristaFrota()" title="Limpar seleção">
-                  Limpar
-                </button>
+            <div class="frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'veiculo'">
+              <div class="frota-modal-grid">
+                <div class="frota-modal-grid__col">
+                  <div class="form-row">
+                    <label for="frota-placa">Placa <span class="required">*</span></label>
+                    <input
+                      id="frota-placa"
+                      type="text"
+                      class="input-control"
+                      placeholder="Ex.: ABC1D23"
+                      maxlength="7"
+                      formControlName="placa"
+                      (input)="formatarPlacaFrota($any($event.target).value)"
+                      (blur)="onPlacaBlur()"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-marca">Marca</label>
+                    <input id="frota-marca" type="text" class="input-control" formControlName="marca" placeholder="Ex.: Volvo" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-cor">Cor do veículo</label>
+                    <input id="frota-cor" type="text" class="input-control" formControlName="cor" placeholder="Opcional" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-ano-mod">Ano Modelo</label>
+                    <input id="frota-ano-mod" type="number" class="input-control" formControlName="anoModelo" placeholder="Ex.: 2023" min="1900" max="2100" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-eixos">Quantidade eixos</label>
+                    <select id="frota-eixos" class="input-control input-control--select" formControlName="quantidadeEixos">
+                      <option value="">Selecione</option>
+                      @for (n of eixosOpcoes; track n) {
+                        <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="frota-modal-grid__col">
+                  <div class="form-row">
+                    <label for="frota-modelo">Modelo</label>
+                    <input id="frota-modelo" type="text" class="input-control" formControlName="modelo" placeholder="Ex.: FH 540" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-ano-fab">Ano Fabricação</label>
+                    <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" placeholder="Ex.: 2022" min="1900" max="2100" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-tipo">Tipo de veículo</label>
+                    <input id="frota-tipo" type="text" class="input-control" formControlName="tipoVeiculo" placeholder="Ex.: Cavalo mecânico" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-peso">Veículo Leve/Pesado</label>
+                    <select id="frota-peso" class="input-control input-control--select" formControlName="tipoPeso">
+                      <option value="">Selecione</option>
+                      @for (o of tipoPesoOpcoes; track o.value) {
+                        <option [value]="o.value">{{ o.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="form-row">
-              <label for="frota-marca">Marca</label>
-              <input id="frota-marca" type="text" class="input-control" formControlName="marca" placeholder="Ex.: Volvo" />
-            </div>
-            <div class="form-row">
-              <label for="frota-modelo">Modelo</label>
-              <input id="frota-modelo" type="text" class="input-control" formControlName="modelo" placeholder="Ex.: FH 540" />
-            </div>
-            <div class="form-row">
-              <label for="frota-cor">Cor do veículo</label>
-              <input id="frota-cor" type="text" class="input-control" formControlName="cor" placeholder="Opcional" />
-            </div>
-            <div class="form-row">
-              <label for="frota-ano-fab">Ano Fabricação</label>
-              <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" placeholder="Ex.: 2022" min="1900" max="2100" />
-            </div>
-            <div class="form-row">
-              <label for="frota-ano-mod">Ano Modelo</label>
-              <input id="frota-ano-mod" type="number" class="input-control" formControlName="anoModelo" placeholder="Ex.: 2023" min="1900" max="2100" />
-            </div>
-            <div class="form-row">
-              <label for="frota-tipo">Tipo de veículo</label>
-              <input id="frota-tipo" type="text" class="input-control" formControlName="tipoVeiculo" placeholder="Ex.: Cavalo mecânico" />
-            </div>
-            <div class="form-row">
-              <label for="frota-eixos">Quantidade eixos</label>
-              <select id="frota-eixos" class="input-control input-control--select" formControlName="quantidadeEixos">
-                <option value="">Selecione</option>
-                @for (n of eixosOpcoes; track n) {
-                  <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
+            <section class="frota-vinculos frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'motoristasVinculados'">
+                <div class="frota-vinculos__header">
+                  <h3>Motoristas vinculados</h3>
+                </div>
+                <div class="frota-vinculos__toolbar">
+                  <div class="frota-vinculos__busca">
+                    <div class="frota-vinculo-busca-row">
+                      <input
+                        type="text"
+                        class="input-control"
+                        [value]="frotaSelectorTermo"
+                        (input)="onFrotaSelectorTermoInput($any($event.target).value)"
+                        placeholder="Digite o CPF completo do motorista"
+                        appCpfFormat
+                        maxlength="14"
+                      />
+                      <button type="button" class="btn btn-secondary frota-vinculo-busca-btn" (click)="abrirSelectorMotoristasFrota()" title="Buscar motorista">
+                        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn--sm frota-vinculos__add-btn"
+                      (click)="aplicarSelecaoMotoristasTemp()"
+                      [disabled]="totalSelecionadosTemp === 0"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+                @if (frotaSelectorOpen) {
+                  <div class="frota-selector-dropdown">
+                    @if (!frotaSelectorCpfCompleto) {
+                      <p class="frota-vinculos__empty">Preencha o CPF completo para buscar e selecionar o motorista.</p>
+                    } @else {
+                    <div class="frota-selector-dropdown__list">
+                      @if (motoristasPaginaAtualParaSelecao.length === 0) {
+                        <p class="frota-vinculos__empty">Nenhum motorista encontrado para este CPF.</p>
+                      } @else {
+                        @for (m of motoristasPaginaAtualParaSelecao; track m.id) {
+                          <button type="button" class="frota-selector-item" (click)="toggleSelecaoMotoristaTemp(m.id)">
+                            <span class="frota-selector-item__check">
+                              <input type="checkbox" [checked]="isMotoristaSelecionadoTemp(m.id)" />
+                            </span>
+                            <span class="frota-selector-item__avatar">{{ motoristaIniciais(m.nomeCompleto) }}</span>
+                            <span class="frota-selector-item__meta">
+                              <strong>{{ m.nomeCompleto }}</strong>
+                              <small>CPF: {{ formatCpfCondutor(m.cpf) }}</small>
+                            </span>
+                            @if (isVinculoPrincipal(m.id)) {
+                              <span class="frota-vinculo-item__badge">Principal</span>
+                            }
+                          </button>
+                        }
+                      }
+                    </div>
+                    <div class="frota-selector-dropdown__footer">
+                      <span>Página {{ frotaSelectorPagina }} de {{ totalPaginasSelecaoMotoristas }}</span>
+                      <div class="frota-selector-dropdown__actions">
+                        <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarPaginaAnteriorMotoristas()">Anterior</button>
+                        <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarProximaPaginaMotoristas()">Próxima</button>
+                        <button type="button" class="btn btn-primary btn--sm" (click)="aplicarSelecaoMotoristasTemp()">Aplicar</button>
+                      </div>
+                    </div>
+                    }
+                  </div>
                 }
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="frota-peso">Veículo Leve/Pesado</label>
-              <select id="frota-peso" class="input-control input-control--select" formControlName="tipoPeso">
-                <option value="">Selecione</option>
-                @for (o of tipoPesoOpcoes; track o.value) {
-                  <option [value]="o.value">{{ o.label }}</option>
-                }
-              </select>
-            </div>
+                <div class="frota-vinculos__list">
+                  @if (motoristasVinculadosFrota.length === 0) {
+                    <p class="frota-vinculos__empty">Nenhum motorista vinculado neste veículo.</p>
+                  } @else {
+                    @for (m of motoristasVinculadosFrota; track m.id) {
+                      <div class="frota-vinculo-item">
+                        <div class="frota-vinculo-item__meta">
+                          <span class="frota-vinculo-item__avatar">{{ motoristaIniciais(m.nome) }}</span>
+                          <span class="frota-vinculo-item__nome">{{ m.nome }}</span>
+                          @if (m.principal) {
+                            <span class="frota-vinculo-item__badge">Principal</span>
+                          }
+                        </div>
+                        <div class="frota-vinculo-item__actions">
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn--sm"
+                            [disabled]="m.principal"
+                            (click)="definirVinculoPrincipal(m.id)"
+                          >
+                            Definir principal
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn--sm btn--table-action-danger"
+                            (click)="removerVinculoMotorista(m.id)"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              </section>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>

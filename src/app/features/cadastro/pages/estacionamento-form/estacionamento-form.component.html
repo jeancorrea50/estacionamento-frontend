@@ -33,16 +33,16 @@
             <div class="est-card__body" formGroupName="pessoa">
               <div class="est-field-grid est-field-grid--3">
                 <div class="est-field">
-                  <label class="est-field__label" for="documento">CNPJ <span class="required">*</span></label>
+                  <label class="est-field__label" for="cnpj">CNPJ <span class="required">*</span></label>
                   <input
-                    id="documento"
+                    id="cnpj"
                     class="field__input est-field__control"
                     type="text"
-                    formControlName="documento"
+                    formControlName="cnpj"
                     placeholder="00.000.000/0001-00"
                     maxlength="18"
                     appCnpjFormat
-                    (blur)="onDocumentoCnpjBlur()"
+                    (blur)="onCnpjBlur()"
                   />
                   @if (cnpjLoading) {
                     <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
@@ -53,8 +53,8 @@
                   @if (cnpjError) {
                     <span class="field__error">{{ cnpjError }}</span>
                   }
-                  @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched && !cnpjError) {
-                    <span class="field__error">{{ documentoErrorMessage }}</span>
+                  @if (form.get('pessoa.cnpj')?.invalid && form.get('pessoa.cnpj')?.touched && !cnpjError) {
+                    <span class="field__error">{{ cnpjErrorMessage }}</span>
                   }
                 </div>
                 <div class="est-field">

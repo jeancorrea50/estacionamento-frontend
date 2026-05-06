@@ -15,7 +15,7 @@ export interface FormValue {
     tipoPessoa: 1 | 2;
     nomeRazaoSocial: string;
     nomeFantasia: string;
-    documento: string;
+    cnpj: string;
     email: string;
     ativo: boolean;
   };
@@ -242,7 +242,7 @@ export function montarPayloadEstacionamento(
   merge?: EstacionamentoPayloadMergeContext | null
 ): Record<string, unknown> {
   const nowIso = new Date().toISOString();
-  const doc = String(value.pessoa?.documento ?? '').replace(/\D/g, '');
+  const cnpj = String(value.pessoa?.cnpj ?? '').replace(/\D/g, '');
   const cpf = String(value.responsavelLegalCpf ?? '').replace(/\D/g, '');
   const telefone = String(value.contatoTelefone ?? '').replace(/\D/g, '').trim();
 
@@ -312,7 +312,9 @@ export function montarPayloadEstacionamento(
     tipoPessoa: value.pessoa?.tipoPessoa ?? 2,
     nomeRazaoSocial: value.pessoa?.nomeRazaoSocial ?? '',
     nomeFantasia: value.pessoa?.nomeFantasia ?? '',
-    documento: doc,
+    cnpj,
+    // Compatibilidade com contratos legados de PessoaInput.
+    documento: cnpj,
     email: emailPessoa,
     ativo: value.pessoa?.ativo ?? true,
     enderecos,

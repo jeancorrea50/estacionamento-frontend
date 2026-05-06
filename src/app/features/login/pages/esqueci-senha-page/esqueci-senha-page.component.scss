@@ -1,9 +1,32 @@
+.recovery-page__stack {
+  width: 100%;
+  max-width: 560px;
+}
+
+.recovery-card {
+  width: 100%;
+  padding: clamp(1.25rem, 2.4vw, 2rem);
+  border-radius: var(--radius-xl, 16px);
+}
+
+.login-header {
+  margin-bottom: var(--space-lg, 16px);
+}
+
 .subtitle {
-  margin: 0.5rem 0 0 0;
+  margin: 0.4rem 0 0 0;
   text-align: center;
   color: var(--text-muted);
   font-size: var(--font-body, 14px);
   line-height: 1.45;
+}
+
+.form {
+  gap: var(--space-md, 12px);
+}
+
+.field {
+  gap: var(--space-xs, 6px);
 }
 
 .success-block {
@@ -38,7 +61,7 @@
 }
 
 .footer-link {
-  margin: 0;
+  margin: var(--space-xs, 4px) 0 0;
   text-align: center;
 
   a {
@@ -49,5 +72,15 @@
 
   a:hover {
     color: var(--accent);
+  }
+}
+
+@media (max-width: 600px) {
+  .recovery-page__stack {
+    max-width: 100%;
+  }
+
+  .recovery-card {
+    padding: var(--space-lg, 16px);
   }
 }

@@ -1,4 +1,9 @@
-<div class="layout app-layout" [class.sidebar-collapsed]="sidebarCollapsed" [class.layout--mobile]="isMobile()">
+<div
+  class="layout app-layout"
+  [class.app-layout--movimentos]="isMovimentosRoute()"
+  [class.sidebar-collapsed]="sidebarCollapsed"
+  [class.layout--mobile]="isMobile()"
+>
   @if (isMobile() && mobileMenuOpen()) {
     <div class="sidebar-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
   }

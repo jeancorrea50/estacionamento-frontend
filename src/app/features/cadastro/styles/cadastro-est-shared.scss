@@ -1,7 +1,8 @@
 // Tokens e layout compartilhados (Cadastro Estacionamento & Transportadora — WHITE / DARK)
+// Canvas e superfícies alinhados aos tokens globais em styles.css (--color-bg-page, --color-bg-card)
 :host {
-  --est-bg-page: #f6f8fb;
-  --est-surface: #ffffff;
+  --est-bg-page: var(--color-bg-page);
+  --est-surface: var(--color-bg-card, #ffffff);
   --est-border: #d9e1ec;
   --est-text: #1f2937;
   --est-text-muted: #6b7280;
@@ -14,7 +15,7 @@
   --est-focus: #0f766e;
   --est-focus-ring: rgba(15, 118, 110, 0.22);
   --est-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
-  --est-sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+  --est-sidebar-bg: var(--color-bg-card, #ffffff);
 
   --space-4: 4px;
   --space-6: 6px;
@@ -43,8 +44,8 @@
 }
 
 :host-context(html.theme-dark) {
-  --est-bg-page: #0b1220;
-  --est-surface: #121a2b;
+  --est-bg-page: var(--color-bg-page);
+  --est-surface: var(--color-bg-card);
   --est-border: #243046;
   --est-text: #e5e7eb;
   --est-text-muted: #94a3b8;
@@ -57,7 +58,7 @@
   --est-focus: #3b82f6;
   --est-focus-ring: rgba(59, 130, 246, 0.3);
   --est-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.25);
-  --est-sidebar-bg: linear-gradient(180deg, #121a2b 0%, #0b1220 100%);
+  --est-sidebar-bg: var(--color-bg-card);
 }
 
 @media (max-width: 768px) {
@@ -78,11 +79,12 @@
   align-items: stretch;
 }
 
+/* Camada única: sem margem negativa (evita “vazar” atrás do .data-card e borda dupla). */
 .est-cadastro {
-  background: var(--est-bg-page);
-  margin: calc(var(--container-padding) * -1) calc(var(--container-padding) * -1) 0;
-  padding: var(--container-padding);
-  border-radius: var(--radius-lg);
+  background: transparent;
+  margin: 0;
+  padding: var(--container-padding) 0;
+  border-radius: 0;
   overflow: visible;
 }
 
@@ -103,7 +105,10 @@
   gap: var(--space-16);
   align-items: start;
   align-content: start;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   overflow: visible;
 }
 
@@ -153,10 +158,11 @@
   top: auto;
   padding: var(--space-16);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--est-border);
+  border: 1px solid color-mix(in srgb, var(--est-border) 85%, transparent);
   background: var(--est-sidebar-bg);
   box-shadow: var(--est-shadow-card);
   max-height: calc(100dvh - var(--topbar-height, 56px) - var(--est-aside-sticky-top) - 40px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -514,7 +520,7 @@
 
 .est-cadastro .card {
   background: var(--est-surface);
-  border-color: var(--est-border);
+  border-color: color-mix(in srgb, var(--est-border) 78%, transparent);
   box-shadow: var(--est-shadow-card);
 }
 

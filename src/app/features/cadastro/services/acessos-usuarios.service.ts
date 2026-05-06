@@ -27,7 +27,7 @@ export interface UsuarioListItem {
   estacionamentoId?: number | null;
   Estacionamento?: string | null;
   estacionamento?: string | null;
-  cpfCnpj?: string;
+  cpf?: string;
 }
 
 export interface LoginInput {
@@ -42,8 +42,7 @@ export interface UsuarioCreateInput {
   login?: string;
   senha?: string;
   confirmarSenha?: string;
-  cpfCnpj?: string;
-  cnpj?: string;
+  cpf?: string;
   ativo?: boolean;
   perfilId?: string;
   perfilNome?: string;
@@ -108,7 +107,7 @@ export class AcessosUsuariosService {
 
   /**
    * Detalhe: GET /api/auth/Usuario/{id}.
-   * Expõe também shape plano usado em formulários legados (`nome`, `emailOuLogin`, `cpfCnpj`).
+   * Expõe também shape plano usado em formulários legados (`nome`, `emailOuLogin`, `cpf`).
    */
   obterPorId(id: string): Observable<unknown> {
     return this.api.obterPorId(id).pipe(
@@ -118,11 +117,11 @@ export class AcessosUsuariosService {
           ...d,
           nome: p?.nome,
           emailOuLogin: d.email ?? d.userName,
-          cpfCnpj: p?.documento
+          cpf: p?.cpf ?? (p as { documento?: string } | null)?.documento
         } as UsuarioDetalheOutput & {
           nome?: string;
           emailOuLogin?: string;
-          cpfCnpj?: string;
+          cpf?: string;
         };
       })
     );
@@ -160,11 +159,7 @@ export class AcessosUsuariosService {
     if (input.tipoPessoa === 1 || input.tipoPessoa === 2) {
       return input.tipoPessoa;
     }
-    const doc = String(input.cpfCnpj ?? input.cnpj ?? '')
-      .replace(/\D/g, '');
-    if (doc.length > 11) {
-      return 2;
-    }
+    // Usuário sempre usa CPF no contrato atual da API.
     return 1;
   }
 
@@ -196,7 +191,13 @@ export class AcessosUsuariosService {
     }
 
     const nomePessoa = String(input.nome ?? '').trim();
-    const documento = String(input.cpfCnpj ?? input.cnpj ?? '').trim();
+    /** API valida CPF sem máscara; enviar só dígitos evita 400 por formato. */
+    const cpfDigits = String(input.cpf ?? '')
+      .trim()
+      .replace(/\D/g, '');
+    if (cpfDigits.length !== 11) {
+      throw new Error('Informe CPF válido com 11 dígitos.');
+    }
     if (!nomePessoa) {
       throw new Error('Informe o nome (pessoa).');
     }
@@ -221,7 +222,7 @@ export class AcessosUsuariosService {
       pessoa: {
         id: pessoaId,
         nome: nomePessoa,
-        documento: documento || '',
+        cpf: cpfDigits,
         tipoPessoa
       },
       perfil: { name: perfilNome }

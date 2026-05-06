@@ -26,8 +26,8 @@
                 </button>
               </th>
               <th scope="col">
-                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('documento')">
-                  Documento <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('documento') }}</span>
+                <button type="button" class="data-table__sort-btn" (click)="ordenarPor('cnpj')">
+                  CNPJ <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('cnpj') }}</span>
                 </button>
               </th>
               <th scope="col">
@@ -54,7 +54,7 @@
                 <td>{{ item.id }}</td>
                 <td>{{ item.descricao }}</td>
                 <td>{{ item.nomeRazaoSocial }}</td>
-                <td>{{ formatDocumento(item) }}</td>
+                <td>{{ formatCnpjItem(item) }}</td>
                 <td>{{ item.capacidadeVeiculo ?? '-' }}</td>
                 <td>{{ item.tamanhoTerreno || '-' }}</td>
                 <td>

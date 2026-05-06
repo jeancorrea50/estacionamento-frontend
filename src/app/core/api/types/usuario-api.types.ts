@@ -16,7 +16,7 @@ export interface UsuarioOutput {
 export interface PessoaUsuarioOutput {
   id?: number;
   nome?: string | null;
-  documento?: string | null;
+  cpf?: string | null;
   /** 1 = Física, 2 = Jurídica. */
   tipoPessoa?: number;
 }
@@ -51,7 +51,7 @@ export interface RegisterInputUpdate {
   pessoa: {
     id: number;
     nome: string;
-    documento: string;
+    cpf: string;
     tipoPessoa: number;
   };
   perfil: {

@@ -28,6 +28,7 @@ import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 
 export type TransportadoraTab = 'cadastro' | 'frota' | 'motoristas';
+type ModalFrotaTab = 'veiculo' | 'motoristasVinculados';
 type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasia' | 'email' | 'id';
 
 const TAMANHO_PAGINA = 50;
@@ -103,9 +104,19 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   veiculoForm!: FormGroup;
   veiculoEditId: number | null = null;
   salvandoVeiculo = false;
+  modalFrotaTab: ModalFrotaTab = 'veiculo';
   /** Lookup de motorista no modal frota (mesmo padrão da tela Entrada/saída). */
   frotaMotoristaModalAberto = false;
   frotaMotoristaTexto = '';
+  frotaMotoristaVinculoBusca = '';
+  frotaMotoristaLookupContext: 'veiculo' | 'vinculo' = 'veiculo';
+  motoristasVinculadosFrota: Array<{ id: number; nome: string; principal: boolean }> = [];
+  motoristaSelecionadoParaVinculo: { id: number; nome: string } | null = null;
+  frotaSelectorOpen = false;
+  frotaSelectorTermo = '';
+  frotaSelectorPagina = 1;
+  frotaSelectorPageSize = 5;
+  motoristasSelecionadosTemp: number[] = [];
   /** Opções para quantidade de eixos (modal frota). */
   eixosOpcoes: number[] = [2, 3, 4, 5, 6, 7, 8, 9];
   /** Opções para veículo leve/pesado. */
@@ -126,6 +137,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   salvandoMotorista = false;
   showImportarCondutores = false;
   fileCondutores: File | null = null;
+  private bloquearFecharModalAte = 0;
 
   ngOnInit(): void {
     this.criarFormTransportadora();
@@ -866,10 +878,23 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       });
   }
 
-  abrirNovoVeiculo(): void {
+  abrirNovoVeiculo(event?: Event): void {
+    event?.stopPropagation();
+    if (!this.veiculoForm) {
+      this.criarFormVeiculo();
+    }
     this.veiculoEditId = null;
+    this.modalFrotaTab = 'veiculo';
     this.frotaMotoristaModalAberto = false;
     this.frotaMotoristaTexto = '';
+    this.frotaMotoristaVinculoBusca = '';
+    this.frotaMotoristaLookupContext = 'veiculo';
+    this.motoristasVinculadosFrota = [];
+    this.motoristaSelecionadoParaVinculo = null;
+    this.frotaSelectorOpen = false;
+    this.frotaSelectorTermo = '';
+    this.frotaSelectorPagina = 1;
+    this.motoristasSelecionadosTemp = [];
     this.veiculoForm.reset({
       id: null,
       placa: '',
@@ -888,8 +913,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       centroCusto: '',
       ativo: true
     });
-    this.ensureTransportadoraListForFrota();
+    // Evita fechamento imediato do backdrop no mesmo ciclo de clique que abre o modal.
+    this.bloquearFecharModalAte = Date.now() + 200;
     this.showVeiculoForm = true;
+    this.ensureTransportadoraListForFrota();
     this.cdr.markForCheck();
   }
 
@@ -911,23 +938,58 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     }
   }
 
-  editarVeiculo(v: VeiculoListItemDTO): void {
+  editarVeiculo(v: VeiculoListItemDTO, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.veiculoForm) {
+      this.criarFormVeiculo();
+    }
     const patchMarcaModelo = (marcaModelo: string | undefined) => {
       const s = (marcaModelo ?? '').trim();
       const idx = s.indexOf(' ');
       return idx >= 0 ? { marca: s.slice(0, idx), modelo: s.slice(idx + 1).trim() } : { marca: s, modelo: '' };
     };
+    const { marca, modelo } = patchMarcaModelo(v.marcaModelo);
+    this.veiculoEditId = v.id ?? null;
+    this.veiculoForm.patchValue({
+      id: v.id ?? null,
+      placa: v.placa ?? '',
+      motoristaId: null,
+      veiculoModeloId: null,
+      marca,
+      modelo,
+      marcaModelo: v.marcaModelo ?? '',
+      cor: v.cor ?? '',
+      anoFabricacao: v.anoFabricacao ?? null,
+      anoModelo: v.anoModelo ?? null,
+      tipoVeiculo: v.tipoVeiculo ?? '',
+      quantidadeEixos: '',
+      tipoPeso: '',
+      transportadoraId: v.transportadoraId ?? this.transportadoraId,
+      centroCusto: v.centroCusto ?? '',
+      ativo: v.ativo ?? true
+    });
+    this.modalFrotaTab = 'veiculo';
+    this.frotaSelectorOpen = false;
+    this.frotaSelectorTermo = '';
+    this.frotaSelectorPagina = 1;
+    this.motoristasSelecionadosTemp = [];
+    // Evita fechamento imediato do backdrop no mesmo ciclo de clique que abre o modal.
+    this.bloquearFecharModalAte = Date.now() + 200;
+    this.showVeiculoForm = true;
+    this.ensureTransportadoraListForFrota();
+    this.cdr.markForCheck();
+
     this.veiculoService.obterPorId(v.id).subscribe((dto) => {
       if (dto) {
-        const { marca, modelo } = patchMarcaModelo(dto.marcaModelo);
+        const parsed = patchMarcaModelo(dto.marcaModelo);
         this.veiculoEditId = dto.id ?? null;
         this.veiculoForm.patchValue({
           id: dto.id,
           placa: dto.placa,
           motoristaId: dto.motoristaId ?? null,
           veiculoModeloId: dto.veiculoModeloId,
-          marca,
-          modelo,
+          marca: parsed.marca,
+          modelo: parsed.modelo,
           marcaModelo: dto.marcaModelo,
           cor: dto.cor,
           anoFabricacao: dto.anoFabricacao,
@@ -940,10 +1002,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
           ativo: dto.ativo
         });
         this.aplicarTextoMotoristaFrota(dto);
-        this.ensureTransportadoraListForFrota();
-        this.showVeiculoForm = true;
+        this.hidratarVinculosComMotoristaPrincipal();
         this.cdr.markForCheck();
       }
+    }, () => {
+      this.toast.error('Não foi possível carregar todos os dados do veículo para edição.');
+      this.cdr.markForCheck();
     });
   }
 
@@ -1004,12 +1068,30 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   /** Fecha o modal Cadastrar frota (Fechar, X ou clique fora). */
-  fecharModalFrota(): void {
+  fecharModalFrota(event?: Event): void {
+    if (event && Date.now() < this.bloquearFecharModalAte) {
+      return;
+    }
     this.showVeiculoForm = false;
     this.frotaMotoristaModalAberto = false;
+    this.modalFrotaTab = 'veiculo';
+    this.frotaSelectorOpen = false;
   }
 
-  abrirBuscaMotoristaFrota(): void {
+  setModalFrotaTab(tab: ModalFrotaTab): void {
+    this.modalFrotaTab = tab;
+    if (tab === 'motoristasVinculados') {
+      this.carregarCondutores();
+    }
+    this.cdr.markForCheck();
+  }
+
+  get modalFrotaTabAtual(): ModalFrotaTab {
+    return this.modalFrotaTab === 'motoristasVinculados' ? 'motoristasVinculados' : 'veiculo';
+  }
+
+  abrirBuscaMotoristaFrota(contexto: 'veiculo' | 'vinculo' = 'veiculo'): void {
+    this.frotaMotoristaLookupContext = contexto;
     this.frotaMotoristaModalAberto = true;
   }
 
@@ -1020,8 +1102,14 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   onFrotaMotoristaSelecionado(item: PaginatedSearchItem): void {
-    this.veiculoForm.patchValue({ motoristaId: item.id });
-    this.frotaMotoristaTexto = item.titulo;
+    if (this.frotaMotoristaLookupContext === 'vinculo') {
+      this.motoristaSelecionadoParaVinculo = { id: item.id, nome: item.titulo };
+      this.frotaMotoristaVinculoBusca = item.titulo;
+    } else {
+      this.veiculoForm.patchValue({ motoristaId: item.id });
+      this.frotaMotoristaTexto = item.titulo;
+      this.definirMotoristaPrincipal(item.id, item.titulo);
+    }
     this.frotaMotoristaModalAberto = false;
     this.cdr.markForCheck();
   }
@@ -1029,6 +1117,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   limparMotoristaFrota(): void {
     this.veiculoForm.patchValue({ motoristaId: null });
     this.frotaMotoristaTexto = '';
+    this.motoristasVinculadosFrota = this.motoristasVinculadosFrota.map((m) => ({ ...m, principal: false }));
   }
 
   /** Preenche o texto do lookup com nome vindo do GET ou GET /Motorista/{id}. */
@@ -1046,10 +1135,173 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.motoristaService.obterPorId(mid).subscribe({
       next: (m) => {
         this.frotaMotoristaTexto = m?.nomeCompleto ?? '';
+        this.hidratarVinculosComMotoristaPrincipal();
         this.cdr.markForCheck();
       },
       error: () => this.cdr.markForCheck()
     });
+  }
+
+  vincularMotoristaSelecionado(): void {
+    const selecionado = this.motoristaSelecionadoParaVinculo;
+    if (!selecionado) return;
+    const existente = this.motoristasVinculadosFrota.some((m) => m.id === selecionado.id);
+    if (existente) {
+      this.toast.error('Este motorista já está vinculado.');
+      return;
+    }
+    const semPrincipal = this.motoristasVinculadosFrota.every((m) => !m.principal);
+    this.motoristasVinculadosFrota = [
+      ...this.motoristasVinculadosFrota,
+      { id: selecionado.id, nome: selecionado.nome, principal: semPrincipal }
+    ];
+    if (semPrincipal) {
+      this.veiculoForm.patchValue({ motoristaId: selecionado.id });
+      this.frotaMotoristaTexto = selecionado.nome;
+    }
+    this.motoristaSelecionadoParaVinculo = null;
+    this.frotaMotoristaVinculoBusca = '';
+    this.cdr.markForCheck();
+  }
+
+  get motoristasFiltradosParaSelecao(): MotoristaListItemDTO[] {
+    const cpfBusca = this.frotaSelectorCpfDigits;
+    if (cpfBusca.length !== 11) return [];
+    const base = this.condutores ?? [];
+    return base.filter((m) => String(m.cpf ?? '').replace(/\D/g, '') === cpfBusca);
+  }
+
+  get motoristasPaginaAtualParaSelecao(): MotoristaListItemDTO[] {
+    const ini = (this.frotaSelectorPagina - 1) * this.frotaSelectorPageSize;
+    return this.motoristasFiltradosParaSelecao.slice(ini, ini + this.frotaSelectorPageSize);
+  }
+
+  get totalPaginasSelecaoMotoristas(): number {
+    return Math.max(1, Math.ceil(this.motoristasFiltradosParaSelecao.length / this.frotaSelectorPageSize));
+  }
+
+  get totalSelecionadosTemp(): number {
+    return this.motoristasSelecionadosTemp.length;
+  }
+
+  get frotaSelectorCpfDigits(): string {
+    return String(this.frotaSelectorTermo ?? '').replace(/\D/g, '');
+  }
+
+  get frotaSelectorCpfCompleto(): boolean {
+    return this.frotaSelectorCpfDigits.length === 11;
+  }
+
+  onFrotaSelectorTermoInput(value: string): void {
+    this.frotaSelectorTermo = value;
+    this.frotaSelectorPagina = 1;
+    this.cdr.markForCheck();
+  }
+
+  abrirSelectorMotoristasFrota(): void {
+    this.frotaSelectorOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  fecharSelectorMotoristasFrota(): void {
+    this.frotaSelectorOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  toggleSelecaoMotoristaTemp(id: number): void {
+    if (this.motoristasSelecionadosTemp.includes(id)) {
+      this.motoristasSelecionadosTemp = this.motoristasSelecionadosTemp.filter((x) => x !== id);
+    } else {
+      this.motoristasSelecionadosTemp = [...this.motoristasSelecionadosTemp, id];
+    }
+    this.cdr.markForCheck();
+  }
+
+  isMotoristaSelecionadoTemp(id: number): boolean {
+    return this.motoristasSelecionadosTemp.includes(id);
+  }
+
+  aplicarSelecaoMotoristasTemp(): void {
+    if (this.motoristasSelecionadosTemp.length === 0) return;
+    const existentes = new Set(this.motoristasVinculadosFrota.map((m) => m.id));
+    const novos = this.condutores
+      .filter((m) => this.motoristasSelecionadosTemp.includes(m.id) && !existentes.has(m.id))
+      .map((m) => ({ id: m.id, nome: m.nomeCompleto ?? `Motorista ${m.id}`, principal: false }));
+    this.motoristasVinculadosFrota = [...this.motoristasVinculadosFrota, ...novos];
+    if (!this.motoristasVinculadosFrota.some((m) => m.principal) && this.motoristasVinculadosFrota[0]) {
+      this.definirMotoristaPrincipal(this.motoristasVinculadosFrota[0].id, this.motoristasVinculadosFrota[0].nome);
+    }
+    this.motoristasSelecionadosTemp = [];
+    this.frotaSelectorOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  selecionarPaginaAnteriorMotoristas(): void {
+    this.frotaSelectorPagina = Math.max(1, this.frotaSelectorPagina - 1);
+    this.cdr.markForCheck();
+  }
+
+  selecionarProximaPaginaMotoristas(): void {
+    this.frotaSelectorPagina = Math.min(this.totalPaginasSelecaoMotoristas, this.frotaSelectorPagina + 1);
+    this.cdr.markForCheck();
+  }
+
+  motoristaIniciais(nome: string): string {
+    const partes = String(nome ?? '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (partes.length === 0) return 'M';
+    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+    return `${partes[0][0] ?? ''}${partes[1][0] ?? ''}`.toUpperCase();
+  }
+
+  isVinculoPrincipal(id: number): boolean {
+    return this.motoristasVinculadosFrota.some((v) => v.id === id && v.principal);
+  }
+
+  removerVinculoMotorista(id: number): void {
+    const alvo = this.motoristasVinculadosFrota.find((m) => m.id === id);
+    this.motoristasVinculadosFrota = this.motoristasVinculadosFrota.filter((m) => m.id !== id);
+    if (alvo?.principal) {
+      const novoPrincipal = this.motoristasVinculadosFrota[0];
+      if (novoPrincipal) {
+        this.definirMotoristaPrincipal(novoPrincipal.id, novoPrincipal.nome);
+      } else {
+        this.veiculoForm.patchValue({ motoristaId: null });
+        this.frotaMotoristaTexto = '';
+      }
+    }
+    this.cdr.markForCheck();
+  }
+
+  definirVinculoPrincipal(id: number): void {
+    const escolhido = this.motoristasVinculadosFrota.find((m) => m.id === id);
+    if (!escolhido) return;
+    this.definirMotoristaPrincipal(escolhido.id, escolhido.nome);
+    this.cdr.markForCheck();
+  }
+
+  private definirMotoristaPrincipal(id: number, nome: string): void {
+    this.motoristasVinculadosFrota = this.motoristasVinculadosFrota.map((m) => ({
+      ...m,
+      principal: m.id === id
+    }));
+    if (!this.motoristasVinculadosFrota.some((m) => m.id === id)) {
+      this.motoristasVinculadosFrota = [
+        ...this.motoristasVinculadosFrota,
+        { id, nome, principal: true }
+      ];
+    }
+    this.veiculoForm.patchValue({ motoristaId: id }, { emitEvent: false });
+    this.frotaMotoristaTexto = nome;
+  }
+
+  private hidratarVinculosComMotoristaPrincipal(): void {
+    const id = Number(this.veiculoForm.get('motoristaId')?.value ?? 0);
+    const nome = String(this.frotaMotoristaTexto ?? '').trim();
+    if (!id || !nome) return;
+    this.definirMotoristaPrincipal(id, nome);
   }
 
   /** Abre modal de importação de frota por Excel. */

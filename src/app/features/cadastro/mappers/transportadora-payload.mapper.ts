@@ -73,7 +73,7 @@ export function montarPayloadTransportadoraApi(
   const leg = raw.responsavelLegal ?? {};
   const razaoSocial = String(p.razaoSocial ?? '').trim();
   const nomeFantasia = String(p.nomeFantasia ?? '').trim();
-  const documento = onlyDigits(p.cnpj);
+  const cnpj = onlyDigits(p.cnpj);
   const email = String(p.email ?? '').trim();
   const descricao = (nomeFantasia || razaoSocial).trim();
   const end = (raw.endereco ?? {}) as Record<string, unknown>;
@@ -181,7 +181,9 @@ export function montarPayloadTransportadoraApi(
     tipoPessoa: 2,
     nomeRazaoSocial: razaoSocial,
     nomeFantasia,
-    documento,
+    cnpj,
+    // Compatibilidade com contratos antigos que ainda usam `documento` para PJ.
+    documento: cnpj,
     email,
     ativo: p.ativo !== false,
     enderecos: [stripUndefinedDeep(enderecoBase) as Record<string, unknown>],
@@ -212,6 +214,7 @@ export function montarPayloadTransportadoraApi(
       tipoPessoa: pessoaBase['tipoPessoa'],
       nomeRazaoSocial: pessoaBase['nomeRazaoSocial'],
       nomeFantasia: pessoaBase['nomeFantasia'],
+      cnpj: pessoaBase['cnpj'],
       documento: pessoaBase['documento'],
       email: pessoaBase['email'],
       ativo: pessoaBase['ativo'],
@@ -238,6 +241,7 @@ export function montarPayloadTransportadoraApi(
     tipoPessoa: pessoaBase['tipoPessoa'],
     nomeRazaoSocial: pessoaBase['nomeRazaoSocial'],
     nomeFantasia: pessoaBase['nomeFantasia'],
+    cnpj: pessoaBase['cnpj'],
     documento: pessoaBase['documento'],
     email: pessoaBase['email'],
     ativo: pessoaBase['ativo'],

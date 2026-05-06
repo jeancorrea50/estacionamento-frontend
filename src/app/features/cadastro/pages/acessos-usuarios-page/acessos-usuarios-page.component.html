@@ -84,14 +84,14 @@
             />
           </div>
           <div class="form-group">
-            <label for="u-cpfcnpj">CPF ou CNPJ</label>
+            <label for="u-cpf">CPF</label>
             <input
-              id="u-cpfcnpj"
+              id="u-cpf"
               type="text"
               class="input-control"
-              [(ngModel)]="form.cpfCnpj"
-              placeholder="CPF ou CNPJ"
-              maxlength="18"
+              [(ngModel)]="form.cpf"
+              placeholder="000.000.000-00"
+              maxlength="14"
             />
           </div>
           @if (!isEdit()) {

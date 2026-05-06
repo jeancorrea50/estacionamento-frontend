@@ -46,21 +46,6 @@
   overflow-x: hidden;
 }
 
-.layout::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: url('/logo-gts-transparent.png');
-  background-repeat: no-repeat;
-  background-position: center 42%;
-  background-size: min(78%, 1280px);
-  opacity: 0.017;
-  filter: blur(1.6px);
-  transform: scale(1.02);
-}
-
 .layout > * {
   position: relative;
   z-index: 1;
@@ -303,19 +288,6 @@
 }
 
 @media (max-width: 768px) {
-  .layout::before {
-    background-size: min(118%, 880px);
-    opacity: 0.014;
-    filter: blur(1.2px);
-    background-position: center 45%;
-  }
-
-  :host-context(html.theme-light) .layout::before {
-    opacity: 0.105;
-    mix-blend-mode: multiply;
-    filter: blur(1px);
-  }
-
   .layout.layout--mobile .layout-right {
     margin-left: 0;
     width: 100%;
@@ -364,15 +336,8 @@
 
 /* Tema claro (WHITE MODE): topbar clara; links alinhados ao secundário outline */
 :host-context(html.theme-light) {
-  /* Marca d'água GT — equilíbrio entre visível e discreto em fundo claro */
-  .layout::before {
-    opacity: 0.125;
-    filter: blur(1px);
-    mix-blend-mode: multiply;
-  }
-
   .layout {
-    background: var(--color-bg-main, #dbeafe);
+    background: var(--color-bg-main);
   }
 
   .user-access-panel {

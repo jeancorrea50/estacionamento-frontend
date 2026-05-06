@@ -66,20 +66,20 @@
 
 .table-wrap {
   overflow-x: auto;
-  border: var(--border-card, 1px solid var(--border-subtle));
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
+  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
+  border-radius: var(--ds-select-radius, 10px);
+  box-shadow: none;
   background: var(--surface-2, rgba(255, 255, 255, 0.03));
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: var(--ds-select-font-size, 0.875rem);
 
   th,
   td {
-    padding: 8px 12px;
+    padding: var(--ds-select-item-pad-y, 10px) var(--ds-select-item-pad-x, 12px);
     text-align: left;
     border-bottom: 1px solid var(--border-subtle);
   }
@@ -88,7 +88,7 @@
     color: var(--muted);
     font-weight: 600;
     font-size: 0.75rem;
-    background: var(--surface-2);
+    background: color-mix(in srgb, var(--surface-2) 88%, #000 12%);
     vertical-align: middle;
   }
 
@@ -146,7 +146,7 @@
   }
 
   tbody tr:hover {
-    background: var(--table-row-hover, rgba(255, 255, 255, 0.03));
+    background: var(--ds-select-item-hover-bg, var(--table-row-hover, rgba(255, 255, 255, 0.03)));
   }
 }
 

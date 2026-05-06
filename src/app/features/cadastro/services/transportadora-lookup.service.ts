@@ -83,11 +83,11 @@ export class TransportadoraLookupService {
     const nome = String(
       row['razaoSocial'] ?? row['nomeRazaoSocial'] ?? row['descricao'] ?? ''
     );
-    const doc = String(row['cnpj'] ?? row['documento'] ?? '');
+    const cnpj = String(row['cnpj'] ?? row['documento'] ?? '');
     return {
       id,
-      label: nome ? `${nome} — ${doc || '-'}` : String(id),
-      cnpj: doc,
+      label: nome ? `${nome} — ${cnpj || '-'}` : String(id),
+      cnpj,
     };
   }
 }

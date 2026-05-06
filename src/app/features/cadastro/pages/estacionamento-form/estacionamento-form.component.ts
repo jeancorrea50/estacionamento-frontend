@@ -161,7 +161,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   get cadastroObrigatoriosPendentesLabels(): string[] {
     if (!this.form) return [];
     const p: string[] = [];
-    if (this.form.get('pessoa.documento')?.invalid) p.push('CNPJ');
+    if (this.form.get('pessoa.cnpj')?.invalid) p.push('CNPJ');
     if (this.form.get('pessoa.nomeRazaoSocial')?.invalid) p.push('Razão social');
     if (this.form.get('responsavelLegalNome')?.invalid) p.push('Nome do responsável legal');
     if (this.form.get('responsavelLegalCpf')?.invalid) p.push('CPF do responsável legal');
@@ -200,7 +200,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     const f = this.form;
     let ok = 0;
     const total = 10;
-    const doc = String(f.get('pessoa.documento')?.value ?? '').replace(/\D/g, '');
+    const doc = String(f.get('pessoa.cnpj')?.value ?? '').replace(/\D/g, '');
     if (doc.length === 14) ok++;
     if (String(f.get('pessoa.nomeRazaoSocial')?.value ?? '').trim().length >= 2) ok++;
     if (String(f.get('responsavelLegalNome')?.value ?? '').trim().length >= 2) ok++;
@@ -223,7 +223,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   }
 
   resumoCnpjFormatado(): string {
-    const raw = String(this.form?.get('pessoa.documento')?.value ?? '');
+    const raw = String(this.form?.get('pessoa.cnpj')?.value ?? '');
     return formatCnpjDigits(raw);
   }
 
@@ -241,7 +241,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     } else {
       this.payloadMerge = null;
       this.stepService.reset();
-      this.atualizarValidadoresDocumento();
+      this.atualizarValidadoresCnpj();
     }
   }
 
@@ -262,7 +262,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         tipoPessoa: [2 as TipoPessoa, Validators.required], // apenas PJ
         nomeRazaoSocial: ['', [Validators.required, Validators.minLength(2)]],
         nomeFantasia: [''],
-        documento: ['', [Validators.required]],
+        cnpj: ['', [Validators.required]],
         /** Espelha o e-mail do responsável legal para o payload `pessoa.email` (contrato API). */
         email: [''],
         ativo: [true]
@@ -321,7 +321,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
    * Mantém blur como reforço, sem botão dedicado.
    */
   private setupCnpjBusca(): void {
-    const docControl = this.form.get('pessoa.documento');
+    const docControl = this.form.get('pessoa.cnpj');
     if (!docControl) return;
     docControl.valueChanges
       .pipe(
@@ -354,8 +354,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   }
 
   /** Dispara busca ao sair do CNPJ (evita depender só do debounce). */
-  onDocumentoCnpjBlur(): void {
-    const docControl = this.form.get('pessoa.documento');
+  onCnpjBlur(): void {
+    const docControl = this.form.get('pessoa.cnpj');
     docControl?.markAsTouched();
     const cnpj = docControl?.value ?? '';
     const normalized = this.cnpjService.normalizeCnpj(cnpj);
@@ -396,7 +396,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.form.get('pessoa.documento')?.touched) {
+    if (this.form.get('pessoa.cnpj')?.touched) {
       this.cnpjError = result.message;
     }
   }
@@ -504,7 +504,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   private setupTitularBancarioSync(): void {
     const pessoa = this.form.get('pessoa');
     const razao = pessoa?.get('nomeRazaoSocial');
-    const doc = pessoa?.get('documento');
+    const doc = pessoa?.get('cnpj');
     const titularMesmo = this.form.get('titularMesmoResponsavel');
     if (!razao || !doc || !titularMesmo) return;
     const sub = new Subscription();
@@ -532,7 +532,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   private syncTitularFromPessoa(): void {
     const pessoa = this.form.get('pessoa');
     const razao = pessoa?.get('nomeRazaoSocial')?.value ?? '';
-    const doc = pessoa?.get('documento')?.value ?? '';
+    const doc = pessoa?.get('cnpj')?.value ?? '';
     this.form.patchValue({
       titularRazaoSocial: razao,
       titularCnpj: doc
@@ -712,7 +712,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     const titularDto = trim(dto.titularRazaoSocial ?? '');
     const titularCnpjDto = trim(dto.titularCnpj ?? '');
     const pessoaRazao = trim(dto.pessoa.nomeRazaoSocial ?? '');
-    const pessoaCnpj = String(dto.pessoa.documento ?? '').replace(/\D/g, '');
+    const pessoaCnpj = String(dto.pessoa.cnpj ?? (dto.pessoa as { documento?: string }).documento ?? '').replace(/\D/g, '');
     const titularCnpjDigits = titularCnpjDto.replace(/\D/g, '');
     const titularDiferente = Boolean(
       titularDto &&
@@ -728,8 +728,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  private atualizarValidadoresDocumento(): void {
-    const doc = this.form.get('pessoa.documento');
+  private atualizarValidadoresCnpj(): void {
+    const doc = this.form.get('pessoa.cnpj');
     doc?.clearValidators();
     doc?.addValidators([Validators.required, documentoValidator(2 as TipoPessoa)]); // CNPJ
     doc?.updateValueAndValidity();
@@ -778,15 +778,15 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               nomeFantasia: trim(dto.pessoa.nomeFantasia),
               email: emailRespDto || emailPessoaCarregado,
               ativo: dto.pessoa.ativo ?? true,
-              documento: (dto.pessoa.documento ?? '').replace(/\s/g, '')
+              cnpj: (dto.pessoa.cnpj ?? (dto.pessoa as { documento?: string }).documento ?? '').replace(/\s/g, '')
             });
             this.aplicarDadosBancariosDoDto(dto);
             this.atualizarFlagsTitularDoDto(dto);
-            const doc = this.form.get('pessoa.documento')?.value;
+            const doc = this.form.get('pessoa.cnpj')?.value;
             if (doc != null && String(doc).replace(/\D/g, '').length === 14) {
-              this.form.get('pessoa')?.patchValue({ documento: formatCnpjDigits(String(doc)) });
+              this.form.get('pessoa')?.patchValue({ cnpj: formatCnpjDigits(String(doc)) });
             }
-            this.atualizarValidadoresDocumento();
+            this.atualizarValidadoresCnpj();
             if (dto.capacidadeVeiculos != null || dto.tamanho || dto.tipoTaxaMensalidade ||
                 dto.possuiSeguranca || dto.possuiBanheiro || dto.latitude != null || dto.longitude != null) {
               this.complementaresOpen = true;
@@ -976,7 +976,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     if (trim(enviado.pessoa?.nomeRazaoSocial) !== trim(retornado.pessoa?.nomeRazaoSocial)) {
       diffs.push('razão social');
     }
-    if (onlyDigits(enviado.pessoa?.documento) !== onlyDigits(retornado.pessoa?.documento)) {
+    if (onlyDigits(enviado.pessoa?.cnpj) !== onlyDigits(retornado.pessoa?.cnpj)) {
       diffs.push('cnpj');
     }
     if (Boolean(enviado.pessoa?.ativo) !== Boolean(retornado.pessoa?.ativo)) {
@@ -1520,10 +1520,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.contratoPdfError = null;
   }
 
-  get documentoErrorMessage(): string | null {
-    const errors = this.form.get('pessoa.documento')?.errors;
+  get cnpjErrorMessage(): string | null {
+    const errors = this.form.get('pessoa.cnpj')?.errors;
     if (!errors) return null;
-    if (errors['required']) return 'Documento é obrigatório.';
+    if (errors['required']) return 'CNPJ é obrigatório.';
     const doc = errors['documento'];
     return doc && typeof doc === 'object' && 'message' in doc ? String(doc.message) : null;
   }

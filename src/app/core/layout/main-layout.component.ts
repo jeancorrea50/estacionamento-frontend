@@ -50,6 +50,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   currentMode = computed(() => this.themeMode());
   isFullWidthContent = signal(false);
+  /** Rotas de Movimentos mantêm o cromado “card sobre card”; demais telas usam UI plana (styles.css). */
+  readonly isMovimentosRoute = signal(false);
   private routerSub?: { unsubscribe: () => void };
   readonly loggedUsername = signal<string>('Usuário');
   readonly loggedTipoAcesso = signal<string>('Acesso não identificado');
@@ -87,6 +89,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   private updateFullWidthContent(url: string): void {
     const movimentos = url.includes('/movimentos');
+    this.isMovimentosRoute.set(movimentos);
     const estacionamento = url.includes('/cadastro/estacionamento');
     const transportadora = url.includes('/cadastro/transportadora');
     const acessos = url.includes('/configuracoes/');

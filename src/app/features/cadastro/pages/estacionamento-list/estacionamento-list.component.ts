@@ -19,7 +19,7 @@ type EstacionamentoListaSortCol =
   | 'id'
   | 'descricao'
   | 'nomeRazaoSocial'
-  | 'documento'
+  | 'cnpj'
   | 'capacidadeVeiculo'
   | 'tamanhoTerreno'
   | 'ativo';
@@ -144,7 +144,7 @@ export class EstacionamentoListComponent {
         return 'Descricao';
       case 'nomeRazaoSocial':
         return 'NomeRazaoSocial';
-      case 'documento':
+      case 'cnpj':
         return 'Documento';
       case 'capacidadeVeiculo':
         return 'CapacidadeVeiculo';
@@ -194,12 +194,12 @@ export class EstacionamentoListComponent {
     this.carregar();
   }
 
-  /** Exibe documento formatado por tamanho: CNPJ (14) ou CPF (11). */
-  formatDocumento(item: EstacionamentoListItemDTO): string {
-    const doc = String(item.documento ?? '').replace(/\D/g, '');
-    if (doc.length === 14) return formatCnpj(doc);
-    if (doc.length === 11) return formatCpf(doc);
-    return item.documento ?? '';
+  /** Exibe CNPJ formatado. */
+  formatCnpjItem(item: EstacionamentoListItemDTO): string {
+    const cnpj = String(item.cnpj ?? '').replace(/\D/g, '');
+    if (cnpj.length === 14) return formatCnpj(cnpj);
+    if (cnpj.length === 11) return formatCpf(cnpj);
+    return item.cnpj ?? '';
   }
 
   private shouldRetryDeleteWithPessoaId(err: unknown): boolean {

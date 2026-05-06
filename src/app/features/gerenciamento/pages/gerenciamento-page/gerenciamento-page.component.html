@@ -127,7 +127,15 @@
       (click)="$event.stopPropagation()"
     >
       <div class="modal-header">
-        <h2 id="modal-form-title">{{ isEdit() ? 'Editar usuário' : 'Novo usuário' }}</h2>
+        <div class="modal-header__main">
+          <div class="modal-header__icon-wrap" aria-hidden="true">
+            <span class="material-symbols-outlined">person_add</span>
+          </div>
+          <div class="modal-header__titles">
+            <h2 id="modal-form-title">{{ isEdit() ? 'Editar usuário' : 'Novo usuário' }}</h2>
+            <p class="modal-header__subtitle">Cadastre um novo usuário e defina seu perfil de acesso.</p>
+          </div>
+        </div>
         <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalForm()">&times;</button>
       </div>
       <div class="modal-body">
@@ -137,104 +145,230 @@
         @if (saveError()) {
           <p class="modal-save-error" role="alert">{{ saveError() }}</p>
         }
+        <div class="modal-info-banner">
+          <span class="material-symbols-outlined" aria-hidden="true">info</span>
+          <span>Os dados de acesso serão utilizados para autenticação no sistema.</span>
+        </div>
         <div class="form-grid form-grid--basic">
-          <div class="form-group">
-            <label for="g-nome">Nome completo <span class="required">*</span></label>
-            <input id="g-nome" type="text" class="input-control" [(ngModel)]="form.nome" placeholder="Nome" />
-          </div>
-          <div class="form-group">
-            <label for="g-email">E-mail <span class="required">*</span></label>
-            <input id="g-email" type="email" class="input-control" [(ngModel)]="form.email" placeholder="E-mail" />
-          </div>
-          <div class="form-group">
-            <label for="g-login">Login (userName) <span class="required">*</span></label>
-            <input id="g-login" type="text" class="input-control" [(ngModel)]="form.login" placeholder="userName" />
-          </div>
-          <div class="form-group">
-            <label for="g-doc">Documento (CPF/CNPJ)</label>
-            <input id="g-doc" type="text" class="input-control" [(ngModel)]="form.documento" />
-          </div>
-          <div class="form-group">
-            <label for="g-tp">Tipo de pessoa</label>
-            <select id="g-tp" class="input-control" [(ngModel)]="form.tipoPessoa">
-              <option [ngValue]="1">Física (1)</option>
-              <option [ngValue]="2">Jurídica (2)</option>
-            </select>
-          </div>
-          @if (!isEdit()) {
+          <div class="form-column form-column--left">
             <div class="form-group">
-              <label for="g-senha">Senha <span class="required">*</span></label>
-              <input id="g-senha" type="password" class="input-control" [(ngModel)]="form.senha" />
+              <label for="g-nome">Nome completo <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined input-icon" aria-hidden="true">person</span>
+                <input id="g-nome" type="text" class="input-control input-control--icon" [(ngModel)]="form.nome" placeholder="Nome completo" />
+              </div>
             </div>
             <div class="form-group">
-              <label for="g-confirmar">Confirmar senha <span class="required">*</span></label>
-              <input id="g-confirmar" type="password" class="input-control" [(ngModel)]="form.confirmarSenha" />
+              <label for="g-login">Login (userName) <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined input-icon" aria-hidden="true">alternate_email</span>
+                <input id="g-login" type="text" class="input-control input-control--icon" [(ngModel)]="form.login" placeholder="userName" />
+              </div>
             </div>
-          } @else {
-            <div class="form-group">
-              <label for="g-senha-e">Nova senha (opcional)</label>
-              <input id="g-senha-e" type="password" class="input-control" [(ngModel)]="form.senha" autocomplete="new-password" />
-            </div>
-            <div class="form-group">
-              <label for="g-confirmar-e">Confirmar nova senha</label>
-              <input id="g-confirmar-e" type="password" class="input-control" [(ngModel)]="form.confirmarSenha" />
-            </div>
-          }
-          <div class="form-group" (focusin)="onEstacionamentoFieldFocus()">
-            <label for="g-estac">Estacionamento</label>
-            <select
-              id="g-estac"
-              class="input-control"
-              name="estac"
-              [ngModel]="form.EstacionamentoId"
-              (ngModelChange)="onEstacionamentoIdChange($event)"
-            >
-              <option [ngValue]="0">Nenhum (0)</option>
-              @if (EstacionamentoCarregando()) {
-                <option disabled>Carregando Estacionamentos...</option>
-              }
-              @for (o of EstacionamentoOptions(); track o.id) {
-                <option [ngValue]="o.id">{{ o.label }}</option>
-              }
-            </select>
-            <button type="button" class="btn btn-secondary btn--sm" (click)="limparEstacionamento()">Limpar vínculo</button>
-          </div>
-          <div class="form-group">
-            <label for="g-perfil">Perfil (name do role) <span class="required">*</span></label>
-            <div class="perfil-select-row">
-              <select
-                id="g-perfil"
-                class="input-control"
-                [(ngModel)]="form.perfilId"
-                (ngModelChange)="onPerfilFormChange()"
-              >
-                <option value="">Selecione</option>
-                @for (p of perfisList; track p.id ?? p.name) {
-                  <option [value]="p.name ?? p.perfil ?? p.nome ?? p.id ?? ''">
-                    {{ p.name ?? p.perfil ?? p.nome ?? p.id }}
-                  </option>
-                }
-              </select>
-              <button type="button" class="btn btn-secondary btn--sm" (click)="abrirNovoPerfil()">Novo perfil</button>
-            </div>
-            @if (showNovoPerfilForm) {
-              <div class="novo-perfil-inline">
-                <input
-                  type="text"
-                  class="input-control"
-                  [(ngModel)]="novoPerfilNome"
-                  placeholder="Nome do perfil"
-                  (keyup.enter)="criarPerfil()"
-                />
-                <button type="button" class="btn btn-primary btn--sm" [disabled]="savingPerfil" (click)="criarPerfil()">
-                  {{ savingPerfil ? 'Criando...' : 'Criar' }}
-                </button>
-                <button type="button" class="btn btn-secondary btn--sm" (click)="cancelarNovoPerfil()">Cancelar</button>
+            @if (!isEdit()) {
+              <div class="form-group">
+                <label for="g-senha">Senha <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined input-icon" aria-hidden="true">lock</span>
+                  <input
+                    id="g-senha"
+                    [type]="mostrarSenha ? 'text' : 'password'"
+                    class="input-control input-control--icon input-control--icon-right"
+                    [(ngModel)]="form.senha"
+                    placeholder="Digite a senha"
+                  />
+                  <button type="button" class="input-eye-btn" (click)="toggleMostrarSenha()" [attr.aria-label]="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'">
+                    <span class="material-symbols-outlined">{{ mostrarSenha ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="g-confirmar">Confirmar senha <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined input-icon" aria-hidden="true">lock</span>
+                  <input
+                    id="g-confirmar"
+                    [type]="mostrarConfirmarSenha ? 'text' : 'password'"
+                    class="input-control input-control--icon input-control--icon-right"
+                    [(ngModel)]="form.confirmarSenha"
+                    placeholder="Confirme a senha"
+                  />
+                  <button type="button" class="input-eye-btn" (click)="toggleMostrarConfirmarSenha()" [attr.aria-label]="mostrarConfirmarSenha ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'">
+                    <span class="material-symbols-outlined">{{ mostrarConfirmarSenha ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="form-group">
+                <label for="g-senha-e">Nova senha (opcional)</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined input-icon" aria-hidden="true">lock</span>
+                  <input id="g-senha-e" type="password" class="input-control input-control--icon" [(ngModel)]="form.senha" autocomplete="new-password" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="g-confirmar-e">Confirmar nova senha</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined input-icon" aria-hidden="true">lock</span>
+                  <input id="g-confirmar-e" type="password" class="input-control input-control--icon" [(ngModel)]="form.confirmarSenha" />
+                </div>
               </div>
             }
-            @if (form.perfilId) {
-              <p class="form-hint">Sincronizado com a API de menu no login (cache do perfil): {{ profilePermissions.length }} chaves.</p>
+          </div>
+
+          <div class="form-column form-column--right">
+            <div class="form-group">
+              <label for="g-email">E-mail <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined input-icon" aria-hidden="true">mail</span>
+                <input id="g-email" type="email" class="input-control input-control--icon" [(ngModel)]="form.email" placeholder="E-mail" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="g-cpf">CPF <span class="required">*</span></label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined input-icon" aria-hidden="true">badge</span>
+                <input
+                  id="g-cpf"
+                  type="text"
+                  class="input-control input-control--icon"
+                  [(ngModel)]="form.cpf"
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <span class="form-hint">Obrigatório: informe CPF com 11 dígitos (contrato atual da API).</span>
+            </div>
+
+            <div class="form-group">
+              <label>Vincular a <span class="required">*</span></label>
+              <div class="vinculo-toggle">
+                <button
+                  type="button"
+                  class="vinculo-toggle__btn"
+                  [class.vinculo-toggle__btn--active]="form.vinculoTipo === 'estacionamento'"
+                  (click)="onVinculoTipoChange('estacionamento')"
+                >
+                  Estacionamento
+                </button>
+                <button
+                  type="button"
+                  class="vinculo-toggle__btn"
+                  [class.vinculo-toggle__btn--active]="form.vinculoTipo === 'transportadora'"
+                  (click)="onVinculoTipoChange('transportadora')"
+                >
+                  Transportadora
+                </button>
+              </div>
+            </div>
+
+            @if (form.vinculoTipo === 'estacionamento') {
+              <div class="form-group" (focusin)="onEstacionamentoFieldFocus()">
+                <label for="g-estac">Estacionamento <span class="required">*</span></label>
+                <div class="vinculo-combo">
+                  <div class="vinculo-busca-row">
+                    <input
+                      id="g-estac-busca"
+                      type="text"
+                      class="input-control"
+                      [(ngModel)]="estacionamentoBuscaTermo"
+                      placeholder="Digite para buscar estacionamento"
+                      (input)="onVinculoBuscaInput()"
+                      (keydown)="onVinculoBuscaKeydown($event)"
+                      (blur)="fecharVinculoDropdownComDelay()"
+                    />
+                    <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="buscarVinculo()" [disabled]="EstacionamentoCarregando()">
+                      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                    </button>
+                  </div>
+                  @if (vinculoDropdownOpen()) {
+                    <ul class="autocomplete-dropdown vinculo-dropdown">
+                      @for (o of EstacionamentoOptions(); track o.id) {
+                        <li>
+                          <button type="button" (mousedown)="selecionarEstacionamentoBusca(o); $event.preventDefault()">{{ o.label }}</button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                @if (EstacionamentoCarregando()) {
+                  <span class="form-hint">Buscando estacionamentos...</span>
+                }
+                <span class="form-hint">A lista de seleção segue o tipo de vínculo escolhido.</span>
+              </div>
+            } @else {
+              <div class="form-group" (focusin)="onTransportadoraFieldFocus()">
+                <label for="g-transportadora">Transportadora <span class="required">*</span></label>
+                <div class="vinculo-combo">
+                  <div class="vinculo-busca-row">
+                    <input
+                      id="g-transportadora-busca"
+                      type="text"
+                      class="input-control"
+                      [(ngModel)]="transportadoraBuscaTermo"
+                      placeholder="Digite para buscar transportadora"
+                      (input)="onVinculoBuscaInput()"
+                      (keydown)="onVinculoBuscaKeydown($event)"
+                      (blur)="fecharVinculoDropdownComDelay()"
+                    />
+                    <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="buscarVinculo()" [disabled]="transportadoraCarregando()">
+                      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                    </button>
+                  </div>
+                  @if (vinculoDropdownOpen()) {
+                    <ul class="autocomplete-dropdown vinculo-dropdown">
+                      @for (o of transportadoraOptions(); track o.id) {
+                        <li>
+                          <button type="button" (mousedown)="selecionarTransportadoraBusca(o); $event.preventDefault()">{{ o.label }}</button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                @if (transportadoraCarregando()) {
+                  <span class="form-hint">Buscando transportadoras...</span>
+                }
+                <span class="form-hint">A lista de seleção segue o tipo de vínculo escolhido.</span>
+              </div>
             }
+            @if (vinculoBuscaErro) {
+              <p class="modal-save-error">{{ vinculoBuscaErro }}</p>
+            }
+
+            <div class="form-group">
+              <label for="g-perfil-busca">Perfil <span class="required">*</span></label>
+              <div class="vinculo-combo">
+                <div class="vinculo-busca-row">
+                  <input
+                    id="g-perfil-busca"
+                    type="text"
+                    class="input-control"
+                    [(ngModel)]="perfilBuscaTermo"
+                    placeholder="Clique para listar perfis"
+                    (focus)="abrirPerfilDropdown()"
+                    (input)="onPerfilBuscaInput()"
+                    (keydown)="onPerfilBuscaKeydown($event)"
+                    (blur)="fecharPerfilDropdownComDelay()"
+                  />
+                  <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="abrirPerfilDropdown()">
+                    <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                  </button>
+                </div>
+                @if (perfilDropdownOpen()) {
+                  <ul class="autocomplete-dropdown vinculo-dropdown">
+                    @for (p of perfisFiltrados; track p.id ?? p.name ?? p.perfil ?? p.nome) {
+                      <li>
+                        <button type="button" (mousedown)="selecionarPerfilBusca(p); $event.preventDefault()">
+                          {{ p.name ?? p.perfil ?? p.nome ?? p.id }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+              @if (form.perfilId) {
+                <p class="form-hint">Sincronizado com a API de menu no login (cache do perfil): {{ profilePermissions.length }} chaves.</p>
+              }
+            </div>
           </div>
         </div>
       </div>

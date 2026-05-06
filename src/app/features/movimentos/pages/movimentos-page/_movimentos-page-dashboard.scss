@@ -74,6 +74,41 @@
   grid-column: 3 / span 1;
 }
 
+.registro-form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.registro-section {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface) 96%, var(--muted) 6%);
+}
+
+.registro-section__title {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.registro-section--motorista {
+  border-left: 3px solid #2563eb;
+}
+
+.registro-section--transportadora {
+  border-left: 3px solid #059669;
+}
+
+.registro-section--extras {
+  border-left: 3px solid #64748b;
+}
+
 .registro-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -91,8 +126,21 @@
   color: var(--muted);
 }
 
+.field__req {
+  margin-left: 2px;
+  color: #dc2626;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: help;
+}
+
 .field--full {
   grid-column: 1 / -1;
+}
+
+.input-control--select {
+  appearance: auto;
+  cursor: pointer;
 }
 
 .registro-actions {

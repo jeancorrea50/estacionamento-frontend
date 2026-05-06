@@ -64,6 +64,8 @@ export interface EntradaSaidaPostInput {
   dataHoraEntrada: string;
   dataHoraSaida?: string;
   observao?: string;
+  /** Telefone do responsável pela transportadora — apenas dígitos (DDD obrigatório). Opcional conforme API. */
+  telefoneResponsavel?: string;
   motorista?: unknown;
   transportadora?: unknown;
   veiculo?: unknown;

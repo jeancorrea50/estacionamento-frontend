@@ -13,6 +13,11 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ApiError } from '../../../../core/api/models';
 import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
+import {
+  TelefoneFormatDirective,
+  formatTelefone
+} from '../../../cadastro/directives/telefone-format.directive';
+import { MotoristaPorPlacaAggregateVm } from '../../../cadastro/models/motorista-por-placa.vm';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
 
@@ -38,7 +43,7 @@ interface AlertaItemVm {
 @Component({
   selector: 'app-movimentos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, CameraPreviewComponent],
+  imports: [CommonModule, FormsModule, CameraPreviewComponent, TelefoneFormatDirective],
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
 })
@@ -54,6 +59,11 @@ export class MovimentosPageComponent implements OnInit {
   readonly canGravar = this.permissionCache.has('entradasaida.gravar') || this.permissionCache.hasAny(['*']);
   readonly canAlterar = this.permissionCache.has('entradasaida.alterar') || this.permissionCache.hasAny(['*']);
   readonly canExcluir = this.permissionCache.has('entradasaida.excluir') || this.permissionCache.hasAny(['*']);
+
+  /** Limite para textos livres no registro rápido (nome, razão social, observação etc.). */
+  readonly registroRapidoMaxTexto = 100;
+  /** Limite visual para telefone com máscara BR `(00) 00000-0000` (15 caracteres). */
+  readonly registroRapidoMaxTelefone = 15;
 
   filtro = { descricao: '', somenteEmAberto: true };
 
@@ -73,11 +83,27 @@ export class MovimentosPageComponent implements OnInit {
   registroRapido = {
     placa: '',
     motorista: '',
-    transportadora: '',
+    motoristaCpf: '',
+    transportadoraRazaoSocial: '',
+    transportadoraCnpj: '',
+    transportadoraResponsavelNome: '',
+    transportadoraResponsavelTelefone: '',
     tipoCarga: '',
     dataAgendamento: '',
     observacao: ''
   };
+
+  /** Opções comuns para tipo de carga / tipo de equipamento rodoviário. */
+  readonly tipoCargaOpcoes = [
+    'Graneleiro',
+    'Bitrem',
+    'Rodotrem',
+    'Caçamba',
+    'Sider',
+    'Tanque',
+    'Porta contêiner',
+    'Frigorífico'
+  ] as const;
 
   ngOnInit(): void {
     if (!this.canVisualizar) return;
@@ -105,14 +131,21 @@ export class MovimentosPageComponent implements OnInit {
     this.filtro.descricao = formatPlacaDisplay(normalizePlaca(value));
   }
 
+  onMotoristaCpfInput(value: string): void {
+    this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(value);
+  }
+
+  onTransportadoraCnpjInput(value: string): void {
+    this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(value);
+  }
+
   onRegistroRapidoPlacaInput(value: string): void {
     const placaFormatada = formatPlacaDisplay(normalizePlaca(value));
     this.registroRapido.placa = placaFormatada;
     const placaNorm = normalizePlaca(placaFormatada);
     if (!placaCompleta(placaNorm)) {
       this.ultimaPlacaConsultadaRegistroRapido = '';
-      this.registroRapido.motorista = '';
-      this.registroRapido.transportadora = '';
+      this.limparCamposVinculadosPlacaRegistroRapido();
       return;
     }
     if (this.ultimaPlacaConsultadaRegistroRapido === placaNorm) {
@@ -241,6 +274,10 @@ export class MovimentosPageComponent implements OnInit {
     return 'status-dot status-dot--entrada';
   }
 
+  /**
+   * Registro rápido de entrada: consulta veículo por placa, aplica dados na tela,
+   * valida todos os campos obrigatórios e só então envia POST `/EntradaSaida`.
+   */
   abrirRegistroEntradaRapida(): void {
     if (!this.canGravar || this.processandoRegistroRapido) return;
     const placaNorm = normalizePlaca(this.registroRapido.placa);
@@ -248,6 +285,7 @@ export class MovimentosPageComponent implements OnInit {
       this.toast.error('Informe uma placa válida para registrar entrada.');
       return;
     }
+
     this.processandoRegistroRapido = true;
     this.veiculoService.obterPorPlaca(placaNorm).subscribe({
       next: (agg) => {
@@ -256,32 +294,50 @@ export class MovimentosPageComponent implements OnInit {
           this.toast.error('Placa não encontrada para registrar entrada.');
           return;
         }
-        this.registroRapido.motorista = agg.motoristaNome || '';
-        this.registroRapido.transportadora = agg.transportadoraNome || '';
-        this.service.create({
-          motoristaId: agg.motoristaId,
-          transportadoraId: agg.transportadoraId,
-          veiculoId: agg.veiculoId,
-          dataHoraEntrada: new Date().toISOString(),
-          observao: this.registroRapido.observacao?.trim() || undefined
-        }).subscribe({
-          next: () => {
-            this.processandoRegistroRapido = false;
-            this.toast.success('Entrada registrada com sucesso.');
-            this.buscar();
-            this.limparRegistroRapido();
-          },
-          error: (err: ApiError) => {
-            this.processandoRegistroRapido = false;
-            this.toast.error(err?.message ?? 'Erro ao registrar entrada.');
-          }
-        });
+
+        this.sincronizarRegistroRapidoComAggregate(agg);
+
+        const erroObrigatorios = this.mensagemValidacaoCamposObrigatoriosEntrada();
+        if (erroObrigatorios) {
+          this.processandoRegistroRapido = false;
+          this.toast.error(erroObrigatorios);
+          return;
+        }
+
+        this.postEntradaSaidaAposValidacao(agg);
       },
       error: (err: ApiError) => {
         this.processandoRegistroRapido = false;
         this.toast.error(err?.message ?? 'Erro ao consultar placa.');
       }
     });
+  }
+
+  /** POST `EntradaSaida` — chamado somente após `mensagemValidacaoCamposObrigatoriosEntrada()` retornar null. */
+  private postEntradaSaidaAposValidacao(agg: MotoristaPorPlacaAggregateVm): void {
+    this.service
+      .create({
+        motoristaId: agg.motoristaId,
+        transportadoraId: agg.transportadoraId,
+        veiculoId: agg.veiculoId,
+        dataHoraEntrada: new Date().toISOString(),
+        observao: this.observacaoParaApi(this.registroRapido.observacao),
+        telefoneResponsavel: this.telefoneSomenteDigitosParaApi(
+          this.registroRapido.transportadoraResponsavelTelefone
+        )
+      })
+      .subscribe({
+        next: () => {
+          this.processandoRegistroRapido = false;
+          this.toast.success('Entrada registrada com sucesso.');
+          this.buscar();
+          this.limparRegistroRapido();
+        },
+        error: (err: ApiError) => {
+          this.processandoRegistroRapido = false;
+          this.toast.error(err?.message ?? 'Erro ao registrar entrada.');
+        }
+      });
   }
 
   registrarSaidaRapida(): void {
@@ -339,7 +395,11 @@ export class MovimentosPageComponent implements OnInit {
     this.registroRapido = {
       placa: '',
       motorista: '',
-      transportadora: '',
+      motoristaCpf: '',
+      transportadoraRazaoSocial: '',
+      transportadoraCnpj: '',
+      transportadoraResponsavelNome: '',
+      transportadoraResponsavelTelefone: '',
       tipoCarga: '',
       dataAgendamento: '',
       observacao: ''
@@ -438,34 +498,134 @@ export class MovimentosPageComponent implements OnInit {
           return;
         }
         if (!agg) {
-          this.registroRapido.motorista = '';
-          this.registroRapido.transportadora = '';
-          this.registroRapido.tipoCarga = '';
+          this.limparCamposVinculadosPlacaRegistroRapido();
           return;
         }
         this.aplicarRespostaPlacaNaTela(agg);
       },
       error: () => {
         this.buscandoPlacaRegistroRapido = false;
-        this.registroRapido.motorista = '';
-        this.registroRapido.transportadora = '';
-        this.registroRapido.tipoCarga = '';
+        this.limparCamposVinculadosPlacaRegistroRapido();
       }
     });
   }
 
-  private aplicarRespostaPlacaNaTela(agg: {
-    veiculoPlaca: string;
-    motoristaNome: string;
-    transportadoraNome: string;
-    veiculoMarca: string;
-    veiculoModelo: string;
-  }): void {
+  private aplicarMascaraCpf(value: string | null | undefined): string {
+    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+
+  /**
+   * Valida todos os campos obrigatórios do registro rápido.
+   * Só retorna null quando pode chamar `postEntradaSaidaAposValidacao` (POST EntradaSaida).
+   * Ordem da primeira falha: placa, motorista, CPF, responsável, telefone, CNPJ.
+   */
+  private mensagemValidacaoCamposObrigatoriosEntrada(): string | null {
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+    if (!placaCompleta(placaNorm)) {
+      return 'Informe uma placa válida.';
+    }
+    if (!String(this.registroRapido.motorista ?? '').trim()) {
+      return 'Informe o nome do motorista.';
+    }
+    if (!this.cpfPossui11Digitos(this.registroRapido.motoristaCpf)) {
+      return 'Informe o CPF completo do motorista (11 dígitos).';
+    }
+    if (!String(this.registroRapido.transportadoraResponsavelNome ?? '').trim()) {
+      return 'Informe o nome do responsável pela transportadora.';
+    }
+    if (!this.telefoneResponsavelValido(this.registroRapido.transportadoraResponsavelTelefone)) {
+      return 'Informe o telefone com DDD ((00) …) — 10 dígitos (fixo) ou 11 (celular).';
+    }
+    if (!this.cnpjPossui14Digitos(this.registroRapido.transportadoraCnpj)) {
+      return 'Informe o CNPJ completo da transportadora (14 dígitos).';
+    }
+    return null;
+  }
+
+  private cpfPossui11Digitos(valor: string | null | undefined): boolean {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    return digits.length === 11;
+  }
+
+  /** Telefone BR com DDD obrigatório: 10 dígitos (fixo) ou 11 (celular com 9). */
+  private telefoneResponsavelValido(valor: string | null | undefined): boolean {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    return digits.length === 10 || digits.length === 11;
+  }
+
+  /** Somente dígitos para envio à API (sem máscara). */
+  private telefoneSomenteDigitosParaApi(valor: string | null | undefined): string | undefined {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    if (digits.length !== 10 && digits.length !== 11) return undefined;
+    return digits;
+  }
+
+  /** Validação do CNPJ no registro rápido (14 dígitos numéricos). */
+  private cnpjPossui14Digitos(valor: string | null | undefined): boolean {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    return digits.length === 14;
+  }
+
+  private aplicarMascaraCnpj(value: string | null | undefined): string {
+    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    }
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  }
+
+  private limparCamposVinculadosPlacaRegistroRapido(): void {
+    this.registroRapido.motorista = '';
+    this.registroRapido.motoristaCpf = '';
+    this.registroRapido.transportadoraRazaoSocial = '';
+    this.registroRapido.transportadoraCnpj = '';
+    this.registroRapido.transportadoraResponsavelNome = '';
+    this.registroRapido.transportadoraResponsavelTelefone = '';
+    this.registroRapido.tipoCarga = '';
+  }
+
+  private sincronizarRegistroRapidoComAggregate(agg: MotoristaPorPlacaAggregateVm): void {
     this.registroRapido.placa = formatPlacaDisplay(normalizePlaca(agg.veiculoPlaca || this.registroRapido.placa));
-    this.registroRapido.motorista = agg.motoristaNome || '';
-    this.registroRapido.transportadora = agg.transportadoraNome || '';
-    const tipoCargaSugerido = [agg.veiculoMarca, agg.veiculoModelo].filter(Boolean).join(' / ');
-    this.registroRapido.tipoCarga = tipoCargaSugerido || this.registroRapido.tipoCarga || '';
+    this.registroRapido.motorista = this.encurtarTextoLivre(agg.motoristaNome);
+    this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(agg.motoristaCpf);
+    this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(agg.transportadoraRazaoSocial);
+    if (String(agg.transportadoraCnpj ?? '').replace(/\D/g, '').length > 0) {
+      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(agg.transportadoraCnpj);
+    }
+    this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(agg.transportadoraResponsavelNome);
+    this.registroRapido.transportadoraResponsavelTelefone = this.formatarTelefoneRegistroRapido(
+      agg.transportadoraResponsavelTelefone
+    );
+  }
+
+  private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {
+    return formatTelefone(String(valor ?? ''));
+  }
+
+  private encurtarTextoLivre(valor: string | null | undefined): string {
+    return this.cortarAte(String(valor ?? ''), this.registroRapidoMaxTexto);
+  }
+
+  private cortarAte(texto: string, max: number): string {
+    if (texto.length <= max) return texto;
+    return texto.slice(0, max);
+  }
+
+  private observacaoParaApi(observacao: string | undefined): string | undefined {
+    const t = observacao?.trim();
+    if (!t) return undefined;
+    return this.cortarAte(t, this.registroRapidoMaxTexto);
+  }
+
+  private aplicarRespostaPlacaNaTela(agg: MotoristaPorPlacaAggregateVm): void {
+    this.sincronizarRegistroRapidoComAggregate(agg);
   }
 
   private toIsoOrUndefined(value: string | null | undefined): string | undefined {

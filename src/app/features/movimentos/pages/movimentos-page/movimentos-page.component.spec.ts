@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentosPageComponent } from './movimentos-page.component';
 
@@ -38,6 +39,9 @@ describe('MovimentosPageComponent', () => {
   };
 
   const routerMock = { navigate: vi.fn().mockResolvedValue(true) };
+  const veiculoServiceMock = {
+    obterPorPlaca: vi.fn().mockReturnValue(of(null))
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -47,18 +51,18 @@ describe('MovimentosPageComponent', () => {
         { provide: ToastService, useValue: toastServiceMock },
         { provide: PermissionCacheService, useValue: permissionCacheMock },
         { provide: Router, useValue: routerMock },
+        { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: ActivatedRoute, useValue: { parent: {} } }
       ]
     }).compileComponents();
   });
 
-  it('deve navegar para novo ao abrirNovo', () => {
+  it('deve orientar uso do registro rápido ao abrirNovo', () => {
     const fixture = TestBed.createComponent(MovimentosPageComponent);
     const component = fixture.componentInstance;
     component.abrirNovo();
-    expect(routerMock.navigate).toHaveBeenCalledWith(
-      ['novo'],
-      expect.objectContaining({ relativeTo: expect.anything() })
+    expect(toastServiceMock.success).toHaveBeenCalledWith(
+      'Use o bloco "Registro Rápido de Movimentação" nesta tela para novos registros.'
     );
   });
 

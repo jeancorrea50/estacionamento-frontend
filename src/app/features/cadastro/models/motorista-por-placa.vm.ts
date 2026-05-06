@@ -16,6 +16,12 @@ export interface MotoristaPorPlacaAggregateVm {
   /** Texto livre (ex.: só fabricação ou "2020 / 2021") */
   veiculoAno: string;
   transportadoraNome: string;
+  /** Razão social (PJ) quando dissociada do nome fantasia. */
+  transportadoraRazaoSocial: string;
+  transportadoraNomeFantasia: string;
   transportadoraCnpj: string;
   transportadoraContato: string;
+  /** Responsável pela transportadora (contrato backend pode variar). */
+  transportadoraResponsavelNome: string;
+  transportadoraResponsavelTelefone: string;
 }

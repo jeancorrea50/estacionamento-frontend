@@ -66,6 +66,26 @@ function primeiraContatoNumero(pessoa: Record<string, unknown> | null): string {
   ]);
 }
 
+/** Primeiro contato da pessoa (nome + telefone), se existir lista `contatos`. */
+function primeiroContatoNomeTelefone(pessoa: Record<string, unknown> | null): {
+  nome: string;
+  telefone: string;
+} {
+  if (!pessoa) return { nome: '', telefone: '' };
+  const contatos = pessoa['contatos'] ?? pessoa['Contatos'];
+  if (Array.isArray(contatos) && contatos.length > 0) {
+    const c0 = contatos[0];
+    if (c0 && typeof c0 === 'object') {
+      const r = c0 as Record<string, unknown>;
+      return {
+        nome: getStr(r, ['nome', 'Nome', 'contatoNome', 'nomeContato', 'NomeContato']),
+        telefone: getStr(r, ['numero', 'Numero', 'telefone', 'Telefone', 'celular', 'Celular'])
+      };
+    }
+  }
+  return { nome: '', telefone: '' };
+}
+
 function splitMarcaModelo(mm: string): { marca: string; modelo: string } {
   const t = mm.trim();
   if (!t) return { marca: '', modelo: '' };
@@ -146,6 +166,61 @@ export function mapMotoristaPorPlacaResponse(body: unknown): MotoristaPorPlacaAg
   const marcaModeloFull = getStr(vObj, ['marcaModelo', 'MarcaModelo', 'descricao', 'Descricao']);
   const { marca: marcaSplit, modelo: modeloSplit } = splitMarcaModelo(marcaModeloFull);
 
+  const razaoSocial =
+    getStr(pessoaT, ['nomeRazaoSocial', 'NomeRazaoSocial']) ||
+    getStr(tObj, ['razaoSocial', 'RazaoSocial', 'nomeRazaoSocial', 'NomeRazaoSocial']);
+  const nomeFantasia =
+    getStr(pessoaT, ['nomeFantasia', 'NomeFantasia']) ||
+    getStr(tObj, ['nomeFantasia', 'NomeFantasia']);
+
+  const respNested =
+    pickRecord(tObj?.['responsavel']) ??
+    pickRecord(tObj?.['Responsavel']) ??
+    pickRecord(tObj?.['contatoPrincipal']) ??
+    pickRecord(tObj?.['ContatoPrincipal']);
+
+  let transportadoraResponsavelNome = getStr(respNested, [
+    'nome',
+    'Nome',
+    'nomeCompleto',
+    'NomeCompleto'
+  ]);
+  let transportadoraResponsavelTelefone = getStr(respNested, [
+    'telefone',
+    'Telefone',
+    'celular',
+    'Celular'
+  ]);
+
+  const contatoLista = primeiroContatoNomeTelefone(pessoaT);
+  if (!transportadoraResponsavelNome && contatoLista.nome) {
+    transportadoraResponsavelNome = contatoLista.nome;
+  }
+  if (!transportadoraResponsavelTelefone && contatoLista.telefone) {
+    transportadoraResponsavelTelefone = contatoLista.telefone;
+  }
+  if (!transportadoraResponsavelNome) {
+    transportadoraResponsavelNome = getStr(tObj, [
+      'nomeResponsavel',
+      'NomeResponsavel',
+      'responsavelNome',
+      'nomeContato',
+      'contatoNome'
+    ]);
+  }
+  if (!transportadoraResponsavelTelefone) {
+    transportadoraResponsavelTelefone = getStr(tObj, [
+      'telefoneResponsavel',
+      'celularResponsavel',
+      'telefoneContato'
+    ]);
+  }
+
+  const nomeTransportadoraFallback =
+    nomeFantasia ||
+    razaoSocial ||
+    getStr(tObj, ['descricao', 'Descricao']);
+
   const vm: MotoristaPorPlacaAggregateVm = {
     motoristaId,
     veiculoId,
@@ -163,13 +238,15 @@ export function mapMotoristaPorPlacaResponse(body: unknown): MotoristaPorPlacaAg
     veiculoModelo: getStr(vObj, ['modelo', 'Modelo']) || modeloSplit,
     veiculoMarca: getStr(vObj, ['marca', 'Marca']) || marcaSplit,
     veiculoAno: anoVeiculo(vObj),
-    transportadoraNome:
-      getStr(pessoaT, ['nomeRazaoSocial', 'NomeRazaoSocial', 'nomeFantasia', 'NomeFantasia']) ||
-      getStr(tObj, ['nomeFantasia', 'NomeFantasia', 'razaoSocial', 'RazaoSocial', 'descricao', 'Descricao']),
+    transportadoraNome: nomeTransportadoraFallback,
+    transportadoraRazaoSocial: razaoSocial,
+    transportadoraNomeFantasia: nomeFantasia,
     transportadoraCnpj: getStr(pessoaT, ['documento', 'Documento', 'cnpj', 'Cnpj']),
     transportadoraContato:
       primeiraContatoNumero(pessoaT ?? tObj) ||
-      getStr(tObj, ['telefone', 'Telefone', 'celular', 'Celular'])
+      getStr(tObj, ['telefone', 'Telefone', 'celular', 'Celular']),
+    transportadoraResponsavelNome,
+    transportadoraResponsavelTelefone
   };
 
   if (!motoristaId || !veiculoId || !transportadoraId) {

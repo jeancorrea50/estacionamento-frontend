@@ -32,70 +32,162 @@
           <h2>Registro Rápido de Movimentação</h2>
           <p>Entrada rápida para operação de portaria.</p>
         </header>
-        <div class="registro-grid">
-          <label class="field">
-            <span>Placa do Veículo</span>
-            <input
-              class="input-control"
-              type="text"
-              placeholder="ABC1D23"
-              [(ngModel)]="registroRapido.placa"
-              (ngModelChange)="onRegistroRapidoPlacaInput($event)"
-              maxlength="8"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-          <label class="field">
-            <span>Motorista</span>
-            <input
-              class="input-control"
-              type="text"
-              placeholder="Nome / CPF"
-              [(ngModel)]="registroRapido.motorista"
-              [readonly]="buscandoPlacaRegistroRapido"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-          <label class="field">
-            <span>Transportadora</span>
-            <input
-              class="input-control"
-              type="text"
-              placeholder="Nome / CNPJ"
-              [(ngModel)]="registroRapido.transportadora"
-              [readonly]="buscandoPlacaRegistroRapido"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-          <label class="field">
-            <span>Tipo de Carga</span>
-            <input
-              class="input-control"
-              type="text"
-              placeholder="Selecione..."
-              [(ngModel)]="registroRapido.tipoCarga"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-          <label class="field">
-            <span>Data de Agendamento</span>
-            <input
-              class="input-control"
-              type="date"
-              [(ngModel)]="registroRapido.dataAgendamento"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
-          <label class="field field--full">
-            <span>Observação</span>
-            <input
-              class="input-control"
-              type="text"
-              placeholder="Observação opcional"
-              [(ngModel)]="registroRapido.observacao"
-              [ngModelOptions]="{ standalone: true }"
-            />
-          </label>
+        <div class="registro-form-layout">
+          <section class="registro-section registro-section--motorista" aria-labelledby="registro-motorista-titulo">
+            <h3 id="registro-motorista-titulo" class="registro-section__title">Motorista e veículo</h3>
+            <div class="registro-grid">
+              <label class="field">
+                <span>Placa do Veículo <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="ABC1D23"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.placa"
+                  (ngModelChange)="onRegistroRapidoPlacaInput($event)"
+                  maxlength="8"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.motorista"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>CPF do motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="000.000.000-00"
+                  maxlength="14"
+                  required
+                  aria-required="true"
+                  [ngModel]="registroRapido.motoristaCpf"
+                  (ngModelChange)="onMotoristaCpfInput($event)"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Tipo de Carga</span>
+                <select
+                  class="input-control input-control--select"
+                  [(ngModel)]="registroRapido.tipoCarga"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">Selecione...</option>
+                  @for (opcao of tipoCargaOpcoes; track opcao) {
+                    <option [value]="opcao">{{ opcao }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="registro-section registro-section--transportadora" aria-labelledby="registro-transp-titulo">
+            <h3 id="registro-transp-titulo" class="registro-section__title">Transportadora</h3>
+            <div class="registro-grid">
+              <label class="field field--full">
+                <span>CNPJ <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="00.000.000/0000-00"
+                  maxlength="18"
+                  required
+                  aria-required="true"
+                  [ngModel]="registroRapido.transportadoraCnpj"
+                  (ngModelChange)="onTransportadoraCnpjInput($event)"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Razão social</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Razão social"
+                  [(ngModel)]="registroRapido.transportadoraRazaoSocial"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Nome do responsável <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome do responsável"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.transportadoraResponsavelNome"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Telefone do responsável <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="tel"
+                  autocomplete="off"
+                  placeholder="(00) 00000-0000"
+                  required
+                  aria-required="true"
+                  appTelefoneFormat
+                  [(ngModel)]="registroRapido.transportadoraResponsavelTelefone"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [attr.maxlength]="registroRapidoMaxTelefone"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section class="registro-section registro-section--extras" aria-labelledby="registro-extras-titulo">
+            <h3 id="registro-extras-titulo" class="registro-section__title">Movimentação</h3>
+            <div class="registro-grid">
+              <label class="field field--full">
+                <span>Data de Agendamento</span>
+                <input
+                  class="input-control"
+                  type="date"
+                  [(ngModel)]="registroRapido.dataAgendamento"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field field--full">
+                <span>Observação</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Observação opcional"
+                  [(ngModel)]="registroRapido.observacao"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+            </div>
+          </section>
         </div>
         <div class="registro-actions">
           <button class="btn btn-primary" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="abrirRegistroEntradaRapida()">
@@ -171,7 +263,14 @@
 
     <section class="filtros card">
       <div class="filtros-grid filtros-grid--single">
-        <input class="input-control filtro-input" placeholder="Buscar por placa" [(ngModel)]="filtro.descricao" (ngModelChange)="onFiltroPlacaInput($event)" (keydown.enter)="buscar()" />
+        <input
+          class="input-control filtro-input"
+          placeholder="Buscar por placa"
+          [(ngModel)]="filtro.descricao"
+          (ngModelChange)="onFiltroPlacaInput($event)"
+          (keydown.enter)="buscar()"
+          maxlength="8"
+        />
         <label class="check-open">
           <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" />
           Somente em aberto

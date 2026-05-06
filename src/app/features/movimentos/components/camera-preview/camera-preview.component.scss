@@ -1,0 +1,40 @@
+.camera-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.camera-preview__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.camera-preview__video-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: #000;
+  overflow: hidden;
+}
+
+.camera-preview__video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.camera-preview__error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--danger, #ef4444);
+}
+
+@media (max-width: 768px) {
+  .camera-preview__toolbar {
+    grid-template-columns: 1fr;
+  }
+}

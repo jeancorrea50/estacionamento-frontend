@@ -239,9 +239,20 @@
 
 .data-table .acoes-cell {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.data-table th.col-acoes {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .badge {

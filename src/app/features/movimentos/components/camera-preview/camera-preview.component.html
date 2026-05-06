@@ -1,0 +1,32 @@
+<div class="camera-preview">
+  <div class="camera-preview__toolbar">
+    <select
+      class="input-control"
+      [value]="selectedDeviceId"
+      (change)="onDeviceSelectChange($event)"
+      [disabled]="loading || devices.length === 0"
+    >
+      @for (device of devices; track device.deviceId) {
+        <option [value]="device.deviceId">
+          {{ device.label || ('Câmera ' + ($index + 1)) }}
+        </option>
+      } @empty {
+        <option value="">Nenhuma câmera detectada</option>
+      }
+    </select>
+    <button class="btn btn-secondary btn--sm" type="button" (click)="refreshDevices()" [disabled]="loading">
+      Atualizar
+    </button>
+    <button class="btn btn-secondary btn--sm" type="button" (click)="stopCamera()" [disabled]="!stream">
+      Parar
+    </button>
+  </div>
+
+  <div class="camera-preview__video-wrap">
+    <video #videoPreview autoplay playsinline muted></video>
+  </div>
+
+  @if (errorMessage) {
+    <p class="camera-preview__error">{{ errorMessage }}</p>
+  }
+</div>

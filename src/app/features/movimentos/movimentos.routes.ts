@@ -18,10 +18,6 @@ export const MOVIMENTOS_ROUTES: Routes = [
         component: MovimentosPageComponent
       },
       {
-        path: 'novo',
-        component: EntradaSaidaFormComponent
-      },
-      {
         path: ':id',
         component: EntradaSaidaFormComponent
       }

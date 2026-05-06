@@ -1,0 +1,210 @@
+.dashboard-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.kpi-card__label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.kpi-card__valor {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 0.9fr;
+  gap: 12px;
+}
+
+.dashboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.dashboard-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.dashboard-card__header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.dashboard-card__header p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.dashboard-card--registro {
+  grid-row: span 2;
+}
+
+.dashboard-card--camera {
+  grid-column: 2 / span 1;
+}
+
+.dashboard-card--alertas {
+  grid-row: span 2;
+}
+
+.dashboard-card--acoes {
+  grid-column: 3 / span 1;
+}
+
+.registro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.field--full {
+  grid-column: 1 / -1;
+}
+
+.registro-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.monitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.monitor-table th,
+.monitor-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.status-dot--entrada {
+  background: #22c55e;
+}
+
+.status-dot--saida {
+  background: #ef4444;
+}
+
+.status-dot--aberto {
+  background: #f59e0b;
+}
+
+.alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alert-list li {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 8px;
+}
+
+.alert-list__title {
+  margin: 0 0 4px;
+  font-size: 0.84rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.alert-list__desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.alert-list__time {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.camera-live {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.acoes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.historico-card__header {
+  padding: 0 0 10px;
+}
+
+.historico-card__header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-card--camera,
+  .dashboard-card--acoes {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .registro-grid,
+  .acoes-grid {
+    grid-template-columns: 1fr;
+  }
+}

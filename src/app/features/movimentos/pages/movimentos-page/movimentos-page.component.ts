@@ -12,18 +12,39 @@ import {
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ApiError } from '../../../../core/api/models';
+import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
+import { VeiculoService } from '../../../cadastro/services/veiculo.service';
+import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
+type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
+
+interface MonitoramentoItemVm {
+  id: number;
+  horario: string;
+  placa: string;
+  motorista: string;
+  transportadora: string;
+  status: StatusMonitoramento;
+}
+
+interface AlertaItemVm {
+  id: number;
+  titulo: string;
+  descricao: string;
+  tempoRelativo: string;
+}
 
 @Component({
   selector: 'app-movimentos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CameraPreviewComponent],
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
 })
 export class MovimentosPageComponent implements OnInit {
   private readonly service = inject(EntradaSaidaService);
+  private readonly veiculoService = inject(VeiculoService);
   private readonly toast = inject(ToastService);
   private readonly permissionCache = inject(PermissionCacheService);
   private readonly router = inject(Router);
@@ -46,6 +67,17 @@ export class MovimentosPageComponent implements OnInit {
   permanenciaAcao: PermanenciaAcao = 'suspender';
   registroSelecionado: EntradaSaidaOutput | null = null;
   permanenciaDataHora = '';
+  processandoRegistroRapido = false;
+  buscandoPlacaRegistroRapido = false;
+  private ultimaPlacaConsultadaRegistroRapido = '';
+  registroRapido = {
+    placa: '',
+    motorista: '',
+    transportadora: '',
+    tipoCarga: '',
+    dataAgendamento: '',
+    observacao: ''
+  };
 
   ngOnInit(): void {
     if (!this.canVisualizar) return;
@@ -66,8 +98,28 @@ export class MovimentosPageComponent implements OnInit {
   }
 
   abrirNovo(): void {
-    if (!this.canGravar) return;
-    void this.router.navigate(['novo'], { relativeTo: this.route.parent });
+    this.toast.success('Use o bloco "Registro Rápido de Movimentação" nesta tela para novos registros.');
+  }
+
+  onFiltroPlacaInput(value: string): void {
+    this.filtro.descricao = formatPlacaDisplay(normalizePlaca(value));
+  }
+
+  onRegistroRapidoPlacaInput(value: string): void {
+    const placaFormatada = formatPlacaDisplay(normalizePlaca(value));
+    this.registroRapido.placa = placaFormatada;
+    const placaNorm = normalizePlaca(placaFormatada);
+    if (!placaCompleta(placaNorm)) {
+      this.ultimaPlacaConsultadaRegistroRapido = '';
+      this.registroRapido.motorista = '';
+      this.registroRapido.transportadora = '';
+      return;
+    }
+    if (this.ultimaPlacaConsultadaRegistroRapido === placaNorm) {
+      return;
+    }
+    this.ultimaPlacaConsultadaRegistroRapido = placaNorm;
+    this.buscarDadosRegistroRapidoPorPlaca(placaNorm);
   }
 
   abrirEditar(id: number): void {
@@ -136,6 +188,165 @@ export class MovimentosPageComponent implements OnInit {
     return item.dataHoraSaida ? 'Finalizado' : 'Em aberto';
   }
 
+  entradasHoje(): number {
+    const hoje = this.hojeIso();
+    return this.registros.filter((item) => this.extrairDataIso(item.dataHoraEntrada) === hoje).length;
+  }
+
+  saidasHoje(): number {
+    const hoje = this.hojeIso();
+    return this.registros.filter((item) => this.extrairDataIso(item.dataHoraSaida) === hoje).length;
+  }
+
+  emAberto(): number {
+    return this.registros.filter((item) => !item.dataHoraSaida).length;
+  }
+
+  tempoMedioPatio(): string {
+    const tempos = this.registros
+      .map((item) => this.minutosNoPatio(item))
+      .filter((m): m is number => m != null && m > 0);
+    if (tempos.length === 0) {
+      return '00h 00m';
+    }
+    const media = Math.round(tempos.reduce((acc, m) => acc + m, 0) / tempos.length);
+    const horas = Math.floor(media / 60);
+    const minutos = media % 60;
+    return `${String(horas).padStart(2, '0')}h ${String(minutos).padStart(2, '0')}m`;
+  }
+
+  monitoramentoItens(): MonitoramentoItemVm[] {
+    return this.registros.slice(0, 5).map((item) => ({
+      id: item.id,
+      horario: this.formatarHorario(item.dataHoraSaida || item.dataHoraEntrada),
+      placa: item.placaVeiculo || '—',
+      motorista: item.nomeMotorista || '—',
+      transportadora: item.nomeTransportadora || '—',
+      status: item.dataHoraSaida ? 'saida' : 'entrada'
+    }));
+  }
+
+  ultimosAlertas(): AlertaItemVm[] {
+    return this.registros.slice(0, 5).map((item) => ({
+      id: item.id,
+      titulo: item.dataHoraSaida ? 'Saída registrada com sucesso' : 'Movimentação em andamento',
+      descricao: `Placa ${item.placaVeiculo || 'não informada'} - ${item.nomeTransportadora || 'transportadora'}`,
+      tempoRelativo: this.tempoRelativo(item.dataHoraSaida || item.dataHoraEntrada)
+    }));
+  }
+
+  classeStatusMonitoramento(status: StatusMonitoramento): string {
+    if (status === 'saida') return 'status-dot status-dot--saida';
+    if (status === 'aberto') return 'status-dot status-dot--aberto';
+    return 'status-dot status-dot--entrada';
+  }
+
+  abrirRegistroEntradaRapida(): void {
+    if (!this.canGravar || this.processandoRegistroRapido) return;
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+    if (!placaCompleta(placaNorm)) {
+      this.toast.error('Informe uma placa válida para registrar entrada.');
+      return;
+    }
+    this.processandoRegistroRapido = true;
+    this.veiculoService.obterPorPlaca(placaNorm).subscribe({
+      next: (agg) => {
+        if (!agg) {
+          this.processandoRegistroRapido = false;
+          this.toast.error('Placa não encontrada para registrar entrada.');
+          return;
+        }
+        this.registroRapido.motorista = agg.motoristaNome || '';
+        this.registroRapido.transportadora = agg.transportadoraNome || '';
+        this.service.create({
+          motoristaId: agg.motoristaId,
+          transportadoraId: agg.transportadoraId,
+          veiculoId: agg.veiculoId,
+          dataHoraEntrada: new Date().toISOString(),
+          observao: this.registroRapido.observacao?.trim() || undefined
+        }).subscribe({
+          next: () => {
+            this.processandoRegistroRapido = false;
+            this.toast.success('Entrada registrada com sucesso.');
+            this.buscar();
+            this.limparRegistroRapido();
+          },
+          error: (err: ApiError) => {
+            this.processandoRegistroRapido = false;
+            this.toast.error(err?.message ?? 'Erro ao registrar entrada.');
+          }
+        });
+      },
+      error: (err: ApiError) => {
+        this.processandoRegistroRapido = false;
+        this.toast.error(err?.message ?? 'Erro ao consultar placa.');
+      }
+    });
+  }
+
+  registrarSaidaRapida(): void {
+    if (!this.canGravar || this.processandoRegistroRapido) return;
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+    if (!placaCompleta(placaNorm)) {
+      this.toast.error('Informe uma placa válida para registrar saída.');
+      return;
+    }
+    const aberto = this.registros.find(
+      (item) => !item.dataHoraSaida && normalizePlaca(item.placaVeiculo) === placaNorm
+    );
+    const finalizar = (id: number) => {
+      this.service.finalizarPermanencia(id, new Date().toISOString()).subscribe({
+        next: () => {
+          this.processandoRegistroRapido = false;
+          this.toast.success('Saída registrada com sucesso.');
+          this.buscar();
+          this.limparRegistroRapido();
+        },
+        error: (err: ApiError) => {
+          this.processandoRegistroRapido = false;
+          this.toast.error(err?.message ?? 'Erro ao registrar saída.');
+        }
+      });
+    };
+    this.processandoRegistroRapido = true;
+    if (aberto?.id) {
+      finalizar(aberto.id);
+      return;
+    }
+    this.service.buscar({
+      placa: placaNorm,
+      somenteEmAberto: true,
+      numeroPagina: 1,
+      tamanhoPagina: 1
+    }).subscribe({
+      next: (paged) => {
+        const item = paged.items[0];
+        if (!item?.id) {
+          this.processandoRegistroRapido = false;
+          this.toast.error('Não há movimento em aberto para esta placa.');
+          return;
+        }
+        finalizar(item.id);
+      },
+      error: (err: ApiError) => {
+        this.processandoRegistroRapido = false;
+        this.toast.error(err?.message ?? 'Erro ao buscar movimento em aberto.');
+      }
+    });
+  }
+
+  limparRegistroRapido(): void {
+    this.registroRapido = {
+      placa: '',
+      motorista: '',
+      transportadora: '',
+      tipoCarga: '',
+      dataAgendamento: '',
+      observacao: ''
+    };
+    this.ultimaPlacaConsultadaRegistroRapido = '';
+  }
+
   formatarMinutos(minutos?: number | null): string {
     if (minutos == null || minutos <= 0) return '0 min';
     if (minutos < 60) return `${minutos} min`;
@@ -177,6 +388,84 @@ export class MovimentosPageComponent implements OnInit {
     this.loading = false;
     extra?.();
     this.toast.error(err?.message ?? fallback);
+  }
+
+  private hojeIso(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private extrairDataIso(valor: string | null | undefined): string {
+    if (!valor?.trim()) return '';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0, 10);
+  }
+
+  private formatarHorario(valor: string | null | undefined): string {
+    if (!valor?.trim()) return '--:--';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private tempoRelativo(valor: string | null | undefined): string {
+    if (!valor?.trim()) return 'agora';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return 'agora';
+    const diffMs = Math.max(0, Date.now() - d.getTime());
+    const minutos = Math.floor(diffMs / 60000);
+    if (minutos < 1) return 'agora';
+    if (minutos < 60) return `${minutos} min atrás`;
+    const horas = Math.floor(minutos / 60);
+    return `${horas} h atrás`;
+  }
+
+  private minutosNoPatio(item: EntradaSaidaSearchOutput): number | null {
+    const entrada = new Date(item.dataHoraEntrada).getTime();
+    if (Number.isNaN(entrada)) return null;
+    const saida = item.dataHoraSaida ? new Date(item.dataHoraSaida).getTime() : Date.now();
+    if (Number.isNaN(saida) || saida < entrada) return null;
+    return Math.round((saida - entrada) / 60000);
+  }
+
+  private buscarDadosRegistroRapidoPorPlaca(placaNorm: string): void {
+    this.buscandoPlacaRegistroRapido = true;
+    this.veiculoService.obterPorPlaca(placaNorm).subscribe({
+      next: (agg) => {
+        this.buscandoPlacaRegistroRapido = false;
+        const placaAtualNorm = normalizePlaca(this.registroRapido.placa);
+        if (placaAtualNorm !== placaNorm) {
+          return;
+        }
+        if (!agg) {
+          this.registroRapido.motorista = '';
+          this.registroRapido.transportadora = '';
+          this.registroRapido.tipoCarga = '';
+          return;
+        }
+        this.aplicarRespostaPlacaNaTela(agg);
+      },
+      error: () => {
+        this.buscandoPlacaRegistroRapido = false;
+        this.registroRapido.motorista = '';
+        this.registroRapido.transportadora = '';
+        this.registroRapido.tipoCarga = '';
+      }
+    });
+  }
+
+  private aplicarRespostaPlacaNaTela(agg: {
+    veiculoPlaca: string;
+    motoristaNome: string;
+    transportadoraNome: string;
+    veiculoMarca: string;
+    veiculoModelo: string;
+  }): void {
+    this.registroRapido.placa = formatPlacaDisplay(normalizePlaca(agg.veiculoPlaca || this.registroRapido.placa));
+    this.registroRapido.motorista = agg.motoristaNome || '';
+    this.registroRapido.transportadora = agg.transportadoraNome || '';
+    const tipoCargaSugerido = [agg.veiculoMarca, agg.veiculoModelo].filter(Boolean).join(' / ');
+    this.registroRapido.tipoCarga = tipoCargaSugerido || this.registroRapido.tipoCarga || '';
   }
 
   private toIsoOrUndefined(value: string | null | undefined): string | undefined {

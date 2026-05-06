@@ -1,55 +1,206 @@
 <div class="page-container">
   <header class="page-header dk-page-header">
-    <h1 class="page-title dk-page-title">Entrada e Saída</h1>
-    <p class="page-subtitle dk-page-subtitle">Controle operacional de permanência no pátio.</p>
+    <h1 class="page-title dk-page-title">Movimento</h1>
+    <p class="page-subtitle dk-page-subtitle">Controle operacional de entradas, saídas e permanência no pátio.</p>
   </header>
 
   @if (!canVisualizar) {
     <p class="empty-msg">Sem permissão para visualizar Entrada/Saída.</p>
   } @else {
+    <section class="dashboard-kpis">
+      <article class="kpi-card">
+        <p class="kpi-card__label">Entradas Hoje</p>
+        <p class="kpi-card__valor">{{ entradasHoje() }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__label">Saídas Hoje</p>
+        <p class="kpi-card__valor">{{ saidasHoje() }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__label">Em Aberto</p>
+        <p class="kpi-card__valor">{{ emAberto() }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__label">Tempo Médio no Pátio</p>
+        <p class="kpi-card__valor">{{ tempoMedioPatio() }}</p>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="dashboard-card dashboard-card--registro">
+        <header class="dashboard-card__header">
+          <h2>Registro Rápido de Movimentação</h2>
+          <p>Entrada rápida para operação de portaria.</p>
+        </header>
+        <div class="registro-grid">
+          <label class="field">
+            <span>Placa do Veículo</span>
+            <input
+              class="input-control"
+              type="text"
+              placeholder="ABC1D23"
+              [(ngModel)]="registroRapido.placa"
+              (ngModelChange)="onRegistroRapidoPlacaInput($event)"
+              maxlength="8"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="field">
+            <span>Motorista</span>
+            <input
+              class="input-control"
+              type="text"
+              placeholder="Nome / CPF"
+              [(ngModel)]="registroRapido.motorista"
+              [readonly]="buscandoPlacaRegistroRapido"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="field">
+            <span>Transportadora</span>
+            <input
+              class="input-control"
+              type="text"
+              placeholder="Nome / CNPJ"
+              [(ngModel)]="registroRapido.transportadora"
+              [readonly]="buscandoPlacaRegistroRapido"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="field">
+            <span>Tipo de Carga</span>
+            <input
+              class="input-control"
+              type="text"
+              placeholder="Selecione..."
+              [(ngModel)]="registroRapido.tipoCarga"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="field">
+            <span>Data de Agendamento</span>
+            <input
+              class="input-control"
+              type="date"
+              [(ngModel)]="registroRapido.dataAgendamento"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="field field--full">
+            <span>Observação</span>
+            <input
+              class="input-control"
+              type="text"
+              placeholder="Observação opcional"
+              [(ngModel)]="registroRapido.observacao"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+        </div>
+        <div class="registro-actions">
+          <button class="btn btn-primary" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="abrirRegistroEntradaRapida()">
+            Registrar Entrada
+          </button>
+          <button class="btn btn-secondary" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="registrarSaidaRapida()">
+            Registrar Saída
+          </button>
+          <button class="btn btn-secondary" type="button" (click)="limparRegistroRapido()">Limpar Campos</button>
+        </div>
+      </article>
+
+      <article class="dashboard-card dashboard-card--monitoramento">
+        <header class="dashboard-card__header">
+          <h2>Monitoramento em Tempo Real</h2>
+        </header>
+        <table class="monitor-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Horário</th>
+              <th>Veículo</th>
+              <th>Motorista</th>
+              <th>Transportadora</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of monitoramentoItens(); track item.id) {
+              <tr>
+                <td><span [class]="classeStatusMonitoramento(item.status)"></span></td>
+                <td>{{ item.horario }}</td>
+                <td>{{ item.placa }}</td>
+                <td>{{ item.motorista }}</td>
+                <td>{{ item.transportadora }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5">Sem dados de monitoramento no momento.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </article>
+
+      <article class="dashboard-card dashboard-card--alertas">
+        <header class="dashboard-card__header">
+          <h2>Últimos Alertas</h2>
+        </header>
+        <ul class="alert-list">
+          @for (alerta of ultimosAlertas(); track alerta.id) {
+            <li>
+              <p class="alert-list__title">{{ alerta.titulo }}</p>
+              <p class="alert-list__desc">{{ alerta.descricao }}</p>
+              <span class="alert-list__time">{{ alerta.tempoRelativo }}</span>
+            </li>
+          } @empty {
+            <li>
+              <p class="alert-list__desc">Nenhum alerta recente.</p>
+            </li>
+          }
+        </ul>
+      </article>
+
+      <article class="dashboard-card dashboard-card--camera">
+        <header class="dashboard-card__header">
+          <h2>Câmera da Portaria</h2>
+          <span class="camera-live">AO VIVO</span>
+        </header>
+        <app-camera-preview />
+      </article>
+
+    </section>
+
     <section class="filtros card">
       <div class="filtros-grid filtros-grid--single">
-        <input
-          class="input-control filtro-input"
-          placeholder="Buscar por placa"
-          [(ngModel)]="filtro.descricao"
-          (keydown.enter)="buscar()"
-        />
+        <input class="input-control filtro-input" placeholder="Buscar por placa" [(ngModel)]="filtro.descricao" (ngModelChange)="onFiltroPlacaInput($event)" (keydown.enter)="buscar()" />
         <label class="check-open">
           <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" />
           Somente em aberto
         </label>
         <button class="btn btn-primary btn--strong" type="button" (click)="buscar()">Buscar</button>
-        <button
-          class="btn btn-success btn--strong"
-          type="button"
-          [disabled]="!canGravar"
-          (click)="abrirNovo()"
-        >
-          Novo
-        </button>
+        <button class="btn btn-success btn--strong" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="abrirRegistroEntradaRapida()">Registrar</button>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card historico-card">
+      <header class="historico-card__header">
+        <h2>Histórico de Movimentos</h2>
+      </header>
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table historico-table">
           <thead>
             <tr>
-              <th>Descrição</th>
               <th>Placa</th>
               <th>Motorista</th>
               <th>Transportadora</th>
               <th>Entrada</th>
               <th>Saída</th>
               <th>Status</th>
-              <th>Ações</th>
+              <th class="col-acoes">Ações</th>
             </tr>
           </thead>
           <tbody>
             @for (item of registros; track item.id) {
               <tr>
-                <td>{{ item.descricao || '—' }}</td>
                 <td>{{ item.placaVeiculo }}</td>
                 <td>{{ item.nomeMotorista }}</td>
                 <td>{{ item.nomeTransportadora }}</td>
@@ -62,14 +213,6 @@
                 </td>
                 <td class="acoes-cell">
                   <button
-                    class="btn btn-primary btn--sm"
-                    type="button"
-                    [disabled]="!canAlterar"
-                    (click)="abrirEditar(item.id)"
-                  >
-                    Visualizar/Editar
-                  </button>
-                  <button
                     class="btn btn-warning btn--sm"
                     type="button"
                     [disabled]="!!item.dataHoraSaida"
@@ -78,28 +221,12 @@
                     Suspender
                   </button>
                   <button
-                    class="btn btn-secondary btn--sm"
-                    type="button"
-                    [disabled]="!!item.dataHoraSaida"
-                    (click)="abrirPermanencia(item, 'retornar')"
-                  >
-                    Retornar
-                  </button>
-                  <button
                     class="btn btn-danger btn--sm"
                     type="button"
                     [disabled]="!!item.dataHoraSaida"
                     (click)="abrirPermanencia(item, 'finalizar')"
                   >
                     Finalizar
-                  </button>
-                  <button
-                    class="btn btn-danger btn--outline btn--sm"
-                    type="button"
-                    [disabled]="!canExcluir"
-                    (click)="excluir(item)"
-                  >
-                    Excluir
                   </button>
                 </td>
               </tr>
@@ -190,4 +317,5 @@
       </div>
     </div>
   }
+
 </div>

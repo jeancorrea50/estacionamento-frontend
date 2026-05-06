@@ -1,5 +1,48 @@
 .historico-table {
   border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.historico-table th,
+.historico-table td {
+  text-align: left;
+  vertical-align: middle;
+}
+
+.historico-table th:nth-child(1),
+.historico-table td:nth-child(1) {
+  width: 12%;
+}
+
+.historico-table th:nth-child(2),
+.historico-table td:nth-child(2) {
+  width: 17%;
+}
+
+.historico-table th:nth-child(3),
+.historico-table td:nth-child(3) {
+  width: 17%;
+}
+
+.historico-table th:nth-child(4),
+.historico-table td:nth-child(4) {
+  width: 14%;
+}
+
+.historico-table th:nth-child(5),
+.historico-table td:nth-child(5) {
+  width: 12%;
+}
+
+.historico-table th:nth-child(6),
+.historico-table td:nth-child(6) {
+  width: 10%;
+}
+
+.historico-table th:nth-child(7),
+.historico-table td:nth-child(7) {
+  width: 18%;
 }
 
 .historico-row {
@@ -14,6 +57,13 @@
   position: relative;
   z-index: 2;
   white-space: nowrap;
+  text-align: left !important;
+}
+
+.col-acoes {
+  width: 1%;
+  white-space: nowrap;
+  text-align: left !important;
 }
 
 /* Menu de ações por linha: ícone três pontos, dropdown discreto */
@@ -227,8 +277,9 @@
 
 .operacao-card--full .data-table .acoes-cell {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   vertical-align: middle;
   font-size: 14px;

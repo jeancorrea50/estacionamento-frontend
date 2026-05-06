@@ -8,11 +8,14 @@ export interface UsuarioGerenciamentoItem {
   id?: string;
   userName?: string | null;
   nome?: string | null;
+  cpf?: string | null;
   email?: string | null;
   emailOuLogin?: string | null;
   perfil?: string | null;
   EstacionamentoId?: number | null;
   EstacionamentoNome?: string | null;
+  transportadoraId?: number | null;
+  transportadoraNome?: string | null;
   ativo?: boolean;
 }
 

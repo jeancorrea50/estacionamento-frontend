@@ -47,10 +47,12 @@
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>Cpf</th>
                 <th>E-mail</th>
-                <th>Login (userName)</th>
-                <th>Perfil (role)</th>
+                <th>Login</th>
+                <th>Perfil</th>
                 <th>Estacionamento</th>
+                <th>Transportadora</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -58,6 +60,7 @@
               @for (item of itens; track item.id ?? $index) {
                 <tr>
                   <td>{{ item.nome ?? '—' }}</td>
+                  <td>{{ item.cpf ?? '—' }}</td>
                   <td>{{ item.email ?? '—' }}</td>
                   <td>{{ item.userName ?? '—' }}</td>
                   <td>{{ item.perfil ?? '—' }}</td>
@@ -66,6 +69,14 @@
                       item.EstacionamentoNome ??
                         (item.EstacionamentoId != null && item.EstacionamentoId !== 0
                           ? ('ID ' + item.EstacionamentoId)
+                          : '—')
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      item.transportadoraNome ??
+                        (item.transportadoraId != null && item.transportadoraId !== 0
+                          ? ('ID ' + item.transportadoraId)
                           : '—')
                     }}
                   </td>
@@ -233,10 +244,12 @@
                   type="text"
                   class="input-control input-control--icon"
                   [(ngModel)]="form.cpf"
+                  (ngModelChange)="onCpfInput($event)"
                   placeholder="000.000.000-00"
+                  inputmode="numeric"
+                  maxlength="14"
                 />
               </div>
-              <span class="form-hint">Obrigatório: informe CPF com 11 dígitos (contrato atual da API).</span>
             </div>
 
             <div class="form-group">
@@ -266,16 +279,28 @@
                 <label for="g-estac">Estacionamento <span class="required">*</span></label>
                 <div class="vinculo-combo">
                   <div class="vinculo-busca-row">
-                    <input
-                      id="g-estac-busca"
-                      type="text"
-                      class="input-control"
-                      [(ngModel)]="estacionamentoBuscaTermo"
-                      placeholder="Digite para buscar estacionamento"
-                      (input)="onVinculoBuscaInput()"
-                      (keydown)="onVinculoBuscaKeydown($event)"
-                      (blur)="fecharVinculoDropdownComDelay()"
-                    />
+                    <div class="vinculo-busca-input-wrap">
+                      <input
+                        id="g-estac-busca"
+                        type="text"
+                        class="input-control input-control--vinculo-search"
+                        [(ngModel)]="estacionamentoBuscaTermo"
+                        placeholder="Digite para buscar estacionamento"
+                        (input)="onVinculoBuscaInput()"
+                        (keydown)="onVinculoBuscaKeydown($event)"
+                        (blur)="fecharVinculoDropdownComDelay()"
+                      />
+                      @if (estacionamentoBuscaTermo) {
+                        <button
+                          type="button"
+                          class="vinculo-clear-btn"
+                          aria-label="Limpar busca de estacionamento"
+                          (click)="limparBuscaEstacionamento()"
+                        >
+                          ×
+                        </button>
+                      }
+                    </div>
                     <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="buscarVinculo()" [disabled]="EstacionamentoCarregando()">
                       <span class="material-symbols-outlined" aria-hidden="true">search</span>
                     </button>
@@ -300,16 +325,28 @@
                 <label for="g-transportadora">Transportadora <span class="required">*</span></label>
                 <div class="vinculo-combo">
                   <div class="vinculo-busca-row">
-                    <input
-                      id="g-transportadora-busca"
-                      type="text"
-                      class="input-control"
-                      [(ngModel)]="transportadoraBuscaTermo"
-                      placeholder="Digite para buscar transportadora"
-                      (input)="onVinculoBuscaInput()"
-                      (keydown)="onVinculoBuscaKeydown($event)"
-                      (blur)="fecharVinculoDropdownComDelay()"
-                    />
+                    <div class="vinculo-busca-input-wrap">
+                      <input
+                        id="g-transportadora-busca"
+                        type="text"
+                        class="input-control input-control--vinculo-search"
+                        [(ngModel)]="transportadoraBuscaTermo"
+                        placeholder="Digite para buscar transportadora"
+                        (input)="onVinculoBuscaInput()"
+                        (keydown)="onVinculoBuscaKeydown($event)"
+                        (blur)="fecharVinculoDropdownComDelay()"
+                      />
+                      @if (transportadoraBuscaTermo) {
+                        <button
+                          type="button"
+                          class="vinculo-clear-btn"
+                          aria-label="Limpar busca de transportadora"
+                          (click)="limparTransportadora()"
+                        >
+                          ×
+                        </button>
+                      }
+                    </div>
                     <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="buscarVinculo()" [disabled]="transportadoraCarregando()">
                       <span class="material-symbols-outlined" aria-hidden="true">search</span>
                     </button>
@@ -338,17 +375,29 @@
               <label for="g-perfil-busca">Perfil <span class="required">*</span></label>
               <div class="vinculo-combo">
                 <div class="vinculo-busca-row">
-                  <input
-                    id="g-perfil-busca"
-                    type="text"
-                    class="input-control"
-                    [(ngModel)]="perfilBuscaTermo"
-                    placeholder="Clique para listar perfis"
-                    (focus)="abrirPerfilDropdown()"
-                    (input)="onPerfilBuscaInput()"
-                    (keydown)="onPerfilBuscaKeydown($event)"
-                    (blur)="fecharPerfilDropdownComDelay()"
-                  />
+                  <div class="vinculo-busca-input-wrap">
+                    <input
+                      id="g-perfil-busca"
+                      type="text"
+                      class="input-control input-control--vinculo-search"
+                      [(ngModel)]="perfilBuscaTermo"
+                      placeholder="Clique para listar perfis"
+                      (focus)="abrirPerfilDropdown()"
+                      (input)="onPerfilBuscaInput()"
+                      (keydown)="onPerfilBuscaKeydown($event)"
+                      (blur)="fecharPerfilDropdownComDelay()"
+                    />
+                    @if (perfilBuscaTermo) {
+                      <button
+                        type="button"
+                        class="vinculo-clear-btn"
+                        aria-label="Limpar busca de perfil"
+                        (click)="limparPerfilBusca()"
+                      >
+                        ×
+                      </button>
+                    }
+                  </div>
                   <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="abrirPerfilDropdown()">
                     <span class="material-symbols-outlined" aria-hidden="true">search</span>
                   </button>

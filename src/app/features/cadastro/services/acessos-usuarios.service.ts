@@ -27,6 +27,10 @@ export interface UsuarioListItem {
   estacionamentoId?: number | null;
   Estacionamento?: string | null;
   estacionamento?: string | null;
+  transportadoraId?: number | null;
+  TransportadoraId?: number | null;
+  transportadora?: string | null;
+  Transportadora?: string | null;
   cpf?: string;
 }
 
@@ -63,6 +67,12 @@ export class AcessosUsuariosService {
       estacionamentoId?: number | null;
       estacionamento?: string | null;
       Estacionamento?: string | null;
+      transportadoraId?: number | null;
+      TransportadoraId?: number | null;
+      transportadora?: string | null;
+      Transportadora?: string | null;
+      cpf?: string | null;
+      Cpf?: string | null;
     };
     return {
       id: u.id != null ? String(u.id) : undefined,
@@ -76,7 +86,12 @@ export class AcessosUsuariosService {
       EstacionamentoId: u.EstacionamentoId ?? raw.estacionamentoId ?? null,
       estacionamentoId: raw.estacionamentoId ?? u.EstacionamentoId ?? null,
       estacionamento: raw.estacionamento ?? raw.Estacionamento ?? null,
-      Estacionamento: raw.Estacionamento ?? raw.estacionamento ?? null
+      Estacionamento: raw.Estacionamento ?? raw.estacionamento ?? null,
+      transportadoraId: raw.transportadoraId ?? raw.TransportadoraId ?? null,
+      TransportadoraId: raw.TransportadoraId ?? raw.transportadoraId ?? null,
+      transportadora: raw.transportadora ?? raw.Transportadora ?? null,
+      Transportadora: raw.Transportadora ?? raw.transportadora ?? null,
+      cpf: ((raw.cpf ?? raw.Cpf ?? undefined) as string | undefined)
     };
   }
 
@@ -112,16 +127,81 @@ export class AcessosUsuariosService {
   obterPorId(id: string): Observable<unknown> {
     return this.api.obterPorId(id).pipe(
       map((d) => {
+        const raw = d as Record<string, unknown>;
+        const idResolved = d.id ?? (d.usuarioId != null ? String(d.usuarioId) : undefined);
         const p = d.pessoa;
+        const pRaw = (p ?? null) as Record<string, unknown> | null;
+        const perfilString =
+          typeof d.perfil === 'string'
+            ? d.perfil
+            : (d.perfil as { name?: string | null } | null | undefined)?.name;
+        const perfilId =
+          d.perfilId != null
+            ? String(d.perfilId)
+            : (d.perfil as { id?: string | number | null } | null | undefined)?.id != null
+              ? String((d.perfil as { id?: string | number | null }).id)
+              : undefined;
+        const emailLimpo = typeof d.email === 'string' ? d.email.trim() : d.email;
+        const userNameLimpo = typeof d.userName === 'string' ? d.userName.trim() : d.userName;
+        const estacionamentoIdNormalizado =
+          typeof d.estacionamentoId === 'number'
+            ? d.estacionamentoId
+            : typeof d.EstacionamentoId === 'number'
+              ? d.EstacionamentoId
+              : null;
+        const estacionamentoNomeNormalizado =
+          typeof d.estacionamento === 'string' ? d.estacionamento.trim() : null;
+        const transportadoraIdNormalizado =
+          typeof d.transportadoraId === 'number' ? d.transportadoraId : null;
+        const transportadoraNomeNormalizado =
+          typeof d.transportadora === 'string' ? d.transportadora.trim() : null;
+        const pessoaIdRaw =
+          (typeof p?.id === 'number' ? p.id : null) ??
+          (typeof pRaw?.['id'] === 'number' ? (pRaw['id'] as number) : null) ??
+          (typeof pRaw?.['Id'] === 'number' ? (pRaw['Id'] as number) : null) ??
+          (typeof d.pessoaId === 'number' ? d.pessoaId : null) ??
+          (typeof raw['PessoaId'] === 'number' ? (raw['PessoaId'] as number) : null);
+        const pessoaIdNormalizado =
+          typeof pessoaIdRaw === 'number' && Number.isFinite(pessoaIdRaw) ? pessoaIdRaw : null;
+        const nomePlanoNormalizado =
+          typeof d.nome === 'string' && d.nome.trim()
+            ? d.nome.trim()
+            : typeof raw['Nome'] === 'string' && raw['Nome'].trim()
+              ? raw['Nome'].trim()
+              : undefined;
+        const pessoaNomeNormalizado =
+          typeof p?.nome === 'string' && p.nome.trim()
+            ? p.nome.trim()
+            : typeof pRaw?.['Nome'] === 'string' && pRaw['Nome'].trim()
+              ? pRaw['Nome'].trim()
+              : undefined;
         return {
           ...d,
-          nome: p?.nome,
-          emailOuLogin: d.email ?? d.userName,
-          cpf: p?.cpf ?? (p as { documento?: string } | null)?.documento
+          id: idResolved,
+          nome: pessoaNomeNormalizado ?? nomePlanoNormalizado,
+          email: emailLimpo,
+          userName: userNameLimpo,
+          emailOuLogin: emailLimpo ?? userNameLimpo ?? null,
+          cpf: p?.cpf ?? d.cpf ?? (p as { documento?: string } | null)?.documento,
+          perfil: perfilString ?? null,
+          perfilIds: perfilId ? [perfilId] : [],
+          pessoaId: pessoaIdNormalizado,
+          EstacionamentoId: estacionamentoIdNormalizado,
+          estacionamentoId: estacionamentoIdNormalizado,
+          estacionamento: estacionamentoNomeNormalizado,
+          transportadoraId: transportadoraIdNormalizado,
+          transportadora: transportadoraNomeNormalizado
         } as UsuarioDetalheOutput & {
+          id?: string;
           nome?: string;
-          emailOuLogin?: string;
+          emailOuLogin?: string | null;
           cpf?: string;
+          perfil?: string | null;
+          perfilIds?: string[];
+          pessoaId?: number | null;
+          estacionamentoId?: number | null;
+          transportadoraId?: number | null;
+          transportadora?: string | null;
         };
       })
     );
@@ -206,6 +286,10 @@ export class AcessosUsuariosService {
       typeof input.EstacionamentoId === 'number' && Number.isFinite(input.EstacionamentoId)
         ? input.EstacionamentoId
         : 0;
+    const TransportadoraId =
+      typeof input.transportadoraId === 'number' && Number.isFinite(input.transportadoraId)
+        ? input.transportadoraId
+        : 0;
 
     const perfilNome = String(input.perfilNome ?? input.perfilId ?? '').trim();
     if (!perfilNome) {
@@ -219,6 +303,7 @@ export class AcessosUsuariosService {
     const base: RegisterInputUpdate = {
       userName,
       EstacionamentoId,
+      TransportadoraId,
       pessoa: {
         id: pessoaId,
         nome: nomePessoa,

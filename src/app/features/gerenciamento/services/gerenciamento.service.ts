@@ -119,6 +119,12 @@ export class GerenciamentoService {
       estacionamentoId?: number | null;
       estacionamento?: string | null;
       Estacionamento?: string | null;
+      transportadoraId?: number | null;
+      TransportadoraId?: number | null;
+      transportadora?: string | null;
+      Transportadora?: string | null;
+      cpf?: string | null;
+      Cpf?: string | null;
     };
     const EstacionamentoId = item.EstacionamentoId ?? rawItem.estacionamentoId ?? null;
     const estacionamentoDaApi = String(
@@ -129,15 +135,23 @@ export class GerenciamentoService {
       (typeof EstacionamentoId === 'number' && EstacionamentoId > 0
         ? estMap.get(EstacionamentoId) ?? null
         : null);
+    const transportadoraId = rawItem.transportadoraId ?? rawItem.TransportadoraId ?? null;
+    const transportadoraNome = String(
+      rawItem.transportadora ?? rawItem.Transportadora ?? ''
+    ).trim();
+    const cpf = String(rawItem.cpf ?? rawItem.Cpf ?? item.cpf ?? '').trim();
     return {
       id: item.id,
       userName: item.userName,
       nome: item.nome,
+      cpf: cpf || null,
       email: item.email,
       emailOuLogin: (item.emailOuLogin ?? item.email ?? item.userName) as string,
       perfil: item.perfil ?? item.role ?? null,
       EstacionamentoId,
       EstacionamentoNome,
+      transportadoraId,
+      transportadoraNome: transportadoraNome || null,
       ativo: item.ativo ?? true
     };
   }

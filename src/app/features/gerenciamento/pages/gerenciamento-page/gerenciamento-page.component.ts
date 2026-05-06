@@ -110,6 +110,21 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  onCpfInput(value: string): void {
+    this.form.cpf = this.aplicarMascaraCpf(value);
+  }
+
+  private aplicarMascaraCpf(value: string | null | undefined): string {
+    const digits = String(value ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 11);
+    if (!digits) return '';
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+
   get perfisFiltrados(): ApplicationRole[] {
     const termo = this.perfilBuscaTermo.trim().toLowerCase();
     if (!termo) return this.perfisList;
@@ -138,6 +153,29 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? selectedValue ?? ''
     ).trim();
     return nome || undefined;
+  }
+
+  private getPerfilDetalheNome(perfil: UsuarioDetalheOutput['perfil']): string | undefined {
+    if (typeof perfil === 'string') {
+      const nome = perfil.trim();
+      return nome || undefined;
+    }
+    if (perfil && typeof perfil === 'object') {
+      const nome = typeof perfil.name === 'string' ? perfil.name.trim() : '';
+      return nome || undefined;
+    }
+    return undefined;
+  }
+
+  private getPerfilDetalheId(perfil: UsuarioDetalheOutput['perfil']): string | undefined {
+    if (!perfil || typeof perfil !== 'object') {
+      return undefined;
+    }
+    if (perfil.id == null) {
+      return undefined;
+    }
+    const id = String(perfil.id).trim();
+    return id || undefined;
   }
 
   private getEmptyForm(): UsuarioGerenciamentoForm {
@@ -306,34 +344,45 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     d: UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }
   ): void {
     const p = d.pessoa;
+    const pessoaIdDetalhe =
+      typeof p?.id === 'number' && Number.isFinite(p.id)
+        ? p.id
+        : typeof d.pessoaId === 'number' && Number.isFinite(d.pessoaId)
+          ? d.pessoaId
+          : null;
     const perf = d.perfil;
+    const estacionamentoId =
+      typeof d.estacionamentoId === 'number'
+        ? d.estacionamentoId
+        : typeof d.EstacionamentoId === 'number'
+          ? d.EstacionamentoId
+          : 0;
+    const estacionamentoNome = typeof d.estacionamento === 'string' ? d.estacionamento.trim() : '';
+    const transportadoraId = typeof d.transportadoraId === 'number' ? d.transportadoraId : 0;
+    const transportadoraNome = typeof d.transportadora === 'string' ? d.transportadora.trim() : '';
+    const perfNome = this.getPerfilDetalheNome(perf);
+    const perfId = this.getPerfilDetalheId(perf);
     const matchPerfil = this.perfisList.find(
       (r) =>
-        (r.name && perf?.name && r.name.toLowerCase() === String(perf.name).toLowerCase()) ||
-        (r.id && perf?.id && r.id === perf.id) ||
-        (r.name && r.name === (perf as { name?: string })?.name)
+        (r.name && perfNome && r.name.toLowerCase() === perfNome.toLowerCase()) ||
+        (r.id && perfId && String(r.id) === perfId) ||
+        (r.name && perfNome && r.name === perfNome)
     );
     this.form = {
-      nome: p?.nome ?? '',
+      nome: p?.nome ?? d.nome ?? '',
       email: String(d.email ?? '').trim(),
       login: String(d.userName ?? '').trim(),
       senha: '',
       confirmarSenha: '',
-      EstacionamentoId:
-        typeof d.EstacionamentoId === 'number' && Number.isFinite(d.EstacionamentoId)
-          ? d.EstacionamentoId
-          : 0,
-      EstacionamentoLabel: '',
-      vinculoTipo:
-        typeof d.EstacionamentoId === 'number' && d.EstacionamentoId > 0
-          ? 'estacionamento'
-          : 'transportadora',
-      transportadoraId: 0,
-      transportadoraLabel: '',
-      cpf: p?.cpf ?? d.cpf ?? '',
+      EstacionamentoId: estacionamentoId,
+      EstacionamentoLabel: estacionamentoNome,
+      vinculoTipo: estacionamentoId > 0 ? 'estacionamento' : 'transportadora',
+      transportadoraId: transportadoraId,
+      transportadoraLabel: transportadoraNome,
+      cpf: this.aplicarMascaraCpf(p?.cpf ?? d.cpf ?? ''),
       tipoPessoa: 1,
-      pessoaId: typeof p?.id === 'number' ? p.id : null,
-      perfilId: (matchPerfil?.id ?? matchPerfil?.name ?? perf?.id ?? perf?.name ?? '') as string,
+      pessoaId: pessoaIdDetalhe,
+      perfilId: (matchPerfil?.id ?? matchPerfil?.name ?? perfId ?? perfNome ?? '') as string,
       ativo: this.form.ativo
     };
     const perfilSelecionado = this.findPerfilBySelectedValue(this.form.perfilId);
@@ -344,13 +393,27 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         this.form.perfilId ??
         ''
     );
-    if (this.form.EstacionamentoId != null) {
+    if (this.form.EstacionamentoId != null && !this.form.EstacionamentoLabel) {
       const fromList = this.EstacionamentoOptions().find(
         (o) => o.id === this.form.EstacionamentoId
       );
       if (fromList) {
         this.form.EstacionamentoLabel = fromList.label;
       }
+    }
+    if (
+      this.form.vinculoTipo === 'estacionamento' &&
+      this.form.EstacionamentoLabel &&
+      !this.estacionamentoBuscaTermo
+    ) {
+      this.estacionamentoBuscaTermo = this.form.EstacionamentoLabel;
+    }
+    if (
+      this.form.vinculoTipo === 'transportadora' &&
+      this.form.transportadoraLabel &&
+      !this.transportadoraBuscaTermo
+    ) {
+      this.transportadoraBuscaTermo = this.form.transportadoraLabel;
     }
   }
 
@@ -413,21 +476,18 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
 
   onVinculoTipoChange(tipo: 'estacionamento' | 'transportadora'): void {
     this.form.vinculoTipo = tipo;
-    this.form.EstacionamentoId = 0;
-    this.form.EstacionamentoLabel = '';
-    this.form.transportadoraId = 0;
-    this.form.transportadoraLabel = '';
-    this.estacionamentoBuscaTermo = '';
-    this.transportadoraBuscaTermo = '';
-    this.EstacionamentoOptions.set([]);
-    this.transportadoraOptions.set([]);
     this.vinculoBuscaErro = null;
     this.vinculoDropdownOpen.set(false);
-    if (tipo === 'estacionamento') {
-      // Busca sob demanda.
-    } else {
-      // Busca sob demanda.
-    }
+    this.cdr.markForCheck();
+  }
+
+  limparBuscaEstacionamento(): void {
+    this.estacionamentoBuscaTermo = '';
+    this.form.EstacionamentoId = 0;
+    this.form.EstacionamentoLabel = '';
+    this.EstacionamentoOptions.set([]);
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
     this.cdr.markForCheck();
   }
 
@@ -446,6 +506,10 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   limparTransportadora(): void {
     this.form.transportadoraId = 0;
     this.form.transportadoraLabel = '';
+    this.transportadoraBuscaTermo = '';
+    this.transportadoraOptions.set([]);
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
     this.cdr.markForCheck();
   }
 
@@ -496,6 +560,14 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
 
   onPerfilBuscaInput(): void {
     this.perfilDropdownOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  limparPerfilBusca(): void {
+    this.perfilBuscaTermo = '';
+    this.form.perfilId = '';
+    this.perfilDropdownOpen.set(false);
+    this.onPerfilFormChange();
     this.cdr.markForCheck();
   }
 
@@ -627,11 +699,6 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    if (this.form.vinculoTipo === 'transportadora') {
-      this.saveError.set('O contrato atual do endpoint de usuário não possui campo transportadoraId. Cadastre com vínculo de estacionamento até a API suportar transportadora.');
-      this.cdr.markForCheck();
-      return;
-    }
     const cpfDigits = String(this.form.cpf ?? '').replace(/\D/g, '');
     if (cpfDigits.length !== 11) {
       this.saveError.set('Informe o CPF com 11 dígitos (obrigatório no cadastro).');
@@ -686,6 +753,10 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       EstacionamentoId:
         this.form.vinculoTipo === 'estacionamento' && typeof this.form.EstacionamentoId === 'number'
           ? this.form.EstacionamentoId
+          : 0,
+      transportadoraId:
+        this.form.vinculoTipo === 'transportadora' && typeof this.form.transportadoraId === 'number'
+          ? this.form.transportadoraId
           : 0,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {})
     };

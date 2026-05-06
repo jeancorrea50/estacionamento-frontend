@@ -30,12 +30,25 @@ export interface PerfilRoleOutput {
 
 /** GET api/auth/Usuario/{id} */
 export interface UsuarioDetalheOutput {
+  /** Contrato atual pode retornar `usuarioId` no lugar de `id`. */
+  usuarioId?: number | string;
   id?: string;
   userName?: string | null;
   email?: string | null;
+  nome?: string | null;
+  cpf?: string | null;
+  pessoaId?: number | null;
+  perfilId?: number | string | null;
+  empresaId?: number | null;
+  empresa?: string | null;
+  estacionamentoId?: number | null;
+  estacionamento?: string | null;
+  transportadoraId?: number | null;
+  transportadora?: string | null;
+  /** Alguns fluxos ainda usam `perfil` string diretamente. */
+  perfil?: PerfilRoleOutput | string | null;
   EstacionamentoId?: number;
   pessoa?: PessoaUsuarioOutput | null;
-  perfil?: PerfilRoleOutput | null;
 }
 
 /**
@@ -48,6 +61,7 @@ export interface RegisterInputUpdate {
   confirmPassword?: string;
   email?: string;
   EstacionamentoId?: number;
+  TransportadoraId?: number;
   pessoa: {
     id: number;
     nome: string;

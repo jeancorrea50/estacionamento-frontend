@@ -11,6 +11,54 @@
   min-width: 0;
 }
 
+/* Alinha ao padrão das demais telas: conteúdo à esquerda, sem sensação de “hero” centralizado */
+.gerenciamento-shell .gerenciamento-header.page-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+}
+
+.gerenciamento-header {
+  padding: 0.75rem 1.25rem 0.45rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 92%, transparent) 0%,
+    transparent 100%
+  );
+  /* Sobrescreve margem global do .page-hero que empurra o conteúdo para baixo */
+  margin-bottom: 0;
+}
+
+.gerenciamento-header__titles {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  margin-bottom: 0.55rem;
+  width: 100%;
+  text-align: left;
+}
+
+.gerenciamento-header__title {
+  margin: 0;
+  font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.gerenciamento-header__subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--muted) 92%, var(--text));
+  max-width: 52rem;
+}
+
 .page-header__row {
   display: flex;
   align-items: center;
@@ -18,89 +66,100 @@
   flex-wrap: wrap;
 }
 
-.page-header__row--1 {
-  margin-bottom: var(--space-sm, 8px);
-}
-
 .page-header__row--2 {
-  align-items: center;
-  min-height: 36px;
+  align-items: stretch;
+  min-height: 0;
 }
 
-.page-title {
-  margin: 0 0 var(--space-xs, 2px) 0;
-  font-size: var(--font-page-title, 18px);
-  font-weight: var(--font-weight-page-title, 700);
-  color: var(--text);
-}
-
-.page-subtitle {
-  margin: 0;
-  font-size: var(--font-body, 14px);
-  color: var(--muted);
-  line-height: 1.4;
-  width: 100%;
-}
-
-.tabs {
-  display: flex;
+/* Abas: estilo refinado, ativa com barra inferior (sem “caixa” pesada) */
+.gerenciamento-tabs {
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px;
-  background: var(--surface-2);
-  border-radius: 10px;
-  width: fit-content;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  width: 100%;
   max-width: 100%;
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
 }
 
-.tab {
-  height: 36px;
-  padding: 0 var(--space-lg, 16px);
-  border-radius: 8px;
+.gerenciamento-tabs__tab {
+  position: relative;
+  height: 40px;
+  padding: 0 1.25rem;
+  margin-bottom: -1px;
+  border-radius: 10px 10px 0 0;
   background: transparent;
   color: var(--muted);
-  font-size: var(--font-body, 14px);
+  font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
   box-sizing: border-box;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  border: 1px solid transparent;
+  border-bottom: none;
 }
 
-.tab:hover {
-  background: var(--table-row-hover, rgba(255, 255, 255, 0.04));
-  color: var(--text);
+.gerenciamento-tabs__tab:hover {
+  color: color-mix(in srgb, var(--text) 88%, var(--muted));
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
 }
 
-.tab.tab--active {
-  background: var(--surface);
+.gerenciamento-tabs__tab.tab--active {
   color: var(--text);
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--surface-2) 75%, transparent);
+  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-bottom-color: transparent;
+  box-shadow: none;
 }
 
-.page-content {
+.gerenciamento-tabs__tab.tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary, #4d7cfe);
+}
+
+.gerenciamento-content {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: var(--space-lg, 16px) var(--space-lg, 16px) var(--space-xl, 20px);
+  padding: 0.75rem 1.25rem 1.5rem;
 }
 
 @media (max-width: 768px) {
-  .page-content {
-    padding: var(--space-md, 12px);
+  .gerenciamento-header {
+    padding: 0.65rem 1rem 0.4rem;
   }
 
-  .tabs {
-    width: 100%;
+  .gerenciamento-content {
+    padding: 0.65rem 1rem 1.25rem;
   }
 
-  .tab {
+  .gerenciamento-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .gerenciamento-tabs__tab {
     flex: 1;
     min-width: 0;
+    justify-content: center;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
   }
 }

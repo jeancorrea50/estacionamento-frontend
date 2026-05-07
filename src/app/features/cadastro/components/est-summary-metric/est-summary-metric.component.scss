@@ -1,0 +1,72 @@
+.est-metric {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 88%, #000);
+  box-sizing: border-box;
+  flex: 1;
+  min-width: min(100%, 160px);
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 22px !important;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding-top: 1px;
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: color-mix(in srgb, var(--muted) 94%, var(--text));
+  }
+
+  &__value {
+    font-size: 1.375rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  &__hint {
+    font-size: 0.6875rem;
+    color: var(--muted);
+    line-height: 1.3;
+    margin-top: 2px;
+  }
+
+  &--neutral .est-metric__icon {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  }
+
+  &--success .est-metric__icon {
+    background: color-mix(in srgb, var(--est-success, #22c55e) 16%, transparent);
+    color: var(--est-success, #22c55e);
+    border: 1px solid color-mix(in srgb, var(--est-success, #22c55e) 35%, transparent);
+  }
+
+  &--danger .est-metric__icon {
+    background: color-mix(in srgb, var(--danger, #ef4444) 14%, transparent);
+    color: color-mix(in srgb, var(--danger, #f87171) 90%, var(--text));
+    border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 35%, transparent);
+  }
+}

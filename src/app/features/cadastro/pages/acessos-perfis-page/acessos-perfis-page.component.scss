@@ -3,18 +3,376 @@
   min-height: 0;
 }
 
-.tab-content {
+.perfis-page {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   min-height: 0;
 }
 
-.tab-content__actions {
+.perfis-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(in srgb, var(--surface-2) 88%, #000);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* Barra compacta: busca + status + CTA em uma linha quando couber */
+.perfis-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+
+.perfis-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.perfis-toolbar__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+/* Sobrescreve `.btn { height: 40px }` declarado mais abaixo no arquivo */
+.perfis-toolbar .btn.perfis-toolbar__cta {
+  height: 34px;
+  min-height: 34px;
+}
+
+.perfis-search {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+  max-width: min(100%, 280px);
+  padding: 0 10px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg, color-mix(in srgb, var(--surface) 92%, #000));
+  box-sizing: border-box;
+}
+
+.perfis-search__icon {
+  font-size: 18px !important;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.perfis-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  height: 100%;
+  font-size: 0.8125rem;
+  color: var(--text);
+
+  &::placeholder {
+    color: color-mix(in srgb, var(--muted) 85%, var(--text));
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.perfis-select {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  min-width: 9.5rem;
+  max-width: 100%;
+  cursor: pointer;
+  background: var(--input-bg, color-mix(in srgb, var(--surface) 92%, #000));
+}
+
+.perfis-table-wrap {
+  padding: 0;
+}
+
+.perfis-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+
+  thead th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--muted) 95%, var(--text));
+    background: color-mix(in srgb, var(--surface) 65%, transparent);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 8px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr.perfis-row:hover {
+    background: var(--table-row-hover, rgba(255, 255, 255, 0.04));
+  }
+}
+
+.perfis-col-num {
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+
+.perfis-col-actions {
+  text-align: right;
+  width: 1%;
+}
+
+.perfis-name {
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.perfis-desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  max-width: 28rem;
+  color: color-mix(in srgb, var(--muted) 92%, var(--text));
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.perfis-date {
+  font-size: 0.75rem;
+  color: var(--text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.perfis-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 5rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.perfis-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.perfis-status--on {
+  color: color-mix(in srgb, var(--est-success, #22c55e) 96%, var(--text));
+  background: color-mix(in srgb, var(--est-success, #22c55e) 14%, transparent);
+  border-color: color-mix(in srgb, var(--est-success, #22c55e) 38%, transparent);
+
+  .perfis-status__dot {
+    background: var(--est-success, #22c55e);
+  }
+}
+
+.perfis-status--off {
+  color: color-mix(in srgb, var(--muted) 92%, var(--text));
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  border-color: color-mix(in srgb, var(--muted) 35%, transparent);
+
+  .perfis-status__dot {
+    background: color-mix(in srgb, var(--muted) 75%, var(--text));
+  }
+}
+
+.perfis-actions-cell {
+  text-align: right;
+}
+
+.perfis-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.perfis-icon-btn {
+  box-sizing: border-box;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  .material-symbols-outlined {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--table-row-hover, rgba(255, 255, 255, 0.06));
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--border-subtle));
+  }
+}
+
+.perfis-icon-btn--danger {
+  color: color-mix(in srgb, var(--danger, #ef4444) 92%, var(--text));
+  border-color: rgba(220, 53, 69, 0.35);
+
+  &:hover:not(:disabled) {
+    background: rgba(220, 53, 69, 0.12);
+    border-color: rgba(220, 53, 69, 0.45);
+  }
+}
+
+.perfis-empty-row {
+  text-align: center;
+  padding: 2rem 1rem !important;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.perfis-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+  gap: 0.35rem;
+}
+
+.perfis-empty__icon {
+  font-size: 2.5rem !important;
+  color: color-mix(in srgb, var(--muted) 88%, var(--primary));
+  margin-bottom: 0.25rem;
+}
+
+.perfis-empty__title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.perfis-empty__hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+  max-width: 22rem;
+  line-height: 1.45;
+}
+
+.perfis-empty__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-content--wide {
+  max-width: 720px;
+}
+
+.modal-content--view {
+  max-width: 440px;
+}
+
+.modal-body--view {
+  padding-top: 0.25rem;
+}
+
+.perfis-view-head {
+  margin-bottom: 0.85rem;
+}
+
+.perfis-view-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.perfis-view-desc {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.perfis-view-dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  font-size: 0.875rem;
+
+  dt {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text);
+  }
 }
 
 .btn {
@@ -45,7 +403,8 @@
   overflow-x: auto;
 }
 
-.data-table {
+/* Tabela legada (se reutilizada sem .perfis-table) */
+.data-table:not(.perfis-table) {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
@@ -410,9 +769,38 @@
 }
 
 @media (max-width: 768px) {
-  .data-table th,
-  .data-table td {
-    padding: 10px 8px;
-    font-size: 0.85rem;
+  .perfis-toolbar__filters {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .perfis-search {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .perfis-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .perfis-toolbar .btn.perfis-toolbar__cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .perfis-table thead th,
+  .perfis-table tbody td {
+    padding: 8px;
+    font-size: 0.75rem;
+  }
+
+  .perfis-desc {
+    max-width: none;
+  }
+
+  .perfis-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }

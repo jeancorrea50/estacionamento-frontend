@@ -1,131 +1,198 @@
-<div class="page-container">
-  <header class="page-header page-header-card">
-    <div class="page-header__row page-header__row--1">
-      <h2 class="page-title page-title--section">Usuários</h2>
-      <p class="page-subtitle">Gestão de usuários (API <code>api/auth/Usuario</code>).</p>
-    </div>
-  </header>
+<div class="page-container usuarios-page">
+  @if (loading) {
+    <section class="usuarios-shell usuarios-shell--state">
+      <p class="loading-msg">Carregando...</p>
+    </section>
+  } @else if (erro) {
+    <section class="usuarios-shell usuarios-shell--state">
+      <p class="error-msg">{{ erro }}</p>
+      <button type="button" class="btn btn-secondary" (click)="buscar()">Tentar novamente</button>
+    </section>
+  } @else {
+    <section class="usuarios-shell">
+      <header class="usuarios-section-head">
+        <div class="usuarios-section-head__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">group</span>
+        </div>
+        <div class="usuarios-section-head__text">
+          <h2 class="usuarios-section-head__title">Usuários</h2>
+          <p class="usuarios-section-head__sub">
+            Gestão de usuários (API <code>api/auth/Usuario</code>).
+          </p>
+        </div>
+      </header>
 
-  <div class="page-content">
-    <section class="filter-card filters-section">
-      <div class="filter-row filters-row">
-        <input
-          type="text"
-          class="input-control form-control-dark filter-input filter-row__grow"
-          placeholder="Nome, e-mail ou login"
-          [(ngModel)]="filtros.nomeOuEmail"
-          (keyup.enter)="buscar()"
-        />
-        <select class="input-control form-control-dark filter-select" [(ngModel)]="filtros.perfilNome">
+      <div class="usuarios-toolbar" role="toolbar" aria-label="Filtros e ações">
+        <label class="usuarios-search">
+          <span class="material-symbols-outlined usuarios-search__icon" aria-hidden="true">search</span>
+          <input
+            type="text"
+            class="usuarios-search__input"
+            placeholder="Nome, e-mail ou login"
+            [(ngModel)]="filtros.nomeOuEmail"
+            (keyup.enter)="buscar()"
+            autocomplete="off"
+            aria-label="Buscar por nome, e-mail ou login"
+          />
+        </label>
+        <select class="input-control usuarios-select" [(ngModel)]="filtros.perfilNome" aria-label="Filtrar por perfil">
           <option value="">Perfil (todos)</option>
           @for (p of perfisList; track p.id ?? p.name) {
             <option [value]="p.name ?? p.id ?? ''">{{ p.name ?? p.id }}</option>
           }
         </select>
-        <div class="filters-search-wrap">
-          <button type="button" class="btn btn-primary" (click)="buscar()">Buscar</button>
-        </div>
+        <select class="input-control usuarios-select" [(ngModel)]="filtros.statusFiltro" aria-label="Filtrar por status">
+          <option value="">Status (todos)</option>
+          <option value="ativo">Ativo</option>
+          <option value="inativo">Inativo</option>
+        </select>
+        <button type="button" class="btn btn-primary usuarios-btn-buscar" (click)="buscar()">
+          <span class="material-symbols-outlined" aria-hidden="true">filter_alt</span>
+          Buscar
+        </button>
         @if (canGravar) {
-          <button type="button" class="btn btn-novo-usuario" (click)="abrirNovo()">Novo usuário</button>
+          <button type="button" class="btn btn-primary usuarios-btn-novo" (click)="abrirNovo()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo usuário
+          </button>
         }
       </div>
-    </section>
 
-    @if (loading) {
-      <section class="data-card">
-        <p class="loading-msg">Carregando...</p>
-      </section>
-    } @else if (erro) {
-      <section class="data-card">
-        <p class="error-msg">{{ erro }}</p>
-        <button type="button" class="btn btn-secondary" (click)="buscar()">Tentar novamente</button>
-      </section>
-    } @else {
-      <section class="data-card">
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Cpf</th>
-                <th>E-mail</th>
-                <th>Login</th>
-                <th>Perfil</th>
-                <th>Estacionamento</th>
-                <th>Transportadora</th>
-                <th class="col-acoes">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of itens; track item.id ?? $index) {
+      <div class="usuarios-table-wrap">
+        @if (buscaRealizada) {
+          @if (itens.length === 0) {
+            <div class="empty-state empty-state--compact empty-state--table">
+              <span class="material-symbols-outlined" aria-hidden="true">person_off</span>
+              <p class="empty-msg">Nenhum registro encontrado.</p>
+            </div>
+          } @else {
+          <div class="table-wrap usuarios-table-inner">
+            <table class="data-table usuarios-table">
+              <thead>
                 <tr>
-                  <td>{{ item.nome ?? '—' }}</td>
-                  <td>{{ item.cpf ?? '—' }}</td>
-                  <td>{{ item.email ?? '—' }}</td>
-                  <td>{{ item.userName ?? '—' }}</td>
-                  <td>{{ item.perfil ?? '—' }}</td>
-                  <td>
-                    {{
-                      item.EstacionamentoNome ??
-                        (item.EstacionamentoId != null && item.EstacionamentoId !== 0
-                          ? ('ID ' + item.EstacionamentoId)
-                          : '—')
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      item.transportadoraNome ??
-                        (item.transportadoraId != null && item.transportadoraId !== 0
-                          ? ('ID ' + item.transportadoraId)
-                          : '—')
-                    }}
-                  </td>
-                  <td class="acoes-cell">
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn--sm"
-                      (click)="abrirVisualizar(item)"
-                      [disabled]="!canVisualizar"
-                    >
-                      Visualizar
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-primary btn--sm"
-                      (click)="abrirEditar(item)"
-                      [disabled]="!canAlterar"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                    class="btn btn-danger btn--sm"
-                      (click)="excluir(item)"
-                      [disabled]="!canExcluir"
-                    >
-                      Excluir
-                    </button>
-                  </td>
+                  <th scope="col">Nome</th>
+                  <th scope="col">CPF</th>
+                  <th scope="col">E-mail</th>
+                  <th scope="col">Login</th>
+                  <th scope="col">Perfil</th>
+                  <th scope="col">Vínculo</th>
+                  <th scope="col" class="usuarios-col-acoes">Ações</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        @if (buscaRealizada && itens.length === 0) {
-          <div class="empty-state empty-state--compact empty-state--table">
-            <span class="material-symbols-outlined" aria-hidden="true">person_off</span>
-            <p class="empty-msg">Nenhum registro encontrado.</p>
+              </thead>
+              <tbody>
+                @for (item of itensPagina; track item.id ?? $index) {
+                  <tr class="usuarios-row">
+                    <td class="usuarios-col-nome">
+                      <span class="usuarios-nome-text">{{ item.nome ?? '—' }}</span>
+                    </td>
+                    <td>{{ item.cpf ?? '—' }}</td>
+                    <td class="usuarios-col-email">{{ item.email ?? '—' }}</td>
+                    <td>{{ item.userName ?? '—' }}</td>
+                    <td>
+                      @if (item.perfil) {
+                        <span class="usuarios-perfil-chip" [ngClass]="perfilChipClass(item.perfil)">{{
+                          item.perfil
+                        }}</span>
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td class="usuarios-col-vinculo">
+                      @if (!temVinculoEstacionamento(item) && !temVinculoTransportadora(item)) {
+                        <span class="usuarios-vinculo-empty">—</span>
+                      } @else {
+                        <div class="usuarios-vinculo-stack">
+                          @if (temVinculoEstacionamento(item)) {
+                            <span class="usuarios-vinculo-line">
+                              <span class="material-symbols-outlined usuarios-vinculo-ico" aria-hidden="true"
+                                >apartment</span
+                              >
+                              <span class="usuarios-vinculo-txt">{{ textoVinculoEstacionamento(item) }}</span>
+                            </span>
+                          }
+                          @if (temVinculoTransportadora(item)) {
+                            <span class="usuarios-vinculo-line">
+                              <span class="material-symbols-outlined usuarios-vinculo-ico" aria-hidden="true"
+                                >local_shipping</span
+                              >
+                              <span class="usuarios-vinculo-txt">{{ textoVinculoTransportadora(item) }}</span>
+                            </span>
+                          }
+                        </div>
+                      }
+                    </td>
+                    <td class="acoes-cell usuarios-acoes">
+                      <button
+                        type="button"
+                        class="usuarios-icon-btn"
+                        (click)="abrirVisualizar(item)"
+                        [disabled]="!canVisualizar"
+                        title="Visualizar"
+                        aria-label="Visualizar usuário"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="usuarios-icon-btn"
+                        (click)="abrirEditar(item)"
+                        [disabled]="!canAlterar"
+                        title="Editar"
+                        aria-label="Editar usuário"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="usuarios-icon-btn usuarios-icon-btn--danger"
+                        (click)="excluir(item)"
+                        [disabled]="!canExcluir"
+                        title="Excluir"
+                        aria-label="Excluir usuário"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
-        }
-        @if (!buscaRealizada) {
-          <div class="empty-state empty-state--compact empty-state--table">
+            <footer class="usuarios-pagination" aria-label="Paginação da lista">
+              <p class="usuarios-pagination__info">
+                Mostrando <strong>{{ intervaloExibicao.de }}</strong> a <strong>{{ intervaloExibicao.ate }}</strong> de
+                <strong>{{ totalRegistros }}</strong> usuários
+              </p>
+              <div class="usuarios-pagination__nav">
+                <button
+                  type="button"
+                  class="btn btn-secondary usuarios-page-btn"
+                  (click)="paginaAnterior()"
+                  [disabled]="paginaAtual <= 1"
+                >
+                  Anterior
+                </button>
+                <span class="usuarios-pagination__current" aria-current="page">{{ paginaAtual }}</span>
+                <button
+                  type="button"
+                  class="btn btn-secondary usuarios-page-btn"
+                  (click)="paginaProxima()"
+                  [disabled]="paginaAtual >= totalPaginas"
+                >
+                  Próxima
+                </button>
+              </div>
+            </footer>
+          }
+        } @else {
+          <div class="empty-state empty-state--compact empty-state--table usuarios-hint">
             <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
             <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários.</p>
           </div>
         }
-      </section>
-    }
-  </div>
+      </div>
+    </section>
+  }
 </div>
 
 @if (modalFormOpen()) {

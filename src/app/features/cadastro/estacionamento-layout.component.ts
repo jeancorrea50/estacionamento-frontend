@@ -69,7 +69,7 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
       case 'id':
         return 'Digite o ID';
       default:
-        return 'Pesquise';
+        return 'Pesquisar por nome, razão social ou CNPJ';
     }
   }
 

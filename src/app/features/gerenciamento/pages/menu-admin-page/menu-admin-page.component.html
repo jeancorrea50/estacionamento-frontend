@@ -1,11 +1,25 @@
 <div class="menu-admin tab-content">
-  <section class="filter-card menu-admin__intro" aria-label="Sobre esta tela">
-    <p class="page-description">
-      Gerencie menus, submenus, permissões e ordem (arrastar). Você pode arrastar um submenu para
-      outro menu (ele passa a pertencer ao menu de destino). O botão <strong>Salvar</strong> envia a
-      <strong>ordem</strong> e a <strong>nova composição</strong> dos submenus por menu (API
-      OrganizarMenus).
-    </p>
+  <section class="menu-orientation-card" aria-label="Orientação sobre menus">
+    <div class="menu-orientation-card__icon" aria-hidden="true">
+      <span class="material-symbols-outlined">info</span>
+    </div>
+    <div class="menu-orientation-card__body">
+      <p class="menu-orientation-card__lead">
+        Arraste os menus e submenus para definir a ordem. Você pode mover um submenu para outro menu — ele passa a
+        pertencer ao menu de destino.
+      </p>
+      <p class="menu-orientation-card__hint">
+        <strong class="menu-orientation-card__emphasis">Salvar</strong> envia a <strong>ordem</strong> e a
+        <strong>nova composição dos submenus por menu</strong> para a API (OrganizarMenus).
+      </p>
+    </div>
+    <div class="menu-orientation-card__art" aria-hidden="true">
+      <div class="menu-orientation-card__art-window">
+        <span class="menu-orientation-card__art-bar"></span>
+        <span class="menu-orientation-card__art-bar menu-orientation-card__art-bar--short"></span>
+        <span class="material-symbols-outlined menu-orientation-card__art-cursor">back_hand</span>
+      </div>
+    </div>
   </section>
 
   @if (carregandoLista()) {
@@ -20,26 +34,20 @@
     </div>
   }
 
-  <div class="menu-admin__action-bar dk-action-bar" role="toolbar" aria-label="Ações do admin de menus">
-    <div class="menu-admin__action-bar-inner dk-action-bar">
-      <div class="menu-admin__action-bar-left dk-action-bar__left">
-        <button type="button" class="menu-admin__btn menu-admin__btn--solid" (click)="openNovoMenu()">
-          Novo menu
-        </button>
-      </div>
-      <div class="menu-admin__action-bar-right dk-action-bar__right">
-        <button
-          type="button"
-          class="menu-admin__btn"
-          [class.menu-admin__btn--accent]="!salvandoNoBackend()"
-          [class.menu-admin__btn--muted]="salvandoNoBackend()"
-          [disabled]="salvandoNoBackend()"
-          (click)="salvarNoBackend()"
-        >
-          {{ salvandoNoBackend() ? 'Salvando…' : 'Salvar' }}
-        </button>
-      </div>
-    </div>
+  <div class="menu-admin__toolbar" role="toolbar" aria-label="Ações do admin de menus">
+    <button type="button" class="menu-admin__toolbar-btn menu-admin__toolbar-btn--primary" (click)="openNovoMenu()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Novo menu
+    </button>
+    <button
+      type="button"
+      class="menu-admin__toolbar-btn menu-admin__toolbar-btn--secondary"
+      [disabled]="salvandoNoBackend()"
+      (click)="salvarNoBackend()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">save</span>
+      {{ salvandoNoBackend() ? 'Salvando…' : 'Salvar' }}
+    </button>
   </div>
 
   <div
@@ -48,37 +56,52 @@
     [cdkDropListData]="admin.menus()"
     (cdkDropListDropped)="onMenuDrop($event)"
   >
+    @if (!carregandoLista() && !erroLista() && admin.menus().length === 0) {
+      <div class="menu-admin-empty" role="status">
+        <span class="material-symbols-outlined menu-admin-empty__icon" aria-hidden="true">menu_book</span>
+        <h2 class="menu-admin-empty__title">Nenhum menu cadastrado</h2>
+        <p class="menu-admin-empty__text">Crie o primeiro menu para montar a navegação do sistema.</p>
+        <button type="button" class="menu-admin__toolbar-btn menu-admin__toolbar-btn--primary" (click)="openNovoMenu()">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo menu
+        </button>
+      </div>
+    }
     @for (menu of admin.menus(); track menu.id) {
       <div class="menu-card">
         <!-- cdkDrag só no cabeçalho: evita aninhar drag do submenu dentro do drag do menu (CDK bloqueava transferência entre listas). -->
         <div class="menu-card__header" cdkDrag [cdkDragData]="menu">
-          <button type="button" class="menu-card__expand" (click)="toggleExpand(menu.id)" [attr.aria-expanded]="isExpanded(menu.id)">
-            <span class="material-symbols-outlined chevron" [class.chevron--open]="isExpanded(menu.id)">expand_more</span>
-          </button>
-          <span class="drag-handle material-symbols-outlined" cdkDragHandle title="Arrastar menu">drag_indicator</span>
-          <span class="material-symbols-outlined menu-card__icon">{{ menu.icone }}</span>
+          <div class="menu-card__leading">
+            <button type="button" class="menu-card__expand" (click)="toggleExpand(menu.id)" [attr.aria-expanded]="isExpanded(menu.id)">
+              <span class="material-symbols-outlined chevron" [class.chevron--open]="isExpanded(menu.id)">expand_more</span>
+            </button>
+            <span class="drag-handle material-symbols-outlined" cdkDragHandle title="Arrastar menu">drag_indicator</span>
+            <span class="menu-card__icon-wrap">
+              <span class="material-symbols-outlined menu-card__icon">{{ menu.icone }}</span>
+            </span>
+          </div>
           <div class="menu-card__titles">
             <span class="menu-card__name">{{ menu.nome }}</span>
-            @if (menu.rota) {
-              <code class="menu-card__route">{{ menu.rota }}</code>
-            }
           </div>
-          <span class="badge badge--toggle" [class.badge--off]="!menu.ativo">
-            {{ menu.ativo ? 'Ativo' : 'Inativo' }}
-          </span>
-          <div class="menu-card__actions">
-            <button type="button" class="btn btn--icon" (click)="openEditMenu(menu)" title="Editar">
-              <span class="material-symbols-outlined">edit</span>
-            </button>
-            <button
-              type="button"
-              class="btn btn--icon btn--danger"
-              [disabled]="isExcluindoMenu(menu.id)"
-              (click)="excluirMenu(menu)"
-              title="Excluir"
-            >
-              <span class="material-symbols-outlined">delete</span>
-            </button>
+          <div class="menu-card__end">
+            <span class="status-chip" [class.status-chip--on]="menu.ativo" [class.status-chip--off]="!menu.ativo">
+              <span class="status-chip__dot" aria-hidden="true"></span>
+              {{ menu.ativo ? 'Ativo' : 'Inativo' }}
+            </span>
+            <div class="menu-card__actions">
+              <button type="button" class="btn btn--icon" (click)="openEditMenu(menu)" title="Editar menu">
+                <span class="material-symbols-outlined">edit</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn--icon btn--danger"
+                [disabled]="isExcluindoMenu(menu.id)"
+                (click)="excluirMenu(menu)"
+                title="Excluir menu"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -107,9 +130,10 @@
                   <span class="drag-handle material-symbols-outlined" cdkDragHandle>drag_indicator</span>
                   <div class="sub-row__main">
                     <div class="sub-row__line">
-                      <strong>{{ sub.nome }}</strong>
+                      <strong class="sub-row__name">{{ sub.nome }}</strong>
                       <code class="sub-row__route">{{ sub.rota }}</code>
-                      <span class="badge badge--toggle" [class.badge--off]="!sub.ativo">
+                      <span class="status-chip status-chip--sm" [class.status-chip--on]="sub.ativo" [class.status-chip--off]="!sub.ativo">
+                        <span class="status-chip__dot" aria-hidden="true"></span>
                         {{ sub.ativo ? 'Ativo' : 'Inativo' }}
                       </span>
                     </div>

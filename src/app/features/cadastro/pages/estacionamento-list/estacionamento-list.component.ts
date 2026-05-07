@@ -4,13 +4,15 @@ import { RouterLink } from '@angular/router';
 import { EstacionamentoService } from '../../services/estacionamento.service';
 import {
   EstacionamentoSearchField,
-  EstacionamentoToolbarService
+  EstacionamentoToolbarService,
 } from '../../services/estacionamento-toolbar.service';
 import { EstacionamentoListItemDTO } from '../../models/estacionamento.dto';
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
+import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 
 const TAMANHO_PAGINA = 50;
 
@@ -27,9 +29,14 @@ type EstacionamentoListaSortCol =
 @Component({
   selector: 'app-Estacionamento-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [
+    CommonModule,
+    RouterLink,
+    EstSummaryMetricComponent,
+    EstStatusPillEstacionamentoComponent,
+  ],
   templateUrl: './estacionamento-list.component.html',
-  styleUrls: ['./estacionamento-list.component.scss']
+  styleUrls: ['./estacionamento-list.component.scss'],
 })
 export class EstacionamentoListComponent {
   private EstacionamentoService = inject(EstacionamentoService);
@@ -76,6 +83,30 @@ export class EstacionamentoListComponent {
     return Math.max(1, Math.ceil(this.totalCount / this.tamanhoPagina));
   }
 
+  /** Intervalo exibido no rodapé (“Mostrando X a Y de Z registros”). */
+  get intervaloExibicao(): { de: number; ate: number } {
+    if (this.totalCount <= 0) {
+      return { de: 0, ate: 0 };
+    }
+    const de = (this.numeroPagina - 1) * this.tamanhoPagina + 1;
+    const ate = Math.min(this.numeroPagina * this.tamanhoPagina, this.totalCount);
+    return { de, ate };
+  }
+
+  /** Contadores derivados da página atual (totais globais só vêm como `totalCount`). */
+  get countAtivosPagina(): number {
+    return this.itens.filter((i) => i.ativo).length;
+  }
+
+  get countInativosPagina(): number {
+    return this.itens.filter((i) => !i.ativo).length;
+  }
+
+  /** Esclarece que ativos/inativos refletem a página quando há várias páginas. */
+  get resumoPaginaHint(): string | null {
+    return this.totalPaginas > 1 ? 'Nesta página' : null;
+  }
+
   carregar(): void {
     const field = this.toolbar.searchField();
     const term = this.normalizeSearchTerm(this.toolbar.searchTerm(), field);
@@ -85,36 +116,38 @@ export class EstacionamentoListComponent {
     const sort = sortPropriedade ? this.sortDir : undefined;
     this.loading = true;
     this.erro = null;
-    this.EstacionamentoService
-      .buscar({
-        NumeroPagina: this.numeroPagina,
-        TamanhoPagina: this.tamanhoPagina,
-        ...(term ? { Termo: term } : {}),
-        ...(propriedade ? { Propriedade: propriedade } : {}),
-        ...(sort ? { Sort: sort } : {})
-      })
-      .subscribe({
-        next: (paged) => {
-          this.ngZone.run(() => {
-            this.itens = paged.items;
-            this.totalCount = paged.totalCount;
-            this.numeroPagina = paged.numeroPagina;
-            this.tamanhoPagina = paged.tamanhoPagina;
-            this.loading = false;
-            this.cdr.markForCheck();
-          });
-        },
-        error: (err: unknown) => {
-          this.ngZone.run(() => {
-            const msg = (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string')
+    this.EstacionamentoService.buscar({
+      NumeroPagina: this.numeroPagina,
+      TamanhoPagina: this.tamanhoPagina,
+      ...(term ? { Termo: term } : {}),
+      ...(propriedade ? { Propriedade: propriedade } : {}),
+      ...(sort ? { Sort: sort } : {}),
+    }).subscribe({
+      next: (paged) => {
+        this.ngZone.run(() => {
+          this.itens = paged.items;
+          this.totalCount = paged.totalCount;
+          this.numeroPagina = paged.numeroPagina;
+          this.tamanhoPagina = paged.tamanhoPagina;
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
+      },
+      error: (err: unknown) => {
+        this.ngZone.run(() => {
+          const msg =
+            err &&
+            typeof err === 'object' &&
+            'message' in err &&
+            typeof (err as ApiError).message === 'string'
               ? (err as ApiError).message
               : 'Erro ao carregar a lista.';
-            this.erro = msg;
-            this.loading = false;
-            this.cdr.markForCheck();
-          });
-        }
-      });
+          this.erro = msg;
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
+      },
+    });
   }
 
   /** Cabeçalho clicável: alterna Asc/Desc na mesma coluna. */
@@ -228,9 +261,13 @@ export class EstacionamentoListComponent {
         const podeTentarPessoaId = pessoaId > 0 && pessoaId !== item.id && this.shouldRetryDeleteWithPessoaId(err);
         if (!podeTentarPessoaId) {
           this.ngZone.run(() => {
-            const msg = (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string')
-              ? (err as ApiError).message
-              : 'Não foi possível excluir o estacionamento.';
+            const msg =
+              err &&
+              typeof err === 'object' &&
+              'message' in err &&
+              typeof (err as ApiError).message === 'string'
+                ? (err as ApiError).message
+                : 'Não foi possível excluir o estacionamento.';
             this.toast.error(msg);
             this.excluindoId = null;
             this.cdr.markForCheck();
@@ -248,16 +285,20 @@ export class EstacionamentoListComponent {
           },
           error: (errPessoa: unknown) => {
             this.ngZone.run(() => {
-              const msg = (errPessoa && typeof errPessoa === 'object' && 'message' in errPessoa && typeof (errPessoa as ApiError).message === 'string')
-                ? (errPessoa as ApiError).message
-                : 'Não foi possível excluir o estacionamento.';
+              const msg =
+                errPessoa &&
+                typeof errPessoa === 'object' &&
+                'message' in errPessoa &&
+                typeof (errPessoa as ApiError).message === 'string'
+                  ? (errPessoa as ApiError).message
+                  : 'Não foi possível excluir o estacionamento.';
               this.toast.error(msg);
               this.excluindoId = null;
               this.cdr.markForCheck();
             });
-          }
+          },
         });
-      }
+      },
     });
   }
 }

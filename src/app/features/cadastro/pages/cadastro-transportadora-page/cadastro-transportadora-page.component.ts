@@ -2,7 +2,7 @@ import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef, isDevMode } f
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { VeiculoService } from '../../services/veiculo.service';
@@ -26,12 +26,12 @@ import {
 } from '../../mappers/transportadora-payload.mapper';
 import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/components/modal-busca-motorista/modal-busca-motorista.component';
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
+import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
+import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 
 export type TransportadoraTab = 'cadastro' | 'frota' | 'motoristas';
 type ModalFrotaTab = 'veiculo' | 'motoristasVinculados';
 type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasia' | 'email' | 'id';
-
-const TAMANHO_PAGINA = 50;
 
 @Component({
   selector: 'app-cadastro-transportadora-page',
@@ -40,10 +40,13 @@ const TAMANHO_PAGINA = 50;
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    RouterLink,
     CnpjFormatDirective,
     CpfFormatDirective,
     TelefoneFormatDirective,
-    ModalBuscaMotoristaComponent
+    ModalBuscaMotoristaComponent,
+    EstSummaryMetricComponent,
+    EstStatusPillEstacionamentoComponent,
   ],
   templateUrl: './cadastro-transportadora-page.component.html',
   styleUrls: ['./cadastro-transportadora-page.component.scss']
@@ -77,6 +80,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   campoBusca: TransportadoraSearchField = 'geral';
   numeroPagina = 1;
   totalCount = 0;
+  /** Itens por página na grade (enviado ao GET Buscar). */
+  tamanhoPaginaLista = 10;
+  readonly opcoesTamanhoPaginaLista: number[] = [10, 25, 50];
   transportadoraForm!: FormGroup;
   salvando = false;
   erroForm: string | null = null;
@@ -117,6 +123,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   frotaSelectorPagina = 1;
   frotaSelectorPageSize = 5;
   motoristasSelecionadosTemp: number[] = [];
+  /** Resultado da busca global por CPF (GET /Motorista sem TransportadoraId). */
+  frotaSelectorMotoristasLista: MotoristaListItemDTO[] = [];
+  frotaSelectorMotoristasLoading = false;
   /** Opções para quantidade de eixos (modal frota). */
   eixosOpcoes: number[] = [2, 3, 4, 5, 6, 7, 8, 9];
   /** Opções para veículo leve/pesado. */
@@ -452,7 +461,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         Termo: termo || undefined,
         Propriedade: propriedade,
         NumeroPagina: this.numeroPagina,
-        TamanhoPagina: TAMANHO_PAGINA
+        TamanhoPagina: this.tamanhoPaginaLista
       })
       .subscribe({
         next: (paged) => {
@@ -490,8 +499,72 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       case 'id':
         return 'Digite o ID';
       default:
-        return 'Pesquisar';
+        return 'Pesquisar por razão social, nome fantasia, CNPJ ou e-mail...';
     }
+  }
+
+  /** Total de páginas da listagem atual. */
+  get totalPaginasLista(): number {
+    if (this.tamanhoPaginaLista <= 0) return 1;
+    return Math.max(1, Math.ceil(this.totalCount / this.tamanhoPaginaLista));
+  }
+
+  get intervaloLista(): { de: number; ate: number } {
+    if (this.totalCount <= 0) return { de: 0, ate: 0 };
+    const de = (this.numeroPagina - 1) * this.tamanhoPaginaLista + 1;
+    const ate = Math.min(this.numeroPagina * this.tamanhoPaginaLista, this.totalCount);
+    return { de, ate };
+  }
+
+  get countAtivasPagina(): number {
+    return this.transportadoraList.filter((i) => i.ativo).length;
+  }
+
+  get countInativasPagina(): number {
+    return this.transportadoraList.filter((i) => !i.ativo).length;
+  }
+
+  get resumoListaPaginaHint(): string | null {
+    return this.totalPaginasLista > 1 ? 'Nesta página' : null;
+  }
+
+  onTamanhoPaginaListaChange(size: number | string): void {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.tamanhoPaginaLista = n;
+    this.numeroPagina = 1;
+    if (this.jaBuscou) this.carregarLista();
+  }
+
+  irParaPaginaLista(pagina: number): void {
+    const p = Math.max(1, Math.min(pagina, this.totalPaginasLista));
+    if (p === this.numeroPagina) return;
+    this.numeroPagina = p;
+    this.carregarLista();
+  }
+
+  irPrimeiraPaginaLista(): void {
+    this.irParaPaginaLista(1);
+  }
+
+  irUltimaPaginaLista(): void {
+    this.irParaPaginaLista(this.totalPaginasLista);
+  }
+
+  /** Exibe data/hora na coluna Atualização; tolera ISO ou string não parseável. */
+  formatDataAtualizacaoLista(raw: string | null | undefined): string {
+    if (raw == null || String(raw).trim() === '') return '—';
+    const d = new Date(raw);
+    if (!Number.isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(d);
+    }
+    return String(raw).trim();
   }
 
   private resolveSearchProperty(field: TransportadoraSearchField): string | undefined {
@@ -556,11 +629,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.condutores = [];
   }
 
-  editarTransportadora(item: TransportadoraListItemDTO): void {
-    if (!item?.id) return;
-    void this.router.navigate(['/app/cadastro/transportadora/editar', item.id]);
-  }
-
   /** Preenche o formulário a partir do GET /api/Transportadora/{id} (rota `editar/:id` ou recarga). */
   private carregarTransportadoraParaEdicao(id: number): void {
     this.erroForm = null;
@@ -569,7 +637,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       if (det?.dto) {
         const dto = det.dto;
         this.transportadoraMergeRaw = det.raw;
-        this.transportadoraId = dto.id ?? null;
+        this.transportadoraId = dto.id != null && dto.id > 0 ? dto.id : id;
         this.contatosComplementares.clear();
         for (const c of dto.contatosComplementares ?? []) {
           this.contatosComplementares.push(this.criarGrupoContatoComplementar(c));
@@ -767,6 +835,24 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
   }
 
+  /** Exclusão a partir da tabela de consulta (lista). */
+  excluirTransportadoraLista(item: TransportadoraListItemDTO): void {
+    const id = item?.id;
+    if (!id || id <= 0) return;
+    if (!confirm('Confirma a exclusão desta transportadora?')) return;
+    this.transportadoraService.excluirTransportadora(id).subscribe({
+      next: () => {
+        this.toast.success('Transportadora excluída com sucesso.');
+        this.carregarLista();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.toast.error('Erro ao excluir transportadora.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   formatCnpjList(doc: string): string {
     const d = (doc ?? '').replace(/\D/g, '');
     return d.length === 14 ? formatCnpj(d) : doc ?? '';
@@ -895,6 +981,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.frotaSelectorTermo = '';
     this.frotaSelectorPagina = 1;
     this.motoristasSelecionadosTemp = [];
+    this.frotaSelectorMotoristasLista = [];
+    this.frotaSelectorMotoristasLoading = false;
     this.veiculoForm.reset({
       id: null,
       placa: '',
@@ -913,11 +1001,21 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       centroCusto: '',
       ativo: true
     });
-    // Evita fechamento imediato do backdrop no mesmo ciclo de clique que abre o modal.
-    this.bloquearFecharModalAte = Date.now() + 200;
-    this.showVeiculoForm = true;
     this.ensureTransportadoraListForFrota();
-    this.cdr.markForCheck();
+    this.agendarAbrirModalVeiculo();
+  }
+
+  /** Backdrop: fecha só se o clique foi no overlay (não no card). */
+  onBackdropVeiculoClick(event: MouseEvent): void {
+    if (event.target !== event.currentTarget) return;
+    this.fecharModalFrota(event);
+  }
+
+  /** Mesmo padrão dos outros modais da página (Importar / Motorista): flag + detecção síncrona. */
+  private agendarAbrirModalVeiculo(): void {
+    this.bloquearFecharModalAte = Date.now() + 500;
+    this.showVeiculoForm = true;
+    this.cdr.detectChanges();
   }
 
   /** Garante lista de transportadoras para o select do modal (carrega se vazia). */
@@ -973,11 +1071,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.frotaSelectorTermo = '';
     this.frotaSelectorPagina = 1;
     this.motoristasSelecionadosTemp = [];
-    // Evita fechamento imediato do backdrop no mesmo ciclo de clique que abre o modal.
-    this.bloquearFecharModalAte = Date.now() + 200;
-    this.showVeiculoForm = true;
+    this.frotaSelectorMotoristasLista = [];
+    this.frotaSelectorMotoristasLoading = false;
     this.ensureTransportadoraListForFrota();
-    this.cdr.markForCheck();
+    this.agendarAbrirModalVeiculo();
 
     this.veiculoService.obterPorId(v.id).subscribe((dto) => {
       if (dto) {
@@ -1076,13 +1173,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.frotaMotoristaModalAberto = false;
     this.modalFrotaTab = 'veiculo';
     this.frotaSelectorOpen = false;
+    this.frotaSelectorMotoristasLista = [];
+    this.frotaSelectorMotoristasLoading = false;
   }
 
   setModalFrotaTab(tab: ModalFrotaTab): void {
     this.modalFrotaTab = tab;
-    if (tab === 'motoristasVinculados') {
-      this.carregarCondutores();
-    }
     this.cdr.markForCheck();
   }
 
@@ -1164,11 +1260,16 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  /**
+   * Motoristas retornados pela API global (sem filtro de transportadora),
+   * restritos ao CPF informado (11 dígitos).
+   */
   get motoristasFiltradosParaSelecao(): MotoristaListItemDTO[] {
     const cpfBusca = this.frotaSelectorCpfDigits;
     if (cpfBusca.length !== 11) return [];
-    const base = this.condutores ?? [];
-    return base.filter((m) => String(m.cpf ?? '').replace(/\D/g, '') === cpfBusca);
+    return this.frotaSelectorMotoristasLista.filter(
+      (m) => String(m.cpf ?? '').replace(/\D/g, '') === cpfBusca
+    );
   }
 
   get motoristasPaginaAtualParaSelecao(): MotoristaListItemDTO[] {
@@ -1193,14 +1294,60 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   onFrotaSelectorTermoInput(value: string): void {
-    this.frotaSelectorTermo = value;
+    const cpfAntes = this.frotaSelectorCpfDigits;
+    this.frotaSelectorTermo = formatCpf(value);
     this.frotaSelectorPagina = 1;
+    if (this.frotaSelectorCpfDigits !== cpfAntes) {
+      this.frotaSelectorMotoristasLista = [];
+      this.motoristasSelecionadosTemp = [];
+    }
     this.cdr.markForCheck();
   }
 
+  /** Busca motoristas em todo o cadastro pelo CPF (sem TransportadoraId). */
   abrirSelectorMotoristasFrota(): void {
     this.frotaSelectorOpen = true;
+    if (this.frotaSelectorCpfCompleto) {
+      this.carregarMotoristasSelecaoFrotaGlobal();
+    } else {
+      this.frotaSelectorMotoristasLista = [];
+      this.frotaSelectorMotoristasLoading = false;
+    }
     this.cdr.markForCheck();
+  }
+
+  /**
+   * GET /api/Motorista com Termo = CPF (somente dígitos). Sem TransportadoraId para incluir todas as transportadoras.
+   */
+  private carregarMotoristasSelecaoFrotaGlobal(): void {
+    const cpf = this.frotaSelectorCpfDigits;
+    if (cpf.length !== 11) {
+      this.frotaSelectorMotoristasLista = [];
+      return;
+    }
+    this.frotaSelectorMotoristasLoading = true;
+    this.motoristaService
+      .buscar({
+        Termo: cpf,
+        NumeroPagina: 1,
+        TamanhoPagina: 500
+      })
+      .subscribe({
+        next: (paged) => {
+          const digitos = cpf;
+          this.frotaSelectorMotoristasLista = (paged.items ?? []).filter(
+            (m) => String(m.cpf ?? '').replace(/\D/g, '') === digitos
+          );
+          this.frotaSelectorMotoristasLoading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.frotaSelectorMotoristasLista = [];
+          this.frotaSelectorMotoristasLoading = false;
+          this.toast.error('Não foi possível buscar motoristas pelo CPF.');
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   fecharSelectorMotoristasFrota(): void {
@@ -1224,7 +1371,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   aplicarSelecaoMotoristasTemp(): void {
     if (this.motoristasSelecionadosTemp.length === 0) return;
     const existentes = new Set(this.motoristasVinculadosFrota.map((m) => m.id));
-    const novos = this.condutores
+    const novos = this.motoristasFiltradosParaSelecao
       .filter((m) => this.motoristasSelecionadosTemp.includes(m.id) && !existentes.has(m.id))
       .map((m) => ({ id: m.id, nome: m.nomeCompleto ?? `Motorista ${m.id}`, principal: false }));
     this.motoristasVinculadosFrota = [...this.motoristasVinculadosFrota, ...novos];
@@ -1360,6 +1507,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   abrirNovoCondutor(): void {
+    if (!this.motoristaForm) {
+      this.criarFormMotorista();
+    }
     this.condutorEditId = null;
     this.motoristaForm.reset({
       id: null,
@@ -1372,7 +1522,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       ativo: true
     });
     this.showCondutorForm = true;
-    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   /** Fecha o modal Motorista (Fechar, X ou clique fora). */
@@ -1422,6 +1572,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   editarCondutor(c: MotoristaListItemDTO): void {
+    if (!this.motoristaForm) {
+      this.criarFormMotorista();
+    }
     this.condutorEditId = c.id;
     this.motoristaForm.patchValue({
       id: c.id,
@@ -1434,7 +1587,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       ativo: c.ativo
     });
     this.showCondutorForm = true;
-    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   formatCpfCondutor(cpf: string): string {

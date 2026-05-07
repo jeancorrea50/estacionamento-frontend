@@ -1,13 +1,42 @@
-<div class="page-content">
-    @if (erro) {
+<div class="est-list-page">
+  @if (erro) {
+    <div class="est-list-state est-list-state--error" role="alert">
       <p class="error-msg">{{ erro }}</p>
-      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
-    }
-    @if (loading) {
-      <p class="loading-msg">Carregando...</p>
-    } @else {
-      <div class="table-wrap">
-        <table class="data-table">
+      <button type="button" class="est-list-retry" (click)="carregar()">Tentar novamente</button>
+    </div>
+  }
+
+  @if (loading && toolbar.trigger() > 0) {
+    <p class="est-list-loading loading-msg" role="status">Carregando...</p>
+  }
+
+  @if (!loading && toolbar.trigger() > 0 && !erro) {
+    <div class="est-list-metrics" aria-label="Resumo da consulta">
+      <app-est-summary-metric
+        icon="groups"
+        label="Total"
+        [value]="totalCount"
+        variant="neutral"
+      />
+      <app-est-summary-metric
+        icon="check_circle"
+        label="Ativos"
+        [value]="countAtivosPagina"
+        variant="success"
+        [hint]="resumoPaginaHint"
+      />
+      <app-est-summary-metric
+        icon="cancel"
+        label="Inativos"
+        [value]="countInativosPagina"
+        variant="danger"
+        [hint]="resumoPaginaHint"
+      />
+    </div>
+
+    <div class="est-list-table-card">
+      <div class="est-list-table-scroll">
+        <table class="data-table est-table">
           <thead>
             <tr>
               <th scope="col">
@@ -17,12 +46,14 @@
               </th>
               <th scope="col">
                 <button type="button" class="data-table__sort-btn" (click)="ordenarPor('descricao')">
-                  Nome fantasia <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('descricao') }}</span>
+                  Nome fantasia
+                  <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('descricao') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="data-table__sort-btn" (click)="ordenarPor('nomeRazaoSocial')">
-                  Nome / Razão social <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('nomeRazaoSocial') }}</span>
+                  Nome / Razão social
+                  <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('nomeRazaoSocial') }}</span>
                 </button>
               </th>
               <th scope="col">
@@ -32,95 +63,131 @@
               </th>
               <th scope="col">
                 <button type="button" class="data-table__sort-btn" (click)="ordenarPor('capacidadeVeiculo')">
-                  Capacidade <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('capacidadeVeiculo') }}</span>
+                  Capacidade
+                  <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('capacidadeVeiculo') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="data-table__sort-btn" (click)="ordenarPor('tamanhoTerreno')">
-                  Tamanho <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('tamanhoTerreno') }}</span>
+                  Tamanho
+                  <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('tamanhoTerreno') }}</span>
                 </button>
               </th>
               <th scope="col">
                 <button type="button" class="data-table__sort-btn" (click)="ordenarPor('ativo')">
-                  Ativo <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('ativo') }}</span>
+                  Status <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('ativo') }}</span>
                 </button>
               </th>
-              <th scope="col" class="data-table__th--acoes">Ações</th>
+              <th scope="col" class="est-table__th-acoes">Ações</th>
             </tr>
           </thead>
           <tbody>
             @for (item of itens; track item.id) {
-              <tr>
+              <tr class="est-table__row">
                 <td>{{ item.id }}</td>
                 <td>{{ item.descricao }}</td>
                 <td>{{ item.nomeRazaoSocial }}</td>
                 <td>{{ formatCnpjItem(item) }}</td>
-                <td>{{ item.capacidadeVeiculo ?? '-' }}</td>
-                <td>{{ item.tamanhoTerreno || '-' }}</td>
+                <td>{{ item.capacidadeVeiculo ?? '—' }}</td>
+                <td>{{ item.tamanhoTerreno?.trim() ? item.tamanhoTerreno : '—' }}</td>
                 <td>
-                  @if (item.ativo) {
-                    <span class="cell-ativo cell-ativo--sim">Sim</span>
-                  } @else {
-                    <span class="cell-ativo cell-ativo--nao">Não</span>
-                  }
+                  <app-est-status-pill-estacionamento [ativo]="item.ativo" />
                 </td>
-                <td class="acoes-cell">
-                  <a
-                    class="btn btn-primary btn--sm"
-                    [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
-                  >
-                    Editar
-                  </a>
-                  <button
-                    type="button"
-                    class="btn btn-danger btn--outline btn--sm"
-                    [disabled]="excluindoId === item.id"
-                    (click)="excluir(item)"
-                  >
-                    {{ excluindoId === item.id ? 'Excluindo…' : 'Excluir' }}
-                  </button>
+                <td class="est-table__acoes">
+                  <div class="est-act-btns" role="group" [attr.aria-label]="'Ações para ' + item.descricao">
+                    <a
+                      class="est-act-btn"
+                      [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                      title="Visualizar"
+                      aria-label="Visualizar estacionamento"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                    </a>
+                    <a
+                      class="est-act-btn est-act-btn--accent"
+                      [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                      title="Editar"
+                      aria-label="Editar estacionamento"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                    </a>
+                    <button
+                      type="button"
+                      class="est-act-btn est-act-btn--danger"
+                      [disabled]="excluindoId === item.id"
+                      [title]="excluindoId === item.id ? 'Excluindo…' : 'Excluir'"
+                      [attr.aria-label]="'Excluir estacionamento'"
+                      (click)="excluir(item)"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-      @if (itens.length === 0 && !loading && toolbar.trigger() > 0) {
-        <div class="empty-state empty-state--compact empty-state--table">
+
+      @if (itens.length === 0) {
+        <div class="empty-state empty-state--compact empty-state--table est-list-empty">
           <span class="material-symbols-outlined" aria-hidden="true">warehouse</span>
           <p class="empty-msg">Nenhum registro encontrado.</p>
         </div>
       }
-      @if (toolbar.trigger() === 0 && !loading && !erro) {
-        <div class="empty-state empty-state--compact empty-state--table">
-          <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
-          <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
-        </div>
-      }
-      @if (totalPaginas > 1 && itens.length > 0) {
-        <nav class="paginacao" aria-label="Paginação">
-          <span class="paginacao__info">
-            Página {{ numeroPagina }} de {{ totalPaginas }} ({{ totalCount }} registro(s))
-          </span>
-          <div class="paginacao__btns">
-            <button
-              type="button"
-              class="btn btn-secondary btn--sm"
-              [disabled]="numeroPagina <= 1"
-              (click)="irParaPagina(numeroPagina - 1)"
-            >
-              Anterior
-            </button>
-            <button
-              type="button"
-              class="btn btn-secondary btn--sm"
-              [disabled]="numeroPagina >= totalPaginas"
-              (click)="irParaPagina(numeroPagina + 1)"
-            >
-              Próxima
-            </button>
-          </div>
-        </nav>
-      }
-    }
-  </div>
+    </div>
+
+    <footer class="est-list-footer" aria-label="Rodapé da listagem">
+      <p class="est-list-footer__info">
+        Mostrando <strong>{{ intervaloExibicao.de }}</strong> a <strong>{{ intervaloExibicao.ate }}</strong> de
+        <strong>{{ totalCount }}</strong> registros
+      </p>
+      <div class="est-list-footer__nav">
+        <button
+          type="button"
+          class="est-foot-page"
+          [disabled]="numeroPagina <= 1 || totalCount === 0"
+          (click)="irParaPagina(1)"
+          aria-label="Primeira página"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+        </button>
+        <button
+          type="button"
+          class="est-foot-page"
+          [disabled]="numeroPagina <= 1 || totalCount === 0"
+          (click)="irParaPagina(numeroPagina - 1)"
+          aria-label="Página anterior"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+        </button>
+        <span class="est-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
+        <button
+          type="button"
+          class="est-foot-page"
+          [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
+          (click)="irParaPagina(numeroPagina + 1)"
+          aria-label="Próxima página"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+        </button>
+        <button
+          type="button"
+          class="est-foot-page"
+          [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
+          (click)="irParaPagina(totalPaginas)"
+          aria-label="Última página"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+        </button>
+      </div>
+    </footer>
+  }
+
+  @if (!loading && toolbar.trigger() === 0 && !erro) {
+    <div class="empty-state empty-state--compact empty-state--table est-list-hint">
+      <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
+      <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
+    </div>
+  }
+</div>

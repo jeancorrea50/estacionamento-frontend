@@ -12,12 +12,18 @@ export interface ApplicationRole {
   perfilId?: number | string;
   perfil?: string | null;
   name?: string | null;
-  nome?: string | null; 
+  nome?: string | null;
   normalizedName?: string | null;
   concurrencyStamp?: string | null;
   rolePermissions?: unknown[] | null;
   menus?: unknown[] | null;
   permissionIds?: string[];
+  /** Quando ausente na API, a UI assume ativo para filtros/badge. */
+  ativo?: boolean;
+  /** Quantidade de usuários vinculados (quando o backend enviar). */
+  usuariosVinculados?: number | null;
+  /** ISO ou string retornada pela API para última atualização. */
+  ultimaAtualizacao?: string | null;
 }
 
 export interface PerfilPermissaoInput {

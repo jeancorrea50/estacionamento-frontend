@@ -28,6 +28,10 @@ export interface TransportadoraListItemDTO {
   cnpj: string;
   email: string;
   ativo: boolean;
+  /** Contagem exibida na coluna Frota quando a API enviar o campo */
+  quantidadeVeiculos?: number | null;
+  /** ISO ou string da API para coluna Atualização */
+  dataAtualizacao?: string | null;
 }
 
 /** Endereço no formulário de transportadora */

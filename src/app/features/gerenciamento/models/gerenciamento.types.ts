@@ -23,6 +23,8 @@ export interface GerenciamentoFiltros {
   nomeOuEmail: string;
   /** Nome do role (como exibido no select), vazio = todos. */
   perfilNome: string;
+  /** Vazio = todos; filtro em memória sobre `UsuarioGerenciamentoItem.ativo`. */
+  statusFiltro: '' | 'ativo' | 'inativo';
 }
 
 export interface UsuarioGerenciamentoForm {

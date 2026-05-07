@@ -5,11 +5,12 @@ import {
   EstacionamentoDTO,
   EstacionamentoListItemDTO,
   EstacionamentoObterPorIdResultDTO,
-  ApiResponseDTO,
   EstacionamentoBuscarParams,
   PagedResultDTO,
   EnderecoDTO,
-  EstacionamentoPayloadMergeContext
+  ContatoDTO,
+  PessoaObterPorIdDTO,
+  EstacionamentoPayloadMergeContext,
 } from '../models/estacionamento.dto';
 import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
@@ -280,7 +281,7 @@ export class EstacionamentoService {
       obj[k] ?? obj[k.charAt(0).toUpperCase() + k.slice(1)];
     const rowBases = (): Record<string, unknown>[] => {
       const bases: Record<string, unknown>[] = [row];
-      for (const nestKey of ['estacionamento', 'Estacionamento']) {
+      for (const nestKey of ['estacionamento', 'Estacionamento', 'pessoaJuridica', 'PessoaJuridica']) {
         const nested = row[nestKey];
         if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
           bases.push(nested as Record<string, unknown>);
@@ -311,21 +312,48 @@ export class EstacionamentoService {
     const capacidadeRaw = firstOfKeys([
       'capacidadeVeiculo',
       'capacidade',
+      'CapacidadeVeiculo',
+      'capacidadeDeVeiculos',
       'qtdVeiculos',
       'quantidadeVeiculos',
-      'vagas'
+      'vagas',
+      'numeroVagas',
     ]);
     const capacidade =
       capacidadeRaw == null || String(capacidadeRaw).trim() === ''
         ? null
         : Number(capacidadeRaw);
-    const tamanhoRaw = firstOfKeys(['tamanhoTerreno', 'tamanho', 'areaTerreno', 'metrosQuadrados', 'area']);
-    const nomeRazao =
-      String(g('nomeRazaoSocial') ?? gPessoa('nomeRazaoSocial') ?? gPessoa('nome') ?? '').trim();
+    const tamanhoRaw = firstOfKeys([
+      'tamanhoTerreno',
+      'tamanho',
+      'TamanhoTerreno',
+      'tamanhoM2',
+      'tamanhoDoTerreno',
+      'metrosQuadrados',
+      'areaTerreno',
+      'area',
+    ]);
+    const nomeRazao = String(
+      firstOfKeys(['nomeRazaoSocial', 'razaoSocial']) ??
+        gPessoa('nomeRazaoSocial') ??
+        gPessoa('nome') ??
+        ''
+    ).trim();
     const cnpj = String(g('cnpj') ?? g('documento') ?? gPessoa('cnpj') ?? gPessoa('documento') ?? '').trim();
     const email = String(g('email') ?? gPessoa('email') ?? '').trim();
-    const descricao =
-      String(g('descricao') ?? gPessoa('nomeFantasia') ?? gPessoa('descricao') ?? '').trim();
+    /** Coluna «Nome fantasia»: API costuma mandar só `nomeFantasia` ou `descricaoPessoa` na raiz do item. */
+    const descricao = String(
+      firstOfKeys([
+        'nomeFantasia',
+        'descricaoPessoa',
+        'descricaoEstacionamento',
+        'fantasia',
+        'descricao',
+      ]) ??
+        gPessoa('nomeFantasia') ??
+        gPessoa('descricao') ??
+        ''
+    ).trim();
     return {
       id: Number(g('id')) || 0,
       pessoaId: Number(g('pessoaId')) || Number(gPessoa('id')) || null,
@@ -349,8 +377,8 @@ export class EstacionamentoService {
       timeout(15000),
       map((body) => {
         const result = this.extractObterPorIdPayload(body);
-        if (result && typeof result === 'object' && 'pessoa' in result && result.pessoa) {
-          return this.mapResultToFormValue(result as EstacionamentoObterPorIdResultDTO);
+        if (result?.pessoa) {
+          return this.mapResultToFormValue(result);
         }
         return null;
       }),
@@ -369,9 +397,8 @@ export class EstacionamentoService {
       timeout(15000),
       map((body) => {
         const result = this.extractObterPorIdPayload(body);
-        if (result && typeof result === 'object' && 'pessoa' in result && result.pessoa) {
-          const r = result as EstacionamentoObterPorIdResultDTO;
-          return { dto: this.mapResultToFormValue(r), raw: r };
+        if (result?.pessoa) {
+          return { dto: this.mapResultToFormValue(result), raw: result };
         }
         return { dto: null, raw: null };
       }),
@@ -381,14 +408,80 @@ export class EstacionamentoService {
 
   private extractObterPorIdPayload(body: unknown): EstacionamentoObterPorIdResultDTO | null {
     const peeled = this.peelApiEnvelope(body);
-    if (peeled && typeof peeled === 'object' && 'pessoa' in peeled) {
+    return this.coerceEstacionamentoObterPorId(peeled);
+  }
+
+  /**
+   * O backend pode devolver `pessoa` (Swagger) ou apenas `pessoaJuridica` / `PessoaJuridica` no envelope `result`.
+   * Sem normalização, o formulário de edição interpretava como “registro não encontrado”.
+   */
+  private coerceEstacionamentoObterPorId(peeled: unknown): EstacionamentoObterPorIdResultDTO | null {
+    if (peeled == null || typeof peeled !== 'object' || Array.isArray(peeled)) {
+      return null;
+    }
+    const root = peeled as Record<string, unknown>;
+
+    const pessoaExisting = root['pessoa'] ?? root['Pessoa'];
+    if (pessoaExisting != null && typeof pessoaExisting === 'object' && !Array.isArray(pessoaExisting)) {
       return peeled as EstacionamentoObterPorIdResultDTO;
     }
-    const res = body as ApiResponseDTO<EstacionamentoObterPorIdResultDTO> | undefined;
-    if (res?.result && typeof res.result === 'object' && 'pessoa' in res.result) {
-      return res.result;
+
+    const pj =
+      (root['pessoaJuridica'] as Record<string, unknown> | undefined) ??
+      (root['PessoaJuridica'] as Record<string, unknown> | undefined);
+    if (pj == null || typeof pj !== 'object') {
+      return null;
     }
-    return null;
+
+    const pessoaId = Number(root['pessoaId'] ?? root['PessoaId'] ?? pj['id'] ?? pj['Id']) || 0;
+    const pessoa = this.buildPessoaObterPorIdFromPessoaJuridica(pj, pessoaId, root);
+
+    const merged: Record<string, unknown> = { ...root, pessoa };
+
+    const nomeResp =
+      root['resposanvelLegal'] ??
+      root['ResposanvelLegal'] ??
+      root['responsavelLegal'] ??
+      root['ResponsavelLegal'];
+    if (merged['resposanvelLegal'] == null && nomeResp != null) {
+      merged['resposanvelLegal'] = nomeResp;
+    }
+
+    return merged as unknown as EstacionamentoObterPorIdResultDTO;
+  }
+
+  private buildPessoaObterPorIdFromPessoaJuridica(
+    pj: Record<string, unknown>,
+    fallbackPessoaId: number,
+    root: Record<string, unknown>
+  ): PessoaObterPorIdDTO {
+    const endFromPj = pj['enderecos'] ?? pj['Enderecos'];
+    const endFromRoot = root['enderecos'] ?? root['Enderecos'];
+    const enderecos = (
+      Array.isArray(endFromPj) ? endFromPj : Array.isArray(endFromRoot) ? endFromRoot : []
+    ) as EnderecoDTO[];
+
+    const contatosRaw = pj['contatos'] ?? pj['Contatos'];
+    const contatos = Array.isArray(contatosRaw) ? (contatosRaw as ContatoDTO[]) : undefined;
+
+    const id = Number(pj['id'] ?? pj['Id'] ?? fallbackPessoaId) || fallbackPessoaId;
+    const tipo = Number(pj['tipoPessoa'] ?? pj['TipoPessoa']);
+
+    return {
+      id,
+      tipoPessoa: tipo === 1 ? 1 : 2,
+      nomeRazaoSocial: String(pj['nomeRazaoSocial'] ?? pj['NomeRazaoSocial'] ?? '').trim(),
+      nomeFantasia: String(
+        pj['nomeFantasia'] ?? pj['NomeFantasia'] ?? pj['descricao'] ?? pj['Descricao'] ?? ''
+      ).trim(),
+      cnpj: String(pj['cnpj'] ?? pj['Cnpj'] ?? pj['documento'] ?? pj['Documento'] ?? '').trim(),
+      email: String(pj['email'] ?? pj['Email'] ?? '').trim(),
+      ativo: pj['ativo'] !== false && pj['Ativo'] !== false,
+      enderecos: enderecos.length > 0 ? enderecos : undefined,
+      contatos,
+      dataCriacao: String(pj['dataCriacao'] ?? pj['DataCriacao'] ?? ''),
+      dataAtualizacao: (pj['dataAtualizacao'] ?? pj['DataAtualizacao'] ?? null) as string | null,
+    };
   }
 
   private mapResultToFormValue(r: EstacionamentoObterPorIdResultDTO): EstacionamentoFormValue {
@@ -467,7 +560,14 @@ export class EstacionamentoService {
         email: p?.email ?? '',
         ativo: p?.ativo ?? true
       },
-      responsavelLegalNome: r.resposanvelLegal ?? '',
+      responsavelLegalNome: String(
+        raw['resposanvelLegal'] ??
+          raw['ResposanvelLegal'] ??
+          raw['responsavelLegal'] ??
+          raw['ResponsavelLegal'] ??
+          r.resposanvelLegal ??
+          ''
+      ).trim(),
       responsavelLegalCpf: r.responsavelCpf ?? '',
       responsavelLegalEmail: String(responsavelEmailRaw ?? '').trim(),
       contatoTelefone: telefone,

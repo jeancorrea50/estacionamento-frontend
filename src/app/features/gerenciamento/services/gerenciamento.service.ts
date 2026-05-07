@@ -95,6 +95,12 @@ export class GerenciamentoService {
         return false;
       }
     }
+    const st = filtros.statusFiltro ?? '';
+    if (st === 'ativo') {
+      if (item.ativo === false) return false;
+    } else if (st === 'inativo') {
+      if (item.ativo !== false) return false;
+    }
     return true;
   }
 

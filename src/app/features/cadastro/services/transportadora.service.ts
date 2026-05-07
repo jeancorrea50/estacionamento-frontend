@@ -59,14 +59,14 @@ export class TransportadoraService {
     return this.http.get<unknown>(`${TRANSPORTADORA}/${id}`).pipe(
       timeout(15000),
       map((body) => {
-        const result = this.unwrapTransportadoraObterPorIdBody(body);
-        if (
-          result &&
-          typeof result === 'object' &&
-          (result.id != null || (result as Record<string, unknown>)['Id'] != null)
-        ) {
+        const result = this.unwrapTransportadoraObterPorIdBody(body, id);
+        if (result && typeof result === 'object') {
           const raw = result as Record<string, unknown>;
-          return { dto: this.mapToDto(result), raw };
+          const rid = Number(raw['id'] ?? raw['Id']) || id;
+          if (rid > 0) {
+            raw['id'] = rid;
+            return { dto: this.mapToDto(result), raw };
+          }
         }
         return null;
       }),
@@ -87,10 +87,12 @@ export class TransportadoraService {
   }
 
   /**
-   * Suporta envelope simples ou aninhado (`result.result...`), alinhado ao GET de listagem.
+   * Suporta envelope (`success` / `result`), `Result` PascalCase e payload só com `pessoaJuridica`
+   * sem `id` na raiz — nesse caso usa o id da rota (mesmo padrão corrigido em Estacionamento).
    */
   private unwrapTransportadoraObterPorIdBody(
-    body: unknown
+    body: unknown,
+    fallbackTransportadoraId?: number
   ): (TransportadoraObterPorIdResultDTO & Record<string, unknown>) | null {
     let cur: unknown = body;
     for (let depth = 0; depth < 8 && cur != null && typeof cur === 'object'; depth++) {
@@ -98,12 +100,35 @@ export class TransportadoraService {
       if (o['id'] != null || o['Id'] != null) {
         return o as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
       }
-      const inner = o['result'];
+      const inner = o['result'] ?? o['Result'];
       if (inner != null && typeof inner === 'object') {
         cur = inner;
         continue;
       }
       break;
+    }
+    if (cur == null || typeof cur !== 'object' || Array.isArray(cur)) {
+      return null;
+    }
+    const o = cur as Record<string, unknown>;
+    if (o['id'] != null || o['Id'] != null) {
+      return o as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
+    }
+    const hasPessoa =
+      o['pessoa'] ??
+      o['Pessoa'] ??
+      o['pessoaJuridica'] ??
+      o['PessoaJuridica'];
+    if (
+      hasPessoa != null &&
+      typeof hasPessoa === 'object' &&
+      fallbackTransportadoraId != null &&
+      fallbackTransportadoraId > 0
+    ) {
+      return {
+        ...o,
+        id: fallbackTransportadoraId,
+      } as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
     }
     return null;
   }
@@ -150,16 +175,80 @@ export class TransportadoraService {
   }
 
   private mapItem(row: Record<string, unknown>): TransportadoraListItemDTO {
-    const get = (k: string) => row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
+    const getFrom = (obj: Record<string, unknown>, k: string): unknown =>
+      obj[k] ?? obj[k.charAt(0).toUpperCase() + k.slice(1)];
+    const bases: Record<string, unknown>[] = [row];
+    for (const nestKey of ['transportadora', 'Transportadora', 'pessoaJuridica', 'PessoaJuridica', 'pessoa', 'Pessoa']) {
+      const nested = row[nestKey];
+      if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+        bases.push(nested as Record<string, unknown>);
+      }
+    }
+    const firstStr = (...keys: string[]): string => {
+      for (const base of bases) {
+        for (const k of keys) {
+          const v = getFrom(base, k);
+          if (v == null || (typeof v === 'string' && v.trim() === '')) continue;
+          return typeof v === 'string' ? v.trim() : String(v);
+        }
+      }
+      return '';
+    };
+    const firstNum = (...keys: string[]): number | null => {
+      for (const base of bases) {
+        for (const k of keys) {
+          const v = getFrom(base, k);
+          if (v == null || v === '') continue;
+          const n = Number(v);
+          if (Number.isFinite(n)) return n;
+        }
+      }
+      return null;
+    };
+    const get = (k: string) => getFrom(row, k);
+    const ativoVal = (): boolean => {
+      for (const base of bases) {
+        const a = getFrom(base, 'ativo');
+        if (a !== undefined && a !== null) return a !== false && a !== 0 && String(a).toLowerCase() !== 'false';
+      }
+      return true;
+    };
+    const dataRaw = firstStr(
+      'dataAtualizacao',
+      'DataAtualizacao',
+      'dataAlteracao',
+      'DataAlteracao',
+      'updatedAt',
+      'UpdatedAt'
+    );
     return {
       id: Number(get('id') ?? get('Id')) || 0,
-      razaoSocial: String(get('razaoSocial') ?? get('RazaoSocial') ?? ''),
-      nomeFantasia: String(
-        get('nomeFantasia') ?? get('NomeFantasia') ?? get('fantasia') ?? get('Fantasia') ?? ''
+      razaoSocial: firstStr('razaoSocial', 'RazaoSocial', 'nomeRazaoSocial', 'NomeRazaoSocial'),
+      nomeFantasia: firstStr(
+        'nomeFantasia',
+        'NomeFantasia',
+        'descricaoPessoa',
+        'DescricaoPessoa',
+        'fantasia',
+        'Fantasia',
+        'descricao',
+        'Descricao'
       ),
-      cnpj: String(get('cnpj') ?? get('Cnpj') ?? ''),
-      email: String(get('email') ?? get('Email') ?? ''),
-      ativo: get('ativo') !== false && get('Ativo') !== false
+      cnpj: firstStr('cnpj', 'Cnpj', 'documento', 'Documento'),
+      email: firstStr('email', 'Email'),
+      ativo: ativoVal(),
+      quantidadeVeiculos: firstNum(
+        'quantidadeVeiculos',
+        'QuantidadeVeiculos',
+        'totalVeiculos',
+        'TotalVeiculos',
+        'qtdVeiculos',
+        'frota',
+        'Frota',
+        'veiculosCount',
+        'VeiculosCount'
+      ),
+      dataAtualizacao: dataRaw || null,
     };
   }
 

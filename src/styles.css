@@ -30,6 +30,11 @@ app-root {
   overflow-x: hidden;
 }
 
+/* CDK Overlay: acima do layout (sidebar ~999); abaixo dos toasts (9999). */
+.cdk-overlay-container {
+  z-index: 10050;
+}
+
 /* Mobile: evita scroll horizontal */
 html, body {
   overflow-x: hidden;

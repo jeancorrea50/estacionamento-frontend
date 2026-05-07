@@ -1,49 +1,136 @@
-<div class="tab-content">
-  <div class="tab-content__actions">
-    <button type="button" class="btn btn-primary" (click)="openNovo()">
-      Novo perfil
-    </button>
-  </div>
-
+<div class="perfis-page tab-content">
   @if (loading) {
-    <p class="loading-msg">Carregando...</p>
+    <p class="loading-msg" role="status">Carregando perfis…</p>
   } @else if (erro) {
     <p class="error-msg error-msg--discreto">{{ erro }}</p>
-    <button type="button" class="btn btn-secondary" (click)="retry()">
-      Tentar novamente
-    </button>
+    <button type="button" class="btn btn-secondary" (click)="retry()">Tentar novamente</button>
   } @else {
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Descrição</th>
-            <th>Qtde permissões</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of itens; track item.id ?? item.name) {
-            <tr>
-              <td>{{ item.name ?? '-' }}</td>
-              <td>{{ item.normalizedName ?? '-' }}</td>
-              <td>{{ getProfilePermissionCount(item) }}</td>
-              <td class="acoes-cell">
-                <button type="button" class="btn btn-primary btn--sm" (click)="openEditar(item)">
-                  Editar
-                </button>
-                <button type="button" class="btn btn-danger btn--sm" (click)="openExcluir(item)">
-                  Excluir
-                </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
     @if (itens.length === 0) {
-      <p class="empty-msg">Nenhum perfil cadastrado.</p>
+      <div class="perfis-empty perfis-empty--global" role="status">
+        <span class="material-symbols-outlined perfis-empty__icon" aria-hidden="true">badge</span>
+        <p class="perfis-empty__title">Nenhum perfil cadastrado</p>
+        <p class="perfis-empty__hint">Crie um perfil para definir permissões de acesso.</p>
+        <button type="button" class="btn btn-primary perfis-empty__cta" (click)="openNovo()">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo perfil
+        </button>
+      </div>
+    } @else {
+      <div class="perfis-panel">
+        <div class="perfis-toolbar" role="toolbar" aria-label="Filtros e ações de perfis">
+          <div class="perfis-toolbar__filters">
+            <label class="perfis-search">
+              <span class="material-symbols-outlined perfis-search__icon" aria-hidden="true">search</span>
+              <input
+                type="search"
+                class="input-control perfis-search__input"
+                placeholder="Buscar perfil..."
+                [(ngModel)]="searchTerm"
+                autocomplete="off"
+                aria-label="Buscar perfil"
+              />
+            </label>
+            <select
+              class="input-control perfis-select"
+              [(ngModel)]="statusFilter"
+              aria-label="Filtrar por status"
+            >
+              <option value="all">Todos os status</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary perfis-toolbar__cta" (click)="openNovo()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo perfil
+          </button>
+        </div>
+
+        <div class="table-wrap perfis-table-wrap">
+          <table class="data-table perfis-table">
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">Descrição</th>
+                <th scope="col" class="perfis-col-num">Qtde permissões</th>
+                <th scope="col" class="perfis-col-num">Usuários vinculados</th>
+                <th scope="col">Status</th>
+                <th scope="col">Última atualização</th>
+                <th scope="col" class="perfis-col-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of perfisFiltrados; track trackPerfil(item)) {
+                <tr class="perfis-row">
+                  <td>
+                    <span class="perfis-name">{{ perfilDisplayName(item) }}</span>
+                  </td>
+                  <td>
+                    <span class="perfis-desc">{{ item.normalizedName?.trim() || '—' }}</span>
+                  </td>
+                  <td class="perfis-col-num">{{ getProfilePermissionCount(item) }}</td>
+                  <td class="perfis-col-num">{{ formatUsuariosVinculados(item) }}</td>
+                  <td>
+                    <span
+                      class="perfis-status"
+                      [class.perfis-status--on]="isPerfilAtivoUi(item)"
+                      [class.perfis-status--off]="!isPerfilAtivoUi(item)"
+                    >
+                      <span class="perfis-status__dot" aria-hidden="true"></span>
+                      {{ isPerfilAtivoUi(item) ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
+                  <td class="perfis-date">{{ formatUltimaAtualizacao(item.ultimaAtualizacao) }}</td>
+                  <td class="perfis-actions-cell">
+                    <div class="perfis-actions" role="group" [attr.aria-label]="'Ações para ' + perfilDisplayName(item)">
+                      <button
+                        type="button"
+                        class="perfis-icon-btn"
+                        (click)="openVisualizar(item)"
+                        title="Visualizar"
+                        aria-label="Visualizar perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="perfis-icon-btn"
+                        (click)="openEditar(item)"
+                        title="Editar"
+                        aria-label="Editar perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="perfis-icon-btn"
+                        (click)="openDuplicar(item)"
+                        title="Duplicar"
+                        aria-label="Duplicar perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="perfis-icon-btn perfis-icon-btn--danger"
+                        (click)="openExcluir(item)"
+                        title="Excluir"
+                        aria-label="Excluir perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="perfis-empty-row">Nenhum perfil corresponde aos filtros atuais.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
     }
   }
 </div>
@@ -52,9 +139,11 @@
   <div class="modal-overlay" (click)="closeModal()">
     <div
       class="modal-content"
+      [class.modal-content--wide]="isCreate() || isEdit()"
+      [class.modal-content--view]="isView()"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
+      [attr.aria-labelledby]="isView() ? 'modal-title-view' : 'modal-title'"
       (click)="$event.stopPropagation()"
     >
       @if (isCreate() || isEdit()) {
@@ -90,8 +179,18 @@
             <div class="form-section__toolbar">
               <span class="form-section__count">{{ selectedPermissionsCount }} selecionadas</span>
               <div class="form-section__toolbar-actions">
-                <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">Selecionar todas</button>
-                <button type="button" class="filter-clear-btn" (click)="limparPermissoesSelecionadas()" aria-label="Tirar permissões selecionadas" title="Tirar permissões selecionadas">×</button>
+                <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">
+                  Selecionar todas
+                </button>
+                <button
+                  type="button"
+                  class="filter-clear-btn"
+                  (click)="limparPermissoesSelecionadas()"
+                  aria-label="Tirar permissões selecionadas"
+                  title="Tirar permissões selecionadas"
+                >
+                  ×
+                </button>
               </div>
             </div>
             <div class="permission-tree">
@@ -124,7 +223,14 @@
                               <input
                                 type="checkbox"
                                 [checked]="permissao.selecionado"
-                                (change)="onPermissaoToggle(menu.menuId, subMenu.subMenuId, permissao.permissaoId, $any($event.target).checked)"
+                                (change)="
+                                  onPermissaoToggle(
+                                    menu.menuId,
+                                    subMenu.subMenuId,
+                                    permissao.permissaoId,
+                                    $any($event.target).checked
+                                  )
+                                "
                               />
                               <span>{{ permissao.nome }}</span>
                             </label>
@@ -139,9 +245,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">
-            Cancelar
-          </button>
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
           <button
             type="button"
             class="btn btn-primary"
@@ -159,23 +263,52 @@
         </div>
         <div class="modal-body">
           <p class="modal-confirm-msg">
-            Deseja realmente excluir o perfil <strong>{{ deleteItemName }}</strong>?
-            Esta ação não pode ser desfeita.
+            Deseja realmente excluir o perfil <strong>{{ deleteItemName }}</strong>? Esta ação não pode ser
+            desfeita.
           </p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            class="btn btn-danger"
-            [disabled]="deleting()"
-            (click)="confirmarExclusao()"
-          >
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="button" class="btn btn-danger" [disabled]="deleting()" (click)="confirmarExclusao()">
             {{ deleting() ? 'Excluindo...' : 'Excluir' }}
           </button>
         </div>
+      }
+
+      @if (isView()) {
+        @if (viewItem(); as v) {
+          <div class="modal-header">
+            <h2 id="modal-title-view">Detalhes do perfil</h2>
+          </div>
+          <div class="modal-body modal-body--view">
+            <div class="perfis-view-head">
+              <p class="perfis-view-name">{{ perfilDisplayName(v) }}</p>
+              <p class="perfis-view-desc">{{ v.normalizedName?.trim() || 'Sem descrição' }}</p>
+            </div>
+            <dl class="perfis-view-dl">
+              <dt>Qtde permissões</dt>
+              <dd>{{ getProfilePermissionCount(v) }}</dd>
+              <dt>Usuários vinculados</dt>
+              <dd>{{ formatUsuariosVinculados(v) }}</dd>
+              <dt>Status</dt>
+              <dd>
+                <span
+                  class="perfis-status"
+                  [class.perfis-status--on]="isPerfilAtivoUi(v)"
+                  [class.perfis-status--off]="!isPerfilAtivoUi(v)"
+                >
+                  <span class="perfis-status__dot" aria-hidden="true"></span>
+                  {{ isPerfilAtivoUi(v) ? 'Ativo' : 'Inativo' }}
+                </span>
+              </dd>
+              <dt>Última atualização</dt>
+              <dd>{{ formatUltimaAtualizacao(v.ultimaAtualizacao) }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" (click)="closeModal()">Fechar</button>
+          </div>
+        }
       }
     </div>
   </div>

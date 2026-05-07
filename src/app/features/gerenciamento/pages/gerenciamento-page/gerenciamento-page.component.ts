@@ -52,7 +52,11 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   canAlterar = this.permissionCache.has('usuario.alterar') || this.permissionCache.hasAny(['*']);
   canExcluir = this.permissionCache.has('usuario.excluir') || this.permissionCache.hasAny(['*']);
 
-  filtros: GerenciamentoFiltros = { nomeOuEmail: '', perfilNome: '' };
+  filtros: GerenciamentoFiltros = { nomeOuEmail: '', perfilNome: '', statusFiltro: '' };
+
+  /** Paginação apenas na UI (lista já carregada pelo mesmo fluxo `buscar`). */
+  readonly itensPorPagina = 10;
+  paginaAtual = 1;
 
   loading = false;
   erro: string | null = null;
@@ -93,6 +97,79 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subs.unsubscribe();
     this.buscaSub?.unsubscribe();
+  }
+
+  get totalRegistros(): number {
+    return this.itens.length;
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.totalRegistros / this.itensPorPagina));
+  }
+
+  get itensPagina(): UsuarioGerenciamentoItem[] {
+    const start = (this.paginaAtual - 1) * this.itensPorPagina;
+    return this.itens.slice(start, start + this.itensPorPagina);
+  }
+
+  get intervaloExibicao(): { de: number; ate: number } {
+    if (this.totalRegistros === 0) return { de: 0, ate: 0 };
+    const de = (this.paginaAtual - 1) * this.itensPorPagina + 1;
+    const ate = Math.min(this.paginaAtual * this.itensPorPagina, this.totalRegistros);
+    return { de, ate };
+  }
+
+  paginaAnterior(): void {
+    if (this.paginaAtual > 1) {
+      this.paginaAtual--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaProxima(): void {
+    if (this.paginaAtual < this.totalPaginas) {
+      this.paginaAtual++;
+      this.cdr.markForCheck();
+    }
+  }
+
+  perfilChipClass(perfil: string | null | undefined): string {
+    const p = (perfil ?? '').toLowerCase();
+    if (p.includes('admin')) return 'usuarios-perfil-chip--admin';
+    if (p.includes('transport')) return 'usuarios-perfil-chip--transport';
+    return 'usuarios-perfil-chip--muted';
+  }
+
+  temVinculoEstacionamento(item: UsuarioGerenciamentoItem): boolean {
+    return !!(
+      (item.EstacionamentoNome?.trim() ?? '') !== '' ||
+      (item.EstacionamentoId != null && item.EstacionamentoId !== 0)
+    );
+  }
+
+  temVinculoTransportadora(item: UsuarioGerenciamentoItem): boolean {
+    return !!(
+      (item.transportadoraNome?.trim() ?? '') !== '' ||
+      (item.transportadoraId != null && item.transportadoraId !== 0)
+    );
+  }
+
+  textoVinculoEstacionamento(item: UsuarioGerenciamentoItem): string {
+    const n = item.EstacionamentoNome?.trim();
+    if (n) return n;
+    if (item.EstacionamentoId != null && item.EstacionamentoId !== 0) {
+      return `ID ${item.EstacionamentoId}`;
+    }
+    return '';
+  }
+
+  textoVinculoTransportadora(item: UsuarioGerenciamentoItem): string {
+    const n = item.transportadoraNome?.trim();
+    if (n) return n;
+    if (item.transportadoraId != null && item.transportadoraId !== 0) {
+      return `ID ${item.transportadoraId}`;
+    }
+    return '';
   }
 
   get profilePermissions(): string[] {
@@ -258,6 +335,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.erro = null;
         this.itens = list;
+        this.paginaAtual = 1;
         this.cdr.markForCheck();
       },
       error: (err: ApiError) => {
@@ -270,7 +348,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   limparFiltros(): void {
-    this.filtros = { nomeOuEmail: '', perfilNome: '' };
+    this.filtros = { nomeOuEmail: '', perfilNome: '', statusFiltro: '' };
     this.buscaRealizada = false;
     this.itens = [];
     this.erro = null;

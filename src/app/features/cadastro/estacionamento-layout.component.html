@@ -1,72 +1,91 @@
 <div class="page-container">
+@if (showStepper()) {
   <header class="page-header page-header-card estacao-page-header">
     <div class="estacao-page-header__row estacao-page-header__row--top">
       <div class="estacao-page-header__titles">
         <h1 class="page-title">Cadastro Estacionamento</h1>
         <p class="page-subtitle">Cadastre e gerencie os dados do estacionamento.</p>
       </div>
-      @if (showStepper()) {
-        <div class="page-header__actions estacao-page-header__actions">
-          <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
-          @if (stepService.currentStep() === 1 || stepService.currentStep() === 2) {
-            <button type="button" class="btn btn-primary" (click)="onHeaderSalvar()">Salvar</button>
-          }
-        </div>
-      }
-    </div>
-    @if (showStepper()) {
-      <nav class="tabs estacao-tabs" role="tablist" aria-label="Etapas do cadastro">
-        @for (step of [1, 2, 3]; track step) {
-          <button
-            type="button"
-            class="tab"
-            role="tab"
-            [class.tab--active]="currentStep === step"
-            [attr.aria-selected]="currentStep === step"
-            (click)="goToStep(step)"
-          >
-            {{ getStepLabel(step) }}
-          </button>
+      <div class="page-header__actions estacao-page-header__actions">
+        <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
+        @if (stepService.currentStep() === 1 || stepService.currentStep() === 2) {
+          <button type="button" class="btn btn-primary" (click)="onHeaderSalvar()">Salvar</button>
         }
-      </nav>
-    }
-  </header>
-
-  <div class="page-content">
-    @if (!showStepper()) {
-      <section class="filter-card">
-        <div class="filter-row">
-          <select
-            class="search-filter input-control form-control-dark"
-            [ngModel]="toolbar.searchField()"
-            (ngModelChange)="setSearchField($event)"
-            aria-label="Filtrar busca por"
-          >
-            <option value="geral">Busca geral</option>
-            <option value="cnpj">CNPJ</option>
-            <option value="nomeRazaoSocial">Nome / Razão social</option>
-            <option value="descricao">Nome fantasia</option>
-            <option value="email">E-mail</option>
-            <option value="id">ID</option>
-          </select>
-          <input
-            type="text"
-            class="search-input input-control form-control-dark filter-row__grow"
-            [placeholder]="searchPlaceholder()"
-            [ngModel]="toolbar.searchTerm()"
-            (ngModelChange)="toolbar.setSearchTerm($event)"
-            (keyup.enter)="onBuscar()"
-          />
-          <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
-          <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
-        </div>
-      </section>
-    }
-
-    <section class="data-card">
-      <div class="tab-panel">
-        <router-outlet></router-outlet>
       </div>
+    </div>
+    <nav class="tabs estacao-tabs" role="tablist" aria-label="Etapas do cadastro">
+      @for (step of [1, 2, 3]; track step) {
+        <button
+          type="button"
+          class="tab"
+          role="tab"
+          [class.tab--active]="currentStep === step"
+          [attr.aria-selected]="currentStep === step"
+          (click)="goToStep(step)"
+        >
+          {{ getStepLabel(step) }}
+        </button>
+      }
+    </nav>
+  </header>
+} @else {
+  <header class="est-dash-hero" aria-labelledby="est-dash-title">
+    <div class="est-dash-hero__icon" aria-hidden="true">
+      <span class="material-symbols-outlined">local_parking</span>
+    </div>
+    <div class="est-dash-hero__copy">
+      <h1 id="est-dash-title" class="est-dash-hero__title">Cadastro Estacionamento</h1>
+      <p class="est-dash-hero__subtitle">Cadastre e gerencie os dados do estacionamento.</p>
+    </div>
+  </header>
+}
+
+<div class="page-content" [class.page-content--dashboard]="!showStepper()">
+  @if (!showStepper()) {
+    <section class="est-dash-filter" aria-label="Filtros da listagem">
+      <div class="est-dash-filter__select-wrap">
+        <select
+          class="est-dash-filter__select input-control est-dash-filter__select--plain"
+          [ngModel]="toolbar.searchField()"
+          (ngModelChange)="setSearchField($event)"
+          aria-label="Tipo de busca"
+        >
+          <option value="geral">Busca geral</option>
+          <option value="cnpj">CNPJ</option>
+          <option value="nomeRazaoSocial">Nome / Razão social</option>
+          <option value="descricao">Nome fantasia</option>
+          <option value="email">E-mail</option>
+          <option value="id">ID</option>
+        </select>
+      </div>
+      <label class="est-dash-filter__search">
+        <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
+        <input
+          type="text"
+          class="est-dash-filter__search-input"
+          [placeholder]="searchPlaceholder()"
+          [ngModel]="toolbar.searchTerm()"
+          (ngModelChange)="toolbar.setSearchTerm($event)"
+          (keyup.enter)="onBuscar()"
+          autocomplete="off"
+          aria-label="Termo de busca"
+        />
+      </label>
+      <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="onBuscar()">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        Buscar
+      </button>
+      <a class="est-dash-btn est-dash-btn--primary" routerLink="/app/cadastro/estacionamento/novo">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        Novo
+      </a>
     </section>
-  </div>
+  }
+
+  <section class="data-card">
+    <div class="tab-panel">
+      <router-outlet></router-outlet>
+    </div>
+  </section>
+</div>
 </div>

@@ -108,14 +108,16 @@ export class MotoristaService {
     const get = (key: string) => source[key] ?? source[key.charAt(0).toUpperCase() + key.slice(1)];
     const pessoa = (get('pessoa') ?? {}) as Record<string, unknown>;
     const getPessoa = (key: string) => pessoa[key] ?? pessoa[key.charAt(0).toUpperCase() + key.slice(1)];
-    const documento = String(getPessoa('documento') ?? get('cpf') ?? '');
+    const cpfValor = String(
+      getPessoa('cpf') ?? getPessoa('Cpf') ?? getPessoa('documento') ?? getPessoa('Documento') ?? get('cpf') ?? get('Cpf') ?? ''
+    );
     const transportadoraId = Number(get('transportadoraId') ?? getPessoa('transportadoraId'));
     const validadeCnhRaw = get('validadeCNH') ?? get('validadeCnh');
     return {
       id: Number(get('id')) || 0,
       transportadoraId: Number.isFinite(transportadoraId) && transportadoraId > 0 ? transportadoraId : undefined,
       nomeCompleto: String(getPessoa('nomeRazaoSocial') ?? get('descricao') ?? ''),
-      cpf: documento,
+      cpf: cpfValor,
       email: String(getPessoa('email') ?? ''),
       cnh: String(get('cnh') ?? ''),
       vencimentoCnh: this.normalizeDate(validadeCnhRaw),
@@ -142,6 +144,7 @@ export class MotoristaService {
   }
 
   private dtoToPayload(dto: MotoristaDTO): Record<string, unknown> {
+    const cpfDigits = (dto.cpf ?? '').replace(/\D/g, '');
     const payload: Record<string, unknown> = {
       id: dto.id,
       descricao: dto.nomeCompleto?.trim() || undefined,
@@ -150,7 +153,7 @@ export class MotoristaService {
       transportadoraId: dto.transportadoraId,
       pessoa: {
         nomeRazaoSocial: dto.nomeCompleto?.trim() || undefined,
-        documento: (dto.cpf ?? '').replace(/\D/g, ''),
+        cpf: cpfDigits || undefined,
         email: dto.email?.trim() || undefined,
         ativo: dto.ativo
       }

@@ -1,33 +1,42 @@
+<div class="cadastro-transportadora-shell">
 <div class="page-container">
-  <header class="page-header page-header-card estacao-page-header">
-    <div class="estacao-page-header__row estacao-page-header__row--top">
-      <div class="estacao-page-header__titles">
-        <h1 class="page-title">Cadastro Transportadora</h1>
-        <p class="page-subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
-      </div>
-      @if (!listView) {
+  @if (!listView) {
+    <header class="page-header page-header-card estacao-page-header">
+      <div class="estacao-page-header__row estacao-page-header__row--top">
+        <div class="estacao-page-header__titles">
+          <h1 class="page-title">Cadastro Transportadora</h1>
+          <p class="page-subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
+        </div>
         <div class="page-header__actions estacao-page-header__actions">
           <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
           @if (activeTab === 'cadastro') {
             <button type="button" class="btn btn-primary" (click)="salvarTransportadora()" [disabled]="salvando">Salvar</button>
           }
         </div>
-      }
-    </div>
-    @if (!listView) {
+      </div>
       <nav class="tabs estacao-tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
         <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
         <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
         <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'motoristas'" [attr.aria-selected]="activeTab === 'motoristas'" (click)="setTab('motoristas')">Motoristas</button>
       </nav>
-    }
-  </header>
+    </header>
+  }
 
-  <div class="page-content">
+  <div class="page-content" [class.trn-page-content--dashboard]="listView">
     @if (listView) {
-      <section class="filter-card">
-        <div class="filter-row">
-          <select class="search-filter input-control form-control-dark" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
+      <header class="est-dash-hero trn-dash-hero" aria-labelledby="trn-dash-title">
+        <div class="est-dash-hero__icon trn-dash-hero__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <div class="est-dash-hero__copy">
+          <h1 id="trn-dash-title" class="est-dash-hero__title">Cadastro Transportadora</h1>
+          <p class="est-dash-hero__subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
+        </div>
+      </header>
+
+      <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
+        <div class="est-dash-filter__select-wrap">
+          <select class="est-dash-filter__select input-control trn-dash-filter__select" [(ngModel)]="campoBusca" aria-label="Tipo de busca">
             <option value="geral">Busca geral</option>
             <option value="cnpj">CNPJ</option>
             <option value="razaoSocial">Razão social</option>
@@ -35,52 +44,132 @@
             <option value="email">E-mail</option>
             <option value="id">ID</option>
           </select>
-          <input type="text" class="search-input input-control form-control-dark filter-row__grow" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
-          <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
-          <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
         </div>
+        <label class="est-dash-filter__search">
+          <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
+          <input
+            type="text"
+            class="est-dash-filter__search-input"
+            [placeholder]="searchPlaceholder"
+            [(ngModel)]="termoBusca"
+            (keyup.enter)="onBuscar()"
+            autocomplete="off"
+            aria-label="Termo de busca"
+          />
+        </label>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          Buscar
+        </button>
+        <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="novoTransportadora()">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo
+        </button>
       </section>
     }
 
     @switch (activeTab) {
       @case ('cadastro') {
         @if (listView) {
-          <section class="tab-panel data-card">
-            @if (erroList) {
+          @if (erroList) {
+            <div class="trn-list-banner trn-list-banner--error" role="alert">
               <p class="error-msg">{{ erroList }}</p>
-            }
-            @if (loadingList) {
-              <p class="loading-msg">Carregando...</p>
-            } @else if (!jaBuscou) {
-              <div class="empty-state empty-state--compact">
-                <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
-                <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
-              </div>
-            } @else {
-              <div class="table-wrap">
-                <table class="data-table">
+            </div>
+          }
+          @if (loadingList) {
+            <p class="loading-msg trn-loading">Carregando...</p>
+          }
+
+          @if (jaBuscou && !loadingList && !erroList) {
+            <div class="trn-list-metrics" aria-label="Resumo da consulta">
+              <app-est-summary-metric
+                icon="groups"
+                label="Total"
+                [value]="totalCount"
+                variant="neutral"
+              />
+              <app-est-summary-metric
+                icon="check_circle"
+                label="Ativas"
+                [value]="countAtivasPagina"
+                variant="success"
+                [hint]="resumoListaPaginaHint"
+              />
+              <app-est-summary-metric
+                icon="cancel"
+                label="Inativas"
+                [value]="countInativasPagina"
+                variant="danger"
+                [hint]="resumoListaPaginaHint"
+              />
+            </div>
+
+            <div class="trn-list-table-card">
+              <div class="trn-list-table-scroll">
+                <table class="data-table trn-table">
                   <thead>
                     <tr>
-                      <th>Id</th>
-                      <th>Razão Social</th>
-                      <th>Nome Fantasia</th>
-                      <th>CNPJ</th>
-                      <th>E-mail</th>
-                      <th>Ativo</th>
-                      <th>Ações</th>
+                      <th scope="col">ID</th>
+                      <th scope="col">Razão social</th>
+                      <th scope="col">Nome fantasia</th>
+                      <th scope="col">CNPJ</th>
+                      <th scope="col">E-mail</th>
+                      <th scope="col">Frota</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Atualização</th>
+                      <th scope="col" class="trn-table__th-acoes">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     @for (item of transportadoraList; track item.id) {
-                      <tr>
+                      <tr class="trn-table__row">
                         <td>{{ item.id }}</td>
                         <td>{{ item.razaoSocial }}</td>
-                        <td>{{ item.nomeFantasia }}</td>
+                        <td>{{ item.nomeFantasia || '—' }}</td>
                         <td>{{ formatCnpjList(item.cnpj) }}</td>
-                        <td>{{ item.email }}</td>
-                        <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                        <td>{{ item.email.trim() ? item.email : '—' }}</td>
+                        <td class="trn-cell-frota">
+                          @if (item.quantidadeVeiculos != null && item.quantidadeVeiculos >= 0) {
+                            <span class="trn-frota-pill">
+                              <span class="material-symbols-outlined trn-frota-pill__ico" aria-hidden="true">local_shipping</span>
+                              {{ item.quantidadeVeiculos }}
+                            </span>
+                          } @else {
+                            —
+                          }
+                        </td>
                         <td>
-                          <button type="button" class="btn btn-primary btn--sm" (click)="editarTransportadora(item)">Editar</button>
+                          <app-est-status-pill-estacionamento [ativo]="item.ativo" />
+                        </td>
+                        <td>{{ formatDataAtualizacaoLista(item.dataAtualizacao) }}</td>
+                        <td class="trn-table__acoes">
+                          <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para transportadora ' + item.id">
+                            <a
+                              class="trn-act-btn"
+                              [routerLink]="['/app/cadastro/transportadora/editar', item.id]"
+                              title="Visualizar"
+                              aria-label="Visualizar transportadora"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                            </a>
+                            <a
+                              class="trn-act-btn trn-act-btn--accent"
+                              [routerLink]="['/app/cadastro/transportadora/editar', item.id]"
+                              title="Editar"
+                              aria-label="Editar transportadora"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                            </a>
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--danger"
+                              title="Excluir"
+                              aria-label="Excluir transportadora"
+                              (click)="excluirTransportadoraLista(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     }
@@ -88,13 +177,70 @@
                 </table>
               </div>
               @if (transportadoraList.length === 0) {
-                <div class="empty-state empty-state--compact empty-state--table">
+                <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
                   <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
                   <p class="empty-msg">Nenhuma transportadora encontrada.</p>
                 </div>
               }
-            }
-          </section>
+            </div>
+
+            <footer class="trn-list-footer">
+              <p class="trn-list-footer__info">
+                Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+                <strong>{{ totalCount }}</strong>
+                {{ totalCount === 1 ? 'transportadora' : 'transportadoras' }}
+              </p>
+              <div class="trn-list-footer__right">
+                <label class="trn-page-size">
+                  <span class="trn-page-size__label">Linhas por página</span>
+                  <select
+                    class="trn-page-size__select input-control"
+                    [ngModel]="tamanhoPaginaLista"
+                    (ngModelChange)="onTamanhoPaginaListaChange($event)"
+                    aria-label="Linhas por página"
+                  >
+                    @for (opt of opcoesTamanhoPaginaLista; track opt) {
+                      <option [ngValue]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                </label>
+                <div class="trn-footer-pager" aria-label="Paginação">
+                  <button type="button" class="trn-foot-page" [disabled]="numeroPagina <= 1 || totalCount === 0" (click)="irPrimeiraPaginaLista()" aria-label="Primeira página">
+                    <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+                  </button>
+                  <button type="button" class="trn-foot-page" [disabled]="numeroPagina <= 1 || totalCount === 0" (click)="irParaPaginaLista(numeroPagina - 1)" aria-label="Página anterior">
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                  </button>
+                  <span class="trn-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
+                  <button
+                    type="button"
+                    class="trn-foot-page"
+                    [disabled]="numeroPagina >= totalPaginasLista || totalCount === 0"
+                    (click)="irParaPaginaLista(numeroPagina + 1)"
+                    aria-label="Próxima página"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="trn-foot-page"
+                    [disabled]="numeroPagina >= totalPaginasLista || totalCount === 0"
+                    (click)="irUltimaPaginaLista()"
+                    aria-label="Última página"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+                  </button>
+                </div>
+              </div>
+            </footer>
+          }
+
+          @if (!jaBuscou && !loadingList && !erroList) {
+            <div class="empty-state empty-state--compact trn-before-search">
+              <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
+              <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
+            </div>
+          }
         } @else {
           <div class="tab-panel tab-panel--form">
             <div class="cadastro-module-form-wrapper est-cadastro">
@@ -571,9 +717,14 @@
       }
     }
   </div>
+</div>
 
-  @if (showVeiculoForm) {
-    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalFrota($event)" role="presentation">
+@if (showVeiculoForm) {
+    <div
+      class="modal-overlay modal-overlay--frota"
+      (click)="onBackdropVeiculoClick($event)"
+      role="presentation"
+    >
       <div
         class="modal-content modal-content--frota"
         role="dialog"
@@ -696,28 +847,22 @@
                         class="input-control"
                         [value]="frotaSelectorTermo"
                         (input)="onFrotaSelectorTermoInput($any($event.target).value)"
-                        placeholder="Digite o CPF completo do motorista"
-                        appCpfFormat
+                        placeholder="CPF completo (busca em todo o cadastro)"
                         maxlength="14"
                       />
                       <button type="button" class="btn btn-secondary frota-vinculo-busca-btn" (click)="abrirSelectorMotoristasFrota()" title="Buscar motorista">
                         <span class="material-symbols-outlined" aria-hidden="true">search</span>
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      class="btn btn-primary btn--sm frota-vinculos__add-btn"
-                      (click)="aplicarSelecaoMotoristasTemp()"
-                      [disabled]="totalSelecionadosTemp === 0"
-                    >
-                      Adicionar
-                    </button>
                   </div>
                 </div>
                 @if (frotaSelectorOpen) {
                   <div class="frota-selector-dropdown">
                     @if (!frotaSelectorCpfCompleto) {
                       <p class="frota-vinculos__empty">Preencha o CPF completo para buscar e selecionar o motorista.</p>
+                    } @else {
+                    @if (frotaSelectorMotoristasLoading) {
+                      <p class="frota-vinculos__empty">Buscando motoristas...</p>
                     } @else {
                     <div class="frota-selector-dropdown__list">
                       @if (motoristasPaginaAtualParaSelecao.length === 0) {
@@ -748,6 +893,7 @@
                         <button type="button" class="btn btn-primary btn--sm" (click)="aplicarSelecaoMotoristasTemp()">Aplicar</button>
                       </div>
                     </div>
+                    }
                     }
                   </div>
                 }
@@ -901,10 +1047,10 @@
     </div>
   }
 
-  <app-modal-busca-motorista
-    [aberto]="frotaMotoristaModalAberto"
-    [termoCampo]="frotaMotoristaTexto"
-    (fechar)="frotaMotoristaModalAberto = false"
-    (itemSelecionado)="onFrotaMotoristaSelecionado($event)"
-  />
+<app-modal-busca-motorista
+  [aberto]="frotaMotoristaModalAberto"
+  [termoCampo]="frotaMotoristaTexto"
+  (fechar)="frotaMotoristaModalAberto = false"
+  (itemSelecionado)="onFrotaMotoristaSelecionado($event)"
+/>
 </div>

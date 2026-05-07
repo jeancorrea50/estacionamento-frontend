@@ -95,7 +95,7 @@ export class EntradaSaidaFormComponent implements OnInit {
       id: [0],
       placaVeiculo: [''],
       motoristaId: [null as number | null, [Validators.required, Validators.min(1)]],
-      transportadoraId: [null as number | null, [Validators.required, Validators.min(1)]],
+      transportadoraId: [null as number | null, [Validators.min(1)]],
       veiculoId: [null as number | null, [Validators.required, Validators.min(1)]],
       dataHoraEntrada: ['', Validators.required],
       dataHoraSaida: [''],
@@ -345,11 +345,6 @@ export class EntradaSaidaFormComponent implements OnInit {
 
   motoristaInvalido(): boolean {
     const c = this.form.controls.motoristaId;
-    return c.touched && c.invalid;
-  }
-
-  transportadoraInvalida(): boolean {
-    const c = this.form.controls.transportadoraId;
     return c.touched && c.invalid;
   }
 

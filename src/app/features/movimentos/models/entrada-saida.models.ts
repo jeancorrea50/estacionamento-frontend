@@ -51,6 +51,7 @@ export interface EntradaSaidaOutput {
   usuarioRegistroEntradaNome: string;
   usuarioFinalizacaoId?: number | null;
   usuarioFinalizacaoNome?: string | null;
+  existeEntradaEmAberto?: boolean;
   suspensoes: EntradaSaidaSuspensaoOutput[];
   motorista?: unknown;
   transportadora?: unknown;
@@ -58,17 +59,37 @@ export interface EntradaSaidaOutput {
 }
 
 export interface EntradaSaidaPostInput {
-  motoristaId: number;
-  transportadoraId: number;
-  veiculoId: number;
+  /** Enum byte do backend (`EntradaSaidaStatus`). */
+  status?: 0 | 1 | 2 | 3 | 4;
+  motoristaId?: number;
+  transportadoraId?: number;
+  veiculoId?: number;
   dataHoraEntrada: string;
   dataHoraSaida?: string;
+  /** Campo atual do contrato do POST /EntradaSaida. */
+  observacao?: string;
+  /** Campo legado mantido por compatibilidade. */
   observao?: string;
-  /** Telefone do responsável pela transportadora — apenas dígitos (DDD obrigatório). Opcional conforme API. */
-  telefoneResponsavel?: string;
-  motorista?: unknown;
-  transportadora?: unknown;
-  veiculo?: unknown;
+  motorista?: {
+    id?: number;
+    cpf?: string;
+    nome?: string;
+  };
+  transportadora?: {
+    id?: number;
+    cnpj?: string;
+    razaoSocial?: string;
+    responsavelLegal?: string;
+    responsavelCpf?: string;
+    responsavelEmail?: string;
+    responsavelTelefone?: string;
+  };
+  veiculo?: {
+    id?: number;
+    placa?: string;
+    /** Enum byte do backend (`TipoCarga`). */
+    tipoCarga?: 1 | 2 | 3 | 4 | 5;
+  };
 }
 
 export interface EntradaSaidaPutInput extends EntradaSaidaPostInput {

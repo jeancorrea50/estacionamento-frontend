@@ -10,5 +10,24 @@
   </header>
 
   <div class="page-content page-content--spaced">
+    <section class="page-card">
+      <h2>Alerta operacional</h2>
+      <p>{{ alertaOperacional || 'Nenhum alerta recebido no momento.' }}</p>
+    </section>
+
+    <section class="page-card">
+      <h2>Ultima movimentacao (card principal)</h2>
+      <pre>{{ ultimaMovimentacao | json }}</pre>
+    </section>
+
+    <section class="page-card">
+      <h2>Dashboard atualizado</h2>
+      <pre>{{ dashboardAtualizado | json }}</pre>
+    </section>
+
+    <section class="page-card">
+      <h2>Fila de movimentacoes (max 10)</h2>
+      <pre>{{ movimentacoes | json }}</pre>
+    </section>
   </div>
 </div>

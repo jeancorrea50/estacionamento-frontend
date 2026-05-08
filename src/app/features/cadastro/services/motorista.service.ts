@@ -46,6 +46,21 @@ export class MotoristaService {
     );
   }
 
+  obterPorCpf(cpf: string): Observable<MotoristaDTO | null> {
+    const cpfDigits = String(cpf ?? '').replace(/\D/g, '');
+    if (cpfDigits.length !== 11) return of(null);
+    return this.http.get<unknown>(`${MOTORISTA}/cpf/${cpfDigits}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const source = body as Record<string, unknown>;
+        const result = source && typeof source === 'object' && 'result' in source ? source['result'] : source;
+        if (!result || typeof result !== 'object') return null;
+        return this.mapMotorista(result as Record<string, unknown>);
+      }),
+      catchError(() => of(null))
+    );
+  }
+
   gravar(dto: MotoristaDTO): Observable<MotoristaDTO> {
     const payload = this.dtoToPayload(dto);
     return this.http.post<unknown>(MOTORISTA, payload).pipe(
@@ -116,7 +131,7 @@ export class MotoristaService {
     return {
       id: Number(get('id')) || 0,
       transportadoraId: Number.isFinite(transportadoraId) && transportadoraId > 0 ? transportadoraId : undefined,
-      nomeCompleto: String(getPessoa('nomeRazaoSocial') ?? get('descricao') ?? ''),
+      nomeCompleto: String(getPessoa('nomeRazaoSocial') ?? get('descricao') ?? get('nome') ?? get('nomeCompleto') ?? ''),
       cpf: cpfValor,
       email: String(getPessoa('email') ?? ''),
       cnh: String(get('cnh') ?? ''),

@@ -81,6 +81,22 @@ export class TransportadoraService {
     return this.obterTransportadoraPorIdComCorpo(id).pipe(map((x) => x?.dto ?? null));
   }
 
+  /**
+   * GET /api/Transportadora/cnpj/{cnpj} — consulta por CNPJ (apenas dígitos).
+   */
+  obterTransportadoraPorCnpj(cnpj: string): Observable<TransportadoraDTO | null> {
+    const cnpjDigits = String(cnpj ?? '').replace(/\D/g, '');
+    if (cnpjDigits.length !== 14) return of(null);
+    return this.http.get<unknown>(`${TRANSPORTADORA}/cnpj/${cnpjDigits}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const result = this.unwrapTransportadoraPorCnpjBody(body);
+        return result ? this.mapToDto(result) : null;
+      }),
+      catchError(() => of(null))
+    );
+  }
+
   /** @deprecated Use `obterTransportadoraPorId`. */
   obterPorId(id: number): Observable<TransportadoraDTO | null> {
     return this.obterTransportadoraPorId(id);
@@ -129,6 +145,42 @@ export class TransportadoraService {
         ...o,
         id: fallbackTransportadoraId,
       } as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
+    }
+    return null;
+  }
+
+  private unwrapTransportadoraPorCnpjBody(
+    body: unknown
+  ): (TransportadoraObterPorIdResultDTO & Record<string, unknown>) | null {
+    let cur: unknown = body;
+    for (let depth = 0; depth < 8 && cur != null && typeof cur === 'object'; depth++) {
+      const o = cur as Record<string, unknown>;
+      if (o['id'] != null || o['Id'] != null) {
+        return o as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
+      }
+      const inner = o['result'] ?? o['Result'];
+      if (inner != null && typeof inner === 'object') {
+        cur = inner;
+        continue;
+      }
+      break;
+    }
+    if (cur == null || typeof cur !== 'object' || Array.isArray(cur)) {
+      return null;
+    }
+    const o = cur as Record<string, unknown>;
+    const pessoa =
+      (o['pessoa'] as Record<string, unknown> | undefined) ??
+      (o['Pessoa'] as Record<string, unknown> | undefined) ??
+      (o['pessoaJuridica'] as Record<string, unknown> | undefined) ??
+      (o['PessoaJuridica'] as Record<string, unknown> | undefined);
+    const cnpj =
+      String(o['cnpj'] ?? o['Cnpj'] ?? pessoa?.['cnpj'] ?? pessoa?.['Cnpj'] ?? pessoa?.['documento'] ?? '').replace(
+        /\D/g,
+        ''
+      );
+    if (cnpj.length === 14) {
+      return o as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
     }
     return null;
   }
@@ -283,6 +335,16 @@ export class TransportadoraService {
       return f != null && String(f).trim() !== '' ? String(f).trim() : undefined;
     };
 
+    const pickFlat = (...keys: string[]): string | undefined => {
+      for (const key of keys) {
+        const value = get(key);
+        if (value == null) continue;
+        const str = String(value).trim();
+        if (str) return str;
+      }
+      return undefined;
+    };
+
     const complementares: TransportadoraContatoComplementarDTO[] = complementRows.map((row) => {
       const meta = decodeTrspc1Meta(String(row['observacao'] ?? row['Observacao'] ?? ''));
       const tel = String(row['telefone'] ?? row['Telefone'] ?? row['numero'] ?? row['Numero'] ?? '').trim();
@@ -298,8 +360,7 @@ export class TransportadoraService {
     });
 
     const telefoneRaiz = get('telefone') != null ? String(get('telefone')).trim() : '';
-    const celularFlat =
-      get('responsavelCelular') != null ? String(get('responsavelCelular')).trim() : '';
+    const celularFlat = pickFlat('responsavelCelular', 'telefoneResponsavel', 'responsavelTelefone') ?? '';
 
     let telefoneDto: string | undefined;
     let responsavelCelularDto: string | undefined;
@@ -321,8 +382,8 @@ export class TransportadoraService {
       email: String(get('email') ?? getPessoa('email') ?? ''),
       telefone: telefoneDto,
       ativo: (get('ativo') ?? getPessoa('ativo')) !== false,
-      responsavelNome: pickMetaOuFlat(metaLegal.n, 'responsavelNome'),
-      responsavelCpf: pickMetaOuFlat(metaLegal.c, 'responsavelCpf'),
+      responsavelNome: pickMetaOuFlat(metaLegal.n, 'responsavelNome') ?? pickFlat('nomeResponsavel'),
+      responsavelCpf: pickMetaOuFlat(metaLegal.c, 'responsavelCpf') ?? pickFlat('cpfResponsavel'),
       responsavelCelular: responsavelCelularDto,
       responsavelEmail: pickMetaOuFlat(metaLegal.e, 'responsavelEmail'),
       responsavelCargo: pickMetaOuFlat(metaLegal.g, 'responsavelCargo'),

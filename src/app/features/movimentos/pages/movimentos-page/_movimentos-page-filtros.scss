@@ -6,6 +6,13 @@
   font-family: inherit;
 }
 
+.filtros-acoes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-self: start;
+}
+
 /* Mesmo ritmo de cards que Gerenciamento (filter-card + data-card) */
 .operacao {
   display: flex;

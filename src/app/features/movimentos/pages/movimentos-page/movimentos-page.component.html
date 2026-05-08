@@ -51,20 +51,6 @@
                 />
               </label>
               <label class="field">
-                <span>Motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
-                <input
-                  class="input-control"
-                  type="text"
-                  placeholder="Nome"
-                  required
-                  aria-required="true"
-                  [(ngModel)]="registroRapido.motorista"
-                  [readonly]="buscandoPlacaRegistroRapido"
-                  [attr.maxlength]="registroRapidoMaxTexto"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
                 <span>CPF do motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
                 <input
                   class="input-control"
@@ -77,7 +63,21 @@
                   aria-required="true"
                   [ngModel]="registroRapido.motoristaCpf"
                   (ngModelChange)="onMotoristaCpfInput($event)"
-                  [readonly]="buscandoPlacaRegistroRapido"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.motorista"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoMotoristaPorCpf || motoristaAutoPreenchidoPorCpf"
+                  [attr.maxlength]="registroRapidoMaxTexto"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </label>
@@ -86,6 +86,7 @@
                 <select
                   class="input-control input-control--select"
                   [(ngModel)]="registroRapido.tipoCarga"
+                  [disabled]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
                   [ngModelOptions]="{ standalone: true }"
                 >
                   <option value="">Selecione...</option>
@@ -101,7 +102,7 @@
             <h3 id="registro-transp-titulo" class="registro-section__title">Transportadora</h3>
             <div class="registro-grid">
               <label class="field field--full">
-                <span>CNPJ <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <span>CNPJ</span>
                 <input
                   class="input-control"
                   type="text"
@@ -109,11 +110,9 @@
                   autocomplete="off"
                   placeholder="00.000.000/0000-00"
                   maxlength="18"
-                  required
-                  aria-required="true"
                   [ngModel]="registroRapido.transportadoraCnpj"
                   (ngModelChange)="onTransportadoraCnpjInput($event)"
-                  [readonly]="buscandoPlacaRegistroRapido"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </label>
@@ -124,38 +123,34 @@
                   type="text"
                   placeholder="Razão social"
                   [(ngModel)]="registroRapido.transportadoraRazaoSocial"
-                  [readonly]="buscandoPlacaRegistroRapido"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
                   [attr.maxlength]="registroRapidoMaxTexto"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </label>
               <label class="field">
-                <span>Nome do responsável <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <span>Nome do responsável</span>
                 <input
                   class="input-control"
                   type="text"
                   placeholder="Nome do responsável"
-                  required
-                  aria-required="true"
                   [(ngModel)]="registroRapido.transportadoraResponsavelNome"
-                  [readonly]="buscandoPlacaRegistroRapido"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
                   [attr.maxlength]="registroRapidoMaxTexto"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </label>
               <label class="field">
-                <span>Telefone do responsável <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <span>Telefone do responsável</span>
                 <input
                   class="input-control"
                   type="text"
                   inputmode="tel"
                   autocomplete="off"
                   placeholder="(00) 00000-0000"
-                  required
-                  aria-required="true"
                   appTelefoneFormat
                   [(ngModel)]="registroRapido.transportadoraResponsavelTelefone"
-                  [readonly]="buscandoPlacaRegistroRapido"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
                   [attr.maxlength]="registroRapidoMaxTelefone"
                   [ngModelOptions]="{ standalone: true }"
                 />
@@ -172,6 +167,7 @@
                   class="input-control"
                   type="date"
                   [(ngModel)]="registroRapido.dataAgendamento"
+                  [readonly]="camposBloqueadosPorPlaca"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </label>
@@ -182,6 +178,7 @@
                   type="text"
                   placeholder="Observação opcional"
                   [(ngModel)]="registroRapido.observacao"
+                  [readonly]="camposBloqueadosPorPlaca"
                   [attr.maxlength]="registroRapidoMaxTexto"
                   [ngModelOptions]="{ standalone: true }"
                 />
@@ -190,10 +187,10 @@
           </section>
         </div>
         <div class="registro-actions">
-          <button class="btn btn-primary" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="abrirRegistroEntradaRapida()">
+          <button class="btn btn-success" type="button" [disabled]="!canGravar || processandoRegistroRapido || existeEntradaEmAbertoPorPlaca" (click)="abrirRegistroEntradaRapida()">
             Registrar Entrada
           </button>
-          <button class="btn btn-secondary" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="registrarSaidaRapida()">
+          <button class="btn btn-danger" type="button" [disabled]="!canGravar || processandoRegistroRapido || !existeEntradaEmAbertoPorPlaca" (click)="registrarSaidaRapida()">
             Registrar Saída
           </button>
           <button class="btn btn-secondary" type="button" (click)="limparRegistroRapido()">Limpar Campos</button>
@@ -271,12 +268,13 @@
           (keydown.enter)="buscar()"
           maxlength="8"
         />
-        <label class="check-open">
-          <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" />
-          Somente em aberto
-        </label>
-        <button class="btn btn-primary btn--strong" type="button" (click)="buscar()">Buscar</button>
-        <button class="btn btn-success btn--strong" type="button" [disabled]="!canGravar || processandoRegistroRapido" (click)="abrirRegistroEntradaRapida()">Registrar</button>
+        <div class="filtros-acoes">
+          <label class="check-open">
+            <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" />
+            Somente em aberto
+          </label>
+          <button class="btn btn-primary" type="button" (click)="buscar()">Buscar</button>
+        </div>
       </div>
     </section>
 

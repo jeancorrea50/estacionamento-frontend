@@ -285,11 +285,14 @@ export class TransportadoraService {
 
     const complementares: TransportadoraContatoComplementarDTO[] = complementRows.map((row) => {
       const meta = decodeTrspc1Meta(String(row['observacao'] ?? row['Observacao'] ?? ''));
-      const tel = String(row['numero'] ?? row['Numero'] ?? '').trim();
+      const tel = String(row['telefone'] ?? row['Telefone'] ?? row['numero'] ?? row['Numero'] ?? '').trim();
+      const nomeFlat = String(row['descricao'] ?? row['Descricao'] ?? '').trim();
+      const cpfFlat = String(row['cpf'] ?? row['Cpf'] ?? '').trim();
+      const emailFlat = String(row['email'] ?? row['Email'] ?? '').trim();
       return {
-        nome: meta.n?.trim() || undefined,
-        cpf: meta.c?.trim() || undefined,
-        email: meta.e?.trim() || undefined,
+        nome: meta.n?.trim() || nomeFlat || undefined,
+        cpf: meta.c?.trim() || cpfFlat || undefined,
+        email: meta.e?.trim() || emailFlat || undefined,
         telefone: tel || undefined
       };
     });
@@ -425,7 +428,7 @@ export class TransportadoraService {
     const enderecos = pessoa['enderecos'] as Record<string, unknown>[] | undefined;
     const endereco = enderecos?.[0];
     const contatos =
-      (pessoa['contatos'] as { principal?: boolean; observacao?: string; numero?: string }[] | undefined) ?? [];
+      (pessoa['contatos'] as { principal?: boolean; observacao?: string; numero?: string; telefone?: string }[] | undefined) ?? [];
     const sorted = [...contatos].sort(
       (a, b) => (b.principal === true ? 1 : 0) - (a.principal === true ? 1 : 0)
     );
@@ -452,13 +455,20 @@ export class TransportadoraService {
       cnpj: String(pessoa['cnpj'] ?? pessoa['documento'] ?? ''),
       email: String(pessoa['email'] ?? ''),
       telefone:
-        legal?.numero != null && String(legal.numero).trim() !== ''
-          ? String(legal.numero)
+        legal?.telefone != null && String(legal.telefone).trim() !== ''
+          ? String(legal.telefone)
+          : legal?.numero != null && String(legal.numero).trim() !== ''
+            ? String(legal.numero)
           : undefined,
       ativo: pessoa['ativo'] !== false,
       responsavelNome: metaLegal.n,
       responsavelCpf: metaLegal.c,
-      responsavelCelular: legal?.numero != null ? String(legal.numero) : undefined,
+      responsavelCelular:
+        legal?.telefone != null && String(legal.telefone).trim() !== ''
+          ? String(legal.telefone)
+          : legal?.numero != null
+            ? String(legal.numero)
+            : undefined,
       responsavelEmail: metaLegal.e,
       responsavelCargo: metaLegal.g,
       contatosComplementares: complementares.length > 0 ? complementares : undefined,

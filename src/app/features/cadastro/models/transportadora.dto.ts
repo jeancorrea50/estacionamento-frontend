@@ -78,9 +78,12 @@ export interface TransportadoraDTO {
 /** Alinhado a `PessoaContatoInput` — `pessoaId` omitido no POST de novos vínculos. */
 export interface TransportadoraContatoPayload {
   pessoaId?: number;
+  id?: number;
   principal: boolean;
-  tipoContato: 1 | 2 | 3 | 4;
-  numero: string;
+  descricao?: string;
+  cpf?: string;
+  telefone: string;
+  email?: string;
   observacao: string;
 }
 

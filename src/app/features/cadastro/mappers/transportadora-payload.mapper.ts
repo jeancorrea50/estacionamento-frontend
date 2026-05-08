@@ -12,7 +12,6 @@ export interface TransportadoraFormRawValue {
     razaoSocial?: string;
     nomeFantasia?: string;
     cnpj?: string;
-    email?: string;
     ativo?: boolean;
   };
   responsavelLegal: {
@@ -56,6 +55,22 @@ function ordenarContatosPrincipalPrimeiro(contatos: Record<string, unknown>[]): 
   });
 }
 
+function sanitizeContatoPayload(contato: Record<string, unknown>): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    principal: contato['principal'] === true,
+    observacao: String(contato['observacao'] ?? ''),
+    descricao: String(contato['descricao'] ?? ''),
+    cpf: String(contato['cpf'] ?? ''),
+    telefone: String(contato['telefone'] ?? ''),
+    email: String(contato['email'] ?? '')
+  };
+  const cid = Number(contato['id']);
+  if (Number.isFinite(cid) && cid > 0) payload['id'] = cid;
+  const cpid = Number(contato['pessoaId']);
+  if (Number.isFinite(cpid) && cpid > 0) payload['pessoaId'] = cpid;
+  return payload;
+}
+
 /**
  * Monta o body de POST/PUT /api/Transportadora.
  * Contrato Swagger (GTS API v1): `TransportadoraPostInput` / `TransportadoraPutInput` =
@@ -74,7 +89,6 @@ export function montarPayloadTransportadoraApi(
   const razaoSocial = String(p.razaoSocial ?? '').trim();
   const nomeFantasia = String(p.nomeFantasia ?? '').trim();
   const cnpj = onlyDigits(p.cnpj);
-  const email = String(p.email ?? '').trim();
   const descricao = (nomeFantasia || razaoSocial).trim();
   const end = (raw.endereco ?? {}) as Record<string, unknown>;
 
@@ -147,17 +161,18 @@ export function montarPayloadTransportadoraApi(
         (getRaw(mergeTa, 'pessoaJuridica') as Record<string, unknown> | undefined) ??
         (mergeTa['PessoaJuridica'] as Record<string, unknown> | undefined))
     : undefined;
-  const mergeSource =
+  const mergePessoaSource =
     mergePessoaNested && typeof mergePessoaNested === 'object'
       ? mergePessoaNested
-      : mergeTa ?? undefined;
+      : undefined;
+  const mergeSource = mergePessoaSource ?? mergeTa ?? undefined;
   const mergeEndsRaw = (mergeSource?.['enderecos'] as Record<string, unknown>[] | undefined) ?? [];
   const mergeEnd0 = mergeEndsRaw[0];
   if (mergeEnd0 && typeof mergeEnd0 === 'object') {
     const eid = mergeEnd0['id'] ?? mergeEnd0['Id'];
-    if (eid != null) enderecoBase['id'] = Number(eid);
+    if (eid != null && Number(eid) > 0) enderecoBase['id'] = Number(eid);
     const epid = mergeEnd0['pessoaId'] ?? mergeEnd0['PessoaId'];
-    if (epid != null) enderecoBase['pessoaId'] = Number(epid);
+    if (epid != null && Number(epid) > 0) enderecoBase['pessoaId'] = Number(epid);
   }
 
   const mergeContatosRaw = ordenarContatosPrincipalPrimeiro(
@@ -173,18 +188,14 @@ export function montarPayloadTransportadoraApi(
       const cpid = rawC['pessoaId'] ?? rawC['PessoaId'];
       if (cpid != null) row['pessoaId'] = Number(cpid);
     }
-    return row;
+    return sanitizeContatoPayload(row);
   });
 
   const pessoaBase: Record<string, unknown> = {
     descricao: razaoSocial || descricao,
-    tipoPessoa: 2,
+    tipoPessoa: 1,
     nomeRazaoSocial: razaoSocial,
-    nomeFantasia,
     cnpj,
-    // Compatibilidade com contratos antigos que ainda usam `documento` para PJ.
-    documento: cnpj,
-    email,
     ativo: p.ativo !== false,
     enderecos: [stripUndefinedDeep(enderecoBase) as Record<string, unknown>],
     contatos: contatosMerged.map((x) => stripUndefinedDeep(x) as Record<string, unknown>)
@@ -197,11 +208,11 @@ export function montarPayloadTransportadoraApi(
   if (isEdit && mergeTa) {
     const tid = Number(getRaw(mergeTa, 'id') ?? getRaw(mergeTa, 'Id')) || 0;
     const pessoaIdMerge =
-      Number(getRaw(mergeSource ?? {}, 'id') ?? getRaw(mergeSource ?? {}, 'Id')) ||
+      Number(getRaw(mergePessoaSource ?? {}, 'id') ?? getRaw(mergePessoaSource ?? {}, 'Id')) ||
       Number(getRaw(mergeTa, 'pessoaId') ?? getRaw(mergeTa, 'PessoaId')) ||
       0;
 
-    const dcP = getRaw(mergeSource ?? {}, 'dataCriacao') ?? getRaw(mergeSource ?? {}, 'DataCriacao');
+    const dcP = getRaw(mergePessoaSource ?? {}, 'dataCriacao') ?? getRaw(mergePessoaSource ?? {}, 'DataCriacao');
 
     const dataCriacaoMerged =
       dcP != null && String(dcP).trim() !== '' && String(dcP).trim() !== '0001-01-01T00:00:00'
@@ -215,8 +226,6 @@ export function montarPayloadTransportadoraApi(
       nomeRazaoSocial: pessoaBase['nomeRazaoSocial'],
       nomeFantasia: pessoaBase['nomeFantasia'],
       cnpj: pessoaBase['cnpj'],
-      documento: pessoaBase['documento'],
-      email: pessoaBase['email'],
       ativo: pessoaBase['ativo'],
       enderecos: pessoaBase['enderecos'],
       contatos: pessoaBase['contatos']
@@ -230,6 +239,10 @@ export function montarPayloadTransportadoraApi(
 
     return stripUndefinedDeep({
       id: tid > 0 ? tid : undefined,
+      responsavelLegal: String(leg.nome ?? '').trim(),
+      responsavelCpf: onlyDigits(leg.cpf),
+      responsavelEmail: String(leg.email ?? '').trim(),
+      responsavelTelefone: telefoneLegal,
       pessoaJuridica: pessoaJuridicaEdit
     }) as Record<string, unknown>;
   }
@@ -240,14 +253,18 @@ export function montarPayloadTransportadoraApi(
     dataAtualizacao: nowIso,
     tipoPessoa: pessoaBase['tipoPessoa'],
     nomeRazaoSocial: pessoaBase['nomeRazaoSocial'],
-    nomeFantasia: pessoaBase['nomeFantasia'],
     cnpj: pessoaBase['cnpj'],
-    documento: pessoaBase['documento'],
-    email: pessoaBase['email'],
     ativo: pessoaBase['ativo'],
     enderecos: pessoaBase['enderecos'],
     contatos: pessoaBase['contatos']
   };
 
-  return stripUndefinedDeep({ pessoaJuridica: pessoaJuridicaCreate }) as Record<string, unknown>;
+  return stripUndefinedDeep({
+    id: 0,
+    responsavelLegal: String(leg.nome ?? '').trim(),
+    responsavelCpf: onlyDigits(leg.cpf),
+    responsavelEmail: String(leg.email ?? '').trim(),
+    responsavelTelefone: telefoneLegal,
+    pessoaJuridica: pessoaJuridicaCreate
+  }) as Record<string, unknown>;
 }

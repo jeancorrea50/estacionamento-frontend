@@ -310,15 +310,6 @@
                                 <label class="est-field__label" for="inscricaoEstadual">Inscrição estadual</label>
                                 <input id="inscricaoEstadual" class="field__input est-field__control" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
                               </div>
-                              <div class="est-field">
-                                <label class="est-field__label" for="email-pessoa">E-mail <span class="required">*</span></label>
-                                <div class="form-row__input">
-                                  <input id="email-pessoa" class="field__input est-field__control" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                                  @if (transportadoraForm.get('pessoa.email')?.invalid && transportadoraForm.get('pessoa.email')?.touched) {
-                                    <span class="field__error">Informe um e-mail válido.</span>
-                                  }
-                                </div>
-                              </div>
                             </div>
                             <div class="est-field est-field--status-row">
                               <span class="est-field__label">Status</span>
@@ -528,10 +519,6 @@
                             <li>
                               <span class="est-aside__k">Nome fantasia</span>
                               <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.nomeFantasia')?.value || '—' }}</span>
-                            </li>
-                            <li>
-                              <span class="est-aside__k">E-mail</span>
-                              <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.email')?.value || '—' }}</span>
                             </li>
                           </ul>
                         </div>

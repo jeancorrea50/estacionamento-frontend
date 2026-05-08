@@ -41,11 +41,15 @@ export function buildContatoPayload(
   }
 ): TransportadoraContatoPayload {
   const observacao = encodeTrspc1Meta(opts.meta);
-  /** Sem `pessoaId`: o backend associa ao criar/atualizar `pessoa`; evita enviar `0` inválido no POST. */
+  const nome = opts.meta.n?.trim();
+  const cpf = opts.meta.c?.replace(/\D/g, '');
+  const email = opts.meta.e?.trim();
   return {
     principal: opts.principal,
-    tipoContato: 1,
-    numero: opts.telefoneDigits,
+    descricao: nome || (opts.principal ? 'Contato principal' : 'Contato complementar'),
+    cpf: cpf || '',
+    telefone: opts.telefoneDigits,
+    email: email || '',
     observacao: observacao || (opts.principal ? 'Contato principal' : 'Contato complementar')
   };
 }

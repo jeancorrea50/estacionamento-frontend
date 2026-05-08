@@ -8,7 +8,7 @@ import {
   IHttpConnectionOptions,
   LogLevel
 } from '@microsoft/signalr';
-import { BehaviorSubject, Observable, Subject, catchError, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, catchError, map, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AlertaOperacionalPayload,
@@ -98,12 +98,11 @@ export class SignalrDashboardService {
     return this.http
       .get<MovimentacoesAtualizadasResponse>(`${this.movimentacoesValidacaoUrl}?limite=${limite}`)
       .pipe(
-        tap((response) =>
-          this.movimentacaoAtualizadaSubject.next(this.normalizeMovimentacaoPayload(response?.movimentacoes))
-        ),
+        map((response) => this.normalizeMovimentacaoPayload(response?.movimentacoes)),
+        tap((movimentacoes) => this.movimentacaoAtualizadaSubject.next(movimentacoes)),
         catchError((error: unknown) => {
           this.logError('Falha ao validar movimentacoes atualizadas via HTTP.', error);
-          return of([]);
+          return of<MovimentacaoAtualizadaPayload>([]);
         })
       );
   }

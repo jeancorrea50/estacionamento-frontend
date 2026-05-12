@@ -265,7 +265,6 @@
           placeholder="Buscar por placa"
           [(ngModel)]="filtro.descricao"
           (ngModelChange)="onFiltroPlacaInput($event)"
-          (keydown.enter)="buscar()"
           maxlength="8"
         />
         <div class="filtros-acoes">

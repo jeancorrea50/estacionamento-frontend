@@ -15,6 +15,8 @@ function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
   return (
     u.includes('auth/usuario/confirmar-email') ||
     u.includes('auth/usuario/login') ||
+    u.includes('auth/usuario/register') ||
+    u.includes('auth/usuario/registrar') ||
     u.includes('auth/usuario/esqueci-senha') ||
     u.includes('auth/usuario/redefinir-senha')
   );

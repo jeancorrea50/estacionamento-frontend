@@ -11,6 +11,10 @@
 npm-debug.log
 yarn-error.log
 
+# OpenAPI / secrets locais (URL do Swagger por ambiente)
+.env
+config/openapi.config.local.json
+
 # IDEs and editors
 .idea/
 .project

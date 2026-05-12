@@ -1535,6 +1535,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     }
     const v = this.motoristaForm.value;
     const tid = this.transportadoraId;
+    const editSrc =
+      this.condutorEditId != null && this.condutorEditId > 0
+        ? this.condutores.find((x) => x.id === this.condutorEditId)
+        : undefined;
     const dto: MotoristaDTO = {
       id: this.condutorEditId != null && this.condutorEditId > 0 ? this.condutorEditId : undefined,
       transportadoraId: tid,
@@ -1543,7 +1547,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       email: v.email || undefined,
       cnh: v.cnh || undefined,
       vencimentoCnh: v.vencimentoCnh || undefined,
-      ativo: v.ativo !== false
+      ativo: v.ativo !== false,
+      pessoaId: editSrc?.pessoaId,
+      pessoaFisicaId: editSrc?.pessoaFisicaId,
+      primeiroEnderecoId: editSrc?.primeiroEnderecoId,
+      primeiroContatoId: editSrc?.primeiroContatoId
     };
 
     this.salvandoMotorista = true;

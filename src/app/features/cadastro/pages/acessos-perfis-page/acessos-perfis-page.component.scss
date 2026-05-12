@@ -37,9 +37,18 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.perfis-search-group {
+  display: flex;
+  align-items: stretch;
   gap: 8px;
   flex: 1;
   min-width: 0;
+  max-width: min(100%, 420px);
 }
 
 .perfis-toolbar__cta {
@@ -65,43 +74,114 @@
 }
 
 .perfis-search {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
   flex: 1;
-  min-width: 140px;
-  max-width: min(100%, 280px);
-  padding: 0 10px;
+  min-width: 0;
   height: 34px;
+  padding: 0 6px 0 10px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: var(--input-bg, color-mix(in srgb, var(--surface) 92%, #000));
   box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.perfis-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border-subtle));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 .perfis-search__icon {
   font-size: 18px !important;
   color: var(--muted);
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .perfis-search__input {
   flex: 1;
   min-width: 0;
+  width: 100%;
   border: none !important;
   background: transparent !important;
-  padding: 0 !important;
+  box-shadow: none !important;
+  padding: 0 28px 0 0 !important;
+  margin: 0 !important;
   height: 100%;
   font-size: 0.8125rem;
   color: var(--text);
+  line-height: 1.2;
+  border-radius: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
 
   &::placeholder {
     color: color-mix(in srgb, var(--muted) 85%, var(--text));
   }
 
   &:focus {
-    outline: none;
+    outline: none !important;
+    box-shadow: none !important;
   }
+}
+
+.perfis-search__clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  .material-symbols-outlined {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  &:hover {
+    color: var(--text);
+    background: var(--table-row-hover, rgba(255, 255, 255, 0.08));
+  }
+}
+
+.perfis-buscar-btn {
+  flex-shrink: 0;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 !important;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  .material-symbols-outlined {
+    font-size: 20px;
+    line-height: 1;
+  }
+}
+
+.perfis-toolbar .btn.perfis-buscar-btn {
+  height: 34px;
+  min-height: 34px;
 }
 
 .perfis-select {
@@ -770,18 +850,21 @@
 
 @media (max-width: 768px) {
   .perfis-toolbar__filters {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
   }
 
-  .perfis-search {
+  .perfis-search-group {
     max-width: none;
-    flex: 1 1 100%;
+    width: 100%;
   }
 
   .perfis-select {
     flex: 1;
     min-width: 0;
+    width: 100%;
+    max-width: none;
   }
 
   .perfis-toolbar .btn.perfis-toolbar__cta {

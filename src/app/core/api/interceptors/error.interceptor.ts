@@ -73,7 +73,7 @@ function toApiError(res: HttpErrorResponse): ApiError {
 
 /** Endpoint de login: toast é exibido pela própria tela de login com mensagem da API. */
 function isLoginRequest(req: HttpRequest<unknown>): boolean {
-  return req.url.includes('auth/Usuario/Login');
+  return req.url.toLowerCase().includes('auth/usuario/login');
 }
 
 /** Consulta CNPJ (BrasilAPI direta): mensagem de erro é exibida no próprio campo do formulário. */
@@ -94,8 +94,8 @@ function isPasswordResetPublicRequest(req: HttpRequest<unknown>): boolean {
 
 /** Cadastro de usuário: a tela (modal) exibe a mensagem; evita toast duplicado. */
 function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
-  const u = req.url;
-  return u.includes('auth/Usuario/Register') || u.includes('auth/Usuario/Registrar');
+  const u = req.url.toLowerCase();
+  return u.includes('auth/usuario/register') || u.includes('auth/usuario/registrar');
 }
 
 /**

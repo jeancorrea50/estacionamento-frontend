@@ -10,7 +10,7 @@ import {
   TransportadoraObterPorIdResultDTO,
   TransportadoraContatoComplementarDTO
 } from '../models/transportadora.dto';
-import { decodeTrspc1Meta, TRSPC1_PREFIX } from '../mappers/transportadora-contato.mapper';
+import { parseObservacaoContato, TRSPC1_PREFIX } from '../mappers/transportadora-contato.mapper';
 
 /** Base da API. Contrato: GET/POST/PUT em `/api/Transportadora`, GET/DELETE em `/api/Transportadora/{id}`. */
 const API_BASE = environment.API_BASE_URL;
@@ -317,17 +317,6 @@ export class TransportadoraService {
     const getPessoa = (key: string) => pessoa?.[key] ?? pessoa?.[key.charAt(0).toUpperCase() + key.slice(1)];
     const getEnd = (key: string) => end?.[key] ?? end?.[key.charAt(0).toUpperCase() + key.slice(1)];
 
-    const contatosRaw = (pessoa?.['contatos'] as Record<string, unknown>[] | undefined) ?? [];
-    const sorted = this.ordenarContatosPrincipalPrimeiro(contatosRaw);
-    const legal = sorted[0];
-    const complementRows = sorted.slice(1);
-
-    const obsLegal = String(legal?.['observacao'] ?? legal?.['Observacao'] ?? '');
-    const metaLegal = decodeTrspc1Meta(obsLegal);
-    const numeroLegal = String(legal?.['numero'] ?? legal?.['Numero'] ?? '').trim();
-    const primeiroContatoEhNovoFormato =
-      obsLegal.startsWith(TRSPC1_PREFIX) || complementRows.length > 0;
-
     const pickMetaOuFlat = (metaVal: string | undefined, flatKey: string): string | undefined => {
       const m = metaVal?.trim();
       if (m) return m;
@@ -345,17 +334,78 @@ export class TransportadoraService {
       return undefined;
     };
 
+    const contatosRaw = (pessoa?.['contatos'] as Record<string, unknown>[] | undefined) ?? [];
+    const sorted = this.ordenarContatosPrincipalPrimeiro(contatosRaw);
+
+    const nomeRaiz = pickFlat('responsavelLegal', 'responsavelNome', 'nomeResponsavel');
+    const telRaizStr = pickFlat('responsavelTelefone', 'responsavelCelular', 'telefoneResponsavel') ?? '';
+    const telRaizDigits = telRaizStr.replace(/\D/g, '');
+    const cpfRaiz = (pickFlat('responsavelCpf', 'cpfResponsavel') ?? '').replace(/\D/g, '');
+    const emailRaiz = pickFlat('responsavelEmail') ?? '';
+    const temResponsavelNaRaiz = !!(
+      (nomeRaiz && nomeRaiz.trim()) ||
+      telRaizDigits.length >= 10 ||
+      (cpfRaiz && cpfRaiz.length >= 11) ||
+      (emailRaiz && emailRaiz.trim())
+    );
+
+    let legal: Record<string, unknown> | undefined;
+    let complementRows: Record<string, unknown>[];
+
+    if (temResponsavelNaRaiz) {
+      legal = undefined;
+      complementRows = contatosRaw.filter(
+        (c) => !(c['principal'] === true || c['Principal'] === true)
+      );
+    } else {
+      legal = sorted[0];
+      complementRows = sorted.slice(1);
+    }
+
+    const obsLegal = temResponsavelNaRaiz
+      ? ''
+      : String(legal?.['observacao'] ?? legal?.['Observacao'] ?? '');
+    const parsedLegal = parseObservacaoContato(obsLegal);
+    const metaLegal: { n?: string; c?: string; e?: string; g?: string } = {
+      n: parsedLegal.n,
+      c: parsedLegal.c,
+      e: parsedLegal.e,
+      g: parsedLegal.g
+    };
+    const numeroLegal = temResponsavelNaRaiz
+      ? telRaizStr.trim() || String(parsedLegal.t ?? '').trim()
+      : String(legal?.['telefone'] ?? legal?.['Telefone'] ?? legal?.['numero'] ?? legal?.['Numero'] ?? '').trim() ||
+        String(parsedLegal.t ?? '').trim();
+    const nomeLegalFlat = temResponsavelNaRaiz
+      ? (nomeRaiz ?? '').trim()
+      : String(legal?.['descricao'] ?? legal?.['Descricao'] ?? '').trim();
+    const primeiroContatoEhNovoFormato =
+      temResponsavelNaRaiz ||
+      obsLegal.startsWith(TRSPC1_PREFIX) ||
+      obsLegal.trim().startsWith('{') ||
+      !!String(legal?.['telefone'] ?? legal?.['Telefone'] ?? '').trim() ||
+      !!nomeLegalFlat ||
+      complementRows.length > 0;
+
+    const cpfLegalFlat = temResponsavelNaRaiz
+      ? cpfRaiz
+      : String(legal?.['cpf'] ?? legal?.['Cpf'] ?? '').replace(/\D/g, '');
+    const emailLegalFlat = temResponsavelNaRaiz
+      ? emailRaiz.trim()
+      : String(legal?.['email'] ?? legal?.['Email'] ?? '').trim();
+
     const complementares: TransportadoraContatoComplementarDTO[] = complementRows.map((row) => {
-      const meta = decodeTrspc1Meta(String(row['observacao'] ?? row['Observacao'] ?? ''));
+      const parsed = parseObservacaoContato(String(row['observacao'] ?? row['Observacao'] ?? ''));
       const tel = String(row['telefone'] ?? row['Telefone'] ?? row['numero'] ?? row['Numero'] ?? '').trim();
+      const telFinal = tel || String(parsed.t ?? '').trim();
       const nomeFlat = String(row['descricao'] ?? row['Descricao'] ?? '').trim();
-      const cpfFlat = String(row['cpf'] ?? row['Cpf'] ?? '').trim();
+      const cpfFlat = String(row['cpf'] ?? row['Cpf'] ?? '').replace(/\D/g, '');
       const emailFlat = String(row['email'] ?? row['Email'] ?? '').trim();
       return {
-        nome: meta.n?.trim() || nomeFlat || undefined,
-        cpf: meta.c?.trim() || cpfFlat || undefined,
-        email: meta.e?.trim() || emailFlat || undefined,
-        telefone: tel || undefined
+        nome: nomeFlat || parsed.n?.trim() || undefined,
+        cpf: cpfFlat || parsed.c || undefined,
+        email: emailFlat || parsed.e?.trim() || undefined,
+        telefone: telFinal || undefined
       };
     });
 
@@ -382,10 +432,10 @@ export class TransportadoraService {
       email: String(get('email') ?? getPessoa('email') ?? ''),
       telefone: telefoneDto,
       ativo: (get('ativo') ?? getPessoa('ativo')) !== false,
-      responsavelNome: pickMetaOuFlat(metaLegal.n, 'responsavelNome') ?? pickFlat('nomeResponsavel'),
-      responsavelCpf: pickMetaOuFlat(metaLegal.c, 'responsavelCpf') ?? pickFlat('cpfResponsavel'),
+      responsavelNome: nomeLegalFlat || (pickMetaOuFlat(metaLegal.n, 'responsavelNome') ?? pickFlat('nomeResponsavel')),
+      responsavelCpf: cpfLegalFlat || (pickMetaOuFlat(metaLegal.c, 'responsavelCpf') ?? pickFlat('cpfResponsavel')),
       responsavelCelular: responsavelCelularDto,
-      responsavelEmail: pickMetaOuFlat(metaLegal.e, 'responsavelEmail'),
+      responsavelEmail: emailLegalFlat || pickMetaOuFlat(metaLegal.e, 'responsavelEmail'),
       responsavelCargo: pickMetaOuFlat(metaLegal.g, 'responsavelCargo'),
       contatosComplementares: complementares.length > 0 ? complementares : undefined,
       endereco: end && typeof end === 'object'
@@ -489,21 +539,76 @@ export class TransportadoraService {
     const enderecos = pessoa['enderecos'] as Record<string, unknown>[] | undefined;
     const endereco = enderecos?.[0];
     const contatos =
-      (pessoa['contatos'] as { principal?: boolean; observacao?: string; numero?: string; telefone?: string }[] | undefined) ?? [];
+      (pessoa['contatos'] as
+        | {
+            principal?: boolean;
+            observacao?: string;
+            numero?: string;
+            telefone?: string;
+            descricao?: string;
+            cpf?: string;
+            email?: string;
+          }[]
+        | undefined) ?? [];
     const sorted = [...contatos].sort(
       (a, b) => (b.principal === true ? 1 : 0) - (a.principal === true ? 1 : 0)
     );
-    const legal = sorted[0];
-    const compPayload = sorted.slice(1);
+    const getB = (key: string) =>
+      body[key] ?? body[key.charAt(0).toUpperCase() + key.slice(1)];
+    const nomeRoot = String(getB('responsavelLegal') ?? getB('responsavelNome') ?? '').trim();
+    const telRoot = String(getB('responsavelTelefone') ?? getB('responsavelCelular') ?? '').trim();
+    const cpfRoot = String(getB('responsavelCpf') ?? '').replace(/\D/g, '');
+    const emailRoot = String(getB('responsavelEmail') ?? '').trim();
+    const telRootDigits = telRoot.replace(/\D/g, '');
+    const useRootResponsavel = !!(
+      nomeRoot ||
+      telRootDigits.length >= 10 ||
+      (cpfRoot && cpfRoot.length >= 11) ||
+      (emailRoot && emailRoot.trim())
+    );
 
-    const metaLegal = decodeTrspc1Meta(legal?.observacao ?? '');
+    const legal = sorted[0] as
+      | {
+          principal?: boolean;
+          observacao?: string;
+          numero?: string;
+          telefone?: string;
+          descricao?: string;
+          cpf?: string;
+          email?: string;
+        }
+      | undefined;
+    const compPayload = useRootResponsavel
+      ? contatos
+      : sorted.slice(1);
+
+    const obsLegalStr = useRootResponsavel ? '' : String(legal?.observacao ?? '');
+    const parsedLegalSave = parseObservacaoContato(obsLegalStr);
+    const nomeLegalFlatSave = useRootResponsavel
+      ? nomeRoot
+      : String(legal?.descricao ?? '').trim();
+    const cpfLegalFlatSave = useRootResponsavel ? cpfRoot : String(legal?.cpf ?? '').replace(/\D/g, '');
+    const emailLegalFlatSave = useRootResponsavel ? emailRoot : String(legal?.email ?? '').trim();
+
     const complementares: TransportadoraContatoComplementarDTO[] = compPayload.map((row) => {
-      const meta = decodeTrspc1Meta(row.observacao ?? '');
+      const r = row as {
+        observacao?: string;
+        numero?: string;
+        telefone?: string;
+        descricao?: string;
+        cpf?: string;
+        email?: string;
+      };
+      const parsed = parseObservacaoContato(String(r.observacao ?? ''));
+      const tel = String(r.telefone ?? r.numero ?? '').trim() || String(parsed.t ?? '').trim();
+      const nomeFlat = String(r.descricao ?? '').trim();
+      const cpfFlat = String(r.cpf ?? '').replace(/\D/g, '');
+      const emailFlat = String(r.email ?? '').trim();
       return {
-        nome: meta.n,
-        cpf: meta.c,
-        email: meta.e,
-        telefone: row.numero ?? undefined
+        nome: nomeFlat || parsed.n?.trim(),
+        cpf: cpfFlat || parsed.c,
+        email: emailFlat || parsed.e?.trim(),
+        telefone: tel || undefined
       };
     });
 
@@ -516,22 +621,26 @@ export class TransportadoraService {
       cnpj: String(pessoa['cnpj'] ?? pessoa['documento'] ?? ''),
       email: String(pessoa['email'] ?? ''),
       telefone:
-        legal?.telefone != null && String(legal.telefone).trim() !== ''
-          ? String(legal.telefone)
-          : legal?.numero != null && String(legal.numero).trim() !== ''
-            ? String(legal.numero)
-          : undefined,
+        useRootResponsavel && telRoot
+          ? telRoot
+          : legal?.telefone != null && String(legal.telefone).trim() !== ''
+            ? String(legal.telefone)
+            : legal?.numero != null && String(legal.numero).trim() !== ''
+              ? String(legal.numero)
+              : undefined,
       ativo: pessoa['ativo'] !== false,
-      responsavelNome: metaLegal.n,
-      responsavelCpf: metaLegal.c,
+      responsavelNome: nomeLegalFlatSave || parsedLegalSave.n,
+      responsavelCpf: cpfLegalFlatSave || parsedLegalSave.c,
       responsavelCelular:
-        legal?.telefone != null && String(legal.telefone).trim() !== ''
-          ? String(legal.telefone)
-          : legal?.numero != null
-            ? String(legal.numero)
-            : undefined,
-      responsavelEmail: metaLegal.e,
-      responsavelCargo: metaLegal.g,
+        useRootResponsavel && telRoot
+          ? telRoot
+          : legal?.telefone != null && String(legal.telefone).trim() !== ''
+            ? String(legal.telefone)
+            : legal?.numero != null
+              ? String(legal.numero)
+              : undefined,
+      responsavelEmail: emailLegalFlatSave || parsedLegalSave.e,
+      responsavelCargo: parsedLegalSave.g,
       contatosComplementares: complementares.length > 0 ? complementares : undefined,
       endereco: endereco
         ? {

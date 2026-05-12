@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { stripUndefinedDeep } from '../pages/estacionamento-form/estacionamento-form.mapper';
 import {
   MotoristaBuscarParams,
   MotoristaDTO,
@@ -12,11 +13,21 @@ import {
 const API_BASE = environment.API_BASE_URL;
 const MOTORISTA = `${API_BASE}/Motorista`;
 
+/** Query opcional para vínculo com transportadora (não faz parte do JSON do Swagger). */
+function transportadoraQuery(transportadoraId: number | undefined): string {
+  if (transportadoraId == null || !Number.isFinite(transportadoraId) || transportadoraId <= 0) return '';
+  return `?TransportadoraId=${encodeURIComponent(String(transportadoraId))}`;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class MotoristaService {
   constructor(private http: HttpClient) {}
+
+  private motoristaUrlComTransportadora(transportadoraId: number | undefined): string {
+    return `${MOTORISTA}${transportadoraQuery(transportadoraId)}`;
+  }
 
   buscar(params: MotoristaBuscarParams): Observable<PagedResultMotoristaDTO> {
     const query = new URLSearchParams();
@@ -63,7 +74,8 @@ export class MotoristaService {
 
   gravar(dto: MotoristaDTO): Observable<MotoristaDTO> {
     const payload = this.dtoToPayload(dto);
-    return this.http.post<unknown>(MOTORISTA, payload).pipe(
+    const url = this.motoristaUrlComTransportadora(dto.transportadoraId);
+    return this.http.post<unknown>(url, payload).pipe(
       timeout(15000),
       map((res) => {
         const response = res as Record<string, unknown>;
@@ -76,7 +88,8 @@ export class MotoristaService {
 
   alterar(dto: MotoristaDTO): Observable<MotoristaDTO> {
     const payload = this.dtoToPayload(dto);
-    return this.http.put<unknown>(MOTORISTA, payload).pipe(
+    const url = this.motoristaUrlComTransportadora(dto.transportadoraId);
+    return this.http.put<unknown>(url, payload).pipe(
       timeout(15000),
       map(() => dto),
       catchError((err) => throwError(() => err))
@@ -121,22 +134,65 @@ export class MotoristaService {
 
   private mapMotorista(source: Record<string, unknown>): MotoristaListItemDTO {
     const get = (key: string) => source[key] ?? source[key.charAt(0).toUpperCase() + key.slice(1)];
-    const pessoa = (get('pessoa') ?? {}) as Record<string, unknown>;
+    const pfRaw = get('pessoaFisica') ?? get('PessoaFisica') ?? get('pessoa') ?? get('Pessoa');
+    const pessoa =
+      pfRaw != null && typeof pfRaw === 'object' ? (pfRaw as Record<string, unknown>) : {};
     const getPessoa = (key: string) => pessoa[key] ?? pessoa[key.charAt(0).toUpperCase() + key.slice(1)];
     const cpfValor = String(
-      getPessoa('cpf') ?? getPessoa('Cpf') ?? getPessoa('documento') ?? getPessoa('Documento') ?? get('cpf') ?? get('Cpf') ?? ''
+      getPessoa('cpf') ??
+        getPessoa('Cpf') ??
+        getPessoa('documento') ??
+        getPessoa('Documento') ??
+        get('cpf') ??
+        get('Cpf') ??
+        ''
     );
     const transportadoraId = Number(get('transportadoraId') ?? getPessoa('transportadoraId'));
     const validadeCnhRaw = get('validadeCNH') ?? get('validadeCnh');
+    const nomeCompleto = String(
+      getPessoa('nome') ??
+        getPessoa('Nome') ??
+        getPessoa('nomeRazaoSocial') ??
+        getPessoa('NomeRazaoSocial') ??
+        get('descricao') ??
+        get('nome') ??
+        get('nomeCompleto') ??
+        ''
+    );
+    const contatosArr = (getPessoa('contatos') as Record<string, unknown>[] | undefined) ?? [];
+    const principalCt =
+      contatosArr.find((c) => c['principal'] === true || c['Principal'] === true) ?? contatosArr[0];
+    const emailPf = String(getPessoa('email') ?? getPessoa('Email') ?? '').trim();
+    const emailCt = principalCt
+      ? String(principalCt['email'] ?? principalCt['Email'] ?? '').trim()
+      : '';
+    const email = emailPf || emailCt;
+
+    const enderecosArr = (getPessoa('enderecos') as Record<string, unknown>[] | undefined) ?? [];
+    const e0 = enderecosArr[0];
+    const c0 = principalCt;
+    const pidRoot = Number(get('pessoaId') ?? get('PessoaId'));
+    const pidPf = Number(getPessoa('id') ?? getPessoa('Id'));
+
     return {
       id: Number(get('id')) || 0,
       transportadoraId: Number.isFinite(transportadoraId) && transportadoraId > 0 ? transportadoraId : undefined,
-      nomeCompleto: String(getPessoa('nomeRazaoSocial') ?? get('descricao') ?? get('nome') ?? get('nomeCompleto') ?? ''),
+      nomeCompleto,
       cpf: cpfValor,
-      email: String(getPessoa('email') ?? ''),
+      email: email || undefined,
       cnh: String(get('cnh') ?? ''),
       vencimentoCnh: this.normalizeDate(validadeCnhRaw),
-      ativo: getPessoa('ativo') !== false && get('ativo') !== false
+      ativo: getPessoa('ativo') !== false && get('ativo') !== false,
+      pessoaId: Number.isFinite(pidRoot) && pidRoot > 0 ? pidRoot : undefined,
+      pessoaFisicaId: Number.isFinite(pidPf) && pidPf > 0 ? pidPf : undefined,
+      primeiroEnderecoId:
+        e0 && typeof e0 === 'object' && Number(e0['id'] ?? e0['Id']) > 0
+          ? Number(e0['id'] ?? e0['Id'])
+          : undefined,
+      primeiroContatoId:
+        c0 && typeof c0 === 'object' && Number(c0['id'] ?? c0['Id']) > 0
+          ? Number(c0['id'] ?? c0['Id'])
+          : undefined
     };
   }
 
@@ -158,22 +214,68 @@ export class MotoristaService {
     return current;
   }
 
+  /**
+   * Contrato real API (Swagger): POST/PUT `/api/Motorista` com `pessoaFisica` (nome, enderecos[], contatos[]).
+   * `transportadoraId` não faz parte do body — vínculo conforme regras do backend (ex.: contexto da rota).
+   */
   private dtoToPayload(dto: MotoristaDTO): Record<string, unknown> {
+    const nome = (dto.nomeCompleto ?? '').trim();
     const cpfDigits = (dto.cpf ?? '').replace(/\D/g, '');
-    const payload: Record<string, unknown> = {
-      id: dto.id,
-      descricao: dto.nomeCompleto?.trim() || undefined,
-      cnh: dto.cnh?.trim() || undefined,
-      validadeCNH: this.toIsoDate(dto.vencimentoCnh),
-      transportadoraId: dto.transportadoraId,
-      pessoa: {
-        nomeRazaoSocial: dto.nomeCompleto?.trim() || undefined,
-        cpf: cpfDigits || undefined,
-        email: dto.email?.trim() || undefined,
-        ativo: dto.ativo
-      }
+    const email = (dto.email ?? '').trim();
+    const cnh = (dto.cnh ?? '').trim();
+    const motoristaId = dto.id != null && dto.id > 0 ? dto.id : 0;
+    const pessoaIdRoot = dto.pessoaId != null && dto.pessoaId > 0 ? dto.pessoaId : 0;
+    const pfId = dto.pessoaFisicaId != null && dto.pessoaFisicaId > 0 ? dto.pessoaFisicaId : 0;
+    const endId = dto.primeiroEnderecoId != null && dto.primeiroEnderecoId > 0 ? dto.primeiroEnderecoId : 0;
+    const ctId = dto.primeiroContatoId != null && dto.primeiroContatoId > 0 ? dto.primeiroContatoId : 0;
+    const pessoaIdNested = pessoaIdRoot > 0 ? pessoaIdRoot : 0;
+
+    const validadeCNH = this.toIsoDateTimeUtc(dto.vencimentoCnh);
+
+    const endereco = {
+      id: endId,
+      pessoaId: pessoaIdNested,
+      principal: true,
+      tipoEndereco: 1,
+      cep: '',
+      logradouro: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: ''
     };
-    return payload;
+
+    const contato = {
+      id: ctId,
+      pessoaId: pessoaIdNested,
+      descricao: nome || 'Contato principal',
+      cpf: cpfDigits,
+      telefone: '',
+      email,
+      principal: true,
+      observacao: ''
+    };
+
+    const pessoaFisica: Record<string, unknown> = {
+      id: pfId,
+      nome,
+      cpf: cpfDigits,
+      ativo: dto.ativo !== false,
+      enderecos: [endereco],
+      contatos: [contato]
+    };
+
+    const payload: Record<string, unknown> = {
+      id: motoristaId,
+      cnh,
+      pessoaId: pessoaIdRoot,
+      pessoaFisica
+    };
+    if (validadeCNH != null) {
+      payload['validadeCNH'] = validadeCNH;
+    }
+    return stripUndefinedDeep(payload) as Record<string, unknown>;
   }
 
   private normalizeDate(value: unknown): string {
@@ -191,12 +293,20 @@ export class MotoristaService {
     return raw;
   }
 
-  private toIsoDate(value: string | undefined): string | undefined {
-    const date = (value ?? '').trim();
-    if (!date) return undefined;
-    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(date);
-    if (!match) return undefined;
-    const [, day, month, year] = match;
-    return `${year}-${month}-${day}T00:00:00`;
+  /**
+   * Converte DD/MM/AAAA (form) ou ISO existente para `date-time` com sufixo Z (ex.: Swagger).
+   */
+  private toIsoDateTimeUtc(value: string | undefined): string | undefined {
+    const raw = (value ?? '').trim();
+    if (!raw) return undefined;
+    const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw);
+    if (br) {
+      const [, day, month, year] = br;
+      const ms = Date.UTC(Number(year), Number(month) - 1, Number(day), 12, 0, 0, 0);
+      return new Date(ms).toISOString();
+    }
+    const d = new Date(raw);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+    return undefined;
   }
 }

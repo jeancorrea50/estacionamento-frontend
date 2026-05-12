@@ -1,0 +1,182 @@
+<div class="faturamento-shell">
+  <div class="page-container fat-mat-page-wrap">
+    <mat-card class="fat-mat-page" appearance="outlined">
+      <mat-card-content class="fat-mat-page__inner">
+        <header class="fat-mat-header">
+          <div class="fat-mat-header__titles">
+            <h1 class="page-title">Faturamento</h1>
+            <p class="page-subtitle">Controle de faturas, cobranças e recebimentos</p>
+          </div>
+          <div class="fat-mat-header__actions" aria-label="Ações principais">
+            <button type="button" mat-flat-button color="primary" class="fat-mat-btn">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              Nova Fatura
+            </button>
+            <button type="button" mat-stroked-button class="fat-mat-btn">
+              <span class="material-symbols-outlined" aria-hidden="true">layers</span>
+              Gerar em Lote
+            </button>
+            <button type="button" mat-stroked-button class="fat-mat-btn">
+              <span class="material-symbols-outlined" aria-hidden="true">send</span>
+              Enviar Cobranças
+            </button>
+            <button type="button" mat-stroked-button class="fat-mat-btn">
+              <span class="material-symbols-outlined" aria-hidden="true">download</span>
+              Exportar
+            </button>
+          </div>
+        </header>
+
+        <mat-tab-group
+          class="fat-mat-tabs"
+          color="primary"
+          mat-stretch-tabs="false"
+          animationDuration="200ms"
+          dynamicHeight
+          [selectedIndex]="tabIndex()"
+          (selectedIndexChange)="onMatTabChange($event)"
+        >
+          @for (t of tabs; track t.id) {
+            <mat-tab [label]="t.label">
+              <ng-template matTabContent>
+                @switch (t.id) {
+                  @case ('visao-geral') {
+                    <app-faturamento-visao-geral />
+                  }
+                  @case ('faturas') {
+                    <section class="fat-panel fat-tab-panel" aria-labelledby="fat-faturas-title">
+                      <h2 id="fat-faturas-title" class="fat-panel__title">Faturas</h2>
+                      <div class="fat-table-wrap">
+                        <table class="data-table fat-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Código</th>
+                              <th scope="col">Cliente</th>
+                              <th scope="col">Competência</th>
+                              <th scope="col">Valor</th>
+                              <th scope="col">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (f of mockFaturas; track f.id) {
+                              <tr>
+                                <td>{{ f.id }}</td>
+                                <td>{{ f.cliente }}</td>
+                                <td>{{ f.competencia }}</td>
+                                <td>{{ formatCurrency(f.valor) }}</td>
+                                <td><span [class]="statusBadgeClass(f.status)">{{ f.status }}</span></td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  }
+                  @case ('fechamentos') {
+                    <section class="fat-panel fat-tab-panel" aria-labelledby="fat-fech-title">
+                      <h2 id="fat-fech-title" class="fat-panel__title">Fechamentos</h2>
+                      <div class="fat-table-wrap">
+                        <table class="data-table fat-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Período</th>
+                              <th scope="col">Faturas</th>
+                              <th scope="col">Total</th>
+                              <th scope="col">Situação</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (x of mockFechamentos; track x.periodo) {
+                              <tr>
+                                <td>{{ x.periodo }}</td>
+                                <td>{{ x.faturas }}</td>
+                                <td>{{ formatCurrency(x.total) }}</td>
+                                <td>{{ x.situacao }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  }
+                  @case ('recebimentos') {
+                    <section class="fat-panel fat-tab-panel" aria-labelledby="fat-rec-title">
+                      <h2 id="fat-rec-title" class="fat-panel__title">Recebimentos</h2>
+                      <div class="fat-table-wrap">
+                        <table class="data-table fat-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Data</th>
+                              <th scope="col">Origem</th>
+                              <th scope="col">Valor</th>
+                              <th scope="col">Fatura</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (r of mockRecebimentos; track r.data + r.fatura) {
+                              <tr>
+                                <td>{{ r.data }}</td>
+                                <td>{{ r.origem }}</td>
+                                <td>{{ formatCurrency(r.valor) }}</td>
+                                <td>{{ r.fatura }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  }
+                  @case ('inadimplencia') {
+                    <section class="fat-panel fat-tab-panel" aria-labelledby="fat-inad-title">
+                      <h2 id="fat-inad-title" class="fat-panel__title">Inadimplência</h2>
+                      <div class="fat-table-wrap">
+                        <table class="data-table fat-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Cliente</th>
+                              <th scope="col">Dias em atraso</th>
+                              <th scope="col">Valor</th>
+                              <th scope="col">Última cobrança</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (i of mockInadimplencia; track i.cliente) {
+                              <tr>
+                                <td>{{ i.cliente }}</td>
+                                <td>{{ i.dias }}</td>
+                                <td>{{ formatCurrency(i.valor) }}</td>
+                                <td>{{ i.ultimaCobranca }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  }
+                  @case ('config-cobranca') {
+                    <section class="fat-panel fat-tab-panel" aria-labelledby="fat-conf-title">
+                      <h2 id="fat-conf-title" class="fat-panel__title">Configurações de cobrança</h2>
+                      <ul class="fat-config-list">
+                        @for (c of mockConfigCobranca; track c.nome) {
+                          <li class="fat-config-row">
+                            <div>
+                              <p class="fat-config-row__name">{{ c.nome }}</p>
+                              <p class="fat-config-row__meta">{{ c.canal }}</p>
+                            </div>
+                            <span class="fat-pill" [class.fat-pill--on]="c.ativo" [class.fat-pill--off]="!c.ativo">
+                              {{ c.ativo ? 'Ativo' : 'Inativo' }}
+                            </span>
+                          </li>
+                        }
+                      </ul>
+                    </section>
+                  }
+                }
+              </ng-template>
+            </mat-tab>
+          }
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -7,6 +7,11 @@ export interface MotoristaDTO {
   cnh?: string;
   vencimentoCnh?: string;
   ativo: boolean;
+  /** Resposta GET / PUT — para remontar o body com os mesmos ids */
+  pessoaId?: number;
+  pessoaFisicaId?: number;
+  primeiroEnderecoId?: number;
+  primeiroContatoId?: number;
 }
 
 export interface MotoristaListItemDTO {
@@ -18,6 +23,10 @@ export interface MotoristaListItemDTO {
   cnh?: string;
   vencimentoCnh?: string;
   ativo: boolean;
+  pessoaId?: number;
+  pessoaFisicaId?: number;
+  primeiroEnderecoId?: number;
+  primeiroContatoId?: number;
 }
 
 export interface MotoristaBuscarParams {

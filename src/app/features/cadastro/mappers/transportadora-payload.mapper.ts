@@ -47,16 +47,15 @@ function getRaw(obj: Record<string, unknown> | null | undefined, key: string): u
   return obj[key] ?? obj[key.charAt(0).toUpperCase() + key.slice(1)];
 }
 
-function ordenarContatosPrincipalPrimeiro(contatos: Record<string, unknown>[]): Record<string, unknown>[] {
-  return [...contatos].sort((a, b) => {
-    const pa = a['principal'] === true || a['Principal'] === true ? 1 : 0;
-    const pb = b['principal'] === true || b['Principal'] === true ? 1 : 0;
-    return pb - pa;
-  });
-}
-
+/** Contrato API: sempre enviar `id` e `pessoaId` numéricos (0 = novo / a definir no servidor). */
 function sanitizeContatoPayload(contato: Record<string, unknown>): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
+  const cid = Number(contato['id']);
+  const idOut = Number.isFinite(cid) && cid > 0 ? cid : 0;
+  const cpid = Number(contato['pessoaId']);
+  const pessoaIdOut = Number.isFinite(cpid) && cpid > 0 ? cpid : 0;
+  return {
+    id: idOut,
+    pessoaId: pessoaIdOut,
     principal: contato['principal'] === true,
     observacao: String(contato['observacao'] ?? ''),
     descricao: String(contato['descricao'] ?? ''),
@@ -64,18 +63,55 @@ function sanitizeContatoPayload(contato: Record<string, unknown>): Record<string
     telefone: String(contato['telefone'] ?? ''),
     email: String(contato['email'] ?? '')
   };
-  const cid = Number(contato['id']);
-  if (Number.isFinite(cid) && cid > 0) payload['id'] = cid;
-  const cpid = Number(contato['pessoaId']);
-  if (Number.isFinite(cpid) && cpid > 0) payload['pessoaId'] = cpid;
-  return payload;
+}
+
+/**
+ * Reaplica `id` / `pessoaId` do GET sem depender do índice na lista.
+ * O payload envia apenas contatos complementares em `pessoaJuridica.contatos` (responsável vai na raiz).
+ * Ignora contatos `principal` do servidor no merge — reaplica ids só sobre o pool de não principais.
+ */
+function mergeContatosComRegistrosServidor(
+  contatosPayload: Record<string, unknown>[],
+  mergeSource: Record<string, unknown> | undefined
+): Record<string, unknown>[] {
+  const mergeList = (
+    (mergeSource?.['contatos'] as Record<string, unknown>[] | undefined) ?? []
+  ).filter(Boolean);
+  const mergePool = mergeList.filter(
+    (c) => !(c['principal'] === true || c['Principal'] === true)
+  );
+  const telDigitsRow = (row: Record<string, unknown>): string =>
+    onlyDigits(row['telefone'] ?? row['Telefone'] ?? row['numero'] ?? row['Numero']);
+
+  return contatosPayload.map((c) => {
+    const row = { ...c };
+    let rawC: Record<string, unknown> | undefined;
+    const want = telDigitsRow(row);
+    if (want.length >= 10) {
+      const idx = mergePool.findIndex((m) => telDigitsRow(m) === want);
+      if (idx >= 0) {
+        rawC = mergePool[idx];
+        mergePool.splice(idx, 1);
+      }
+    }
+    if (!rawC && mergePool.length > 0) {
+      rawC = mergePool.shift();
+    }
+    if (rawC && typeof rawC === 'object') {
+      const cid = rawC['id'] ?? rawC['Id'];
+      if (cid != null && Number(cid) > 0) row['id'] = Number(cid);
+      const cpid = rawC['pessoaId'] ?? rawC['PessoaId'];
+      if (cpid != null && Number(cpid) > 0) row['pessoaId'] = Number(cpid);
+    }
+    return sanitizeContatoPayload(row);
+  });
 }
 
 /**
  * Monta o body de POST/PUT /api/Transportadora.
  * Contrato Swagger (GTS API v1): `TransportadoraPostInput` / `TransportadoraPutInput` =
  * `{ id?: number, pessoaJuridica: PessoaInput }` — sem wrapper `transportadora`.
- * `PessoaInput`: dados da PJ + `enderecos[]` + `contatos[]` (ver OpenAPI `PessoaEnderecoInput` / `PessoaContatoInput`).
+ * `PessoaInput`: dados da PJ + `enderecos[]` + `contatos[]` apenas complementares (responsável legal na raiz).
  * - Em edição, `id` na raiz = transportadora; `pessoaJuridica.id` = pessoa (quando existir no merge).
  * - Remove `undefined` em profundidade antes do envio.
  */
@@ -92,27 +128,9 @@ export function montarPayloadTransportadoraApi(
   const descricao = (nomeFantasia || razaoSocial).trim();
   const end = (raw.endereco ?? {}) as Record<string, unknown>;
 
-  const metaLegal: Trspc1Meta = {
-    n: String(leg.nome ?? '').trim() || undefined,
-    c: onlyDigits(leg.cpf) || undefined,
-    e: String(leg.email ?? '').trim() || undefined,
-    g: String(leg.cargo ?? '').trim() || undefined
-  };
   const telefoneLegal = onlyDigits(leg.telefone);
 
   const contatosPayload: Record<string, unknown>[] = [];
-  let principalFeito = false;
-
-  if (contatoDeveSerEnviado(telefoneLegal, metaLegal)) {
-    contatosPayload.push(
-      stripUndefinedDeep(buildContatoPayload({
-        principal: true,
-        telefoneDigits: telefoneLegal,
-        meta: metaLegal
-      })) as Record<string, unknown>
-    );
-    principalFeito = true;
-  }
 
   for (const c of raw.contatosComplementares ?? []) {
     const metaC: Trspc1Meta = {
@@ -122,17 +140,15 @@ export function montarPayloadTransportadoraApi(
     };
     const telC = onlyDigits(c.telefone);
     if (!contatoDeveSerEnviado(telC, metaC)) continue;
-    const principal = !principalFeito;
     contatosPayload.push(
       stripUndefinedDeep(
         buildContatoPayload({
-          principal,
+          principal: false,
           telefoneDigits: telC,
           meta: metaC
         })
       ) as Record<string, unknown>
     );
-    if (principal) principalFeito = true;
   }
 
   const cepDigits = onlyDigits(end['cep']);
@@ -175,26 +191,13 @@ export function montarPayloadTransportadoraApi(
     if (epid != null && Number(epid) > 0) enderecoBase['pessoaId'] = Number(epid);
   }
 
-  const mergeContatosRaw = ordenarContatosPrincipalPrimeiro(
-    ((mergeSource?.['contatos'] as Record<string, unknown>[] | undefined) ?? []).filter(Boolean)
-  );
-
-  const contatosMerged = contatosPayload.map((c, i) => {
-    const row = { ...c };
-    const rawC = mergeContatosRaw[i];
-    if (rawC && typeof rawC === 'object') {
-      const cid = rawC['id'] ?? rawC['Id'];
-      if (cid != null) row['id'] = Number(cid);
-      const cpid = rawC['pessoaId'] ?? rawC['PessoaId'];
-      if (cpid != null) row['pessoaId'] = Number(cpid);
-    }
-    return sanitizeContatoPayload(row);
-  });
+  const contatosMerged = mergeContatosComRegistrosServidor(contatosPayload, mergeSource);
 
   const pessoaBase: Record<string, unknown> = {
     descricao: razaoSocial || descricao,
     tipoPessoa: 1,
     nomeRazaoSocial: razaoSocial,
+    nomeFantasia,
     cnpj,
     ativo: p.ativo !== false,
     enderecos: [stripUndefinedDeep(enderecoBase) as Record<string, unknown>],

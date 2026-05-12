@@ -1,5 +1,11 @@
 @import './app/shared/styles/design-kit.css';
 
+/* Angular Material (tema pré-construído — ajuste ou troque por tema custom se necessário) */
+@import '@angular/material/prebuilt-themes/azure-blue.css';
+
+/* PrimeIcons (ícones PrimeNG) */
+@import 'primeicons/primeicons.css';
+
 /* Global reset: tela inteira */
 *,
 *::before,

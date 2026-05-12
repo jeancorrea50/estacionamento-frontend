@@ -22,7 +22,13 @@ export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
   { id: 'menu-movimentos', label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida', icon: 'swap_horiz' },
   { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
-  { id: 'menu-financeiro', label: 'Financeiro', route: '/app/financeiro', icon: 'payments' },
+  {
+    id: 'menu-financeiro',
+    label: 'Financeiro',
+    route: '/app/financeiro',
+    icon: 'payments',
+    children: [{ id: 'sub-faturamento', label: 'Faturamento', route: '/app/financeiro/faturamento' }],
+  },
   {
     id: 'menu-configuracoes',
     label: 'Configurações',

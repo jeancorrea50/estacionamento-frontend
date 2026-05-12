@@ -19,17 +19,40 @@
       <div class="perfis-panel">
         <div class="perfis-toolbar" role="toolbar" aria-label="Filtros e ações de perfis">
           <div class="perfis-toolbar__filters">
-            <label class="perfis-search">
-              <span class="material-symbols-outlined perfis-search__icon" aria-hidden="true">search</span>
-              <input
-                type="search"
-                class="input-control perfis-search__input"
-                placeholder="Buscar perfil..."
-                [(ngModel)]="searchTerm"
-                autocomplete="off"
-                aria-label="Buscar perfil"
-              />
-            </label>
+            <div class="perfis-search-group">
+              <div class="perfis-search">
+                <span class="material-symbols-outlined perfis-search__icon" aria-hidden="true">search</span>
+                <input
+                  type="text"
+                  class="perfis-search__input"
+                  placeholder="Buscar perfil..."
+                  [(ngModel)]="searchDraft"
+                  (keyup.enter)="aplicarBuscaPerfil()"
+                  autocomplete="off"
+                  aria-label="Termo para buscar perfil"
+                />
+                @if (searchDraft.trim() || searchTerm.trim()) {
+                  <button
+                    type="button"
+                    class="perfis-search__clear"
+                    (click)="limparBuscaPerfil()"
+                    aria-label="Limpar busca"
+                    title="Limpar"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                  </button>
+                }
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary perfis-buscar-btn"
+                (click)="aplicarBuscaPerfil()"
+                title="Buscar"
+                aria-label="Buscar perfis pelo termo"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              </button>
+            </div>
             <select
               class="input-control perfis-select"
               [(ngModel)]="statusFilter"

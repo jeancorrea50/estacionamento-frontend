@@ -22,7 +22,8 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   movimento: '/app/movimentos/entrada-saida',
   relatorio: '/app/relatorios',
   relatorios: '/app/relatorios',
-  financeiro: '/app/financeiro',
+  financeiro: '/app/financeiro/faturamento',
+  faturamento: '/app/financeiro/faturamento',
   configuracoes: '/app/configuracoes',
   configuracao: '/app/configuracoes',
   cadastros: '/app/cadastro',
@@ -46,6 +47,7 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/movimentos/operacao': '/app/movimentos/entrada-saida',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
+  '/app/financeiro': '/app/financeiro/faturamento',
 };
 
 function matchSubItems(nomeNorm: string, subs: MenuSubItem[] | undefined): string | null {

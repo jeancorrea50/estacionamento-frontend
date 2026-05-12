@@ -45,7 +45,6 @@ const AVISO_SEM_ENDPOINT =
   styleUrls: ['./acessos-perfis-page.component.scss'],
 })
 export class AcessosPerfisPageComponent implements OnInit {
-  private static readonly PERFIL_PADRAO_BLOQUEADO_ID = 1;
   private perfisService = inject(AcessosPerfisService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
@@ -59,6 +58,9 @@ export class AcessosPerfisPageComponent implements OnInit {
   itens: ApplicationRole[] = [];
 
   /** Filtros (somente UI; lista já carregada). Ordem fixa: nome A-Z. */
+  /** Texto digitado no campo (ainda não aplicado até clicar na lupa ou Enter). */
+  searchDraft = '';
+  /** Termo efetivo da busca (usado em `perfisFiltrados`). */
   searchTerm = '';
   statusFilter: 'all' | 'ativo' | 'inativo' = 'all';
 
@@ -102,6 +104,8 @@ export class AcessosPerfisPageComponent implements OnInit {
         this.loading = false;
         this.erro = null;
         this.itens = rawList.map((item) => this.normalizeRoleItem(item));
+        this.searchDraft = '';
+        this.searchTerm = '';
         const menus = this.buildMenuCatalogFromProfiles(rawList);
         this.backendMenuCatalog.set(menus);
         this.permissionTree.set(buildPermissionTreeState(menus, null, []));
@@ -119,6 +123,18 @@ export class AcessosPerfisPageComponent implements OnInit {
 
   retry(): void {
     this.carregar();
+  }
+
+  /** Aplica o texto do campo à lista (sem nova chamada HTTP). */
+  aplicarBuscaPerfil(): void {
+    this.searchTerm = this.searchDraft.trim();
+    this.cdr.markForCheck();
+  }
+
+  limparBuscaPerfil(): void {
+    this.searchDraft = '';
+    this.searchTerm = '';
+    this.cdr.markForCheck();
   }
 
   private buildMenuCatalogFromProfiles(items: Record<string, unknown>[]): MenuAdmin[] {
@@ -698,16 +714,6 @@ export class AcessosPerfisPageComponent implements OnInit {
     };
   }
 
-  private isPerfilPadraoBloqueado(item: ApplicationRole | null | undefined): boolean {
-    if (!item) return false;
-    const id = this.toOptionalNumber(item.id);
-    const perfilId = this.toOptionalNumber(item.perfilId);
-    return (
-      id === AcessosPerfisPageComponent.PERFIL_PADRAO_BLOQUEADO_ID ||
-      perfilId === AcessosPerfisPageComponent.PERFIL_PADRAO_BLOQUEADO_ID
-    );
-  }
-
   private getPermissionIdToKeyMap(): Map<number, string> {
     const map = new Map<number, string>();
     for (const menu of this.backendMenuCatalog()) {
@@ -764,13 +770,6 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
 
     const dto: PerfilUpsertInput = this.toUpsertPayload(kind === 'edit' ? this.editItem() : null);
-    if (kind === 'edit' && this.isPerfilPadraoBloqueado(this.editItem())) {
-      this.saving.set(false);
-      this.saveError.set('Perfil padrão não pode ser alterado.');
-      this.toast.show('Perfil padrão não pode ser alterado.', 'warning');
-      this.cdr.markForCheck();
-      return;
-    }
 
     if (kind === 'edit') {
       const item = this.editItem();

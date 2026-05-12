@@ -92,9 +92,12 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.isMovimentosRoute.set(movimentos);
     const estacionamento = url.includes('/cadastro/estacionamento');
     const transportadora = url.includes('/cadastro/transportadora');
+    const financeiro = url.includes('/financeiro');
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');
-    this.isFullWidthContent.set(movimentos || estacionamento || transportadora || acessos || gerenciamento);
+    this.isFullWidthContent.set(
+      movimentos || estacionamento || transportadora || financeiro || acessos || gerenciamento
+    );
   }
 
   ngOnDestroy(): void {

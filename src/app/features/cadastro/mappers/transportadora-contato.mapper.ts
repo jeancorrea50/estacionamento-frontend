@@ -10,18 +10,6 @@ export interface Trspc1Meta {
   g?: string;
 }
 
-export function encodeTrspc1Meta(meta: Trspc1Meta): string {
-  const payload: Trspc1Meta = {
-    n: meta.n?.trim() || undefined,
-    c: meta.c?.replace(/\D/g, '') || undefined,
-    e: meta.e?.trim() || undefined,
-    g: meta.g?.trim() || undefined
-  };
-  const keys = Object.keys(payload).filter((k) => (payload as Record<string, string | undefined>)[k]);
-  if (keys.length === 0) return '';
-  return TRSPC1_PREFIX + JSON.stringify(payload);
-}
-
 export function decodeTrspc1Meta(observacao: string | null | undefined): Trspc1Meta {
   const raw = String(observacao ?? '').trim();
   if (!raw.startsWith(TRSPC1_PREFIX)) return {};
@@ -33,6 +21,41 @@ export function decodeTrspc1Meta(observacao: string | null | undefined): Trspc1M
   }
 }
 
+/** Telefone opcional em JSON legado (`t`) fora do contrato `Trspc1Meta`. */
+export type ContatoObservacaoParsed = Trspc1Meta & { t?: string };
+
+/**
+ * Interpreta `observacao` ao ler GET/respostas antigas:
+ * - `trspc1:{...}` (legado interno)
+ * - JSON `{ "n", "c", "e", "t", "g" }` sem prefixo (legado)
+ * - vazio / texto livre → sem metadados
+ */
+export function parseObservacaoContato(observacao: string | null | undefined): ContatoObservacaoParsed {
+  const raw = String(observacao ?? '').trim();
+  if (!raw) return {};
+  if (raw.startsWith(TRSPC1_PREFIX)) {
+    return decodeTrspc1Meta(raw) as ContatoObservacaoParsed;
+  }
+  if (raw.startsWith('{')) {
+    try {
+      const o = JSON.parse(raw) as Record<string, unknown>;
+      if (!o || typeof o !== 'object') return {};
+      const str = (x: unknown): string =>
+        typeof x === 'string' ? x : x != null && x !== '' ? String(x) : '';
+      return {
+        n: str(o['n']).trim() || undefined,
+        c: str(o['c']).replace(/\D/g, '') || undefined,
+        e: str(o['e']).trim() || undefined,
+        g: str(o['g']).trim() || undefined,
+        t: str(o['t']).trim() || undefined
+      };
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 export function buildContatoPayload(
   opts: {
     principal: boolean;
@@ -40,7 +63,6 @@ export function buildContatoPayload(
     meta: Trspc1Meta;
   }
 ): TransportadoraContatoPayload {
-  const observacao = encodeTrspc1Meta(opts.meta);
   const nome = opts.meta.n?.trim();
   const cpf = opts.meta.c?.replace(/\D/g, '');
   const email = opts.meta.e?.trim();
@@ -50,7 +72,8 @@ export function buildContatoPayload(
     cpf: cpf || '',
     telefone: opts.telefoneDigits,
     email: email || '',
-    observacao: observacao || (opts.principal ? 'Contato principal' : 'Contato complementar')
+    /** Contrato API: campo livre; dados do contato vão em descricao/cpf/telefone/email — não serializar JSON aqui. */
+    observacao: ''
   };
 }
 

@@ -1,9 +1,14 @@
 import { Routes } from '@angular/router';
-import { FinanceiroPageComponent } from './pages/financeiro-page/financeiro-page.component';
+import { FaturamentoPageComponent } from './pages/faturamento-page/faturamento-page.component';
 
 export const FINANCEIRO_ROUTES: Routes = [
   {
     path: '',
-    component: FinanceiroPageComponent
+    pathMatch: 'full',
+    redirectTo: 'faturamento'
+  },
+  {
+    path: 'faturamento',
+    component: FaturamentoPageComponent
   }
 ];

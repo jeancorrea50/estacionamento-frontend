@@ -198,7 +198,7 @@ export class FaturamentoVisaoGeralComponent {
     type: 'area',
     height: 252,
     fontFamily: 'inherit',
-    foreColor: '#94a3b8',
+    foreColor: '#8ea0b8',
     background: 'transparent',
     toolbar: { show: false },
     zoom: { enabled: false },
@@ -214,7 +214,7 @@ export class FaturamentoVisaoGeralComponent {
 
   readonly evolutionXaxis: ApexXAxis = {
     categories: this.visaoEvolucaoMensal.map((b) => b.mes),
-    labels: { style: { colors: '#94a3b8', fontSize: '11px', fontWeight: 600 } },
+    labels: { style: { colors: '#8ea0b8', fontSize: '11px', fontWeight: 600 } },
     axisBorder: { show: false },
     axisTicks: { show: false }
   };
@@ -235,7 +235,7 @@ export class FaturamentoVisaoGeralComponent {
   };
 
   readonly evolutionGrid: ApexGrid = {
-    borderColor: 'rgba(148, 163, 184, 0.18)',
+    borderColor: 'rgba(148, 163, 184, 0.22)',
     strokeDashArray: 4,
     padding: { top: 8, right: 8, bottom: 0, left: 8 }
   };
@@ -253,7 +253,7 @@ export class FaturamentoVisaoGeralComponent {
     type: 'bar',
     height: 252,
     fontFamily: 'inherit',
-    foreColor: '#94a3b8',
+    foreColor: '#8ea0b8',
     background: 'transparent',
     toolbar: { show: false }
   };
@@ -277,7 +277,7 @@ export class FaturamentoVisaoGeralComponent {
 
   readonly statusXaxis: ApexXAxis = {
     categories: this.visaoPorStatus.map((s) => s.status),
-    labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
+    labels: { style: { colors: '#8ea0b8', fontSize: '11px' } },
     axisBorder: { show: false },
     axisTicks: { show: false }
   };
@@ -291,11 +291,11 @@ export class FaturamentoVisaoGeralComponent {
       return `${q} (${pct}%)`;
     },
     offsetX: 6,
-    style: { colors: ['#e2e8f0'], fontSize: '11px', fontWeight: 600 }
+    style: { colors: ['#f8fafc'], fontSize: '11px', fontWeight: 600 }
   };
 
   readonly statusGrid: ApexGrid = {
-    borderColor: 'rgba(148, 163, 184, 0.12)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
     padding: { top: 0, right: 12, bottom: 0, left: 0 },
     xaxis: { lines: { show: true } },
     yaxis: { lines: { show: false } }
@@ -305,7 +305,7 @@ export class FaturamentoVisaoGeralComponent {
     type: 'bar',
     height: 252,
     fontFamily: 'inherit',
-    foreColor: '#94a3b8',
+    foreColor: '#8ea0b8',
     background: 'transparent',
     toolbar: { show: false }
   };
@@ -328,7 +328,7 @@ export class FaturamentoVisaoGeralComponent {
 
   readonly modalXaxis: ApexXAxis = {
     categories: this.visaoPorModalidade.map((m) => m.modalidade),
-    labels: { style: { colors: '#94a3b8', fontSize: '11px' } },
+    labels: { style: { colors: '#8ea0b8', fontSize: '11px' } },
     axisBorder: { show: false },
     axisTicks: { show: false }
   };
@@ -337,11 +337,11 @@ export class FaturamentoVisaoGeralComponent {
     enabled: true,
     formatter: (val: number) => this.formatCurrency(Number(val)),
     offsetX: 4,
-    style: { colors: ['#e2e8f0'], fontSize: '11px', fontWeight: 600 }
+    style: { colors: ['#f8fafc'], fontSize: '11px', fontWeight: 600 }
   };
 
   readonly modalGrid: ApexGrid = {
-    borderColor: 'rgba(148, 163, 184, 0.12)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
     padding: { top: 0, right: 8, bottom: 0, left: 0 },
     xaxis: { lines: { show: true } },
     yaxis: { lines: { show: false } }

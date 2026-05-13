@@ -1002,10 +1002,6 @@ header.page-header.fat-header {
   color: var(--muted);
 }
 
-html.theme-dark .fat-panel {
-  box-shadow: none;
-}
-
 html.theme-dark .fat-metric,
 html.theme-dark .fat-config-row,
 html.theme-dark .fat-dash__head,
@@ -1016,7 +1012,6 @@ html.theme-dark .fat-kpi {
 }
 
 html.theme-dark .fat-metric,
-html.theme-dark .fat-config-row,
 html.theme-dark .fat-kpi,
 html.theme-dark .fat-alert-card {
   background: rgba(255, 255, 255, 0.03);
@@ -1150,34 +1145,243 @@ html.theme-dark .fat-status--cancelada {
 .fat-mat-header__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
   align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
   max-width: 100%;
+  min-width: 0;
 }
 
-.fat-mat-btn .material-symbols-outlined {
+.fat-mat-header__secondary-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Primário à direita do bloco de ações (padrão Buscar + Novo no Gerenciamento). */
+.fat-mat-header__primary {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .fat-mat-header__actions {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+}
+
+.fat-mat-header__actions .btn.fat-mat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.fat-mat-header__actions .fat-mat-btn .material-symbols-outlined {
   font-size: 18px;
-  margin-right: 4px;
-  vertical-align: middle;
   line-height: 1;
 }
 
-.fat-mat-tabs {
-  margin-top: 6px;
+.fat-fin-tab-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  flex-wrap: wrap;
+  margin-top: 2px;
+  min-width: 0;
 }
 
-:host ::ng-deep .fat-mat-tabs.mat-mdc-tab-group .mat-mdc-tab-body-wrapper {
-  flex: 1 1 auto;
+.fat-fin-tab-row.page-header__row--2 {
+  align-items: stretch;
+  min-height: 0;
 }
 
-:host ::ng-deep .fat-mat-tabs.mat-mdc-tab-group .mat-mdc-tab-body-content {
+/* Abas: mesmo padrão visual de Gerenciamento (nav .tabs + .tab--active + barra inferior). */
+.fat-fin-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  width: 100%;
+  max-width: 100%;
+}
+
+.fat-fin-tabs__tab {
+  position: relative;
+  height: 40px;
+  padding: 0 1.25rem;
+  margin-bottom: -1px;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+  box-sizing: border-box;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-bottom: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.fat-fin-tabs__tab:hover {
+  color: color-mix(in srgb, var(--text) 88%, var(--muted));
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.fat-fin-tabs__tab.tab--active {
+  color: var(--text);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--surface-2) 75%, transparent);
+  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+.fat-fin-tabs__tab.tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary, #4d7cfe);
+}
+
+.fat-fin-tab-body {
   overflow-x: hidden;
   overflow-y: visible;
   padding: 12px 2px 8px;
   min-width: 0;
 }
 
-.fat-tab-panel {
-  margin-top: 0;
+@media (max-width: 768px) {
+  .fat-fin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .fat-fin-tabs__tab {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Dark mode premium — hierarquia fundo da página > shell > cards (só Faturamento)
+   Tokens herdados por Visão Geral / Faturas / abas com .fat-panel.
+   ----------------------------------------------------------------------------- */
+html.theme-dark :host .faturamento-shell {
+  --fat-page-canvas: #08111f;
+  --fat-shell-surface: #101a2e;
+  --fat-card-bg: #151f34;
+  --fat-card-bg-elevated: #18243a;
+  --fat-card-border: rgba(96, 130, 190, 0.32);
+  --fat-card-border-accent: rgba(59, 130, 246, 0.35);
+  --fat-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --fat-card-shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.14);
+  --fat-card-shadow-hover: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2);
+  --fat-card-title: #9caec8;
+  --fat-card-value: #f8fafc;
+  --fat-card-muted: #8ea0b8;
+}
+
+html.theme-dark :host .fat-mat-page-wrap {
+  background: var(--fat-page-canvas);
+  border-radius: 16px;
+}
+
+html.theme-dark :host .fat-mat-page.mat-mdc-card {
+  background-color: var(--fat-shell-surface) !important;
+  border: 1px solid var(--fat-card-border) !important;
+  box-shadow: var(--fat-card-shadow);
+}
+
+html.theme-dark :host .fat-panel {
+  background: var(--fat-card-bg);
+  border: 1px solid var(--fat-card-border);
+  box-shadow: var(--fat-card-shadow-soft);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+html.theme-dark :host .fat-panel:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: var(--fat-card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+html.theme-dark :host .fat-panel__title {
+  color: var(--fat-card-title);
+}
+
+html.theme-dark :host .fat-panel__hint {
+  color: var(--fat-card-muted);
+}
+
+html.theme-dark :host .fat-table-wrap {
+  border: 1px solid var(--fat-card-border);
+  background: color-mix(in srgb, var(--fat-card-bg) 94%, black);
+}
+
+html.theme-dark :host .fat-config-row {
+  background: var(--fat-card-bg-elevated);
+  border: 1px solid var(--fat-card-border);
+  box-shadow: var(--fat-card-shadow-soft);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+html.theme-dark :host .fat-config-row:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: var(--fat-card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+html.theme-dark :host .fat-config-row__name {
+  color: var(--fat-card-value);
+}
+
+html.theme-dark :host .fat-config-row__meta {
+  color: var(--fat-card-muted);
+}
+
+html.theme-dark :host .fat-mat-header .page-title {
+  color: var(--fat-card-value);
+}
+
+html.theme-dark :host .fat-fin-tabs {
+  border-bottom-color: var(--fat-card-border);
 }

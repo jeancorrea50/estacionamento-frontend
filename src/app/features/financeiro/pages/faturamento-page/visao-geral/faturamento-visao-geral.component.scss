@@ -46,7 +46,7 @@
 .visao-geral__hero-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px 16px;
 }
@@ -68,82 +68,6 @@
   font-size: 13px;
   color: var(--muted);
   line-height: 1.35;
-}
-
-.visao-geral__periodo {
-  flex-shrink: 0;
-  border-radius: 999px !important;
-  border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 2px;
-}
-
-.visao-geral__periodo .mat-button-toggle {
-  border: none !important;
-  background: transparent;
-}
-
-.visao-geral__periodo .mat-button-toggle-label-content {
-  padding: 0 12px;
-  line-height: 32px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.visao-geral__periodo .mat-button-toggle-checked {
-  background: rgba(59, 130, 246, 0.22) !important;
-  border-radius: 999px !important;
-}
-
-.visao-geral__periodo .mat-button-toggle-checked .mat-button-toggle-label-content {
-  color: #93c5fd;
-}
-
-.visao-geral__periodo-ico {
-  font-size: 16px;
-  margin-left: 4px;
-  vertical-align: middle;
-  opacity: 0.9;
-}
-
-/* Tema escuro: leitura forte (texto/branco, borda visível, azul #3b82f6 no selecionado). */
-html.theme-dark .visao-geral__periodo {
-  border: 1px solid rgba(248, 250, 252, 0.42) !important;
-  background: rgba(15, 23, 42, 0.65);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-html.theme-dark .visao-geral__periodo .mat-button-toggle:not(.mat-button-toggle-checked) .mat-button-toggle-label-content {
-  color: #f8fafc !important;
-}
-
-html.theme-dark .visao-geral__periodo .mat-button-toggle-checked {
-  background: #3b82f6 !important;
-  border-radius: 999px !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.2),
-    0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-html.theme-dark .visao-geral__periodo .mat-button-toggle-checked .mat-button-toggle-label-content {
-  color: #ffffff !important;
-}
-
-html.theme-dark .visao-geral__periodo .visao-geral__periodo-ico {
-  color: inherit;
-  opacity: 1;
-}
-
-.visao-geral__custom-dates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.visao-geral__date-field {
-  flex: 1 1 160px;
-  max-width: 220px;
 }
 
 .visao-geral__section-label {
@@ -366,7 +290,63 @@ html.theme-dark .visao-geral__periodo .visao-geral__periodo-ico {
   width: 100%;
   max-width: 100%;
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
+}
+
+/* Evolução: Apex usa min-width fixo no container e estoura o card em colunas estreitas. */
+:host ::ng-deep .visao-chart-card--evolucao .apexcharts-container {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+:host ::ng-deep .visao-chart-card--evolucao .apexcharts-canvas {
+  margin: 0 auto;
+}
+
+/*
+ * Camada HTML do Apex (foreignObject): ajuste da prévia do navegador para não colidir
+ * com os rótulos do eixo Y. O SVG precisa ser position: relative para o absolute do foreignObject.
+ */
+:host ::ng-deep .visao-chart-card--evolucao .apexcharts-svg {
+  position: relative;
+}
+
+:host ::ng-deep .visao-chart-card--evolucao .apexcharts-svg > foreignObject {
+  width: 239px !important;
+  height: 240px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  position: absolute !important;
+  top: 251px !important;
+  /* Desloca a camada para a direita (evita colisão com eixo Y), conforme ajuste na prévia. */
+  left: 100px !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* Tooltip do gráfico de evolução: HTML custom (sem coluna de série à esquerda). */
+:host ::ng-deep .visao-evolucao-tooltip {
+  padding: 10px 12px;
+  text-align: center;
+  min-width: 108px;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .visao-evolucao-tooltip__mes {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+:host ::ng-deep .visao-evolucao-tooltip__valor {
+  font-size: 14px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Rodapé: cards com mesma altura visual */
@@ -405,8 +385,22 @@ html.theme-dark .visao-geral__periodo .visao-geral__periodo-ico {
 }
 
 .visao-bottom-card__pad--table {
-  gap: 6px;
-  padding: 4px 0 8px !important;
+  padding: 0 !important;
+  flex: 1 1 auto;
+}
+
+.visao-alert__trail .visao-chip {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.visao-link-footer--due-block {
+  align-self: stretch;
+  width: 100%;
+  margin-top: 0;
+  padding: 8px 12px 10px !important;
+  text-align: left;
+  box-sizing: border-box;
 }
 
 /* ---------- Alertas (lista nativa, sem mat-button no item) ---------- */
@@ -515,16 +509,6 @@ html.theme-dark .visao-geral__periodo .visao-geral__periodo-ico {
   flex-shrink: 0;
 }
 
-.visao-table-wrap {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  border-radius: 10px;
-  border: 1px solid var(--border-subtle);
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 .visao-link-footer {
   align-self: flex-start;
   margin-top: 2px;
@@ -584,49 +568,6 @@ html.theme-dark .visao-geral__periodo .visao-geral__periodo-ico {
   background: rgba(71, 85, 105, 0.14);
   color: #94a3b8;
   border-color: rgba(71, 85, 105, 0.25);
-}
-
-/* Tabela Material: densidade e tipografia */
-:host ::ng-deep .visao-table.mat-mdc-table {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-:host ::ng-deep .visao-table .mat-mdc-header-row {
-  height: 40px;
-}
-
-:host ::ng-deep .visao-table .mat-mdc-header-cell {
-  font-family: inherit !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted) !important;
-  padding: 0 10px !important;
-  border-bottom: 1px solid var(--border-subtle);
-  background: rgba(100, 116, 139, 0.08);
-}
-
-:host ::ng-deep .visao-table .mat-mdc-row {
-  height: 42px;
-}
-
-:host ::ng-deep .visao-table .mat-mdc-cell {
-  font-family: inherit !important;
-  font-size: 13px !important;
-  padding: 0 10px !important;
-  border-bottom: 1px solid var(--border-subtle);
-  vertical-align: middle;
-}
-
-:host ::ng-deep .visao-table .mat-mdc-row:last-child .mat-mdc-cell {
-  border-bottom: none;
-}
-
-.visao-table__num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
 /* Cards: fundo mais claro que o shell + borda + sombra (tokens em .faturamento-shell). */
@@ -703,22 +644,6 @@ html.theme-dark .visao-kpi__value--danger {
 
 html.theme-dark .visao-metric__value--muted {
   color: color-mix(in srgb, var(--fat-card-muted, #8ea0b8) 88%, var(--fat-card-value, #f8fafc));
-}
-
-html.theme-dark .visao-table-wrap {
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 92%, black);
-}
-
-html.theme-dark :host ::ng-deep .visao-table .mat-mdc-header-cell {
-  color: var(--fat-card-muted, #8ea0b8) !important;
-  border-bottom-color: var(--fat-card-border, rgba(96, 130, 190, 0.28)) !important;
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 88%, white 3%) !important;
-}
-
-html.theme-dark :host ::ng-deep .visao-table .mat-mdc-cell {
-  color: var(--fat-card-value, #f8fafc);
-  border-bottom-color: var(--fat-card-border, rgba(96, 130, 190, 0.22)) !important;
 }
 
 html.theme-dark .visao-link-footer {

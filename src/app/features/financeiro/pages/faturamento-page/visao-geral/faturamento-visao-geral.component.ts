@@ -3,10 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleChange, MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatTableModule } from '@angular/material/table';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import type {
   ApexAxisChartSeries,
@@ -18,7 +16,8 @@ import type {
   ApexStroke,
   ApexTheme,
   ApexTooltip,
-  ApexXAxis
+  ApexXAxis,
+  ApexYAxis
 } from 'ng-apexcharts';
 
 import type { FaturaStatusVisao, PeriodoFiltroId } from '../faturamento-visao.types';
@@ -66,14 +65,12 @@ interface ProximoVencimento {
     FormsModule,
     MatCardModule,
     MatButtonModule,
-    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
-    MatTableModule,
     NgApexchartsModule
   ],
   templateUrl: './faturamento-visao-geral.component.html',
-  styleUrl: './faturamento-visao-geral.component.scss'
+  styleUrls: ['./faturamento-visao-geral.component.scss', '../faturas/faturamento-faturas.component.scss']
 })
 export class FaturamentoVisaoGeralComponent {
   readonly periodoOpcoes: PeriodoOpcao[] = [
@@ -192,17 +189,19 @@ export class FaturamentoVisaoGeralComponent {
     }
   ];
 
-  readonly displayedColumns: string[] = ['transportadora', 'valor', 'vencimento', 'status'];
-
   readonly evolutionChart: ApexChart = {
     type: 'area',
     height: 252,
+    width: '100%',
     fontFamily: 'inherit',
     foreColor: '#8ea0b8',
     background: 'transparent',
     toolbar: { show: false },
     zoom: { enabled: false },
-    animations: { enabled: true, speed: 400 }
+    animations: { enabled: true, speed: 400 },
+    redrawOnParentResize: true,
+    offsetX: 0,
+    offsetY: 0
   };
 
   readonly evolutionSeries: ApexAxisChartSeries = [
@@ -214,9 +213,34 @@ export class FaturamentoVisaoGeralComponent {
 
   readonly evolutionXaxis: ApexXAxis = {
     categories: this.visaoEvolucaoMensal.map((b) => b.mes),
-    labels: { style: { colors: '#8ea0b8', fontSize: '11px', fontWeight: 600 } },
+    labels: {
+      style: { colors: '#8ea0b8', fontSize: '10px', fontWeight: 600 },
+      rotate: -38,
+      rotateAlways: true,
+      hideOverlappingLabels: true,
+      trim: true,
+      maxHeight: 64
+    },
     axisBorder: { show: false },
-    axisTicks: { show: false }
+    axisTicks: { show: false },
+    crosshairs: { show: false },
+    tooltip: { enabled: false }
+  };
+
+  /** Eixo Y à esquerda: rótulos curtos; não usar minWidth 0 (colapsa a faixa e o gráfico sobrepõe os números). */
+  readonly evolutionYaxis: ApexYAxis = {
+    labels: {
+      align: 'right',
+      offsetX: 2,
+      style: { fontSize: '10px', colors: '#8ea0b8' },
+      formatter: (val: string | number) => {
+        const n = Number(val);
+        if (!Number.isFinite(n)) return '';
+        if (Math.abs(n) >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`;
+        if (Math.abs(n) >= 1_000) return `${Math.round(n / 100) / 10}k`;
+        return String(Math.round(n));
+      }
+    }
   };
 
   readonly evolutionStroke: ApexStroke = {
@@ -237,13 +261,32 @@ export class FaturamentoVisaoGeralComponent {
   readonly evolutionGrid: ApexGrid = {
     borderColor: 'rgba(148, 163, 184, 0.22)',
     strokeDashArray: 4,
-    padding: { top: 8, right: 8, bottom: 0, left: 8 }
+    padding: { top: 6, right: 4, bottom: 40, left: 48 },
+    xaxis: { lines: { show: false } },
+    yaxis: { lines: { show: true } }
   };
 
+  /** Tooltip só com mês + valor (sem coluna lateral de marcador/nome da série). */
   readonly evolutionTooltip: ApexTooltip = {
     theme: 'dark',
-    y: {
-      formatter: (val: number) => this.formatCurrency(val)
+    custom: (opts: { dataPointIndex?: number }) => {
+      const idx = opts.dataPointIndex ?? -1;
+      const row = idx >= 0 ? this.visaoEvolucaoMensal[idx] : undefined;
+      if (!row) {
+        return '<div class="visao-evolucao-tooltip"></div>';
+      }
+      const mes = row.mes;
+      const val = row.valor;
+      return (
+        '<div class="visao-evolucao-tooltip">' +
+        '<div class="visao-evolucao-tooltip__mes">' +
+        this.escapeHtml(mes) +
+        '</div>' +
+        '<div class="visao-evolucao-tooltip__valor">' +
+        this.escapeHtml(this.formatCurrency(val)) +
+        '</div>' +
+        '</div>'
+      );
     }
   };
 
@@ -368,16 +411,20 @@ export class FaturamentoVisaoGeralComponent {
     monochrome: { enabled: false }
   };
 
-  setPeriodoFromToggle(ev: MatButtonToggleChange): void {
-    this.setPeriodo(ev.value as PeriodoFiltroId);
-  }
-
   setPeriodo(id: PeriodoFiltroId): void {
     this.periodoFiltro.set(id);
   }
 
   formatCurrency(v: number): string {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  private escapeHtml(s: string): string {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   totalQuantidadeStatus(): number {

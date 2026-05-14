@@ -20,46 +20,74 @@
 }
 
 .fat-faturas__hero .mat-mdc-card-content {
-  padding-bottom: 12px !important;
+  padding: 14px 16px 16px !important;
 }
 
 .fat-faturas__hero-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px 16px;
+  gap: 12px 20px;
+  margin-bottom: 2px;
 }
 
 .fat-faturas__titles {
   min-width: 0;
+  flex: 1 1 200px;
 }
 
 .fat-faturas__title {
-  margin: 0 0 4px;
-  font-size: 1.05rem;
+  margin: 0 0 6px;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .fat-faturas__subtitle {
   margin: 0;
   font-size: 13px;
   color: var(--muted);
-  line-height: 1.35;
+  line-height: 1.45;
+  max-width: 52ch;
 }
 
-/* Período: mesma linguagem visual dos botões do cabeçalho (secundário + primário no ativo). */
+/* Período: segment control compacto (mesma ideia da visão geral). */
 .fat-faturas__periodo {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
+  margin-left: 474px;
+  margin-right: 474px;
+  width: 411px;
+  height: 46px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 88%, var(--muted) 12%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-.fat-faturas__periodo .btn.fat-mat-btn,
+.fat-faturas__periodo .btn.fat-mat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: none !important;
+  box-sizing: border-box;
+}
+
 .fat-faturas__batch-actions .btn.fat-mat-btn {
   display: inline-flex;
   align-items: center;
@@ -77,7 +105,7 @@
 
 .fat-faturas__periodo .fat-mat-btn .material-symbols-outlined,
 .fat-faturas__batch-actions .fat-mat-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1;
 }
 
@@ -88,8 +116,10 @@
 .fat-faturas__custom-dates {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .fat-faturas__date-field {
@@ -97,12 +127,37 @@
   max-width: 220px;
 }
 
+/* Painel de selects: agrupa filtros com respiro e leitura clara. */
+.fat-faturas__filters-shell {
+  margin-top: 14px;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 96%, var(--muted) 4%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.fat-faturas__panel-label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
 .fat-faturas__filters {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: 10px 12px;
-  margin-top: 14px;
   min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .fat-faturas__filters {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .fat-faturas__field {
@@ -110,20 +165,21 @@
   min-width: 0;
 }
 
-.fat-faturas__section-label {
-  margin: 14px 0 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+/* Chips de situação: faixa separada, menos ruído que misturar com selects. */
+.fat-faturas__quick-shell {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fat-faturas__quick-shell .fat-faturas__panel-label {
+  margin-bottom: 8px;
 }
 
 .fat-faturas__quick {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
 }
 
 .fat-faturas__qf {
@@ -187,26 +243,40 @@
 }
 
 .fat-faturas__table-card .mat-mdc-card-content {
-  padding: 12px 12px 14px !important;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 10px 10px 12px !important;
 }
 
 .fat-faturas__table-head {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  margin-bottom: 6px;
 }
 
 .fat-faturas__result-count {
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
+/* Área rolável: antes usava overflow-x hidden e cortava colunas (Ações, Envio, etc.). */
 .fat-faturas__table-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
   min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 94%, transparent);
+  scrollbar-gutter: stable;
 }
 
 .fat-faturas__empty {
@@ -224,6 +294,7 @@
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid transparent;
+  line-height: 1.15;
 }
 
 .fat-faturas-chip--pago {
@@ -269,8 +340,16 @@
   flex-wrap: nowrap;
 }
 
+/* Botões de ação mais compactos na tabela */
+:host ::ng-deep .fat-faturas-table__col-ac .mat-mdc-icon-button {
+  --mdc-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
 .fat-faturas-ico .material-symbols-outlined {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .fat-faturas-menu-ico {
@@ -285,14 +364,17 @@
 }
 
 :host ::ng-deep .fat-faturas-table.mat-mdc-table {
-  width: 100%;
-  max-width: 100%;
-  table-layout: fixed;
-  background: rgba(255, 255, 255, 0.02);
+  /* auto: colunas pelo conteúdo; rolagem horizontal quando o card é mais estreito que a tabela */
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
 }
 
 :host ::ng-deep .fat-faturas-table .mat-mdc-header-row {
-  height: 40px;
+  height: 34px;
 }
 
 :host ::ng-deep .fat-faturas-table .mat-mdc-header-cell {
@@ -301,22 +383,40 @@
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.15 !important;
   color: var(--muted) !important;
   padding: 0 8px !important;
   border-bottom: 1px solid var(--border-subtle);
   background: rgba(100, 116, 139, 0.08);
+  white-space: nowrap;
 }
 
 :host ::ng-deep .fat-faturas-table .mat-mdc-cell {
-  padding: 0 8px !important;
+  padding: 4px 8px !important;
   font-size: 12px;
+  line-height: 1.25;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
+  color: var(--text);
   overflow: hidden;
 }
 
 :host ::ng-deep .fat-faturas-table .mat-mdc-row {
-  height: 44px;
+  height: auto;
+  min-height: 36px;
+}
+
+/* Ícones de ação e foco: não clipar no eixo horizontal */
+:host ::ng-deep .fat-faturas-table__col-ac.mat-mdc-cell,
+:host ::ng-deep .fat-faturas-table__col-ac.mat-mdc-header-cell {
+  overflow: visible;
+  width: 1%;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .fat-faturas-table__col-select.mat-mdc-cell,
+:host ::ng-deep .fat-faturas-table__col-select.mat-mdc-header-cell {
+  overflow: visible;
 }
 
 .fat-faturas-table__col-select {
@@ -337,13 +437,16 @@
 }
 
 .fat-faturas-table__mono {
+  font-family: inherit;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  font-size: 12px;
   color: var(--text);
 }
 
 .fat-faturas-table__ellipsis {
   display: block;
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -351,11 +454,13 @@
 
 .fat-faturas-table__env {
   display: block;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 @media (max-width: 1100px) {
@@ -388,6 +493,23 @@ html.theme-dark .fat-faturas__table-card {
     transform 0.18s ease;
 }
 
+html.theme-dark .fat-faturas__filters-shell {
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 94%, white 4%);
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.28));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.theme-dark .fat-faturas__periodo {
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, var(--fat-card-muted, #8ea0b8) 18%);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.theme-dark .fat-faturas__custom-dates,
+html.theme-dark .fat-faturas__quick-shell {
+  border-top-color: var(--fat-card-border, rgba(96, 130, 190, 0.22));
+}
+
 html.theme-dark .fat-faturas__hero:hover,
 html.theme-dark .fat-faturas__table-card:hover {
   border-color: rgba(96, 165, 250, 0.45) !important;
@@ -406,7 +528,7 @@ html.theme-dark .fat-faturas__title {
 }
 
 html.theme-dark .fat-faturas__subtitle,
-html.theme-dark .fat-faturas__section-label,
+html.theme-dark .fat-faturas__panel-label,
 html.theme-dark .fat-faturas__result-count {
   color: var(--fat-card-muted, #8ea0b8);
 }
@@ -430,6 +552,11 @@ html.theme-dark :host ::ng-deep .fat-faturas-table .mat-mdc-cell {
   border-bottom-color: var(--fat-card-border, rgba(96, 130, 190, 0.22)) !important;
 }
 
+html.theme-dark .fat-faturas__table-scroll {
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.28));
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 92%, black);
+}
+
 html.theme-dark :host ::ng-deep .fat-faturas-table .mat-mdc-row:last-child .mat-mdc-cell {
   border-bottom-color: transparent !important;
 }
@@ -440,6 +567,21 @@ html.theme-dark .fat-faturas-table__mono {
 
 html.theme-dark .fat-faturas-table__env {
   color: var(--fat-card-muted, #8ea0b8);
+}
+
+/* Ações: ícones brancos no tema escuro (legibilidade no fundo escuro da tabela). */
+html.theme-dark :host ::ng-deep .fat-faturas-table__col-ac .mat-mdc-icon-button {
+  color: #ffffff !important;
+  --mdc-icon-button-icon-color: #ffffff;
+}
+
+html.theme-dark :host ::ng-deep .fat-faturas-table__col-ac .fat-faturas-ico .material-symbols-outlined {
+  color: #ffffff;
+}
+
+html.theme-dark :host ::ng-deep .fat-faturas-table__col-ac .mat-mdc-icon-button:hover {
+  color: #f8fafc !important;
+  --mdc-icon-button-icon-color: #f8fafc;
 }
 
 /* Período e lote (Faturas): contraste alto no escuro — alinhado ao azul #3b82f6 da referência “Nova Fatura”. */

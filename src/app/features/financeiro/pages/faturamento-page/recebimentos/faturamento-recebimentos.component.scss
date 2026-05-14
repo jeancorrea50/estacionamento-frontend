@@ -1,0 +1,409 @@
+:host {
+  display: block;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* Hero: ações à direita (mesma ideia das outras abas do faturamento). */
+.rec-hero__row {
+  align-items: flex-start;
+}
+
+/* Bloco de período (visual do segmento vem de fat-faturas__periodo no SCSS da aba Faturas). */
+.rec-hero__periodo-shell {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.rec-hero__periodo-shell .fat-faturas__periodo {
+  margin-left: 474px;
+  margin-right: 474px;
+}
+
+html.theme-dark .rec-hero__periodo-shell {
+  border-top-color: rgba(148, 163, 184, 0.2);
+}
+
+.rec-filters {
+  margin-top: 14px;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 96%, var(--muted) 4%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.rec-filters__label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.rec-filters__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .rec-filters__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.rec-filters__field {
+  width: 100%;
+  min-width: 0;
+}
+
+.rec-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.rec-quick > .rec-filters__label {
+  flex: 1 0 100%;
+  margin: 0 0 8px;
+}
+
+.rec-quick > .btn.fat-mat-btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.rec-quick > .btn.btn-primary.fat-mat-btn {
+  height: 31px;
+  min-height: 31px;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.rec-quick > .btn.btn-secondary.fat-mat-btn {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.rec-quick > .btn.btn-secondary.fat-mat-btn.rec-quick__export-btn {
+  margin-left: 7px;
+  margin-right: 7px;
+  padding-left: 11px;
+  padding-right: 11px;
+}
+
+.rec-quick > .rec-quick__row {
+  flex: 1 0 100%;
+}
+
+.rec-quick__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-quick__chip {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2, rgba(15, 23, 42, 0.04));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.rec-quick__chip:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--btn-primary-bg, #2563eb);
+}
+
+.rec-quick__chip--active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.45);
+  color: var(--btn-primary-bg, #1d4ed8);
+}
+
+.rec-quick__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--btn-primary-bg, #2563eb);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.rec-quick__chip--active .rec-quick__badge {
+  background: rgba(37, 99, 235, 0.22);
+  border-color: rgba(37, 99, 235, 0.45);
+  color: #1e40af;
+}
+
+.rec-metric--laranja {
+  color: #fdba74 !important;
+}
+
+.rec-table-card.mat-mdc-card {
+  min-width: 0;
+}
+
+.rec-table-card__inner.mat-mdc-card-content {
+  padding: 4px 10px 12px !important;
+}
+
+.rec-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 94%, transparent);
+}
+
+:host ::ng-deep .rec-mat-table.mat-mdc-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-header-row {
+  height: 34px;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-header-cell {
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted) !important;
+  padding: 0 8px !important;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(100, 116, 139, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-cell {
+  padding: 4px 8px !important;
+  font-size: 12px;
+  line-height: 1.25;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+  color: var(--text);
+  overflow: hidden;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-row {
+  height: auto;
+  min-height: 36px;
+}
+
+.rec-mat-table__sel {
+  width: 44px;
+  text-align: center;
+}
+
+:host ::ng-deep .rec-mat-table__sel.mat-mdc-cell,
+:host ::ng-deep .rec-mat-table__sel.mat-mdc-header-cell,
+:host ::ng-deep .rec-mat-table__ac.mat-mdc-cell,
+:host ::ng-deep .rec-mat-table__ac.mat-mdc-header-cell {
+  overflow: visible;
+}
+
+:host ::ng-deep .rec-mat-table__ac.mat-mdc-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.rec-mat-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-mat-table__mono {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rec-mat-table__ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-mat-table__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+:host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button {
+  --mdc-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.rec-ico .material-symbols-outlined {
+  font-size: 18px;
+  color: #e2e8f0;
+}
+
+.rec-ico.mat-mdc-icon-button[disabled] .material-symbols-outlined {
+  opacity: 0.35;
+}
+
+.rec-empty {
+  margin: 0;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rec-resumo__empty {
+  margin: 0;
+  padding: 12px 12px 4px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.rec-resumo__hint {
+  margin: 0 0 8px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: #fdba74;
+}
+
+.rec-resumo__dl {
+  margin: 0;
+  padding: 4px 12px 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 14px;
+}
+
+.rec-resumo__dl dt {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.rec-resumo__dl dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rec-resumo__hist-title {
+  margin: 10px 0 0;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rec-hist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.rec-hist-row__ico {
+  font-size: 20px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.rec-hist-row__txt {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.rec-resumo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.rec-menu-ico {
+  font-size: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+  opacity: 0.9;
+}
+
+.rec-inline-partial {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  padding: 4px 12px 8px;
+}
+
+.rec-inline-partial__field {
+  width: 100%;
+}
+
+.rec-inline-partial__upload {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rec-inline-partial__upload .material-symbols-outlined {
+  font-size: 20px;
+  opacity: 0.85;
+}
+
+@media (max-width: 1100px) {
+  :host ::ng-deep .rec-mat-table__forma,
+  :host ::ng-deep .rec-mat-table__dt {
+    display: none;
+  }
+}

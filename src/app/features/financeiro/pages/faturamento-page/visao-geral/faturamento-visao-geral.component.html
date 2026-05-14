@@ -7,31 +7,32 @@
           <h2 class="visao-geral__title">Visão geral</h2>
           <p class="visao-geral__subtitle">Painel resumido do cenário financeiro</p>
         </div>
-        <mat-button-toggle-group
-          class="visao-geral__periodo"
-          [value]="periodoFiltro()"
-          (change)="setPeriodoFromToggle($event)"
-          aria-label="Período"
-          hideSingleSelectionIndicator
-        >
+        <div class="fat-faturas__periodo" role="group" aria-label="Período">
           @for (p of periodoOpcoes; track p.id) {
-            <mat-button-toggle [value]="p.id">
-              {{ p.label }}
+            <button
+              type="button"
+              class="btn fat-mat-btn"
+              [class.btn-primary]="periodoFiltro() === p.id"
+              [class.btn-secondary]="periodoFiltro() !== p.id"
+              [attr.aria-pressed]="periodoFiltro() === p.id"
+              (click)="setPeriodo(p.id)"
+            >
               @if (p.id === 'personalizado') {
-                <span class="material-symbols-outlined visao-geral__periodo-ico" aria-hidden="true">calendar_month</span>
+                <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
               }
-            </mat-button-toggle>
+              {{ p.label }}
+            </button>
           }
-        </mat-button-toggle-group>
+        </div>
       </div>
 
       @if (periodoFiltro() === 'personalizado') {
-        <div class="visao-geral__custom-dates">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="visao-geral__date-field">
+        <div class="fat-faturas__custom-dates">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
             <mat-label>De</mat-label>
             <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
           </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="visao-geral__date-field">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
             <mat-label>Até</mat-label>
             <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
           </mat-form-field>
@@ -149,7 +150,7 @@
 
   <p class="visao-geral__section-label">Indicadores gráficos</p>
   <div class="visao-geral__grid visao-geral__grid--charts">
-    <mat-card class="visao-chart-card" appearance="outlined">
+    <mat-card class="visao-chart-card visao-chart-card--evolucao" appearance="outlined">
       <mat-card-header class="visao-card-head">
         <mat-card-title>Evolução do faturamento</mat-card-title>
         <mat-card-subtitle>Mensal (mock)</mat-card-subtitle>
@@ -159,6 +160,7 @@
           [series]="evolutionSeries"
           [chart]="evolutionChart"
           [xaxis]="evolutionXaxis"
+          [yaxis]="evolutionYaxis"
           [stroke]="evolutionStroke"
           [fill]="evolutionFill"
           [colors]="chartColors"
@@ -240,31 +242,24 @@
         <mat-card-title>Próximos vencimentos</mat-card-title>
       </mat-card-header>
       <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--table">
-        <div class="visao-table-wrap">
-          <table mat-table [dataSource]="proximosVencimentos" class="visao-table">
-            <ng-container matColumnDef="transportadora">
-              <th mat-header-cell *matHeaderCellDef scope="col">Transportadora</th>
-              <td mat-cell *matCellDef="let row">{{ row.transportadora }}</td>
-            </ng-container>
-            <ng-container matColumnDef="valor">
-              <th mat-header-cell *matHeaderCellDef scope="col" class="visao-table__num">Valor</th>
-              <td mat-cell *matCellDef="let row" class="visao-table__num">{{ formatCurrency(row.valor) }}</td>
-            </ng-container>
-            <ng-container matColumnDef="vencimento">
-              <th mat-header-cell *matHeaderCellDef scope="col">Vencimento</th>
-              <td mat-cell *matCellDef="let row">{{ row.vencimento }}</td>
-            </ng-container>
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef scope="col">Status</th>
-              <td mat-cell *matCellDef="let row">
-                <span [class]="statusChipClass(row.status)">{{ row.status }}</span>
-              </td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-          </table>
-        </div>
-        <button mat-button type="button" class="visao-link-footer">
+        <ul class="visao-alert-list" aria-label="Próximos vencimentos">
+          @for (row of proximosVencimentos; track row.vencimento + row.transportadora) {
+            <li class="visao-alert-list__item">
+              <button type="button" class="visao-alert">
+                <span class="material-symbols-outlined visao-alert__ico" aria-hidden="true">event_upcoming</span>
+                <span class="visao-alert__main">
+                  <span class="visao-alert__title">{{ row.transportadora }}</span>
+                  <span class="visao-alert__detail">{{ formatCurrency(row.valor) }} · Vence em {{ row.vencimento }}</span>
+                </span>
+                <span class="visao-alert__trail">
+                  <span [class]="statusChipClass(row.status)">{{ row.status }}</span>
+                  <span class="material-symbols-outlined visao-alert__chev" aria-hidden="true">chevron_right</span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+        <button mat-button type="button" class="visao-link-footer visao-link-footer--due-block">
           Ver todos os vencimentos
           <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </button>

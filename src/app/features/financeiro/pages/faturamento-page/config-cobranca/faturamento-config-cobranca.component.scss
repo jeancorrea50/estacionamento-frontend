@@ -1,0 +1,232 @@
+:host {
+  display: block;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* KPIs contextuais (mesma base de .visao-metric). */
+.cfg-metric-ico-warn {
+  color: #fbbf24;
+}
+
+.cfg-metric-val-warn {
+  color: #fcd34d;
+}
+
+/* Badges de status / envio (espelham .fat-faturas-chip). */
+.cfg-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  line-height: 1.15;
+}
+
+.cfg-chip--ativa {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.cfg-chip--inativa {
+  background: rgba(71, 85, 105, 0.14);
+  color: #94a3b8;
+  border-color: rgba(71, 85, 105, 0.25);
+}
+
+.cfg-chip--pendente {
+  background: rgba(251, 146, 60, 0.14);
+  color: #fdba74;
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+.cfg-chip--sem-email {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.26);
+}
+
+.cfg-chip--envio-sim {
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.cfg-chip--envio-nao {
+  background: rgba(100, 116, 139, 0.14);
+  color: #cbd5e1;
+  border-color: rgba(100, 116, 139, 0.28);
+}
+
+/* Colunas da tabela */
+.cfg-col-est {
+  min-width: 120px;
+  max-width: 160px;
+}
+
+.cfg-col-fech,
+.cfg-col-pz {
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.cfg-col-mail {
+  min-width: 160px;
+  max-width: 240px;
+}
+
+/* Formulário em painel expansível */
+.cfg-accordion {
+  margin-top: 12px;
+}
+
+.cfg-exp-panel {
+  border-radius: 12px !important;
+  border: 1px solid var(--border-subtle) !important;
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 96%, var(--muted) 4%);
+  box-shadow: none;
+}
+
+.cfg-exp-panel .mat-expansion-panel-header {
+  padding: 0 16px;
+}
+
+.cfg-exp-panel .mat-expansion-panel-body {
+  padding: 0 16px 16px;
+}
+
+.cfg-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.cfg-bloco {
+  border-radius: 10px !important;
+  border-color: var(--border-subtle) !important;
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 94%, transparent);
+  box-shadow: none;
+}
+
+.cfg-bloco-head .mat-mdc-card-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cfg-bloco-body {
+  padding-top: 4px !important;
+}
+
+.cfg-fields {
+  display: grid;
+  gap: 10px 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.cfg-fields--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cfg-span-2 {
+  grid-column: span 2;
+}
+
+.cfg-span-3 {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 960px) {
+  .cfg-fields--3 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cfg-span-2,
+  .cfg-span-3 {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .cfg-fields,
+  .cfg-fields--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cfg-field-full {
+  width: 100%;
+}
+
+.cfg-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 8px;
+}
+
+.cfg-toggle-row {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+  grid-template-columns: minmax(140px, 1fr) minmax(100px, 1fr);
+}
+
+.cfg-checks {
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.cfg-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+
+/* Alertas compactos */
+.cfg-alertas-card {
+  margin-top: 8px;
+}
+
+.cfg-alert.cfg-alert--critico {
+  border-left: 3px solid rgba(248, 113, 113, 0.55);
+}
+
+html.theme-dark .cfg-alert.cfg-alert--critico {
+  border-left-color: rgba(248, 113, 113, 0.45);
+}
+
+/* Ícones de ação na tabela (alinhado ao recebimentos) */
+:host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button {
+  --mdc-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.cfg-data-row {
+  cursor: pointer;
+}
+
+.cfg-data-row--selected {
+  background: color-mix(in srgb, rgba(59, 130, 246, 0.22) 100%, transparent) !important;
+}
+
+html.theme-dark .cfg-data-row--selected {
+  background: color-mix(in srgb, rgba(59, 130, 246, 0.18) 100%, transparent) !important;
+}
+
+.cfg-btn-spinner {
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.cfg-btn-spinner circle {
+  stroke: currentColor;
+}

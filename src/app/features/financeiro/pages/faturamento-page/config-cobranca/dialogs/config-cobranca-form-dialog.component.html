@@ -1,0 +1,108 @@
+<h2 mat-dialog-title>{{ titulo }}</h2>
+<p class="cfg-dlg__title-sub">{{ subtitulo }}</p>
+
+@if (errosVisiveis.length) {
+  <div class="cfg-dlg__erros" role="alert">
+    @for (e of errosVisiveis; track e) {
+      <span>{{ e }}</span>
+    }
+  </div>
+}
+
+<mat-dialog-content class="cfg-dlg__body">
+  <div class="cfg-dlg__grid">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field">
+      <mat-label>Transportadora</mat-label>
+      <mat-select [(ngModel)]="transportadora" required>
+        @for (t of data.transportadoras; track t) {
+          <mat-option [value]="t">{{ t }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field">
+      <mat-label>Estacionamento</mat-label>
+      <mat-select [(ngModel)]="estacionamento" required>
+        @for (e of data.estacionamentos; track e) {
+          <mat-option [value]="e">{{ e }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field">
+      <mat-label>Modalidade de cobrança</mat-label>
+      <mat-select [(ngModel)]="modalidade" required>
+        @for (m of data.modalidades; track m) {
+          <mat-option [value]="m">{{ m }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field cfg-dlg__span2">
+      <mat-label>Regra de fechamento</mat-label>
+      <input matInput [(ngModel)]="fechamento" required />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field cfg-dlg__span2">
+      <mat-label>Prazo de vencimento</mat-label>
+      <input matInput [(ngModel)]="prazoVencimento" required />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field cfg-dlg__span2">
+      <mat-label>E-mail financeiro</mat-label>
+      <input matInput type="email" [(ngModel)]="email" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field">
+      <mat-label>Status da configuração</mat-label>
+      <mat-select [(ngModel)]="status">
+        @for (s of data.statusOpcoes; track s) {
+          <mat-option [value]="s">{{ s }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="cfg-dlg__toggles">
+    <mat-slide-toggle [(ngModel)]="envioAuto">Envio automático por e-mail</mat-slide-toggle>
+    <mat-slide-toggle [(ngModel)]="gerarAuto">Gerar fatura automaticamente</mat-slide-toggle>
+    <mat-slide-toggle [(ngModel)]="pagamentoParcial">Permitir pagamento parcial</mat-slide-toggle>
+  </div>
+
+  <mat-divider />
+  <p class="cfg-dlg__block-title">Multa e juros</p>
+  <div class="cfg-dlg__grid cfg-dlg__grid--2">
+    <mat-slide-toggle [(ngModel)]="multa">Aplicar multa</mat-slide-toggle>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field">
+      <mat-label>Percentual de multa</mat-label>
+      <input matInput type="number" [(ngModel)]="multaPct" />
+    </mat-form-field>
+    <mat-slide-toggle [(ngModel)]="juros">Aplicar juros</mat-slide-toggle>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-dlg__field">
+      <mat-label>Percentual de juros</mat-label>
+      <input matInput type="number" [(ngModel)]="jurosPct" />
+    </mat-form-field>
+  </div>
+
+  <mat-divider />
+  <p class="cfg-dlg__block-title">Serviços cobrados</p>
+  <div class="cfg-dlg__checks">
+    <mat-checkbox [(ngModel)]="serv.diaria">Cobrar diária</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.semanal">Cobrar semanal</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.quinzenal">Cobrar quinzenal</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.mensal">Cobrar mensal</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.personal">Cobrar por data personalizada</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.lavagem">Cobrar lavagem</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.pernoite">Cobrar pernoite</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.extras">Cobrar serviços extras</mat-checkbox>
+    <mat-checkbox [(ngModel)]="serv.beneficio">Considerar benefícios por abastecimento</mat-checkbox>
+  </div>
+
+  <mat-divider />
+  <p class="cfg-dlg__block-title">Agrupamento da fatura</p>
+  <div class="cfg-dlg__checks">
+    <mat-checkbox [(ngModel)]="agr.placa">Agrupar fatura por placa</mat-checkbox>
+    <mat-checkbox [(ngModel)]="agr.periodo">Agrupar fatura por período</mat-checkbox>
+    <mat-checkbox [(ngModel)]="agr.transportadora">Agrupar fatura por transportadora</mat-checkbox>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="cfg-dlg__actions">
+  <button type="button" mat-button (click)="cancelar()">Cancelar</button>
+  <button type="button" mat-stroked-button (click)="testarEnvio()">Testar Envio</button>
+  <button type="button" mat-flat-button color="primary" (click)="salvar()">Salvar Configuração</button>
+</mat-dialog-actions>

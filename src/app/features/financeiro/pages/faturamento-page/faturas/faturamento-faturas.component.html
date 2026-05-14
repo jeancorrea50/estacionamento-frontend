@@ -38,69 +38,74 @@
         </div>
       }
 
-      <div class="fat-faturas__filters">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-          <mat-label>Transportadora</mat-label>
-          <mat-select
-            [value]="transportadoraFiltro()"
-            (selectionChange)="transportadoraFiltro.set($event.value)"
-          >
-            <mat-option value="all">Todas</mat-option>
-            @for (t of transportadorasOpcoes(); track t) {
-              <mat-option [value]="t">{{ t }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+      <div class="fat-faturas__filters-shell" aria-labelledby="fat-faturas-filtros-titulo">
+        <p id="fat-faturas-filtros-titulo" class="fat-faturas__panel-label">Refinar lista</p>
+        <div class="fat-faturas__filters">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
+            <mat-label>Transportadora</mat-label>
+            <mat-select
+              [value]="transportadoraFiltro()"
+              (selectionChange)="transportadoraFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todas</mat-option>
+              @for (t of transportadorasOpcoes(); track t) {
+                <mat-option [value]="t">{{ t }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-          <mat-label>Estacionamento</mat-label>
-          <mat-select
-            [value]="estacionamentoFiltro()"
-            (selectionChange)="estacionamentoFiltro.set($event.value)"
-          >
-            <mat-option value="all">Todos</mat-option>
-            @for (e of estacionamentosOpcoes(); track e) {
-              <mat-option [value]="e">{{ e }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
+            <mat-label>Estacionamento</mat-label>
+            <mat-select
+              [value]="estacionamentoFiltro()"
+              (selectionChange)="estacionamentoFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todos</mat-option>
+              @for (e of estacionamentosOpcoes(); track e) {
+                <mat-option [value]="e">{{ e }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-          <mat-label>Modalidade de cobrança</mat-label>
-          <mat-select
-            [value]="modalidadeFiltro()"
-            (selectionChange)="modalidadeFiltro.set($event.value)"
-          >
-            <mat-option value="all">Todas</mat-option>
-            @for (m of modalidades; track m) {
-              <mat-option [value]="m">{{ m }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
+            <mat-label>Modalidade</mat-label>
+            <mat-select
+              [value]="modalidadeFiltro()"
+              (selectionChange)="modalidadeFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todas</mat-option>
+              @for (m of modalidades; track m) {
+                <mat-option [value]="m">{{ m }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-          <mat-label>Status da fatura</mat-label>
-          <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
-            <mat-option value="all">Todos</mat-option>
-            @for (s of statusOpcoes; track s) {
-              <mat-option [value]="s">{{ s }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
+            <mat-label>Status</mat-label>
+            <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
+              <mat-option value="all">Todos</mat-option>
+              @for (s of statusOpcoes; track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
       </div>
 
-      <p class="fat-faturas__section-label">Filtros rápidos</p>
-      <div class="fat-faturas__quick" role="group" aria-label="Filtros rápidos por situação">
-        @for (o of filtroRapidoOpcoes; track o.id) {
-          <button
-            type="button"
-            class="fat-faturas__qf"
-            [class.fat-faturas__qf--active]="isFiltroRapidoAtivo(o.id)"
-            (click)="alternarFiltroRapido(o.id)"
-          >
-            {{ o.label }}
-          </button>
-        }
+      <div class="fat-faturas__quick-shell" aria-labelledby="fat-faturas-situacao-titulo">
+        <p id="fat-faturas-situacao-titulo" class="fat-faturas__panel-label">Situação</p>
+        <div class="fat-faturas__quick" role="group" aria-label="Filtros rápidos por situação">
+          @for (o of filtroRapidoOpcoes; track o.id) {
+            <button
+              type="button"
+              class="fat-faturas__qf"
+              [class.fat-faturas__qf--active]="isFiltroRapidoAtivo(o.id)"
+              (click)="alternarFiltroRapido(o.id)"
+            >
+              {{ o.label }}
+            </button>
+          }
+        </div>
       </div>
     </mat-card-content>
   </mat-card>

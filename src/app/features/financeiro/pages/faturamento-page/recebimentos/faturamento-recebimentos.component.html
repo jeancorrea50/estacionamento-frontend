@@ -1,0 +1,504 @@
+<div class="visao-geral">
+  <mat-card class="visao-geral__hero" appearance="outlined">
+    <mat-card-content>
+      <div class="visao-geral__hero-row rec-hero__row">
+        <div class="visao-geral__titles">
+          <h2 class="visao-geral__title">Recebimentos</h2>
+          <p class="visao-geral__subtitle">Controle os pagamentos recebidos, parciais e pendentes.</p>
+        </div>
+      </div>
+
+      <div class="rec-hero__periodo-shell">
+        <div class="fat-faturas__periodo" role="group" aria-label="Período">
+          @for (p of periodoOpcoes; track p.id) {
+            <button
+              type="button"
+              class="btn fat-mat-btn"
+              [class.btn-primary]="periodoFiltro() === p.id"
+              [class.btn-secondary]="periodoFiltro() !== p.id"
+              [attr.aria-pressed]="periodoFiltro() === p.id"
+              (click)="setPeriodo(p.id)"
+            >
+              @if (p.id === 'personalizado') {
+                <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
+              }
+              {{ p.label }}
+            </button>
+          }
+        </div>
+
+        @if (periodoFiltro() === 'personalizado') {
+          <div class="fat-faturas__custom-dates">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+              <mat-label>De</mat-label>
+              <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+              <mat-label>Até</mat-label>
+              <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
+            </mat-form-field>
+          </div>
+        }
+      </div>
+
+      <div class="rec-filters" aria-labelledby="rec-filtros-titulo">
+        <p id="rec-filtros-titulo" class="rec-filters__label">Filtros</p>
+        <div class="rec-filters__grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+            <mat-label>Transportadora</mat-label>
+            <mat-select
+              [value]="transportadoraFiltro()"
+              (selectionChange)="transportadoraFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todas</mat-option>
+              @for (t of transportadorasOpcoes(); track t) {
+                <mat-option [value]="t">{{ t }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+            <mat-label>Estacionamento</mat-label>
+            <mat-select
+              [value]="estacionamentoFiltro()"
+              (selectionChange)="estacionamentoFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todos</mat-option>
+              @for (e of estacionamentosOpcoes(); track e) {
+                <mat-option [value]="e">{{ e }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+            <mat-label>Status do pagamento</mat-label>
+            <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
+              <mat-option value="all">Todos</mat-option>
+              @for (s of statusPagamentoOpcoes; track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+            <mat-label>Forma de pagamento</mat-label>
+            <mat-select [value]="formaFiltro()" (selectionChange)="formaFiltro.set($event.value)">
+              <mat-option value="all">Todas</mat-option>
+              @for (f of formasPagamento; track f) {
+                <mat-option [value]="f">{{ f }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="rec-quick" aria-labelledby="rec-quick-titulo">
+        <p id="rec-quick-titulo" class="rec-filters__label">Visão rápida</p>
+        <button type="button" class="btn btn-primary fat-mat-btn" (click)="acaoMock('registrar')">
+          <span class="material-symbols-outlined" aria-hidden="true">payments</span>
+          Registrar Pagamento
+        </button>
+        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="abrirPagamentoParcial()">
+          <span class="material-symbols-outlined" aria-hidden="true">pie_chart</span>
+          Pagamento Parcial
+        </button>
+        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('importar')">
+          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+          Importar Comprovantes
+        </button>
+        <button type="button" class="btn btn-secondary fat-mat-btn rec-quick__export-btn" (click)="acaoMock('exportar')">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>
+          Exportar
+        </button>
+        <div class="rec-quick__row" role="group" aria-label="Filtros rápidos">
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('todos')"
+            (click)="alternarFiltroRapido('todos')"
+          >
+            Todos
+            <span class="rec-quick__badge">{{ contagensChips().todos }}</span>
+          </button>
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('pagos')"
+            (click)="alternarFiltroRapido('pagos')"
+          >
+            Pagos
+            <span class="rec-quick__badge">{{ contagensChips().pagos }}</span>
+          </button>
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('parciais')"
+            (click)="alternarFiltroRapido('parciais')"
+          >
+            Parciais
+            <span class="rec-quick__badge">{{ contagensChips().parciais }}</span>
+          </button>
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('pendentes')"
+            (click)="alternarFiltroRapido('pendentes')"
+          >
+            Pendentes
+            <span class="rec-quick__badge">{{ contagensChips().pendentes }}</span>
+          </button>
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('vencidos')"
+            (click)="alternarFiltroRapido('vencidos')"
+          >
+            Vencidos
+            <span class="rec-quick__badge">{{ contagensChips().vencidos }}</span>
+          </button>
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('comComprovante')"
+            (click)="alternarFiltroRapido('comComprovante')"
+          >
+            Com comprovante
+            <span class="rec-quick__badge">{{ contagensChips().comComprovante }}</span>
+          </button>
+          <button
+            type="button"
+            class="rec-quick__chip"
+            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('semComprovante')"
+            (click)="alternarFiltroRapido('semComprovante')"
+          >
+            Sem comprovante
+            <span class="rec-quick__badge">{{ contagensChips().semComprovante }}</span>
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="visao-geral__grid visao-geral__grid--metrics">
+    <mat-card class="visao-metric" appearance="outlined">
+      <mat-card-content>
+        <div class="visao-metric__head">
+          <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--ok" aria-hidden="true"
+            >account_balance</span
+          >
+          <span class="visao-metric__label">Total recebido no período</span>
+        </div>
+        <p class="visao-metric__value visao-metric__value--ok">{{ formatCurrency(124800) }}</p>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="visao-metric" appearance="outlined">
+      <mat-card-content>
+        <div class="visao-metric__head">
+          <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--danger" aria-hidden="true"
+            >pie_chart</span
+          >
+          <span class="visao-metric__label">Pagamentos parciais</span>
+        </div>
+        <p class="visao-metric__value rec-metric--laranja">{{ formatCurrency(18500) }}</p>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="visao-metric" appearance="outlined">
+      <mat-card-content>
+        <div class="visao-metric__head">
+          <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--accent" aria-hidden="true"
+            >pending_actions</span
+          >
+          <span class="visao-metric__label">Valor pendente</span>
+        </div>
+        <p class="visao-metric__value">{{ formatCurrency(48320.75) }}</p>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="visao-metric" appearance="outlined">
+      <mat-card-content>
+        <div class="visao-metric__head">
+          <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--ok" aria-hidden="true"
+            >today</span
+          >
+          <span class="visao-metric__label">Recebimentos do dia</span>
+        </div>
+        <p class="visao-metric__value visao-metric__value--ok">{{ formatCurrency(6850) }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <mat-card class="visao-chart-card rec-table-card" appearance="outlined">
+    <mat-card-header class="visao-card-head">
+      <mat-card-title>Recebimentos por fatura</mat-card-title>
+      <mat-card-subtitle>{{ linhasFiltradas().length }} registros com os filtros atuais</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="rec-table-card__inner">
+      <div class="rec-table-scroll">
+        <table mat-table [dataSource]="linhasFiltradas()" class="rec-mat-table">
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__sel">
+              <mat-checkbox
+                (change)="onMasterToggle($event)"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+                [aria-label]="checkboxLabel()"
+              />
+            </th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__sel">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="onRowToggle(row, $event)"
+                [checked]="selection.isSelected(row)"
+                [aria-label]="checkboxLabel(row)"
+              />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fatura">
+            <th mat-header-cell *matHeaderCellDef>Fatura</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="rec-mat-table__mono">{{ row.id }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="transportadora">
+            <th mat-header-cell *matHeaderCellDef>Transportadora</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="rec-mat-table__ellipsis" [matTooltip]="row.transportadora">{{ row.transportadora }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="valorFatura">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__num">Valor da fatura</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__num">{{ formatCurrency(row.valorFatura) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valorRecebido">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__num">Valor recebido</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__num">{{ formatCurrency(row.valorRecebido) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="saldoRestante">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__num">Saldo restante</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__num">{{ formatCurrency(row.saldoRestante) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="dataPagamento">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__dt">Data do pagamento</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__dt">{{ textoCelula(row.dataPagamento) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="formaPagamento">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__forma">Forma de pagamento</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__forma">{{ textoCelula(row.formaPagamento) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="comprovante">
+            <th mat-header-cell *matHeaderCellDef>Comprovante</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="comprovanteChipClass(row.comprovante)">{{ row.comprovante }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="statusChipClass(row.status)">{{ row.status }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acoes">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__ac">Ações</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__ac">
+              <div class="rec-mat-table__actions">
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Registrar pagamento"
+                  [disabled]="bloquearPagamentoPrincipal(row)"
+                  (click)="acaoMock('registrar-linha', row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">payments</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Registrar pagamento parcial"
+                  [disabled]="bloquearPagamentoPrincipal(row)"
+                  (click)="abrirPagamentoParcial(row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">pie_chart</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Anexar comprovante"
+                  (click)="acaoMock('anexar', row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">attach_file</span>
+                </button>
+                <button type="button" mat-icon-button class="rec-ico" matTooltip="Ver fatura" (click)="acaoMock('ver-fatura', row)">
+                  <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Mais ações"
+                  [matMenuTriggerFor]="menuMais"
+                  [matMenuTriggerData]="{ row: row }"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+        @if (linhasFiltradas().length === 0) {
+          <p class="rec-empty">Nenhum recebimento encontrado com os filtros atuais.</p>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="visao-geral__grid visao-geral__grid--bottom">
+    <mat-card class="visao-bottom-card visao-bottom-card--alerts" appearance="outlined">
+      <mat-card-header class="visao-card-head">
+        <mat-card-title>Resumo do Recebimento Selecionado</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--alerts">
+        @if (!resumoLinha()) {
+          <p class="rec-resumo__empty">Selecione uma fatura na tabela para visualizar a prévia e as ações.</p>
+        } @else {
+          @if (variosSelecionados()) {
+            <p class="rec-resumo__hint">Vários itens selecionados — exibindo o primeiro para o resumo.</p>
+          }
+          <dl class="rec-resumo__dl">
+            <div><dt>Fatura</dt><dd>{{ resumoLinha()!.id }}</dd></div>
+            <div><dt>Transportadora</dt><dd>{{ resumoLinha()!.transportadora }}</dd></div>
+            <div><dt>Estacionamento</dt><dd>{{ resumoLinha()!.estacionamento }}</dd></div>
+            <div><dt>Valor da fatura</dt><dd>{{ formatCurrency(resumoLinha()!.valorFatura) }}</dd></div>
+            <div><dt>Valor recebido</dt><dd>{{ formatCurrency(resumoLinha()!.valorRecebido) }}</dd></div>
+            <div><dt>Saldo restante</dt><dd>{{ formatCurrency(resumoLinha()!.saldoRestante) }}</dd></div>
+            <div><dt>Data do pagamento</dt><dd>{{ textoCelula(resumoLinha()!.dataPagamento) }}</dd></div>
+            <div><dt>Forma de pagamento</dt><dd>{{ textoCelula(resumoLinha()!.formaPagamento) }}</dd></div>
+            <div><dt>Comprovante</dt><dd>{{ resumoLinha()!.comprovante }}</dd></div>
+            <div><dt>Status</dt><dd><span [class]="statusChipClass(resumoLinha()!.status)">{{ resumoLinha()!.status }}</span></dd></div>
+          </dl>
+          @if (resumoLinha()!.historico.length > 0) {
+            <p class="rec-resumo__hist-title">Histórico de pagamentos</p>
+            <ul class="visao-alert-list" aria-label="Histórico de pagamentos">
+              @for (h of resumoLinha()!.historico; track h.data + h.valor) {
+                <li class="visao-alert-list__item">
+                  <div class="rec-hist-row">
+                    <span class="material-symbols-outlined rec-hist-row__ico" aria-hidden="true">history</span>
+                    <span class="rec-hist-row__txt"
+                      >{{ h.data }} · {{ h.forma }} · {{ formatCurrency(h.valor) }} · {{ h.situacao }}</span
+                    >
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+          <div class="rec-resumo__actions">
+            <button
+              type="button"
+              class="btn btn-secondary fat-mat-btn"
+              [disabled]="bloquearPagamentoPrincipal(resumoLinha()!)"
+              (click)="acaoMock('registrar-resumo', resumoLinha()!)"
+            >
+              Registrar pagamento
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary fat-mat-btn"
+              [disabled]="bloquearPagamentoPrincipal(resumoLinha()!)"
+              (click)="abrirPagamentoParcial(resumoLinha()!)"
+            >
+              Pagamento parcial
+            </button>
+            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('anexar-resumo', resumoLinha()!)">
+              Anexar comprovante
+            </button>
+            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('ver-fatura-resumo', resumoLinha()!)">
+              Ver fatura
+            </button>
+            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('estornar', resumoLinha()!)">
+              Estornar pagamento
+            </button>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="visao-bottom-card visao-bottom-card--due" appearance="outlined">
+      <mat-card-header class="visao-card-head">
+        <mat-card-title>Pagamento parcial (estrutura)</mat-card-title>
+        <mat-card-subtitle>Visual compacto — mesmo fluxo do diálogo mockado</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--table">
+        <div class="rec-inline-partial">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
+            <mat-label>Fatura</mat-label>
+            <input matInput [value]="resumoLinha()?.id ?? '—'" readonly />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
+            <mat-label>Valor total</mat-label>
+            <input matInput [value]="formatCurrency(resumoLinha()?.valorFatura ?? 0)" readonly />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
+            <mat-label>Saldo restante</mat-label>
+            <input matInput [value]="formatCurrency(resumoLinha()?.saldoRestante ?? 0)" readonly />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
+            <mat-label>Novo valor recebido</mat-label>
+            <input matInput type="text" value="0,00" readonly />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
+            <mat-label>Forma de pagamento</mat-label>
+            <mat-select value="PIX">
+              @for (f of formasPagamento; track f) {
+                <mat-option [value]="f">{{ f }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <div class="rec-inline-partial__upload">
+            <span class="material-symbols-outlined" aria-hidden="true">attach_file</span>
+            <span>Anexar comprovante (somente visual)</span>
+          </div>
+        </div>
+        <button mat-button type="button" class="visao-link-footer visao-link-footer--due-block" (click)="abrirPagamentoParcial(resumoLinha() ?? undefined)">
+          Abrir painel completo em diálogo
+          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<mat-menu #menuMais="matMenu">
+  <ng-template matMenuContent let-row="row">
+    <button type="button" mat-menu-item (click)="acaoMock('editar', row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">edit</span>
+      Editar pagamento
+    </button>
+    <button type="button" mat-menu-item (click)="acaoMock('estornar-menu', row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">undo</span>
+      Estornar pagamento
+    </button>
+    <button type="button" mat-menu-item (click)="acaoMock('historico', row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">history</span>
+      Ver histórico
+    </button>
+    <button type="button" mat-menu-item (click)="acaoMock('baixar', row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">download</span>
+      Baixar comprovante
+    </button>
+    <button type="button" mat-menu-item (click)="acaoMock('conferido', row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">task_alt</span>
+      Marcar como conferido
+    </button>
+  </ng-template>
+</mat-menu>

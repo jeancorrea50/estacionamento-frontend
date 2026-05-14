@@ -1,0 +1,390 @@
+<div class="fat-fech">
+  <!-- 1. Cabeçalho interno -->
+  <div class="fat-fech__hero">
+    <div class="fat-fech__hero-row">
+      <div class="fat-fech__titles">
+        <h2 class="fat-fech__title">Fechamentos</h2>
+        <p class="fat-fech__subtitle">Gere faturas por período com base nas movimentações registradas.</p>
+      </div>
+      <div class="fat-fech__hero-actions" role="toolbar" aria-label="Ações de fechamentos">
+        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('recalcular')">
+          <span class="material-symbols-outlined" aria-hidden="true">calculate</span>
+          Recalcular
+        </button>
+        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('gerar-selecionadas')">
+          <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+          Gerar Selecionadas
+        </button>
+        <button type="button" class="btn btn-primary fat-mat-btn" (click)="acaoMock('gerar-enviar')">
+          <span class="material-symbols-outlined" aria-hidden="true">send</span>
+          Gerar e Enviar
+        </button>
+        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('exportar')">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>
+          Exportar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Filtros superiores -->
+  <mat-card class="fat-fech__filters-card" appearance="outlined">
+    <mat-card-content class="fat-fech__filters-card-inner">
+      <div class="fat-fech__filters-shell" aria-labelledby="fat-fech-filtros-titulo">
+        <p id="fat-fech-filtros-titulo" class="fat-fech__panel-label">Filtros</p>
+        <div class="fat-fech__periodo-wrap">
+          <div class="fat-faturas__periodo" role="group" aria-label="Período">
+            @for (p of periodoOpcoes; track p.id) {
+              <button
+                type="button"
+                class="btn fat-mat-btn"
+                [class.btn-primary]="periodoTipo() === p.id"
+                [class.btn-secondary]="periodoTipo() !== p.id"
+                [attr.aria-pressed]="periodoTipo() === p.id"
+                (click)="setPeriodoTipo(p.id)"
+              >
+                @if (p.id === 'personalizado') {
+                  <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
+                }
+                {{ p.label }}
+              </button>
+            }
+          </div>
+          @if (periodoTipo() === 'personalizado') {
+            <div class="fat-faturas__custom-dates fat-fech__periodo-dates">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+                <mat-label>De</mat-label>
+                <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+                <mat-label>Até</mat-label>
+                <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
+              </mat-form-field>
+            </div>
+          }
+        </div>
+        <div class="fat-fech__filters">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+            <mat-label>Transportadora</mat-label>
+            <mat-select
+              [value]="transportadoraFiltro()"
+              (selectionChange)="transportadoraFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todas</mat-option>
+              @for (t of transportadorasOpcoes(); track t) {
+                <mat-option [value]="t">{{ t }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+            <mat-label>Estacionamento</mat-label>
+            <mat-select
+              [value]="estacionamentoFiltro()"
+              (selectionChange)="estacionamentoFiltro.set($event.value)"
+            >
+              <mat-option value="all">Todos</mat-option>
+              @for (e of estacionamentosOpcoes(); track e) {
+                <mat-option [value]="e">{{ e }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+            <mat-label>Modalidade</mat-label>
+            <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value)">
+              <mat-option value="all">Todas</mat-option>
+              @for (m of modalidades; track m) {
+                <mat-option [value]="m">{{ m }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+            <mat-label>Situação do fechamento</mat-label>
+            <mat-select [value]="situacaoFiltro()" (selectionChange)="situacaoFiltro.set($event.value)">
+              <mat-option value="all">Todas</mat-option>
+              @for (s of situacoesFiltro; track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- 3. Filtros rápidos -->
+      <div class="fat-fech__quick-shell" aria-labelledby="fat-fech-quick-titulo">
+        <p id="fat-fech-quick-titulo" class="fat-fech__panel-label">Situação</p>
+        <div class="fat-fech__quick" role="group" aria-label="Filtros rápidos por situação">
+          @for (o of filtroRapidoOpcoes; track o.id) {
+            <button
+              type="button"
+              class="fat-fech__qf"
+              [class.fat-fech__qf--active]="isFiltroRapidoAtivo(o.id)"
+              (click)="setFiltroRapido(o.id)"
+            >
+              {{ o.label }}
+              <span class="fat-fech__qf-badge">{{ chipBadge(o.id) }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- 4. Cards de resumo -->
+  <div class="fat-fech__kpi-grid" role="region" aria-label="Resumo de fechamentos">
+    <mat-card class="fat-fech__kpi" appearance="outlined">
+      <mat-card-content>
+        <div class="fat-fech__kpi-head">
+          <span class="material-symbols-outlined fat-fech__kpi-ico" aria-hidden="true">inventory_2</span>
+          <span class="fat-fech__kpi-label">Fechamentos disponíveis</span>
+        </div>
+        <p class="fat-fech__kpi-value">{{ kpisGlobais().disponiveis }}</p>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="fat-fech__kpi fat-fech__kpi--accent" appearance="outlined">
+      <mat-card-content>
+        <div class="fat-fech__kpi-head">
+          <span class="material-symbols-outlined fat-fech__kpi-ico" aria-hidden="true">task_alt</span>
+          <span class="fat-fech__kpi-label">Prontos para faturar</span>
+        </div>
+        <p class="fat-fech__kpi-value fat-fech__kpi-value--accent">{{ kpisGlobais().prontos }}</p>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="fat-fech__kpi fat-fech__kpi--valor" appearance="outlined">
+      <mat-card-content>
+        <div class="fat-fech__kpi-head">
+          <span class="material-symbols-outlined fat-fech__kpi-ico" aria-hidden="true">payments</span>
+          <span class="fat-fech__kpi-label">Valor estimado</span>
+        </div>
+        <p class="fat-fech__kpi-value fat-fech__kpi-value--money">{{ formatCurrency(kpisGlobais().valorEstimado) }}</p>
+      </mat-card-content>
+    </mat-card>
+    <mat-card class="fat-fech__kpi fat-fech__kpi--warn" appearance="outlined">
+      <mat-card-content>
+        <div class="fat-fech__kpi-head">
+          <span class="material-symbols-outlined fat-fech__kpi-ico" aria-hidden="true">warning</span>
+          <span class="fat-fech__kpi-label">Com divergência</span>
+        </div>
+        <p class="fat-fech__kpi-value fat-fech__kpi-value--warn">{{ kpisGlobais().divergencias }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- 5. Tabela -->
+  <mat-card class="fat-fech__table-card" appearance="outlined">
+    <mat-card-content class="fat-fech__table-card-inner">
+      <div class="fat-fech__table-scroll">
+        <table mat-table [dataSource]="linhasFiltradas()" class="fat-fech-table">
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__col-select">
+              <mat-checkbox
+                (change)="masterToggle($event)"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+                [aria-label]="checkboxLabel()"
+              />
+            </th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__col-select">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="$event.checked ? selection.select(row) : selection.deselect(row)"
+                [checked]="selection.isSelected(row)"
+                [aria-label]="checkboxLabel(row)"
+              />
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="transportadora">
+            <th mat-header-cell *matHeaderCellDef>Transportadora</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="fat-fech-table__ellipsis" [matTooltip]="row.transportadora">{{ row.transportadora }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="estacionamento">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__col-est">Estacionamento</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__col-est">
+              <span class="fat-fech-table__ellipsis" [matTooltip]="row.estacionamento">{{ row.estacionamento }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="modalidade">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__col-mod">Modalidade</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__col-mod">{{ row.modalidade }}</td>
+          </ng-container>
+          <ng-container matColumnDef="periodoApurado">
+            <th mat-header-cell *matHeaderCellDef>Período apurado</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__col-per">{{ row.periodoApurado }}</td>
+          </ng-container>
+          <ng-container matColumnDef="movimentacoes">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__num">Movimentações</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__num">{{ row.movimentacoes }}</td>
+          </ng-container>
+          <ng-container matColumnDef="valorEstimado">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__num">Valor estimado</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__num">{{ formatCurrency(row.valorEstimado) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="divergencias">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__num">Divergências</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__num">{{ row.divergencias }}</td>
+          </ng-container>
+          <ng-container matColumnDef="situacao">
+            <th mat-header-cell *matHeaderCellDef>Situação</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="situacaoChipClass(row.situacao)">{{ row.situacao }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="acoes">
+            <th mat-header-cell *matHeaderCellDef class="fat-fech-table__col-ac">Ações</th>
+            <td mat-cell *matCellDef="let row" class="fat-fech-table__col-ac">
+              <div class="fat-fech-table__actions">
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="fat-fech-ico"
+                  matTooltip="Visualizar prévia"
+                  (click)="acaoMock('previsualizar', row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="fat-fech-ico"
+                  matTooltip="Gerar fatura"
+                  [disabled]="bloquearGeracao(row.situacao)"
+                  (click)="acaoMock('gerar', row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="fat-fech-ico"
+                  matTooltip="Gerar e enviar"
+                  [disabled]="bloquearGeracao(row.situacao)"
+                  (click)="acaoMock('gerar-enviar', row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="fat-fech-ico"
+                  matTooltip="Mais ações"
+                  [matMenuTriggerFor]="menuMais"
+                  [matMenuTriggerData]="{ row: row }"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+        @if (linhasFiltradas().length === 0) {
+          <p class="fat-fech__empty">Nenhum fechamento encontrado com os filtros atuais.</p>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-menu #menuMais="matMenu">
+    <ng-template matMenuContent let-row="row">
+      <button type="button" mat-menu-item (click)="acaoMock('recalcular', row)">
+        <span class="material-symbols-outlined fat-fech-menu-ico" aria-hidden="true">calculate</span>
+        Recalcular
+      </button>
+      <button type="button" mat-menu-item (click)="acaoMock('cancelar', row)">
+        <span class="material-symbols-outlined fat-fech-menu-ico" aria-hidden="true">block</span>
+        Cancelar
+      </button>
+      <button type="button" mat-menu-item (click)="acaoMock('movimentacoes', row)">
+        <span class="material-symbols-outlined fat-fech-menu-ico" aria-hidden="true">list_alt</span>
+        Ver movimentações
+      </button>
+      <button type="button" mat-menu-item (click)="acaoMock('divergencias', row)">
+        <span class="material-symbols-outlined fat-fech-menu-ico" aria-hidden="true">difference</span>
+        Ver divergências
+      </button>
+    </ng-template>
+  </mat-menu>
+
+  <!-- 8. Resumo selecionado -->
+  <mat-card class="fat-fech__summary-card" appearance="outlined">
+    <mat-card-header class="fat-fech__summary-head">
+      <mat-card-title>Resumo do Fechamento Selecionado</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (!resumoSelecionado()) {
+        <p class="fat-fech__summary-empty">Selecione um fechamento para visualizar a prévia e as ações.</p>
+      } @else {
+        @let row = resumoSelecionado()!;
+        @let d = detalheResumo()!;
+        <div class="fat-fech__summary-meta">
+          <div><span class="fat-fech__summary-k">Transportadora</span> {{ row.transportadora }}</div>
+          <div><span class="fat-fech__summary-k">Estacionamento</span> {{ row.estacionamento }}</div>
+          <div><span class="fat-fech__summary-k">Modalidade</span> {{ row.modalidade }}</div>
+          <div><span class="fat-fech__summary-k">Período apurado</span> {{ row.periodoApurado }}</div>
+          <div><span class="fat-fech__summary-k">Movimentações</span> {{ row.movimentacoes }}</div>
+          <div><span class="fat-fech__summary-k">Situação</span> <span [class]="situacaoChipClass(row.situacao)">{{ row.situacao }}</span></div>
+        </div>
+        <mat-divider class="fat-fech__summary-divider" />
+        <dl class="fat-fech__summary-dl">
+          <div><dt>Diárias</dt><dd>{{ formatCurrency(d.diarias) }}</dd></div>
+          <div><dt>Mensalistas</dt><dd>{{ formatCurrency(d.mensalistas) }}</dd></div>
+          <div><dt>Lavagens</dt><dd>{{ formatCurrency(d.lavagens) }}</dd></div>
+          <div><dt>Serviços extras</dt><dd>{{ formatCurrency(d.servicosExtras) }}</dd></div>
+          <div><dt>Descontos</dt><dd>{{ formatCurrency(d.descontos) }}</dd></div>
+          <div><dt>Acréscimos</dt><dd>{{ formatCurrency(d.acrescimos) }}</dd></div>
+          <div><dt>Benefícios aplicados</dt><dd>{{ formatCurrency(d.beneficios) }}</dd></div>
+          <div class="fat-fech__summary-dl--total"><dt>Total estimado</dt><dd>{{ formatCurrency(d.totalEstimado) }}</dd></div>
+        </dl>
+        <div class="fat-fech__summary-actions">
+          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('previsualizar', row)">
+            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+            Visualizar prévia completa
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary fat-mat-btn"
+            [disabled]="bloquearGeracao(row.situacao)"
+            (click)="acaoMock('gerar', row)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            Gerar fatura
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary fat-mat-btn"
+            [disabled]="bloquearGeracao(row.situacao)"
+            (click)="acaoMock('gerar-enviar', row)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">send</span>
+            Gerar e enviar
+          </button>
+          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('recalcular', row)">
+            <span class="material-symbols-outlined" aria-hidden="true">calculate</span>
+            Recalcular
+          </button>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- 9. Validações -->
+  <mat-card class="fat-fech__valid-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Validações do período</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <ul class="fat-fech__valid-list">
+        @for (v of validacoes; track v.id) {
+          <li [class]="v.severidade === 'critico' ? 'fat-fech__valid-item fat-fech__valid-item--critico' : 'fat-fech__valid-item'">
+            <span class="material-symbols-outlined fat-fech__valid-ico" aria-hidden="true">{{
+              v.severidade === 'critico' ? 'error' : 'warning'
+            }}</span>
+            <span>{{ v.texto }}</span>
+          </li>
+        }
+      </ul>
+    </mat-card-content>
+  </mat-card>
+</div>

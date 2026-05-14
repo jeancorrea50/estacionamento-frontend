@@ -11,9 +11,15 @@ export class EntradaSaidaLookupService {
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly veiculoService = inject(VeiculoService);
 
-  buscarMotoristas(termo: string, numeroPagina: number, tamanhoPagina: number): Observable<PaginatedSearchResult> {
+  buscarMotoristas(
+    termo: string,
+    numeroPagina: number,
+    tamanhoPagina: number,
+    transportadoraId?: number
+  ): Observable<PaginatedSearchResult> {
     return this.motoristaService.buscar({
       Termo: termo || undefined,
+      TransportadoraId: transportadoraId,
       NumeroPagina: numeroPagina,
       TamanhoPagina: tamanhoPagina
     }).pipe(

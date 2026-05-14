@@ -22,6 +22,8 @@ export class PaginatedEntitySearchHostComponent {
   aberto = input(false);
   /** Texto digitado no campo da tela principal ao abrir a busca (pré-preenche o modal e a 1ª pesquisa). */
   termoAoAbrir = input('');
+  /** Quando informado, GET /Motorista filtra por transportadora (cadastro transportadora / frota). */
+  transportadoraId = input<number | undefined>(undefined);
 
   fechar = output<void>();
   selecionar = output<PaginatedSearchItem>();
@@ -163,7 +165,7 @@ export class PaginatedEntitySearchHostComponent {
     const s = this.tamanhoPagina;
     switch (this.kind()) {
       case 'motorista':
-        return this.lookup.buscarMotoristas(termo, p, s);
+        return this.lookup.buscarMotoristas(termo, p, s, this.transportadoraId());
       case 'transportadora':
         return this.lookup.buscarTransportadoras(termo, p, s);
       case 'veiculo':

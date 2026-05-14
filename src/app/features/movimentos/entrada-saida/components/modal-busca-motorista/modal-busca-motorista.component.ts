@@ -11,6 +11,7 @@ import { PaginatedEntitySearchHostComponent } from '../paginated-entity-search-h
       kind="motorista"
       [aberto]="aberto()"
       [termoAoAbrir]="termoCampo()"
+      [transportadoraId]="transportadoraId()"
       (fechar)="fechar.emit()"
       (selecionar)="itemSelecionado.emit($event)"
     />
@@ -20,6 +21,8 @@ export class ModalBuscaMotoristaComponent {
   aberto = input(false);
   /** Texto atual do campo motorista na tela principal. */
   termoCampo = input('');
+  /** Filtro opcional na listagem paginada (ex.: motoristas da transportadora em edição). */
+  transportadoraId = input<number | undefined>(undefined);
   fechar = output<void>();
   itemSelecionado = output<PaginatedSearchItem>();
 }

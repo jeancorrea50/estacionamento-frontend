@@ -6,7 +6,8 @@ import {
   VeiculoDTO,
   VeiculoListItemDTO,
   VeiculoBuscarParams,
-  PagedResultVeiculoDTO
+  PagedResultVeiculoDTO,
+  VeiculoMotoristaVinculoDTO
 } from '../models/veiculo.dto';
 import { MotoristaPorPlacaAggregateVm } from '../models/motorista-por-placa.vm';
 import { mapMotoristaPorPlacaResponse } from '../mappers/motorista-por-placa.mapper';
@@ -216,6 +217,8 @@ export class VeiculoService {
       }
     }
 
+    const motoristasVinculos = this.parseMotoristasVinculosGet(result);
+
     return {
       id,
       transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined,
@@ -232,8 +235,22 @@ export class VeiculoService {
       centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
       ativo: get('ativo') !== false && get('Ativo') !== false,
       quantidadeEixos: quantidadeEixos != null ? quantidadeEixos : undefined,
-      tipoPeso: tipoPeso != null ? String(tipoPeso) : undefined
+      tipoPeso: tipoPeso != null ? String(tipoPeso) : undefined,
+      motoristasVinculos: motoristasVinculos.length > 0 ? motoristasVinculos : undefined
     };
+  }
+
+  /** GET: listas paralelas `motoristaIds` e `motoristas` (nomes). */
+  private parseMotoristasVinculosGet(result: Record<string, unknown>): VeiculoMotoristaVinculoDTO[] {
+    const idsRaw = result['motoristaIds'] ?? result['MotoristaIds'];
+    const nomesRaw = result['motoristas'] ?? result['Motoristas'];
+    if (!Array.isArray(idsRaw)) return [];
+    const ids = idsRaw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
+    const nomes = Array.isArray(nomesRaw) ? nomesRaw.map((n) => String(n ?? '').trim()) : [];
+    return ids.map((id, i) => ({
+      id,
+      nome: nomes[i] && nomes[i].length > 0 ? nomes[i] : `Motorista ${id}`
+    }));
   }
 
   /** POST /api/Veiculo */
@@ -282,6 +299,9 @@ export class VeiculoService {
     };
     if (dto.motoristaId != null && dto.motoristaId > 0) {
       payload['motoristaId'] = dto.motoristaId;
+    }
+    if (dto.motoristaIds != null) {
+      payload['motoristaIds'] = dto.motoristaIds;
     }
     return payload;
   }

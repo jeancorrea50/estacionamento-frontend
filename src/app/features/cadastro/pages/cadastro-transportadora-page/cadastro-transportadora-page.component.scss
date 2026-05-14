@@ -1129,6 +1129,34 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   width: 100%;
 }
 
+.modal-content--frota .frota-vinculos__search-hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.modal-content--frota .frota-vinculos-busca-input {
+  cursor: pointer;
+}
+
+.modal-content--frota .frota-vinculos-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, transparent);
+  border-radius: 10px;
+}
+
+.frota-vinculos__cell-muted {
+  color: var(--muted);
+}
+
+.frota-vinculo-grid__motorista {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .modal-content--frota .frota-vinculo-busca-row {
   display: grid;
   grid-template-columns: 1fr auto;

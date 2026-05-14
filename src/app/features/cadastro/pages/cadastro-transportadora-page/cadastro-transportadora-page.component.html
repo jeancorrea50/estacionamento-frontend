@@ -831,93 +831,73 @@
                     <div class="frota-vinculo-busca-row">
                       <input
                         type="text"
-                        class="input-control"
-                        [value]="frotaSelectorTermo"
-                        (input)="onFrotaSelectorTermoInput($any($event.target).value)"
-                        placeholder="CPF completo (busca em todo o cadastro)"
-                        maxlength="14"
+                        readonly
+                        class="input-control frota-vinculos-busca-input"
+                        (click)="abrirBuscaMotoristaFrota('vinculo')"
+                        (keydown.enter)="$event.preventDefault(); abrirBuscaMotoristaFrota('vinculo')"
+                        placeholder="Clique ou use a lupa para abrir a busca paginada"
+                        aria-label="Abrir busca de motorista"
                       />
-                      <button type="button" class="btn btn-secondary frota-vinculo-busca-btn" (click)="abrirSelectorMotoristasFrota()" title="Buscar motorista">
+                      <button type="button" class="btn btn-secondary frota-vinculo-busca-btn" (click)="abrirBuscaMotoristaFrota('vinculo')" title="Abrir busca de motorista">
                         <span class="material-symbols-outlined" aria-hidden="true">search</span>
                       </button>
                     </div>
+                    <p class="frota-vinculos__search-hint">O campo de busca abre uma janela com a lista paginada para selecionar o motorista.</p>
                   </div>
                 </div>
-                @if (frotaSelectorOpen) {
-                  <div class="frota-selector-dropdown">
-                    @if (!frotaSelectorCpfCompleto) {
-                      <p class="frota-vinculos__empty">Preencha o CPF completo para buscar e selecionar o motorista.</p>
-                    } @else {
-                    @if (frotaSelectorMotoristasLoading) {
-                      <p class="frota-vinculos__empty">Buscando motoristas...</p>
-                    } @else {
-                    <div class="frota-selector-dropdown__list">
-                      @if (motoristasPaginaAtualParaSelecao.length === 0) {
-                        <p class="frota-vinculos__empty">Nenhum motorista encontrado para este CPF.</p>
-                      } @else {
-                        @for (m of motoristasPaginaAtualParaSelecao; track m.id) {
-                          <button type="button" class="frota-selector-item" (click)="toggleSelecaoMotoristaTemp(m.id)">
-                            <span class="frota-selector-item__check">
-                              <input type="checkbox" [checked]="isMotoristaSelecionadoTemp(m.id)" />
-                            </span>
-                            <span class="frota-selector-item__avatar">{{ motoristaIniciais(m.nomeCompleto) }}</span>
-                            <span class="frota-selector-item__meta">
-                              <strong>{{ m.nomeCompleto }}</strong>
-                              <small>CPF: {{ formatCpfCondutor(m.cpf) }}</small>
-                            </span>
-                            @if (isVinculoPrincipal(m.id)) {
-                              <span class="frota-vinculo-item__badge">Principal</span>
-                            }
-                          </button>
+                @if (motoristasVinculadosFrota.length === 0) {
+                  <p class="frota-vinculos__empty">Nenhum motorista vinculado neste veículo.</p>
+                } @else {
+                  <div class="table-wrap frota-vinculos-table-wrap">
+                    <table class="data-table" aria-label="Motoristas vinculados ao veículo">
+                      <thead>
+                        <tr>
+                          <th>Motorista</th>
+                          <th>Principal</th>
+                          <th class="table-cell--actions">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (m of motoristasVinculadosFrota; track m.id) {
+                          <tr>
+                            <td>
+                              <span class="frota-vinculo-grid__motorista">
+                                <span class="frota-vinculo-item__avatar" aria-hidden="true">{{ motoristaIniciais(m.nome) }}</span>
+                                <span>{{ m.nome }}</span>
+                              </span>
+                            </td>
+                            <td>
+                              @if (m.principal) {
+                                <span class="frota-vinculo-item__badge">Principal</span>
+                              } @else {
+                                <span class="frota-vinculos__cell-muted">—</span>
+                              }
+                            </td>
+                            <td class="table-cell--actions">
+                              <div class="table-actions">
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary btn--sm"
+                                  [disabled]="m.principal"
+                                  (click)="definirVinculoPrincipal(m.id)"
+                                >
+                                  Definir principal
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary btn--sm btn--table-action-danger"
+                                  (click)="removerVinculoMotorista(m.id)"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                         }
-                      }
-                    </div>
-                    <div class="frota-selector-dropdown__footer">
-                      <span>Página {{ frotaSelectorPagina }} de {{ totalPaginasSelecaoMotoristas }}</span>
-                      <div class="frota-selector-dropdown__actions">
-                        <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarPaginaAnteriorMotoristas()">Anterior</button>
-                        <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarProximaPaginaMotoristas()">Próxima</button>
-                        <button type="button" class="btn btn-primary btn--sm" (click)="aplicarSelecaoMotoristasTemp()">Aplicar</button>
-                      </div>
-                    </div>
-                    }
-                    }
+                      </tbody>
+                    </table>
                   </div>
                 }
-                <div class="frota-vinculos__list">
-                  @if (motoristasVinculadosFrota.length === 0) {
-                    <p class="frota-vinculos__empty">Nenhum motorista vinculado neste veículo.</p>
-                  } @else {
-                    @for (m of motoristasVinculadosFrota; track m.id) {
-                      <div class="frota-vinculo-item">
-                        <div class="frota-vinculo-item__meta">
-                          <span class="frota-vinculo-item__avatar">{{ motoristaIniciais(m.nome) }}</span>
-                          <span class="frota-vinculo-item__nome">{{ m.nome }}</span>
-                          @if (m.principal) {
-                            <span class="frota-vinculo-item__badge">Principal</span>
-                          }
-                        </div>
-                        <div class="frota-vinculo-item__actions">
-                          <button
-                            type="button"
-                            class="btn btn-secondary btn--sm"
-                            [disabled]="m.principal"
-                            (click)="definirVinculoPrincipal(m.id)"
-                          >
-                            Definir principal
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn-secondary btn--sm btn--table-action-danger"
-                            (click)="removerVinculoMotorista(m.id)"
-                          >
-                            Remover
-                          </button>
-                        </div>
-                      </div>
-                    }
-                  }
-                </div>
               </section>
           </div>
           <div class="modal-footer">
@@ -1036,7 +1016,8 @@
 
 <app-modal-busca-motorista
   [aberto]="frotaMotoristaModalAberto"
-  [termoCampo]="frotaMotoristaTexto"
+  [termoCampo]="termoCampoModalBuscaMotorista"
+  [transportadoraId]="transportadoraId ?? undefined"
   (fechar)="frotaMotoristaModalAberto = false"
   (itemSelecionado)="onFrotaMotoristaSelecionado($event)"
 />

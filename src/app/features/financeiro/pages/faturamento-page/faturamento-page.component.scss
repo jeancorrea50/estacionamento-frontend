@@ -1,3 +1,5 @@
+@use './faturamento-shared-form-list';
+
 :host {
   display: block;
   min-height: 0;
@@ -7,6 +9,14 @@
 .faturamento-shell {
   min-height: 0;
   box-sizing: border-box;
+  --fat-fill-surface: color-mix(in srgb, var(--card-bg, var(--surface)) 96%, var(--surface-2, rgba(15, 23, 42, 0.04)) 4%);
+  --fat-fill-border: color-mix(in srgb, var(--border-subtle) 86%, var(--primary, #3b82f6) 14%);
+  --fat-fill-border-strong: color-mix(in srgb, var(--border-subtle) 58%, var(--primary, #3b82f6) 42%);
+  --fat-fill-label: var(--muted);
+  --fat-fill-chip-bg: color-mix(in srgb, var(--surface-2, rgba(15, 23, 42, 0.04)) 80%, transparent);
+  --fat-fill-chip-hover: color-mix(in srgb, var(--surface-2, rgba(15, 23, 42, 0.08)) 92%, var(--primary, #3b82f6) 8%);
+  --fat-fill-chip-active: color-mix(in srgb, var(--primary, #3b82f6) 18%, var(--card-bg, var(--surface)) 82%);
+  --fat-list-surface: color-mix(in srgb, var(--card-bg, var(--surface)) 94%, black 6%);
   /* Respiro no fim da rolagem (Alertas / Próximos vencimentos). */
   padding-bottom: 28px;
 }
@@ -1114,18 +1124,20 @@ html.theme-dark .fat-status--cancelada {
 .fat-mat-page-wrap {
   flex: 1 1 auto;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 0;
 }
 
 .fat-mat-page {
-  background: var(--card-bg, var(--surface));
-  border-color: var(--border-subtle) !important;
-  border-radius: 14px;
-  box-shadow: none;
+  background: transparent;
+  border: none !important;
+  border-color: transparent !important;
+  border-radius: 0;
+  box-shadow: none !important;
 }
 
 .fat-mat-page__inner {
-  padding: 16px 18px 20px !important;
+  background: transparent;
+  padding: 14px 16px 18px !important;
 }
 
 .fat-mat-header {
@@ -1133,8 +1145,8 @@ html.theme-dark .fat-status--cancelada {
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px 18px;
-  margin-bottom: 4px;
+  gap: 10px 16px;
+  margin-bottom: 6px;
 }
 
 .fat-mat-header__titles {
@@ -1197,7 +1209,7 @@ html.theme-dark .fat-status--cancelada {
   align-items: center;
   gap: var(--space-sm, 8px);
   flex-wrap: wrap;
-  margin-top: 2px;
+  margin-top: 0;
   min-width: 0;
 }
 
@@ -1275,11 +1287,15 @@ html.theme-dark .fat-status--cancelada {
 .fat-fin-tab-body {
   overflow-x: hidden;
   overflow-y: visible;
-  padding: 12px 2px 8px;
+  padding: 16px 0 8px;
   min-width: 0;
 }
 
 @media (max-width: 768px) {
+  .fat-mat-page__inner {
+    padding: 12px 12px 16px !important;
+  }
+
   .fat-fin-tabs {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -1312,17 +1328,37 @@ html.theme-dark :host .faturamento-shell {
   --fat-card-title: #9caec8;
   --fat-card-value: #f8fafc;
   --fat-card-muted: #8ea0b8;
+  --input-bg: #1a2746;
+  --input-border: rgba(73, 104, 173, 0.58);
+  --input-text: rgba(243, 247, 255, 0.96);
+  --input-placeholder: rgba(185, 199, 226, 0.54);
+  --focus: #3d6cff;
+  --focus-ring: 0 0 0 3px rgba(61, 108, 255, 0.22);
+  --fat-fill-surface: #132342;
+  --fat-fill-border: rgba(67, 100, 168, 0.5);
+  --fat-fill-border-strong: rgba(67, 118, 230, 0.76);
+  --fat-fill-label: #8ea0b8;
+  --fat-fill-chip-bg: rgba(15, 29, 57, 0.86);
+  --fat-fill-chip-hover: rgba(20, 40, 76, 0.98);
+  --fat-fill-chip-active: rgba(52, 103, 234, 0.28);
+  --fat-list-surface: #0f1d39;
+  --ds-select-panel-bg: #0f1d39;
+  --ds-select-panel-border: rgba(67, 118, 230, 0.62);
+  --ds-select-panel-shadow: 0 16px 36px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(74, 118, 214, 0.24);
+  --ds-select-item-hover-bg: rgba(24, 44, 82, 0.96);
+  --ds-select-item-active-bg: rgba(52, 103, 234, 0.28);
+  --ds-select-item-active-text: #f8fbff;
 }
 
 html.theme-dark :host .fat-mat-page-wrap {
-  background: var(--fat-page-canvas);
-  border-radius: 16px;
+  background: transparent;
+  border-radius: 0;
 }
 
 html.theme-dark :host .fat-mat-page.mat-mdc-card {
-  background-color: var(--fat-shell-surface) !important;
-  border: 1px solid var(--fat-card-border) !important;
-  box-shadow: var(--fat-card-shadow);
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 html.theme-dark :host .fat-panel {

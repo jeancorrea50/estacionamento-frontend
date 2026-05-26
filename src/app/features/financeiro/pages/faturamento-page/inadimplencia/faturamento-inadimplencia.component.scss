@@ -1,3 +1,7 @@
+@use '../faturamento-shared-periodo';
+@use '../faturamento-shared-recebimentos';
+@use '../faturamento-shared-visao';
+
 /* Complemento às classes compartilhadas `visao-*` e `rec-*` (Recebimentos). */
 
 .inad-metric__num {

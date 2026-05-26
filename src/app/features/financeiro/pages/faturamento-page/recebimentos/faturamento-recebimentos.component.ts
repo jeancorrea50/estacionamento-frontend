@@ -48,11 +48,7 @@ interface PeriodoOpcao {
     MatTooltipModule
   ],
   templateUrl: './faturamento-recebimentos.component.html',
-  styleUrls: [
-    './faturamento-recebimentos.component.scss',
-    '../faturas/faturamento-faturas.component.scss',
-    '../visao-geral/faturamento-visao-geral.component.scss'
-  ]
+  styleUrls: ['./faturamento-recebimentos.component.scss']
 })
 export class FaturamentoRecebimentosComponent {
   private readonly dialog = inject(MatDialog);

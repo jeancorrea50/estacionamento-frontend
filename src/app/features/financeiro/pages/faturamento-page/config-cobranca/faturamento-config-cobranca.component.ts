@@ -71,11 +71,7 @@ import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca
     MatTooltipModule
   ],
   templateUrl: './faturamento-config-cobranca.component.html',
-  styleUrls: [
-    './faturamento-config-cobranca.component.scss',
-    '../recebimentos/faturamento-recebimentos.component.scss',
-    '../visao-geral/faturamento-visao-geral.component.scss'
-  ]
+  styleUrls: ['./faturamento-config-cobranca.component.scss']
 })
 export class FaturamentoConfigCobrancaComponent {
   private readonly dialog = inject(MatDialog);
@@ -652,6 +648,7 @@ export class FaturamentoConfigCobrancaComponent {
     const ref = this.dialog.open(ConfigCobrancaFormDialogComponent, {
       width: '600px',
       maxWidth: '96vw',
+      panelClass: 'cfg-form-dialog-panel',
       data: {
         mode,
         item,

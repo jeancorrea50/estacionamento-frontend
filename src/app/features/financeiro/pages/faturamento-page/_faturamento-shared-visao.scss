@@ -1,13 +1,11 @@
-@use '../faturamento-shared-periodo';
-@use '../faturamento-shared-visao';
-
-:host {
-  display: block;
-  min-width: 0;
-  overflow-x: hidden;
+.visao-geral {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+  max-width: 100%;
 }
 
-/* Tipografia dos títulos de card (Material pode herdar serif do tema) */
 .visao-card-head .mat-mdc-card-title,
 .visao-bottom-card .mat-mdc-card-header .mat-mdc-card-title {
   font-family: inherit !important;
@@ -27,14 +25,6 @@
   margin-top: 2px !important;
 }
 
-.visao-geral {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-bottom: 8px;
-  max-width: 100%;
-}
-
 .visao-geral__hero {
   background: var(--card-bg, var(--surface));
   border-color: var(--border-subtle) !important;
@@ -49,17 +39,30 @@
 .visao-geral__hero-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px 16px;
 }
 
 .visao-geral__titles {
   min-width: 0;
+  flex: 1 1 240px;
 }
 
-.visao-geral__hero .fat-faturas__periodo {
-  width: min(100%, 420px);
+.visao-geral__title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.visao-geral__subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.35;
+  max-width: 58ch;
 }
 
 .visao-geral__section-label {
@@ -87,7 +90,6 @@
   }
 }
 
-/* KPIs: colunas mais equilibradas, menos “faixa” vazia */
 .visao-geral__grid--kpis {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -287,61 +289,6 @@
   overflow: hidden;
 }
 
-/* Evolução: Apex usa min-width fixo no container e estoura o card em colunas estreitas. */
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-container {
-  min-width: 0 !important;
-  width: 100% !important;
-}
-
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-canvas {
-  margin: 0 auto;
-}
-
-/*
- * Camada HTML do Apex (foreignObject): ajuste da prévia do navegador para não colidir
- * com os rótulos do eixo Y. O SVG precisa ser position: relative para o absolute do foreignObject.
- */
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-svg {
-  position: relative;
-}
-
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-svg > foreignObject {
-  width: 239px !important;
-  height: 240px !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  position: absolute !important;
-  top: 251px !important;
-  /* Desloca a camada para a direita (evita colisão com eixo Y), conforme ajuste na prévia. */
-  left: 100px !important;
-  right: auto !important;
-  bottom: auto !important;
-}
-
-/* Tooltip do gráfico de evolução: HTML custom (sem coluna de série à esquerda). */
-:host ::ng-deep .visao-evolucao-tooltip {
-  padding: 10px 12px;
-  text-align: center;
-  min-width: 108px;
-  box-sizing: border-box;
-}
-
-:host ::ng-deep .visao-evolucao-tooltip__mes {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #e2e8f0;
-  margin-bottom: 4px;
-}
-
-:host ::ng-deep .visao-evolucao-tooltip__valor {
-  font-size: 14px;
-  font-weight: 700;
-  color: #93c5fd;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Rodapé: cards com mesma altura visual */
 .visao-bottom-card.mat-mdc-card {
   display: flex;
   flex-direction: column;
@@ -394,8 +341,6 @@
   text-align: left;
   box-sizing: border-box;
 }
-
-/* ---------- Alertas (lista nativa, sem mat-button no item) ---------- */
 
 .visao-alert-list {
   list-style: none;
@@ -562,7 +507,6 @@
   border-color: rgba(71, 85, 105, 0.25);
 }
 
-/* Cards: fundo mais claro que o shell + borda + sombra (tokens em .faturamento-shell). */
 html.theme-dark .visao-geral__hero,
 html.theme-dark .visao-metric,
 html.theme-dark .visao-kpi,

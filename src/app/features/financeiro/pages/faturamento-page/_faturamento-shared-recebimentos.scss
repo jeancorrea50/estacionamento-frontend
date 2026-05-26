@@ -1,22 +1,39 @@
-@use '../faturamento-shared-periodo';
-@use '../faturamento-shared-recebimentos';
-@use '../faturamento-shared-visao';
-
-:host {
-  display: block;
-  min-width: 0;
-  overflow-x: hidden;
-}
-
-/* Hero: ações à direita (mesma ideia das outras abas do faturamento). */
 .rec-hero__row {
   align-items: flex-start;
 }
 
-/* Bloco de período (visual do segmento vem de fat-faturas__periodo no SCSS da aba Faturas). */
+.rec-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rec-hero__actions .btn.fat-mat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.rec-hero__actions .fat-mat-btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .rec-hero__periodo-shell {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -76,16 +93,20 @@ html.theme-dark .rec-hero__periodo-shell {
   margin: 0 0 8px;
 }
 
-.rec-quick > .btn.fat-mat-btn .material-symbols-outlined {
-  font-size: 18px;
-  line-height: 1;
-}
-
 .rec-quick > .btn.fat-mat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 34px;
   min-height: 34px;
   padding: 0 0.85rem;
   border-radius: 8px;
+}
+
+.rec-quick > .btn.fat-mat-btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .rec-quick > .rec-quick__row {
@@ -147,10 +168,6 @@ html.theme-dark .rec-hero__periodo-shell {
   background: rgba(37, 99, 235, 0.22);
   border-color: rgba(37, 99, 235, 0.45);
   color: #1e40af;
-}
-
-.rec-metric--laranja {
-  color: #fdba74 !important;
 }
 
 .rec-table-card.mat-mdc-card {
@@ -390,5 +407,20 @@ html.theme-dark .rec-hero__periodo-shell {
   :host ::ng-deep .rec-mat-table__forma,
   :host ::ng-deep .rec-mat-table__dt {
     display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .rec-hero__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .rec-quick > .btn.fat-mat-btn {
+    flex: 1 1 180px;
+  }
+
+  .rec-inline-partial {
+    grid-template-columns: 1fr;
   }
 }

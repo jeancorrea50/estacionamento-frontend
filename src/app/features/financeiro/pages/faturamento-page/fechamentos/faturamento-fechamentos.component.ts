@@ -42,7 +42,7 @@ import type {
     MatTooltipModule
   ],
   templateUrl: './faturamento-fechamentos.component.html',
-  styleUrls: ['./faturamento-fechamentos.component.scss', '../faturas/faturamento-faturas.component.scss']
+  styleUrls: ['./faturamento-fechamentos.component.scss']
 })
 export class FaturamentoFechamentosComponent {
   readonly todas = FECHAMENTOS_MOCK;

@@ -1,0 +1,106 @@
+.fat-faturas__periodo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  width: min(100%, 420px);
+  min-height: 46px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 88%, var(--muted) 12%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.fat-faturas__periodo .btn.fat-mat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: none !important;
+  box-sizing: border-box;
+}
+
+.fat-faturas__periodo .fat-mat-btn .material-symbols-outlined {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.fat-faturas__periodo-ico {
+  opacity: 0.92;
+}
+
+.fat-faturas__custom-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fat-faturas__date-field {
+  flex: 1 1 160px;
+  max-width: 220px;
+}
+
+@media (max-width: 768px) {
+  .fat-faturas__periodo {
+    width: 100%;
+  }
+
+  .fat-faturas__date-field {
+    max-width: none;
+  }
+}
+
+html.theme-dark .fat-faturas__periodo {
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, var(--fat-card-muted, #8ea0b8) 18%);
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.theme-dark .fat-faturas__custom-dates {
+  border-top-color: var(--fat-card-border, rgba(96, 130, 190, 0.22));
+}
+
+html.theme-dark .fat-faturas__periodo .btn.btn-secondary.fat-mat-btn {
+  color: #f8fafc !important;
+  border: 1px solid rgba(248, 250, 252, 0.45) !important;
+  background: rgba(30, 41, 59, 0.85) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html.theme-dark .fat-faturas__periodo .btn.btn-secondary.fat-mat-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.65) !important;
+  background: rgba(51, 65, 85, 0.95) !important;
+  color: #ffffff !important;
+}
+
+html.theme-dark .fat-faturas__periodo .btn.btn-primary.fat-mat-btn {
+  background: #3b82f6 !important;
+  border: 1px solid #93c5fd !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+html.theme-dark .fat-faturas__periodo .btn.btn-primary.fat-mat-btn:hover:not(:disabled) {
+  background: #2563eb !important;
+  border-color: #bfdbfe !important;
+  color: #ffffff !important;
+}
+
+html.theme-dark .fat-faturas__periodo-ico {
+  color: inherit;
+  opacity: 1;
+}

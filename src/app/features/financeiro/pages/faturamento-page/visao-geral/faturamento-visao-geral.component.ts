@@ -70,7 +70,7 @@ interface ProximoVencimento {
     NgApexchartsModule
   ],
   templateUrl: './faturamento-visao-geral.component.html',
-  styleUrls: ['./faturamento-visao-geral.component.scss', '../faturas/faturamento-faturas.component.scss']
+  styleUrls: ['./faturamento-visao-geral.component.scss']
 })
 export class FaturamentoVisaoGeralComponent {
   readonly periodoOpcoes: PeriodoOpcao[] = [

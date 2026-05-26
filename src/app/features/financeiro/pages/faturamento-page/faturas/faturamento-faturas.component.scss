@@ -26,9 +26,9 @@
 .fat-faturas__hero-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px 20px;
+  gap: 12px 16px;
   margin-bottom: 2px;
 }
 
@@ -61,10 +61,8 @@
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
-  margin-left: 474px;
-  margin-right: 474px;
-  width: 411px;
-  height: 46px;
+  width: min(100%, 420px);
+  min-height: 46px;
   padding: 3px 12px;
   border-radius: 999px;
   border: 1px solid var(--border-subtle);
@@ -125,6 +123,16 @@
 .fat-faturas__date-field {
   flex: 1 1 160px;
   max-width: 220px;
+}
+
+@media (max-width: 768px) {
+  .fat-faturas__periodo {
+    width: 100%;
+  }
+
+  .fat-faturas__date-field {
+    max-width: none;
+  }
 }
 
 /* Painel de selects: agrupa filtros com respiro e leitura clara. */

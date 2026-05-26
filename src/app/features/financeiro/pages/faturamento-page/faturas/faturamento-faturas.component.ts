@@ -1,6 +1,6 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -36,6 +37,7 @@ interface PeriodoOpcao {
     MatInputModule,
     MatMenuModule,
     MatSelectModule,
+    MatSnackBarModule,
     MatTableModule,
     MatTooltipModule
   ],
@@ -43,6 +45,7 @@ interface PeriodoOpcao {
   styleUrl: './faturamento-faturas.component.scss'
 })
 export class FaturamentoFaturasComponent {
+  private readonly snack = inject(MatSnackBar);
   readonly todas = FATURAS_MOCK;
 
   readonly periodoOpcoes: PeriodoOpcao[] = [

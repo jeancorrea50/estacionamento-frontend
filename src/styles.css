@@ -1881,3 +1881,67 @@ html.theme-dark .layout:not(.app-layout--movimentos) .dk-table-wrap {
   box-shadow: none;
   border-radius: var(--ds-select-radius, var(--radius-md, 10px));
 }
+
+/* Modal financeiro: overlay do Angular Material precisa de estilo global. */
+.cfg-form-dialog-panel {
+  --cfg-form-input-bg: #1a2746;
+  --cfg-form-input-border: rgba(73, 104, 173, 0.58);
+  --cfg-form-input-text: rgba(243, 247, 255, 0.96);
+  --cfg-form-input-placeholder: rgba(185, 199, 226, 0.54);
+  --cfg-form-focus: #3d6cff;
+  --cfg-form-focus-ring: 0 0 0 3px rgba(61, 108, 255, 0.22);
+}
+
+.cfg-form-dialog-panel .mat-mdc-dialog-surface,
+.cfg-form-dialog-panel .mdc-dialog__surface {
+  background: #101a2e !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(67, 100, 168, 0.42);
+  border-radius: 20px !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.46);
+}
+
+.cfg-form-dialog-panel .mat-mdc-dialog-title,
+.cfg-form-dialog-panel .mat-mdc-dialog-content,
+.cfg-form-dialog-panel .mat-mdc-dialog-actions {
+  color: #f8fafc !important;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  border-radius: 12px;
+  background: var(--cfg-form-input-bg) !important;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-form-field-flex {
+  min-height: 44px;
+  align-items: center;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field input.mat-mdc-input-element,
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-value-text,
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-min-line,
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-arrow {
+  color: var(--cfg-form-input-text) !important;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field .mdc-floating-label,
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-placeholder,
+.cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-input-element::placeholder {
+  color: var(--cfg-form-input-placeholder) !important;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field .mdc-notched-outline__leading,
+.cfg-form-dialog-panel .mat-mdc-form-field .mdc-notched-outline__notch,
+.cfg-form-dialog-panel .mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: var(--cfg-form-input-border) !important;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--cfg-form-focus) !important;
+}
+
+.cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+  box-shadow: var(--cfg-form-focus-ring);
+}

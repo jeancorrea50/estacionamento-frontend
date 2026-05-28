@@ -24,6 +24,7 @@
 .page-container {
   display: flex;
   flex-direction: column;
+  gap: 12px;
   min-width: 0;
   min-height: 0;
 }
@@ -1119,7 +1120,28 @@ html.theme-dark .fat-status--cancelada {
   }
 }
 
-/* ---------- Shell Angular Material (Faturamento) ---------- */
+/* ---------- Cabeçalho da página (padrão page-header-card, igual Transportadora) ---------- */
+
+.fat-page-header {
+  padding: 16px 20px 0;
+  flex-shrink: 0;
+}
+
+.fat-page-header__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 10px;
+}
+
+.fat-page-header__titles {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+/* ---------- Shell Angular Material (Faturamento) — mantido para compatibilidade ---------- */
 
 .fat-mat-page-wrap {
   flex: 1 1 auto;
@@ -1172,7 +1194,6 @@ html.theme-dark .fat-status--cancelada {
   min-width: 0;
 }
 
-/* Primário à direita do bloco de ações (padrão Buscar + Novo no Gerenciamento). */
 .fat-mat-header__primary {
   flex-shrink: 0;
 }
@@ -1287,7 +1308,7 @@ html.theme-dark .fat-status--cancelada {
 .fat-fin-tab-body {
   overflow-x: hidden;
   overflow-y: visible;
-  padding: 16px 0 8px;
+  padding: 0 0 8px;
   min-width: 0;
 }
 

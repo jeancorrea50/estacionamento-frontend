@@ -35,17 +35,6 @@
   max-width: 100%;
 }
 
-.visao-geral__hero {
-  background: var(--card-bg, var(--surface));
-  border-color: var(--border-subtle) !important;
-  border-radius: 12px;
-  box-shadow: none;
-}
-
-.visao-geral__hero .mat-mdc-card-content {
-  padding: 14px 16px 16px !important;
-}
-
 .visao-geral__hero-row {
   display: flex;
   flex-wrap: wrap;
@@ -56,10 +45,6 @@
 
 .visao-geral__titles {
   min-width: 0;
-}
-
-.visao-geral__hero .fat-faturas__periodo {
-  width: min(100%, 420px);
 }
 
 .visao-geral__section-label {
@@ -563,7 +548,6 @@
 }
 
 /* Cards: fundo mais claro que o shell + borda + sombra (tokens em .faturamento-shell). */
-html.theme-dark .visao-geral__hero,
 html.theme-dark .visao-metric,
 html.theme-dark .visao-kpi,
 html.theme-dark .visao-chart-card {
@@ -586,7 +570,6 @@ html.theme-dark .visao-bottom-card {
     transform 0.18s ease;
 }
 
-html.theme-dark .visao-geral__hero:hover,
 html.theme-dark .visao-metric:hover,
 html.theme-dark .visao-kpi:hover,
 html.theme-dark .visao-chart-card:hover,

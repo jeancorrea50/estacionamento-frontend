@@ -189,14 +189,14 @@ function mkRow(
 }
 
 /**
- * 8 linhas da especificação + 78 sintéticas (86).
- * Status sintéticos: 40 Pago, 7 Parcial, 20 Em aberto, 9 Vencido, 2 Cancelada.
+ * 8 linhas da especificação + 72 sintéticas (80).
+ * Status sintéticos: 40 Pago, 1 Parcial, 20 Em aberto, 9 Vencido, 2 Cancelada.
  * Comprovante sintético coerente; contagens exatas dos chips vêm do `computed` no componente.
  */
 export function buildRecebimentosMock(): RecebimentoListaItem[] {
   const statuses: RecebimentoPagamentoStatus[] = [
     ...Array.from({ length: 40 }, () => 'Pago' as const),
-    ...Array.from({ length: 7 }, () => 'Parcial' as const),
+    ...Array.from({ length: 1 }, () => 'Parcial' as const),
     ...Array.from({ length: 20 }, () => 'Em aberto' as const),
     ...Array.from({ length: 9 }, () => 'Vencido' as const),
     ...Array.from({ length: 2 }, () => 'Cancelada' as const)
@@ -209,7 +209,7 @@ export function buildRecebimentosMock(): RecebimentoListaItem[] {
     return 'Sem comprovante';
   });
 
-  for (let k = 0; k < 7; k++) {
+  for (let k = 0; k < 1; k++) {
     comps[40 + k] = k % 3 === 0 ? 'Aguardando conferência' : 'Anexado';
   }
 

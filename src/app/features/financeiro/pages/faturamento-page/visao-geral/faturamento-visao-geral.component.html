@@ -1,45 +1,41 @@
 <div class="visao-geral">
-  <!-- Cabeçalho interno + período -->
-  <mat-card class="visao-geral__hero" appearance="outlined">
-    <mat-card-content>
-      <div class="visao-geral__hero-row">
-        <div class="visao-geral__titles">
-          <h2 class="visao-geral__title">Visão geral</h2>
-          <p class="visao-geral__subtitle">Painel resumido do cenário financeiro</p>
-        </div>
-        <div class="fat-faturas__periodo" role="group" aria-label="Período">
-          @for (p of periodoOpcoes; track p.id) {
-            <button
-              type="button"
-              class="btn fat-mat-btn"
-              [class.btn-primary]="periodoFiltro() === p.id"
-              [class.btn-secondary]="periodoFiltro() !== p.id"
-              [attr.aria-pressed]="periodoFiltro() === p.id"
-              (click)="setPeriodo(p.id)"
-            >
-              @if (p.id === 'personalizado') {
-                <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
-              }
-              {{ p.label }}
-            </button>
-          }
-        </div>
-      </div>
 
-      @if (periodoFiltro() === 'personalizado') {
-        <div class="fat-faturas__custom-dates">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-            <mat-label>De</mat-label>
-            <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-            <mat-label>Até</mat-label>
-            <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
-          </mat-form-field>
-        </div>
+  <div class="visao-geral__hero-row">
+    <div class="visao-geral__titles">
+      <h2 class="visao-geral__title">Visão geral</h2>
+      <p class="visao-geral__subtitle">Painel resumido do cenário financeiro</p>
+    </div>
+    <div class="fat-faturas__periodo" role="group" aria-label="Período">
+      @for (p of periodoOpcoes; track p.id) {
+        <button
+          type="button"
+          class="btn fat-mat-btn"
+          [class.btn-primary]="periodoFiltro() === p.id"
+          [class.btn-secondary]="periodoFiltro() !== p.id"
+          [attr.aria-pressed]="periodoFiltro() === p.id"
+          (click)="setPeriodo(p.id)"
+        >
+          @if (p.id === 'personalizado') {
+            <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
+          }
+          {{ p.label }}
+        </button>
       }
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </div>
+
+  @if (periodoFiltro() === 'personalizado') {
+    <div class="fat-faturas__custom-dates">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+        <mat-label>De</mat-label>
+        <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+        <mat-label>Até</mat-label>
+        <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
+      </mat-form-field>
+    </div>
+  }
 
   <!-- Cards financeiros -->
   <div class="visao-geral__grid visao-geral__grid--metrics">
@@ -266,4 +262,5 @@
       </mat-card-content>
     </mat-card>
   </div>
+
 </div>

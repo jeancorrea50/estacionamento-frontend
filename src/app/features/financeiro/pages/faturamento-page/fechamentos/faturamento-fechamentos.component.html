@@ -1,135 +1,129 @@
 <div class="fat-fech">
-  <!-- 1. Cabeçalho interno -->
-  <div class="fat-fech__hero">
-    <div class="fat-fech__hero-row">
-      <div class="fat-fech__titles">
-        <h2 class="fat-fech__title">Fechamentos</h2>
-        <p class="fat-fech__subtitle">Gere faturas por período com base nas movimentações registradas.</p>
-      </div>
-      <div class="fat-fech__hero-actions" role="toolbar" aria-label="Ações de fechamentos">
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('recalcular')">
-          <span class="material-symbols-outlined" aria-hidden="true">calculate</span>
-          Recalcular
-        </button>
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('gerar-selecionadas')">
-          <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-          Gerar Selecionadas
-        </button>
-        <button type="button" class="btn btn-primary fat-mat-btn" (click)="acaoMock('gerar-enviar')">
-          <span class="material-symbols-outlined" aria-hidden="true">send</span>
-          Gerar e Enviar
-        </button>
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('exportar')">
-          <span class="material-symbols-outlined" aria-hidden="true">download</span>
-          Exportar
-        </button>
-      </div>
+  <!-- 1. Hero row -->
+  <div class="fat-fech__hero-row">
+    <div class="fat-fech__titles">
+      <h2 class="fat-fech__title">Fechamentos</h2>
+      <p class="fat-fech__subtitle">Gere faturas por período com base nas movimentações registradas.</p>
+    </div>
+    <div class="fat-fech__hero-actions" role="toolbar" aria-label="Ações de fechamentos">
+      <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('recalcular')">
+        <span class="material-symbols-outlined" aria-hidden="true">calculate</span>
+        Recalcular
+      </button>
+      <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('gerar-selecionadas')">
+        <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+        Gerar Selecionadas
+      </button>
+      <button type="button" class="btn btn-primary fat-mat-btn" (click)="acaoMock('gerar-enviar')">
+        <span class="material-symbols-outlined" aria-hidden="true">send</span>
+        Gerar e Enviar
+      </button>
+      <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('exportar')">
+        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+        Exportar
+      </button>
     </div>
   </div>
 
-  <!-- 2. Filtros superiores -->
-  <mat-card class="fat-fech__filters-card" appearance="outlined">
-    <mat-card-content class="fat-fech__filters-card-inner">
-      <div class="fat-fech__filters-shell" aria-labelledby="fat-fech-filtros-titulo">
-        <p id="fat-fech-filtros-titulo" class="fat-fech__panel-label">Filtros</p>
-        <div class="fat-fech__periodo-wrap">
-          <div class="fat-faturas__periodo" role="group" aria-label="Período">
-            @for (p of periodoOpcoes; track p.id) {
-              <button
-                type="button"
-                class="btn fat-mat-btn"
-                [class.btn-primary]="periodoTipo() === p.id"
-                [class.btn-secondary]="periodoTipo() !== p.id"
-                [attr.aria-pressed]="periodoTipo() === p.id"
-                (click)="setPeriodoTipo(p.id)"
-              >
-                @if (p.id === 'personalizado') {
-                  <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
-                }
-                {{ p.label }}
-              </button>
+  <!-- 2. Filtros section -->
+  <div class="fat-fech__filters-shell" aria-labelledby="fat-fech-filtros-titulo">
+    <p id="fat-fech-filtros-titulo" class="fat-fech__panel-label">Filtros</p>
+    <div class="fat-fech__periodo-wrap">
+      <div class="fat-faturas__periodo" role="group" aria-label="Período">
+        @for (p of periodoOpcoes; track p.id) {
+          <button
+            type="button"
+            class="btn fat-mat-btn"
+            [class.btn-primary]="periodoTipo() === p.id"
+            [class.btn-secondary]="periodoTipo() !== p.id"
+            [attr.aria-pressed]="periodoTipo() === p.id"
+            (click)="setPeriodoTipo(p.id)"
+          >
+            @if (p.id === 'personalizado') {
+              <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
             }
-          </div>
-          @if (periodoTipo() === 'personalizado') {
-            <div class="fat-faturas__custom-dates fat-fech__periodo-dates">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-                <mat-label>De</mat-label>
-                <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
-              </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-                <mat-label>Até</mat-label>
-                <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
-              </mat-form-field>
-            </div>
-          }
-        </div>
-        <div class="fat-fech__filters">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
-            <mat-label>Transportadora</mat-label>
-            <mat-select
-              [value]="transportadoraFiltro()"
-              (selectionChange)="transportadoraFiltro.set($event.value)"
-            >
-              <mat-option value="all">Todas</mat-option>
-              @for (t of transportadorasOpcoes(); track t) {
-                <mat-option [value]="t">{{ t }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
-            <mat-label>Estacionamento</mat-label>
-            <mat-select
-              [value]="estacionamentoFiltro()"
-              (selectionChange)="estacionamentoFiltro.set($event.value)"
-            >
-              <mat-option value="all">Todos</mat-option>
-              @for (e of estacionamentosOpcoes(); track e) {
-                <mat-option [value]="e">{{ e }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
-            <mat-label>Modalidade</mat-label>
-            <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value)">
-              <mat-option value="all">Todas</mat-option>
-              @for (m of modalidades; track m) {
-                <mat-option [value]="m">{{ m }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
-            <mat-label>Situação do fechamento</mat-label>
-            <mat-select [value]="situacaoFiltro()" (selectionChange)="situacaoFiltro.set($event.value)">
-              <mat-option value="all">Todas</mat-option>
-              @for (s of situacoesFiltro; track s) {
-                <mat-option [value]="s">{{ s }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
+            {{ p.label }}
+          </button>
+        }
       </div>
-
-      <!-- 3. Filtros rápidos -->
-      <div class="fat-fech__quick-shell" aria-labelledby="fat-fech-quick-titulo">
-        <p id="fat-fech-quick-titulo" class="fat-fech__panel-label">Situação</p>
-        <div class="fat-fech__quick" role="group" aria-label="Filtros rápidos por situação">
-          @for (o of filtroRapidoOpcoes; track o.id) {
-            <button
-              type="button"
-              class="fat-fech__qf"
-              [class.fat-fech__qf--active]="isFiltroRapidoAtivo(o.id)"
-              (click)="setFiltroRapido(o.id)"
-            >
-              {{ o.label }}
-              <span class="fat-fech__qf-badge">{{ chipBadge(o.id) }}</span>
-            </button>
-          }
+      @if (periodoTipo() === 'personalizado') {
+        <div class="fat-faturas__custom-dates fat-fech__periodo-dates">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+            <mat-label>De</mat-label>
+            <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
+            <mat-label>Até</mat-label>
+            <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
+          </mat-form-field>
         </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
+      }
+    </div>
+    <div class="fat-fech__filters">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+        <mat-label>Transportadora</mat-label>
+        <mat-select
+          [value]="transportadoraFiltro()"
+          (selectionChange)="transportadoraFiltro.set($event.value)"
+        >
+          <mat-option value="all">Todas</mat-option>
+          @for (t of transportadorasOpcoes(); track t) {
+            <mat-option [value]="t">{{ t }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+        <mat-label>Estacionamento</mat-label>
+        <mat-select
+          [value]="estacionamentoFiltro()"
+          (selectionChange)="estacionamentoFiltro.set($event.value)"
+        >
+          <mat-option value="all">Todos</mat-option>
+          @for (e of estacionamentosOpcoes(); track e) {
+            <mat-option [value]="e">{{ e }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+        <mat-label>Modalidade</mat-label>
+        <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value)">
+          <mat-option value="all">Todas</mat-option>
+          @for (m of modalidades; track m) {
+            <mat-option [value]="m">{{ m }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-fech__field">
+        <mat-label>Situação do fechamento</mat-label>
+        <mat-select [value]="situacaoFiltro()" (selectionChange)="situacaoFiltro.set($event.value)">
+          <mat-option value="all">Todas</mat-option>
+          @for (s of situacoesFiltro; track s) {
+            <mat-option [value]="s">{{ s }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
 
-  <!-- 4. Cards de resumo -->
+  <!-- 3. Situação (filtros rápidos) section -->
+  <div class="fat-fech__quick-shell" aria-labelledby="fat-fech-quick-titulo">
+    <p id="fat-fech-quick-titulo" class="fat-fech__panel-label">Situação</p>
+    <div class="fat-fech__quick" role="group" aria-label="Filtros rápidos por situação">
+      @for (o of filtroRapidoOpcoes; track o.id) {
+        <button
+          type="button"
+          class="fat-fech__qf"
+          [class.fat-fech__qf--active]="isFiltroRapidoAtivo(o.id)"
+          (click)="setFiltroRapido(o.id)"
+        >
+          {{ o.label }}
+          <span class="fat-fech__qf-badge">{{ chipBadge(o.id) }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- 4. KPI cards -->
   <div class="fat-fech__kpi-grid" role="region" aria-label="Resumo de fechamentos">
     <mat-card class="fat-fech__kpi" appearance="outlined">
       <mat-card-content>
@@ -171,6 +165,17 @@
 
   <!-- 5. Tabela -->
   <mat-card class="fat-fech__table-card" appearance="outlined">
+    <div class="fat-fech__table-header">
+      <div class="fat-fech__table-header-left">
+        <h3 class="fat-fech__table-title">Fechamentos do período</h3>
+        <p class="fat-fech__table-count">{{ linhasFiltradas().length }} registros</p>
+      </div>
+      <div class="fat-fech__table-header-right">
+        <button type="button" mat-icon-button class="fat-fech__table-more-btn" matTooltip="Mais opções">
+          <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+        </button>
+      </div>
+    </div>
     <mat-card-content class="fat-fech__table-card-inner">
       <div class="fat-fech__table-scroll">
         <table mat-table [dataSource]="linhasFiltradas()" class="fat-fech-table">
@@ -307,7 +312,7 @@
     </ng-template>
   </mat-menu>
 
-  <!-- 8. Resumo selecionado -->
+  <!-- 6. Resumo selecionado -->
   <mat-card class="fat-fech__summary-card" appearance="outlined">
     <mat-card-header class="fat-fech__summary-head">
       <mat-card-title>Resumo do Fechamento Selecionado</mat-card-title>
@@ -369,7 +374,7 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- 9. Validações -->
+  <!-- 7. Validações -->
   <mat-card class="fat-fech__valid-card" appearance="outlined">
     <mat-card-header>
       <mat-card-title>Validações do período</mat-card-title>

@@ -1,238 +1,346 @@
-<div class="visao-geral">
-  <mat-card class="visao-geral__hero" appearance="outlined">
-    <mat-card-content>
-      <div class="visao-geral__hero-row rec-hero__row">
-        <div class="visao-geral__titles">
-          <h2 class="visao-geral__title">Inadimplência</h2>
-          <p class="visao-geral__subtitle">Acompanhe faturas vencidas, atrasos e ações de cobrança.</p>
-        </div>
-        <div class="rec-hero__actions" role="toolbar" aria-label="Ações de inadimplência">
-          <button type="button" class="btn btn-primary fat-mat-btn" (click)="acaoMock('lembretes')">
-            <span class="material-symbols-outlined" aria-hidden="true">schedule_send</span>
-            Enviar Lembretes
-          </button>
-          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('reenviar-lote')">
-            <span class="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
-            Reenviar Cobranças
-          </button>
-          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="abrirAcordo()">
-            <span class="material-symbols-outlined" aria-hidden="true">handshake</span>
-            Registrar Acordo
-          </button>
-          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('exportar')">
-            <span class="material-symbols-outlined" aria-hidden="true">download</span>
-            Exportar
-          </button>
-        </div>
-      </div>
+<div class="rec-page">
+  <div class="rec-hero-titles">
+    <h2 class="rec-hero-titles__title">Inadimplência</h2>
+    <p class="rec-hero-titles__subtitle">Acompanhe faturas vencidas, atrasos e ações de cobrança.</p>
+  </div>
 
-      <div class="rec-hero__periodo-shell">
-        <div class="fat-faturas__periodo" role="group" aria-label="Período">
-          @for (p of periodoOpcoes; track p.id) {
-            <button
-              type="button"
-              class="btn fat-mat-btn"
-              [class.btn-primary]="periodoFiltro() === p.id"
-              [class.btn-secondary]="periodoFiltro() !== p.id"
-              [attr.aria-pressed]="periodoFiltro() === p.id"
-              (click)="setPeriodo(p.id)"
-            >
-              @if (p.id === 'personalizado') {
-                <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
-              }
-              {{ p.label }}
+  <div class="rec-painel-card">
+    <div class="rec-painel-card__header">
+      <div class="rec-painel-card__header-left">
+        <span class="material-symbols-outlined rec-painel-card__ico" aria-hidden="true">dashboard</span>
+        <span class="rec-painel-card__titulo">Painel de controle</span>
+      </div>
+    </div>
+
+    <div class="rec-painel-card__divider"></div>
+
+    <div class="rec-toolbar">
+      <nav class="rec-status-tabs rec-status-tabs--inline" role="group" aria-label="Filtros rápidos">
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todas')"
+          (click)="alternarFiltroRapido('todas')"
+        >
+          <span class="rec-status-tabs__label">Todas</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().todas }}</span>
+        </button>
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d1_7')"
+          (click)="alternarFiltroRapido('d1_7')"
+        >
+          <span class="rec-status-tabs__label">1 a 7 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().d1_7 }}</span>
+        </button>
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d8_15')"
+          (click)="alternarFiltroRapido('d8_15')"
+        >
+          <span class="rec-status-tabs__label">8 a 15 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().d8_15 }}</span>
+        </button>
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais15')"
+          (click)="alternarFiltroRapido('mais15')"
+        >
+          <span class="rec-status-tabs__label">Mais de 15 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().mais15 }}</span>
+        </button>
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais30')"
+          (click)="alternarFiltroRapido('mais30')"
+        >
+          <span class="rec-status-tabs__label">Mais de 30 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().mais30 }}</span>
+        </button>
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semCobranca')"
+          (click)="alternarFiltroRapido('semCobranca')"
+        >
+          <span class="rec-status-tabs__label">Sem cobrança</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().semCobranca }}</span>
+        </button>
+        <button
+          type="button"
+          class="rec-status-tabs__tab"
+          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('emNegociacao')"
+          (click)="alternarFiltroRapido('emNegociacao')"
+        >
+          <span class="rec-status-tabs__label">Em negociação</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().emNegociacao }}</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <div class="rec-kpi-row">
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--orange">
+          <span class="material-symbols-outlined" aria-hidden="true">gpp_bad</span>
+        </div>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Total vencido</span>
+            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-total-vencido')">
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
-          }
-        </div>
-
-        @if (periodoFiltro() === 'personalizado') {
-          <div class="fat-faturas__custom-dates">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-              <mat-label>De</mat-label>
-              <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
-            </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-              <mat-label>Até</mat-label>
-              <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
-            </mat-form-field>
           </div>
-        }
-      </div>
-
-      <div class="rec-filters" aria-labelledby="inad-filtros-titulo">
-        <p id="inad-filtros-titulo" class="rec-filters__label">Filtros</p>
-        <div class="rec-filters__grid">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Transportadora</mat-label>
-            <mat-select
-              [value]="transportadoraFiltro()"
-              (selectionChange)="transportadoraFiltro.set($event.value)"
-            >
-              <mat-option value="all">Todas</mat-option>
-              @for (t of transportadorasOpcoes(); track t) {
-                <mat-option [value]="t">{{ t }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Estacionamento</mat-label>
-            <mat-select
-              [value]="estacionamentoFiltro()"
-              (selectionChange)="estacionamentoFiltro.set($event.value)"
-            >
-              <mat-option value="all">Todos</mat-option>
-              @for (e of estacionamentosOpcoes(); track e) {
-                <mat-option [value]="e">{{ e }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Dias em atraso</mat-label>
-            <mat-select [value]="diasFiltro()" (selectionChange)="setDiasFiltro($event)">
-              @for (o of diasAtrasoOpcoes; track o.id) {
-                <mat-option [value]="o.id">{{ o.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Status da cobrança</mat-label>
-            <mat-select [value]="statusCobrancaFiltro()" (selectionChange)="setStatusCobrancaFiltro($event)">
-              <mat-option value="all">Todos</mat-option>
-              @for (s of statusCobrancaOpcoes; track s) {
-                <mat-option [value]="s">{{ s }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ totalVencidoFormatado() }}</p>
         </div>
-      </div>
-
-      <div class="rec-quick" aria-labelledby="inad-quick-titulo">
-        <p id="inad-quick-titulo" class="rec-filters__label">Visão rápida</p>
-        <div class="rec-quick__row" role="group" aria-label="Filtros rápidos">
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('todas')"
-            (click)="alternarFiltroRapido('todas')"
-          >
-            Todas
-            <span class="rec-quick__badge">{{ contagensChips().todas }}</span>
-          </button>
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('d1_7')"
-            (click)="alternarFiltroRapido('d1_7')"
-          >
-            1 a 7 dias
-            <span class="rec-quick__badge">{{ contagensChips().d1_7 }}</span>
-          </button>
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('d8_15')"
-            (click)="alternarFiltroRapido('d8_15')"
-          >
-            8 a 15 dias
-            <span class="rec-quick__badge">{{ contagensChips().d8_15 }}</span>
-          </button>
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('mais15')"
-            (click)="alternarFiltroRapido('mais15')"
-          >
-            Mais de 15 dias
-            <span class="rec-quick__badge">{{ contagensChips().mais15 }}</span>
-          </button>
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('mais30')"
-            (click)="alternarFiltroRapido('mais30')"
-          >
-            Mais de 30 dias
-            <span class="rec-quick__badge">{{ contagensChips().mais30 }}</span>
-          </button>
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('semCobranca')"
-            (click)="alternarFiltroRapido('semCobranca')"
-          >
-            Sem cobrança
-            <span class="rec-quick__badge">{{ contagensChips().semCobranca }}</span>
-          </button>
-          <button
-            type="button"
-            class="rec-quick__chip"
-            [class.rec-quick__chip--active]="isFiltroRapidoAtivo('emNegociacao')"
-            (click)="alternarFiltroRapido('emNegociacao')"
-          >
-            Em negociação
-            <span class="rec-quick__badge">{{ contagensChips().emNegociacao }}</span>
-          </button>
-        </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <div class="visao-geral__grid visao-geral__grid--metrics">
-    <mat-card class="visao-metric" appearance="outlined">
-      <mat-card-content>
-        <div class="visao-metric__head">
-          <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--danger" aria-hidden="true"
-            >gpp_bad</span
-          >
-          <span class="visao-metric__label">Total vencido</span>
-        </div>
-        <p class="visao-metric__value visao-metric__value--danger">{{ formatCurrency(41399.1) }}</p>
       </mat-card-content>
     </mat-card>
-    <mat-card class="visao-metric" appearance="outlined">
-      <mat-card-content>
-        <div class="visao-metric__head">
-          <span class="material-symbols-outlined visao-metric__ico inad-metric__ico-laranja" aria-hidden="true"
-            >receipt_long</span
-          >
-          <span class="visao-metric__label">Faturas vencidas</span>
+
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--orange">
+          <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
         </div>
-        <p class="visao-metric__value inad-metric__num">12</p>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Faturas vencidas</span>
+            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-faturas')">
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+            </button>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ linhasFiltradas().length }}</p>
+        </div>
       </mat-card-content>
     </mat-card>
-    <mat-card class="visao-metric" appearance="outlined">
-      <mat-card-content>
-        <div class="visao-metric__head">
-          <span class="material-symbols-outlined visao-metric__ico inad-metric__ico-amarelo" aria-hidden="true"
-            >local_shipping</span
-          >
-          <span class="visao-metric__label">Transportadoras inadimplentes</span>
+
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--blue">
+          <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
         </div>
-        <p class="visao-metric__value inad-metric__num">8</p>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Transportadoras inadimplentes</span>
+            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-transp')">
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+            </button>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ transportadorasOpcoes().length }}</p>
+        </div>
       </mat-card-content>
     </mat-card>
-    <mat-card class="visao-metric" appearance="outlined">
-      <mat-card-content>
-        <div class="visao-metric__head">
-          <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--accent" aria-hidden="true"
-            >person_alert</span
-          >
-          <span class="visao-metric__label">Maior devedor</span>
+
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--green">
+          <span class="material-symbols-outlined" aria-hidden="true">handshake</span>
         </div>
-        <p class="visao-metric__value inad-metric__devedor">{{ formatCurrency(12840) }}</p>
-        <p class="inad-metric__sub">Transp. Horizonte Ltda</p>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Acordos realizados</span>
+            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-acordos')">
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+            </button>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ contagemAcordos() }}</p>
+        </div>
       </mat-card-content>
     </mat-card>
   </div>
 
-  <mat-card class="visao-chart-card rec-table-card" appearance="outlined">
-    <mat-card-header class="visao-card-head">
-      <mat-card-title>Faturas em atraso</mat-card-title>
-      <mat-card-subtitle>{{ linhasFiltradas().length }} registros com os filtros atuais</mat-card-subtitle>
-    </mat-card-header>
+  <mat-card class="rec-table-card" appearance="outlined">
+    <div class="rec-table-card__header">
+      <div class="rec-table-card__header-left">
+        <h3 class="rec-table-card__title">Faturas em atraso</h3>
+        <p class="rec-table-card__count">{{ linhasFiltradas().length }} registros com os filtros atuais</p>
+      </div>
+      <div class="rec-table-card__header-right">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-table-search">
+          <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">search</span>
+          <input
+            matInput
+            placeholder="Buscar..."
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event)"
+          />
+        </mat-form-field>
+        <div class="rec-filter-bar rec-filter-bar--table">
+          <button
+            type="button"
+            class="btn btn-secondary fat-mat-btn rec-filtros-btn rec-filtros-tabela-btn"
+            [class.rec-filtros-btn--ativo]="panelFiltrosAberto()"
+            (click)="togglePanelFiltros($event)"
+            aria-label="Abrir filtros"
+            [attr.aria-expanded]="panelFiltrosAberto()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
+            Filtros da tabela
+            @if (filtrosAtivosCount() > 0) {
+              <span class="rec-filtros-badge">{{ filtrosAtivosCount() }}</span>
+            }
+            <span class="material-symbols-outlined rec-filtros-arrow" [class.rec-filtros-arrow--aberto]="panelFiltrosAberto()" aria-hidden="true">expand_more</span>
+          </button>
+
+          @if (filtrosAtivosCount() > 0) {
+            <button type="button" class="btn btn-secondary fat-mat-btn rec-btn-limpar" (click)="limparFiltros()">
+              <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+              Limpar filtros
+            </button>
+          }
+
+          @if (panelFiltrosAberto()) {
+            <div class="rec-filtros-dropdown" role="dialog" aria-label="Filtros avançados">
+              <p class="rec-filtros-panel__titulo">Filtros avançados</p>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">local_shipping</span>
+                <mat-label>Transportadora</mat-label>
+                <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value)">
+                  <mat-option value="all">Todas</mat-option>
+                  @for (t of transportadorasOpcoes(); track t) {
+                    <mat-option [value]="t">{{ t }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">location_on</span>
+                <mat-label>Estacionamento</mat-label>
+                <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value)">
+                  <mat-option value="all">Todos</mat-option>
+                  @for (e of estacionamentosOpcoes(); track e) {
+                    <mat-option [value]="e">{{ e }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">schedule</span>
+                <mat-label>Dias em atraso</mat-label>
+                <mat-select [value]="diasFiltro()" (selectionChange)="setDiasFiltro($event)">
+                  @for (o of diasAtrasoOpcoes; track o.id) {
+                    <mat-option [value]="o.id">{{ o.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">outgoing_mail</span>
+                <mat-label>Status da cobrança</mat-label>
+                <mat-select [value]="statusCobrancaFiltro()" (selectionChange)="setStatusCobrancaFiltro($event)">
+                  <mat-option value="all">Todos</mat-option>
+                  @for (s of statusCobrancaOpcoes; track s) {
+                    <mat-option [value]="s">{{ s }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          }
+        </div>
+        <div class="rec-table-actions-inline">
+          <button
+            type="button"
+            class="btn btn-secondary fat-mat-btn rec-acoes-btn rec-acoes-btn--table"
+            [matMenuTriggerFor]="menuAcoesRapidas"
+            aria-label="Abrir ações rápidas"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+
+          <div class="rec-data-picker">
+            <button
+              type="button"
+              class="rec-data-picker__trigger rec-data-picker__trigger--table"
+              [class.rec-data-picker__trigger--ativo]="panelDataAberto()"
+              (click)="togglePanelData($event)"
+              aria-label="Selecionar data"
+              [attr.aria-expanded]="panelDataAberto()"
+            >
+              <span class="rec-data-picker__label">Data</span>
+              <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
+            </button>
+
+            @if (panelDataAberto()) {
+              <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
+                <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
+                  <h3 class="rec-cal__titulo">Calendário</h3>
+                  <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
+                    @for (g of periodoGranularidadeOpcoes; track g.id) {
+                      <button
+                        type="button"
+                        class="rec-data-picker__mode"
+                        role="tab"
+                        [class.rec-data-picker__mode--active]="periodoGranularidade() === g.id"
+                        [attr.aria-selected]="periodoGranularidade() === g.id"
+                        (click)="setPeriodoGranularidade(g.id)"
+                      >
+                        {{ g.label }}
+                      </button>
+                    }
+                  </div>
+                  <!-- mesmo calendário visual de recebimentos -->
+                  @if (periodoGranularidade() === 'ano') {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()"><span class="material-symbols-outlined" aria-hidden="true">chevron_left</span></button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+                    </div>
+                    <div class="rec-cal__anos-grid">
+                      @for (ano of calendarioAnosOpcoes(); track ano) {
+                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">{{ ano }}</button>
+                      }
+                    </div>
+                  } @else if (periodoGranularidade() === 'mes') {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()"><span class="material-symbols-outlined" aria-hidden="true">chevron_left</span></button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+                    </div>
+                    <div class="rec-cal__meses-grid">
+                      @for (mes of mesesLabels; track mes; let i = $index) {
+                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">{{ mes }}</button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()"><span class="material-symbols-outlined" aria-hidden="true">chevron_left</span></button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioTituloMes() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+                    </div>
+                    <div class="rec-cal__weekdays" aria-hidden="true">
+                      @for (dia of diasSemanaLabels; track dia) {
+                        <span class="rec-cal__weekday">{{ dia }}</span>
+                      }
+                    </div>
+                    <div class="rec-cal__grid" role="grid" aria-label="Dias do mês" (mouseleave)="onDocumentMouseUp()">
+                      @for (cell of calendarioGrade(); track cell.iso) {
+                        <button
+                          type="button"
+                          class="rec-cal__dia"
+                          role="gridcell"
+                          [ngClass]="diaCalendarioModificadores(cell)"
+                          [attr.aria-label]="cell.iso"
+                          [attr.aria-selected]="diaCalendarioModificadores(cell)['rec-cal__dia--selecionado'] || diaCalendarioModificadores(cell)['rec-cal__dia--range']"
+                          (mousedown)="onDiaCalendarioPointerDown(cell, $event)"
+                          (mouseenter)="onDiaCalendarioPointerEnter(cell)"
+                        >
+                          {{ cell.day }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
     <mat-card-content class="rec-table-card__inner">
       <div class="rec-table-scroll">
-        <table mat-table [dataSource]="linhasFiltradas()" class="rec-mat-table">
+        <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table">
           <ng-container matColumnDef="select">
             <th mat-header-cell *matHeaderCellDef class="rec-mat-table__sel">
               <mat-checkbox
@@ -359,122 +467,21 @@
         }
       </div>
     </mat-card-content>
-  </mat-card>
 
-  <div class="visao-geral__grid visao-geral__grid--bottom">
-    <mat-card class="visao-bottom-card visao-bottom-card--alerts" appearance="outlined">
-      <mat-card-header class="visao-card-head">
-        <mat-card-title>Resumo da Cobrança Selecionada</mat-card-title>
-      </mat-card-header>
-      <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--alerts">
-        @if (!resumoLinha()) {
-          <p class="rec-resumo__empty">Selecione uma fatura vencida para visualizar o histórico e as ações de cobrança.</p>
-        } @else {
-          @if (variosSelecionados()) {
-            <p class="rec-resumo__hint">Vários itens selecionados — exibindo o primeiro para o resumo.</p>
-          }
-          <dl class="rec-resumo__dl">
-            <div><dt>Fatura</dt><dd>{{ resumoLinha()!.id }}</dd></div>
-            <div><dt>Transportadora</dt><dd>{{ resumoLinha()!.transportadora }}</dd></div>
-            <div><dt>Estacionamento</dt><dd>{{ resumoLinha()!.estacionamento }}</dd></div>
-            <div><dt>Valor</dt><dd>{{ formatCurrency(resumoLinha()!.valor) }}</dd></div>
-            <div><dt>Vencimento</dt><dd>{{ resumoLinha()!.vencimento }}</dd></div>
-            <div><dt>Dias em atraso</dt><dd>{{ resumoLinha()!.diasAtraso }}</dd></div>
-            <div><dt>Última cobrança</dt><dd>{{ textoCelula(resumoLinha()!.ultimaCobranca) }}</dd></div>
-            <div><dt>Status da cobrança</dt><dd><span [class]="statusCobrancaClass(resumoLinha()!.statusCobranca)">{{ resumoLinha()!.statusCobranca }}</span></dd></div>
-            <div><dt>E-mail financeiro</dt><dd>{{ resumoLinha()!.emailFinanceiro }}</dd></div>
-            <div><dt>Contato disponível</dt><dd>{{ resumoLinha()!.contato }}</dd></div>
-          </dl>
-          @if (resumoLinha()!.historicoCobranca.length > 0) {
-            <p class="rec-resumo__hist-title">Histórico de cobranças</p>
-            <ul class="visao-alert-list" aria-label="Histórico de cobranças">
-              @for (h of resumoLinha()!.historicoCobranca; track h.data + h.acao) {
-                <li class="visao-alert-list__item">
-                  <div class="rec-hist-row">
-                    <span class="material-symbols-outlined rec-hist-row__ico" aria-hidden="true">mark_email_read</span>
-                    <span class="rec-hist-row__txt">{{ h.data }} | {{ h.canal }} | {{ h.acao }} | {{ h.resultado }}</span>
-                  </div>
-                </li>
-              }
-            </ul>
-          }
-          <div class="rec-resumo__actions">
-            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('lembrete-resumo', resumoLinha()!)">
-              Enviar lembrete
-            </button>
-            <button
-              type="button"
-              class="btn btn-secondary fat-mat-btn"
-              [disabled]="bloquearReenviar(resumoLinha()!)"
-              (click)="acaoMock('reenviar-resumo', resumoLinha()!)"
-            >
-              Reenviar cobrança
-            </button>
-            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="abrirAcordo(resumoLinha()!)">Registrar acordo</button>
-            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('ver-fatura', resumoLinha()!)">Ver fatura</button>
-            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('acrescimo', resumoLinha()!)">Aplicar acréscimo</button>
-            <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('desconto', resumoLinha()!)">Aplicar desconto</button>
-          </div>
-        }
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="visao-bottom-card visao-bottom-card--due" appearance="outlined">
-      <mat-card-header class="visao-card-head">
-        <mat-card-title>Registrar acordo (estrutura)</mat-card-title>
-        <mat-card-subtitle>Visual compacto — mesmo fluxo do diálogo mockado</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--table">
-        <div class="rec-inline-partial">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
-            <mat-label>Fatura</mat-label>
-            <input matInput [value]="resumoLinha()?.id ?? '—'" readonly />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
-            <mat-label>Transportadora</mat-label>
-            <input matInput [value]="resumoLinha()?.transportadora ?? '—'" readonly />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
-            <mat-label>Valor original</mat-label>
-            <input matInput [value]="formatCurrency(resumoLinha()?.valor ?? 0)" readonly />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
-            <mat-label>Valor negociado</mat-label>
-            <input matInput type="text" value="0,00" readonly />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-inline-partial__field">
-            <mat-label>Novo vencimento</mat-label>
-            <input matInput type="date" value="2026-06-20" readonly />
-          </mat-form-field>
-        </div>
-        <button mat-button type="button" class="visao-link-footer visao-link-footer--due-block" (click)="abrirAcordo(resumoLinha() ?? undefined)">
-          Abrir registro completo em diálogo
-          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+    <div class="rec-table-footer">
+      <span class="rec-table-footer__info">Mostrando {{ paginaInfo() }} de {{ linhasFiltradas().length }} registros</span>
+      <div class="rec-table-footer__pages" role="navigation" aria-label="Paginação">
+        <button type="button" mat-icon-button class="rec-page-nav-btn" [disabled]="paginaAtual() === 0" (click)="irParaPagina(paginaAtual() - 1)">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
         </button>
-      </mat-card-content>
-    </mat-card>
-  </div>
-
-  <p class="visao-geral__section-label">Alertas de cobrança</p>
-  <mat-card class="visao-bottom-card visao-bottom-card--alerts inad-alertas-card" appearance="outlined">
-    <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--alerts">
-      <ul class="visao-alert-list" aria-label="Alertas de cobrança">
-        @for (a of alertasCobranca; track a.id) {
-          <li class="visao-alert-list__item">
-            <button type="button" class="visao-alert inad-alert" [class.inad-alert--critico]="a.nivel === 'critico'">
-              <span class="material-symbols-outlined visao-alert__ico" aria-hidden="true">{{ a.icon }}</span>
-              <span class="visao-alert__main">
-                <span class="visao-alert__title">{{ a.titulo }}</span>
-                <span class="visao-alert__detail">{{ a.detalhe }}</span>
-              </span>
-              <span class="visao-alert__trail">
-                <span class="material-symbols-outlined visao-alert__chev" aria-hidden="true">chevron_right</span>
-              </span>
-            </button>
-          </li>
+        @for (p of paginasVisiveis(); track p) {
+          <button type="button" class="rec-page-num" [class.rec-page-num--active]="p === paginaAtual() + 1" (click)="irParaPagina(p - 1)">{{ p }}</button>
         }
-      </ul>
-    </mat-card-content>
+        <button type="button" mat-icon-button class="rec-page-nav-btn" [disabled]="paginaAtual() >= totalPaginas() - 1" (click)="irParaPagina(paginaAtual() + 1)">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+        </button>
+      </div>
+    </div>
   </mat-card>
 </div>
 
@@ -505,4 +512,23 @@
       Marcar como sem retorno
     </button>
   </ng-template>
+</mat-menu>
+
+<mat-menu #menuAcoesRapidas="matMenu">
+  <button type="button" mat-menu-item (click)="acaoMock('lembretes')">
+    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">schedule_send</span>
+    Enviar Lembretes
+  </button>
+  <button type="button" mat-menu-item (click)="acaoMock('reenviar-lote')">
+    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">forward_to_inbox</span>
+    Reenviar Cobranças
+  </button>
+  <button type="button" mat-menu-item (click)="abrirAcordo()">
+    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">handshake</span>
+    Registrar Acordo
+  </button>
+  <button type="button" mat-menu-item (click)="acaoMock('exportar')">
+    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">download</span>
+    Exportar
+  </button>
 </mat-menu>

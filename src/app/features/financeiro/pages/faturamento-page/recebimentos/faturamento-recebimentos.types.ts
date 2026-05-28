@@ -19,6 +19,8 @@ export type RecebimentoFormaPagamento =
   | 'Dinheiro'
   | 'Outros';
 
+export type RecebimentoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
+
 export type RecebimentoFiltroRapidoId =
   | 'todos'
   | 'pagos'

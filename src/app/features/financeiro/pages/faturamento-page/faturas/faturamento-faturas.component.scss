@@ -12,17 +12,6 @@
   max-width: 100%;
 }
 
-.fat-faturas__hero {
-  background: var(--card-bg, var(--surface));
-  border-color: var(--border-subtle) !important;
-  border-radius: 12px;
-  box-shadow: none;
-}
-
-.fat-faturas__hero .mat-mdc-card-content {
-  padding: 14px 16px 16px !important;
-}
-
 .fat-faturas__hero-row {
   display: flex;
   flex-wrap: wrap;
@@ -137,7 +126,6 @@
 
 /* Painel de selects: agrupa filtros com respiro e leitura clara. */
 .fat-faturas__filters-shell {
-  margin-top: 14px;
   padding: 14px 14px 12px;
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
@@ -175,9 +163,7 @@
 
 /* Chips de situação: faixa separada, menos ruído que misturar com selects. */
 .fat-faturas__quick-shell {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-subtle);
+  padding-top: 2px;
 }
 
 .fat-faturas__quick-shell .fat-faturas__panel-label {
@@ -490,7 +476,6 @@
   }
 }
 
-html.theme-dark .fat-faturas__hero,
 html.theme-dark .fat-faturas__table-card {
   background: var(--fat-card-bg, #151f34) !important;
   border: 1px solid var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
@@ -518,7 +503,6 @@ html.theme-dark .fat-faturas__quick-shell {
   border-top-color: var(--fat-card-border, rgba(96, 130, 190, 0.22));
 }
 
-html.theme-dark .fat-faturas__hero:hover,
 html.theme-dark .fat-faturas__table-card:hover {
   border-color: rgba(96, 165, 250, 0.45) !important;
   box-shadow: var(--fat-card-shadow-hover, 0 0 0 1px rgba(59, 130, 246, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2));

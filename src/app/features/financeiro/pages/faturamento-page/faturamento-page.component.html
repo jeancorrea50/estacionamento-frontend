@@ -1,54 +1,51 @@
 <div class="faturamento-shell">
-  <div class="page-container fat-mat-page-wrap">
-    <mat-card class="fat-mat-page" appearance="outlined">
-      <mat-card-content class="fat-mat-page__inner">
-        <header class="fat-mat-header">
-          <div class="fat-mat-header__titles">
-            <h1 class="page-title">Faturamento</h1>
-            <p class="page-subtitle">Controle de faturas, cobranças e recebimentos</p>
-          </div>
-        </header>
+  <div class="page-container">
 
-        <div class="page-header__row page-header__row--2 fat-fin-tab-row">
-          <nav class="tabs fat-fin-tabs" role="tablist" aria-label="Abas de Faturamento">
-            @for (t of tabs; track t.id) {
-              <button
-                type="button"
-                class="tab fat-fin-tabs__tab"
-                [class.tab--active]="activeTab() === t.id"
-                role="tab"
-                [attr.aria-selected]="activeTab() === t.id"
-                (click)="setTab(t.id)"
-              >
-                {{ t.label }}
-              </button>
-            }
-          </nav>
+    <header class="page-header page-header-card fat-page-header">
+      <div class="fat-page-header__top">
+        <div class="fat-page-header__titles">
+          <h1 class="page-title">Faturamento</h1>
+          <p class="page-subtitle">Controle de faturas, cobranças e recebimentos</p>
         </div>
+      </div>
+      <nav class="fat-fin-tabs" role="tablist" aria-label="Abas de Faturamento">
+        @for (t of tabs; track t.id) {
+          <button
+            type="button"
+            class="fat-fin-tabs__tab"
+            [class.tab--active]="activeTab() === t.id"
+            role="tab"
+            [attr.aria-selected]="activeTab() === t.id"
+            (click)="setTab(t.id)"
+          >
+            {{ t.label }}
+          </button>
+        }
+      </nav>
+    </header>
 
-        <div class="fat-fin-tab-body">
-          @switch (activeTab()) {
-            @case ('visao-geral') {
-              <app-faturamento-visao-geral />
-            }
-            @case ('faturas') {
-              <app-faturamento-faturas />
-            }
-            @case ('fechamentos') {
-              <app-faturamento-fechamentos />
-            }
-            @case ('recebimentos') {
-              <app-faturamento-recebimentos />
-            }
-            @case ('inadimplencia') {
-              <app-faturamento-inadimplencia />
-            }
-            @case ('config-cobranca') {
-              <app-faturamento-config-cobranca />
-            }
-          }
-        </div>
-      </mat-card-content>
-    </mat-card>
+    <div class="fat-fin-tab-body">
+      @switch (activeTab()) {
+        @case ('visao-geral') {
+          <app-faturamento-visao-geral />
+        }
+        @case ('faturas') {
+          <app-faturamento-faturas />
+        }
+        @case ('fechamentos') {
+          <app-faturamento-fechamentos />
+        }
+        @case ('recebimentos') {
+          <app-faturamento-recebimentos />
+        }
+        @case ('inadimplencia') {
+          <app-faturamento-inadimplencia />
+        }
+        @case ('config-cobranca') {
+          <app-faturamento-config-cobranca />
+        }
+      }
+    </div>
+
   </div>
 </div>

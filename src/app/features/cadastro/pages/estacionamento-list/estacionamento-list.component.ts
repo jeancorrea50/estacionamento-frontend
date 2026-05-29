@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, NgZone, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { EstacionamentoService } from '../../services/estacionamento.service';
 import {
@@ -14,8 +15,6 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 
-const TAMANHO_PAGINA = 50;
-
 /** Colunas ordenáveis (mapeadas para `Propriedade` na API). */
 type EstacionamentoListaSortCol =
   | 'id'
@@ -27,10 +26,11 @@ type EstacionamentoListaSortCol =
   | 'ativo';
 
 @Component({
-  selector: 'app-Estacionamento-list',
+  selector: 'app-estacionamento-list',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterLink,
     EstSummaryMetricComponent,
     EstStatusPillEstacionamentoComponent,
@@ -54,7 +54,8 @@ export class EstacionamentoListComponent {
   excluindoId: number | null = null;
   numeroPagina = 1;
   totalCount = 0;
-  tamanhoPagina = TAMANHO_PAGINA;
+  tamanhoPagina = 10;
+  readonly opcoesTamanhoPagina: number[] = [10, 25, 50];
 
   /** Ordenação no backend (`Propriedade` + `Sort`). */
   sortCol: EstacionamentoListaSortCol | null = null;
@@ -218,6 +219,16 @@ export class EstacionamentoListComponent {
   buscar(): void {
     this.numeroPagina = 1;
     this.carregar();
+  }
+
+  onTamanhoPaginaChange(size: number | string): void {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.tamanhoPagina = n;
+    this.numeroPagina = 1;
+    if (this.toolbar.trigger() > 0) {
+      this.carregar();
+    }
   }
 
   irParaPagina(pagina: number): void {

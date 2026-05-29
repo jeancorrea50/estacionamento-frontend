@@ -1,87 +1,4 @@
 <div class="rec-page">
-  <div class="rec-hero-titles">
-    <h2 class="rec-hero-titles__title">Inadimplência</h2>
-    <p class="rec-hero-titles__subtitle">Acompanhe faturas vencidas, atrasos e ações de cobrança.</p>
-  </div>
-
-  <div class="rec-painel-card">
-    <div class="rec-painel-card__header">
-      <div class="rec-painel-card__header-left">
-        <span class="material-symbols-outlined rec-painel-card__ico" aria-hidden="true">dashboard</span>
-        <span class="rec-painel-card__titulo">Painel de controle</span>
-      </div>
-    </div>
-
-    <div class="rec-painel-card__divider"></div>
-
-    <div class="rec-toolbar">
-      <nav class="rec-status-tabs rec-status-tabs--inline" role="group" aria-label="Filtros rápidos">
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todas')"
-          (click)="alternarFiltroRapido('todas')"
-        >
-          <span class="rec-status-tabs__label">Todas</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().todas }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d1_7')"
-          (click)="alternarFiltroRapido('d1_7')"
-        >
-          <span class="rec-status-tabs__label">1 a 7 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().d1_7 }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d8_15')"
-          (click)="alternarFiltroRapido('d8_15')"
-        >
-          <span class="rec-status-tabs__label">8 a 15 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().d8_15 }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais15')"
-          (click)="alternarFiltroRapido('mais15')"
-        >
-          <span class="rec-status-tabs__label">Mais de 15 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().mais15 }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais30')"
-          (click)="alternarFiltroRapido('mais30')"
-        >
-          <span class="rec-status-tabs__label">Mais de 30 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().mais30 }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semCobranca')"
-          (click)="alternarFiltroRapido('semCobranca')"
-        >
-          <span class="rec-status-tabs__label">Sem cobrança</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().semCobranca }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('emNegociacao')"
-          (click)="alternarFiltroRapido('emNegociacao')"
-        >
-          <span class="rec-status-tabs__label">Em negociação</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().emNegociacao }}</span>
-        </button>
-      </nav>
-    </div>
-  </div>
 
   <div class="rec-kpi-row">
     <mat-card class="rec-kpi-card" appearance="outlined">
@@ -336,6 +253,39 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="rec-table-card__toolbar">
+      <nav class="rec-status-tabs rec-status-tabs--inline rec-status-tabs--in-table" role="group" aria-label="Filtros rápidos">
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todas')" (click)="alternarFiltroRapido('todas')">
+          <span class="rec-status-tabs__label">Todas</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().todas }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d1_7')" (click)="alternarFiltroRapido('d1_7')">
+          <span class="rec-status-tabs__label">1 a 7 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().d1_7 }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d8_15')" (click)="alternarFiltroRapido('d8_15')">
+          <span class="rec-status-tabs__label">8 a 15 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().d8_15 }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais15')" (click)="alternarFiltroRapido('mais15')">
+          <span class="rec-status-tabs__label">Mais de 15 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().mais15 }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais30')" (click)="alternarFiltroRapido('mais30')">
+          <span class="rec-status-tabs__label">Mais de 30 dias</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().mais30 }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semCobranca')" (click)="alternarFiltroRapido('semCobranca')">
+          <span class="rec-status-tabs__label">Sem cobrança</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().semCobranca }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('emNegociacao')" (click)="alternarFiltroRapido('emNegociacao')">
+          <span class="rec-status-tabs__label">Em negociação</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().emNegociacao }}</span>
+        </button>
+      </nav>
     </div>
 
     <mat-card-content class="rec-table-card__inner">

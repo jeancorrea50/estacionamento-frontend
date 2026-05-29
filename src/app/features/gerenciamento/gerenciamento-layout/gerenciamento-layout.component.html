@@ -1,18 +1,16 @@
 <div class="page-container gerenciamento-shell">
-  <header class="page-header page-hero gerenciamento-header">
-    <div class="page-header__row page-header__row--1 gerenciamento-header__titles">
-      <h1 class="page-title gerenciamento-header__title">Gerenciamento</h1>
-      <p class="page-subtitle gerenciamento-header__subtitle">
-        Central de gestão de menu, perfis e administração do sistema.
-      </p>
+  <header class="page-header page-hero">
+    <div class="page-header__row page-header__row--1">
+      <h1 class="page-title">Gerenciamento</h1>
+      <p class="page-subtitle">Central de gestão de menu, perfis e administração do sistema.</p>
     </div>
     <div class="page-header__row page-header__row--2">
-      <nav class="tabs gerenciamento-tabs" role="tablist" aria-label="Abas de Gerenciamento">
+      <nav class="tabs" role="tablist" aria-label="Abas de Gerenciamento">
         <a
           routerLink="/app/gerenciamento/menu"
           routerLinkActive="tab--active"
           [routerLinkActiveOptions]="{ exact: false }"
-          class="tab gerenciamento-tabs__tab"
+          class="tab"
           role="tab"
         >
           Menu
@@ -21,7 +19,7 @@
           routerLink="/app/gerenciamento/perfil"
           routerLinkActive="tab--active"
           [routerLinkActiveOptions]="{ exact: false }"
-          class="tab gerenciamento-tabs__tab"
+          class="tab"
           role="tab"
         >
           Perfil
@@ -30,7 +28,7 @@
           routerLink="/app/gerenciamento/estacionamento"
           routerLinkActive="tab--active"
           [routerLinkActiveOptions]="{ exact: false }"
-          class="tab gerenciamento-tabs__tab"
+          class="tab"
           role="tab"
         >
           Estacionamento
@@ -39,7 +37,7 @@
     </div>
   </header>
 
-  <div class="page-content content-card gerenciamento-content">
+  <div class="page-content gerenciamento-content">
     <router-outlet></router-outlet>
   </div>
 </div>

@@ -9,6 +9,48 @@ export const FINANCEIRO_ROUTES: Routes = [
   },
   {
     path: 'faturamento',
-    component: FaturamentoPageComponent
+    component: FaturamentoPageComponent,
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'visao-geral'
+      },
+      {
+        path: 'visao-geral',
+        loadComponent: () =>
+          import('./pages/faturamento-page/visao-geral/faturamento-visao-geral.component').then(
+            m => m.FaturamentoVisaoGeralComponent
+          )
+      },
+      {
+        path: 'fechamentos',
+        loadComponent: () =>
+          import('./pages/faturamento-page/fechamentos/faturamento-fechamentos.component').then(
+            m => m.FaturamentoFechamentosComponent
+          )
+      },
+      {
+        path: 'recebimentos',
+        loadComponent: () =>
+          import('./pages/faturamento-page/recebimentos/faturamento-recebimentos.component').then(
+            m => m.FaturamentoRecebimentosComponent
+          )
+      },
+      {
+        path: 'inadimplencia',
+        loadComponent: () =>
+          import('./pages/faturamento-page/inadimplencia/faturamento-inadimplencia.component').then(
+            m => m.FaturamentoInadimplenciaComponent
+          )
+      },
+      {
+        path: 'config-cobranca',
+        loadComponent: () =>
+          import('./pages/faturamento-page/config-cobranca/faturamento-config-cobranca.component').then(
+            m => m.FaturamentoConfigCobrancaComponent
+          )
+      }
+    ]
   }
 ];

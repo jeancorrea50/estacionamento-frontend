@@ -9,42 +9,22 @@
         </div>
       </div>
       <nav class="fat-fin-tabs" role="tablist" aria-label="Abas de Faturamento">
-        @for (t of tabs; track t.id) {
-          <button
-            type="button"
+        @for (t of tabs; track t.path) {
+          <a
             class="fat-fin-tabs__tab"
-            [class.tab--active]="activeTab() === t.id"
             role="tab"
-            [attr.aria-selected]="activeTab() === t.id"
-            (click)="setTab(t.id)"
+            [routerLink]="t.path"
+            routerLinkActive="tab--active"
+            [routerLinkActiveOptions]="{ exact: false }"
           >
             {{ t.label }}
-          </button>
+          </a>
         }
       </nav>
     </header>
 
     <div class="fat-fin-tab-body">
-      @switch (activeTab()) {
-        @case ('visao-geral') {
-          <app-faturamento-visao-geral />
-        }
-        @case ('faturas') {
-          <app-faturamento-faturas />
-        }
-        @case ('fechamentos') {
-          <app-faturamento-fechamentos />
-        }
-        @case ('recebimentos') {
-          <app-faturamento-recebimentos />
-        }
-        @case ('inadimplencia') {
-          <app-faturamento-inadimplencia />
-        }
-        @case ('config-cobranca') {
-          <app-faturamento-config-cobranca />
-        }
-      }
+      <router-outlet />
     </div>
 
   </div>

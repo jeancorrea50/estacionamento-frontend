@@ -1,95 +1,5 @@
 <div class="rec-page">
 
-  <!-- Título fora do card -->
-  <div class="rec-hero-titles">
-    <h2 class="rec-hero-titles__title">Recebimentos</h2>
-    <p class="rec-hero-titles__subtitle">Controle os pagamentos recebidos, parciais e pendentes.</p>
-  </div>
-
-  <!-- Card único: Painel de controle -->
-  <div class="rec-painel-card">
-
-    <!-- Cabeçalho: ícone + título | filtro de período -->
-    <div class="rec-painel-card__header">
-      <div class="rec-painel-card__header-left">
-        <span class="material-symbols-outlined rec-painel-card__ico" aria-hidden="true">dashboard</span>
-        <span class="rec-painel-card__titulo">Painel de controle</span>
-      </div>
-    </div>
-
-    <div class="rec-painel-card__divider"></div>
-
-    <!-- Ações + filtros na mesma linha (filtros à direita) -->
-    <div class="rec-toolbar">
-      <nav class="rec-status-tabs rec-status-tabs--inline" role="group" aria-label="Filtros rápidos">
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todos')"
-          (click)="alternarFiltroRapido('todos')"
-        >
-          <span class="rec-status-tabs__label">Todos</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().todos }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('pagos')"
-          (click)="alternarFiltroRapido('pagos')"
-        >
-          <span class="rec-status-tabs__label">Pagos</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().pagos }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('parciais')"
-          (click)="alternarFiltroRapido('parciais')"
-        >
-          <span class="rec-status-tabs__label">Parciais</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().parciais }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('pendentes')"
-          (click)="alternarFiltroRapido('pendentes')"
-        >
-          <span class="rec-status-tabs__label">Pendentes</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().pendentes }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('vencidos')"
-          (click)="alternarFiltroRapido('vencidos')"
-        >
-          <span class="rec-status-tabs__label">Vencidos</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().vencidos }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('comComprovante')"
-          (click)="alternarFiltroRapido('comComprovante')"
-        >
-          <span class="rec-status-tabs__label">Com comprovante</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().comComprovante }}</span>
-        </button>
-        <button
-          type="button"
-          class="rec-status-tabs__tab"
-          [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semComprovante')"
-          (click)="alternarFiltroRapido('semComprovante')"
-        >
-          <span class="rec-status-tabs__label">Sem comprovante</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().semComprovante }}</span>
-        </button>
-      </nav>
-    </div>
-
-  </div>
-
   <!-- KPI cards -->
   <div class="rec-kpi-row">
     <mat-card class="rec-kpi-card" appearance="outlined">
@@ -394,6 +304,39 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="rec-table-card__toolbar">
+      <nav class="rec-status-tabs rec-status-tabs--inline rec-status-tabs--in-table" role="group" aria-label="Filtros rápidos">
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todos')" (click)="alternarFiltroRapido('todos')">
+          <span class="rec-status-tabs__label">Todos</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().todos }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('pagos')" (click)="alternarFiltroRapido('pagos')">
+          <span class="rec-status-tabs__label">Pagos</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().pagos }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('parciais')" (click)="alternarFiltroRapido('parciais')">
+          <span class="rec-status-tabs__label">Parciais</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().parciais }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('pendentes')" (click)="alternarFiltroRapido('pendentes')">
+          <span class="rec-status-tabs__label">Pendentes</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().pendentes }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('vencidos')" (click)="alternarFiltroRapido('vencidos')">
+          <span class="rec-status-tabs__label">Vencidos</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().vencidos }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('comComprovante')" (click)="alternarFiltroRapido('comComprovante')">
+          <span class="rec-status-tabs__label">Com comprovante</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().comComprovante }}</span>
+        </button>
+        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semComprovante')" (click)="alternarFiltroRapido('semComprovante')">
+          <span class="rec-status-tabs__label">Sem comprovante</span>
+          <span class="rec-status-tabs__count">{{ contagensChips().semComprovante }}</span>
+        </button>
+      </nav>
     </div>
 
     <mat-card-content class="rec-table-card__inner">

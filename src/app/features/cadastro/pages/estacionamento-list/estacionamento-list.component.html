@@ -1,17 +1,17 @@
-<div class="est-list-page">
+<div class="trn-list-page">
   @if (erro) {
-    <div class="est-list-state est-list-state--error" role="alert">
+    <div class="trn-list-banner trn-list-banner--error" role="alert">
       <p class="error-msg">{{ erro }}</p>
-      <button type="button" class="est-list-retry" (click)="carregar()">Tentar novamente</button>
+      <button type="button" class="trn-list-retry" (click)="carregar()">Tentar novamente</button>
     </div>
   }
 
   @if (loading && toolbar.trigger() > 0) {
-    <p class="est-list-loading loading-msg" role="status">Carregando...</p>
+    <p class="loading-msg trn-loading" role="status">Carregando...</p>
   }
 
   @if (!loading && toolbar.trigger() > 0 && !erro) {
-    <div class="est-list-metrics" aria-label="Resumo da consulta">
+    <div class="trn-list-metrics" aria-label="Resumo da consulta">
       <app-est-summary-metric
         icon="groups"
         label="Total"
@@ -34,9 +34,9 @@
       />
     </div>
 
-    <div class="est-list-table-card">
-      <div class="est-list-table-scroll">
-        <table class="data-table est-table">
+    <div class="trn-list-table-card">
+      <div class="trn-list-table-scroll">
+        <table class="data-table trn-table">
           <thead>
             <tr>
               <th scope="col">
@@ -78,12 +78,12 @@
                   Status <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('ativo') }}</span>
                 </button>
               </th>
-              <th scope="col" class="est-table__th-acoes">Ações</th>
+              <th scope="col" class="trn-table__th-acoes">Ações</th>
             </tr>
           </thead>
           <tbody>
             @for (item of itens; track item.id) {
-              <tr class="est-table__row">
+              <tr class="trn-table__row">
                 <td>{{ item.id }}</td>
                 <td>{{ item.descricao }}</td>
                 <td>{{ item.nomeRazaoSocial }}</td>
@@ -93,10 +93,10 @@
                 <td>
                   <app-est-status-pill-estacionamento [ativo]="item.ativo" />
                 </td>
-                <td class="est-table__acoes">
-                  <div class="est-act-btns" role="group" [attr.aria-label]="'Ações para ' + item.descricao">
+                <td class="trn-table__acoes">
+                  <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para ' + item.descricao">
                     <a
-                      class="est-act-btn"
+                      class="trn-act-btn"
                       [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
                       title="Visualizar"
                       aria-label="Visualizar estacionamento"
@@ -104,7 +104,7 @@
                       <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
                     </a>
                     <a
-                      class="est-act-btn est-act-btn--accent"
+                      class="trn-act-btn trn-act-btn--accent"
                       [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
                       title="Editar"
                       aria-label="Editar estacionamento"
@@ -113,7 +113,7 @@
                     </a>
                     <button
                       type="button"
-                      class="est-act-btn est-act-btn--danger"
+                      class="trn-act-btn trn-act-btn--danger"
                       [disabled]="excluindoId === item.id"
                       [title]="excluindoId === item.id ? 'Excluindo…' : 'Excluir'"
                       [attr.aria-label]="'Excluir estacionamento'"
@@ -130,64 +130,80 @@
       </div>
 
       @if (itens.length === 0) {
-        <div class="empty-state empty-state--compact empty-state--table est-list-empty">
+        <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
           <span class="material-symbols-outlined" aria-hidden="true">warehouse</span>
-          <p class="empty-msg">Nenhum registro encontrado.</p>
+          <p class="empty-msg">Nenhum estacionamento encontrado.</p>
         </div>
       }
     </div>
 
-    <footer class="est-list-footer" aria-label="Rodapé da listagem">
-      <p class="est-list-footer__info">
+    <footer class="trn-list-footer" aria-label="Rodapé da listagem">
+      <p class="trn-list-footer__info">
         Mostrando <strong>{{ intervaloExibicao.de }}</strong> a <strong>{{ intervaloExibicao.ate }}</strong> de
-        <strong>{{ totalCount }}</strong> registros
+        <strong>{{ totalCount }}</strong>
+        {{ totalCount === 1 ? 'estacionamento' : 'estacionamentos' }}
       </p>
-      <div class="est-list-footer__nav">
-        <button
-          type="button"
-          class="est-foot-page"
-          [disabled]="numeroPagina <= 1 || totalCount === 0"
-          (click)="irParaPagina(1)"
-          aria-label="Primeira página"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
-        </button>
-        <button
-          type="button"
-          class="est-foot-page"
-          [disabled]="numeroPagina <= 1 || totalCount === 0"
-          (click)="irParaPagina(numeroPagina - 1)"
-          aria-label="Página anterior"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-        </button>
-        <span class="est-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
-        <button
-          type="button"
-          class="est-foot-page"
-          [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
-          (click)="irParaPagina(numeroPagina + 1)"
-          aria-label="Próxima página"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-        </button>
-        <button
-          type="button"
-          class="est-foot-page"
-          [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
-          (click)="irParaPagina(totalPaginas)"
-          aria-label="Última página"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
-        </button>
+      <div class="trn-list-footer__right">
+        <label class="trn-page-size">
+          <span class="trn-page-size__label">Linhas por página</span>
+          <select
+            class="trn-page-size__select input-control"
+            [ngModel]="tamanhoPagina"
+            (ngModelChange)="onTamanhoPaginaChange($event)"
+            aria-label="Linhas por página"
+          >
+            @for (opt of opcoesTamanhoPagina; track opt) {
+              <option [ngValue]="opt">{{ opt }}</option>
+            }
+          </select>
+        </label>
+        <div class="trn-footer-pager" aria-label="Paginação">
+          <button
+            type="button"
+            class="trn-foot-page"
+            [disabled]="numeroPagina <= 1 || totalCount === 0"
+            (click)="irParaPagina(1)"
+            aria-label="Primeira página"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+          </button>
+          <button
+            type="button"
+            class="trn-foot-page"
+            [disabled]="numeroPagina <= 1 || totalCount === 0"
+            (click)="irParaPagina(numeroPagina - 1)"
+            aria-label="Página anterior"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+          </button>
+          <span class="trn-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
+          <button
+            type="button"
+            class="trn-foot-page"
+            [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
+            (click)="irParaPagina(numeroPagina + 1)"
+            aria-label="Próxima página"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+          </button>
+          <button
+            type="button"
+            class="trn-foot-page"
+            [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
+            (click)="irParaPagina(totalPaginas)"
+            aria-label="Última página"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+          </button>
+        </div>
       </div>
     </footer>
   }
 
   @if (!loading && toolbar.trigger() === 0 && !erro) {
-    <div class="empty-state empty-state--compact empty-state--table est-list-hint">
+    <div class="empty-state empty-state--compact trn-before-search">
       <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
-      <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
+      <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar os estacionamentos.</p>
     </div>
   }
 </div>

@@ -5,37 +5,200 @@
       <h2 class="visao-geral__title">Visão geral</h2>
       <p class="visao-geral__subtitle">Painel resumido do cenário financeiro</p>
     </div>
-    <div class="fat-faturas__periodo" role="group" aria-label="Período">
-      @for (p of periodoOpcoes; track p.id) {
+
+    <div class="visao-geral__hero-actions">
+
+      <div class="rec-filter-bar rec-filter-bar--table">
         <button
           type="button"
-          class="btn fat-mat-btn"
-          [class.btn-primary]="periodoFiltro() === p.id"
-          [class.btn-secondary]="periodoFiltro() !== p.id"
-          [attr.aria-pressed]="periodoFiltro() === p.id"
-          (click)="setPeriodo(p.id)"
+          class="btn btn-secondary fat-mat-btn rec-filtros-btn rec-filtros-tabela-btn"
+          [class.rec-filtros-btn--ativo]="panelFiltrosAberto()"
+          (click)="togglePanelFiltros($event)"
+          aria-label="Abrir filtros"
+          [attr.aria-expanded]="panelFiltrosAberto()"
         >
-          @if (p.id === 'personalizado') {
-            <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
+          <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
+          Filtros
+          @if (filtrosAtivosCount() > 0) {
+            <span class="rec-filtros-badge">{{ filtrosAtivosCount() }}</span>
           }
-          {{ p.label }}
+          <span class="material-symbols-outlined rec-filtros-arrow" [class.rec-filtros-arrow--aberto]="panelFiltrosAberto()" aria-hidden="true">expand_more</span>
         </button>
+
+        @if (filtrosAtivosCount() > 0) {
+          <button type="button" class="btn btn-secondary fat-mat-btn rec-btn-limpar" (click)="limparFiltros()">
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+            Limpar
+          </button>
+        }
+
+        @if (panelFiltrosAberto()) {
+          <div class="rec-filtros-dropdown" role="dialog" aria-label="Filtros da visão geral">
+            <p class="rec-filtros-panel__titulo">Filtros</p>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+              <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">local_shipping</span>
+              <mat-label>Transportadora</mat-label>
+              <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value)">
+                <mat-option value="all">Todas</mat-option>
+                @for (t of transportadorasOpcoes; track t) {
+                  <mat-option [value]="t">{{ t }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+              <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">location_on</span>
+              <mat-label>Estacionamento</mat-label>
+              <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value)">
+                <mat-option value="all">Todos</mat-option>
+                @for (e of estacionamentosOpcoes; track e) {
+                  <mat-option [value]="e">{{ e }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+              <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">category</span>
+              <mat-label>Modalidade</mat-label>
+              <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value)">
+                <mat-option value="all">Todas</mat-option>
+                @for (m of modalidadesOpcoes; track m) {
+                  <mat-option [value]="m">{{ m }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
+              <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">flag</span>
+              <mat-label>Status</mat-label>
+              <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
+                <mat-option value="all">Todos</mat-option>
+                @for (s of statusOpcoes; track s) {
+                  <mat-option [value]="s">{{ s }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+      </div>
+
+      <div class="rec-data-picker">
+      <button
+        type="button"
+        class="rec-data-picker__trigger rec-data-picker__trigger--table"
+        [class.rec-data-picker__trigger--ativo]="panelDataAberto()"
+        (click)="togglePanelData($event)"
+        aria-label="Selecionar data"
+        [attr.aria-expanded]="panelDataAberto()"
+      >
+        <span class="rec-data-picker__label">Data</span>
+        <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
+      </button>
+
+      @if (panelDataAberto()) {
+        <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
+          <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
+            <h3 class="rec-cal__titulo">Calendário</h3>
+
+            <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
+              @for (g of periodoGranularidadeOpcoes; track g.id) {
+                <button
+                  type="button"
+                  class="rec-data-picker__mode"
+                  role="tab"
+                  [class.rec-data-picker__mode--active]="periodoGranularidade() === g.id"
+                  [attr.aria-selected]="periodoGranularidade() === g.id"
+                  (click)="setPeriodoGranularidade(g.id)"
+                >
+                  {{ g.label }}
+                </button>
+              }
+            </div>
+
+            @if (periodoGranularidade() === 'ano') {
+              <div class="rec-cal__nav">
+                <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+              </div>
+              <div class="rec-cal__anos-grid">
+                @for (ano of calendarioAnosOpcoes(); track ano) {
+                  <button
+                    type="button"
+                    class="rec-cal__ano"
+                    [ngClass]="anoCalendarioModificadores(ano)"
+                    (click)="selecionarAnoCalendario(ano)"
+                  >
+                    {{ ano }}
+                  </button>
+                }
+              </div>
+            } @else if (periodoGranularidade() === 'mes') {
+              <div class="rec-cal__nav">
+                <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+              </div>
+              <div class="rec-cal__meses-grid">
+                @for (mes of mesesLabels; track mes; let i = $index) {
+                  <button
+                    type="button"
+                    class="rec-cal__mes"
+                    [ngClass]="mesCalendarioModificadores(i)"
+                    (click)="selecionarMesCalendario(i)"
+                  >
+                    {{ mes }}
+                  </button>
+                }
+              </div>
+            } @else {
+              <div class="rec-cal__nav">
+                <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="rec-cal__periodo-titulo">{{ calendarioTituloMes() }}</span>
+                <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+              </div>
+              <div class="rec-cal__weekdays" aria-hidden="true">
+                @for (dia of diasSemanaLabels; track dia) {
+                  <span class="rec-cal__weekday">{{ dia }}</span>
+                }
+              </div>
+              <div class="rec-cal__grid" role="grid" aria-label="Dias do mês" (mouseleave)="onDocumentMouseUp()">
+                @for (cell of calendarioGrade(); track cell.iso) {
+                  <button
+                    type="button"
+                    class="rec-cal__dia"
+                    role="gridcell"
+                    [ngClass]="diaCalendarioModificadores(cell)"
+                    [attr.aria-label]="cell.iso"
+                    [attr.aria-selected]="diaCalendarioModificadores(cell)['rec-cal__dia--selecionado'] || diaCalendarioModificadores(cell)['rec-cal__dia--range']"
+                    (mousedown)="onDiaCalendarioPointerDown(cell, $event)"
+                    (mouseenter)="onDiaCalendarioPointerEnter(cell)"
+                  >
+                    {{ cell.day }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </div>
       }
     </div>
-  </div>
 
-  @if (periodoFiltro() === 'personalizado') {
-    <div class="fat-faturas__custom-dates">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-        <mat-label>De</mat-label>
-        <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-        <mat-label>Até</mat-label>
-        <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
-      </mat-form-field>
-    </div>
-  }
+    </div><!-- /visao-geral__hero-actions -->
+  </div>
 
   <!-- Cards financeiros -->
   <div class="visao-geral__grid visao-geral__grid--metrics">

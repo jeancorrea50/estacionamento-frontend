@@ -1,3 +1,4 @@
+<div class="cadastro-estacionamento-shell">
 <div class="page-container">
 @if (showStepper()) {
   <header class="page-header page-header-card estacao-page-header">
@@ -29,9 +30,9 @@
     </nav>
   </header>
 } @else {
-  <header class="est-dash-hero" aria-labelledby="est-dash-title">
+  <header class="est-dash-hero est-dash-hero--estacionamento" aria-labelledby="est-dash-title">
     <div class="est-dash-hero__icon" aria-hidden="true">
-      <span class="material-symbols-outlined">local_parking</span>
+      <span class="material-symbols-outlined">warehouse</span>
     </div>
     <div class="est-dash-hero__copy">
       <h1 id="est-dash-title" class="est-dash-hero__title">Cadastro Estacionamento</h1>
@@ -40,12 +41,12 @@
   </header>
 }
 
-<div class="page-content" [class.page-content--dashboard]="!showStepper()">
+<div class="page-content" [class.trn-page-content--dashboard]="!showStepper()" [class.page-content--dashboard]="!showStepper()">
   @if (!showStepper()) {
-    <section class="est-dash-filter" aria-label="Filtros da listagem">
+    <section class="est-dash-filter est-dash-filter--estacionamento" aria-label="Filtros da listagem">
       <div class="est-dash-filter__select-wrap">
         <select
-          class="est-dash-filter__select input-control est-dash-filter__select--plain"
+          class="est-dash-filter__select input-control trn-dash-filter__select"
           [ngModel]="toolbar.searchField()"
           (ngModelChange)="setSearchField($event)"
           aria-label="Tipo de busca"
@@ -71,7 +72,7 @@
           aria-label="Termo de busca"
         />
       </label>
-      <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="onBuscar()">
+      <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
         <span class="material-symbols-outlined" aria-hidden="true">search</span>
         Buscar
       </button>
@@ -87,5 +88,6 @@
       <router-outlet></router-outlet>
     </div>
   </section>
+</div>
 </div>
 </div>

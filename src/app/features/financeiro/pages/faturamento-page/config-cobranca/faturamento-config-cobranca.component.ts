@@ -1,35 +1,25 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { ThemeService } from '../../../../../core/services/theme.service';
 import {
   CONFIG_COBRANCA_ESTACIONAMENTOS,
   CONFIG_COBRANCA_TRANSPORTADORAS
 } from './faturamento-config-cobranca.constants';
-import {
-  checksFromAgrupamento,
-  checksFromServicos,
-  montarRegistroDoFormularioExpansao,
-  validarFormularioConfig,
-  type AgrupamentoChecks,
-  type ServicosChecks
-} from './faturamento-config-cobranca.helpers';
 import { CONFIG_COBRANCA_MOCK } from './faturamento-config-cobranca.mock';
 import type {
   ConfigCobrancaEnvioFiltroId,
@@ -48,6 +38,20 @@ import { ConfigCobrancaHistoryDialogComponent } from './dialogs/config-cobranca-
 import { ConfigCobrancaSimulateDialogComponent } from './dialogs/config-cobranca-simulate-dialog.component';
 import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca-view-rule-dialog.component';
 
+type ConfigCobrancaPeriodoGranularidade = 'dia' | 'mes' | 'ano';
+
+interface PeriodoGranularidadeOpcao {
+  id: ConfigCobrancaPeriodoGranularidade;
+  label: string;
+}
+
+interface CfgCalendarioCelula {
+  iso: string;
+  day: number;
+  inMonth: boolean;
+  date: Date;
+}
+
 @Component({
   selector: 'app-faturamento-config-cobranca',
   standalone: true,
@@ -58,14 +62,10 @@ import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca
     MatCardModule,
     MatCheckboxModule,
     MatDialogModule,
-    MatDividerModule,
-    MatExpansionModule,
     MatFormFieldModule,
     MatInputModule,
     MatMenuModule,
-    MatProgressSpinnerModule,
     MatSelectModule,
-    MatSlideToggleModule,
     MatSnackBarModule,
     MatTableModule,
     MatTooltipModule
@@ -76,6 +76,18 @@ import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca
 export class FaturamentoConfigCobrancaComponent {
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
+  private readonly themeService = inject(ThemeService);
+
+  private readonly themeConfig = toSignal(this.themeService.theme$, {
+    initialValue: this.themeService.getCurrentTheme()
+  });
+
+  readonly isDarkTheme = computed(() => {
+    const mode = this.themeConfig().mode;
+    if (mode === 'dark') return true;
+    if (mode === 'light') return false;
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
   readonly items = signal<ConfigCobrancaListaItem[]>(CONFIG_COBRANCA_MOCK.map((r) => ({ ...r })));
 
@@ -94,16 +106,67 @@ export class FaturamentoConfigCobrancaComponent {
     'Sem e-mail financeiro'
   ];
 
+  readonly filtroRapidoOpcoes: { id: ConfigCobrancaFiltroRapidoId; label: string }[] = [
+    { id: 'todas', label: 'Todas' },
+    { id: 'ativas', label: 'Ativas' },
+    { id: 'inativas', label: 'Inativas' },
+    { id: 'pendentes', label: 'Pendentes' },
+    { id: 'semEmail', label: 'Sem e-mail' },
+    { id: 'envioAuto', label: 'Envio automático' },
+    { id: 'mensal', label: 'Mensal' },
+    { id: 'quinzenal', label: 'Quinzenal' }
+  ];
+
+  readonly periodoGranularidadeOpcoes: PeriodoGranularidadeOpcao[] = [
+    { id: 'dia', label: 'Dia' },
+    { id: 'mes', label: 'Mês' },
+    { id: 'ano', label: 'Ano' }
+  ];
+
   readonly transportadoraFiltro = signal<string>('all');
   readonly estacionamentoFiltro = signal<string>('all');
   readonly modalidadeFiltro = signal<string>('all');
   readonly statusFiltro = signal<string>('all');
   readonly envioFiltro = signal<ConfigCobrancaEnvioFiltroId>('all');
   readonly filtroRapido = signal<ConfigCobrancaFiltroRapidoId | null>(null);
+  readonly searchText = signal<string>('');
+
+  readonly panelFiltrosAberto = signal(false);
+  readonly panelDataAberto = signal(false);
+
+  /* ── Calendário (visual, espelha Recebimentos) ────────────────────── */
+  readonly periodoGranularidade = signal<ConfigCobrancaPeriodoGranularidade>('dia');
+  readonly periodoDataInicio = signal<Date>(this.criarDataHoje());
+  readonly periodoDataFim = signal<Date>(this.criarDataHoje());
+  readonly calendarioAno = signal(new Date().getFullYear());
+  readonly calendarioMes = signal(new Date().getMonth());
+  private readonly arrastandoPeriodo = signal(false);
+  private readonly arrasteAnchor = signal<Date | null>(null);
+
+  readonly diasSemanaLabels = ['Do.', '2ª', '3ª', '4ª', '5ª', '6ª', 'Sa.'] as const;
+  readonly mesesLabels = [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+  ] as const;
+
+  readonly calendarioTituloMes = computed(() => {
+    const d = new Date(this.calendarioAno(), this.calendarioMes(), 1);
+    const titulo = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return titulo.charAt(0).toUpperCase() + titulo.slice(1);
+  });
+
+  readonly calendarioGrade = computed(() => this.montarGradeCalendario());
+
+  readonly calendarioAnosOpcoes = computed(() => {
+    const centro = this.calendarioAno();
+    return Array.from({ length: 12 }, (_, i) => centro - 5 + i);
+  });
+
+  /* ── Paginação ────────────────────────────────────────────────────── */
+  readonly paginaAtual = signal(0);
+  readonly itensPorPagina = 20;
 
   readonly selection = new SelectionModel<ConfigCobrancaListaItem>(true, []);
   private readonly selectionTick = signal(0);
-  readonly envioTopoLoading = signal(false);
 
   readonly displayedColumns: string[] = [
     'select',
@@ -156,11 +219,6 @@ export class FaturamentoConfigCobrancaComponent {
     };
   });
 
-  readonly kpiAtivas = computed(() => this.contagensChips().ativas);
-  readonly kpiEnvioAuto = computed(() => this.contagensChips().envioAuto);
-  readonly kpiSemEmail = computed(() => this.contagensChips().semEmail);
-  readonly kpiPendentes = computed(() => this.contagensChips().pendentes);
-
   readonly alertasDinamicos = computed(() => {
     const c = this.contagensChips();
     return [
@@ -197,6 +255,43 @@ export class FaturamentoConfigCobrancaComponent {
 
   readonly linhasFiltradas = computed(() => this.aplicarFiltros());
 
+  readonly linhasPaginadas = computed(() => {
+    const rows = this.linhasFiltradas();
+    const start = this.paginaAtual() * this.itensPorPagina;
+    return rows.slice(start, start + this.itensPorPagina);
+  });
+
+  readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.linhasFiltradas().length / this.itensPorPagina))
+  );
+
+  readonly paginasVisiveis = computed(() => {
+    const total = this.totalPaginas();
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const atual = this.paginaAtual() + 1;
+    const s = new Set<number>([1, total]);
+    for (let i = Math.max(1, atual - 2); i <= Math.min(total, atual + 2); i++) s.add(i);
+    return [...s].sort((a, b) => a - b);
+  });
+
+  readonly paginaInfo = computed(() => {
+    const total = this.linhasFiltradas().length;
+    if (total === 0) return '0 a 0';
+    const start = this.paginaAtual() * this.itensPorPagina + 1;
+    const end = Math.min(start + this.itensPorPagina - 1, total);
+    return `${start} a ${end}`;
+  });
+
+  readonly filtrosAtivosCount = computed(() => {
+    let c = 0;
+    if (this.transportadoraFiltro() !== 'all') c++;
+    if (this.estacionamentoFiltro() !== 'all') c++;
+    if (this.modalidadeFiltro() !== 'all') c++;
+    if (this.statusFiltro() !== 'all') c++;
+    if (this.envioFiltro() !== 'all') c++;
+    return c;
+  });
+
   readonly resumoLinha = computed(() => {
     this.selectionTick();
     const s = this.selection.selected;
@@ -208,37 +303,22 @@ export class FaturamentoConfigCobrancaComponent {
     return this.selection.selected.length > 1;
   });
 
-  formTransportadora = '';
-  formEstacionamento = '';
-  formStatus: ConfigCobrancaStatus = 'Ativa';
-  formModalidade: ConfigCobrancaModalidade = 'Mensal';
-  formFechamento = '';
-  formDiaFechamento = '';
-  formPrazoVencimento = '';
-  formEmail = '';
-  formEnvioAuto = false;
-  formGerarAuto = false;
-  formPagamentoParcial = false;
-  formMulta = false;
-  formMultaPct = 0;
-  formJuros = false;
-  formJurosPct = 0;
-  formDescFixo = false;
-  formDescValor = 0;
-  formAcresFixo = false;
-  formAcresValor = 0;
-  formCobDiaria = true;
-  formCobSemanal = false;
-  formCobQuinzenal = false;
-  formCobMensal = true;
-  formCobPersonal = false;
-  formCobLavagem = false;
-  formCobPernoite = false;
-  formCobExtras = false;
-  formCobBeneficio = false;
-  formAgrPlaca = false;
-  formAgrPeriodo = true;
-  formAgrTransp = true;
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Element;
+    if (!target.closest('.rec-filter-bar')) {
+      this.panelFiltrosAberto.set(false);
+    }
+    if (!target.closest('.rec-data-picker')) {
+      this.panelDataAberto.set(false);
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseUp(): void {
+    this.arrastandoPeriodo.set(false);
+    this.arrasteAnchor.set(null);
+  }
 
   constructor() {
     effect(() => {
@@ -251,11 +331,7 @@ export class FaturamentoConfigCobrancaComponent {
         }
       }
       if (changed) this.selectionTick.update((n) => n + 1);
-    });
-
-    effect(() => {
-      const r = this.resumoLinha();
-      if (r) this.preencherFormulario(r);
+      untracked(() => this.paginaAtual.set(0));
     });
   }
 
@@ -275,6 +351,158 @@ export class FaturamentoConfigCobrancaComponent {
 
   setEnvioFiltro(ev: MatSelectChange): void {
     this.envioFiltro.set(ev.value as ConfigCobrancaEnvioFiltroId);
+  }
+
+  chipBadge(id: ConfigCobrancaFiltroRapidoId): number {
+    const c = this.contagensChips();
+    switch (id) {
+      case 'todas':
+        return c.todas;
+      case 'ativas':
+        return c.ativas;
+      case 'inativas':
+        return c.inativas;
+      case 'pendentes':
+        return c.pendentes;
+      case 'semEmail':
+        return c.semEmail;
+      case 'envioAuto':
+        return c.envioAuto;
+      case 'mensal':
+        return c.mensal;
+      case 'quinzenal':
+        return c.quinzenal;
+      default:
+        return 0;
+    }
+  }
+
+  togglePanelFiltros(event: MouseEvent): void {
+    event.stopPropagation();
+    this.panelFiltrosAberto.update((v) => !v);
+  }
+
+  limparFiltros(): void {
+    this.transportadoraFiltro.set('all');
+    this.estacionamentoFiltro.set('all');
+    this.modalidadeFiltro.set('all');
+    this.statusFiltro.set('all');
+    this.envioFiltro.set('all');
+    this.searchText.set('');
+  }
+
+  irParaPagina(p: number): void {
+    this.paginaAtual.set(Math.max(0, Math.min(p, this.totalPaginas() - 1)));
+  }
+
+  /* ── Calendário (seletor de data visual) ──────────────────────────── */
+  togglePanelData(event: MouseEvent): void {
+    event.stopPropagation();
+    this.panelDataAberto.update((v) => {
+      const abrindo = !v;
+      if (abrindo) {
+        const ref = this.periodoDataInicio();
+        this.calendarioAno.set(ref.getFullYear());
+        this.calendarioMes.set(ref.getMonth());
+      }
+      return abrindo;
+    });
+  }
+
+  setPeriodoGranularidade(id: ConfigCobrancaPeriodoGranularidade): void {
+    this.periodoGranularidade.set(id);
+    const ini = this.periodoDataInicio();
+    this.calendarioAno.set(ini.getFullYear());
+    if (id === 'mes' || id === 'dia') {
+      this.calendarioMes.set(ini.getMonth());
+    }
+  }
+
+  mesCalendarioAnterior(): void {
+    const m = this.calendarioMes();
+    const a = this.calendarioAno();
+    if (m === 0) {
+      this.calendarioMes.set(11);
+      this.calendarioAno.set(a - 1);
+    } else {
+      this.calendarioMes.set(m - 1);
+    }
+  }
+
+  mesCalendarioProximo(): void {
+    const m = this.calendarioMes();
+    const a = this.calendarioAno();
+    if (m === 11) {
+      this.calendarioMes.set(0);
+      this.calendarioAno.set(a + 1);
+    } else {
+      this.calendarioMes.set(m + 1);
+    }
+  }
+
+  anoCalendarioAnterior(): void {
+    this.calendarioAno.update((a) => a - 1);
+  }
+
+  anoCalendarioProximo(): void {
+    this.calendarioAno.update((a) => a + 1);
+  }
+
+  onDiaCalendarioPointerDown(cell: CfgCalendarioCelula, event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.navegarParaMesDoDia(cell);
+    this.arrastandoPeriodo.set(true);
+    this.arrasteAnchor.set(cell.date);
+    this.definirIntervaloDias(cell.date, cell.date);
+  }
+
+  onDiaCalendarioPointerEnter(cell: CfgCalendarioCelula): void {
+    if (!this.arrastandoPeriodo()) return;
+    const anchor = this.arrasteAnchor();
+    if (!anchor) return;
+    this.navegarParaMesDoDia(cell);
+    this.definirIntervaloDias(anchor, cell.date);
+  }
+
+  selecionarMesCalendario(mesIndex: number): void {
+    this.calendarioMes.set(mesIndex);
+    this.periodoGranularidade.set('dia');
+  }
+
+  selecionarAnoCalendario(ano: number): void {
+    this.calendarioAno.set(ano);
+    this.periodoGranularidade.set('mes');
+  }
+
+  diaCalendarioModificadores(cell: CfgCalendarioCelula): Record<string, boolean> {
+    const iso = cell.iso;
+    const ini = this.toIsoDate(this.periodoDataInicio());
+    const fim = this.toIsoDate(this.periodoDataFim());
+    const noIntervalo = iso >= ini && iso <= fim;
+    const unico = ini === fim;
+    return {
+      'rec-cal__dia--fora': !cell.inMonth,
+      'rec-cal__dia--selecionado': unico && iso === ini,
+      'rec-cal__dia--range': !unico && noIntervalo,
+      'rec-cal__dia--range-start': !unico && iso === ini,
+      'rec-cal__dia--range-end': !unico && iso === fim
+    };
+  }
+
+  mesCalendarioModificadores(mesIndex: number): Record<string, boolean> {
+    const ini = this.periodoDataInicio();
+    const ativo =
+      this.periodoGranularidade() === 'mes' &&
+      ini.getFullYear() === this.calendarioAno() &&
+      ini.getMonth() === mesIndex;
+    return { 'rec-cal__mes--ativo': ativo };
+  }
+
+  anoCalendarioModificadores(ano: number): Record<string, boolean> {
+    const ini = this.periodoDataInicio();
+    const ativo = this.periodoGranularidade() === 'ano' && ini.getFullYear() === ano;
+    return { 'rec-cal__ano--ativo': ativo };
   }
 
   formatCurrency(v: number): string {
@@ -357,12 +585,7 @@ export class FaturamentoConfigCobrancaComponent {
       this.snack.open('Não é possível testar envio sem e-mail financeiro.', 'Fechar', { duration: 4500 });
       return;
     }
-    const email = row.emailFinanceiro;
-    this.envioTopoLoading.set(true);
-    window.setTimeout(() => {
-      this.envioTopoLoading.set(false);
-      this.snack.open(`E-mail de teste enviado para ${email}.`, 'Fechar', { duration: 4500 });
-    }, 1200);
+    this.snack.open(`E-mail de teste enviado para ${row.emailFinanceiro}.`, 'Fechar', { duration: 4500 });
   }
 
   exportar(): void {
@@ -528,92 +751,6 @@ export class FaturamentoConfigCobrancaComponent {
     });
   }
 
-  salvarPainelExpansao(): void {
-    const row = this.resumoLinha();
-    if (!row) {
-      this.snack.open('Selecione uma configuração para salvar.', 'Fechar', { duration: 4000 });
-      return;
-    }
-    const serv: ServicosChecks = {
-      diaria: this.formCobDiaria,
-      semanal: this.formCobSemanal,
-      quinzenal: this.formCobQuinzenal,
-      mensal: this.formCobMensal,
-      personal: this.formCobPersonal,
-      lavagem: this.formCobLavagem,
-      pernoite: this.formCobPernoite,
-      extras: this.formCobExtras,
-      beneficio: this.formCobBeneficio
-    };
-    const agr: AgrupamentoChecks = {
-      placa: this.formAgrPlaca,
-      periodo: this.formAgrPeriodo,
-      transportadora: this.formAgrTransp
-    };
-    const v = validarFormularioConfig({
-      transportadora: this.formTransportadora,
-      estacionamento: this.formEstacionamento,
-      modalidade: this.formModalidade,
-      fechamento: this.formFechamento,
-      prazoVencimento: this.formPrazoVencimento,
-      email: this.formEmail,
-      precisaEmailFin: this.formEnvioAuto || this.formGerarAuto,
-      multa: this.formMulta,
-      multaPct: this.formMultaPct,
-      juros: this.formJuros,
-      jurosPct: this.formJurosPct
-    });
-    if (!v.ok) {
-      this.snack.open(v.mensagens[0] ?? 'Revise os campos.', 'Fechar', { duration: 5000 });
-      return;
-    }
-    const atualizado = montarRegistroDoFormularioExpansao(row.id, {
-      transportadora: this.formTransportadora,
-      estacionamento: this.formEstacionamento,
-      status: this.formStatus,
-      modalidade: this.formModalidade,
-      fechamento: this.formFechamento,
-      prazoVencimento: this.formPrazoVencimento,
-      email: this.formEmail,
-      envioAuto: this.formEnvioAuto,
-      gerarAuto: this.formGerarAuto,
-      pagamentoParcial: this.formPagamentoParcial,
-      multa: this.formMulta,
-      multaPct: this.formMultaPct,
-      juros: this.formJuros,
-      jurosPct: this.formJurosPct,
-      serv,
-      agr
-    });
-    this.items.update((arr) => arr.map((x) => (x.id === row.id ? atualizado : x)));
-    this.syncSelectionWithItems();
-    this.snack.open('Configuração atualizada com sucesso.', 'Fechar', { duration: 3500 });
-  }
-
-  cancelarPainelExpansao(): void {
-    const r = this.resumoLinha();
-    if (r) this.preencherFormulario(r);
-    else this.limparFormulario();
-  }
-
-  testarEnvioPainel(): void {
-    const row = this.resumoLinha();
-    if (!row) {
-      this.snack.open('Selecione uma configuração.', 'Fechar', { duration: 3500 });
-      return;
-    }
-    this.testarEnvioLinha(row);
-  }
-
-  visualizarRegraPainel(): void {
-    const row = this.resumoLinha();
-    if (!row) {
-      this.snack.open('Selecione uma configuração.', 'Fechar', { duration: 3500 });
-      return;
-    }
-    this.visualizarRegra(row);
-  }
-
   editarResumo(): void {
     const row = this.resumoLinha();
     if (!row) return;
@@ -646,7 +783,7 @@ export class FaturamentoConfigCobrancaComponent {
 
   private abrirFormularioDialog(mode: 'create' | 'edit' | 'duplicate', item?: ConfigCobrancaListaItem): void {
     const ref = this.dialog.open(ConfigCobrancaFormDialogComponent, {
-      width: '600px',
+      width: '920px',
       maxWidth: '96vw',
       panelClass: 'cfg-form-dialog-panel',
       data: {
@@ -707,60 +844,6 @@ export class FaturamentoConfigCobrancaComponent {
     return Array.from({ length: n }, (_, i) => `CFG-${String(max + 1 + i).padStart(3, '0')}`);
   }
 
-  private preencherFormulario(r: ConfigCobrancaListaItem): void {
-    this.formTransportadora = r.transportadora;
-    this.formEstacionamento = r.estacionamento;
-    this.formStatus = r.status;
-    this.formModalidade = r.modalidade;
-    this.formFechamento = r.fechamento;
-    this.formDiaFechamento = '';
-    this.formPrazoVencimento = r.prazoVencimento;
-    this.formEmail = r.emailFinanceiro ?? '';
-    this.formEnvioAuto = r.envioAutomatico;
-    this.formGerarAuto = r.envioAutomatico;
-    this.formPagamentoParcial = r.pagamentoParcial;
-    this.formMulta = r.multaAplicar;
-    this.formMultaPct = r.multaPercentual;
-    this.formJuros = r.jurosAplicar;
-    this.formJurosPct = r.jurosPercentual;
-    this.formDescFixo = false;
-    this.formDescValor = 0;
-    this.formAcresFixo = false;
-    this.formAcresValor = 0;
-    const sc = checksFromServicos(r.servicosCobrados);
-    this.formCobDiaria = sc.diaria;
-    this.formCobSemanal = sc.semanal;
-    this.formCobQuinzenal = sc.quinzenal;
-    this.formCobMensal = sc.mensal;
-    this.formCobPersonal = sc.personal;
-    this.formCobLavagem = sc.lavagem;
-    this.formCobPernoite = sc.pernoite;
-    this.formCobExtras = sc.extras;
-    this.formCobBeneficio = sc.beneficio;
-    const ag = checksFromAgrupamento(r.agrupamentoFatura);
-    this.formAgrPlaca = ag.placa;
-    this.formAgrPeriodo = ag.periodo;
-    this.formAgrTransp = ag.transportadora;
-  }
-
-  private limparFormulario(): void {
-    this.formTransportadora = '';
-    this.formEstacionamento = '';
-    this.formStatus = 'Ativa';
-    this.formModalidade = 'Mensal';
-    this.formFechamento = '';
-    this.formDiaFechamento = '';
-    this.formPrazoVencimento = '';
-    this.formEmail = '';
-    this.formEnvioAuto = false;
-    this.formGerarAuto = false;
-    this.formPagamentoParcial = false;
-    this.formMulta = false;
-    this.formMultaPct = 0;
-    this.formJuros = false;
-    this.formJurosPct = 0;
-  }
-
   private aplicarFiltros(): ConfigCobrancaListaItem[] {
     let rows = [...this.items()];
     const tr = this.transportadoraFiltro();
@@ -769,6 +852,7 @@ export class FaturamentoConfigCobrancaComponent {
     const st = this.statusFiltro();
     const env = this.envioFiltro();
     const q = this.filtroRapido();
+    const s = this.searchText().trim().toLowerCase();
 
     if (tr !== 'all') rows = rows.filter((r) => r.transportadora === tr);
     if (es !== 'all') rows = rows.filter((r) => r.estacionamento === es);
@@ -786,6 +870,69 @@ export class FaturamentoConfigCobrancaComponent {
     else if (q === 'mensal') rows = rows.filter((r) => r.modalidade === 'Mensal');
     else if (q === 'quinzenal') rows = rows.filter((r) => r.modalidade === 'Quinzenal');
 
+    if (s) {
+      rows = rows.filter(
+        (r) =>
+          r.id.toLowerCase().includes(s) ||
+          r.transportadora.toLowerCase().includes(s) ||
+          r.estacionamento.toLowerCase().includes(s) ||
+          (r.emailFinanceiro ?? '').toLowerCase().includes(s)
+      );
+    }
+
     return rows;
+  }
+
+  private criarDataHoje(): Date {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  private toIsoDate(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  private montarGradeCalendario(): CfgCalendarioCelula[] {
+    const ano = this.calendarioAno();
+    const mes = this.calendarioMes();
+    const primeiro = new Date(ano, mes, 1);
+    const grade: CfgCalendarioCelula[] = [];
+    const inicioGrade = new Date(primeiro);
+    inicioGrade.setDate(primeiro.getDate() - primeiro.getDay());
+
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(inicioGrade);
+      date.setDate(inicioGrade.getDate() + i);
+      grade.push({
+        iso: this.toIsoDate(date),
+        day: date.getDate(),
+        inMonth: date.getMonth() === mes,
+        date
+      });
+    }
+
+    return grade;
+  }
+
+  private navegarParaMesDoDia(cell: CfgCalendarioCelula): void {
+    if (!cell.inMonth) {
+      this.calendarioAno.set(cell.date.getFullYear());
+      this.calendarioMes.set(cell.date.getMonth());
+    }
+  }
+
+  private definirIntervaloDias(inicio: Date, fim: Date): void {
+    const a = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+    const b = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+    if (this.toIsoDate(a) <= this.toIsoDate(b)) {
+      this.periodoDataInicio.set(a);
+      this.periodoDataFim.set(b);
+    } else {
+      this.periodoDataInicio.set(b);
+      this.periodoDataFim.set(a);
+    }
   }
 }

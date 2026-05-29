@@ -1,5 +1,7 @@
 @use '../faturamento-shared-recebimentos';
 @use '../faturamento-shared-visao';
+@use '../faturamento-shared-painel';
+@use '../faturamento-shared-resumo';
 
 :host {
   display: block;
@@ -7,16 +9,14 @@
   overflow-x: hidden;
 }
 
-/* KPIs contextuais (mesma base de .visao-metric). */
-.cfg-metric-ico-warn {
-  color: #fbbf24;
-}
+/* ──────────────────────────────────────────────────────────────────────
+ * Estilos próprios de Configurações de Cobrança. O layout (painel, KPIs,
+ * tabela, filtros, calendário, paginação, resumo e alertas) vem dos
+ * shells compartilhados; aqui ficam apenas chips, colunas, o formulário
+ * em blocos e os detalhes da lista de alertas.
+ * ──────────────────────────────────────────────────────────────────── */
 
-.cfg-metric-val-warn {
-  color: #fcd34d;
-}
-
-/* Badges de status / envio (espelham .fat-faturas-chip). */
+/* Badges de status / envio */
 .cfg-chip {
   display: inline-block;
   padding: 2px 8px;
@@ -81,127 +81,102 @@
   max-width: 240px;
 }
 
-/* Formulário em painel expansível */
-.cfg-accordion {
-  margin-top: 12px;
-}
-
-.cfg-exp-panel {
-  border-radius: 12px !important;
+/* Card CTA que abre o modal de configuração */
+.cfg-cta-card.mat-mdc-card {
+  border-radius: 12px;
   border: 1px solid var(--border-subtle) !important;
-  background: color-mix(in srgb, var(--card-bg, #ffffff) 96%, var(--muted) 4%);
+  background: var(--card-bg, var(--surface));
   box-shadow: none;
 }
 
-.cfg-exp-panel .mat-expansion-panel-header {
-  padding: 0 16px;
-}
-
-.cfg-exp-panel .mat-expansion-panel-body {
-  padding: 0 16px 16px;
-}
-
-.cfg-form-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.cfg-bloco {
-  border-radius: 10px !important;
-  border-color: var(--border-subtle) !important;
-  background: color-mix(in srgb, var(--card-bg, #ffffff) 94%, transparent);
-  box-shadow: none;
-}
-
-.cfg-bloco-head .mat-mdc-card-title {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.cfg-bloco-body {
-  padding-top: 4px !important;
-}
-
-.cfg-fields {
-  display: grid;
-  gap: 10px 12px;
-  grid-template-columns: 1fr 1fr;
-}
-
-.cfg-fields--3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.cfg-span-2 {
-  grid-column: span 2;
-}
-
-.cfg-span-3 {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 960px) {
-  .cfg-fields--3 {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .cfg-span-2,
-  .cfg-span-3 {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .cfg-fields,
-  .cfg-fields--3 {
-    grid-template-columns: 1fr;
-  }
-}
-
-.cfg-field-full {
-  width: 100%;
-}
-
-.cfg-toggles {
+.cfg-cta-card__content {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-top: 8px;
-}
-
-.cfg-toggle-row {
-  display: grid;
-  gap: 10px;
   align-items: center;
-  grid-template-columns: minmax(140px, 1fr) minmax(100px, 1fr);
+  gap: 16px;
+  padding: 16px 18px !important;
+  flex-wrap: wrap;
 }
 
-.cfg-checks {
-  display: grid;
-  gap: 8px 16px;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+.cfg-cta-card__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
 }
 
-.cfg-form-actions {
+.cfg-cta-card__icon .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.cfg-cta-card__texts {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.cfg-cta-card__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cfg-cta-card__subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.cfg-cta-card__actions {
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 12px 0 4px;
 }
 
-/* Alertas compactos */
+html.theme-dark .cfg-cta-card.mat-mdc-card {
+  background: var(--fat-card-bg, #151f34);
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
+  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
+}
+
+html.theme-dark .cfg-cta-card__title {
+  color: var(--fat-card-value, #f8fafc);
+}
+
+html.theme-dark .cfg-cta-card__subtitle {
+  color: var(--fat-card-muted, #8ea0b8);
+}
+
+/* Lista de alertas (texto em duas linhas) */
 .cfg-alertas-card {
-  margin-top: 8px;
+  margin-top: 0;
 }
 
-.cfg-alert.cfg-alert--critico {
-  border-left: 3px solid rgba(248, 113, 113, 0.55);
+.cfg-alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
-html.theme-dark .cfg-alert.cfg-alert--critico {
-  border-left-color: rgba(248, 113, 113, 0.45);
+.cfg-alert-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+html.theme-dark .cfg-alert-title {
+  color: var(--fat-card-value, #f8fafc);
+}
+
+.cfg-alert-detail {
+  color: var(--muted);
 }
 
 /* Ícones de ação na tabela (alinhado ao recebimentos) */
@@ -222,14 +197,4 @@ html.theme-dark .cfg-alert.cfg-alert--critico {
 
 html.theme-dark .cfg-data-row--selected {
   background: color-mix(in srgb, rgba(59, 130, 246, 0.18) 100%, transparent) !important;
-}
-
-.cfg-btn-spinner {
-  display: inline-block;
-  margin-right: 4px;
-  vertical-align: middle;
-}
-
-.cfg-btn-spinner circle {
-  stroke: currentColor;
 }

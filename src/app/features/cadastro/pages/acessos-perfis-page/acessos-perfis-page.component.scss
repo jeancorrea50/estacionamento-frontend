@@ -13,12 +13,7 @@
 .perfis-panel {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
-  border-radius: var(--radius-lg, 12px);
-  background: color-mix(in srgb, var(--surface-2) 88%, #000);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  gap: 12px;
 }
 
 /* Barra compacta: busca + status + CTA em uma linha quando couber */
@@ -28,16 +23,16 @@
   align-items: center;
   gap: 8px;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
-  background: color-mix(in srgb, var(--surface) 40%, transparent);
+  padding: 0.25rem 0;
+  border-bottom: none;
+  background: transparent;
 }
 
 .perfis-toolbar__filters {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-width: 0;
 }
@@ -45,10 +40,9 @@
 .perfis-search-group {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
-  max-width: min(100%, 420px);
 }
 
 .perfis-toolbar__cta {
@@ -189,8 +183,8 @@
   padding: 0 10px;
   border-radius: 8px;
   font-size: 0.8125rem;
-  min-width: 9.5rem;
-  max-width: 100%;
+  width: 10rem !important;
+  flex-shrink: 0;
   cursor: pointer;
   background: var(--input-bg, color-mix(in srgb, var(--surface) 92%, #000));
 }

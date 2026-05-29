@@ -534,6 +534,44 @@ html:not(.theme-dark):not(.theme-light) body {
 
 /* app-root já definido acima (height/width 100%) */
 
+/* ========== Angular Material: mat-menu — adaptação ao tema ========== */
+.mat-mdc-menu-panel {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-radius: 8px !important;
+}
+
+.mat-mdc-menu-item {
+  color: var(--text) !important;
+}
+
+.mat-mdc-menu-item .mat-icon,
+.mat-mdc-menu-item .material-icons {
+  color: var(--muted) !important;
+}
+
+.mat-mdc-menu-item:hover:not([disabled]),
+.mat-mdc-menu-item.cdk-keyboard-focused:not([disabled]),
+.mat-mdc-menu-item.cdk-program-focused:not([disabled]) {
+  background: var(--surface-2) !important;
+}
+
+.mat-mdc-menu-item[disabled],
+.mat-mdc-menu-item[disabled] .mat-icon {
+  color: var(--muted) !important;
+  opacity: 0.5;
+}
+
+.mat-mdc-menu-item .mdc-list-item__primary-text {
+  color: var(--text) !important;
+}
+
+/* Divisor dentro do menu */
+.mat-mdc-menu-panel .mat-divider {
+  border-color: var(--border) !important;
+}
+
 /* ========== Layout de página padronizado (todas as telas) ========== */
 .page-container {
   width: 100%;

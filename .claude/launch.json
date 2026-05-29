@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "estacionamento-frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
-      "port": 4200
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--port", "4201"],
+      "port": 4201
     }
   ]
 }

@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,6 +20,7 @@ import {
   type AgrupamentoChecks,
   type ServicosChecks
 } from '../faturamento-config-cobranca.helpers';
+import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
 
 export type ConfigCobrancaFormMode = 'create' | 'edit' | 'duplicate';
 
@@ -34,6 +35,18 @@ export interface ConfigCobrancaFormDialogData {
 
 export interface ConfigCobrancaFormDialogResult {
   record: ConfigCobrancaListaItem;
+}
+
+interface ServicoOpcao {
+  key: keyof ServicosChecks;
+  label: string;
+  icon: string;
+}
+
+interface AgrupamentoOpcao {
+  key: keyof AgrupamentoChecks;
+  label: string;
+  icon: string;
 }
 
 @Component({
@@ -58,12 +71,35 @@ export class ConfigCobrancaFormDialogComponent {
   readonly ref = inject(MatDialogRef<ConfigCobrancaFormDialogComponent, ConfigCobrancaFormDialogResult | undefined>);
   readonly data = inject<ConfigCobrancaFormDialogData>(MAT_DIALOG_DATA);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   errosVisiveis: string[] = [];
+
+  /** Bloco 5 (juros/multa/descontos) recolhível para não poluir o modal. */
+  jurosMultaAberto = false;
+
+  readonly servicosOpcoes: ServicoOpcao[] = [
+    { key: 'diaria', label: 'Cobrar diária', icon: 'today' },
+    { key: 'semanal', label: 'Cobrar semanal', icon: 'date_range' },
+    { key: 'quinzenal', label: 'Cobrar quinzenal', icon: 'calendar_view_week' },
+    { key: 'mensal', label: 'Cobrar mensal', icon: 'calendar_month' },
+    { key: 'personal', label: 'Cobrar por data personalizada', icon: 'event' },
+    { key: 'lavagem', label: 'Cobrar lavagem', icon: 'local_car_wash' },
+    { key: 'pernoite', label: 'Cobrar pernoite', icon: 'bedtime' },
+    { key: 'extras', label: 'Cobrar serviços extras', icon: 'add_circle' },
+    { key: 'beneficio', label: 'Considerar benefício por abastecimento', icon: 'local_gas_station' }
+  ];
+
+  readonly agrupamentoOpcoes: AgrupamentoOpcao[] = [
+    { key: 'placa', label: 'Agrupar fatura por placa', icon: 'directions_car' },
+    { key: 'periodo', label: 'Agrupar fatura por período', icon: 'calendar_month' },
+    { key: 'transportadora', label: 'Agrupar fatura por transportadora', icon: 'local_shipping' }
+  ];
 
   transportadora = '';
   estacionamento = '';
   modalidade: ConfigCobrancaModalidade | '' = '';
+  diaFechamento = '';
   fechamento = '';
   prazoVencimento = '';
   email = '';
@@ -74,6 +110,10 @@ export class ConfigCobrancaFormDialogComponent {
   multaPct = 0;
   juros = false;
   jurosPct = 0;
+  descFixo = false;
+  descValor = 0;
+  acresFixo = false;
+  acresValor = 0;
   status: ConfigCobrancaStatus = 'Ativa';
 
   serv: ServicosChecks = {
@@ -95,16 +135,11 @@ export class ConfigCobrancaFormDialogComponent {
   };
 
   get titulo(): string {
-    if (this.data.mode === 'create') return 'Nova Configuração de Cobrança';
-    if (this.data.mode === 'edit') return 'Editar Configuração de Cobrança';
-    return 'Duplicar Configuração de Cobrança';
+    return 'Configuração de cobrança';
   }
 
   get subtitulo(): string {
-    if (this.data.mode === 'create') {
-      return 'Selecione uma transportadora e defina a regra de faturamento.';
-    }
-    return 'Ajuste transportadora, estacionamento e demais parâmetros antes de salvar.';
+    return 'Defina como a transportadora será faturada neste estacionamento.';
   }
 
   constructor() {
@@ -132,6 +167,19 @@ export class ConfigCobrancaFormDialogComponent {
       this.prazoVencimento = '10 dias após fechamento';
       this.status = 'Ativa';
     }
+    this.jurosMultaAberto = this.multa || this.juros || this.descFixo || this.acresFixo;
+  }
+
+  toggleJurosMulta(): void {
+    this.jurosMultaAberto = !this.jurosMultaAberto;
+  }
+
+  toggleServico(key: keyof ServicosChecks): void {
+    this.serv[key] = !this.serv[key];
+  }
+
+  toggleAgrupamento(key: keyof AgrupamentoChecks): void {
+    this.agr[key] = !this.agr[key];
   }
 
   cancelar(): void {
@@ -145,6 +193,14 @@ export class ConfigCobrancaFormDialogComponent {
       return;
     }
     this.snack.open(`E-mail de teste enviado para ${mail}.`, 'Fechar', { duration: 4500 });
+  }
+
+  visualizarRegra(): void {
+    this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      data: { row: this.montarRegistro('PREVIEW') }
+    });
   }
 
   salvar(): void {
@@ -167,7 +223,10 @@ export class ConfigCobrancaFormDialogComponent {
       return;
     }
     this.errosVisiveis = [];
+    this.ref.close({ record: this.montarRegistro(this.data.item?.id ?? 'NEW') });
+  }
 
+  private montarRegistro(id: string): ConfigCobrancaListaItem {
     const emailNorm = this.email?.trim() || null;
     let statusFinal: ConfigCobrancaStatus = this.status;
     if (!emailNorm) {
@@ -176,8 +235,8 @@ export class ConfigCobrancaFormDialogComponent {
       statusFinal = 'Ativa';
     }
 
-    const base: ConfigCobrancaListaItem = {
-      id: this.data.item?.id ?? 'NEW',
+    return {
+      id,
       transportadora: this.transportadora.trim(),
       estacionamento: this.estacionamento.trim(),
       modalidade: this.modalidade as ConfigCobrancaModalidade,
@@ -194,7 +253,5 @@ export class ConfigCobrancaFormDialogComponent {
       servicosCobrados: servicosCobradosFromChecks(this.serv),
       agrupamentoFatura: agrupamentoFromChecks(this.agr)
     };
-
-    this.ref.close({ record: base });
   }
 }

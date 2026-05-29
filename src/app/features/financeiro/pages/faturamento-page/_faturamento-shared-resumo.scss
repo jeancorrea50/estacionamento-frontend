@@ -1,0 +1,185 @@
+/* ──────────────────────────────────────────────────────────────────────
+ * Shell compartilhado: cartões de "Resumo" e "Validações/Alertas".
+ * Usado por Fechamentos e Configurações de Cobrança para manter o mesmo
+ * modelo visual (cabeçalho, grade de metadados, ações e lista de alertas).
+ * ──────────────────────────────────────────────────────────────────── */
+
+.fat-fech__summary-card.mat-mdc-card,
+.fat-fech__valid-card.mat-mdc-card {
+  background: var(--card-bg, var(--surface));
+  border-color: var(--border-subtle) !important;
+  border-radius: 12px;
+  box-shadow: none;
+  min-width: 0;
+}
+
+.fat-fech__summary-head.mat-mdc-card-header {
+  padding: 12px 14px 0 !important;
+}
+
+.fat-fech__summary-head .mat-mdc-card-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+}
+
+.fat-fech__summary-card .mat-mdc-card-content {
+  padding: 8px 14px 14px !important;
+}
+
+.fat-fech__summary-empty {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.fat-fech__summary-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 14px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.fat-fech__summary-k {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.fat-fech__summary-divider {
+  margin: 12px 0 !important;
+}
+
+.fat-fech__summary-dl {
+  margin: 0;
+  display: grid;
+  gap: 6px 12px;
+}
+
+.fat-fech__summary-dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.fat-fech__summary-dl dt {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.fat-fech__summary-dl dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.fat-fech__summary-dl--total dt,
+.fat-fech__summary-dl--total dd {
+  font-weight: 700;
+  font-size: 14px;
+  color: #93c5fd;
+}
+
+.fat-fech__summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fat-fech__summary-actions .fat-mat-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.fat-fech__valid-card .mat-mdc-card-header {
+  padding: 12px 14px 0 !important;
+}
+
+.fat-fech__valid-card .mat-mdc-card-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+}
+
+.fat-fech__valid-card .mat-mdc-card-content {
+  padding: 4px 14px 12px !important;
+}
+
+.fat-fech__valid-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fat-fech__valid-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.fat-fech__valid-item:last-child {
+  border-bottom: none;
+}
+
+.fat-fech__valid-item--critico {
+  color: #fca5a5;
+}
+
+.fat-fech__valid-ico {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #fbbf24;
+}
+
+.fat-fech__valid-item--critico .fat-fech__valid-ico {
+  color: #f87171;
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────── */
+html.theme-dark .fat-fech__summary-card.mat-mdc-card,
+html.theme-dark .fat-fech__valid-card.mat-mdc-card {
+  background: var(--fat-card-bg, #151f34) !important;
+  border: 1px solid var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
+  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
+}
+
+html.theme-dark .fat-fech__summary-head .mat-mdc-card-title,
+html.theme-dark .fat-fech__valid-card .mat-mdc-card-title {
+  color: var(--fat-card-value, #f8fafc) !important;
+}
+
+html.theme-dark .fat-fech__summary-empty {
+  color: var(--fat-card-muted, #8ea0b8);
+}
+
+html.theme-dark .fat-fech__summary-meta {
+  color: var(--fat-card-value, #f8fafc);
+}
+
+html.theme-dark .fat-fech__summary-k {
+  color: var(--fat-card-muted, #8ea0b8);
+}
+
+html.theme-dark .fat-fech__summary-dl dt {
+  color: var(--fat-card-muted, #8ea0b8);
+}
+
+html.theme-dark .fat-fech__summary-dl dd {
+  color: var(--fat-card-value, #f8fafc);
+}

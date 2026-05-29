@@ -1,7 +1,6 @@
 /** Tipos compartilhados entre a página de Faturamento e a Visão Geral (evita import circular). */
 export type FaturamentoTabId =
   | 'visao-geral'
-  | 'faturas'
   | 'fechamentos'
   | 'recebimentos'
   | 'inadimplencia'

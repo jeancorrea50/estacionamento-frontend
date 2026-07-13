@@ -136,17 +136,29 @@ export class SignalrDashboardService {
   }
 
   private registerEventHandlers(connection: HubConnection): void {
-    connection.on('dashboardAtualizado', (payload: DashboardAtualizadoPayload) => {
+    const logDevEvent = (label: string, data: unknown): void => {
+      if (!environment.production) {
+        console.log(`${label}:`, data);
+      }
+    };
+
+    const handleDashboard = (payload: DashboardAtualizadoPayload): void => {
+      logDevEvent('dashboard', payload);
       this.dashboardAtualizadoSubject.next(payload);
-    });
+    };
+
+    connection.on('dashboard', handleDashboard);
+    connection.on('dashboardAtualizado', handleDashboard);
 
     connection.on('movimentacaoAtualizada', (payload: unknown) => {
+      logDevEvent('movimentacao', payload);
       const normalized = this.normalizeMovimentacaoPayload(payload);
       this.log(`Evento movimentacaoAtualizada recebido: ${normalized.length} item(ns).`);
       this.movimentacaoAtualizadaSubject.next(normalized);
     });
 
     connection.on('alertaOperacional', (payload: AlertaOperacionalPayload) => {
+      logDevEvent('alerta', payload);
       this.alertaOperacionalSubject.next(payload);
     });
   }

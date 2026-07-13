@@ -5,7 +5,7 @@ export const environment = {
   production: false,
   apiUrl: 'http://108.174.145.123:5000',
   API_BASE_URL: 'http://108.174.145.123:5000/api',
-  dashboardHubUrl: 'http://108.174.145.123:8081/hubs/movimento/entradasaida/dashboard',
+  dashboardHubUrl: 'https://localhost:44304/hubs/movimento/entradasaida/',
   movimentacoesAtualizadasUrl:
     'http://108.174.145.123:8081/api/movimento/redis/movimentacoes-atualizadas',
   emergencyAdmin: {

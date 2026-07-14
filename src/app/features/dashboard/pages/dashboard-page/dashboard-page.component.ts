@@ -26,7 +26,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.signalrDashboardService.connect();
-    this.subscription.add(this.signalrDashboardService.validarMovimentacoesAtualizadas().subscribe());
     this.observeDashboardStreams();
   }
 

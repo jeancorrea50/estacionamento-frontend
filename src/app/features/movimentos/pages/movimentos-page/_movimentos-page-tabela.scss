@@ -60,6 +60,10 @@
   text-align: left !important;
 }
 
+.acoes-cell .btn + .btn {
+  margin-left: 0.5rem;
+}
+
 .col-acoes {
   width: 1%;
   white-space: nowrap;

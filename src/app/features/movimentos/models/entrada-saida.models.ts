@@ -1,3 +1,68 @@
+/** Espelha `EntradaSaidaStatus` (byte) do backend. */
+export enum EntradaSaidaStatus {
+  Entrada = 0,
+  Saida = 1,
+  Suspenso = 2,
+  Agendado = 3,
+  Cancelado = 4
+}
+
+/** Labels alinhados aos `[Description]` do enum no backend. */
+export const ENTRADA_SAIDA_STATUS_LABEL: Record<EntradaSaidaStatus, string> = {
+  [EntradaSaidaStatus.Entrada]: 'Entrada',
+  [EntradaSaidaStatus.Saida]: 'Saida',
+  [EntradaSaidaStatus.Suspenso]: 'Suspenso',
+  [EntradaSaidaStatus.Agendado]: 'Agendado',
+  [EntradaSaidaStatus.Cancelado]: 'Cancelado'
+};
+
+const ENTRADA_SAIDA_STATUS_VALUES = new Set<number>([
+  EntradaSaidaStatus.Entrada,
+  EntradaSaidaStatus.Saida,
+  EntradaSaidaStatus.Suspenso,
+  EntradaSaidaStatus.Agendado,
+  EntradaSaidaStatus.Cancelado
+]);
+
+/** Converte valor numérico/string da API para o enum tipado. */
+export function parseEntradaSaidaStatus(
+  value: number | string | null | undefined
+): EntradaSaidaStatus | undefined {
+  if (value == null || value === '') return undefined;
+
+  if (typeof value === 'number') {
+    return ENTRADA_SAIDA_STATUS_VALUES.has(value) ? (value as EntradaSaidaStatus) : undefined;
+  }
+
+  const trimmed = String(value).trim();
+  const asNum = Number(trimmed);
+  if (trimmed !== '' && Number.isInteger(asNum) && ENTRADA_SAIDA_STATUS_VALUES.has(asNum)) {
+    return asNum as EntradaSaidaStatus;
+  }
+
+  const normalized = trimmed
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  const byName: Record<string, EntradaSaidaStatus> = {
+    entrada: EntradaSaidaStatus.Entrada,
+    saida: EntradaSaidaStatus.Saida,
+    suspenso: EntradaSaidaStatus.Suspenso,
+    agendado: EntradaSaidaStatus.Agendado,
+    cancelado: EntradaSaidaStatus.Cancelado
+  };
+
+  return byName[normalized];
+}
+
+export function entradaSaidaStatusLabel(
+  value: number | string | null | undefined
+): string | undefined {
+  const status = parseEntradaSaidaStatus(value);
+  return status == null ? undefined : ENTRADA_SAIDA_STATUS_LABEL[status];
+}
+
 export interface EntradaSaidaFiltro {
   placa?: string;
   motoristaId?: number;
@@ -20,6 +85,8 @@ export interface EntradaSaidaSearchOutput {
   placaVeiculo: string;
   dataHoraEntrada: string;
   dataHoraSaida?: string | null;
+  /** Enum byte do backend (`EntradaSaidaStatus` / Situacao). */
+  status?: EntradaSaidaStatus | number | string;
 }
 
 export interface EntradaSaidaSuspensaoOutput {
@@ -60,7 +127,7 @@ export interface EntradaSaidaOutput {
 
 export interface EntradaSaidaPostInput {
   /** Enum byte do backend (`EntradaSaidaStatus`). */
-  status?: 0 | 1 | 2 | 3 | 4;
+  status?: EntradaSaidaStatus;
   motoristaId?: number;
   transportadoraId?: number;
   veiculoId?: number;

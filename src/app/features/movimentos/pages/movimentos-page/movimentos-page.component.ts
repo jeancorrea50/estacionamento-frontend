@@ -8,7 +8,10 @@ import {
   EntradaSaidaOutput,
   EntradaSaidaPagedResult,
   EntradaSaidaPermanenciaInput,
-  EntradaSaidaSearchOutput
+  EntradaSaidaSearchOutput,
+  EntradaSaidaStatus,
+  entradaSaidaStatusLabel,
+  parseEntradaSaidaStatus
 } from '../../models/entrada-saida.models';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
@@ -30,6 +33,19 @@ import { DashboardAtualizadoPayload } from '../../../../core/models/dashboard.mo
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
+
+/** Item do hub `movimentacaoAtualizada` já normalizado para a UI. */
+interface MovimentacaoTempoRealVm {
+  id: number;
+  horario: string;
+  placa: string;
+  motorista: string;
+  transportadora: string;
+  status: StatusMonitoramento;
+  statusLabel: string;
+  dataHoraEntrada: string;
+  dataHoraSaida: string | null;
+}
 
 interface MonitoramentoItemVm {
   id: number;
@@ -78,7 +94,7 @@ export class MovimentosPageComponent implements OnInit {
   filtro = { descricao: '', somenteEmAberto: true };
 
   registros: EntradaSaidaSearchOutput[] = [];
-  movimentacoesTempoReal: EntradaSaidaSearchOutput[] = [];
+  movimentacoesTempoReal: MovimentacaoTempoRealVm[] = [];
   dashboardTempoReal: DashboardAtualizadoPayload | null = null;
   numeroPagina = 1;
   tamanhoPagina = 20;
@@ -239,21 +255,30 @@ export class MovimentosPageComponent implements OnInit {
     if (!item) return;
     const isoData = this.toIsoOrUndefined(this.permanenciaDataHora);
     if (this.permanenciaAcao === 'finalizar') {
+      const placa = this.placaSelecionada();
+      if (!placa || placa === '—') {
+        this.toast.error('Placa não encontrada para registrar a saída.');
+        return;
+      }
+      this.service.saida(placa).subscribe({
+        next: () => this.finalizarAcaoPermanencia('Saída registrada com sucesso.'),
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
+      });
+      return;
+    }
+    if (this.permanenciaAcao === 'retornar') {
       this.service.finalizarPermanencia(item.id, isoData).subscribe({
-        next: () => this.finalizarAcaoPermanencia('Permanência finalizada com sucesso.'),
-        error: (err: ApiError) => this.handleApiError(err, 'Erro ao finalizar permanência.')
+        next: () => this.finalizarAcaoPermanencia('Retorno ao pátio realizado.'),
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao finalizar suspensão.')
       });
       return;
     }
     const payload: EntradaSaidaPermanenciaInput = {
-      retornarAoPatio: this.permanenciaAcao === 'retornar',
+      retornarAoPatio: false,
       dataHoraEvento: isoData
     };
     this.service.suspenderPermanencia(item.id, payload).subscribe({
-      next: () =>
-        this.finalizarAcaoPermanencia(
-          payload.retornarAoPatio ? 'Retorno ao pátio realizado.' : 'Permanência suspensa com sucesso.'
-        ),
+      next: () => this.finalizarAcaoPermanencia('Permanência suspensa com sucesso.'),
       error: (err: ApiError) => this.handleApiError(err, 'Erro ao atualizar permanência.')
     });
   }
@@ -280,8 +305,17 @@ export class MovimentosPageComponent implements OnInit {
     this.buscar();
   }
 
-  statusLabel(item: EntradaSaidaSearchOutput): 'Em aberto' | 'Finalizado' {
-    return item.dataHoraSaida ? 'Finalizado' : 'Em aberto';
+  statusLabel(item: EntradaSaidaSearchOutput): string {
+    const fromStatus = entradaSaidaStatusLabel(item.status);
+    if (fromStatus) return fromStatus;
+    return item.dataHoraSaida ? 'Saida' : 'Entrada';
+  }
+
+  ehStatusSaida(item: EntradaSaidaSearchOutput): boolean {
+    return (
+      !!item.dataHoraSaida ||
+      parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Saida
+    );
   }
 
   entradasHoje(): number {
@@ -330,19 +364,21 @@ export class MovimentosPageComponent implements OnInit {
   monitoramentoItens(): MonitoramentoItemVm[] {
     return this.fonteDadosTempoReal().slice(0, 5).map((item) => ({
       id: item.id,
-      horario: this.formatarHorario(item.dataHoraSaida || item.dataHoraEntrada),
-      placa: item.placaVeiculo || '—',
-      motorista: item.nomeMotorista || '—',
-      transportadora: item.nomeTransportadora || '—',
-      status: item.dataHoraSaida ? 'saida' : 'entrada'
+      horario: item.horario,
+      placa: item.placa || '—',
+      motorista: item.motorista || '—',
+      transportadora: item.transportadora || '—',
+      status: item.status
     }));
   }
 
   ultimosAlertas(): AlertaItemVm[] {
     return this.fonteDadosTempoReal().slice(0, 5).map((item) => ({
       id: item.id,
-      titulo: item.dataHoraSaida ? 'Saída registrada com sucesso' : 'Movimentação em andamento',
-      descricao: `Placa ${item.placaVeiculo || 'não informada'} - ${item.nomeTransportadora || 'transportadora'}`,
+      titulo: item.status === 'saida'
+        ? 'Saída registrada com sucesso'
+        : item.statusLabel || 'Movimentação em andamento',
+      descricao: `Placa ${item.placa || 'não informada'} - ${item.transportadora || 'transportadora'}`,
       tempoRelativo: this.tempoRelativo(item.dataHoraSaida || item.dataHoraEntrada)
     }));
   }
@@ -405,7 +441,7 @@ export class MovimentosPageComponent implements OnInit {
 
     return forkJoin({ motorista: motorista$, transportadora: transportadora$ }).pipe(
       map(({ motorista, transportadora }) => ({
-        status: 0,
+        status: EntradaSaidaStatus.Entrada,
         dataHoraEntrada: new Date().toISOString(),
         observacao: this.observacaoParaApi(this.registroRapido.observacao),
         motorista: {
@@ -479,46 +515,17 @@ export class MovimentosPageComponent implements OnInit {
       this.toast.error('Informe uma placa válida para registrar saída.');
       return;
     }
-    const aberto = this.registros.find(
-      (item) => !item.dataHoraSaida && normalizePlaca(item.placaVeiculo) === placaNorm
-    );
-    const finalizar = (id: number) => {
-      this.service.finalizarPermanencia(id, new Date().toISOString()).subscribe({
-        next: () => {
-          this.processandoRegistroRapido = false;
-          this.toast.success('Saída registrada com sucesso.');
-          this.buscar();
-          this.limparRegistroRapido();
-        },
-        error: (err: ApiError) => {
-          this.processandoRegistroRapido = false;
-          this.toast.error(err?.message ?? 'Erro ao registrar saída.');
-        }
-      });
-    };
     this.processandoRegistroRapido = true;
-    if (aberto?.id) {
-      finalizar(aberto.id);
-      return;
-    }
-    this.service.buscar({
-      placa: placaNorm,
-      somenteEmAberto: true,
-      numeroPagina: 1,
-      tamanhoPagina: 1
-    }).subscribe({
-      next: (paged) => {
-        const item = paged.items[0];
-        if (!item?.id) {
-          this.processandoRegistroRapido = false;
-          this.toast.error('Não há movimento em aberto para esta placa.');
-          return;
-        }
-        finalizar(item.id);
+    this.service.saida(placaNorm).subscribe({
+      next: () => {
+        this.processandoRegistroRapido = false;
+        this.toast.success('Saída registrada com sucesso.');
+        this.buscar();
+        this.limparRegistroRapido();
       },
       error: (err: ApiError) => {
         this.processandoRegistroRapido = false;
-        this.toast.error(err?.message ?? 'Erro ao buscar movimento em aberto.');
+        this.toast.error(err?.message ?? 'Erro ao registrar saída.');
       }
     });
   }
@@ -567,6 +574,14 @@ export class MovimentosPageComponent implements OnInit {
     return !this.registroSelecionado.finalizado;
   }
 
+  estaSuspenso(item: EntradaSaidaSearchOutput | EntradaSaidaOutput | null | undefined): boolean {
+    if (!item) return false;
+    if ('permanenciaSuspensa' in item && typeof item.permanenciaSuspensa === 'boolean') {
+      return item.permanenciaSuspensa;
+    }
+    return parseEntradaSaidaStatus((item as EntradaSaidaSearchOutput).status) === EntradaSaidaStatus.Suspenso;
+  }
+
   placaSelecionada(): string {
     const veiculo = this.registroSelecionado?.veiculo as { placa?: string } | undefined;
     return veiculo?.placa ?? '—';
@@ -589,12 +604,12 @@ export class MovimentosPageComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((payload) => {
         this.movimentacoesTempoReal = payload
-          .map((item, index) => this.mapMovimentacaoHubParaSearchOutput(item, index))
-          .filter((item): item is EntradaSaidaSearchOutput => item != null);
+          .map((item, index) => this.mapMovimentacaoHubParaVm(item, index))
+          .filter((item): item is MovimentacaoTempoRealVm => item != null);
       });
   }
 
-  private fonteDadosTempoReal(): EntradaSaidaSearchOutput[] {
+  private fonteDadosTempoReal(): MovimentacaoTempoRealVm[] {
     return this.movimentacoesTempoReal;
   }
 
@@ -642,7 +657,7 @@ export class MovimentosPageComponent implements OnInit {
     return `${horas} h atrás`;
   }
 
-  private minutosNoPatio(item: EntradaSaidaSearchOutput): number | null {
+  private minutosNoPatio(item: MovimentacaoTempoRealVm): number | null {
     const entrada = new Date(item.dataHoraEntrada).getTime();
     if (Number.isNaN(entrada)) return null;
     const saida = item.dataHoraSaida ? new Date(item.dataHoraSaida).getTime() : Date.now();
@@ -929,89 +944,98 @@ export class MovimentosPageComponent implements OnInit {
     return new Date(value).toISOString();
   }
 
-  private mapMovimentacaoHubParaSearchOutput(
+  private mapMovimentacaoHubParaVm(
     source: unknown,
     index: number
-  ): EntradaSaidaSearchOutput | null {
-    if (!source || typeof source !== 'object') {
+  ): MovimentacaoTempoRealVm | null {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
       return null;
     }
 
     const row = source as Record<string, unknown>;
-    const motorista =
-      row['motorista'] && typeof row['motorista'] === 'object'
-        ? (row['motorista'] as Record<string, unknown>)
-        : undefined;
-    const transportadora =
-      row['transportadora'] && typeof row['transportadora'] === 'object'
-        ? (row['transportadora'] as Record<string, unknown>)
-        : undefined;
-    const veiculo =
-      row['veiculo'] && typeof row['veiculo'] === 'object'
-        ? (row['veiculo'] as Record<string, unknown>)
-        : undefined;
-    const entrada = row['entrada'] && typeof row['entrada'] === 'object'
-      ? (row['entrada'] as Record<string, unknown>)
-      : undefined;
 
-    const pick = (obj: Record<string, unknown> | undefined, key: string): unknown => {
-      if (!obj) return undefined;
-      return obj[key] ?? obj[key.charAt(0).toUpperCase() + key.slice(1)];
+    const asText = (value: unknown): string => {
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+      return '';
     };
 
-    const getRaw = (...keys: string[]): unknown => {
+    const pickText = (...keys: string[]): string => {
       for (const key of keys) {
-        const candidates = [
-          pick(row, key),
-          pick(motorista, key),
-          pick(transportadora, key),
-          pick(veiculo, key),
-          pick(entrada, key)
-        ];
-        for (const candidate of candidates) {
-          if (candidate != null && String(candidate).trim() !== '') {
-            return candidate;
-          }
+        const direct = asText(row[key] ?? row[key.charAt(0).toUpperCase() + key.slice(1)]);
+        if (direct) return direct;
+
+        const nested = row[key];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          const obj = nested as Record<string, unknown>;
+          const nestedText =
+            asText(obj['nome']) ||
+            asText(obj['Nome']) ||
+            asText(obj['placa']) ||
+            asText(obj['Placa']) ||
+            asText(obj['razaoSocial']) ||
+            asText(obj['RazaoSocial']) ||
+            asText(obj['descricao']) ||
+            asText(obj['Descricao']);
+          if (nestedText) return nestedText;
         }
       }
-      return undefined;
+      return '';
     };
 
-    const getNumber = (...keys: string[]): number => {
-      const value = getRaw(...keys);
-      if (typeof value === 'number' && Number.isFinite(value)) return value;
-      if (typeof value === 'string' && value.trim()) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed)) return parsed;
-      }
-      return 0;
-    };
-    const getString = (...keys: string[]): string => {
-      const value = getRaw(...keys);
-      return typeof value === 'string' ? value : '';
-    };
-    const getNullableString = (...keys: string[]): string | null => {
-      const value = getString(...keys);
-      return value || null;
-    };
+    const horarioIso = pickText('horario', 'dataHoraEntrada', 'entradaEm', 'dataEntrada');
+    const saidaIso = pickText('dataHoraSaida', 'saidaEm', 'dataSaida') || null;
+    const statusLabel = pickText('status', 'statusDescricao', 'Situacao', 'situacao');
+    const status = this.mapStatusHubParaMonitoramento(statusLabel, !!saidaIso);
+
+    const idRaw = row['id'] ?? row['entradaSaidaId'] ?? row['movimentacaoId'];
+    const idNum =
+      typeof idRaw === 'number' && Number.isFinite(idRaw)
+        ? idRaw
+        : typeof idRaw === 'string' && idRaw.trim()
+          ? Number(idRaw)
+          : NaN;
 
     return {
-      id: getNumber('id', 'entradaSaidaId', 'movimentacaoId') || index + 1,
-      descricao: getString('descricao', 'description'),
-      motoristaId: getNumber('motoristaId'),
-      nomeMotorista: getString('nomeMotorista', 'motoristaNome', 'nome', 'nomeCompleto', 'motorista'),
-      transportadoraId: getNumber('transportadoraId'),
-      nomeTransportadora: getString(
-        'nomeTransportadora',
-        'transportadoraNome',
-        'razaoSocial',
-        'nomeFantasia',
-        'transportadora'
-      ),
-      veiculoId: getNumber('veiculoId'),
-      placaVeiculo: getString('placaVeiculo', 'placa', 'veiculo'),
-      dataHoraEntrada: getString('dataHoraEntrada', 'entradaEm', 'dataEntrada', 'horario'),
-      dataHoraSaida: getNullableString('dataHoraSaida', 'saidaEm', 'dataSaida')
+      id: Number.isFinite(idNum) && idNum > 0 ? idNum : index + 1,
+      horario: this.formatarHorario(horarioIso),
+      placa: pickText('veiculo', 'placa', 'placaVeiculo') || '—',
+      motorista: pickText('motorista', 'nomeMotorista', 'motoristaNome') || '—',
+      transportadora:
+        pickText('transportadora', 'nomeTransportadora', 'razaoSocial', 'nomeFantasia') || '—',
+      status,
+      statusLabel: statusLabel || (status === 'saida' ? 'Saída' : status === 'aberto' ? 'Aberto' : 'Entrada'),
+      dataHoraEntrada: horarioIso,
+      dataHoraSaida: saidaIso
     };
+  }
+
+  private mapStatusHubParaMonitoramento(
+    statusLabel: string,
+    temSaida: boolean
+  ): StatusMonitoramento {
+    const parsed = parseEntradaSaidaStatus(statusLabel);
+    if (parsed === EntradaSaidaStatus.Saida || parsed === EntradaSaidaStatus.Cancelado) {
+      return 'saida';
+    }
+    if (parsed === EntradaSaidaStatus.Agendado || parsed === EntradaSaidaStatus.Suspenso) {
+      return 'aberto';
+    }
+    if (parsed === EntradaSaidaStatus.Entrada) {
+      return 'entrada';
+    }
+
+    const normalized = statusLabel
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+
+    if (temSaida || normalized.includes('saida')) return 'saida';
+    if (normalized.includes('agend') || normalized.includes('aberto') || normalized.includes('patio')) {
+      return 'aberto';
+    }
+    if (normalized.includes('entrada')) return 'entrada';
+    return temSaida ? 'saida' : 'entrada';
   }
 }

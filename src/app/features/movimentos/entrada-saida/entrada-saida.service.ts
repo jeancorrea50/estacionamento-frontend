@@ -9,7 +9,8 @@ import {
   EntradaSaidaPostInput,
   EntradaSaidaPutInput,
   EntradaSaidaOutput,
-  EntradaSaidaSearchOutput
+  EntradaSaidaSearchOutput,
+  parseEntradaSaidaStatus
 } from '../models/entrada-saida.models';
 
 const ENTRADA_SAIDA_API = `${environment.API_BASE_URL}/EntradaSaida`;
@@ -50,12 +51,16 @@ export class EntradaSaidaService {
     return this.http.patch<void>(`${ENTRADA_SAIDA_API}/${id}/suspender-permanencia`, payload);
   }
 
-  finalizarPermanencia(id: number, dataHoraSaida?: string): Observable<void> {
+  finalizarPermanencia(id: number, dataHoraEvento?: string): Observable<void> {
     let params = new HttpParams();
-    if (dataHoraSaida?.trim()) {
-      params = params.set('dataHoraSaida', dataHoraSaida.trim());
+    if (dataHoraEvento?.trim()) {
+      params = params.set('dataHoraSaida', dataHoraEvento.trim());
     }
     return this.http.patch<void>(`${ENTRADA_SAIDA_API}/${id}/finalizar-permanencia`, null, { params });
+  }
+
+  saida(placa: string): Observable<void> {
+    return this.http.post<void>(`${ENTRADA_SAIDA_API}/saida`, { placa });
   }
 
   excluir(id: number): Observable<void> {
@@ -113,7 +118,12 @@ export class EntradaSaidaService {
       veiculoId: Number(row['veiculoId']) || 0,
       placaVeiculo: String(row['placaVeiculo'] ?? ''),
       dataHoraEntrada: String(row['dataHoraEntrada'] ?? ''),
-      dataHoraSaida: (row['dataHoraSaida'] as string | null | undefined) ?? null
+      dataHoraSaida: (row['dataHoraSaida'] as string | null | undefined) ?? null,
+      status: parseEntradaSaidaStatus(
+        (row['status'] as number | string | undefined) ??
+          (row['situacao'] as number | string | undefined) ??
+          (row['Situacao'] as number | string | undefined)
+      )
     };
   }
 

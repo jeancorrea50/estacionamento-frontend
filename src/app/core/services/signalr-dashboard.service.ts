@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { ApplicationRef, Injectable, NgZone } from '@angular/core';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -8,37 +7,47 @@ import {
   IHttpConnectionOptions,
   LogLevel
 } from '@microsoft/signalr';
-import { BehaviorSubject, Observable, Subject, catchError, map, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AlertaOperacionalPayload,
   DashboardAtualizadoPayload,
-  MovimentacoesAtualizadasResponse,
   MovimentacaoAtualizadaPayload
 } from '../models/dashboard.models';
 
+/**
+ * Hub SignalR do dashboard/movimentos.
+ * Fonte de verdade = eventos do hub (dashboardAtualizado / movimentacaoAtualizada).
+ * Emite com NgZone + ApplicationRef.tick (app zoneless) para UI atualizar sem clique.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class SignalrDashboardService {
   private readonly hubUrl = environment.dashboardHubUrl;
-  private readonly movimentacoesValidacaoUrl = environment.movimentacoesAtualizadasUrl;
 
-  private readonly dashboardAtualizadoSubject = new Subject<DashboardAtualizadoPayload>();
-  private readonly movimentacaoAtualizadaSubject = new BehaviorSubject<MovimentacaoAtualizadaPayload>([]);
+  private readonly dashboardAtualizadoSubject =
+    new BehaviorSubject<DashboardAtualizadoPayload | null>(null);
+  private readonly movimentacaoAtualizadaSubject =
+    new BehaviorSubject<MovimentacaoAtualizadaPayload>([]);
   private readonly alertaOperacionalSubject = new Subject<AlertaOperacionalPayload>();
 
   private hubConnection: HubConnection | null = null;
   private connectPromise: Promise<void> | null = null;
 
   readonly dashboardAtualizado$: Observable<DashboardAtualizadoPayload> =
-    this.dashboardAtualizadoSubject.asObservable();
+    this.dashboardAtualizadoSubject.asObservable().pipe(
+      filter((payload): payload is DashboardAtualizadoPayload => payload != null)
+    );
   readonly movimentacaoAtualizada$: Observable<MovimentacaoAtualizadaPayload> =
     this.movimentacaoAtualizadaSubject.asObservable();
   readonly alertaOperacional$: Observable<AlertaOperacionalPayload> =
     this.alertaOperacionalSubject.asObservable();
 
-  constructor(private readonly http: HttpClient) {
+  constructor(
+    private readonly ngZone: NgZone,
+    private readonly appRef: ApplicationRef
+  ) {
     void this.connect();
   }
 
@@ -94,19 +103,6 @@ export class SignalrDashboardService {
     }
   }
 
-  validarMovimentacoesAtualizadas(limite = 10): Observable<MovimentacaoAtualizadaPayload> {
-    return this.http
-      .get<MovimentacoesAtualizadasResponse>(`${this.movimentacoesValidacaoUrl}?limite=${limite}`)
-      .pipe(
-        map((response) => this.normalizeMovimentacaoPayload(response?.movimentacoes)),
-        tap((movimentacoes) => this.movimentacaoAtualizadaSubject.next(movimentacoes)),
-        catchError((error: unknown) => {
-          this.logError('Falha ao validar movimentacoes atualizadas via HTTP.', error);
-          return of<MovimentacaoAtualizadaPayload>([]);
-        })
-      );
-  }
-
   private buildConnection(): HubConnection {
     const options: IHttpConnectionOptions = {
       withCredentials: false,
@@ -127,7 +123,6 @@ export class SignalrDashboardService {
 
     connection.onreconnected((connectionId) => {
       this.log(`SignalR reconectado. ConnectionId: ${connectionId ?? 'indisponivel'}`);
-      this.validarMovimentacoesAtualizadas().subscribe();
     });
 
     connection.onclose((error) => {
@@ -144,22 +139,35 @@ export class SignalrDashboardService {
 
     const handleDashboard = (payload: DashboardAtualizadoPayload): void => {
       logDevEvent('dashboard', payload);
-      this.dashboardAtualizadoSubject.next(payload);
+      this.emitInAngular(() => this.dashboardAtualizadoSubject.next(payload));
     };
 
     connection.on('dashboard', handleDashboard);
     connection.on('dashboardAtualizado', handleDashboard);
 
-    connection.on('movimentacaoAtualizada', (payload: unknown) => {
+    connection.on('movimentacaoAtualizada', (...args: unknown[]) => {
+      // SignalR: arguments = [[item, item, ...]] → 1º arg é a lista.
+      const payload = args.length === 1 ? args[0] : args;
       logDevEvent('movimentacao', payload);
       const normalized = this.normalizeMovimentacaoPayload(payload);
       this.log(`Evento movimentacaoAtualizada recebido: ${normalized.length} item(ns).`);
-      this.movimentacaoAtualizadaSubject.next(normalized);
+      this.emitInAngular(() => this.movimentacaoAtualizadaSubject.next(normalized));
     });
 
     connection.on('alertaOperacional', (payload: AlertaOperacionalPayload) => {
       logDevEvent('alerta', payload);
-      this.alertaOperacionalSubject.next(payload);
+      this.emitInAngular(() => this.alertaOperacionalSubject.next(payload));
+    });
+  }
+
+  /**
+   * SignalR roda fora do scheduler do Angular zoneless.
+   * Sem tick, a UI só atualiza no próximo clique (ex.: menu Movimento).
+   */
+  private emitInAngular(emit: () => void): void {
+    this.ngZone.run(() => {
+      emit();
+      this.appRef.tick();
     });
   }
 
@@ -189,6 +197,8 @@ export class SignalrDashboardService {
         source['movimentacoes'],
         source['movimentacaoAtualizada'],
         source['MovimentacaoAtualizada'],
+        source['arguments'],
+        source['Arguments'],
         source['data'],
         source['Data']
       ];
@@ -202,16 +212,27 @@ export class SignalrDashboardService {
       return null;
     };
 
-    const parsed = tryParseString(payload);
-    const list =
-      (Array.isArray(parsed) && parsed) ||
-      unwrapObjectList(parsed) ||
-      (parsed && typeof parsed === 'object' ? [parsed] : []) ||
-      (Array.isArray(tryParseString(parsed)) ? (tryParseString(parsed) as unknown[]) : []) ||
-      [];
+    const flattenLists = (value: unknown): unknown[] => {
+      const parsed = tryParseString(value);
 
-    return list
-      .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+      if (Array.isArray(parsed)) {
+        // [[ {...}, {...} ]] → achata um nível quando o 1º elemento já é a lista.
+        if (parsed.length === 1 && Array.isArray(parsed[0])) {
+          return parsed[0] as unknown[];
+        }
+        if (parsed.every((item) => Array.isArray(item))) {
+          return (parsed as unknown[][]).flat();
+        }
+        return parsed;
+      }
+
+      return unwrapObjectList(parsed) ?? (parsed && typeof parsed === 'object' ? [parsed] : []);
+    };
+
+    return flattenLists(payload)
+      .filter((item): item is Record<string, unknown> => {
+        return item != null && typeof item === 'object' && !Array.isArray(item);
+      })
       .slice(0, 10);
   }
 

@@ -8,10 +8,7 @@ export const environment = {
   apiUrl: 'http://108.174.145.123:5000',
   /** Base URL da API (uso em serviços HTTP e interceptors). */
   API_BASE_URL: 'http://108.174.145.123:5000/api',
-  dashboardHubUrl: 'http://108.174.145.123:8081/hubs/movimento/entradasaida/dashboard',
-  movimentacoesAtualizadasUrl:
-    'http://108.174.145.123:8081/api/movimento/redis/movimentacoes-atualizadas',
-  
+  dashboardHubUrl: 'http://108.174.145.123:8081/hubs/movimento/entradasaida',
   emergencyAdmin: {
     enabled: false,
     username: '',

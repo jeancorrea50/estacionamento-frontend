@@ -303,7 +303,7 @@
                 <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
                 <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
                 <td>
-                  <span class="status-pill" [class.status-pill--finalizado]="item.dataHoraSaida">
+                  <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
                     {{ statusLabel(item) }}
                   </span>
                 </td>
@@ -312,9 +312,9 @@
                     class="btn btn-warning btn--sm"
                     type="button"
                     [disabled]="!!item.dataHoraSaida"
-                    (click)="abrirPermanencia(item, 'suspender')"
+                    (click)="abrirPermanencia(item, estaSuspenso(item) ? 'retornar' : 'suspender')"
                   >
-                    Suspender
+                    {{ estaSuspenso(item) ? 'Retornar' : 'Suspender' }}
                   </button>
                   <button
                     class="btn btn-danger btn--sm"
@@ -322,7 +322,7 @@
                     [disabled]="!!item.dataHoraSaida"
                     (click)="abrirPermanencia(item, 'finalizar')"
                   >
-                    Finalizar
+                    Saída
                   </button>
                 </td>
               </tr>
@@ -373,10 +373,10 @@
             Suspender permanência
           }
           @if (permanenciaAcao === 'retornar') {
-            Retornar ao pátio
+            Finalizar suspensão / retornar ao pátio
           }
           @if (permanenciaAcao === 'finalizar') {
-            Finalizar permanência
+            Registrar saída
           }
         </h2>
 

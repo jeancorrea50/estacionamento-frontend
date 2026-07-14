@@ -9,11 +9,3 @@ export interface MovimentacaoAtualizadaItem {
 export type MovimentacaoAtualizadaPayload = MovimentacaoAtualizadaItem[];
 
 export type AlertaOperacionalPayload = string;
-
-export interface MovimentacoesAtualizadasResponse {
-  sucesso: boolean;
-  chaveRedis: string;
-  totalItens: number;
-  limite: number;
-  movimentacoes: MovimentacaoAtualizadaPayload;
-}

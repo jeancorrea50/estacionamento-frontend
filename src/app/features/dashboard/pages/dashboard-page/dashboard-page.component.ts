@@ -1,11 +1,5 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs';
-import {
-  DashboardAtualizadoPayload,
-  MovimentacaoAtualizadaItem,
-  MovimentacaoAtualizadaPayload
-} from '../../../../core/models/dashboard.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 
 @Component({
@@ -15,45 +9,19 @@ import { SignalrDashboardService } from '../../../../core/services/signalr-dashb
   templateUrl: './dashboard-page.component.html',
   styleUrls: ['./dashboard-page.component.scss']
 })
-export class DashboardPageComponent implements OnInit, OnDestroy {
-  dashboardAtualizado: DashboardAtualizadoPayload | null = null;
-  movimentacoes: MovimentacaoAtualizadaPayload = [];
-  alertaOperacional = '';
+export class DashboardPageComponent implements OnInit {
+  private readonly signalrDashboardService = inject(SignalrDashboardService);
 
-  private readonly subscription = new Subscription();
+  readonly dashboardAtualizado = this.signalrDashboardService.dashboardAtualizado;
+  readonly movimentacoes = this.signalrDashboardService.movimentacoes;
+  readonly alertaOperacional = this.signalrDashboardService.alertaOperacional;
 
-  constructor(private readonly signalrDashboardService: SignalrDashboardService) {}
+  readonly ultimaMovimentacao = computed(() => {
+    const lista = this.movimentacoes();
+    return lista.length > 0 ? lista[lista.length - 1] : null;
+  });
 
   ngOnInit(): void {
     void this.signalrDashboardService.connect();
-    this.observeDashboardStreams();
-  }
-
-  ngOnDestroy(): void {
-    this.subscription.unsubscribe();
-  }
-
-  get ultimaMovimentacao(): MovimentacaoAtualizadaItem | null {
-    return this.movimentacoes.length > 0 ? this.movimentacoes[this.movimentacoes.length - 1] : null;
-  }
-
-  private observeDashboardStreams(): void {
-    this.subscription.add(
-      this.signalrDashboardService.dashboardAtualizado$.subscribe((payload) => {
-        this.dashboardAtualizado = payload;
-      })
-    );
-
-    this.subscription.add(
-      this.signalrDashboardService.movimentacaoAtualizada$.subscribe((payload) => {
-        this.movimentacoes = payload;
-      })
-    );
-
-    this.subscription.add(
-      this.signalrDashboardService.alertaOperacional$.subscribe((payload) => {
-        this.alertaOperacional = payload;
-      })
-    );
   }
 }

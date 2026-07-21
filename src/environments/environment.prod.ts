@@ -12,10 +12,10 @@ export const environment = {
   emergencyAdmin: {
     enabled: false,
     username: '',
-    password: ''
+    password: '',
   },
   /** Base URL ViaCEP (chamada direta em prod; ViaCEP permite CORS). */
   viacepBaseUrl: 'https://viacep.com.br',
   /** Base URL BrasilAPI (CNPJ). */
-  brasilApiBaseUrl: 'https://brasilapi.com.br'
+  brasilApiBaseUrl: 'https://brasilapi.com.br',
 };

@@ -1,4 +1,4 @@
-import { ApplicationRef, Injectable, NgZone } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -7,7 +7,8 @@ import {
   IHttpConnectionOptions,
   LogLevel
 } from '@microsoft/signalr';
-import { BehaviorSubject, Observable, Subject, filter } from 'rxjs';
+import { Observable, filter } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import {
   AlertaOperacionalPayload,
@@ -17,8 +18,7 @@ import {
 
 /**
  * Hub SignalR do dashboard/movimentos.
- * Fonte de verdade = eventos do hub (dashboardAtualizado / movimentacaoAtualizada).
- * Emite com NgZone + ApplicationRef.tick (app zoneless) para UI atualizar sem clique.
+ * Estado em `signal` — sem Zone.js, só signals notificam a UI a cada evento do hub.
  */
 @Injectable({
   providedIn: 'root'
@@ -26,28 +26,36 @@ import {
 export class SignalrDashboardService {
   private readonly hubUrl = environment.dashboardHubUrl;
 
-  private readonly dashboardAtualizadoSubject =
-    new BehaviorSubject<DashboardAtualizadoPayload | null>(null);
-  private readonly movimentacaoAtualizadaSubject =
-    new BehaviorSubject<MovimentacaoAtualizadaPayload>([]);
-  private readonly alertaOperacionalSubject = new Subject<AlertaOperacionalPayload>();
+  private readonly dashboardSignal = signal<DashboardAtualizadoPayload | null>(null);
+  private readonly movimentacoesSignal = signal<MovimentacaoAtualizadaPayload>([]);
+  /** Envelope com `at` para reemitir o mesmo texto de alerta consecutivamente. */
+  private readonly alertaSignal = signal<{ text: AlertaOperacionalPayload; at: number } | null>(
+    null
+  );
 
   private hubConnection: HubConnection | null = null;
   private connectPromise: Promise<void> | null = null;
 
-  readonly dashboardAtualizado$: Observable<DashboardAtualizadoPayload> =
-    this.dashboardAtualizadoSubject.asObservable().pipe(
-      filter((payload): payload is DashboardAtualizadoPayload => payload != null)
-    );
-  readonly movimentacaoAtualizada$: Observable<MovimentacaoAtualizadaPayload> =
-    this.movimentacaoAtualizadaSubject.asObservable();
-  readonly alertaOperacional$: Observable<AlertaOperacionalPayload> =
-    this.alertaOperacionalSubject.asObservable();
+  /** Snapshot atual do dashboard (KPIs). */
+  readonly dashboardAtualizado = this.dashboardSignal.asReadonly();
+  /** Lista ao vivo do monitoramento (até 10 itens do hub). */
+  readonly movimentacoes = this.movimentacoesSignal.asReadonly();
+  /** Último alerta operacional textual. */
+  readonly alertaOperacional = computed(() => this.alertaSignal()?.text ?? '');
 
-  constructor(
-    private readonly ngZone: NgZone,
-    private readonly appRef: ApplicationRef
-  ) {
+  readonly dashboardAtualizado$: Observable<DashboardAtualizadoPayload> = toObservable(
+    this.dashboardSignal
+  ).pipe(filter((payload): payload is DashboardAtualizadoPayload => payload != null));
+
+  readonly movimentacaoAtualizada$: Observable<MovimentacaoAtualizadaPayload> = toObservable(
+    this.movimentacoesSignal
+  );
+
+  readonly alertaOperacional$: Observable<AlertaOperacionalPayload> = toObservable(
+    this.alertaOperacional
+  ).pipe(filter((alerta): alerta is AlertaOperacionalPayload => !!alerta));
+
+  constructor() {
     void this.connect();
   }
 
@@ -139,7 +147,7 @@ export class SignalrDashboardService {
 
     const handleDashboard = (payload: DashboardAtualizadoPayload): void => {
       logDevEvent('dashboard', payload);
-      this.emitInAngular(() => this.dashboardAtualizadoSubject.next(payload));
+      this.dashboardSignal.set(payload);
     };
 
     connection.on('dashboard', handleDashboard);
@@ -151,23 +159,12 @@ export class SignalrDashboardService {
       logDevEvent('movimentacao', payload);
       const normalized = this.normalizeMovimentacaoPayload(payload);
       this.log(`Evento movimentacaoAtualizada recebido: ${normalized.length} item(ns).`);
-      this.emitInAngular(() => this.movimentacaoAtualizadaSubject.next(normalized));
+      this.movimentacoesSignal.set(normalized);
     });
 
     connection.on('alertaOperacional', (payload: AlertaOperacionalPayload) => {
       logDevEvent('alerta', payload);
-      this.emitInAngular(() => this.alertaOperacionalSubject.next(payload));
-    });
-  }
-
-  /**
-   * SignalR roda fora do scheduler do Angular zoneless.
-   * Sem tick, a UI só atualiza no próximo clique (ex.: menu Movimento).
-   */
-  private emitInAngular(emit: () => void): void {
-    this.ngZone.run(() => {
-      emit();
-      this.appRef.tick();
+      this.alertaSignal.set({ text: payload, at: Date.now() });
     });
   }
 
@@ -233,6 +230,7 @@ export class SignalrDashboardService {
       .filter((item): item is Record<string, unknown> => {
         return item != null && typeof item === 'object' && !Array.isArray(item);
       })
+      .map((item) => ({ ...item }))
       .slice(0, 10);
   }
 

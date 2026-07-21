@@ -187,10 +187,10 @@
           </section>
         </div>
         <div class="registro-actions">
-          <button class="btn btn-success" type="button" [disabled]="!canGravar || processandoRegistroRapido || existeEntradaEmAbertoPorPlaca" (click)="abrirRegistroEntradaRapida()">
+          <button class="btn btn-success" type="button" [disabled]="!canGravar || processandoRegistroRapido() || existeEntradaEmAbertoPorPlaca" (click)="abrirRegistroEntradaRapida()">
             Registrar Entrada
           </button>
-          <button class="btn btn-danger" type="button" [disabled]="!canGravar || processandoRegistroRapido || !existeEntradaEmAbertoPorPlaca" (click)="registrarSaidaRapida()">
+          <button class="btn btn-danger" type="button" [disabled]="!canGravar || processandoRegistroRapido() || !existeEntradaEmAbertoPorPlaca" (click)="registrarSaidaRapida()">
             Registrar Saída
           </button>
           <button class="btn btn-secondary" type="button" (click)="limparRegistroRapido()">Limpar Campos</button>
@@ -295,7 +295,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (item of registros; track item.id) {
+            @for (item of registros(); track item.id) {
               <tr>
                 <td>{{ item.placaVeiculo }}</td>
                 <td>{{ item.nomeMotorista }}</td>
@@ -331,31 +331,31 @@
         </table>
       </div>
 
-      @if (loading) {
+      @if (loading()) {
         <p class="loading-msg">Carregando...</p>
-      } @else if (registros.length === 0) {
+      } @else if (registros().length === 0) {
         <p class="empty-msg">Nenhum registro encontrado.</p>
       }
 
-      @if (totalPaginas > 1) {
+      @if (totalPaginas() > 1) {
         <nav class="paginacao" aria-label="Paginação">
           <span class="paginacao__info">
-            Página {{ numeroPagina }} de {{ totalPaginas }} ({{ totalCount }} registro(s))
+            Página {{ numeroPagina() }} de {{ totalPaginas() }} ({{ totalCount() }} registro(s))
           </span>
           <div class="paginacao__btns">
             <button
               class="btn btn-secondary btn--sm"
               type="button"
-              [disabled]="numeroPagina <= 1"
-              (click)="irParaPagina(numeroPagina - 1)"
+              [disabled]="numeroPagina() <= 1"
+              (click)="irParaPagina(numeroPagina() - 1)"
             >
               Anterior
             </button>
             <button
               class="btn btn-secondary btn--sm"
               type="button"
-              [disabled]="numeroPagina >= totalPaginas"
-              (click)="irParaPagina(numeroPagina + 1)"
+              [disabled]="numeroPagina() >= totalPaginas()"
+              (click)="irParaPagina(numeroPagina() + 1)"
             >
               Próxima
             </button>
@@ -365,8 +365,8 @@
     </section>
   }
 
-  @if (permanenciaOpen && registroSelecionado) {
-    <div class="modal-overlay" (click)="permanenciaOpen = false">
+  @if (permanenciaOpen() && registroSelecionado(); as registroModal) {
+    <div class="modal-overlay" (click)="fecharPermanencia()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <h2>
           @if (permanenciaAcao === 'suspender') {
@@ -384,9 +384,9 @@
         <p>
           Status:
           {{
-            registroSelecionado.finalizado
+            registroModal.finalizado
               ? 'Finalizado'
-              : registroSelecionado.permanenciaSuspensa
+              : registroModal.permanenciaSuspensa
                 ? 'Suspenso'
                 : 'Em aberto'
           }}
@@ -394,7 +394,7 @@
         <input class="input-control" type="datetime-local" [(ngModel)]="permanenciaDataHora" />
 
         <div class="modal-actions">
-          <button class="btn btn-secondary" type="button" (click)="permanenciaOpen = false">
+          <button class="btn btn-secondary" type="button" (click)="fecharPermanencia()">
             Cancelar
           </button>
           <button

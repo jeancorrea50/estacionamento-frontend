@@ -18,7 +18,8 @@ export class DashboardPageComponent implements OnInit {
 
   readonly ultimaMovimentacao = computed(() => {
     const lista = this.movimentacoes();
-    return lista.length > 0 ? lista[lista.length - 1] : null;
+    // Service já ordena mais recente primeiro.
+    return lista.length > 0 ? lista[0] : null;
   });
 
   ngOnInit(): void {

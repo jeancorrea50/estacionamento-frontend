@@ -231,7 +231,38 @@ export class SignalrDashboardService {
         return item != null && typeof item === 'object' && !Array.isArray(item);
       })
       .map((item) => ({ ...item }))
-      .slice(0, 10);
+      .sort((a, b) => this.extrairHorarioMs(b) - this.extrairHorarioMs(a));
+  }
+
+  /** Ordena pelo campo de data do hub (`horario` / entrada / saída), mais recente primeiro. */
+  private extrairHorarioMs(item: Record<string, unknown>): number {
+    const candidates = [
+      item['horario'],
+      item['Horario'],
+      item['dataHoraSaida'],
+      item['DataHoraSaida'],
+      item['dataHoraEntrada'],
+      item['DataHoraEntrada'],
+      item['entradaEm'],
+      item['EntradaEm']
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate instanceof Date && !Number.isNaN(candidate.getTime())) {
+        return candidate.getTime();
+      }
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return candidate;
+      }
+      if (typeof candidate === 'string' && candidate.trim()) {
+        const parsed = Date.parse(candidate);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    return 0;
   }
 
   private isConnected(): boolean {

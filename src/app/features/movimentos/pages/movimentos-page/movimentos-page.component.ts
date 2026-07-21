@@ -37,6 +37,8 @@ interface MovimentacaoTempoRealVm {
   /** Guid do hub (ou fallback estável por índice). */
   id: string;
   horario: string;
+  /** Epoch ms para ordenação (mais recente primeiro). */
+  horarioSortMs: number;
   placa: string;
   motorista: string;
   transportadora: string;
@@ -91,11 +93,13 @@ export class MovimentosPageComponent implements OnInit {
 
   /** KPIs e monitoramento reativos ao hub (zoneless). */
   private readonly dashboardTempoReal = this.signalrDashboardService.dashboardAtualizado;
+  /** Lista do socket `movimentacaoAtualizada`, mais recente primeiro (sem mock). */
   private readonly movimentacoesTempoReal = computed(() =>
     this.signalrDashboardService
       .movimentacoes()
       .map((item, index) => this.mapMovimentacaoHubParaVm(item, index))
       .filter((item): item is MovimentacaoTempoRealVm => item != null)
+      .sort((a, b) => b.horarioSortMs - a.horarioSortMs)
   );
 
   filtro = { descricao: '', somenteEmAberto: true };
@@ -922,6 +926,7 @@ export class MovimentosPageComponent implements OnInit {
     const asText = (value: unknown): string => {
       if (typeof value === 'string') return value.trim();
       if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
       return '';
     };
 
@@ -952,6 +957,8 @@ export class MovimentosPageComponent implements OnInit {
     const saidaIso = pickText('dataHoraSaida', 'saidaEm', 'dataSaida') || null;
     const statusLabel = pickText('status', 'statusDescricao', 'Situacao', 'situacao');
     const status = this.mapStatusHubParaMonitoramento(statusLabel, !!saidaIso);
+    const sortIso = saidaIso || horarioIso;
+    const horarioSortMs = sortIso ? Date.parse(sortIso) : 0;
 
     // Backend envia Guid em `id` — não converter para number (NaN quebrava o track do @for).
     const id =
@@ -961,6 +968,7 @@ export class MovimentosPageComponent implements OnInit {
     return {
       id,
       horario: this.formatarHorario(horarioIso),
+      horarioSortMs: Number.isNaN(horarioSortMs) ? 0 : horarioSortMs,
       placa: pickText('veiculo', 'placa', 'placaVeiculo') || '—',
       motorista: pickText('motorista', 'nomeMotorista', 'motoristaNome') || '—',
       transportadora:

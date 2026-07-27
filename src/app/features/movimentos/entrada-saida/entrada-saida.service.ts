@@ -28,13 +28,23 @@ export class EntradaSaidaService {
 
   getById(id: number): Observable<EntradaSaidaOutput | null> {
     return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/${id}`).pipe(
-      map((body) => this.extractResult<EntradaSaidaOutput>(body))
+      map((body) => {
+        const raw = this.extractResultRecord(body);
+        if (!raw) return null;
+        // Backend `EntradaSaidaOutput` não expõe Id — reaproveita o id da rota.
+        return this.mapDetailItem(raw, id);
+      })
     );
   }
 
   obterPorPlaca(placa: string): Observable<EntradaSaidaOutput | null> {
     return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/buscar-por-placa/${encodeURIComponent(placa)}`).pipe(
-      map((body) => this.extractResult<EntradaSaidaOutput>(body))
+      map((body) => {
+        const raw = this.extractResultRecord(body);
+        if (!raw) return null;
+        const id = this.pickNumber(raw, 'id', 'Id');
+        return this.mapDetailItem(raw, id > 0 ? id : 0);
+      })
     );
   }
 
@@ -90,47 +100,152 @@ export class EntradaSaidaService {
     const root = (source && typeof source === 'object') ? source as Record<string, unknown> : {};
     const rows =
       (Array.isArray(root['results']) && root['results']) ||
+      (Array.isArray(root['Results']) && root['Results']) ||
       (Array.isArray(root['items']) && root['items']) ||
       (Array.isArray(root['itens']) && root['itens']) ||
       (Array.isArray(source) && source) ||
       [];
 
-    const items = rows
+    const items = (rows as unknown[])
       .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
       .map((row) => this.mapSearchItem(row));
 
     return {
       items,
-      totalCount: Number(root['rowCount'] ?? root['totalCount'] ?? root['totalRegistros'] ?? items.length) || items.length,
-      numeroPagina: Number(root['currentPage'] ?? root['numeroPagina'] ?? numeroPagina) || numeroPagina,
-      tamanhoPagina: Number(root['pageSize'] ?? root['tamanhoPagina'] ?? tamanhoPagina) || tamanhoPagina
+      totalCount:
+        Number(
+          root['rowCount'] ??
+            root['RowCount'] ??
+            root['totalCount'] ??
+            root['totalRegistros'] ??
+            items.length
+        ) || items.length,
+      numeroPagina:
+        Number(root['currentPage'] ?? root['CurrentPage'] ?? root['numeroPagina'] ?? numeroPagina) ||
+        numeroPagina,
+      tamanhoPagina:
+        Number(root['pageSize'] ?? root['PageSize'] ?? root['tamanhoPagina'] ?? tamanhoPagina) ||
+        tamanhoPagina
     };
   }
 
   private mapSearchItem(row: Record<string, unknown>): EntradaSaidaSearchOutput {
     return {
-      id: Number(row['id']) || 0,
-      descricao: String(row['descricao'] ?? ''),
-      motoristaId: Number(row['motoristaId']) || 0,
-      nomeMotorista: String(row['nomeMotorista'] ?? ''),
-      transportadoraId: Number(row['transportadoraId']) || 0,
-      nomeTransportadora: String(row['nomeTransportadora'] ?? ''),
-      veiculoId: Number(row['veiculoId']) || 0,
-      placaVeiculo: String(row['placaVeiculo'] ?? ''),
-      dataHoraEntrada: String(row['dataHoraEntrada'] ?? ''),
-      dataHoraSaida: (row['dataHoraSaida'] as string | null | undefined) ?? null,
+      id: this.pickNumber(row, 'id', 'Id'),
+      descricao: this.pickString(row, 'descricao', 'Descricao'),
+      motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
+      nomeMotorista: this.pickString(row, 'nomeMotorista', 'NomeMotorista'),
+      transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
+      nomeTransportadora: this.pickString(row, 'nomeTransportadora', 'NomeTransportadora'),
+      veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),
+      placaVeiculo: this.pickString(row, 'placaVeiculo', 'PlacaVeiculo'),
+      dataHoraEntrada: this.pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),
+      dataHoraSaida: this.pickStringOrNull(row, 'dataHoraSaida', 'DataHoraSaida'),
       status: parseEntradaSaidaStatus(
-        (row['status'] as number | string | undefined) ??
-          (row['situacao'] as number | string | undefined) ??
-          (row['Situacao'] as number | string | undefined)
+        this.pickRaw(row, 'status', 'Status', 'situacao', 'Situacao') as number | string | undefined
       )
     };
   }
 
-  private extractResult<T>(body: unknown): T | null {
+  /** Detalhe GET: garante `id` mesmo quando o DTO do backend não serializa o campo. */
+  private mapDetailItem(row: Record<string, unknown>, fallbackId: number): EntradaSaidaOutput {
+    const id = this.pickNumber(row, 'id', 'Id') || fallbackId;
+    const suspensoesRaw = row['suspensoes'] ?? row['Suspensoes'];
+
+    return {
+      id,
+      descricao: this.pickString(row, 'descricao', 'Descricao'),
+      motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
+      transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
+      veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),
+      observacao: this.pickStringOrNull(row, 'observacao', 'Observacao', 'observao', 'Observao'),
+      dataHoraEntrada: this.pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),
+      dataHoraSaida: this.pickStringOrNull(row, 'dataHoraSaida', 'DataHoraSaida'),
+      dataHoraUltimaEntradaPatio: this.pickStringOrNull(
+        row,
+        'dataHoraUltimaEntradaPatio',
+        'DataHoraUltimaEntradaPatio'
+      ),
+      dataHoraFinalizacao: this.pickStringOrNull(row, 'dataHoraFinalizacao', 'DataHoraFinalizacao'),
+      tempoPermanenciaMinutos: this.pickNumber(row, 'tempoPermanenciaMinutos', 'TempoPermanenciaMinutos'),
+      tempoTotalSuspensaoMinutos: this.pickNumber(
+        row,
+        'tempoTotalSuspensaoMinutos',
+        'TempoTotalSuspensaoMinutos'
+      ),
+      permanenciaSuspensa: Boolean(row['permanenciaSuspensa'] ?? row['PermanenciaSuspensa']),
+      finalizado: Boolean(row['finalizado'] ?? row['Finalizado']),
+      usuarioRegistroEntradaId: this.pickNumber(
+        row,
+        'usuarioRegistroEntradaId',
+        'UsuarioRegistroEntradaId'
+      ),
+      usuarioRegistroEntradaNome: this.pickString(
+        row,
+        'usuarioRegistroEntradaNome',
+        'UsuarioRegistroEntradaNome'
+      ),
+      usuarioFinalizacaoId: this.pickNumber(row, 'usuarioFinalizacaoId', 'UsuarioFinalizacaoId') || null,
+      usuarioFinalizacaoNome:
+        this.pickString(row, 'usuarioFinalizacaoNome', 'UsuarioFinalizacaoNome') || null,
+      existeEntradaEmAberto:
+        row['existeEntradaEmAberto'] != null || row['ExisteEntradaEmAberto'] != null
+          ? Boolean(row['existeEntradaEmAberto'] ?? row['ExisteEntradaEmAberto'])
+          : undefined,
+      suspensoes: Array.isArray(suspensoesRaw)
+        ? (suspensoesRaw as EntradaSaidaOutput['suspensoes'])
+        : [],
+      motorista: row['motorista'] ?? row['Motorista'],
+      transportadora: row['transportadora'] ?? row['Transportadora'],
+      veiculo: row['veiculo'] ?? row['Veiculo']
+    };
+  }
+
+  private extractResultRecord(body: unknown): Record<string, unknown> | null {
     const raw = this.unwrap(body);
-    if (raw == null || typeof raw !== 'object') return null;
-    return raw as T;
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    return raw as Record<string, unknown>;
+  }
+
+  private pickNumber(row: Record<string, unknown>, ...keys: string[]): number {
+    for (const key of keys) {
+      const value = row[key];
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+    }
+    return 0;
+  }
+
+  private pickString(row: Record<string, unknown>, ...keys: string[]): string {
+    for (const key of keys) {
+      const value = row[key];
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    }
+    return '';
+  }
+
+  private pickStringOrNull(row: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const key of keys) {
+      const value = row[key];
+      if (value == null) {
+        if (key in row) return null;
+        continue;
+      }
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    }
+    return null;
+  }
+
+  private pickRaw(row: Record<string, unknown>, ...keys: string[]): unknown {
+    for (const key of keys) {
+      if (row[key] != null && row[key] !== '') return row[key];
+    }
+    return undefined;
   }
 
   private unwrap(body: unknown): unknown {

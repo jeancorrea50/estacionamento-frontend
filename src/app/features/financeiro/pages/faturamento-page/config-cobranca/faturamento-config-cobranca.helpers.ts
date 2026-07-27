@@ -1,45 +1,25 @@
-import type { ConfigCobrancaListaItem, ConfigCobrancaModalidade, ConfigCobrancaStatus } from './faturamento-config-cobranca.types';
+import type {
+  ConfigCobrancaListaItem,
+  ConfigCobrancaModalidade,
+  ConfigCobrancaStatus
+} from './faturamento-config-cobranca.types';
+import {
+  ModalidadeCobranca,
+  RegraFechamento,
+  emptyRegra,
+  modalidadeFromLabel,
+  prazoVencimentoLabel,
+  regraFechamentoLabel,
+  servicosChecksToRegra,
+  statusFromLabel,
+  agrupamentoFromChecks,
+  servicosCobradosFromChecks,
+  type AgrupamentoChecks,
+  type ServicosChecks
+} from '../../../mappers/configuracao-cobranca.mapper';
 
-export interface ServicosChecks {
-  diaria: boolean;
-  semanal: boolean;
-  quinzenal: boolean;
-  mensal: boolean;
-  personal: boolean;
-  lavagem: boolean;
-  pernoite: boolean;
-  extras: boolean;
-  beneficio: boolean;
-}
-
-export interface AgrupamentoChecks {
-  placa: boolean;
-  periodo: boolean;
-  transportadora: boolean;
-}
-
-export function servicosCobradosFromChecks(c: ServicosChecks): string {
-  const parts: string[] = [];
-  if (c.diaria) parts.push('Diária');
-  if (c.semanal) parts.push('Semanal');
-  if (c.quinzenal) parts.push('Quinzenal');
-  if (c.mensal) parts.push('Mensal');
-  if (c.personal) parts.push('Personalizado');
-  if (c.lavagem) parts.push('Lavagem');
-  if (c.pernoite) parts.push('Pernoite');
-  if (c.extras) parts.push('Extras');
-  if (c.beneficio) parts.push('Benefícios por abastecimento');
-  return parts.length ? parts.join(', ') : '—';
-}
-
-export function agrupamentoFromChecks(c: AgrupamentoChecks): string {
-  const parts: string[] = [];
-  if (c.placa) parts.push('placa');
-  if (c.periodo) parts.push('período');
-  if (c.transportadora) parts.push('transportadora');
-  if (!parts.length) return 'Sem agrupamento definido';
-  return `Por ${parts.join(', ')}`;
-}
+export type { AgrupamentoChecks, ServicosChecks };
+export { ModalidadeCobranca, RegraFechamento, emptyRegra, statusFromLabel, agrupamentoFromChecks, servicosCobradosFromChecks };
 
 export function checksFromServicos(s: string): ServicosChecks {
   return {
@@ -63,79 +43,160 @@ export function checksFromAgrupamento(a: string): AgrupamentoChecks {
   };
 }
 
+export function checksFromRegraFlags(regra: ConfigCobrancaListaItem['regra']): ServicosChecks {
+  return {
+    diaria: !!regra?.cobrarDiaria,
+    semanal: !!regra?.cobrarSemanal,
+    quinzenal: !!regra?.cobrarQuinzenal,
+    mensal: !!regra?.cobrarMensal,
+    personal: !!regra?.cobrarDataPersonalizada,
+    lavagem: !!regra?.cobrarLavagem,
+    pernoite: !!regra?.cobrarPernoite,
+    extras: !!regra?.cobrarServicosExtras,
+    beneficio: !!regra?.considerarBeneficioAbastecimento
+  };
+}
+
 export function validarFormularioConfig(input: {
-  transportadora: string;
-  estacionamento: string;
+  transportadoraId: number;
+  estacionamentoId: number;
   modalidade: ConfigCobrancaModalidade | '';
-  fechamento: string;
-  prazoVencimento: string;
+  regraFechamento: number;
+  diaFechamento: number | null;
+  prazoVencimentoDias: number;
   email: string;
-  precisaEmailFin: boolean;
   multa: boolean;
   multaPct: number;
   juros: boolean;
   jurosPct: number;
+  descFixo: boolean;
+  descValor: number;
+  acresFixo: boolean;
+  acresValor: number;
+  valorEstadia: number | null;
+  serv: ServicosChecks;
 }): { ok: true } | { ok: false; mensagens: string[] } {
   const m: string[] = [];
-  if (!input.transportadora?.trim()) m.push('Informe a transportadora.');
-  if (!input.estacionamento?.trim()) m.push('Informe o estacionamento.');
+  if (!input.transportadoraId || input.transportadoraId <= 0) m.push('Informe a transportadora.');
+  if (!input.estacionamentoId || input.estacionamentoId <= 0) m.push('Informe o estacionamento.');
   if (!input.modalidade) m.push('Informe a modalidade de cobrança.');
-  if (!input.fechamento?.trim()) m.push('Informe a regra de fechamento.');
-  if (!input.prazoVencimento?.trim()) m.push('Informe o prazo de vencimento.');
-  if (input.precisaEmailFin && !input.email?.trim()) {
-    m.push('Informe o e-mail financeiro (obrigatório com envio ou geração automática).');
+  if (!input.regraFechamento) m.push('Informe a regra de fechamento.');
+  if (
+    input.regraFechamento === RegraFechamento.DiaFixo &&
+    (!input.diaFechamento || input.diaFechamento < 1 || input.diaFechamento > 31)
+  ) {
+    m.push('Informe o dia de fechamento entre 1 e 31.');
   }
+  if (!input.prazoVencimentoDias || input.prazoVencimentoDias <= 0) {
+    m.push('Informe o prazo de vencimento em dias (maior que zero).');
+  }
+  if (!input.email?.trim()) m.push('Informe o e-mail financeiro.');
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
+    m.push('E-mail financeiro inválido.');
+  }
+
+  const temRegra =
+    input.serv.diaria ||
+    input.serv.semanal ||
+    input.serv.quinzenal ||
+    input.serv.mensal ||
+    input.serv.personal ||
+    input.serv.lavagem ||
+    input.serv.pernoite ||
+    input.serv.extras ||
+    input.serv.beneficio;
+  if (!temRegra) m.push('Selecione ao menos uma regra de cobrança.');
+
+  if (input.valorEstadia != null && Number.isFinite(Number(input.valorEstadia)) && Number(input.valorEstadia) < 0) {
+    m.push('Valor da estadia não pode ser negativo.');
+  }
+
   if (input.multa && (input.multaPct === undefined || input.multaPct === null || Number(input.multaPct) <= 0)) {
     m.push('Informe o percentual de multa maior que zero.');
   }
   if (input.juros && (input.jurosPct === undefined || input.jurosPct === null || Number(input.jurosPct) <= 0)) {
     m.push('Informe o percentual de juros maior que zero.');
   }
+  if (input.descFixo && (!input.descValor || Number(input.descValor) <= 0)) {
+    m.push('Informe o valor do desconto fixo maior que zero.');
+  }
+  if (input.acresFixo && (!input.acresValor || Number(input.acresValor) <= 0)) {
+    m.push('Informe o valor do acréscimo fixo maior que zero.');
+  }
   return m.length ? { ok: false, mensagens: m } : { ok: true };
 }
 
-export function montarRegistroDoFormularioExpansao(
-  id: string,
-  campos: {
-    transportadora: string;
-    estacionamento: string;
-    status: ConfigCobrancaStatus;
-    modalidade: ConfigCobrancaModalidade;
-    fechamento: string;
-    prazoVencimento: string;
-    email: string;
-    envioAuto: boolean;
-    gerarAuto: boolean;
-    pagamentoParcial: boolean;
-    multa: boolean;
-    multaPct: number;
-    juros: boolean;
-    jurosPct: number;
-    serv: ServicosChecks;
-    agr: AgrupamentoChecks;
-  }
-): ConfigCobrancaListaItem {
+export function montarRegistroDoFormulario(campos: {
+  id: number;
+  transportadoraId: number;
+  transportadoraNome: string;
+  estacionamentoId: number;
+  estacionamentoNome: string;
+  status: ConfigCobrancaStatus;
+  modalidade: ConfigCobrancaModalidade;
+  regraFechamento: number;
+  diaFechamento: number | null;
+  prazoVencimentoDias: number;
+  email: string;
+  envioAuto: boolean;
+  gerarAuto: boolean;
+  pagamentoParcial: boolean;
+  multa: boolean;
+  multaPct: number;
+  juros: boolean;
+  jurosPct: number;
+  descFixo: boolean;
+  descValor: number;
+  acresFixo: boolean;
+  acresValor: number;
+  valorEstadia: number | null;
+  regraId: number;
+  serv: ServicosChecks;
+  agr: AgrupamentoChecks;
+}): ConfigCobrancaListaItem {
   const emailNorm = campos.email?.trim() || null;
-  let status: ConfigCobrancaStatus = campos.status;
+  let status: ConfigCobrancaStatus = campos.status === 'Inativa' ? 'Inativa' : 'Ativa';
   if (!emailNorm) status = 'Sem e-mail financeiro';
-  else if (status === 'Sem e-mail financeiro') status = 'Ativa';
+
+  const regra = servicosChecksToRegra(campos.serv, campos.regraId);
+  const modalidadeCobranca = modalidadeFromLabel(campos.modalidade);
+  const dia =
+    campos.regraFechamento === RegraFechamento.DiaFixo && campos.diaFechamento && campos.diaFechamento > 0
+      ? campos.diaFechamento
+      : null;
 
   return {
-    id,
-    transportadora: campos.transportadora.trim(),
-    estacionamento: campos.estacionamento.trim(),
+    id: campos.id,
+    transportadoraId: campos.transportadoraId,
+    estacionamentoId: campos.estacionamentoId,
+    transportadora: campos.transportadoraNome.trim(),
+    estacionamento: campos.estacionamentoNome.trim(),
     modalidade: campos.modalidade,
-    fechamento: campos.fechamento.trim(),
-    prazoVencimento: campos.prazoVencimento.trim(),
-    envioAutomatico: campos.envioAuto || campos.gerarAuto,
+    modalidadeCobranca,
+    diaFechamento: dia,
+    regraFechamento: campos.regraFechamento || RegraFechamento.UltimoDiaDoMes,
+    fechamento: regraFechamentoLabel(campos.regraFechamento, dia),
+    prazoVencimentoDias: Number(campos.prazoVencimentoDias) || 0,
+    prazoVencimento: prazoVencimentoLabel(Number(campos.prazoVencimentoDias) || 0),
+    envioAutomatico: campos.envioAuto,
+    gerarFaturaAutomaticamente: campos.gerarAuto,
     emailFinanceiro: emailNorm,
     status,
     multaAplicar: campos.multa,
     multaPercentual: campos.multa ? Number(campos.multaPct) || 0 : 0,
     jurosAplicar: campos.juros,
     jurosPercentual: campos.juros ? Number(campos.jurosPct) || 0 : 0,
+    aplicarDescontoFixo: campos.descFixo,
+    valorDescontoFixo: campos.descFixo ? Number(campos.descValor) || 0 : 0,
+    aplicarAcrescimoFixo: campos.acresFixo,
+    valorAcrescimoFixo: campos.acresFixo ? Number(campos.acresValor) || 0 : 0,
+    valorEstadia: campos.valorEstadia,
     pagamentoParcial: campos.pagamentoParcial,
     servicosCobrados: servicosCobradosFromChecks(campos.serv),
-    agrupamentoFatura: agrupamentoFromChecks(campos.agr)
+    agrupamentoFatura: agrupamentoFromChecks(campos.agr),
+    agruparPorPlaca: campos.agr.placa,
+    agruparPorPeriodo: campos.agr.periodo,
+    agruparPorTransportadora: campos.agr.transportadora,
+    regra
   };
 }

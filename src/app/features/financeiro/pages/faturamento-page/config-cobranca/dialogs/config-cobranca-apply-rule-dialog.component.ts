@@ -4,15 +4,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
-import type { ConfigCobrancaListaItem } from '../faturamento-config-cobranca.types';
+import type { ConfigCobrancaListaItem, ConfigCobrancaLookupOption } from '../faturamento-config-cobranca.types';
 
 export interface ConfigCobrancaApplyRuleDialogData {
   row: ConfigCobrancaListaItem;
-  transportadoras: string[];
+  transportadoras: ConfigCobrancaLookupOption[];
 }
 
 export interface ConfigCobrancaApplyRuleDialogResult {
-  selecionadas: string[];
+  selecionadas: number[];
 }
 
 @Component({
@@ -24,10 +24,10 @@ export interface ConfigCobrancaApplyRuleDialogResult {
     <mat-dialog-content class="cfg-app__body">
       <p class="cfg-app__hint">Base: {{ data.row.transportadora }} — {{ data.row.estacionamento }}</p>
       <div class="cfg-app__list">
-        @for (t of data.transportadoras; track t) {
+        @for (t of data.transportadoras; track t.id) {
           <label class="cfg-app__row">
-            <mat-checkbox [(ngModel)]="mapa[t]" />
-            <span>{{ t }}</span>
+            <mat-checkbox [(ngModel)]="mapa[t.id]" />
+            <span>{{ t.label }}</span>
           </label>
         }
       </div>
@@ -66,19 +66,21 @@ export interface ConfigCobrancaApplyRuleDialogResult {
   ]
 })
 export class ConfigCobrancaApplyRuleDialogComponent {
-  readonly ref = inject(MatDialogRef<ConfigCobrancaApplyRuleDialogComponent, ConfigCobrancaApplyRuleDialogResult | undefined>);
+  readonly ref = inject(
+    MatDialogRef<ConfigCobrancaApplyRuleDialogComponent, ConfigCobrancaApplyRuleDialogResult | undefined>
+  );
   readonly data = inject<ConfigCobrancaApplyRuleDialogData>(MAT_DIALOG_DATA);
 
-  mapa: Record<string, boolean> = {};
+  mapa: Record<number, boolean> = {};
 
   constructor() {
     for (const t of this.data.transportadoras) {
-      this.mapa[t] = t !== this.data.row.transportadora;
+      this.mapa[t.id] = true;
     }
   }
 
   aplicar(): void {
-    const selecionadas = this.data.transportadoras.filter((t) => this.mapa[t]);
+    const selecionadas = this.data.transportadoras.filter((t) => this.mapa[t.id]).map((t) => t.id);
     this.ref.close({ selecionadas });
   }
 }

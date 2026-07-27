@@ -47,8 +47,41 @@ describe('EntradaSaidaService', () => {
     });
 
     const req = httpMock.expectOne(`${environment.API_BASE_URL}/EntradaSaida/99`);
-    req.flush({ result: { id: 99 } });
+    // Backend EntradaSaidaOutput não serializa Id — service deve preservar o id da rota.
+    req.flush({ result: { descricao: 'teste', permanenciaSuspensa: false, finalizado: false } });
     expect(resultId).toBe(99);
+  });
+
+  it('deve mapear Id PascalCase da busca para suspender-permanencia', () => {
+    let mappedId = 0;
+    service
+      .buscar({
+        somenteEmAberto: true,
+        numeroPagina: 1,
+        tamanhoPagina: 20
+      })
+      .subscribe((paged) => {
+        mappedId = paged.items[0]?.id ?? 0;
+      });
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.API_BASE_URL}/EntradaSaida`);
+    req.flush({
+      Results: [
+        {
+          Id: 42,
+          PlacaVeiculo: 'RAL1C89',
+          NomeMotorista: 'ALEXSANDER',
+          NomeTransportadora: 'GT',
+          DataHoraEntrada: '2026-07-21T17:25:00',
+          DataHoraSaida: null,
+          Status: 0
+        }
+      ],
+      RowCount: 1,
+      CurrentPage: 1,
+      PageSize: 20
+    });
+    expect(mappedId).toBe(42);
   });
 
   it('deve enviar query dataHoraSaida em finalizarPermanencia', () => {

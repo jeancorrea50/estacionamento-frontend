@@ -30,17 +30,17 @@
       <div class="cfg-block__grid">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Transportadora</mat-label>
-          <mat-select [(ngModel)]="transportadora" required>
-            @for (t of data.transportadoras; track t) {
-              <mat-option [value]="t">{{ t }}</mat-option>
+          <mat-select [(ngModel)]="transportadoraId" required>
+            @for (t of data.transportadoras; track t.id) {
+              <mat-option [value]="t.id">{{ t.label }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Estacionamento</mat-label>
-          <mat-select [(ngModel)]="estacionamento" required>
-            @for (e of data.estacionamentos; track e) {
-              <mat-option [value]="e">{{ e }}</mat-option>
+          <mat-select [(ngModel)]="estacionamentoId" required>
+            @for (e of data.estacionamentos; track e.id) {
+              <mat-option [value]="e.id">{{ e.label }}</mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -96,16 +96,28 @@
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+          <mat-label>Regra de fechamento</mat-label>
+          <mat-select [(ngModel)]="regraFechamento" required>
+            @for (r of regraFechamentoOpcoes; track r.value) {
+              <mat-option [value]="r.value">{{ r.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Dia de fechamento</mat-label>
-          <input matInput [(ngModel)]="diaFechamento" placeholder="Ex.: último dia útil" />
+          <input
+            matInput
+            type="number"
+            min="1"
+            max="31"
+            [(ngModel)]="diaFechamento"
+            [disabled]="regraFechamento !== RegraFechamento.DiaFixo"
+            placeholder="1 a 31"
+          />
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-field--full">
-          <mat-label>Período ou regra de fechamento</mat-label>
-          <input matInput [(ngModel)]="fechamento" required />
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-field--full">
-          <mat-label>Prazo de vencimento após geração da fatura</mat-label>
-          <input matInput [(ngModel)]="prazoVencimento" required />
+          <mat-label>Prazo de vencimento (dias após fechamento)</mat-label>
+          <input matInput type="number" min="1" [(ngModel)]="prazoVencimentoDias" required />
         </mat-form-field>
       </div>
     </section>
@@ -133,7 +145,34 @@
       </div>
     </section>
 
-    <!-- Bloco 5 — Juros, multa e descontos (recolhível) -->
+    <!-- Bloco 5 — Configuração de valor -->
+    <section class="cfg-block">
+      <div class="cfg-block__head">
+        <span class="cfg-block__num">5</span>
+        <h3 class="cfg-block__title">Configuração de valor</h3>
+      </div>
+      <div class="cfg-block__grid">
+        <div class="cfg-money-field">
+          <span class="cfg-money-field__currency" aria-hidden="true">R$</span>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-money-field__control">
+            <mat-label>Valor da estadia</mat-label>
+            <input
+              matInput
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              [(ngModel)]="valorEstadiaTexto"
+              (blur)="onValorEstadiaBlur()"
+              (focus)="onValorEstadiaFocus()"
+              aria-describedby="cfg-valor-estadia-hint"
+            />
+            <mat-hint id="cfg-valor-estadia-hint">Formato brasileiro. Ex.: 1.250,00</mat-hint>
+          </mat-form-field>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bloco 6 — Juros, multa e descontos (recolhível) -->
     <section class="cfg-block cfg-block--collapsible">
       <button
         type="button"
@@ -141,7 +180,7 @@
         [attr.aria-expanded]="jurosMultaAberto"
         (click)="toggleJurosMulta()"
       >
-        <span class="cfg-block__num">5</span>
+        <span class="cfg-block__num">6</span>
         <h3 class="cfg-block__title">Juros, multa e descontos</h3>
         <span class="material-symbols-outlined cfg-block__chevron" [class.cfg-block__chevron--open]="jurosMultaAberto" aria-hidden="true">expand_more</span>
       </button>
@@ -180,10 +219,10 @@
       }
     </section>
 
-    <!-- Bloco 6 — Agrupamento da fatura -->
+    <!-- Bloco 7 — Agrupamento da fatura -->
     <section class="cfg-block">
       <div class="cfg-block__head">
-        <span class="cfg-block__num">6</span>
+        <span class="cfg-block__num">7</span>
         <h3 class="cfg-block__title">Agrupamento da fatura</h3>
       </div>
       <div class="cfg-options cfg-options--compact">

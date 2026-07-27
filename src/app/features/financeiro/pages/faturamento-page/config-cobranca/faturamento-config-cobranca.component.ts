@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,17 +15,21 @@ import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
+import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import {
-  CONFIG_COBRANCA_ESTACIONAMENTOS,
-  CONFIG_COBRANCA_TRANSPORTADORAS
-} from './faturamento-config-cobranca.constants';
-import { CONFIG_COBRANCA_MOCK } from './faturamento-config-cobranca.mock';
+import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
+import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
+import { mapListaItemToPostInput } from '../../../mappers/configuracao-cobranca.mapper';
+import { StatusConfiguracaoCobranca } from '../../../models/configuracao-cobranca.models';
+import { ConfiguracaoCobrancaService } from '../../../services/configuracao-cobranca.service';
 import type {
   ConfigCobrancaEnvioFiltroId,
   ConfigCobrancaFiltroRapidoId,
   ConfigCobrancaListaItem,
+  ConfigCobrancaLookupOption,
   ConfigCobrancaModalidade,
   ConfigCobrancaStatus
 } from './faturamento-config-cobranca.types';
@@ -73,10 +78,13 @@ interface CfgCalendarioCelula {
   templateUrl: './faturamento-config-cobranca.component.html',
   styleUrls: ['./faturamento-config-cobranca.component.scss']
 })
-export class FaturamentoConfigCobrancaComponent {
+export class FaturamentoConfigCobrancaComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
   private readonly themeService = inject(ThemeService);
+  private readonly api = inject(ConfiguracaoCobrancaService);
+  private readonly transportadoraLookup = inject(TransportadoraLookupService);
+  private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
 
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
@@ -89,22 +97,14 @@ export class FaturamentoConfigCobrancaComponent {
     return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  readonly items = signal<ConfigCobrancaListaItem[]>(CONFIG_COBRANCA_MOCK.map((r) => ({ ...r })));
+  readonly items = signal<ConfigCobrancaListaItem[]>([]);
+  readonly loading = signal(false);
+  private readonly transportadorasLookup = signal<ConfigCobrancaLookupOption[]>([]);
+  private readonly estacionamentosLookup = signal<ConfigCobrancaLookupOption[]>([]);
 
-  readonly modalidades: ConfigCobrancaModalidade[] = [
-    'Diária',
-    'Semanal',
-    'Quinzenal',
-    'Mensal',
-    'Por data personalizada'
-  ];
+  readonly modalidades: ConfigCobrancaModalidade[] = ['Diária', 'Semanal', 'Quinzenal', 'Mensal'];
 
-  readonly statusOpcoes: ConfigCobrancaStatus[] = [
-    'Ativa',
-    'Inativa',
-    'Pendente de dados',
-    'Sem e-mail financeiro'
-  ];
+  readonly statusOpcoes: ConfigCobrancaStatus[] = ['Ativa', 'Inativa'];
 
   readonly filtroRapidoOpcoes: { id: ConfigCobrancaFiltroRapidoId; label: string }[] = [
     { id: 'todas', label: 'Todas' },
@@ -181,39 +181,21 @@ export class FaturamentoConfigCobrancaComponent {
     'acoes'
   ];
 
-  readonly listaTransportadorasForm = computed(() => {
-    const u = new Set<string>([...CONFIG_COBRANCA_TRANSPORTADORAS]);
-    for (const r of this.items()) u.add(r.transportadora);
-    return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  });
-
-  readonly listaEstacionamentosForm = computed(() => {
-    const u = new Set<string>([...CONFIG_COBRANCA_ESTACIONAMENTOS]);
-    for (const r of this.items()) u.add(r.estacionamento);
-    return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  });
-
-  readonly transportadorasOpcoes = computed(() => {
-    const u = new Set(this.items().map((r) => r.transportadora));
-    for (const t of CONFIG_COBRANCA_TRANSPORTADORAS) u.add(t);
-    return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  });
-
-  readonly estacionamentosOpcoes = computed(() => {
-    const u = new Set(this.items().map((r) => r.estacionamento));
-    for (const e of CONFIG_COBRANCA_ESTACIONAMENTOS) u.add(e);
-    return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  });
+  readonly listaTransportadorasForm = computed(() => this.transportadorasLookup());
+  readonly listaEstacionamentosForm = computed(() => this.estacionamentosLookup());
+  readonly transportadorasOpcoes = computed(() => this.transportadorasLookup());
+  readonly estacionamentosOpcoes = computed(() => this.estacionamentosLookup());
 
   readonly contagensChips = computed(() => {
     const rows = this.items();
+    const hidratados = rows.filter((r) => !r.parcial);
     return {
       todas: rows.length,
       ativas: rows.filter((r) => r.status === 'Ativa').length,
       inativas: rows.filter((r) => r.status === 'Inativa').length,
       pendentes: rows.filter((r) => r.status === 'Pendente de dados').length,
       semEmail: rows.filter((r) => !r.emailFinanceiro).length,
-      envioAuto: rows.filter((r) => r.envioAutomatico).length,
+      envioAuto: hidratados.filter((r) => r.envioAutomatico).length,
       mensal: rows.filter((r) => r.modalidade === 'Mensal').length,
       quinzenal: rows.filter((r) => r.modalidade === 'Quinzenal').length
     };
@@ -221,6 +203,7 @@ export class FaturamentoConfigCobrancaComponent {
 
   readonly alertasDinamicos = computed(() => {
     const c = this.contagensChips();
+    const hidratados = this.items().filter((r) => !r.parcial).length;
     return [
       {
         id: 'c1',
@@ -247,7 +230,10 @@ export class FaturamentoConfigCobrancaComponent {
         id: 'c4',
         icon: 'schedule_send' as const,
         titulo: 'Envio automático',
-        detalhe: `${c.todas - c.envioAuto} configuração(ões) com envio automático inativo`,
+        detalhe:
+          hidratados > 0
+            ? `${hidratados - c.envioAuto} configuração(ões) hidratada(s) com envio automático inativo`
+            : 'Abra um registro para carregar o detalhe de envio automático',
         nivel: 'atencao' as const
       }
     ];
@@ -335,6 +321,71 @@ export class FaturamentoConfigCobrancaComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.carregarLookups();
+    this.carregarLista();
+  }
+
+  carregarLista(): void {
+    this.loading.set(true);
+    const tr = this.transportadoraFiltro();
+    const es = this.estacionamentoFiltro();
+    const st = this.statusFiltro();
+    const q = this.searchText().trim();
+    const transportadoraId = tr !== 'all' && Number(tr) > 0 ? Number(tr) : undefined;
+    const estacionamentoId = es !== 'all' && Number(es) > 0 ? Number(es) : undefined;
+    const status =
+      st === 'Ativa'
+        ? StatusConfiguracaoCobranca.Ativa
+        : st === 'Inativa'
+          ? StatusConfiguracaoCobranca.Inativa
+          : undefined;
+
+    this.api
+      .listar({
+        numeroPagina: 1,
+        tamanhoPagina: 200,
+        descricao: q || undefined,
+        transportadoraId,
+        estacionamentoId,
+        status
+      })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (page) => {
+          this.items.set(page.items);
+          this.syncSelectionWithItems();
+          if (page.totalCount > page.items.length) {
+            this.snack.open(
+              `Exibindo ${page.items.length} de ${page.totalCount} registros. Refine os filtros para ver os demais.`,
+              'Fechar',
+              { duration: 5000 }
+            );
+          }
+        },
+        error: (err) => {
+          this.items.set([]);
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar configurações de cobrança.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
+  }
+
+  private carregarLookups(): void {
+    forkJoin({
+      transportadoras: this.transportadoraLookup.list().pipe(catchError(() => of([]))),
+      estacionamentos: this.estacionamentoLookup.list().pipe(catchError(() => of([])))
+    }).subscribe(({ transportadoras, estacionamentos }) => {
+      this.transportadorasLookup.set(
+        transportadoras.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
+      );
+      this.estacionamentosLookup.set(
+        estacionamentos.map((e) => ({ id: e.id, label: e.label.split(' — ')[0] || e.label }))
+      );
+    });
+  }
+
   isFiltroRapidoAtivo(id: ConfigCobrancaFiltroRapidoId): boolean {
     const cur = this.filtroRapido();
     if (id === 'todas') return cur === null || cur === 'todas';
@@ -389,6 +440,7 @@ export class FaturamentoConfigCobrancaComponent {
     this.statusFiltro.set('all');
     this.envioFiltro.set('all');
     this.searchText.set('');
+    this.carregarLista();
   }
 
   irParaPagina(p: number): void {
@@ -550,6 +602,12 @@ export class FaturamentoConfigCobrancaComponent {
     this.selection.clear();
     this.selection.select(row);
     this.selectionTick.update((n) => n + 1);
+    if (row.parcial) {
+      this.obterDetalhe(row.id, (full) => {
+        this.items.update((arr) => arr.map((x) => (x.id === full.id ? full : x)));
+        this.syncSelectionWithItems();
+      });
+    }
   }
 
   isAllSelected(): boolean {
@@ -572,7 +630,7 @@ export class FaturamentoConfigCobrancaComponent {
       this.snack.open('Selecione uma configuração para duplicar.', 'Fechar', { duration: 4000 });
       return;
     }
-    this.abrirFormularioDialog('duplicate', row);
+    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('duplicate', full));
   }
 
   testarEnvioToolbar(): void {
@@ -635,18 +693,19 @@ export class FaturamentoConfigCobrancaComponent {
   }
 
   editarLinha(row: ConfigCobrancaListaItem): void {
-    this.abrirFormularioDialog('edit', this.freshen(row));
+    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('edit', full));
   }
 
   visualizarRegra(row: ConfigCobrancaListaItem): void {
-    const r = this.freshen(row);
-    const ref = this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
-      width: '480px',
-      maxWidth: '96vw',
-      data: { row: r }
-    });
-    ref.afterClosed().subscribe((v) => {
-      if (v === 'edit') this.editarLinha(r);
+    this.obterDetalhe(row.id, (full) => {
+      const ref = this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
+        width: '480px',
+        maxWidth: '96vw',
+        data: { row: full }
+      });
+      ref.afterClosed().subscribe((v) => {
+        if (v === 'edit') this.editarLinha(full);
+      });
     });
   }
 
@@ -660,30 +719,26 @@ export class FaturamentoConfigCobrancaComponent {
   }
 
   alternarAtivaLinha(row: ConfigCobrancaListaItem): void {
-    const r = this.freshen(row);
-    if (!r) return;
-    let novo: ConfigCobrancaStatus;
-    if (r.status === 'Ativa') novo = 'Inativa';
-    else if (r.status === 'Inativa') novo = 'Ativa';
-    else novo = 'Ativa';
-    const msg = novo === 'Ativa' ? 'Configuração ativada.' : 'Configuração inativada.';
-    this.items.update((arr) => arr.map((x) => (x.id === r.id ? { ...x, status: novo } : x)));
-    this.syncSelectionWithItems();
-    this.snack.open(msg, 'Fechar', { duration: 3500 });
+    this.obterDetalhe(row.id, (full) => {
+      const novo: ConfigCobrancaStatus = full.status === 'Ativa' ? 'Inativa' : 'Ativa';
+      const payload = mapListaItemToPostInput({ ...full, status: novo });
+      this.api.alterar({ ...payload, id: full.id }).subscribe({
+        next: () => {
+          this.snack.open(
+            novo === 'Ativa' ? 'Configuração ativada.' : 'Configuração inativada.',
+            'Fechar',
+            { duration: 3500 }
+          );
+          this.carregarLista();
+        },
+        error: (err) =>
+          this.snack.open(this.mensagemErro(err, 'Falha ao alterar status.'), 'Fechar', { duration: 5500 })
+      });
+    });
   }
 
   duplicarConfiguracaoMenu(row: ConfigCobrancaListaItem): void {
-    const r = this.freshen(row);
-    const [novoId] = this.allocarIds(1);
-    const copia: ConfigCobrancaListaItem = {
-      ...r,
-      id: novoId,
-      transportadora: `${r.transportadora} (Cópia)`,
-      status: r.emailFinanceiro ? 'Ativa' : 'Sem e-mail financeiro'
-    };
-    this.items.update((a) => [...a, copia]);
-    this.syncSelectionWithItems();
-    this.snack.open('Configuração duplicada com sucesso.', 'Fechar', { duration: 3500 });
+    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('duplicate', full));
   }
 
   verHistorico(row: ConfigCobrancaListaItem): void {
@@ -703,31 +758,49 @@ export class FaturamentoConfigCobrancaComponent {
   }
 
   aplicarRegraOutras(row: ConfigCobrancaListaItem): void {
-    const base = this.freshen(row);
-    const ref = this.dialog.open(ConfigCobrancaApplyRuleDialogComponent, {
-      width: '440px',
-      maxWidth: '96vw',
-      data: { row: base, transportadoras: [...this.listaTransportadorasForm()] }
-    });
-    ref.afterClosed().subscribe((res) => {
-      if (!res?.selecionadas?.length) return;
-      const toAdd = res.selecionadas.filter(
-        (t: string) => !this.items().some((x) => x.transportadora === t && x.estacionamento === base.estacionamento)
-      );
-      if (!toAdd.length) {
-        this.snack.open('Nenhuma configuração nova (combinações já existentes).', 'Fechar', { duration: 4500 });
-        return;
-      }
-      const ids = this.allocarIds(toAdd.length);
-      const novos: ConfigCobrancaListaItem[] = toAdd.map((t: string, idx: number) => ({
-        ...base,
-        id: ids[idx],
-        transportadora: t,
-        status: base.emailFinanceiro ? 'Ativa' : 'Sem e-mail financeiro'
-      }));
-      this.items.update((a) => [...a, ...novos]);
-      this.syncSelectionWithItems();
-      this.snack.open(`Regra aplicada para ${novos.length} transportadora(s).`, 'Fechar', { duration: 4500 });
+    this.obterDetalhe(row.id, (base) => {
+      const ref = this.dialog.open(ConfigCobrancaApplyRuleDialogComponent, {
+        width: '440px',
+        maxWidth: '96vw',
+        data: {
+          row: base,
+          transportadoras: this.listaTransportadorasForm().filter((t) => t.id !== base.transportadoraId)
+        }
+      });
+      ref.afterClosed().subscribe((res) => {
+        if (!res?.selecionadas?.length) return;
+        const ids = res.selecionadas as number[];
+        const toCreate = ids.filter(
+          (tid) =>
+            !this.items().some((x) => x.transportadoraId === tid && x.estacionamentoId === base.estacionamentoId)
+        );
+        if (!toCreate.length) {
+          this.snack.open('Nenhuma configuração nova (combinações já existentes).', 'Fechar', { duration: 4500 });
+          return;
+        }
+        const requests = toCreate.map((tid) => {
+          const nome = this.listaTransportadorasForm().find((t) => t.id === tid)?.label ?? base.transportadora;
+          return this.api.gravar(
+            mapListaItemToPostInput({
+              ...base,
+              id: 0,
+              transportadoraId: tid,
+              transportadora: nome,
+              regra: { ...base.regra, id: 0 }
+            })
+          );
+        });
+        forkJoin(requests).subscribe({
+          next: () => {
+            this.snack.open(`Regra aplicada para ${toCreate.length} transportadora(s).`, 'Fechar', {
+              duration: 4500
+            });
+            this.carregarLista();
+          },
+          error: (err) =>
+            this.snack.open(this.mensagemErro(err, 'Falha ao aplicar regra.'), 'Fechar', { duration: 5500 })
+        });
+      });
     });
   }
 
@@ -738,16 +811,20 @@ export class FaturamentoConfigCobrancaComponent {
       maxWidth: '96vw',
       data: {
         titulo: 'Remover configuração?',
-        mensagem:
-          'Essa ação removerá a configuração de cobrança selecionada apenas desta simulação.'
+        mensagem: 'Essa ação removerá a configuração de cobrança selecionada.'
       }
     });
     ref.afterClosed().subscribe((ok) => {
       if (!ok) return;
-      this.items.update((arr) => arr.filter((x) => x.id !== r.id));
-      this.selection.deselect(r);
-      this.syncSelectionWithItems();
-      this.snack.open('Configuração removida.', 'Fechar', { duration: 3500 });
+      this.api.excluir(r.id).subscribe({
+        next: () => {
+          this.selection.deselect(r);
+          this.snack.open('Configuração removida.', 'Fechar', { duration: 3500 });
+          this.carregarLista();
+        },
+        error: (err) =>
+          this.snack.open(this.mensagemErro(err, 'Falha ao remover configuração.'), 'Fechar', { duration: 5500 })
+      });
     });
   }
 
@@ -760,7 +837,7 @@ export class FaturamentoConfigCobrancaComponent {
   duplicarResumo(): void {
     const row = this.resumoLinha();
     if (!row) return;
-    this.abrirFormularioDialog('duplicate', row);
+    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('duplicate', full));
   }
 
   testarResumo(): void {
@@ -797,22 +874,42 @@ export class FaturamentoConfigCobrancaComponent {
     });
     ref.afterClosed().subscribe((res: ConfigCobrancaFormDialogResult | undefined) => {
       if (!res?.record) return;
-      if (mode === 'edit' && item) {
-        const rec = { ...res.record, id: item.id };
-        this.items.update((arr) => arr.map((x) => (x.id === item.id ? rec : x)));
-        this.syncSelectionWithItems();
-        this.snack.open('Configuração atualizada com sucesso.', 'Fechar', { duration: 3500 });
-        return;
-      }
-      const [novoId] = this.allocarIds(1);
-      const rec = { ...res.record, id: novoId };
-      this.items.update((a) => [...a, rec]);
-      this.syncSelectionWithItems();
-      this.snack.open(
-        mode === 'duplicate' ? 'Configuração duplicada com sucesso.' : 'Configuração criada com sucesso.',
-        'Fechar',
-        { duration: 3500 }
-      );
+      const payload = mapListaItemToPostInput(res.record);
+      const req$ =
+        mode === 'edit' && item
+          ? this.api.alterar({ ...payload, id: item.id })
+          : this.api.gravar({ ...payload, id: 0, regra: { ...payload.regra, id: 0 } });
+
+      req$.subscribe({
+        next: () => {
+          this.snack.open(
+            mode === 'edit'
+              ? 'Configuração atualizada com sucesso.'
+              : mode === 'duplicate'
+                ? 'Configuração duplicada com sucesso.'
+                : 'Configuração criada com sucesso.',
+            'Fechar',
+            { duration: 3500 }
+          );
+          this.carregarLista();
+        },
+        error: (err) =>
+          this.snack.open(this.mensagemErro(err, 'Falha ao salvar configuração.'), 'Fechar', { duration: 5500 })
+      });
+    });
+  }
+
+  private obterDetalhe(id: number, onOk: (item: ConfigCobrancaListaItem) => void): void {
+    this.api.obterListaItemPorId(id).subscribe({
+      next: (full) => {
+        if (!full) {
+          this.snack.open('Configuração não encontrada.', 'Fechar', { duration: 4000 });
+          return;
+        }
+        onOk(full);
+      },
+      error: (err) =>
+        this.snack.open(this.mensagemErro(err, 'Falha ao carregar detalhe.'), 'Fechar', { duration: 5500 })
     });
   }
 
@@ -834,14 +931,27 @@ export class FaturamentoConfigCobrancaComponent {
     this.selectionTick.update((n) => n + 1);
   }
 
-  private allocarIds(n: number): string[] {
-    if (n <= 0) return [];
-    let max = 0;
-    for (const r of this.items()) {
-      const m = /^CFG-(\d+)$/i.exec(r.id);
-      if (m) max = Math.max(max, +m[1]);
+  private mensagemErro(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object') {
+      const api = err as ApiError;
+      if (typeof api.message === 'string' && api.message.trim()) return api.message.trim();
     }
-    return Array.from({ length: n }, (_, i) => `CFG-${String(max + 1 + i).padStart(3, '0')}`);
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error;
+      if (body && typeof body === 'object') {
+        const notes =
+          (body as { notifications?: unknown }).notifications ??
+          (body as { Notifications?: unknown }).Notifications;
+        if (Array.isArray(notes) && notes.length) {
+          return notes.filter((n): n is string => typeof n === 'string').join(' ') || fallback;
+        }
+        const msg =
+          (body as { message?: string }).message ?? (body as { Message?: string }).Message;
+        if (typeof msg === 'string' && msg.trim()) return msg.trim();
+      }
+      if (typeof body === 'string' && body.trim()) return body.trim();
+    }
+    return fallback;
   }
 
   private aplicarFiltros(): ConfigCobrancaListaItem[] {
@@ -854,26 +964,32 @@ export class FaturamentoConfigCobrancaComponent {
     const q = this.filtroRapido();
     const s = this.searchText().trim().toLowerCase();
 
-    if (tr !== 'all') rows = rows.filter((r) => r.transportadora === tr);
-    if (es !== 'all') rows = rows.filter((r) => r.estacionamento === es);
+    if (tr !== 'all') {
+      const tid = Number(tr);
+      rows = rows.filter((r) => r.transportadoraId === tid || r.transportadora === tr);
+    }
+    if (es !== 'all') {
+      const eid = Number(es);
+      rows = rows.filter((r) => r.estacionamentoId === eid || r.estacionamento === es);
+    }
     if (mo !== 'all') rows = rows.filter((r) => r.modalidade === mo);
     if (st !== 'all') rows = rows.filter((r) => r.status === st);
-    if (env === 'ativo') rows = rows.filter((r) => r.envioAutomatico);
-    if (env === 'inativo') rows = rows.filter((r) => !r.envioAutomatico);
+    if (env === 'ativo') rows = rows.filter((r) => !r.parcial && r.envioAutomatico);
+    if (env === 'inativo') rows = rows.filter((r) => !r.parcial && !r.envioAutomatico);
 
     if (q === 'ativas') rows = rows.filter((r) => r.status === 'Ativa');
     else if (q === 'inativas') rows = rows.filter((r) => r.status === 'Inativa');
     else if (q === 'pendentes') rows = rows.filter((r) => r.status === 'Pendente de dados');
     else if (q === 'semEmail') {
       rows = rows.filter((r) => !r.emailFinanceiro);
-    } else if (q === 'envioAuto') rows = rows.filter((r) => r.envioAutomatico);
+    } else if (q === 'envioAuto') rows = rows.filter((r) => !r.parcial && r.envioAutomatico);
     else if (q === 'mensal') rows = rows.filter((r) => r.modalidade === 'Mensal');
     else if (q === 'quinzenal') rows = rows.filter((r) => r.modalidade === 'Quinzenal');
 
     if (s) {
       rows = rows.filter(
         (r) =>
-          r.id.toLowerCase().includes(s) ||
+          String(r.id).includes(s) ||
           r.transportadora.toLowerCase().includes(s) ||
           r.estacionamento.toLowerCase().includes(s) ||
           (r.emailFinanceiro ?? '').toLowerCase().includes(s)

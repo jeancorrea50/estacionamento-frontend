@@ -253,11 +253,22 @@ export class MovimentosPageComponent implements OnInit {
 
   abrirPermanencia(item: EntradaSaidaSearchOutput, acao: PermanenciaAcao): void {
     if (acao === 'finalizar' || acao === 'suspender' || acao === 'retornar') {
+      if (!item?.id || item.id <= 0) {
+        this.toast.error('Registro sem id válido para atualizar permanência.');
+        return;
+      }
       this.permanenciaAcao = acao;
       this.permanenciaDataHora = '';
-      this.service.getById(item.id).subscribe((detalhe) => {
-        this.registroSelecionado.set(detalhe);
-        this.permanenciaOpen.set(true);
+      this.service.getById(item.id).subscribe({
+        next: (detalhe) => {
+          if (!detalhe?.id) {
+            this.toast.error('Não foi possível carregar o registro selecionado.');
+            return;
+          }
+          this.registroSelecionado.set(detalhe);
+          this.permanenciaOpen.set(true);
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.')
       });
     }
   }
@@ -268,7 +279,10 @@ export class MovimentosPageComponent implements OnInit {
 
   confirmarPermanencia(): void {
     const item = this.registroSelecionado();
-    if (!item) return;
+    if (!item?.id || item.id <= 0) {
+      this.toast.error('Registro sem id válido para atualizar permanência.');
+      return;
+    }
     const isoData = this.toIsoOrUndefined(this.permanenciaDataHora);
     if (this.permanenciaAcao === 'finalizar') {
       const placa = this.placaSelecionada();
@@ -591,8 +605,10 @@ export class MovimentosPageComponent implements OnInit {
   }
 
   placaSelecionada(): string {
-    const veiculo = this.registroSelecionado()?.veiculo as { placa?: string } | undefined;
-    return veiculo?.placa ?? '—';
+    const veiculo = this.registroSelecionado()?.veiculo as
+      | { placa?: string; Placa?: string }
+      | undefined;
+    return veiculo?.placa ?? veiculo?.Placa ?? '—';
   }
 
   private finalizarAcaoPermanencia(msg: string): void {

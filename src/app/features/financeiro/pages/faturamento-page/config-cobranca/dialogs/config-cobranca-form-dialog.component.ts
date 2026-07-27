@@ -10,15 +10,19 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import type { ConfigCobrancaListaItem, ConfigCobrancaModalidade, ConfigCobrancaStatus } from '../faturamento-config-cobranca.types';
+import type {
+  ConfigCobrancaListaItem,
+  ConfigCobrancaLookupOption,
+  ConfigCobrancaModalidade,
+  ConfigCobrancaStatus
+} from '../faturamento-config-cobranca.types';
 import {
-  agrupamentoFromChecks,
-  checksFromAgrupamento,
-  checksFromServicos,
-  servicosCobradosFromChecks,
+  checksFromRegraFlags,
+  montarRegistroDoFormulario,
   validarFormularioConfig,
   type AgrupamentoChecks,
-  type ServicosChecks
+  type ServicosChecks,
+  RegraFechamento
 } from '../faturamento-config-cobranca.helpers';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
 
@@ -27,8 +31,8 @@ export type ConfigCobrancaFormMode = 'create' | 'edit' | 'duplicate';
 export interface ConfigCobrancaFormDialogData {
   mode: ConfigCobrancaFormMode;
   item?: ConfigCobrancaListaItem;
-  transportadoras: string[];
-  estacionamentos: string[];
+  transportadoras: ConfigCobrancaLookupOption[];
+  estacionamentos: ConfigCobrancaLookupOption[];
   modalidades: ConfigCobrancaModalidade[];
   statusOpcoes: ConfigCobrancaStatus[];
 }
@@ -73,9 +77,9 @@ export class ConfigCobrancaFormDialogComponent {
   private readonly snack = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  errosVisiveis: string[] = [];
+  readonly RegraFechamento = RegraFechamento;
 
-  /** Bloco 5 (juros/multa/descontos) recolhível para não poluir o modal. */
+  errosVisiveis: string[] = [];
   jurosMultaAberto = false;
 
   readonly servicosOpcoes: ServicoOpcao[] = [
@@ -96,12 +100,17 @@ export class ConfigCobrancaFormDialogComponent {
     { key: 'transportadora', label: 'Agrupar fatura por transportadora', icon: 'local_shipping' }
   ];
 
-  transportadora = '';
-  estacionamento = '';
+  readonly regraFechamentoOpcoes = [
+    { value: RegraFechamento.UltimoDiaDoMes, label: 'Último dia do mês' },
+    { value: RegraFechamento.DiaFixo, label: 'Dia fixo' }
+  ];
+
+  transportadoraId: number | null = null;
+  estacionamentoId: number | null = null;
   modalidade: ConfigCobrancaModalidade | '' = '';
-  diaFechamento = '';
-  fechamento = '';
-  prazoVencimento = '';
+  diaFechamento: number | null = null;
+  regraFechamento: number = RegraFechamento.UltimoDiaDoMes;
+  prazoVencimentoDias = 10;
   email = '';
   envioAuto = false;
   gerarAuto = false;
@@ -114,7 +123,12 @@ export class ConfigCobrancaFormDialogComponent {
   descValor = 0;
   acresFixo = false;
   acresValor = 0;
+  /** Valor numérico enviado à API. */
+  valorEstadia: number | null = null;
+  /** Texto exibido no input (padrão pt-BR: 1.234,56). */
+  valorEstadiaTexto = '';
   status: ConfigCobrancaStatus = 'Ativa';
+  private regraId = 0;
 
   serv: ServicosChecks = {
     diaria: false,
@@ -145,26 +159,38 @@ export class ConfigCobrancaFormDialogComponent {
   constructor() {
     const r = this.data.item;
     if (r) {
-      this.transportadora = r.transportadora;
-      this.estacionamento = r.estacionamento;
+      this.transportadoraId = r.transportadoraId || null;
+      this.estacionamentoId = r.estacionamentoId || null;
       this.modalidade = r.modalidade;
-      this.fechamento = r.fechamento;
-      this.prazoVencimento = r.prazoVencimento;
+      this.diaFechamento = r.diaFechamento;
+      this.regraFechamento = r.regraFechamento || RegraFechamento.UltimoDiaDoMes;
+      this.prazoVencimentoDias = r.prazoVencimentoDias || 10;
       this.email = r.emailFinanceiro ?? '';
       this.envioAuto = r.envioAutomatico;
-      this.gerarAuto = r.envioAutomatico;
+      this.gerarAuto = r.gerarFaturaAutomaticamente;
       this.pagamentoParcial = r.pagamentoParcial;
       this.multa = r.multaAplicar;
       this.multaPct = r.multaPercentual;
       this.juros = r.jurosAplicar;
       this.jurosPct = r.jurosPercentual;
-      this.status = r.status;
-      this.serv = checksFromServicos(r.servicosCobrados);
-      this.agr = checksFromAgrupamento(r.agrupamentoFatura);
+      this.descFixo = r.aplicarDescontoFixo;
+      this.descValor = r.valorDescontoFixo;
+      this.acresFixo = r.aplicarAcrescimoFixo;
+      this.acresValor = r.valorAcrescimoFixo;
+      this.valorEstadia = r.valorEstadia;
+      this.valorEstadiaTexto = this.formatarBrl(r.valorEstadia);
+      this.status = r.status === 'Inativa' ? 'Inativa' : 'Ativa';
+      this.regraId = this.data.mode === 'edit' ? r.regra?.id ?? 0 : 0;
+      this.serv = checksFromRegraFlags(r.regra);
+      this.agr = {
+        placa: r.agruparPorPlaca,
+        periodo: r.agruparPorPeriodo,
+        transportadora: r.agruparPorTransportadora
+      };
     } else {
       this.modalidade = 'Mensal';
-      this.fechamento = 'Último dia do mês';
-      this.prazoVencimento = '10 dias após fechamento';
+      this.regraFechamento = RegraFechamento.UltimoDiaDoMes;
+      this.prazoVencimentoDias = 10;
       this.status = 'Ativa';
     }
     this.jurosMultaAberto = this.multa || this.juros || this.descFixo || this.acresFixo;
@@ -196,26 +222,34 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   visualizarRegra(): void {
+    this.sincronizarValorEstadiaDoTexto();
     this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
       width: '480px',
       maxWidth: '96vw',
-      data: { row: this.montarRegistro('PREVIEW') }
+      data: { row: this.montarRegistro(this.data.mode === 'edit' ? this.data.item?.id ?? 0 : 0) }
     });
   }
 
   salvar(): void {
+    this.sincronizarValorEstadiaDoTexto();
     const v = validarFormularioConfig({
-      transportadora: this.transportadora,
-      estacionamento: this.estacionamento,
+      transportadoraId: this.transportadoraId ?? 0,
+      estacionamentoId: this.estacionamentoId ?? 0,
       modalidade: this.modalidade,
-      fechamento: this.fechamento,
-      prazoVencimento: this.prazoVencimento,
+      regraFechamento: this.regraFechamento,
+      diaFechamento: this.diaFechamento,
+      prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
       email: this.email,
-      precisaEmailFin: this.envioAuto || this.gerarAuto,
       multa: this.multa,
       multaPct: this.multaPct,
       juros: this.juros,
-      jurosPct: this.jurosPct
+      jurosPct: this.jurosPct,
+      descFixo: this.descFixo,
+      descValor: this.descValor,
+      acresFixo: this.acresFixo,
+      acresValor: this.acresValor,
+      valorEstadia: this.valorEstadia,
+      serv: this.serv
     });
     if (!v.ok) {
       this.errosVisiveis = v.mensagens;
@@ -223,35 +257,97 @@ export class ConfigCobrancaFormDialogComponent {
       return;
     }
     this.errosVisiveis = [];
-    this.ref.close({ record: this.montarRegistro(this.data.item?.id ?? 'NEW') });
+    this.valorEstadiaTexto = this.formatarBrl(this.valorEstadia);
+    const id = this.data.mode === 'edit' ? this.data.item?.id ?? 0 : 0;
+    this.ref.close({ record: this.montarRegistro(id) });
   }
 
-  private montarRegistro(id: string): ConfigCobrancaListaItem {
-    const emailNorm = this.email?.trim() || null;
-    let statusFinal: ConfigCobrancaStatus = this.status;
-    if (!emailNorm) {
-      statusFinal = 'Sem e-mail financeiro';
-    } else if (statusFinal === 'Sem e-mail financeiro') {
-      statusFinal = 'Ativa';
+  onValorEstadiaBlur(): void {
+    this.sincronizarValorEstadiaDoTexto();
+    this.valorEstadiaTexto = this.formatarBrl(this.valorEstadia);
+  }
+
+  onValorEstadiaFocus(): void {
+    if (this.valorEstadia == null) {
+      this.valorEstadiaTexto = '';
+      return;
+    }
+    // Em edição, mantém formato BR mas sem ruído de zeros desnecessários além de 2 casas.
+    this.valorEstadiaTexto = this.formatarBrl(this.valorEstadia);
+  }
+
+  private sincronizarValorEstadiaDoTexto(): void {
+    this.valorEstadia = this.parseBrl(this.valorEstadiaTexto);
+  }
+
+  private formatarBrl(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(Number(value))) return '';
+    return Number(value).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  private parseBrl(raw: string | null | undefined): number | null {
+    const texto = String(raw ?? '').trim();
+    if (!texto) return null;
+
+    // Aceita "1.234,56", "1234,56", "1234.56" e "R$ 1.234,56"
+    let limpo = texto.replace(/[^\d.,-]/g, '');
+    if (!limpo || limpo === '-' || limpo === ',' || limpo === '.') return null;
+
+    const temVirgula = limpo.includes(',');
+    const temPonto = limpo.includes('.');
+
+    if (temVirgula && temPonto) {
+      // Assume ponto = milhar e vírgula = decimal (padrão BR)
+      limpo = limpo.replace(/\./g, '').replace(',', '.');
+    } else if (temVirgula) {
+      limpo = limpo.replace(',', '.');
+    } else if (temPonto) {
+      // Um único ponto: se parecer decimal (ex.: 12.5), mantém; se milhar (1.250), remove
+      const parts = limpo.split('.');
+      if (parts.length === 2 && parts[1].length <= 2) {
+        // decimal com ponto
+      } else {
+        limpo = limpo.replace(/\./g, '');
+      }
     }
 
-    return {
+    const n = Number(limpo);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private montarRegistro(id: number): ConfigCobrancaListaItem {
+    const transportadora = this.data.transportadoras.find((t) => t.id === this.transportadoraId);
+    const estacionamento = this.data.estacionamentos.find((e) => e.id === this.estacionamentoId);
+    return montarRegistroDoFormulario({
       id,
-      transportadora: this.transportadora.trim(),
-      estacionamento: this.estacionamento.trim(),
+      transportadoraId: this.transportadoraId ?? 0,
+      transportadoraNome: transportadora?.label ?? '',
+      estacionamentoId: this.estacionamentoId ?? 0,
+      estacionamentoNome: estacionamento?.label ?? '',
+      status: this.status === 'Inativa' ? 'Inativa' : 'Ativa',
       modalidade: this.modalidade as ConfigCobrancaModalidade,
-      fechamento: this.fechamento.trim(),
-      prazoVencimento: this.prazoVencimento.trim(),
-      envioAutomatico: this.envioAuto || this.gerarAuto,
-      emailFinanceiro: emailNorm,
-      status: statusFinal,
-      multaAplicar: this.multa,
-      multaPercentual: this.multa ? Number(this.multaPct) || 0 : 0,
-      jurosAplicar: this.juros,
-      jurosPercentual: this.juros ? Number(this.jurosPct) || 0 : 0,
+      regraFechamento: this.regraFechamento,
+      diaFechamento: this.diaFechamento,
+      prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
+      email: this.email,
+      envioAuto: this.envioAuto,
+      gerarAuto: this.gerarAuto,
       pagamentoParcial: this.pagamentoParcial,
-      servicosCobrados: servicosCobradosFromChecks(this.serv),
-      agrupamentoFatura: agrupamentoFromChecks(this.agr)
-    };
+      multa: this.multa,
+      multaPct: this.multaPct,
+      juros: this.juros,
+      jurosPct: this.jurosPct,
+      descFixo: this.descFixo,
+      descValor: this.descValor,
+      acresFixo: this.acresFixo,
+      acresValor: this.acresValor,
+      valorEstadia: this.valorEstadia,
+      regraId: this.regraId,
+      serv: this.serv,
+      agr: this.agr
+    });
   }
 }

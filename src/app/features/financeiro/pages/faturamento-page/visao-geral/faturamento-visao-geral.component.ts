@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import type {
   ApexAxisChartSeries,
@@ -24,8 +24,11 @@ import type {
 import { ThemeService } from '../../../../../core/services/theme.service';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
 
+/** Prefixo absoluto das abas de faturamento (evita falha de navigate relativo em prod). */
+const FATURAMENTO_BASE = ['/app', 'financeiro', 'faturamento'] as const;
+
 interface AlertaNavegacao {
-  path: string;
+  commands: string[];
   queryParams?: Record<string, string>;
 }
 
@@ -54,16 +57,15 @@ interface ProximoVencimento { transportadora: string; valor: number; vencimento:
 export class FaturamentoVisaoGeralComponent {
   private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
 
   private readonly alertaDestinos: Record<string, AlertaNavegacao> = {
-    fat: { path: '../faturas', queryParams: { filtro: 'vencidas' } },
-    cob: { path: '../inadimplencia', queryParams: { filtro: 'semCobranca' } },
-    fech: { path: '../fechamentos', queryParams: { filtro: 'andamento' } },
-    env: { path: '../faturas', queryParams: { filtro: 'aguardando-envio' } }
+    fat: { commands: [...FATURAMENTO_BASE, 'faturas'], queryParams: { filtro: 'vencidas' } },
+    cob: { commands: [...FATURAMENTO_BASE, 'inadimplencia'], queryParams: { filtro: 'semCobranca' } },
+    fech: { commands: [...FATURAMENTO_BASE, 'fechamentos'], queryParams: { filtro: 'andamento' } },
+    env: { commands: [...FATURAMENTO_BASE, 'faturas'], queryParams: { filtro: 'aguardando-envio' } }
   };
 
   readonly isDarkTheme = computed(() => {
@@ -346,10 +348,7 @@ export class FaturamentoVisaoGeralComponent {
   abrirAlerta(id: string): void {
     const dest = this.alertaDestinos[id];
     if (!dest) return;
-    void this.router.navigate([dest.path], {
-      relativeTo: this.route,
-      queryParams: dest.queryParams
-    });
+    void this.router.navigate(dest.commands, { queryParams: dest.queryParams });
   }
 
   abrirProximoVencimento(row: ProximoVencimento): void {
@@ -367,10 +366,7 @@ export class FaturamentoVisaoGeralComponent {
       queryParams['status'] = row.status;
     }
 
-    void this.router.navigate(['../faturas'], {
-      relativeTo: this.route,
-      queryParams
-    });
+    void this.router.navigate([...FATURAMENTO_BASE, 'faturas'], { queryParams });
   }
 
   /* ── Utilities ────────────────────────────────────────────────────── */

@@ -1,7 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +13,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ActivatedRoute } from '@angular/router';
 
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { FECHAMENTOS_MOCK } from './faturamento-fechamentos.mock';
@@ -61,10 +62,21 @@ interface FechCalendarioCelula {
 })
 export class FaturamentoFechamentosComponent {
   private readonly themeService = inject(ThemeService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
+
+  private readonly filtrosRapidosValidos = new Set<FechamentoFiltroRapidoId>([
+    'todos',
+    'prontos',
+    'andamento',
+    'divergencia',
+    'faturados',
+    'cancelados'
+  ]);
 
   readonly isDarkTheme = computed(() => {
     const mode = this.themeConfig().mode;
@@ -270,6 +282,13 @@ export class FaturamentoFechamentosComponent {
   }
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const filtro = params.get('filtro');
+      if (filtro && this.filtrosRapidosValidos.has(filtro as FechamentoFiltroRapidoId)) {
+        this.filtroRapido.set(filtro as FechamentoFiltroRapidoId);
+      }
+    });
+
     effect(() => {
       const vis = this.linhasFiltradas();
       for (const r of [...this.selection.selected]) {

@@ -1,7 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -14,6 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ActivatedRoute } from '@angular/router';
 
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { FaturamentoInadimplenciaAcordoDialogComponent } from './faturamento-inadimplencia-acordo-dialog.component';
@@ -63,8 +64,20 @@ interface InadCalendarioCelula {
 export class FaturamentoInadimplenciaComponent {
   private readonly dialog = inject(MatDialog);
   private readonly themeService = inject(ThemeService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly todas = INADIMPLENCIA_MOCK;
+
+  private readonly filtrosRapidosValidos = new Set<InadimplenciaFiltroRapidoId>([
+    'todas',
+    'd1_7',
+    'd8_15',
+    'mais15',
+    'mais30',
+    'semCobranca',
+    'emNegociacao'
+  ]);
 
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
@@ -225,6 +238,13 @@ export class FaturamentoInadimplenciaComponent {
   );
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const filtro = params.get('filtro');
+      if (filtro && this.filtrosRapidosValidos.has(filtro as InadimplenciaFiltroRapidoId)) {
+        this.filtroRapido.set(filtro as InadimplenciaFiltroRapidoId);
+      }
+    });
+
     effect(() => {
       const vis = this.linhasFiltradas();
       for (const r of [...this.selection.selected]) {

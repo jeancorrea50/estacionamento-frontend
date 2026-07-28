@@ -2,6 +2,7 @@
 export type FaturamentoTabId =
   | 'visao-geral'
   | 'fechamentos'
+  | 'faturas'
   | 'recebimentos'
   | 'inadimplencia'
   | 'config-cobranca';

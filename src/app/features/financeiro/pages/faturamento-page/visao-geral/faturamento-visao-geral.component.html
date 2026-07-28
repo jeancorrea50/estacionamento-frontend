@@ -379,7 +379,12 @@
         <ul class="visao-alert-list" aria-label="Alertas do faturamento">
           @for (a of visaoAlertas; track a.id) {
             <li class="visao-alert-list__item">
-              <button type="button" class="visao-alert">
+              <button
+                type="button"
+                class="visao-alert"
+                (click)="abrirAlerta(a.id)"
+                [attr.aria-label]="a.titulo + ': ' + a.quantidade + ' — abrir detalhes'"
+              >
                 <span class="material-symbols-outlined visao-alert__ico" aria-hidden="true">{{ a.icon }}</span>
                 <span class="visao-alert__main">
                   <span class="visao-alert__title">{{ a.titulo }}</span>
@@ -404,7 +409,12 @@
         <ul class="visao-alert-list" aria-label="Próximos vencimentos">
           @for (row of proximosVencimentos; track row.vencimento + row.transportadora) {
             <li class="visao-alert-list__item">
-              <button type="button" class="visao-alert">
+              <button
+                type="button"
+                class="visao-alert"
+                (click)="abrirProximoVencimento(row)"
+                [attr.aria-label]="'Abrir faturas de ' + row.transportadora"
+              >
                 <span class="material-symbols-outlined visao-alert__ico" aria-hidden="true">event_upcoming</span>
                 <span class="visao-alert__main">
                   <span class="visao-alert__title">{{ row.transportadora }}</span>

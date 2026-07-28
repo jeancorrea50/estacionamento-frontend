@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ActivatedRoute } from '@angular/router';
 
 import type { FaturaStatusVisao, PeriodoFiltroId } from '../faturamento-visao.types';
 import { FATURAS_MOCK } from './faturamento-faturas.mock';
@@ -46,7 +48,17 @@ interface PeriodoOpcao {
 })
 export class FaturamentoFaturasComponent {
   private readonly snack = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   readonly todas = FATURAS_MOCK;
+
+  private readonly filtrosRapidosValidos = new Set<FiltroRapidoFaturas>([
+    'vencidas',
+    'a-vencer',
+    'dentro-prazo',
+    'pagas',
+    'aguardando-envio'
+  ]);
 
   readonly periodoOpcoes: PeriodoOpcao[] = [
     { id: 'hoje', label: 'Hoje' },
@@ -119,6 +131,32 @@ export class FaturamentoFaturasComponent {
   readonly linhasFiltradas = computed(() => this.aplicarFiltros());
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const filtro = params.get('filtro');
+      const status = params.get('status');
+      const transportadora = params.get('transportadora');
+      const temDeepLink = !!(filtro || status || transportadora);
+
+      if (filtro && this.filtrosRapidosValidos.has(filtro as FiltroRapidoFaturas)) {
+        this.filtroRapido.set(filtro as FiltroRapidoFaturas);
+      }
+
+      if (status && this.statusOpcoes.includes(status as FaturaStatusVisao)) {
+        this.statusFiltro.set(status);
+      }
+
+      if (transportadora) {
+        this.transportadoraFiltro.set(transportadora);
+      }
+
+      // Deep-link dos Alertas: não restringir ao mês atual (mocks/histórico podem ficar de fora).
+      if (temDeepLink) {
+        this.periodoFiltro.set('personalizado');
+        this.dataInicioPersonalizado = '';
+        this.dataFimPersonalizado = '';
+      }
+    });
+
     effect(() => {
       const vis = this.linhasFiltradas();
       const ids = new Set(vis.map((r) => r.id));

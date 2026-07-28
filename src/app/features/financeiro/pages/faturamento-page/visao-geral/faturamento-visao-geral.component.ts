@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { Router, ActivatedRoute } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import type {
   ApexAxisChartSeries,
@@ -22,6 +23,11 @@ import type {
 
 import { ThemeService } from '../../../../../core/services/theme.service';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
+
+interface AlertaNavegacao {
+  path: string;
+  queryParams?: Record<string, string>;
+}
 
 type VisaoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
 
@@ -47,9 +53,18 @@ interface ProximoVencimento { transportadora: string; valor: number; vencimento:
 })
 export class FaturamentoVisaoGeralComponent {
   private readonly themeService = inject(ThemeService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
+
+  private readonly alertaDestinos: Record<string, AlertaNavegacao> = {
+    fat: { path: '../faturas', queryParams: { filtro: 'vencidas' } },
+    cob: { path: '../inadimplencia', queryParams: { filtro: 'semCobranca' } },
+    fech: { path: '../fechamentos', queryParams: { filtro: 'andamento' } },
+    env: { path: '../faturas', queryParams: { filtro: 'aguardando-envio' } }
+  };
 
   readonly isDarkTheme = computed(() => {
     const mode = this.themeConfig().mode;
@@ -325,6 +340,37 @@ export class FaturamentoVisaoGeralComponent {
     const ini = this.periodoDataInicio();
     const ativo = this.periodoGranularidade() === 'ano' && ini.getFullYear() === ano;
     return { 'rec-cal__ano--ativo': ativo };
+  }
+
+  /* ── Navegação (Alertas / Próximos vencimentos) ───────────────────── */
+  abrirAlerta(id: string): void {
+    const dest = this.alertaDestinos[id];
+    if (!dest) return;
+    void this.router.navigate([dest.path], {
+      relativeTo: this.route,
+      queryParams: dest.queryParams
+    });
+  }
+
+  abrirProximoVencimento(row: ProximoVencimento): void {
+    const queryParams: Record<string, string> = {
+      transportadora: row.transportadora
+    };
+
+    if (row.status === 'Vencido') {
+      queryParams['filtro'] = 'vencidas';
+    } else if (row.status === 'Aguardando envio') {
+      queryParams['filtro'] = 'aguardando-envio';
+    } else if (row.status === 'Pago') {
+      queryParams['filtro'] = 'pagas';
+    } else {
+      queryParams['status'] = row.status;
+    }
+
+    void this.router.navigate(['../faturas'], {
+      relativeTo: this.route,
+      queryParams
+    });
   }
 
   /* ── Utilities ────────────────────────────────────────────────────── */

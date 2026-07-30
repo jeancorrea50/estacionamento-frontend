@@ -31,5 +31,7 @@ export function parseBrl(raw: string | null | undefined): number | null {
   }
 
   const n = Number(limpo);
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n)) return null;
+  // Mantém o valor alinhado à formatação exibida (duas casas).
+  return Math.round(n * 100) / 100;
 }

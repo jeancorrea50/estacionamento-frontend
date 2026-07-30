@@ -223,33 +223,19 @@
   border-top: 1px dashed var(--cfg-input-border);
 }
 
-/* Campo monetário: R$ fora do outline para não colidir com o label flutuante */
+/* Campo monetário com prefixo integrado ao controle. */
 .cfg-money-field {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
   width: 100%;
   max-width: 320px;
 }
 
-.cfg-money-field__currency {
-  flex: 0 0 auto;
-  margin-top: 16px;
-  min-width: 2rem;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.cfg-money-field__prefix {
   color: var(--cfg-text);
-  line-height: 40px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.cfg-money-field__control {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.cfg-money-field__control input.mat-mdc-input-element {
-  text-align: right;
+.cfg-money-field input.mat-mdc-input-element {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }

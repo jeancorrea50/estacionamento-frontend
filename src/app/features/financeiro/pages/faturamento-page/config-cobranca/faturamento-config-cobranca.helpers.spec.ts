@@ -53,6 +53,30 @@ describe('validarFormularioConfig', () => {
     expect(r.ok === false && r.mensagens).toContain('Selecione a regra de cobrança.');
   });
 
+  it('exige valor de cobrança maior que zero com mensagem correspondente à modalidade', () => {
+    const casos = [
+      ['Diária', 'Informe o valor da diária maior que zero.'],
+      ['Mensal', 'Informe o valor da mensalidade maior que zero.'],
+      ['Quinzenal', 'Informe o valor da quinzena maior que zero.'],
+      ['Personalizada', 'Informe o valor da cobrança maior que zero.']
+    ] as const;
+
+    for (const [modalidade, mensagem] of casos) {
+      const r = validarFormularioConfig(
+        entradaValida({
+          modalidade,
+          dataCobranca: modalidade === 'Personalizada' ? '2026-09-10' : null,
+          valorEstadia: 0
+        })
+      );
+      expect(r.ok).toBe(false);
+      expect(r.ok === false && r.mensagens).toContain(mensagem);
+    }
+
+    expect(validarFormularioConfig(entradaValida({ valorEstadia: null })).ok).toBe(false);
+    expect(validarFormularioConfig(entradaValida({ valorEstadia: -1 })).ok).toBe(false);
+  });
+
   it('obriga reescolher a regra em registros legados com modalidade semanal', () => {
     const r = validarFormularioConfig(entradaValida({ modalidade: 'Semanal' }));
     expect(r.ok).toBe(false);

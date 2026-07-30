@@ -49,8 +49,13 @@ export interface ConfiguracaoCobrancaSearchOutput {
   estacionamentoNome: string;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
+  diaFechamento: number | null;
+  regraFechamento: RegraFechamento;
+  prazoVencimentoDias: number;
   valorEstadia: number | null;
   emailFinanceiro: string | null;
+  envioAutomaticoEmail: boolean;
+  gerarFaturaAutomaticamente: boolean;
   dataCriacao: string;
 }
 

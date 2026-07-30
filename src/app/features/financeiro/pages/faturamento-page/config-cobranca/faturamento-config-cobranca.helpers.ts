@@ -34,6 +34,17 @@ export const MODALIDADE_OPCOES: { value: ConfigCobrancaModalidade; label: string
 
 const MODALIDADES_OFERTADAS: ConfigCobrancaModalidade[] = MODALIDADE_OPCOES.map((o) => o.value);
 
+const VALOR_COBRANCA_LABELS: Partial<Record<ConfigCobrancaModalidade, string>> = {
+  Diária: 'Valor da diária',
+  Mensal: 'Valor da mensalidade',
+  Quinzenal: 'Valor da quinzena',
+  Personalizada: 'Valor da cobrança'
+};
+
+export function valorCobrancaLabel(modalidade: ConfigCobrancaModalidade | ''): string {
+  return modalidade ? VALOR_COBRANCA_LABELS[modalidade] ?? 'Valor da cobrança' : 'Valor da cobrança';
+}
+
 /** Rótulo do campo de valor de cada serviço adicional. */
 export const SERVICO_VALOR_LABELS: Record<ConfigCobrancaServicoKey, string> = {
   lavagem: 'Valor da lavagem',
@@ -53,7 +64,8 @@ export function servicosFromItem(item: ConfigCobrancaListaItem | undefined): Con
   return base;
 }
 
-function valorInformado(valor: number | null | undefined): boolean {
+/** Valor monetário válido para cobrança/serviço (> 0). */
+export function valorInformado(valor: number | null | undefined): boolean {
   return valor != null && Number.isFinite(Number(valor)) && Number(valor) > 0;
 }
 
@@ -105,8 +117,8 @@ export function validarFormularioConfig(input: {
     m.push('E-mail financeiro inválido.');
   }
 
-  if (input.valorEstadia != null && Number.isFinite(Number(input.valorEstadia)) && Number(input.valorEstadia) < 0) {
-    m.push('Valor da estadia não pode ser negativo.');
+  if (!valorInformado(input.valorEstadia)) {
+    m.push(`Informe o ${valorCobrancaLabel(input.modalidade).toLowerCase()} maior que zero.`);
   }
 
   if (input.multa && !valorInformado(input.multaPct)) m.push('Informe o percentual de multa maior que zero.');

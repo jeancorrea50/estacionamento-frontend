@@ -1,7 +1,6 @@
 @use '../faturamento-shared-recebimentos';
 @use '../faturamento-shared-visao';
 @use '../faturamento-shared-painel';
-@use '../faturamento-shared-resumo';
 
 :host {
   display: block;
@@ -9,16 +8,11 @@
   overflow-x: hidden;
 }
 
-/* ──────────────────────────────────────────────────────────────────────
- * Estilos próprios de Configurações de Cobrança. O layout (painel, KPIs,
- * tabela, filtros, calendário, paginação, resumo e alertas) vem dos
- * shells compartilhados; aqui ficam apenas chips, colunas, o formulário
- * em blocos e os detalhes da lista de alertas.
- * ──────────────────────────────────────────────────────────────────── */
-
-/* Badges de status / envio */
+/* Badges de status / envio / modalidade */
 .cfg-chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 10px;
@@ -28,6 +22,23 @@
   line-height: 1.15;
 }
 
+.cfg-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.cfg-chip__dot--ok {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.cfg-chip__dot--off {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
 .cfg-chip--ativa {
   background: rgba(34, 197, 94, 0.14);
   color: #86efac;
@@ -35,9 +46,9 @@
 }
 
 .cfg-chip--inativa {
-  background: rgba(71, 85, 105, 0.14);
-  color: #94a3b8;
-  border-color: rgba(71, 85, 105, 0.25);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.28);
 }
 
 .cfg-chip--pendente {
@@ -64,24 +75,62 @@
   border-color: rgba(100, 116, 139, 0.28);
 }
 
-/* Colunas da tabela */
-.cfg-col-est {
-  min-width: 120px;
-  max-width: 160px;
+.cfg-chip--mod-diaria {
+  background: rgba(14, 165, 233, 0.14);
+  color: #7dd3fc;
+  border-color: rgba(14, 165, 233, 0.3);
+}
+
+.cfg-chip--mod-semanal {
+  background: rgba(168, 85, 247, 0.14);
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.cfg-chip--mod-quinzenal {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.cfg-chip--mod-mensal {
+  background: rgba(99, 102, 241, 0.14);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.cfg-chip--mod-personal {
+  background: rgba(236, 72, 153, 0.14);
+  color: #f9a8d4;
+  border-color: rgba(236, 72, 153, 0.3);
+}
+
+/* Colunas da tabela — sem estacionamento, usa melhor a largura */
+.cfg-col-transp {
+  min-width: 140px;
+  max-width: 220px;
 }
 
 .cfg-col-fech,
 .cfg-col-pz {
   min-width: 140px;
-  max-width: 220px;
+  max-width: 240px;
 }
 
 .cfg-col-mail {
   min-width: 160px;
-  max-width: 240px;
+  max-width: 260px;
 }
 
-/* Card CTA que abre o modal de configuração */
+.cfg-mail-cell {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cabeçalho simplificado */
 .cfg-cta-card.mat-mdc-card {
   border-radius: 12px;
   border: 1px solid var(--border-subtle) !important;
@@ -92,52 +141,15 @@
 .cfg-cta-card__content {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 18px !important;
-  flex-wrap: wrap;
-}
-
-.cfg-cta-card__icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(59, 130, 246, 0.14);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #3b82f6;
-}
-
-.cfg-cta-card__icon .material-symbols-outlined {
-  font-size: 24px;
-}
-
-.cfg-cta-card__texts {
-  flex: 1 1 260px;
-  min-width: 0;
+  padding: 14px 18px !important;
 }
 
 .cfg-cta-card__title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text);
-}
-
-.cfg-cta-card__subtitle {
-  margin: 2px 0 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--muted);
-}
-
-.cfg-cta-card__actions {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  letter-spacing: 0.01em;
 }
 
 html.theme-dark .cfg-cta-card.mat-mdc-card {
@@ -150,51 +162,257 @@ html.theme-dark .cfg-cta-card__title {
   color: var(--fat-card-value, #f8fafc);
 }
 
-html.theme-dark .cfg-cta-card__subtitle {
-  color: var(--fat-card-muted, #8ea0b8);
+/* Barra de consulta explícita — padrão da tela principal de Transportadoras. */
+.cfg-search-bar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(130px, 170px) minmax(240px, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--card-bg, var(--surface));
+  box-shadow: none;
 }
 
-/* Lista de alertas (texto em duas linhas) */
-.cfg-alertas-card {
-  margin-top: 0;
-}
-
-.cfg-alert-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.cfg-alert-title {
-  font-weight: 600;
+.cfg-search-bar__type,
+.cfg-search-bar__search {
+  height: 40px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--text);
 }
 
-html.theme-dark .cfg-alert-title {
-  color: var(--fat-card-value, #f8fafc);
+.cfg-search-bar__type {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
 }
 
-.cfg-alert-detail {
+.cfg-search-bar__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.cfg-search-bar__search .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.cfg-search-bar__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.cfg-search-bar__search input::placeholder {
   color: var(--muted);
 }
 
-/* Ícones de ação na tabela (alinhado ao recebimentos) */
-:host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button {
-  --mdc-icon-button-state-layer-size: 32px;
-  width: 32px;
-  height: 32px;
-  padding: 0;
+.cfg-search-bar__filters {
+  position: relative;
 }
 
+.cfg-search-bar__filters .rec-filtros-dropdown {
+  width: min(320px, calc(100vw - 32px));
+}
+
+.cfg-search-bar__menu {
+  min-width: 40px;
+  padding-inline: 8px;
+}
+
+.cfg-before-search {
+  min-height: 190px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--card-bg, var(--surface));
+  box-shadow: none;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.cfg-before-search .material-symbols-outlined {
+  font-size: 30px;
+  opacity: 0.7;
+}
+
+.cfg-before-search p,
+.cfg-loading {
+  margin: 0;
+}
+
+.cfg-before-search strong {
+  color: var(--text);
+}
+
+.cfg-loading {
+  padding: 16px;
+  color: var(--muted);
+}
+
+html.theme-dark .cfg-search-bar,
+html.theme-dark .cfg-before-search {
+  background: var(--fat-card-bg, #151f34);
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+}
+
+/* Tabela ocupa a largura disponível */
+.cfg-mat-table {
+  width: 100%;
+}
+
+/* Ações da linha: Editar | Visualizar | ⋮ */
+.cfg-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.cfg-row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cfg-row-action .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.cfg-row-action:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.28);
+  color: var(--text);
+}
+
+.cfg-row-action--icon {
+  padding: 4px 6px;
+}
+
+@media (max-width: 900px) {
+  .cfg-row-action__label {
+    display: none;
+  }
+}
+
+/* Seleção de linha com borda azul à esquerda */
 .cfg-data-row {
   cursor: pointer;
+  position: relative;
+}
+
+.cfg-data-row td:first-child {
+  box-shadow: inset 3px 0 0 transparent;
+  transition: box-shadow 0.15s ease;
 }
 
 .cfg-data-row--selected {
-  background: color-mix(in srgb, rgba(59, 130, 246, 0.22) 100%, transparent) !important;
+  background: color-mix(in srgb, rgba(59, 130, 246, 0.18) 100%, transparent) !important;
+}
+
+.cfg-data-row--selected td:first-child {
+  box-shadow: inset 3px 0 0 #3b82f6;
 }
 
 html.theme-dark .cfg-data-row--selected {
-  background: color-mix(in srgb, rgba(59, 130, 246, 0.18) 100%, transparent) !important;
+  background: color-mix(in srgb, rgba(59, 130, 246, 0.16) 100%, transparent) !important;
+}
+
+/* Paginação + seletor de página */
+.cfg-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cfg-table-footer__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cfg-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cfg-page-size__label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cfg-page-size__field {
+  width: 88px;
+}
+
+.cfg-page-size__field ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .cfg-cta-card__content {
+    padding: 12px 14px !important;
+  }
+
+  .cfg-search-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cfg-search-bar__type,
+  .cfg-search-bar__search {
+    grid-column: 1 / -1;
+  }
+
+  .cfg-search-bar__button,
+  .cfg-search-bar__filters,
+  .cfg-search-bar__menu,
+  .cfg-search-bar__new {
+    width: 100%;
+  }
+
+  .cfg-search-bar__filters .rec-filtros-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

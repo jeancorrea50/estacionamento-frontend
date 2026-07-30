@@ -1,9 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormGroupDirective, FormsModule, NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -26,9 +27,19 @@ import {
   montarRegistroDoFormulario,
   servicosFromItem,
   servicosVazios,
+  valorCobrancaLabel,
+  valorInformado,
   validarFormularioConfig
 } from '../faturamento-config-cobranca.helpers';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
+
+class ValorCobrancaErrorStateMatcher implements ErrorStateMatcher {
+  constructor(private readonly host: () => boolean) {}
+
+  isErrorState(_control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
+    return this.host();
+  }
+}
 
 export type ConfigCobrancaFormMode = 'create' | 'edit' | 'duplicate';
 
@@ -123,8 +134,13 @@ export class ConfigCobrancaFormDialogComponent {
   valorEstadia: number | null = null;
   /** Texto exibido no input (padrão pt-BR: 1.234,56). */
   valorEstadiaTexto = '';
+  valorEstadiaTocado = false;
   status: ConfigCobrancaStatus = 'Ativa';
   servicos: ConfigCobrancaServicos = servicosVazios();
+
+  readonly valorCobrancaMatcher = new ValorCobrancaErrorStateMatcher(
+    () => this.valorEstadiaTocado && this.valorCobrancaInvalido
+  );
 
   get titulo(): string {
     return 'Configuração de cobrança';
@@ -136,6 +152,14 @@ export class ConfigCobrancaFormDialogComponent {
 
   get exigeDataCobranca(): boolean {
     return this.modalidade === 'Personalizada';
+  }
+
+  get valorCobrancaLabel(): string {
+    return valorCobrancaLabel(this.modalidade);
+  }
+
+  get valorCobrancaInvalido(): boolean {
+    return !valorInformado(parseBrl(this.valorEstadiaTexto));
   }
 
   constructor() {
@@ -177,10 +201,14 @@ export class ConfigCobrancaFormDialogComponent {
     this.jurosMultaAberto = !this.jurosMultaAberto;
   }
 
-  /** Seleção única: trocar de modalidade descarta a data personalizada. */
+  /** Trocar a regra descarta valores específicos da modalidade anterior. */
   selecionarModalidade(value: ConfigCobrancaModalidade): void {
+    if (this.modalidade === value) return;
     this.modalidade = value;
     if (value !== 'Personalizada') this.dataCobranca = null;
+    this.valorEstadia = null;
+    this.valorEstadiaTexto = '';
+    this.valorEstadiaTocado = false;
   }
 
   toggleServico(key: ConfigCobrancaServicoKey): void {
@@ -212,6 +240,7 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   salvar(): void {
+    this.valorEstadiaTocado = true;
     this.sincronizarValorEstadiaDoTexto();
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
@@ -245,12 +274,15 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   onValorEstadiaBlur(): void {
+    this.valorEstadiaTocado = true;
     this.sincronizarValorEstadiaDoTexto();
-    this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
+    if (this.valorEstadia != null) this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
   }
 
   onValorEstadiaFocus(): void {
-    this.valorEstadiaTexto = this.valorEstadia == null ? '' : formatarBrl(this.valorEstadia);
+    // Mantém texto inválido para o usuário corrigir sem perder o que digitou.
+    if (this.valorEstadia == null) return;
+    this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
   }
 
   private sincronizarValorEstadiaDoTexto(): void {

@@ -85,9 +85,18 @@ export function regraFechamentoLabel(
   diaFechamento: number | null | undefined
 ): string {
   if (Number(regra) === RegraFechamento.DiaFixo) {
-    return diaFechamento && diaFechamento > 0 ? `Dia ${diaFechamento}` : 'Dia fixo';
+    if (diaFechamento && diaFechamento > 0) {
+      const dia = String(diaFechamento).padStart(2, '0');
+      return `Todo dia ${dia}`;
+    }
+    return 'Dia fixo';
   }
   return 'Último dia do mês';
+}
+
+/** Rótulo amigável da modalidade para badges na listagem. */
+export function modalidadeBadgeLabel(modalidade: ConfigCobrancaModalidade | string): string {
+  return modalidade === 'Personalizada' ? 'Data personalizada' : modalidade;
 }
 
 export function prazoVencimentoLabel(dias: number): string {
@@ -136,14 +145,14 @@ export function mapSearchToListaItem(dto: ConfiguracaoCobrancaSearchOutput): Con
     estacionamento: dto.estacionamentoNome || '—',
     modalidade: modalidadeLabel(dto.modalidadeCobranca),
     modalidadeCobranca: dto.modalidadeCobranca,
-    diaFechamento: null,
-    regraFechamento: RegraFechamento.UltimoDiaDoMes,
-    fechamento: '—',
-    prazoVencimentoDias: 0,
-    prazoVencimento: '—',
+    diaFechamento: dto.diaFechamento,
+    regraFechamento: dto.regraFechamento,
+    fechamento: regraFechamentoLabel(dto.regraFechamento, dto.diaFechamento),
+    prazoVencimentoDias: dto.prazoVencimentoDias,
+    prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
     dataCobranca: null,
-    envioAutomatico: false,
-    gerarFaturaAutomaticamente: false,
+    envioAutomatico: dto.envioAutomaticoEmail,
+    gerarFaturaAutomaticamente: dto.gerarFaturaAutomaticamente,
     emailFinanceiro: dto.emailFinanceiro?.trim() || null,
     status: statusLabel(dto.status),
     multaAplicar: false,
@@ -320,8 +329,13 @@ export function mapRawSearchItem(row: Record<string, unknown>): ConfiguracaoCobr
     estacionamentoNome: pickString(row, 'estacionamentoNome', 'EstacionamentoNome'),
     status: pickNumber(row, 'status', 'Status') as StatusConfiguracaoCobranca,
     modalidadeCobranca: pickNumber(row, 'modalidadeCobranca', 'ModalidadeCobranca') as ModalidadeCobranca,
+    diaFechamento: pickNumberOrNull(row, 'diaFechamento', 'DiaFechamento'),
+    regraFechamento: pickNumber(row, 'regraFechamento', 'RegraFechamento') as RegraFechamento,
+    prazoVencimentoDias: pickNumber(row, 'prazoVencimentoDias', 'PrazoVencimentoDias'),
     valorEstadia: pickNumberOrNull(row, 'valorEstadia', 'ValorEstadia'),
     emailFinanceiro: pickStringOrNull(row, 'emailFinanceiro', 'EmailFinanceiro'),
+    envioAutomaticoEmail: pickBool(row, 'envioAutomaticoEmail', 'EnvioAutomaticoEmail'),
+    gerarFaturaAutomaticamente: pickBool(row, 'gerarFaturaAutomaticamente', 'GerarFaturaAutomaticamente'),
     dataCriacao: pickString(row, 'dataCriacao', 'DataCriacao')
   };
 }

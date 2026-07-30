@@ -8,16 +8,6 @@ export type ConfigCobrancaStatus = 'Ativa' | 'Inativa' | 'Pendente de dados' | '
 
 export type ConfigCobrancaEnvioFiltroId = 'all' | 'ativo' | 'inativo';
 
-export type ConfigCobrancaFiltroRapidoId =
-  | 'todas'
-  | 'ativas'
-  | 'inativas'
-  | 'pendentes'
-  | 'semEmail'
-  | 'envioAuto'
-  | 'mensal'
-  | 'quinzenal';
-
 /** Chaves dos serviços adicionais, usadas para montar a seção de forma declarativa. */
 export type ConfigCobrancaServicoKey = 'lavagem' | 'pernoite' | 'extras' | 'beneficio';
 

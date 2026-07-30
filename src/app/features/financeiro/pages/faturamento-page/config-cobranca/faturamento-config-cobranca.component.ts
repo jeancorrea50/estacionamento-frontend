@@ -2,7 +2,6 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,15 +18,16 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
-import { ThemeService } from '../../../../../core/services/theme.service';
 import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
 import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
-import { mapListaItemToPostInput } from '../../../mappers/configuracao-cobranca.mapper';
+import {
+  mapListaItemToPostInput,
+  modalidadeBadgeLabel
+} from '../../../mappers/configuracao-cobranca.mapper';
 import { StatusConfiguracaoCobranca } from '../../../models/configuracao-cobranca.models';
 import { ConfiguracaoCobrancaService } from '../../../services/configuracao-cobranca.service';
 import type {
   ConfigCobrancaEnvioFiltroId,
-  ConfigCobrancaFiltroRapidoId,
   ConfigCobrancaListaItem,
   ConfigCobrancaLookupOption,
   ConfigCobrancaModalidade,
@@ -42,20 +42,6 @@ import {
 import { ConfigCobrancaHistoryDialogComponent } from './dialogs/config-cobranca-history-dialog.component';
 import { ConfigCobrancaSimulateDialogComponent } from './dialogs/config-cobranca-simulate-dialog.component';
 import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca-view-rule-dialog.component';
-
-type ConfigCobrancaPeriodoGranularidade = 'dia' | 'mes' | 'ano';
-
-interface PeriodoGranularidadeOpcao {
-  id: ConfigCobrancaPeriodoGranularidade;
-  label: string;
-}
-
-interface CfgCalendarioCelula {
-  iso: string;
-  day: number;
-  inMonth: boolean;
-  date: Date;
-}
 
 @Component({
   selector: 'app-faturamento-config-cobranca',
@@ -81,95 +67,43 @@ interface CfgCalendarioCelula {
 export class FaturamentoConfigCobrancaComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
-  private readonly themeService = inject(ThemeService);
   private readonly api = inject(ConfiguracaoCobrancaService);
   private readonly transportadoraLookup = inject(TransportadoraLookupService);
   private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
 
-  private readonly themeConfig = toSignal(this.themeService.theme$, {
-    initialValue: this.themeService.getCurrentTheme()
-  });
-
-  readonly isDarkTheme = computed(() => {
-    const mode = this.themeConfig().mode;
-    if (mode === 'dark') return true;
-    if (mode === 'light') return false;
-    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
   readonly items = signal<ConfigCobrancaListaItem[]>([]);
   readonly loading = signal(false);
+  readonly jaBuscou = signal(false);
   private readonly transportadorasLookup = signal<ConfigCobrancaLookupOption[]>([]);
   private readonly estacionamentosLookup = signal<ConfigCobrancaLookupOption[]>([]);
 
-  readonly modalidades: ConfigCobrancaModalidade[] = [
-    'Diária',
-    'Semanal',
-    'Quinzenal',
-    'Mensal',
-    'Personalizada'
+  /** Modalidades oferecidas no filtro da listagem (rótulo amigável para personalizada). */
+  readonly modalidadesFiltro: { value: ConfigCobrancaModalidade; label: string }[] = [
+    { value: 'Diária', label: 'Diária' },
+    { value: 'Mensal', label: 'Mensal' },
+    { value: 'Quinzenal', label: 'Quinzenal' },
+    { value: 'Personalizada', label: 'Data personalizada' }
   ];
 
-  readonly statusOpcoes: ConfigCobrancaStatus[] = ['Ativa', 'Inativa'];
-
-  readonly filtroRapidoOpcoes: { id: ConfigCobrancaFiltroRapidoId; label: string }[] = [
-    { id: 'todas', label: 'Todas' },
-    { id: 'ativas', label: 'Ativas' },
-    { id: 'inativas', label: 'Inativas' },
-    { id: 'pendentes', label: 'Pendentes' },
-    { id: 'semEmail', label: 'Sem e-mail' },
-    { id: 'envioAuto', label: 'Envio automático' },
-    { id: 'mensal', label: 'Mensal' },
-    { id: 'quinzenal', label: 'Quinzenal' }
+  readonly statusFiltroOpcoes: { value: string; label: string }[] = [
+    { value: 'all', label: 'Todos' },
+    { value: 'Ativa', label: 'Ativos' },
+    { value: 'Inativa', label: 'Inativos' }
   ];
 
-  readonly periodoGranularidadeOpcoes: PeriodoGranularidadeOpcao[] = [
-    { id: 'dia', label: 'Dia' },
-    { id: 'mes', label: 'Mês' },
-    { id: 'ano', label: 'Ano' }
-  ];
+  readonly pageSizeOpcoes = [10, 25, 50, 100] as const;
 
-  readonly transportadoraFiltro = signal<string>('all');
-  readonly estacionamentoFiltro = signal<string>('all');
+  readonly transportadoraFiltro = signal<number | 'all'>('all');
+  readonly estacionamentoFiltro = signal<number | 'all'>('all');
   readonly modalidadeFiltro = signal<string>('all');
   readonly statusFiltro = signal<string>('all');
   readonly envioFiltro = signal<ConfigCobrancaEnvioFiltroId>('all');
-  readonly filtroRapido = signal<ConfigCobrancaFiltroRapidoId | null>(null);
   readonly searchText = signal<string>('');
 
   readonly panelFiltrosAberto = signal(false);
-  readonly panelDataAberto = signal(false);
 
-  /* ── Calendário (visual, espelha Recebimentos) ────────────────────── */
-  readonly periodoGranularidade = signal<ConfigCobrancaPeriodoGranularidade>('dia');
-  readonly periodoDataInicio = signal<Date>(this.criarDataHoje());
-  readonly periodoDataFim = signal<Date>(this.criarDataHoje());
-  readonly calendarioAno = signal(new Date().getFullYear());
-  readonly calendarioMes = signal(new Date().getMonth());
-  private readonly arrastandoPeriodo = signal(false);
-  private readonly arrasteAnchor = signal<Date | null>(null);
-
-  readonly diasSemanaLabels = ['Do.', '2ª', '3ª', '4ª', '5ª', '6ª', 'Sa.'] as const;
-  readonly mesesLabels = [
-    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-  ] as const;
-
-  readonly calendarioTituloMes = computed(() => {
-    const d = new Date(this.calendarioAno(), this.calendarioMes(), 1);
-    const titulo = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    return titulo.charAt(0).toUpperCase() + titulo.slice(1);
-  });
-
-  readonly calendarioGrade = computed(() => this.montarGradeCalendario());
-
-  readonly calendarioAnosOpcoes = computed(() => {
-    const centro = this.calendarioAno();
-    return Array.from({ length: 12 }, (_, i) => centro - 5 + i);
-  });
-
-  /* ── Paginação ────────────────────────────────────────────────────── */
   readonly paginaAtual = signal(0);
-  readonly itensPorPagina = 20;
+  readonly itensPorPagina = signal(25);
 
   readonly selection = new SelectionModel<ConfigCobrancaListaItem>(true, []);
   private readonly selectionTick = signal(0);
@@ -177,7 +111,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   readonly displayedColumns: string[] = [
     'select',
     'transportadora',
-    'estacionamento',
     'modalidade',
     'fechamento',
     'prazoVencimento',
@@ -192,69 +125,16 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   readonly transportadorasOpcoes = computed(() => this.transportadorasLookup());
   readonly estacionamentosOpcoes = computed(() => this.estacionamentosLookup());
 
-  readonly contagensChips = computed(() => {
-    const rows = this.items();
-    const hidratados = rows.filter((r) => !r.parcial);
-    return {
-      todas: rows.length,
-      ativas: rows.filter((r) => r.status === 'Ativa').length,
-      inativas: rows.filter((r) => r.status === 'Inativa').length,
-      pendentes: rows.filter((r) => r.status === 'Pendente de dados').length,
-      semEmail: rows.filter((r) => !r.emailFinanceiro).length,
-      envioAuto: hidratados.filter((r) => r.envioAutomatico).length,
-      mensal: rows.filter((r) => r.modalidade === 'Mensal').length,
-      quinzenal: rows.filter((r) => r.modalidade === 'Quinzenal').length
-    };
-  });
-
-  readonly alertasDinamicos = computed(() => {
-    const c = this.contagensChips();
-    const hidratados = this.items().filter((r) => !r.parcial).length;
-    return [
-      {
-        id: 'c1',
-        icon: 'mark_email_unread' as const,
-        titulo: 'E-mail financeiro ausente',
-        detalhe: `${c.semEmail} transportadora(s) sem e-mail financeiro cadastrado`,
-        nivel: 'atencao' as const
-      },
-      {
-        id: 'c2',
-        icon: 'pending_actions' as const,
-        titulo: 'Dados incompletos',
-        detalhe: `${c.pendentes} configuração(ões) pendente(s) de dados`,
-        nivel: 'atencao' as const
-      },
-      {
-        id: 'c3',
-        icon: 'event_busy' as const,
-        titulo: 'Prazo de vencimento',
-        detalhe: 'Revise regras com prazo indefinido (simulação)',
-        nivel: 'critico' as const
-      },
-      {
-        id: 'c4',
-        icon: 'schedule_send' as const,
-        titulo: 'Envio automático',
-        detalhe:
-          hidratados > 0
-            ? `${hidratados - c.envioAuto} configuração(ões) hidratada(s) com envio automático inativo`
-            : 'Abra um registro para carregar o detalhe de envio automático',
-        nivel: 'atencao' as const
-      }
-    ];
-  });
-
   readonly linhasFiltradas = computed(() => this.aplicarFiltros());
 
   readonly linhasPaginadas = computed(() => {
     const rows = this.linhasFiltradas();
-    const start = this.paginaAtual() * this.itensPorPagina;
-    return rows.slice(start, start + this.itensPorPagina);
+    const start = this.paginaAtual() * this.itensPorPagina();
+    return rows.slice(start, start + this.itensPorPagina());
   });
 
   readonly totalPaginas = computed(() =>
-    Math.max(1, Math.ceil(this.linhasFiltradas().length / this.itensPorPagina))
+    Math.max(1, Math.ceil(this.linhasFiltradas().length / this.itensPorPagina()))
   );
 
   readonly paginasVisiveis = computed(() => {
@@ -266,12 +146,9 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     return [...s].sort((a, b) => a - b);
   });
 
-  readonly paginaInfo = computed(() => {
-    const total = this.linhasFiltradas().length;
-    if (total === 0) return '0 a 0';
-    const start = this.paginaAtual() * this.itensPorPagina + 1;
-    const end = Math.min(start + this.itensPorPagina - 1, total);
-    return `${start} a ${end}`;
+  readonly totalEncontradasLabel = computed(() => {
+    const n = this.linhasFiltradas().length;
+    return n === 1 ? '1 configuração encontrada' : `${n} configurações encontradas`;
   });
 
   readonly filtrosAtivosCount = computed(() => {
@@ -284,32 +161,12 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     return c;
   });
 
-  readonly resumoLinha = computed(() => {
-    this.selectionTick();
-    const s = this.selection.selected;
-    return s.length ? s[0] : null;
-  });
-
-  readonly variosSelecionados = computed(() => {
-    this.selectionTick();
-    return this.selection.selected.length > 1;
-  });
-
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as Element;
     if (!target.closest('.rec-filter-bar')) {
       this.panelFiltrosAberto.set(false);
     }
-    if (!target.closest('.rec-data-picker')) {
-      this.panelDataAberto.set(false);
-    }
-  }
-
-  @HostListener('document:mouseup')
-  onDocumentMouseUp(): void {
-    this.arrastandoPeriodo.set(false);
-    this.arrasteAnchor.set(null);
   }
 
   constructor() {
@@ -329,10 +186,10 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarLookups();
-    this.carregarLista();
   }
 
   carregarLista(): void {
+    this.jaBuscou.set(true);
     this.loading.set(true);
     const tr = this.transportadoraFiltro();
     const es = this.estacionamentoFiltro();
@@ -392,46 +249,15 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     });
   }
 
-  isFiltroRapidoAtivo(id: ConfigCobrancaFiltroRapidoId): boolean {
-    const cur = this.filtroRapido();
-    if (id === 'todas') return cur === null || cur === 'todas';
-    return cur === id;
-  }
-
-  alternarFiltroRapido(id: ConfigCobrancaFiltroRapidoId): void {
-    if (id === 'todas') {
-      this.filtroRapido.set(null);
-      return;
-    }
-    this.filtroRapido.update((cur) => (cur === id ? null : id));
-  }
-
   setEnvioFiltro(ev: MatSelectChange): void {
     this.envioFiltro.set(ev.value as ConfigCobrancaEnvioFiltroId);
   }
 
-  chipBadge(id: ConfigCobrancaFiltroRapidoId): number {
-    const c = this.contagensChips();
-    switch (id) {
-      case 'todas':
-        return c.todas;
-      case 'ativas':
-        return c.ativas;
-      case 'inativas':
-        return c.inativas;
-      case 'pendentes':
-        return c.pendentes;
-      case 'semEmail':
-        return c.semEmail;
-      case 'envioAuto':
-        return c.envioAuto;
-      case 'mensal':
-        return c.mensal;
-      case 'quinzenal':
-        return c.quinzenal;
-      default:
-        return 0;
-    }
+  setItensPorPagina(ev: MatSelectChange): void {
+    const size = Number(ev.value);
+    if (!Number.isFinite(size) || size <= 0) return;
+    this.itensPorPagina.set(size);
+    this.paginaAtual.set(0);
   }
 
   togglePanelFiltros(event: MouseEvent): void {
@@ -449,126 +275,33 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     this.carregarLista();
   }
 
+  buscar(): void {
+    if (this.loading()) return;
+    this.paginaAtual.set(0);
+    this.carregarLista();
+  }
+
   irParaPagina(p: number): void {
     this.paginaAtual.set(Math.max(0, Math.min(p, this.totalPaginas() - 1)));
   }
 
-  /* ── Calendário (seletor de data visual) ──────────────────────────── */
-  togglePanelData(event: MouseEvent): void {
-    event.stopPropagation();
-    this.panelDataAberto.update((v) => {
-      const abrindo = !v;
-      if (abrindo) {
-        const ref = this.periodoDataInicio();
-        this.calendarioAno.set(ref.getFullYear());
-        this.calendarioMes.set(ref.getMonth());
-      }
-      return abrindo;
-    });
-  }
-
-  setPeriodoGranularidade(id: ConfigCobrancaPeriodoGranularidade): void {
-    this.periodoGranularidade.set(id);
-    const ini = this.periodoDataInicio();
-    this.calendarioAno.set(ini.getFullYear());
-    if (id === 'mes' || id === 'dia') {
-      this.calendarioMes.set(ini.getMonth());
-    }
-  }
-
-  mesCalendarioAnterior(): void {
-    const m = this.calendarioMes();
-    const a = this.calendarioAno();
-    if (m === 0) {
-      this.calendarioMes.set(11);
-      this.calendarioAno.set(a - 1);
-    } else {
-      this.calendarioMes.set(m - 1);
-    }
-  }
-
-  mesCalendarioProximo(): void {
-    const m = this.calendarioMes();
-    const a = this.calendarioAno();
-    if (m === 11) {
-      this.calendarioMes.set(0);
-      this.calendarioAno.set(a + 1);
-    } else {
-      this.calendarioMes.set(m + 1);
-    }
-  }
-
-  anoCalendarioAnterior(): void {
-    this.calendarioAno.update((a) => a - 1);
-  }
-
-  anoCalendarioProximo(): void {
-    this.calendarioAno.update((a) => a + 1);
-  }
-
-  onDiaCalendarioPointerDown(cell: CfgCalendarioCelula, event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.navegarParaMesDoDia(cell);
-    this.arrastandoPeriodo.set(true);
-    this.arrasteAnchor.set(cell.date);
-    this.definirIntervaloDias(cell.date, cell.date);
-  }
-
-  onDiaCalendarioPointerEnter(cell: CfgCalendarioCelula): void {
-    if (!this.arrastandoPeriodo()) return;
-    const anchor = this.arrasteAnchor();
-    if (!anchor) return;
-    this.navegarParaMesDoDia(cell);
-    this.definirIntervaloDias(anchor, cell.date);
-  }
-
-  selecionarMesCalendario(mesIndex: number): void {
-    this.calendarioMes.set(mesIndex);
-    this.periodoGranularidade.set('dia');
-  }
-
-  selecionarAnoCalendario(ano: number): void {
-    this.calendarioAno.set(ano);
-    this.periodoGranularidade.set('mes');
-  }
-
-  diaCalendarioModificadores(cell: CfgCalendarioCelula): Record<string, boolean> {
-    const iso = cell.iso;
-    const ini = this.toIsoDate(this.periodoDataInicio());
-    const fim = this.toIsoDate(this.periodoDataFim());
-    const noIntervalo = iso >= ini && iso <= fim;
-    const unico = ini === fim;
-    return {
-      'rec-cal__dia--fora': !cell.inMonth,
-      'rec-cal__dia--selecionado': unico && iso === ini,
-      'rec-cal__dia--range': !unico && noIntervalo,
-      'rec-cal__dia--range-start': !unico && iso === ini,
-      'rec-cal__dia--range-end': !unico && iso === fim
-    };
-  }
-
-  mesCalendarioModificadores(mesIndex: number): Record<string, boolean> {
-    const ini = this.periodoDataInicio();
-    const ativo =
-      this.periodoGranularidade() === 'mes' &&
-      ini.getFullYear() === this.calendarioAno() &&
-      ini.getMonth() === mesIndex;
-    return { 'rec-cal__mes--ativo': ativo };
-  }
-
-  anoCalendarioModificadores(ano: number): Record<string, boolean> {
-    const ini = this.periodoDataInicio();
-    const ativo = this.periodoGranularidade() === 'ano' && ini.getFullYear() === ano;
-    return { 'rec-cal__ano--ativo': ativo };
-  }
-
-  formatCurrency(v: number): string {
-    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
   textoEmail(v: string | null): string {
     return v && v.trim() ? v : '—';
+  }
+
+  modalidadeClass(m: ConfigCobrancaModalidade): string {
+    const map: Partial<Record<ConfigCobrancaModalidade, string>> = {
+      Diária: 'cfg-chip cfg-chip--mod-diaria',
+      Semanal: 'cfg-chip cfg-chip--mod-semanal',
+      Quinzenal: 'cfg-chip cfg-chip--mod-quinzenal',
+      Mensal: 'cfg-chip cfg-chip--mod-mensal',
+      Personalizada: 'cfg-chip cfg-chip--mod-personal'
+    };
+    return map[m] ?? 'cfg-chip';
+  }
+
+  modalidadeLabel(m: ConfigCobrancaModalidade): string {
+    return modalidadeBadgeLabel(m);
   }
 
   statusClass(s: ConfigCobrancaStatus): string {
@@ -581,21 +314,24 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     return map[s] ?? 'cfg-chip';
   }
 
+  statusLabel(s: ConfigCobrancaStatus): string {
+    if (s === 'Ativa') return 'Ativa';
+    if (s === 'Inativa') return 'Inativa';
+    return s;
+  }
+
   envioClass(ativo: boolean): string {
     return ativo ? 'cfg-chip cfg-chip--envio-sim' : 'cfg-chip cfg-chip--envio-nao';
   }
 
-  semEmailFinanceiro(row: ConfigCobrancaListaItem): boolean {
-    return !row.emailFinanceiro?.trim();
+  fechamentoTexto(row: ConfigCobrancaListaItem): string {
+    const t = row.fechamento?.trim();
+    if (!t || t === '—' || t.toUpperCase() === 'NULL') return '—';
+    return t;
   }
 
-  onMasterToggle(ev: MatCheckboxChange): void {
-    if (ev.checked) {
-      for (const r of this.linhasFiltradas()) this.selection.select(r);
-    } else {
-      this.selection.clear();
-    }
-    this.selectionTick.update((n) => n + 1);
+  semEmailFinanceiro(row: ConfigCobrancaListaItem): boolean {
+    return !row.emailFinanceiro?.trim();
   }
 
   onRowToggle(row: ConfigCobrancaListaItem, ev: MatCheckboxChange): void {
@@ -604,25 +340,14 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     this.selectionTick.update((n) => n + 1);
   }
 
+  /** Seleção é apenas visual: o detalhe é sempre carregado pelo endpoint na ação escolhida. */
   onRowClick(row: ConfigCobrancaListaItem): void {
     this.selection.clear();
     this.selection.select(row);
     this.selectionTick.update((n) => n + 1);
-    if (row.parcial) {
-      this.obterDetalhe(row.id, (full) => {
-        this.items.update((arr) => arr.map((x) => (x.id === full.id ? full : x)));
-        this.syncSelectionWithItems();
-      });
-    }
   }
 
-  isAllSelected(): boolean {
-    const v = this.linhasFiltradas();
-    return v.length > 0 && v.every((r) => this.selection.isSelected(r));
-  }
-
-  checkboxLabel(row?: ConfigCobrancaListaItem): string {
-    if (!row) return 'Selecionar todos';
+  checkboxLabel(row: ConfigCobrancaListaItem): string {
     return `${this.selection.isSelected(row) ? 'Desmarcar' : 'Selecionar'} ${row.id}`;
   }
 
@@ -657,7 +382,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     const header = [
       'id',
       'transportadora',
-      'estacionamento',
       'modalidade',
       'fechamento',
       'prazoVencimento',
@@ -676,11 +400,10 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         [
           r.id,
           r.transportadora,
-          r.estacionamento,
-          r.modalidade,
-          r.fechamento,
+          this.modalidadeLabel(r.modalidade),
+          this.fechamentoTexto(r),
           r.prazoVencimento,
-          r.envioAutomatico,
+          r.gerarFaturaAutomaticamente ? 'Sim' : 'Não',
           r.emailFinanceiro ?? '',
           r.status
         ]
@@ -710,18 +433,18 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         data: { row: full }
       });
       ref.afterClosed().subscribe((v) => {
-        if (v === 'edit') this.editarLinha(full);
+        // Reaproveita o detalhe já carregado para não repetir o GET.
+        if (v === 'edit') this.abrirFormularioDialog('edit', full);
       });
     });
   }
 
   testarEnvioLinha(row: ConfigCobrancaListaItem): void {
-    const r = this.freshen(row);
-    if (!r.emailFinanceiro?.trim()) {
+    if (!row.emailFinanceiro?.trim()) {
       this.snack.open('Configuração sem e-mail financeiro cadastrado.', 'Fechar', { duration: 4000 });
       return;
     }
-    this.snack.open(`E-mail de teste enviado para ${r.emailFinanceiro}.`, 'Fechar', { duration: 4500 });
+    this.snack.open(`E-mail de teste enviado para ${row.emailFinanceiro}.`, 'Fechar', { duration: 4500 });
   }
 
   alternarAtivaLinha(row: ConfigCobrancaListaItem): void {
@@ -748,18 +471,22 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   }
 
   verHistorico(row: ConfigCobrancaListaItem): void {
-    this.dialog.open(ConfigCobrancaHistoryDialogComponent, {
-      width: '440px',
-      maxWidth: '96vw',
-      data: { row: this.freshen(row) }
+    this.obterDetalhe(row.id, (full) => {
+      this.dialog.open(ConfigCobrancaHistoryDialogComponent, {
+        width: '440px',
+        maxWidth: '96vw',
+        data: { row: full }
+      });
     });
   }
 
   simularFaturamento(row: ConfigCobrancaListaItem): void {
-    this.dialog.open(ConfigCobrancaSimulateDialogComponent, {
-      width: '480px',
-      maxWidth: '96vw',
-      data: { row: this.freshen(row) }
+    this.obterDetalhe(row.id, (full) => {
+      this.dialog.open(ConfigCobrancaSimulateDialogComponent, {
+        width: '480px',
+        maxWidth: '96vw',
+        data: { row: full }
+      });
     });
   }
 
@@ -810,7 +537,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   }
 
   removerLinha(row: ConfigCobrancaListaItem): void {
-    const r = this.freshen(row);
+    const r = row;
     const ref = this.dialog.open(ConfigCobrancaConfirmDialogComponent, {
       width: '420px',
       maxWidth: '96vw',
@@ -833,36 +560,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     });
   }
 
-  editarResumo(): void {
-    const row = this.resumoLinha();
-    if (!row) return;
-    this.editarLinha(row);
-  }
-
-  duplicarResumo(): void {
-    const row = this.resumoLinha();
-    if (!row) return;
-    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('duplicate', full));
-  }
-
-  testarResumo(): void {
-    const row = this.resumoLinha();
-    if (!row) return;
-    this.testarEnvioLinha(row);
-  }
-
-  alternarResumo(): void {
-    const row = this.resumoLinha();
-    if (!row) return;
-    this.alternarAtivaLinha(row);
-  }
-
-  visualizarRegraCompletaResumo(): void {
-    const row = this.resumoLinha();
-    if (!row) return;
-    this.visualizarRegra(row);
-  }
-
   private abrirFormularioDialog(mode: 'create' | 'edit' | 'duplicate', item?: ConfigCobrancaListaItem): void {
     const ref = this.dialog.open(ConfigCobrancaFormDialogComponent, {
       width: '920px',
@@ -873,7 +570,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         item,
         transportadoras: this.listaTransportadorasForm(),
         estacionamentos: this.listaEstacionamentosForm(),
-        statusOpcoes: this.statusOpcoes
+        statusOpcoes: ['Ativa', 'Inativa'] as ConfigCobrancaStatus[]
       }
     });
     ref.afterClosed().subscribe((res: ConfigCobrancaFormDialogResult | undefined) => {
@@ -922,10 +619,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     return this.selection.selected[0] ?? null;
   }
 
-  private freshen(row: ConfigCobrancaListaItem): ConfigCobrancaListaItem {
-    return this.items().find((x) => x.id === row.id) ?? row;
-  }
-
   private syncSelectionWithItems(): void {
     const ids = new Set(this.selection.selected.map((r) => r.id));
     this.selection.clear();
@@ -965,94 +658,18 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     const mo = this.modalidadeFiltro();
     const st = this.statusFiltro();
     const env = this.envioFiltro();
-    const q = this.filtroRapido();
-    const s = this.searchText().trim().toLowerCase();
 
     if (tr !== 'all') {
-      const tid = Number(tr);
-      rows = rows.filter((r) => r.transportadoraId === tid || r.transportadora === tr);
+      rows = rows.filter((r) => r.transportadoraId === tr);
     }
     if (es !== 'all') {
-      const eid = Number(es);
-      rows = rows.filter((r) => r.estacionamentoId === eid || r.estacionamento === es);
+      rows = rows.filter((r) => r.estacionamentoId === es);
     }
     if (mo !== 'all') rows = rows.filter((r) => r.modalidade === mo);
     if (st !== 'all') rows = rows.filter((r) => r.status === st);
-    if (env === 'ativo') rows = rows.filter((r) => !r.parcial && r.envioAutomatico);
-    if (env === 'inativo') rows = rows.filter((r) => !r.parcial && !r.envioAutomatico);
-
-    if (q === 'ativas') rows = rows.filter((r) => r.status === 'Ativa');
-    else if (q === 'inativas') rows = rows.filter((r) => r.status === 'Inativa');
-    else if (q === 'pendentes') rows = rows.filter((r) => r.status === 'Pendente de dados');
-    else if (q === 'semEmail') {
-      rows = rows.filter((r) => !r.emailFinanceiro);
-    } else if (q === 'envioAuto') rows = rows.filter((r) => !r.parcial && r.envioAutomatico);
-    else if (q === 'mensal') rows = rows.filter((r) => r.modalidade === 'Mensal');
-    else if (q === 'quinzenal') rows = rows.filter((r) => r.modalidade === 'Quinzenal');
-
-    if (s) {
-      rows = rows.filter(
-        (r) =>
-          String(r.id).includes(s) ||
-          r.transportadora.toLowerCase().includes(s) ||
-          r.estacionamento.toLowerCase().includes(s) ||
-          (r.emailFinanceiro ?? '').toLowerCase().includes(s)
-      );
-    }
+    if (env === 'ativo') rows = rows.filter((r) => r.gerarFaturaAutomaticamente);
+    if (env === 'inativo') rows = rows.filter((r) => !r.gerarFaturaAutomaticamente);
 
     return rows;
-  }
-
-  private criarDataHoje(): Date {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  }
-
-  private toIsoDate(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
-  private montarGradeCalendario(): CfgCalendarioCelula[] {
-    const ano = this.calendarioAno();
-    const mes = this.calendarioMes();
-    const primeiro = new Date(ano, mes, 1);
-    const grade: CfgCalendarioCelula[] = [];
-    const inicioGrade = new Date(primeiro);
-    inicioGrade.setDate(primeiro.getDate() - primeiro.getDay());
-
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(inicioGrade);
-      date.setDate(inicioGrade.getDate() + i);
-      grade.push({
-        iso: this.toIsoDate(date),
-        day: date.getDate(),
-        inMonth: date.getMonth() === mes,
-        date
-      });
-    }
-
-    return grade;
-  }
-
-  private navegarParaMesDoDia(cell: CfgCalendarioCelula): void {
-    if (!cell.inMonth) {
-      this.calendarioAno.set(cell.date.getFullYear());
-      this.calendarioMes.set(cell.date.getMonth());
-    }
-  }
-
-  private definirIntervaloDias(inicio: Date, fim: Date): void {
-    const a = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
-    const b = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
-    if (this.toIsoDate(a) <= this.toIsoDate(b)) {
-      this.periodoDataInicio.set(a);
-      this.periodoDataFim.set(b);
-    } else {
-      this.periodoDataInicio.set(b);
-      this.periodoDataFim.set(a);
-    }
   }
 }

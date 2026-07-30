@@ -8,8 +8,10 @@ import {
   mapOutputToListaItem,
   mapRawOutput,
   mapSearchToListaItem,
+  modalidadeBadgeLabel,
   modalidadeLabel,
   prazoVencimentoLabel,
+  regraFechamentoLabel,
   toIsoDate
 } from './configuracao-cobranca.mapper';
 
@@ -58,7 +60,11 @@ describe('configuracao-cobranca.mapper', () => {
   it('deve mapear modalidade e prazo para labels', () => {
     expect(modalidadeLabel(ModalidadeCobranca.Quinzenal)).toBe('Quinzenal');
     expect(modalidadeLabel(ModalidadeCobranca.Personalizado)).toBe('Personalizada');
+    expect(modalidadeBadgeLabel('Personalizada')).toBe('Data personalizada');
+    expect(modalidadeBadgeLabel('Mensal')).toBe('Mensal');
     expect(prazoVencimentoLabel(10)).toBe('10 dias após fechamento');
+    expect(regraFechamentoLabel(RegraFechamento.DiaFixo, 5)).toBe('Todo dia 05');
+    expect(regraFechamentoLabel(RegraFechamento.UltimoDiaDoMes, null)).toBe('Último dia do mês');
   });
 
   it('deve normalizar DateTime do backend para yyyy-MM-dd', () => {
@@ -76,13 +82,25 @@ describe('configuracao-cobranca.mapper', () => {
       estacionamentoNome: 'Estac',
       status: StatusConfiguracaoCobranca.Ativa,
       modalidadeCobranca: ModalidadeCobranca.Mensal,
+      diaFechamento: 5,
+      regraFechamento: RegraFechamento.DiaFixo,
+      prazoVencimentoDias: 10,
       valorEstadia: null,
       emailFinanceiro: 'a@b.com',
+      envioAutomaticoEmail: false,
+      gerarFaturaAutomaticamente: true,
       dataCriacao: '2026-01-01'
     });
     expect(item.transportadora).toBe('Transp');
     expect(item.modalidade).toBe('Mensal');
     expect(item.status).toBe('Ativa');
+    // São propriedades independentes: a grade usa geração automática,
+    // enquanto o formulário mantém o envio automático por e-mail.
+    expect(item.envioAutomatico).toBe(false);
+    expect(item.gerarFaturaAutomaticamente).toBe(true);
+    // A grade precisa exibir fechamento e prazo já na busca, sem depender do detalhe.
+    expect(item.fechamento).toBe('Todo dia 05');
+    expect(item.prazoVencimento).toBe('10 dias após fechamento');
     expect(item.parcial).toBe(true);
   });
 

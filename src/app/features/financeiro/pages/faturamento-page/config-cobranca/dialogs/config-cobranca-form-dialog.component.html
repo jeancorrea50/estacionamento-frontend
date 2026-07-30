@@ -148,28 +148,34 @@
       </div>
     </section>
 
-    <!-- Bloco 5 — Configuração de valor -->
+    <!-- Bloco 5 — Valor da cobrança -->
     <section class="cfg-block">
       <div class="cfg-block__head">
         <span class="cfg-block__num">5</span>
-        <h3 class="cfg-block__title">Configuração de valor</h3>
+        <h3 class="cfg-block__title">Valor da cobrança</h3>
       </div>
       <div class="cfg-block__grid">
         <div class="cfg-money-field">
-          <span class="cfg-money-field__currency" aria-hidden="true">R$</span>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-money-field__control">
-            <mat-label>Valor da estadia</mat-label>
+          <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic" class="cfg-field">
+            <mat-label>{{ valorCobrancaLabel }}</mat-label>
+            <span matTextPrefix class="cfg-money-field__prefix">R$&nbsp;</span>
             <input
               matInput
               type="text"
               inputmode="decimal"
               autocomplete="off"
+              placeholder="0,00"
               [(ngModel)]="valorEstadiaTexto"
+              [errorStateMatcher]="valorCobrancaMatcher"
               (blur)="onValorEstadiaBlur()"
               (focus)="onValorEstadiaFocus()"
-              aria-describedby="cfg-valor-estadia-hint"
+              required
             />
-            <mat-hint id="cfg-valor-estadia-hint">Formato brasileiro. Ex.: 1.250,00</mat-hint>
+            @if (valorEstadiaTocado && valorCobrancaInvalido) {
+              <mat-error>Informe o {{ valorCobrancaLabel.toLowerCase() }} maior que zero.</mat-error>
+            } @else {
+              <mat-hint>Formato brasileiro. Ex.: 1.250,00</mat-hint>
+            }
           </mat-form-field>
         </div>
       </div>

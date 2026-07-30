@@ -26,7 +26,10 @@ export interface ConfigCobrancaViewRuleDialogData {
         <div><dt>Regra de fechamento</dt><dd>{{ data.row.fechamento }}</dd></div>
         <div><dt>Prazo de vencimento</dt><dd>{{ data.row.prazoVencimento }}</dd></div>
         <div><dt>Valor da estadia</dt><dd>{{ formatarValorEstadia(data.row.valorEstadia) }}</dd></div>
-        <div><dt>Envio automático</dt><dd>{{ data.row.envioAutomatico ? 'Sim' : 'Não' }}</dd></div>
+        <div>
+          <dt>Envio automático</dt>
+          <dd>{{ data.row.gerarFaturaAutomaticamente ? 'Sim' : 'Não' }}</dd>
+        </div>
         <div><dt>E-mail financeiro</dt><dd>{{ data.row.emailFinanceiro ?? '—' }}</dd></div>
         <div><dt>Permite pagamento parcial</dt><dd>{{ data.row.pagamentoParcial ? 'Sim' : 'Não' }}</dd></div>
         <div><dt>Multa</dt><dd>{{ data.row.multaAplicar ? data.row.multaPercentual + '%' : 'Não' }}</dd></div>

@@ -102,7 +102,13 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   private readonly transportadorasLookup = signal<ConfigCobrancaLookupOption[]>([]);
   private readonly estacionamentosLookup = signal<ConfigCobrancaLookupOption[]>([]);
 
-  readonly modalidades: ConfigCobrancaModalidade[] = ['Diária', 'Semanal', 'Quinzenal', 'Mensal'];
+  readonly modalidades: ConfigCobrancaModalidade[] = [
+    'Diária',
+    'Semanal',
+    'Quinzenal',
+    'Mensal',
+    'Personalizada'
+  ];
 
   readonly statusOpcoes: ConfigCobrancaStatus[] = ['Ativa', 'Inativa'];
 
@@ -785,8 +791,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
               ...base,
               id: 0,
               transportadoraId: tid,
-              transportadora: nome,
-              regra: { ...base.regra, id: 0 }
+              transportadora: nome
             })
           );
         });
@@ -868,7 +873,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         item,
         transportadoras: this.listaTransportadorasForm(),
         estacionamentos: this.listaEstacionamentosForm(),
-        modalidades: this.modalidades,
         statusOpcoes: this.statusOpcoes
       }
     });
@@ -878,7 +882,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
       const req$ =
         mode === 'edit' && item
           ? this.api.alterar({ ...payload, id: item.id })
-          : this.api.gravar({ ...payload, id: 0, regra: { ...payload.regra, id: 0 } });
+          : this.api.gravar({ ...payload, id: 0 });
 
       req$.subscribe({
         next: () => {

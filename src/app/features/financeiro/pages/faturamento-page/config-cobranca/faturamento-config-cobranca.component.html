@@ -9,7 +9,7 @@
       <div class="cfg-cta-card__texts">
         <h3 class="cfg-cta-card__title">Configurações de cobrança</h3>
         <p class="cfg-cta-card__subtitle">
-          Defina regras de faturamento, vencimento, agrupamento e envio automático.
+          Defina regras de faturamento, vencimento, serviços adicionais e envio automático.
         </p>
       </div>
       <div class="cfg-cta-card__actions">
@@ -51,8 +51,7 @@
           <div><span class="fat-fech__summary-k">Multa</span> {{ row.multaAplicar ? row.multaPercentual + '%' : 'Não' }}</div>
           <div><span class="fat-fech__summary-k">Juros</span> {{ row.jurosAplicar ? row.jurosPercentual + '%' : 'Não' }}</div>
           <div><span class="fat-fech__summary-k">Pagamento parcial</span> {{ row.pagamentoParcial ? 'Sim' : 'Não' }}</div>
-          <div><span class="fat-fech__summary-k">Serviços cobrados</span> {{ row.servicosCobrados }}</div>
-          <div><span class="fat-fech__summary-k">Agrupamento da fatura</span> {{ row.agrupamentoFatura }}</div>
+          <div><span class="fat-fech__summary-k">Serviços adicionais</span> {{ row.servicosCobrados }}</div>
           <div><span class="fat-fech__summary-k">Status</span> <span [class]="statusClass(row.status)">{{ row.status }}</span></div>
         </div>
         <div class="fat-fech__summary-actions">

@@ -1,4 +1,8 @@
-export type ConfigCobrancaModalidade = 'Diária' | 'Semanal' | 'Quinzenal' | 'Mensal';
+/**
+ * `Semanal` não é oferecida no cadastro, mas continua no contrato do backend
+ * e precisa ser exibida em registros antigos.
+ */
+export type ConfigCobrancaModalidade = 'Diária' | 'Semanal' | 'Quinzenal' | 'Mensal' | 'Personalizada';
 
 export type ConfigCobrancaStatus = 'Ativa' | 'Inativa' | 'Pendente de dados' | 'Sem e-mail financeiro';
 
@@ -14,18 +18,16 @@ export type ConfigCobrancaFiltroRapidoId =
   | 'mensal'
   | 'quinzenal';
 
-export interface ConfigCobrancaRegraFlags {
-  id: number;
-  cobrarDiaria: boolean;
-  cobrarSemanal: boolean;
-  cobrarQuinzenal: boolean;
-  cobrarMensal: boolean;
-  cobrarDataPersonalizada: boolean;
-  cobrarLavagem: boolean;
-  cobrarPernoite: boolean;
-  cobrarServicosExtras: boolean;
-  considerarBeneficioAbastecimento: boolean;
+/** Chaves dos serviços adicionais, usadas para montar a seção de forma declarativa. */
+export type ConfigCobrancaServicoKey = 'lavagem' | 'pernoite' | 'extras' | 'beneficio';
+
+/** Estado de um serviço adicional: habilitado e, quando habilitado, valor obrigatório. */
+export interface ConfigCobrancaServicoEstado {
+  habilitado: boolean;
+  valor: number | null;
 }
+
+export type ConfigCobrancaServicos = Record<ConfigCobrancaServicoKey, ConfigCobrancaServicoEstado>;
 
 export interface ConfigCobrancaListaItem {
   id: number;
@@ -40,6 +42,8 @@ export interface ConfigCobrancaListaItem {
   fechamento: string;
   prazoVencimentoDias: number;
   prazoVencimento: string;
+  /** ISO `yyyy-MM-dd`; preenchida apenas na modalidade personalizada. */
+  dataCobranca: string | null;
   envioAutomatico: boolean;
   gerarFaturaAutomaticamente: boolean;
   emailFinanceiro: string | null;
@@ -54,12 +58,9 @@ export interface ConfigCobrancaListaItem {
   valorAcrescimoFixo: number;
   valorEstadia: number | null;
   pagamentoParcial: boolean;
+  servicos: ConfigCobrancaServicos;
+  /** Resumo textual dos serviços adicionais habilitados. */
   servicosCobrados: string;
-  agrupamentoFatura: string;
-  agruparPorPlaca: boolean;
-  agruparPorPeriodo: boolean;
-  agruparPorTransportadora: boolean;
-  regra: ConfigCobrancaRegraFlags;
   /** true quando veio só da listagem (sem detalhe completo). */
   parcial?: boolean;
 }

@@ -10,19 +10,23 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
+import { formatarBrl, parseBrl } from '../config-cobranca-moeda.util';
 import type {
   ConfigCobrancaListaItem,
   ConfigCobrancaLookupOption,
   ConfigCobrancaModalidade,
+  ConfigCobrancaServicoKey,
+  ConfigCobrancaServicos,
   ConfigCobrancaStatus
 } from '../faturamento-config-cobranca.types';
 import {
-  checksFromRegraFlags,
+  MODALIDADE_OPCOES,
+  RegraFechamento,
+  SERVICO_VALOR_LABELS,
   montarRegistroDoFormulario,
-  validarFormularioConfig,
-  type AgrupamentoChecks,
-  type ServicosChecks,
-  RegraFechamento
+  servicosFromItem,
+  servicosVazios,
+  validarFormularioConfig
 } from '../faturamento-config-cobranca.helpers';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
 
@@ -33,7 +37,6 @@ export interface ConfigCobrancaFormDialogData {
   item?: ConfigCobrancaListaItem;
   transportadoras: ConfigCobrancaLookupOption[];
   estacionamentos: ConfigCobrancaLookupOption[];
-  modalidades: ConfigCobrancaModalidade[];
   statusOpcoes: ConfigCobrancaStatus[];
 }
 
@@ -42,14 +45,9 @@ export interface ConfigCobrancaFormDialogResult {
 }
 
 interface ServicoOpcao {
-  key: keyof ServicosChecks;
+  key: ConfigCobrancaServicoKey;
   label: string;
-  icon: string;
-}
-
-interface AgrupamentoOpcao {
-  key: keyof AgrupamentoChecks;
-  label: string;
+  valorLabel: string;
   icon: string;
 }
 
@@ -82,22 +80,18 @@ export class ConfigCobrancaFormDialogComponent {
   errosVisiveis: string[] = [];
   jurosMultaAberto = false;
 
-  readonly servicosOpcoes: ServicoOpcao[] = [
-    { key: 'diaria', label: 'Cobrar diária', icon: 'today' },
-    { key: 'semanal', label: 'Cobrar semanal', icon: 'date_range' },
-    { key: 'quinzenal', label: 'Cobrar quinzenal', icon: 'calendar_view_week' },
-    { key: 'mensal', label: 'Cobrar mensal', icon: 'calendar_month' },
-    { key: 'personal', label: 'Cobrar por data personalizada', icon: 'event' },
-    { key: 'lavagem', label: 'Cobrar lavagem', icon: 'local_car_wash' },
-    { key: 'pernoite', label: 'Cobrar pernoite', icon: 'bedtime' },
-    { key: 'extras', label: 'Cobrar serviços extras', icon: 'add_circle' },
-    { key: 'beneficio', label: 'Considerar benefício por abastecimento', icon: 'local_gas_station' }
-  ];
+  readonly modalidadeOpcoes = MODALIDADE_OPCOES;
 
-  readonly agrupamentoOpcoes: AgrupamentoOpcao[] = [
-    { key: 'placa', label: 'Agrupar fatura por placa', icon: 'directions_car' },
-    { key: 'periodo', label: 'Agrupar fatura por período', icon: 'calendar_month' },
-    { key: 'transportadora', label: 'Agrupar fatura por transportadora', icon: 'local_shipping' }
+  readonly servicosOpcoes: ServicoOpcao[] = [
+    { key: 'lavagem', label: 'Cobrar lavagem', valorLabel: SERVICO_VALOR_LABELS.lavagem, icon: 'local_car_wash' },
+    { key: 'pernoite', label: 'Cobrar pernoite', valorLabel: SERVICO_VALOR_LABELS.pernoite, icon: 'bedtime' },
+    { key: 'extras', label: 'Cobrar serviços extras', valorLabel: SERVICO_VALOR_LABELS.extras, icon: 'add_circle' },
+    {
+      key: 'beneficio',
+      label: 'Considerar benefício por abastecimento',
+      valorLabel: SERVICO_VALOR_LABELS.beneficio,
+      icon: 'local_gas_station'
+    }
   ];
 
   readonly regraFechamentoOpcoes = [
@@ -108,6 +102,8 @@ export class ConfigCobrancaFormDialogComponent {
   transportadoraId: number | null = null;
   estacionamentoId: number | null = null;
   modalidade: ConfigCobrancaModalidade | '' = '';
+  /** ISO `yyyy-MM-dd`, exigida apenas na modalidade personalizada. */
+  dataCobranca: string | null = null;
   diaFechamento: number | null = null;
   regraFechamento: number = RegraFechamento.UltimoDiaDoMes;
   prazoVencimentoDias = 10;
@@ -128,25 +124,7 @@ export class ConfigCobrancaFormDialogComponent {
   /** Texto exibido no input (padrão pt-BR: 1.234,56). */
   valorEstadiaTexto = '';
   status: ConfigCobrancaStatus = 'Ativa';
-  private regraId = 0;
-
-  serv: ServicosChecks = {
-    diaria: false,
-    semanal: false,
-    quinzenal: false,
-    mensal: true,
-    personal: false,
-    lavagem: false,
-    pernoite: false,
-    extras: false,
-    beneficio: false
-  };
-
-  agr: AgrupamentoChecks = {
-    placa: false,
-    periodo: true,
-    transportadora: true
-  };
+  servicos: ConfigCobrancaServicos = servicosVazios();
 
   get titulo(): string {
     return 'Configuração de cobrança';
@@ -156,12 +134,17 @@ export class ConfigCobrancaFormDialogComponent {
     return 'Defina como a transportadora será faturada neste estacionamento.';
   }
 
+  get exigeDataCobranca(): boolean {
+    return this.modalidade === 'Personalizada';
+  }
+
   constructor() {
     const r = this.data.item;
     if (r) {
       this.transportadoraId = r.transportadoraId || null;
       this.estacionamentoId = r.estacionamentoId || null;
       this.modalidade = r.modalidade;
+      this.dataCobranca = r.dataCobranca ?? null;
       this.diaFechamento = r.diaFechamento;
       this.regraFechamento = r.regraFechamento || RegraFechamento.UltimoDiaDoMes;
       this.prazoVencimentoDias = r.prazoVencimentoDias || 10;
@@ -178,15 +161,9 @@ export class ConfigCobrancaFormDialogComponent {
       this.acresFixo = r.aplicarAcrescimoFixo;
       this.acresValor = r.valorAcrescimoFixo;
       this.valorEstadia = r.valorEstadia;
-      this.valorEstadiaTexto = this.formatarBrl(r.valorEstadia);
+      this.valorEstadiaTexto = formatarBrl(r.valorEstadia);
       this.status = r.status === 'Inativa' ? 'Inativa' : 'Ativa';
-      this.regraId = this.data.mode === 'edit' ? r.regra?.id ?? 0 : 0;
-      this.serv = checksFromRegraFlags(r.regra);
-      this.agr = {
-        placa: r.agruparPorPlaca,
-        periodo: r.agruparPorPeriodo,
-        transportadora: r.agruparPorTransportadora
-      };
+      this.servicos = servicosFromItem(r);
     } else {
       this.modalidade = 'Mensal';
       this.regraFechamento = RegraFechamento.UltimoDiaDoMes;
@@ -200,12 +177,16 @@ export class ConfigCobrancaFormDialogComponent {
     this.jurosMultaAberto = !this.jurosMultaAberto;
   }
 
-  toggleServico(key: keyof ServicosChecks): void {
-    this.serv[key] = !this.serv[key];
+  /** Seleção única: trocar de modalidade descarta a data personalizada. */
+  selecionarModalidade(value: ConfigCobrancaModalidade): void {
+    this.modalidade = value;
+    if (value !== 'Personalizada') this.dataCobranca = null;
   }
 
-  toggleAgrupamento(key: keyof AgrupamentoChecks): void {
-    this.agr[key] = !this.agr[key];
+  toggleServico(key: ConfigCobrancaServicoKey): void {
+    const atual = this.servicos[key];
+    const habilitado = !atual.habilitado;
+    this.servicos[key] = { habilitado, valor: habilitado ? atual.valor : null };
   }
 
   cancelar(): void {
@@ -236,6 +217,7 @@ export class ConfigCobrancaFormDialogComponent {
       transportadoraId: this.transportadoraId ?? 0,
       estacionamentoId: this.estacionamentoId ?? 0,
       modalidade: this.modalidade,
+      dataCobranca: this.dataCobranca,
       regraFechamento: this.regraFechamento,
       diaFechamento: this.diaFechamento,
       prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
@@ -249,7 +231,7 @@ export class ConfigCobrancaFormDialogComponent {
       acresFixo: this.acresFixo,
       acresValor: this.acresValor,
       valorEstadia: this.valorEstadia,
-      serv: this.serv
+      servicos: this.servicos
     });
     if (!v.ok) {
       this.errosVisiveis = v.mensagens;
@@ -257,65 +239,22 @@ export class ConfigCobrancaFormDialogComponent {
       return;
     }
     this.errosVisiveis = [];
-    this.valorEstadiaTexto = this.formatarBrl(this.valorEstadia);
+    this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
     const id = this.data.mode === 'edit' ? this.data.item?.id ?? 0 : 0;
     this.ref.close({ record: this.montarRegistro(id) });
   }
 
   onValorEstadiaBlur(): void {
     this.sincronizarValorEstadiaDoTexto();
-    this.valorEstadiaTexto = this.formatarBrl(this.valorEstadia);
+    this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
   }
 
   onValorEstadiaFocus(): void {
-    if (this.valorEstadia == null) {
-      this.valorEstadiaTexto = '';
-      return;
-    }
-    // Em edição, mantém formato BR mas sem ruído de zeros desnecessários além de 2 casas.
-    this.valorEstadiaTexto = this.formatarBrl(this.valorEstadia);
+    this.valorEstadiaTexto = this.valorEstadia == null ? '' : formatarBrl(this.valorEstadia);
   }
 
   private sincronizarValorEstadiaDoTexto(): void {
-    this.valorEstadia = this.parseBrl(this.valorEstadiaTexto);
-  }
-
-  private formatarBrl(value: number | null | undefined): string {
-    if (value == null || !Number.isFinite(Number(value))) return '';
-    return Number(value).toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-
-  private parseBrl(raw: string | null | undefined): number | null {
-    const texto = String(raw ?? '').trim();
-    if (!texto) return null;
-
-    // Aceita "1.234,56", "1234,56", "1234.56" e "R$ 1.234,56"
-    let limpo = texto.replace(/[^\d.,-]/g, '');
-    if (!limpo || limpo === '-' || limpo === ',' || limpo === '.') return null;
-
-    const temVirgula = limpo.includes(',');
-    const temPonto = limpo.includes('.');
-
-    if (temVirgula && temPonto) {
-      // Assume ponto = milhar e vírgula = decimal (padrão BR)
-      limpo = limpo.replace(/\./g, '').replace(',', '.');
-    } else if (temVirgula) {
-      limpo = limpo.replace(',', '.');
-    } else if (temPonto) {
-      // Um único ponto: se parecer decimal (ex.: 12.5), mantém; se milhar (1.250), remove
-      const parts = limpo.split('.');
-      if (parts.length === 2 && parts[1].length <= 2) {
-        // decimal com ponto
-      } else {
-        limpo = limpo.replace(/\./g, '');
-      }
-    }
-
-    const n = Number(limpo);
-    return Number.isFinite(n) ? n : null;
+    this.valorEstadia = parseBrl(this.valorEstadiaTexto);
   }
 
   private montarRegistro(id: number): ConfigCobrancaListaItem {
@@ -329,6 +268,7 @@ export class ConfigCobrancaFormDialogComponent {
       estacionamentoNome: estacionamento?.label ?? '',
       status: this.status === 'Inativa' ? 'Inativa' : 'Ativa',
       modalidade: this.modalidade as ConfigCobrancaModalidade,
+      dataCobranca: this.dataCobranca,
       regraFechamento: this.regraFechamento,
       diaFechamento: this.diaFechamento,
       prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
@@ -345,9 +285,7 @@ export class ConfigCobrancaFormDialogComponent {
       acresFixo: this.acresFixo,
       acresValor: this.acresValor,
       valorEstadia: this.valorEstadia,
-      regraId: this.regraId,
-      serv: this.serv,
-      agr: this.agr
+      servicos: this.servicos
     });
   }
 }

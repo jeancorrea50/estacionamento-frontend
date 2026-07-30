@@ -2,11 +2,50 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../../environments/environment';
 import {
+  ConfiguracaoCobrancaPostInput,
   ModalidadeCobranca,
   RegraFechamento,
   StatusConfiguracaoCobranca
 } from '../models/configuracao-cobranca.models';
 import { ConfiguracaoCobrancaService } from './configuracao-cobranca.service';
+
+function postInput(overrides: Partial<ConfiguracaoCobrancaPostInput> = {}): ConfiguracaoCobrancaPostInput {
+  return {
+    transportadoraId: 1,
+    estacionamentoId: 2,
+    status: StatusConfiguracaoCobranca.Ativa,
+    modalidadeCobranca: ModalidadeCobranca.Mensal,
+    diaFechamento: null,
+    regraFechamento: RegraFechamento.UltimoDiaDoMes,
+    prazoVencimentoDias: 10,
+    emailFinanceiro: 'a@b.com',
+    envioAutomaticoEmail: true,
+    gerarFaturaAutomaticamente: false,
+    permitirPagamentoParcial: false,
+    aplicarMulta: false,
+    multaPercentual: 0,
+    aplicarJuros: false,
+    jurosPercentual: 0,
+    aplicarDescontoFixo: false,
+    valorDescontoFixo: 0,
+    aplicarAcrescimoFixo: false,
+    valorAcrescimoFixo: 0,
+    valorEstadia: null,
+    dataCobranca: null,
+    cobrarLavagem: false,
+    valorLavagem: null,
+    cobrarPernoite: false,
+    valorPernoite: null,
+    cobrarServicosExtras: false,
+    valorServicosExtras: null,
+    considerarBeneficioAbastecimento: false,
+    valorBeneficioAbastecimento: null,
+    agruparPorPlaca: false,
+    agruparPorPeriodo: false,
+    agruparPorTransportadora: false,
+    ...overrides
+  };
+}
 
 describe('ConfiguracaoCobrancaService', () => {
   let service: ConfiguracaoCobrancaService;
@@ -62,11 +101,12 @@ describe('ConfiguracaoCobrancaService', () => {
     expect(total).toBe(1);
   });
 
-  it('deve obter por id e mapear regra', () => {
-    let modalidade = '';
+  it('deve obter por id e mapear serviços adicionais e data personalizada', () => {
     service.obterListaItemPorId(3).subscribe((item) => {
-      modalidade = item?.modalidade ?? '';
-      expect(item?.regra.cobrarMensal).toBe(true);      expect(item?.prazoVencimentoDias).toBe(10);
+      expect(item?.modalidade).toBe('Personalizada');
+      expect(item?.dataCobranca).toBe('2026-09-10');
+      expect(item?.servicos.lavagem).toEqual({ habilitado: true, valor: 25 });
+      expect(item?.prazoVencimentoDias).toBe(10);
     });
 
     const req = httpMock.expectOne(`${base}/3`);
@@ -78,7 +118,7 @@ describe('ConfiguracaoCobrancaService', () => {
         estacionamentoId: 2,
         estacionamentoNome: 'E',
         status: StatusConfiguracaoCobranca.Ativa,
-        modalidadeCobranca: ModalidadeCobranca.Mensal,
+        modalidadeCobranca: ModalidadeCobranca.Personalizado,
         diaFechamento: null,
         regraFechamento: RegraFechamento.UltimoDiaDoMes,
         prazoVencimentoDias: 10,
@@ -95,101 +135,30 @@ describe('ConfiguracaoCobrancaService', () => {
         aplicarAcrescimoFixo: false,
         valorAcrescimoFixo: 0,
         valorEstadia: null,
+        dataCobranca: '2026-09-10T00:00:00',
+        cobrarLavagem: true,
+        valorLavagem: 25,
+        cobrarPernoite: false,
+        valorPernoite: null,
+        cobrarServicosExtras: false,
+        valorServicosExtras: null,
+        considerarBeneficioAbastecimento: false,
+        valorBeneficioAbastecimento: null,
         agruparPorPlaca: false,
-        agruparPorPeriodo: true,
-        agruparPorTransportadora: true,
-        regra: {
-          id: 9,
-          cobrarDiaria: false,
-          cobrarSemanal: false,
-          cobrarQuinzenal: false,
-          cobrarMensal: true,
-          cobrarDataPersonalizada: false,
-          cobrarLavagem: false,
-          cobrarPernoite: false,
-          cobrarServicosExtras: false,
-          considerarBeneficioAbastecimento: false
-        }
+        agruparPorPeriodo: false,
+        agruparPorTransportadora: false
       }
     });
-    expect(modalidade).toBe('Mensal');
   });
 
   it('deve enviar POST no gravar', () => {
-    service
-      .gravar({
-        transportadoraId: 1,
-        estacionamentoId: 2,
-        status: StatusConfiguracaoCobranca.Ativa,
-        modalidadeCobranca: ModalidadeCobranca.Mensal,
-        diaFechamento: null,
-        regraFechamento: RegraFechamento.UltimoDiaDoMes,
-        prazoVencimentoDias: 10,
-        emailFinanceiro: 'a@b.com',
-        envioAutomaticoEmail: true,
-        gerarFaturaAutomaticamente: false,
-        permitirPagamentoParcial: false,
-        aplicarMulta: false,
-        multaPercentual: 0,
-        aplicarJuros: false,
-        jurosPercentual: 0,
-        aplicarDescontoFixo: false,
-        valorDescontoFixo: 0,
-        aplicarAcrescimoFixo: false,
-        valorAcrescimoFixo: 0,
-        valorEstadia: null,
-        agruparPorPlaca: false,
-        agruparPorPeriodo: true,
-        agruparPorTransportadora: true,
-        regra: {
-          id: 0,
-          cobrarDiaria: false,
-          cobrarSemanal: false,
-          cobrarQuinzenal: false,
-          cobrarMensal: true,
-          cobrarDataPersonalizada: false,
-          cobrarLavagem: false,
-          cobrarPernoite: false,
-          cobrarServicosExtras: false,
-          considerarBeneficioAbastecimento: false
-        }
-      })
-      .subscribe();
+    service.gravar(postInput()).subscribe();
 
     const req = httpMock.expectOne(base);
     expect(req.request.method).toBe('POST');
     expect(req.request.body.transportadoraId).toBe(1);
-    req.flush({
-      result: {
-        id: 11,
-        transportadoraId: 1,
-        transportadoraNome: 'T',
-        estacionamentoId: 2,
-        estacionamentoNome: 'E',
-        status: 1,
-        modalidadeCobranca: 4,
-        diaFechamento: null,
-        regraFechamento: 1,
-        prazoVencimentoDias: 10,
-        emailFinanceiro: 'a@b.com',
-        envioAutomaticoEmail: true,
-        gerarFaturaAutomaticamente: false,
-        permitirPagamentoParcial: false,
-        aplicarMulta: false,
-        multaPercentual: 0,
-        aplicarJuros: false,
-        jurosPercentual: 0,
-        aplicarDescontoFixo: false,
-        valorDescontoFixo: 0,
-        aplicarAcrescimoFixo: false,
-        valorAcrescimoFixo: 0,
-        valorEstadia: null,
-        agruparPorPlaca: false,
-        agruparPorPeriodo: true,
-        agruparPorTransportadora: true,
-        regra: { id: 1, cobrarMensal: true }
-      }
-    });
+    expect(req.request.body.regra).toBeUndefined();
+    req.flush({ result: true });
   });
 
   it('deve enviar DELETE no excluir', () => {
@@ -201,48 +170,9 @@ describe('ConfiguracaoCobrancaService', () => {
 
   it('deve aceitar PUT com sucesso sem entidade no corpo', () => {
     let resolved: unknown = 'pending';
-    service
-      .alterar({
-        id: 5,
-        transportadoraId: 1,
-        estacionamentoId: 2,
-        status: StatusConfiguracaoCobranca.Ativa,
-        modalidadeCobranca: ModalidadeCobranca.Mensal,
-        diaFechamento: null,
-        regraFechamento: RegraFechamento.UltimoDiaDoMes,
-        prazoVencimentoDias: 10,
-        emailFinanceiro: 'a@b.com',
-        envioAutomaticoEmail: true,
-        gerarFaturaAutomaticamente: false,
-        permitirPagamentoParcial: false,
-        aplicarMulta: false,
-        multaPercentual: 0,
-        aplicarJuros: false,
-        jurosPercentual: 0,
-        aplicarDescontoFixo: false,
-        valorDescontoFixo: 0,
-        aplicarAcrescimoFixo: false,
-        valorAcrescimoFixo: 0,
-        valorEstadia: null,
-        agruparPorPlaca: false,
-        agruparPorPeriodo: true,
-        agruparPorTransportadora: true,
-        regra: {
-          id: 1,
-          cobrarDiaria: false,
-          cobrarSemanal: false,
-          cobrarQuinzenal: false,
-          cobrarMensal: true,
-          cobrarDataPersonalizada: false,
-          cobrarLavagem: false,
-          cobrarPernoite: false,
-          cobrarServicosExtras: false,
-          considerarBeneficioAbastecimento: false
-        }
-      })
-      .subscribe((res) => {
-        resolved = res;
-      });
+    service.alterar({ ...postInput(), id: 5 }).subscribe((res) => {
+      resolved = res;
+    });
 
     const req = httpMock.expectOne(base);
     expect(req.request.method).toBe('PUT');

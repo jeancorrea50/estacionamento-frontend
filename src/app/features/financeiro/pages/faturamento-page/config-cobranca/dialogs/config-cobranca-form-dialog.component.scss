@@ -216,6 +216,13 @@
   grid-column: 1 / -1;
 }
 
+/* Campo dependente da opção selecionada logo acima */
+.cfg-block__grid--inset {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--cfg-input-border);
+}
+
 /* Campo monetário: R$ fora do outline para não colidir com o label flutuante */
 .cfg-money-field {
   display: flex;
@@ -247,15 +254,11 @@
   letter-spacing: 0.01em;
 }
 
-/* ── Cards selecionáveis (Bloco 2 e 6) ─────────────────────────────── */
+/* ── Cards selecionáveis (Blocos 2 e 7) ────────────────────────────── */
 .cfg-options {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-.cfg-options--compact {
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 .cfg-option {
@@ -321,6 +324,49 @@
   flex: 1 1 auto;
   font-size: 13px;
   line-height: 1.3;
+}
+
+/* Indicador circular para a seleção única da regra de cobrança */
+.cfg-option__check--radio {
+  border-radius: 50%;
+}
+
+.cfg-option--active .cfg-option__check--radio {
+  background: transparent;
+  border-color: var(--cfg-primary);
+}
+
+.cfg-option__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.cfg-option--active .cfg-option__dot {
+  background: var(--cfg-primary);
+}
+
+/* ── Bloco 7 — serviços adicionais ─────────────────────────────────── */
+.cfg-services {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.cfg-service {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cfg-service__toggle {
+  width: 100%;
+}
+
+.cfg-service__valor {
+  width: 100%;
 }
 
 /* ── Switches (Bloco 4) ────────────────────────────────────────────── */
@@ -479,4 +525,9 @@
 ::ng-deep .cfg-form-dialog-panel .mat-mdc-slide-toggle .mdc-label {
   color: #dbe7fb;
   font-size: 13px;
+}
+
+/* Sem color-scheme o seletor nativo de data renderiza o ícone escuro sobre fundo escuro */
+::ng-deep .cfg-form-dialog-panel input[type='date'].mat-mdc-input-element {
+  color-scheme: dark;
 }

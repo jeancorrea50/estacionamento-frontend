@@ -1,23 +1,16 @@
-import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
+import { EstStatusPillEstacionamentoComponent } from '../../../../cadastro/components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
 import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import {
@@ -33,14 +26,11 @@ import type {
   ConfigCobrancaModalidade,
   ConfigCobrancaStatus
 } from './faturamento-config-cobranca.types';
-import { ConfigCobrancaApplyRuleDialogComponent } from './dialogs/config-cobranca-apply-rule-dialog.component';
 import { ConfigCobrancaConfirmDialogComponent } from './dialogs/config-cobranca-confirm-dialog.component';
 import {
   ConfigCobrancaFormDialogComponent,
   type ConfigCobrancaFormDialogResult
 } from './dialogs/config-cobranca-form-dialog.component';
-import { ConfigCobrancaHistoryDialogComponent } from './dialogs/config-cobranca-history-dialog.component';
-import { ConfigCobrancaSimulateDialogComponent } from './dialogs/config-cobranca-simulate-dialog.component';
 import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca-view-rule-dialog.component';
 
 @Component({
@@ -51,15 +41,9 @@ import { ConfigCobrancaViewRuleDialogComponent } from './dialogs/config-cobranca
     FormsModule,
     MatButtonModule,
     MatCardModule,
-    MatCheckboxModule,
     MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatMenuModule,
-    MatSelectModule,
     MatSnackBarModule,
-    MatTableModule,
-    MatTooltipModule
+    EstStatusPillEstacionamentoComponent
   ],
   templateUrl: './faturamento-config-cobranca.component.html',
   styleUrls: ['./faturamento-config-cobranca.component.scss']
@@ -77,20 +61,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   private readonly transportadorasLookup = signal<ConfigCobrancaLookupOption[]>([]);
   private readonly estacionamentosLookup = signal<ConfigCobrancaLookupOption[]>([]);
 
-  /** Modalidades oferecidas no filtro da listagem (rótulo amigável para personalizada). */
-  readonly modalidadesFiltro: { value: ConfigCobrancaModalidade; label: string }[] = [
-    { value: 'Diária', label: 'Diária' },
-    { value: 'Mensal', label: 'Mensal' },
-    { value: 'Quinzenal', label: 'Quinzenal' },
-    { value: 'Personalizada', label: 'Data personalizada' }
-  ];
-
-  readonly statusFiltroOpcoes: { value: string; label: string }[] = [
-    { value: 'all', label: 'Todos' },
-    { value: 'Ativa', label: 'Ativos' },
-    { value: 'Inativa', label: 'Inativos' }
-  ];
-
   readonly pageSizeOpcoes = [10, 25, 50, 100] as const;
 
   readonly transportadoraFiltro = signal<number | 'all'>('all');
@@ -99,31 +69,13 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   readonly statusFiltro = signal<string>('all');
   readonly envioFiltro = signal<ConfigCobrancaEnvioFiltroId>('all');
   readonly searchText = signal<string>('');
-
-  readonly panelFiltrosAberto = signal(false);
+  readonly campoBusca = signal<'geral' | 'transportadora' | 'estacionamento' | 'email'>('geral');
 
   readonly paginaAtual = signal(0);
   readonly itensPorPagina = signal(25);
 
-  readonly selection = new SelectionModel<ConfigCobrancaListaItem>(true, []);
-  private readonly selectionTick = signal(0);
-
-  readonly displayedColumns: string[] = [
-    'select',
-    'transportadora',
-    'modalidade',
-    'fechamento',
-    'prazoVencimento',
-    'envioAutomatico',
-    'emailFinanceiro',
-    'status',
-    'acoes'
-  ];
-
   readonly listaTransportadorasForm = computed(() => this.transportadorasLookup());
   readonly listaEstacionamentosForm = computed(() => this.estacionamentosLookup());
-  readonly transportadorasOpcoes = computed(() => this.transportadorasLookup());
-  readonly estacionamentosOpcoes = computed(() => this.estacionamentosLookup());
 
   readonly linhasFiltradas = computed(() => this.aplicarFiltros());
 
@@ -137,49 +89,35 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     Math.max(1, Math.ceil(this.linhasFiltradas().length / this.itensPorPagina()))
   );
 
-  readonly paginasVisiveis = computed(() => {
-    const total = this.totalPaginas();
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const atual = this.paginaAtual() + 1;
-    const s = new Set<number>([1, total]);
-    for (let i = Math.max(1, atual - 2); i <= Math.min(total, atual + 2); i++) s.add(i);
-    return [...s].sort((a, b) => a - b);
-  });
-
   readonly totalEncontradasLabel = computed(() => {
     const n = this.linhasFiltradas().length;
     return n === 1 ? '1 configuração encontrada' : `${n} configurações encontradas`;
   });
 
-  readonly filtrosAtivosCount = computed(() => {
-    let c = 0;
-    if (this.transportadoraFiltro() !== 'all') c++;
-    if (this.estacionamentoFiltro() !== 'all') c++;
-    if (this.modalidadeFiltro() !== 'all') c++;
-    if (this.statusFiltro() !== 'all') c++;
-    if (this.envioFiltro() !== 'all') c++;
-    return c;
-  });
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as Element;
-    if (!target.closest('.rec-filter-bar')) {
-      this.panelFiltrosAberto.set(false);
+  get searchPlaceholder(): string {
+    switch (this.campoBusca()) {
+      case 'transportadora':
+        return 'Pesquisar por transportadora...';
+      case 'estacionamento':
+        return 'Pesquisar por estacionamento...';
+      case 'email':
+        return 'Pesquisar por e-mail financeiro...';
+      default:
+        return 'Pesquisar por transportadora, estacionamento ou e-mail financeiro...';
     }
+  }
+
+  get intervaloLista(): { de: number; ate: number } {
+    const total = this.linhasFiltradas().length;
+    if (total === 0) return { de: 0, ate: 0 };
+    const de = this.paginaAtual() * this.itensPorPagina() + 1;
+    const ate = Math.min(de + this.itensPorPagina() - 1, total);
+    return { de, ate };
   }
 
   constructor() {
     effect(() => {
-      const vis = this.linhasFiltradas();
-      let changed = false;
-      for (const r of [...this.selection.selected]) {
-        if (!vis.includes(r)) {
-          this.selection.deselect(r);
-          changed = true;
-        }
-      }
-      if (changed) this.selectionTick.update((n) => n + 1);
+      this.linhasFiltradas();
       untracked(() => this.paginaAtual.set(0));
     });
   }
@@ -217,10 +155,9 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
       .subscribe({
         next: (page) => {
           this.items.set(page.items);
-          this.syncSelectionWithItems();
           if (page.totalCount > page.items.length) {
             this.snack.open(
-              `Exibindo ${page.items.length} de ${page.totalCount} registros. Refine os filtros para ver os demais.`,
+              `Exibindo ${page.items.length} de ${page.totalCount} registros. Refine a busca para ver os demais.`,
               'Fechar',
               { duration: 5000 }
             );
@@ -249,30 +186,11 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     });
   }
 
-  setEnvioFiltro(ev: MatSelectChange): void {
-    this.envioFiltro.set(ev.value as ConfigCobrancaEnvioFiltroId);
-  }
-
-  setItensPorPagina(ev: MatSelectChange): void {
-    const size = Number(ev.value);
-    if (!Number.isFinite(size) || size <= 0) return;
-    this.itensPorPagina.set(size);
+  onTamanhoPaginaChange(size: number | string): void {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.itensPorPagina.set(n);
     this.paginaAtual.set(0);
-  }
-
-  togglePanelFiltros(event: MouseEvent): void {
-    event.stopPropagation();
-    this.panelFiltrosAberto.update((v) => !v);
-  }
-
-  limparFiltros(): void {
-    this.transportadoraFiltro.set('all');
-    this.estacionamentoFiltro.set('all');
-    this.modalidadeFiltro.set('all');
-    this.statusFiltro.set('all');
-    this.envioFiltro.set('all');
-    this.searchText.set('');
-    this.carregarLista();
   }
 
   buscar(): void {
@@ -304,22 +222,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     return modalidadeBadgeLabel(m);
   }
 
-  statusClass(s: ConfigCobrancaStatus): string {
-    const map: Record<ConfigCobrancaStatus, string> = {
-      Ativa: 'cfg-chip cfg-chip--ativa',
-      Inativa: 'cfg-chip cfg-chip--inativa',
-      'Pendente de dados': 'cfg-chip cfg-chip--pendente',
-      'Sem e-mail financeiro': 'cfg-chip cfg-chip--sem-email'
-    };
-    return map[s] ?? 'cfg-chip';
-  }
-
-  statusLabel(s: ConfigCobrancaStatus): string {
-    if (s === 'Ativa') return 'Ativa';
-    if (s === 'Inativa') return 'Inativa';
-    return s;
-  }
-
   envioClass(ativo: boolean): string {
     return ativo ? 'cfg-chip cfg-chip--envio-sim' : 'cfg-chip cfg-chip--envio-nao';
   }
@@ -330,95 +232,8 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     return t;
   }
 
-  semEmailFinanceiro(row: ConfigCobrancaListaItem): boolean {
-    return !row.emailFinanceiro?.trim();
-  }
-
-  onRowToggle(row: ConfigCobrancaListaItem, ev: MatCheckboxChange): void {
-    if (ev.checked) this.selection.select(row);
-    else this.selection.deselect(row);
-    this.selectionTick.update((n) => n + 1);
-  }
-
-  /** Seleção é apenas visual: o detalhe é sempre carregado pelo endpoint na ação escolhida. */
-  onRowClick(row: ConfigCobrancaListaItem): void {
-    this.selection.clear();
-    this.selection.select(row);
-    this.selectionTick.update((n) => n + 1);
-  }
-
-  checkboxLabel(row: ConfigCobrancaListaItem): string {
-    return `${this.selection.isSelected(row) ? 'Desmarcar' : 'Selecionar'} ${row.id}`;
-  }
-
   abrirNovaConfiguracao(): void {
     this.abrirFormularioDialog('create');
-  }
-
-  duplicarRegraToolbar(): void {
-    const row = this.primeiraSelecao();
-    if (!row) {
-      this.snack.open('Selecione uma configuração para duplicar.', 'Fechar', { duration: 4000 });
-      return;
-    }
-    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('duplicate', full));
-  }
-
-  testarEnvioToolbar(): void {
-    const row = this.primeiraSelecao();
-    if (!row) {
-      this.snack.open('Selecione uma configuração para testar o envio.', 'Fechar', { duration: 4000 });
-      return;
-    }
-    if (!row.emailFinanceiro?.trim()) {
-      this.snack.open('Não é possível testar envio sem e-mail financeiro.', 'Fechar', { duration: 4500 });
-      return;
-    }
-    this.snack.open(`E-mail de teste enviado para ${row.emailFinanceiro}.`, 'Fechar', { duration: 4500 });
-  }
-
-  exportar(): void {
-    const rows = this.linhasFiltradas();
-    const header = [
-      'id',
-      'transportadora',
-      'modalidade',
-      'fechamento',
-      'prazoVencimento',
-      'envioAutomatico',
-      'emailFinanceiro',
-      'status'
-    ];
-    const esc = (v: unknown) => {
-      const s = String(v ?? '');
-      if (/[",;\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-    const lines = [
-      header.join(';'),
-      ...rows.map((r) =>
-        [
-          r.id,
-          r.transportadora,
-          this.modalidadeLabel(r.modalidade),
-          this.fechamentoTexto(r),
-          r.prazoVencimento,
-          r.gerarFaturaAutomaticamente ? 'Sim' : 'Não',
-          r.emailFinanceiro ?? '',
-          r.status
-        ]
-          .map(esc)
-          .join(';')
-      )
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `config-cobranca-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    this.snack.open('Exportação gerada com sucesso.', 'Fechar', { duration: 3500 });
   }
 
   editarLinha(row: ConfigCobrancaListaItem): void {
@@ -433,105 +248,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         data: { row: full }
       });
       ref.afterClosed().subscribe((v) => {
-        // Reaproveita o detalhe já carregado para não repetir o GET.
         if (v === 'edit') this.abrirFormularioDialog('edit', full);
-      });
-    });
-  }
-
-  testarEnvioLinha(row: ConfigCobrancaListaItem): void {
-    if (!row.emailFinanceiro?.trim()) {
-      this.snack.open('Configuração sem e-mail financeiro cadastrado.', 'Fechar', { duration: 4000 });
-      return;
-    }
-    this.snack.open(`E-mail de teste enviado para ${row.emailFinanceiro}.`, 'Fechar', { duration: 4500 });
-  }
-
-  alternarAtivaLinha(row: ConfigCobrancaListaItem): void {
-    this.obterDetalhe(row.id, (full) => {
-      const novo: ConfigCobrancaStatus = full.status === 'Ativa' ? 'Inativa' : 'Ativa';
-      const payload = mapListaItemToPostInput({ ...full, status: novo });
-      this.api.alterar({ ...payload, id: full.id }).subscribe({
-        next: () => {
-          this.snack.open(
-            novo === 'Ativa' ? 'Configuração ativada.' : 'Configuração inativada.',
-            'Fechar',
-            { duration: 3500 }
-          );
-          this.carregarLista();
-        },
-        error: (err) =>
-          this.snack.open(this.mensagemErro(err, 'Falha ao alterar status.'), 'Fechar', { duration: 5500 })
-      });
-    });
-  }
-
-  duplicarConfiguracaoMenu(row: ConfigCobrancaListaItem): void {
-    this.obterDetalhe(row.id, (full) => this.abrirFormularioDialog('duplicate', full));
-  }
-
-  verHistorico(row: ConfigCobrancaListaItem): void {
-    this.obterDetalhe(row.id, (full) => {
-      this.dialog.open(ConfigCobrancaHistoryDialogComponent, {
-        width: '440px',
-        maxWidth: '96vw',
-        data: { row: full }
-      });
-    });
-  }
-
-  simularFaturamento(row: ConfigCobrancaListaItem): void {
-    this.obterDetalhe(row.id, (full) => {
-      this.dialog.open(ConfigCobrancaSimulateDialogComponent, {
-        width: '480px',
-        maxWidth: '96vw',
-        data: { row: full }
-      });
-    });
-  }
-
-  aplicarRegraOutras(row: ConfigCobrancaListaItem): void {
-    this.obterDetalhe(row.id, (base) => {
-      const ref = this.dialog.open(ConfigCobrancaApplyRuleDialogComponent, {
-        width: '440px',
-        maxWidth: '96vw',
-        data: {
-          row: base,
-          transportadoras: this.listaTransportadorasForm().filter((t) => t.id !== base.transportadoraId)
-        }
-      });
-      ref.afterClosed().subscribe((res) => {
-        if (!res?.selecionadas?.length) return;
-        const ids = res.selecionadas as number[];
-        const toCreate = ids.filter(
-          (tid) =>
-            !this.items().some((x) => x.transportadoraId === tid && x.estacionamentoId === base.estacionamentoId)
-        );
-        if (!toCreate.length) {
-          this.snack.open('Nenhuma configuração nova (combinações já existentes).', 'Fechar', { duration: 4500 });
-          return;
-        }
-        const requests = toCreate.map((tid) => {
-          const nome = this.listaTransportadorasForm().find((t) => t.id === tid)?.label ?? base.transportadora;
-          return this.api.gravar(
-            mapListaItemToPostInput({
-              ...base,
-              id: 0,
-              transportadoraId: tid,
-              transportadora: nome
-            })
-          );
-        });
-        forkJoin(requests).subscribe({
-          next: () => {
-            this.snack.open(`Regra aplicada para ${toCreate.length} transportadora(s).`, 'Fechar', {
-              duration: 4500
-            });
-            this.carregarLista();
-          },
-          error: (err) =>
-            this.snack.open(this.mensagemErro(err, 'Falha ao aplicar regra.'), 'Fechar', { duration: 5500 })
-        });
       });
     });
   }
@@ -550,7 +267,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
       if (!ok) return;
       this.api.excluir(r.id).subscribe({
         next: () => {
-          this.selection.deselect(r);
           this.snack.open('Configuração removida.', 'Fechar', { duration: 3500 });
           this.carregarLista();
         },
@@ -600,7 +316,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     });
   }
 
-  private obterDetalhe(id: number, onOk: (item: ConfigCobrancaListaItem) => void): void {
+  private obterDetalhe(id: number, onOk: (row: ConfigCobrancaListaItem) => void): void {
     this.api.obterListaItemPorId(id).subscribe({
       next: (full) => {
         if (!full) {
@@ -614,27 +330,9 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     });
   }
 
-  private primeiraSelecao(): ConfigCobrancaListaItem | null {
-    this.selectionTick();
-    return this.selection.selected[0] ?? null;
-  }
-
-  private syncSelectionWithItems(): void {
-    const ids = new Set(this.selection.selected.map((r) => r.id));
-    this.selection.clear();
-    for (const r of this.items()) {
-      if (ids.has(r.id)) this.selection.select(r);
-    }
-    this.selectionTick.update((n) => n + 1);
-  }
-
   private mensagemErro(err: unknown, fallback: string): string {
-    if (err && typeof err === 'object') {
-      const api = err as ApiError;
-      if (typeof api.message === 'string' && api.message.trim()) return api.message.trim();
-    }
     if (err instanceof HttpErrorResponse) {
-      const body = err.error;
+      const body = err.error as ApiError | string | Record<string, unknown> | null;
       if (body && typeof body === 'object') {
         const notes =
           (body as { notifications?: unknown }).notifications ??

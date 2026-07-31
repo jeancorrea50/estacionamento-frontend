@@ -7,14 +7,27 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Consulta explícita: mesmo fluxo da listagem de Transportadoras. -->
+  <!-- Consulta explícita: mesmo padrão visual da listagem de Transportadoras. -->
   <section class="cfg-search-bar" aria-label="Busca de configurações de cobrança">
-    <span class="cfg-search-bar__type" aria-hidden="true">Busca geral</span>
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="campoBusca()"
+        (ngModelChange)="campoBusca.set($event)"
+        aria-label="Tipo de busca"
+      >
+        <option value="geral">Busca geral</option>
+        <option value="transportadora">Transportadora</option>
+        <option value="estacionamento">Estacionamento</option>
+        <option value="email">E-mail financeiro</option>
+      </select>
+    </div>
     <label class="cfg-search-bar__search">
-      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <span class="material-symbols-outlined cfg-search-bar__search-ico" aria-hidden="true">search</span>
       <input
         type="text"
-        placeholder="Pesquisar transportadora, estacionamento ou e-mail financeiro..."
+        class="cfg-search-bar__search-input"
+        [placeholder]="searchPlaceholder"
         [ngModel]="searchText()"
         (ngModelChange)="searchText.set($event)"
         (keyup.enter)="buscar()"
@@ -24,357 +37,179 @@
     </label>
     <button
       type="button"
-      class="btn btn-secondary fat-mat-btn cfg-search-bar__button"
+      class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
       [disabled]="loading()"
       (click)="buscar()"
     >
       <span class="material-symbols-outlined" aria-hidden="true">search</span>
       Buscar
     </button>
-
-    <div class="rec-filter-bar cfg-search-bar__filters">
-      <button
-        type="button"
-        class="btn btn-secondary fat-mat-btn rec-filtros-btn"
-        [class.rec-filtros-btn--ativo]="panelFiltrosAberto()"
-        (click)="togglePanelFiltros($event)"
-        aria-label="Abrir filtros"
-        [attr.aria-expanded]="panelFiltrosAberto()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
-        Filtros
-        @if (filtrosAtivosCount() > 0) {
-          <span class="rec-filtros-badge">{{ filtrosAtivosCount() }}</span>
-        }
-        <span
-          class="material-symbols-outlined rec-filtros-arrow"
-          [class.rec-filtros-arrow--aberto]="panelFiltrosAberto()"
-          aria-hidden="true"
-        >expand_more</span>
-      </button>
-
-      @if (panelFiltrosAberto()) {
-        <div class="rec-filtros-dropdown" role="group" aria-label="Filtros">
-          <p class="rec-filtros-panel__titulo">Filtros</p>
-
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Status</mat-label>
-            <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
-              @for (s of statusFiltroOpcoes; track s.value) {
-                <mat-option [value]="s.value">{{ s.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Modalidade</mat-label>
-            <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value)">
-              <mat-option value="all">Todas</mat-option>
-              @for (m of modalidadesFiltro; track m.value) {
-                <mat-option [value]="m.value">{{ m.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Envio automático</mat-label>
-            <mat-select [value]="envioFiltro()" (selectionChange)="setEnvioFiltro($event)">
-              <mat-option value="all">Todos</mat-option>
-              <mat-option value="ativo">Sim</mat-option>
-              <mat-option value="inativo">Não</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Transportadora</mat-label>
-            <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value)">
-              <mat-option value="all">Todas</mat-option>
-              @for (t of transportadorasOpcoes(); track t.id) {
-                <mat-option [value]="t.id">{{ t.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-            <mat-label>Estacionamento</mat-label>
-            <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value)">
-              <mat-option value="all">Todos</mat-option>
-              @for (e of estacionamentosOpcoes(); track e.id) {
-                <mat-option [value]="e.id">{{ e.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          @if (filtrosAtivosCount() > 0) {
-            <button type="button" class="btn btn-secondary fat-mat-btn rec-btn-limpar" (click)="limparFiltros()">
-              <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-              Limpar filtros
-            </button>
-          }
-        </div>
-      }
-    </div>
-
     <button
       type="button"
-      class="btn btn-secondary fat-mat-btn cfg-search-bar__menu"
-      [matMenuTriggerFor]="menuAcoesRapidas"
-      aria-label="Abrir ações"
+      class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+      (click)="abrirNovaConfiguracao()"
     >
-      <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-    </button>
-    <button type="button" class="btn btn-primary fat-mat-btn cfg-search-bar__new" (click)="abrirNovaConfiguracao()">
       <span class="material-symbols-outlined" aria-hidden="true">add</span>
       Novo
     </button>
   </section>
 
   @if (!jaBuscou() && !loading()) {
-    <div class="cfg-before-search">
+    <div class="empty-state empty-state--compact cfg-before-search">
       <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
-      <p>Clique em <strong>Buscar</strong> para carregar as configurações de cobrança.</p>
+      <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as configurações de cobrança.</p>
     </div>
   } @else {
-    <!-- Tabela -->
-    <mat-card class="rec-table-card" appearance="outlined">
-      <div class="rec-table-card__header">
-        <div class="rec-table-card__header-left">
-          <h3 class="rec-table-card__title">Configurações</h3>
-          <p class="rec-table-card__count">{{ totalEncontradasLabel() }}</p>
+    @if (loading()) {
+      <p class="loading-msg cfg-loading" role="status">Carregando configurações...</p>
+    }
+
+    @if (!loading()) {
+      <div class="trn-list-table-card cfg-list-table-card">
+        <div class="cfg-list-table-card__header">
+          <h3 class="cfg-list-table-card__title">Configurações</h3>
+          <p class="cfg-list-table-card__count">{{ totalEncontradasLabel() }}</p>
         </div>
+        <div class="trn-list-table-scroll">
+          <table class="data-table trn-table cfg-table">
+            <thead>
+              <tr>
+                <th scope="col">Transportadora</th>
+                <th scope="col">Modalidade</th>
+                <th scope="col">Fechamento</th>
+                <th scope="col">Prazo de vencimento</th>
+                <th scope="col">Envio automático</th>
+                <th scope="col">E-mail financeiro</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="trn-table__th-acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of linhasPaginadas(); track row.id) {
+                <tr class="trn-table__row">
+                  <td>{{ row.transportadora || '—' }}</td>
+                  <td>
+                    <span [class]="modalidadeClass(row.modalidade)">{{ modalidadeLabel(row.modalidade) }}</span>
+                  </td>
+                  <td>{{ fechamentoTexto(row) }}</td>
+                  <td>{{ row.prazoVencimento || '—' }}</td>
+                  <td>
+                    <span [class]="envioClass(row.gerarFaturaAutomaticamente)">
+                      {{ row.gerarFaturaAutomaticamente ? 'Sim' : 'Não' }}
+                    </span>
+                  </td>
+                  <td>{{ textoEmail(row.emailFinanceiro) }}</td>
+                  <td>
+                    <app-est-status-pill-estacionamento [ativo]="row.status === 'Ativa'" />
+                  </td>
+                  <td class="trn-table__acoes">
+                    <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para configuração ' + row.id">
+                      <button
+                        type="button"
+                        class="trn-act-btn"
+                        title="Visualizar"
+                        aria-label="Visualizar configuração"
+                        (click)="visualizarRegra(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="trn-act-btn trn-act-btn--accent"
+                        title="Editar"
+                        aria-label="Editar configuração"
+                        (click)="editarLinha(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="trn-act-btn trn-act-btn--danger"
+                        title="Excluir"
+                        aria-label="Excluir configuração"
+                        (click)="removerLinha(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (linhasFiltradas().length === 0) {
+          <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            <p class="empty-msg">Nenhuma configuração encontrada.</p>
+          </div>
+        }
       </div>
 
-      <mat-card-content class="rec-table-card__inner">
-        @if (loading()) {
-          <p class="cfg-loading" role="status">Carregando configurações...</p>
-        }
-        <div class="rec-table-scroll">
-          <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table cfg-mat-table">
-            <ng-container matColumnDef="select">
-              <th mat-header-cell *matHeaderCellDef class="rec-mat-table__sel"></th>
-              <td mat-cell *matCellDef="let row" class="rec-mat-table__sel" (click)="$event.stopPropagation()">
-                <mat-checkbox
-                  (change)="onRowToggle(row, $event)"
-                  [checked]="selection.isSelected(row)"
-                  [aria-label]="checkboxLabel(row)"
-                />
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="transportadora">
-              <th mat-header-cell *matHeaderCellDef class="cfg-col-transp">Transportadora</th>
-              <td mat-cell *matCellDef="let row" class="cfg-col-transp">
-                <span class="rec-mat-table__ellipsis" [matTooltip]="row.transportadora">{{ row.transportadora }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="modalidade">
-              <th mat-header-cell *matHeaderCellDef class="rec-mat-table__forma">Modalidade</th>
-              <td mat-cell *matCellDef="let row" class="rec-mat-table__forma">
-                <span [class]="modalidadeClass(row.modalidade)">{{ modalidadeLabel(row.modalidade) }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="fechamento">
-              <th mat-header-cell *matHeaderCellDef class="cfg-col-fech">Fechamento</th>
-              <td mat-cell *matCellDef="let row" class="cfg-col-fech">
-                <span class="rec-mat-table__ellipsis" [matTooltip]="fechamentoTexto(row)">{{ fechamentoTexto(row) }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="prazoVencimento">
-              <th mat-header-cell *matHeaderCellDef class="cfg-col-pz rec-mat-table__dt">Prazo de vencimento</th>
-              <td mat-cell *matCellDef="let row" class="cfg-col-pz rec-mat-table__dt">
-                <span class="rec-mat-table__ellipsis" [matTooltip]="row.prazoVencimento">{{ row.prazoVencimento }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="envioAutomatico">
-              <th mat-header-cell *matHeaderCellDef>Envio automático</th>
-              <td mat-cell *matCellDef="let row">
-                <span [class]="envioClass(row.gerarFaturaAutomaticamente)">
-                  {{ row.gerarFaturaAutomaticamente ? 'Sim' : 'Não' }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="emailFinanceiro">
-              <th mat-header-cell *matHeaderCellDef class="cfg-col-mail">E-mail financeiro</th>
-              <td mat-cell *matCellDef="let row" class="cfg-col-mail">
-                <span
-                  class="rec-mat-table__ellipsis cfg-mail-cell"
-                  [matTooltip]="textoEmail(row.emailFinanceiro)"
-                  [matTooltipDisabled]="!row.emailFinanceiro?.trim()"
-                >{{ textoEmail(row.emailFinanceiro) }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let row">
-                <span [class]="statusClass(row.status)">
-                  @if (row.status === 'Ativa') {
-                    <span class="cfg-chip__dot cfg-chip__dot--ok" aria-hidden="true"></span>
-                  } @else if (row.status === 'Inativa') {
-                    <span class="cfg-chip__dot cfg-chip__dot--off" aria-hidden="true"></span>
-                  }
-                  {{ statusLabel(row.status) }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="acoes">
-              <th mat-header-cell *matHeaderCellDef class="rec-mat-table__ac">Ações</th>
-              <td mat-cell *matCellDef="let row" class="rec-mat-table__ac" (click)="$event.stopPropagation()">
-                <div class="cfg-row-actions">
-                  <button
-                    type="button"
-                    class="cfg-row-action"
-                    matTooltip="Editar"
-                    aria-label="Editar configuração"
-                    (click)="editarLinha(row)"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                    <span class="cfg-row-action__label">Editar</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="cfg-row-action"
-                    matTooltip="Visualizar"
-                    aria-label="Visualizar configuração"
-                    (click)="visualizarRegra(row)"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                    <span class="cfg-row-action__label">Visualizar</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="cfg-row-action cfg-row-action--icon"
-                    matTooltip="Mais ações"
-                    aria-label="Mais ações da configuração"
-                    [matMenuTriggerFor]="menuMais"
-                    [matMenuTriggerData]="{ row: row }"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: displayedColumns"
-              class="cfg-data-row"
-              [class.cfg-data-row--selected]="selection.isSelected(row)"
-              tabindex="0"
-              (click)="onRowClick(row)"
-              (keydown.enter)="onRowClick(row)"
-              (keydown.space)="$event.preventDefault(); onRowClick(row)"
-            ></tr>
-          </table>
-
-          @if (!loading() && linhasFiltradas().length === 0) {
-            <p class="rec-empty">Nenhuma configuração encontrada com os filtros atuais.</p>
-          }
-        </div>
-      </mat-card-content>
-
-      <div class="rec-table-footer cfg-table-footer">
-        <div class="cfg-table-footer__left">
-          <label class="cfg-page-size">
-            <span class="cfg-page-size__label">Por página</span>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-page-size__field">
-              <mat-select [value]="itensPorPagina()" (selectionChange)="setItensPorPagina($event)">
-                @for (n of pageSizeOpcoes; track n) {
-                  <mat-option [value]="n">{{ n }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+      <footer class="trn-list-footer">
+        <p class="trn-list-footer__info">
+          Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+          <strong>{{ linhasFiltradas().length }}</strong>
+          {{ linhasFiltradas().length === 1 ? 'configuração' : 'configurações' }}
+        </p>
+        <div class="trn-list-footer__right">
+          <label class="trn-page-size">
+            <span class="trn-page-size__label">Linhas por página</span>
+            <select
+              class="trn-page-size__select input-control"
+              [ngModel]="itensPorPagina()"
+              (ngModelChange)="onTamanhoPaginaChange($event)"
+              aria-label="Linhas por página"
+            >
+              @for (n of pageSizeOpcoes; track n) {
+                <option [ngValue]="n">{{ n }}</option>
+              }
+            </select>
           </label>
-        </div>
-        <div class="rec-table-footer__pages" role="navigation" aria-label="Paginação">
-          <button
-            type="button"
-            mat-icon-button
-            class="rec-page-nav-btn"
-            [disabled]="paginaAtual() === 0"
-            (click)="irParaPagina(paginaAtual() - 1)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-          </button>
-          @for (p of paginasVisiveis(); track p) {
+          <div class="trn-footer-pager" aria-label="Paginação">
             <button
               type="button"
-              class="rec-page-num"
-              [class.rec-page-num--active]="p === paginaAtual() + 1"
-              (click)="irParaPagina(p - 1)"
-            >{{ p }}</button>
-          }
-          <button
-            type="button"
-            mat-icon-button
-            class="rec-page-nav-btn"
-            [disabled]="paginaAtual() >= totalPaginas() - 1"
-            (click)="irParaPagina(paginaAtual() + 1)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-          </button>
+              class="trn-foot-page"
+              [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(0)"
+              aria-label="Primeira página"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+            </button>
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(paginaAtual() - 1)"
+              aria-label="Página anterior"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+            </button>
+            <span class="trn-foot-current" aria-current="page">
+              {{ linhasFiltradas().length === 0 ? 0 : paginaAtual() + 1 }}
+            </span>
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(paginaAtual() + 1)"
+              aria-label="Próxima página"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(totalPaginas() - 1)"
+              aria-label="Última página"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+            </button>
+          </div>
         </div>
-      </div>
-    </mat-card>
+      </footer>
+    }
   }
 
 </div>
-
-<mat-menu #menuMais="matMenu">
-  <ng-template matMenuContent let-row="row">
-    <button type="button" mat-menu-item (click)="duplicarConfiguracaoMenu(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">content_copy</span>
-      Duplicar
-    </button>
-    <button type="button" mat-menu-item (click)="alternarAtivaLinha(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">toggle_on</span>
-      Ativar/Inativar
-    </button>
-    <button type="button" mat-menu-item [disabled]="semEmailFinanceiro(row)" (click)="testarEnvioLinha(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">outgoing_mail</span>
-      Testar envio
-    </button>
-    <button type="button" mat-menu-item (click)="verHistorico(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">history</span>
-      Ver histórico
-    </button>
-    <button type="button" mat-menu-item (click)="simularFaturamento(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">calculate</span>
-      Simular faturamento
-    </button>
-    <button type="button" mat-menu-item (click)="aplicarRegraOutras(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">hub</span>
-      Aplicar regra para outras transportadoras
-    </button>
-    <button type="button" mat-menu-item (click)="removerLinha(row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">delete</span>
-      Excluir
-    </button>
-  </ng-template>
-</mat-menu>
-
-<mat-menu #menuAcoesRapidas="matMenu">
-  <button type="button" mat-menu-item (click)="abrirNovaConfiguracao()">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">add</span>
-    Nova configuração
-  </button>
-  <button type="button" mat-menu-item (click)="duplicarRegraToolbar()">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">content_copy</span>
-    Duplicar
-  </button>
-  <button type="button" mat-menu-item (click)="testarEnvioToolbar()">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">outgoing_mail</span>
-    Testar envio
-  </button>
-  <button type="button" mat-menu-item (click)="exportar()">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">download</span>
-    Exportar
-  </button>
-</mat-menu>

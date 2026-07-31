@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { VeiculoService } from '../../services/veiculo.service';
@@ -29,6 +30,7 @@ import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
+import { TransportadoraViewDialogComponent } from '../../components/transportadora-view-dialog/transportadora-view-dialog.component';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta, stripPlacaAlnum } from '../../utils/placa-br';
 import { splitMarcaModelo } from '../../utils/marca-modelo';
 import { parseTipoCarga, TIPO_CARGA_OPCOES, tipoCargaLabel } from '../../../../shared/models/tipo-carga';
@@ -53,6 +55,7 @@ type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasi
     ModalBuscaMotoristaComponent,
     EstSummaryMetricComponent,
     EstStatusPillEstacionamentoComponent,
+    MatDialogModule,
   ],
   templateUrl: './cadastro-transportadora-page.component.html',
   styleUrls: ['./cadastro-transportadora-page.component.scss']
@@ -69,6 +72,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private dialog = inject(MatDialog);
 
   activeTab: TransportadoraTab = 'cadastro';
 
@@ -869,6 +873,21 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       error: () => {
         this.toast.error('Erro ao excluir transportadora.');
         this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /** Visualização somente leitura (mesmo padrão do modal de Config. Cobrança). */
+  visualizarTransportadora(item: TransportadoraListItemDTO): void {
+    if (!item?.id) return;
+    const ref = this.dialog.open(TransportadoraViewDialogComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      data: { item }
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') {
+        void this.router.navigate(['/app/cadastro/transportadora/editar', item.id]);
       }
     });
   }

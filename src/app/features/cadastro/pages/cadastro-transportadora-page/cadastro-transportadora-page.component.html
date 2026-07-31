@@ -146,14 +146,15 @@
                         </td>
                         <td class="trn-table__acoes">
                           <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para transportadora ' + item.id">
-                            <a
+                            <button
+                              type="button"
                               class="trn-act-btn"
-                              [routerLink]="['/app/cadastro/transportadora/editar', item.id]"
                               title="Visualizar"
                               aria-label="Visualizar transportadora"
+                              (click)="visualizarTransportadora(item)"
                             >
                               <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                            </a>
+                            </button>
                             <a
                               class="trn-act-btn trn-act-btn--accent"
                               [routerLink]="['/app/cadastro/transportadora/editar', item.id]"

@@ -89,11 +89,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     Math.max(1, Math.ceil(this.linhasFiltradas().length / this.itensPorPagina()))
   );
 
-  readonly totalEncontradasLabel = computed(() => {
-    const n = this.linhasFiltradas().length;
-    return n === 1 ? '1 configuração encontrada' : `${n} configurações encontradas`;
-  });
-
   get searchPlaceholder(): string {
     switch (this.campoBusca()) {
       case 'transportadora':

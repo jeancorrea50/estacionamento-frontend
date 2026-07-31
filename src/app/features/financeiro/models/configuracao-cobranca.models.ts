@@ -52,7 +52,7 @@ export interface ConfiguracaoCobrancaSearchOutput {
   diaFechamento: number | null;
   regraFechamento: RegraFechamento;
   prazoVencimentoDias: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
   emailFinanceiro: string | null;
   envioAutomaticoEmail: boolean;
   gerarFaturaAutomaticamente: boolean;
@@ -84,7 +84,7 @@ export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicos
   valorDescontoFixo: number;
   aplicarAcrescimoFixo: boolean;
   valorAcrescimoFixo: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
   /** Preenchida somente quando `modalidadeCobranca` é `Personalizado`. */
   dataCobranca: string | null;
   agruparPorPlaca: boolean;
@@ -113,7 +113,7 @@ export interface ConfiguracaoCobrancaPostInput extends ConfiguracaoCobrancaServi
   valorDescontoFixo: number;
   aplicarAcrescimoFixo: boolean;
   valorAcrescimoFixo: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
   /** Enviada somente quando `modalidadeCobranca` é `Personalizado`. */
   dataCobranca: string | null;
   agruparPorPlaca: boolean;

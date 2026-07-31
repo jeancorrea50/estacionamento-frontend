@@ -30,7 +30,7 @@ function postInput(overrides: Partial<ConfiguracaoCobrancaPostInput> = {}): Conf
     valorDescontoFixo: 0,
     aplicarAcrescimoFixo: false,
     valorAcrescimoFixo: 0,
-    valorEstadia: null,
+    valorEstacionamento: null,
     dataCobranca: null,
     cobrarLavagem: false,
     valorLavagem: null,
@@ -88,7 +88,7 @@ describe('ConfiguracaoCobrancaService', () => {
             EstacionamentoNome: 'Estac Y',
             Status: StatusConfiguracaoCobranca.Ativa,
             ModalidadeCobranca: ModalidadeCobranca.Mensal,
-            ValorEstadia: 10,
+            ValorEstacionamento: 10,
             EmailFinanceiro: 'a@b.com',
             DataCriacao: '2026-07-01T00:00:00'
           }
@@ -134,7 +134,7 @@ describe('ConfiguracaoCobrancaService', () => {
         valorDescontoFixo: 0,
         aplicarAcrescimoFixo: false,
         valorAcrescimoFixo: 0,
-        valorEstadia: null,
+        valorEstacionamento: null,
         dataCobranca: '2026-09-10T00:00:00',
         cobrarLavagem: true,
         valorLavagem: 25,

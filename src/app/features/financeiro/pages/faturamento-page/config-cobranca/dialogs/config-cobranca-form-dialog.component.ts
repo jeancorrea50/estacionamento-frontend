@@ -131,15 +131,15 @@ export class ConfigCobrancaFormDialogComponent {
   acresFixo = false;
   acresValor = 0;
   /** Valor numérico enviado à API. */
-  valorEstadia: number | null = null;
+  valorEstacionamento: number | null = null;
   /** Texto exibido no input (padrão pt-BR: 1.234,56). */
-  valorEstadiaTexto = '';
-  valorEstadiaTocado = false;
+  valorEstacionamentoTexto = '';
+  valorEstacionamentoTocado = false;
   status: ConfigCobrancaStatus = 'Ativa';
   servicos: ConfigCobrancaServicos = servicosVazios();
 
   readonly valorCobrancaMatcher = new ValorCobrancaErrorStateMatcher(
-    () => this.valorEstadiaTocado && this.valorCobrancaInvalido
+    () => this.valorEstacionamentoTocado && this.valorCobrancaInvalido
   );
 
   get titulo(): string {
@@ -159,7 +159,7 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   get valorCobrancaInvalido(): boolean {
-    return !valorInformado(parseBrl(this.valorEstadiaTexto));
+    return !valorInformado(parseBrl(this.valorEstacionamentoTexto));
   }
 
   constructor() {
@@ -184,8 +184,8 @@ export class ConfigCobrancaFormDialogComponent {
       this.descValor = r.valorDescontoFixo;
       this.acresFixo = r.aplicarAcrescimoFixo;
       this.acresValor = r.valorAcrescimoFixo;
-      this.valorEstadia = r.valorEstadia;
-      this.valorEstadiaTexto = formatarBrl(r.valorEstadia);
+      this.valorEstacionamento = r.valorEstacionamento;
+      this.valorEstacionamentoTexto = formatarBrl(r.valorEstacionamento);
       this.status = r.status === 'Inativa' ? 'Inativa' : 'Ativa';
       this.servicos = servicosFromItem(r);
     } else {
@@ -206,9 +206,9 @@ export class ConfigCobrancaFormDialogComponent {
     if (this.modalidade === value) return;
     this.modalidade = value;
     if (value !== 'Personalizada') this.dataCobranca = null;
-    this.valorEstadia = null;
-    this.valorEstadiaTexto = '';
-    this.valorEstadiaTocado = false;
+    this.valorEstacionamento = null;
+    this.valorEstacionamentoTexto = '';
+    this.valorEstacionamentoTocado = false;
   }
 
   toggleServico(key: ConfigCobrancaServicoKey): void {
@@ -231,7 +231,7 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   visualizarRegra(): void {
-    this.sincronizarValorEstadiaDoTexto();
+    this.sincronizarValorEstacionamentoDoTexto();
     this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
       width: '480px',
       maxWidth: '96vw',
@@ -240,8 +240,8 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   salvar(): void {
-    this.valorEstadiaTocado = true;
-    this.sincronizarValorEstadiaDoTexto();
+    this.valorEstacionamentoTocado = true;
+    this.sincronizarValorEstacionamentoDoTexto();
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
       estacionamentoId: this.estacionamentoId ?? 0,
@@ -259,7 +259,7 @@ export class ConfigCobrancaFormDialogComponent {
       descValor: this.descValor,
       acresFixo: this.acresFixo,
       acresValor: this.acresValor,
-      valorEstadia: this.valorEstadia,
+      valorEstacionamento: this.valorEstacionamento,
       servicos: this.servicos
     });
     if (!v.ok) {
@@ -268,25 +268,25 @@ export class ConfigCobrancaFormDialogComponent {
       return;
     }
     this.errosVisiveis = [];
-    this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
+    this.valorEstacionamentoTexto = formatarBrl(this.valorEstacionamento);
     const id = this.data.mode === 'edit' ? this.data.item?.id ?? 0 : 0;
     this.ref.close({ record: this.montarRegistro(id) });
   }
 
-  onValorEstadiaBlur(): void {
-    this.valorEstadiaTocado = true;
-    this.sincronizarValorEstadiaDoTexto();
-    if (this.valorEstadia != null) this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
+  onValorEstacionamentoBlur(): void {
+    this.valorEstacionamentoTocado = true;
+    this.sincronizarValorEstacionamentoDoTexto();
+    if (this.valorEstacionamento != null) this.valorEstacionamentoTexto = formatarBrl(this.valorEstacionamento);
   }
 
-  onValorEstadiaFocus(): void {
+  onValorEstacionamentoFocus(): void {
     // Mantém texto inválido para o usuário corrigir sem perder o que digitou.
-    if (this.valorEstadia == null) return;
-    this.valorEstadiaTexto = formatarBrl(this.valorEstadia);
+    if (this.valorEstacionamento == null) return;
+    this.valorEstacionamentoTexto = formatarBrl(this.valorEstacionamento);
   }
 
-  private sincronizarValorEstadiaDoTexto(): void {
-    this.valorEstadia = parseBrl(this.valorEstadiaTexto);
+  private sincronizarValorEstacionamentoDoTexto(): void {
+    this.valorEstacionamento = parseBrl(this.valorEstacionamentoTexto);
   }
 
   private montarRegistro(id: number): ConfigCobrancaListaItem {
@@ -316,7 +316,7 @@ export class ConfigCobrancaFormDialogComponent {
       descValor: this.descValor,
       acresFixo: this.acresFixo,
       acresValor: this.acresValor,
-      valorEstadia: this.valorEstadia,
+      valorEstacionamento: this.valorEstacionamento,
       servicos: this.servicos
     });
   }

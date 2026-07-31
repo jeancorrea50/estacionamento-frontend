@@ -86,7 +86,7 @@ export function validarFormularioConfig(input: {
   descValor: number;
   acresFixo: boolean;
   acresValor: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
   servicos: ConfigCobrancaServicos;
 }): { ok: true } | { ok: false; mensagens: string[] } {
   const m: string[] = [];
@@ -117,7 +117,7 @@ export function validarFormularioConfig(input: {
     m.push('E-mail financeiro inválido.');
   }
 
-  if (!valorInformado(input.valorEstadia)) {
+  if (!valorInformado(input.valorEstacionamento)) {
     m.push(`Informe o ${valorCobrancaLabel(input.modalidade).toLowerCase()} maior que zero.`);
   }
 
@@ -162,7 +162,7 @@ export function montarRegistroDoFormulario(campos: {
   descValor: number;
   acresFixo: boolean;
   acresValor: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
   servicos: ConfigCobrancaServicos;
 }): ConfigCobrancaListaItem {
   const emailNorm = campos.email?.trim() || null;
@@ -209,7 +209,7 @@ export function montarRegistroDoFormulario(campos: {
     valorDescontoFixo: campos.descFixo ? Number(campos.descValor) || 0 : 0,
     aplicarAcrescimoFixo: campos.acresFixo,
     valorAcrescimoFixo: campos.acresFixo ? Number(campos.acresValor) || 0 : 0,
-    valorEstadia: campos.valorEstadia,
+    valorEstacionamento: campos.valorEstacionamento,
     pagamentoParcial: campos.pagamentoParcial,
     servicos,
     servicosCobrados: servicosCobradosLabel(servicos)

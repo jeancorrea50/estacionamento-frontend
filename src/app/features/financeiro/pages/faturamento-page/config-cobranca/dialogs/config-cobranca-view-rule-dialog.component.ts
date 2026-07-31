@@ -25,7 +25,7 @@ export interface ConfigCobrancaViewRuleDialogData {
         }
         <div><dt>Regra de fechamento</dt><dd>{{ data.row.fechamento }}</dd></div>
         <div><dt>Prazo de vencimento</dt><dd>{{ data.row.prazoVencimento }}</dd></div>
-        <div><dt>Valor da estadia</dt><dd>{{ formatarValorEstadia(data.row.valorEstadia) }}</dd></div>
+        <div><dt>Valor do estacionamento</dt><dd>{{ formatarValorEstacionamento(data.row.valorEstacionamento) }}</dd></div>
         <div>
           <dt>Envio automático</dt>
           <dd>{{ data.row.gerarFaturaAutomaticamente ? 'Sim' : 'Não' }}</dd>
@@ -36,7 +36,7 @@ export interface ConfigCobrancaViewRuleDialogData {
         <div><dt>Juros</dt><dd>{{ data.row.jurosAplicar ? data.row.jurosPercentual + '%' : 'Não' }}</dd></div>
         <div><dt>Serviços adicionais</dt><dd>{{ data.row.servicosCobrados }}</dd></div>
         @for (s of servicosHabilitados(); track s.label) {
-          <div><dt>{{ s.label }}</dt><dd>{{ formatarValorEstadia(s.valor) }}</dd></div>
+          <div><dt>{{ s.label }}</dt><dd>{{ formatarValorEstacionamento(s.valor) }}</dd></div>
         }
         <div><dt>Status</dt><dd>{{ data.row.status }}</dd></div>
       </dl>
@@ -80,7 +80,7 @@ export class ConfigCobrancaViewRuleDialogComponent {
   readonly ref = inject(MatDialogRef<ConfigCobrancaViewRuleDialogComponent, void | 'edit'>);
   readonly data = inject<ConfigCobrancaViewRuleDialogData>(MAT_DIALOG_DATA);
 
-  formatarValorEstadia(valor: number | null | undefined): string {
+  formatarValorEstacionamento(valor: number | null | undefined): string {
     if (valor == null || !Number.isFinite(Number(valor))) return '—';
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }

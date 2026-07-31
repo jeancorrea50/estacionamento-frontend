@@ -26,7 +26,7 @@ function entradaValida(overrides: Partial<EntradaValidacao> = {}): EntradaValida
     descValor: 0,
     acresFixo: false,
     acresValor: 0,
-    valorEstadia: 100,
+    valorEstacionamento: 100,
     servicos: servicosVazios(),
     ...overrides
   };
@@ -66,15 +66,15 @@ describe('validarFormularioConfig', () => {
         entradaValida({
           modalidade,
           dataCobranca: modalidade === 'Personalizada' ? '2026-09-10' : null,
-          valorEstadia: 0
+          valorEstacionamento: 0
         })
       );
       expect(r.ok).toBe(false);
       expect(r.ok === false && r.mensagens).toContain(mensagem);
     }
 
-    expect(validarFormularioConfig(entradaValida({ valorEstadia: null })).ok).toBe(false);
-    expect(validarFormularioConfig(entradaValida({ valorEstadia: -1 })).ok).toBe(false);
+    expect(validarFormularioConfig(entradaValida({ valorEstacionamento: null })).ok).toBe(false);
+    expect(validarFormularioConfig(entradaValida({ valorEstacionamento: -1 })).ok).toBe(false);
   });
 
   it('obriga reescolher a regra em registros legados com modalidade semanal', () => {
@@ -161,7 +161,7 @@ describe('montarRegistroDoFormulario', () => {
     descValor: 0,
     acresFixo: false,
     acresValor: 0,
-    valorEstadia: 100,
+    valorEstacionamento: 100,
     servicos: servicosVazios()
   };
 

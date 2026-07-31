@@ -165,13 +165,13 @@
               inputmode="decimal"
               autocomplete="off"
               placeholder="0,00"
-              [(ngModel)]="valorEstadiaTexto"
+              [(ngModel)]="valorEstacionamentoTexto"
               [errorStateMatcher]="valorCobrancaMatcher"
-              (blur)="onValorEstadiaBlur()"
-              (focus)="onValorEstadiaFocus()"
+              (blur)="onValorEstacionamentoBlur()"
+              (focus)="onValorEstacionamentoFocus()"
               required
             />
-            @if (valorEstadiaTocado && valorCobrancaInvalido) {
+            @if (valorEstacionamentoTocado && valorCobrancaInvalido) {
               <mat-error>Informe o {{ valorCobrancaLabel.toLowerCase() }} maior que zero.</mat-error>
             } @else {
               <mat-hint>Formato brasileiro. Ex.: 1.250,00</mat-hint>

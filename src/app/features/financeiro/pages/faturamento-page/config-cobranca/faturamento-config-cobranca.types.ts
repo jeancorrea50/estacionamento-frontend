@@ -46,7 +46,7 @@ export interface ConfigCobrancaListaItem {
   valorDescontoFixo: number;
   aplicarAcrescimoFixo: boolean;
   valorAcrescimoFixo: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
   pagamentoParcial: boolean;
   servicos: ConfigCobrancaServicos;
   /** Resumo textual dos serviços adicionais habilitados. */

@@ -247,10 +247,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   setTab(tab: TransportadoraTab): void {
     this.activeTab = tab;
-    if (tab === 'frota') {
-      this.carregarVeiculos();
-      this.carregarCondutores();
-    }
+    if (tab === 'frota') this.carregarVeiculos();
     if (tab === 'motoristas') this.carregarCondutores();
   }
 
@@ -695,7 +692,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         );
         // Evita reconsulta CNPJ sobrescrever Status após hidratar de /Transportadora/{id}.
         this.ultimoCnpjConsultado = this.cnpjService.normalizeCnpj(dto.cnpj);
-        this.carregarCondutores();
+        // Cada aba carrega o próprio endpoint (Frota ≠ Motoristas).
+        if (this.activeTab === 'frota') this.carregarVeiculos();
+        if (this.activeTab === 'motoristas') this.carregarCondutores();
       } else {
         this.erroForm = 'Não foi possível carregar os dados da transportadora.';
         this.toast.error(this.erroForm);
@@ -782,8 +781,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
           });
         }
         this.salvando = false;
-        this.carregarVeiculos();
-        this.carregarCondutores();
+        if (this.activeTab === 'frota') this.carregarVeiculos();
+        if (this.activeTab === 'motoristas') this.carregarCondutores();
         this.toast.success(wasEdit ? 'Transportadora atualizada com sucesso.' : 'Transportadora cadastrada com sucesso.');
         this.cdr.markForCheck();
       },

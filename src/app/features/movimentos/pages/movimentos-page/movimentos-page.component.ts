@@ -28,6 +28,11 @@ import { forkJoin, map, of } from 'rxjs';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
+import {
+  datetimeLocalInputToApiIso,
+  toDateTimeLocalInputValue,
+  toLocalIsoDateTime
+} from '../../../../shared/utils/local-iso-datetime';
 import { mapBuscarPorPlacaParaRegistroRapido } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
 import {
   mapearTipoCargaParaEnum as toTipoCargaEnum,
@@ -254,7 +259,7 @@ export class MovimentosPageComponent implements OnInit {
         return;
       }
       this.permanenciaAcao = acao;
-      this.permanenciaDataHora = '';
+      this.permanenciaDataHora = toDateTimeLocalInputValue();
       this.service.getById(item.id).subscribe({
         next: (detalhe) => {
           if (!detalhe?.id) {
@@ -262,6 +267,8 @@ export class MovimentosPageComponent implements OnInit {
             return;
           }
           this.registroSelecionado.set(detalhe);
+          // Garante "agora" no momento em que o modal abre (após o GET).
+          this.permanenciaDataHora = toDateTimeLocalInputValue();
           this.permanenciaOpen.set(true);
         },
         error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.')
@@ -458,7 +465,7 @@ export class MovimentosPageComponent implements OnInit {
     return forkJoin({ motorista: motorista$, transportadora: transportadora$ }).pipe(
       map(({ motorista, transportadora }) => ({
         status: EntradaSaidaStatus.Entrada,
-        dataHoraEntrada: new Date().toISOString(),
+        dataHoraEntrada: toLocalIsoDateTime(),
         observacao: this.observacaoParaApi(this.registroRapido.observacao),
         motorista: {
           id: Number(motorista?.id) > 0 ? Number(motorista?.id) : undefined,
@@ -822,8 +829,8 @@ export class MovimentosPageComponent implements OnInit {
   }
 
   private toIsoOrUndefined(value: string | null | undefined): string | undefined {
-    if (!value?.trim()) return undefined;
-    return new Date(value).toISOString();
+    const iso = datetimeLocalInputToApiIso(value);
+    return iso || undefined;
   }
 
   private mapMovimentacaoHubParaVm(

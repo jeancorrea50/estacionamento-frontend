@@ -1,5 +1,6 @@
 import { formatPlacaDisplay, normalizePlaca } from '../../cadastro/utils/placa-br';
 import { formatTelefone } from '../../cadastro/directives/telefone-format.directive';
+import { tipoCargaLabel } from '../../../shared/models/tipo-carga';
 import {
   EntradaSaidaBuscarPorPlacaResult,
   RegistroRapidoPorPlacaCampos
@@ -39,30 +40,7 @@ function pessoaAninhada(obj: Record<string, unknown> | undefined): Record<string
 
 /** Enum TipoCarga (1–5) → label do select do Registro Rápido. */
 export function mapearTipoCargaEnumParaLabel(valor: string | number | null | undefined): string {
-  const raw = String(valor ?? '').trim();
-  if (!raw) return '';
-
-  const byText = raw.toLowerCase();
-  const mapaTexto: Record<string, string> = {
-    graneleiro: 'Graneleiro',
-    bitrem: 'Bitrem',
-    rodotrem: 'Rodotrem',
-    caçamba: 'Caçamba',
-    cacamba: 'Caçamba',
-    sider: 'Sider'
-  };
-  if (mapaTexto[byText]) return mapaTexto[byText];
-
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return '';
-  const mapaEnum: Record<number, string> = {
-    1: 'Graneleiro',
-    2: 'Bitrem',
-    3: 'Rodotrem',
-    4: 'Caçamba',
-    5: 'Sider'
-  };
-  return mapaEnum[n] ?? '';
+  return tipoCargaLabel(valor);
 }
 
 /**
@@ -126,7 +104,7 @@ export function mapBuscarPorPlacaParaRegistroRapido(
   );
 
   const tipoCargaRaw = pickStr([veiculo, root], 'tipoCarga', 'tipoCargaDescricao');
-  const tipoCargaLabel = mapearTipoCargaEnumParaLabel(tipoCargaRaw);
+  const tipoCargaLabelResolved = mapearTipoCargaEnumParaLabel(tipoCargaRaw);
 
   const existeEntradaEmAberto =
     Boolean(root['existeEntradaEmAberto'] ?? root['ExisteEntradaEmAberto']) === true;
@@ -135,7 +113,7 @@ export function mapBuscarPorPlacaParaRegistroRapido(
     placa,
     motoristaNome,
     motoristaCpf,
-    tipoCargaLabel,
+    tipoCargaLabel: tipoCargaLabelResolved,
     transportadoraCnpj,
     transportadoraRazaoSocial,
     transportadoraResponsavelNome,

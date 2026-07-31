@@ -29,6 +29,10 @@ import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
 import { mapBuscarPorPlacaParaRegistroRapido } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
+import {
+  mapearTipoCargaParaEnum as toTipoCargaEnum,
+  TIPO_CARGA_LABELS
+} from '../../../../shared/models/tipo-carga';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -145,17 +149,8 @@ export class MovimentosPageComponent implements OnInit {
     observacao: ''
   };
 
-  /** Opções comuns para tipo de carga / tipo de equipamento rodoviário. */
-  readonly tipoCargaOpcoes = [
-    'Graneleiro',
-    'Bitrem',
-    'Rodotrem',
-    'Caçamba',
-    'Sider',
-    'Tanque',
-    'Porta contêiner',
-    'Frigorífico'
-  ] as const;
+  /** Opções do enum `TipoCarga` do backend (Seca, Refrigerada, …). */
+  readonly tipoCargaOpcoes = TIPO_CARGA_LABELS;
 
   ngOnInit(): void {
     if (!this.canVisualizar) return;
@@ -482,24 +477,10 @@ export class MovimentosPageComponent implements OnInit {
         },
         veiculo: {
           placa: placaNorm || undefined,
-          tipoCarga: this.mapearTipoCargaParaEnum(this.registroRapido.tipoCarga)
+          tipoCarga: toTipoCargaEnum(this.registroRapido.tipoCarga)
         }
       } satisfies EntradaSaidaPostInput))
     );
-  }
-
-  private mapearTipoCargaParaEnum(valor: string | null | undefined): 1 | 2 | 3 | 4 | 5 | undefined {
-    const key = String(valor ?? '').trim().toLowerCase();
-    if (!key) return undefined;
-    const mapa: Record<string, 1 | 2 | 3 | 4 | 5> = {
-      graneleiro: 1,
-      bitrem: 2,
-      rodotrem: 3,
-      caçamba: 4,
-      cacamba: 4,
-      sider: 5
-    };
-    return mapa[key];
   }
 
   registrarSaidaRapida(): void {

@@ -3,6 +3,7 @@ import type {
   EntradaSaidaBuscarPorPlacaTransportadora,
   EntradaSaidaBuscarPorPlacaVeiculo
 } from './entrada-saida-buscar-por-placa.models';
+import type { TipoCarga } from '../../../shared/models/tipo-carga';
 
 /** Espelha `EntradaSaidaStatus` (byte) do backend. */
 export enum EntradaSaidaStatus {
@@ -162,7 +163,7 @@ export interface EntradaSaidaPostInput {
     id?: number;
     placa?: string;
     /** Enum byte do backend (`TipoCarga`). */
-    tipoCarga?: 1 | 2 | 3 | 4 | 5;
+    tipoCarga?: TipoCarga;
   };
 }
 

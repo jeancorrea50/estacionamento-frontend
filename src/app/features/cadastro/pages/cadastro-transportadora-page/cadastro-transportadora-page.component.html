@@ -583,28 +583,40 @@
                   <p class="card__description">Veículos vinculados a esta transportadora.</p>
                 </div>
                 <div class="table-wrap">
-                  <table class="data-table">
+                  <table class="data-table frota-data-table">
                     <thead>
                       <tr>
+                        <th class="frota-expand-col" aria-label="Expandir motoristas"></th>
                         <th>Placa</th>
                         <th>Marca / Modelo</th>
                         <th>Cor</th>
                         <th>Ano</th>
-                        <th>Tipo</th>
-                        <th>Centro custo</th>
+                        <th>Tipo carga</th>
                         <th>Status</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       @for (v of veiculos; track v.id) {
-                        <tr>
-                          <td>{{ v.placa }}</td>
+                        <tr [class.frota-row--expanded]="isFrotaLinhaExpandida(v.id)">
+                          <td class="frota-expand-col">
+                            <button
+                              type="button"
+                              class="frota-expand-btn"
+                              [attr.aria-expanded]="isFrotaLinhaExpandida(v.id)"
+                              [attr.aria-label]="isFrotaLinhaExpandida(v.id) ? 'Ocultar motoristas' : 'Ver motoristas vinculados'"
+                              (click)="toggleFrotaLinhaExpandida(v, $event)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">
+                                {{ isFrotaLinhaExpandida(v.id) ? 'expand_less' : 'expand_more' }}
+                              </span>
+                            </button>
+                          </td>
+                          <td>{{ formatPlacaFrotaGrid(v.placa) }}</td>
                           <td>{{ v.marcaModelo }}</td>
                           <td>{{ v.cor ?? '—' }}</td>
                           <td>{{ v.anoFabricacao ?? v.anoModelo ?? '—' }}</td>
-                          <td>{{ v.tipoVeiculo ?? '—' }}</td>
-                          <td>{{ v.centroCusto ?? '—' }}</td>
+                          <td>{{ labelTipoCarga(v.tipoCarga) }}</td>
                           <td>
                             <span class="status-pill" [class.status-pill--inactive]="!v.ativo">{{ v.ativo ? 'Ativo' : 'Inativo' }}</span>
                           </td>
@@ -615,6 +627,52 @@
                             </div>
                           </td>
                         </tr>
+                        @if (isFrotaLinhaExpandida(v.id)) {
+                          <tr class="frota-row-detail">
+                            <td colspan="8">
+                              <div class="frota-motoristas-expand">
+                                <div class="frota-motoristas-expand__header">
+                                  <h3 class="frota-motoristas-expand__title">Motoristas vinculados</h3>
+                                  @if (isFrotaExpandLoading(v.id)) {
+                                    <span class="frota-motoristas-expand__loading">Carregando…</span>
+                                  }
+                                </div>
+                                @if ((v.motoristas?.length ?? 0) === 0 && !isFrotaExpandLoading(v.id)) {
+                                  <p class="frota-motoristas-expand__empty">Nenhum motorista vinculado a este veículo.</p>
+                                } @else if ((v.motoristas?.length ?? 0) > 0) {
+                                  <div class="table-wrap frota-motoristas-expand__table-wrap">
+                                    <table class="data-table frota-motoristas-expand__table" aria-label="Motoristas do veículo">
+                                      <thead>
+                                        <tr>
+                                          <th>Nome</th>
+                                          <th>CPF</th>
+                                          <th>Motorista principal</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @for (m of v.motoristas; track m.id) {
+                                          <tr>
+                                            <td>{{ m.nome || '—' }}</td>
+                                            <td>{{ formatCpfCondutor(m.cpf ?? '') }}</td>
+                                            <td>
+                                              @if (m.principal === true) {
+                                                <span class="status-pill">Sim</span>
+                                              } @else if (m.principal === false) {
+                                                <span class="status-pill status-pill--inactive">Não</span>
+                                              } @else {
+                                                <span class="frota-motoristas-expand__dash">—</span>
+                                              }
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                }
+                              </div>
+                            </td>
+                          </tr>
+                        }
                       }
                     </tbody>
                   </table>
@@ -663,9 +721,8 @@
                     <tr>
                       <th>Nome</th>
                       <th>CPF</th>
+                      <th>Telefone</th>
                       <th>E-mail</th>
-                      <th>CNH</th>
-                      <th>Venc. CNH</th>
                       <th>Status</th>
                       <th>Ações</th>
                     </tr>
@@ -675,9 +732,8 @@
                       <tr>
                         <td>{{ c.nomeCompleto }}</td>
                         <td>{{ formatCpfCondutor(c.cpf) }}</td>
+                        <td>{{ formatTelefoneCondutor(c.celular) }}</td>
                         <td>{{ c.email || '—' }}</td>
-                        <td>{{ c.cnh || '—' }}</td>
-                        <td>{{ c.vencimentoCnh || '—' }}</td>
                         <td>
                           <span class="status-pill" [class.status-pill--inactive]="!c.ativo">{{ c.ativo ? 'Ativo' : 'Inativo' }}</span>
                         </td>
@@ -767,12 +823,18 @@
                       id="frota-placa"
                       type="text"
                       class="input-control"
-                      placeholder="Ex.: ABC1D23"
-                      maxlength="7"
+                      placeholder="Ex.: ABC-1D23"
+                      maxlength="8"
                       formControlName="placa"
+                      autocomplete="off"
+                      spellcheck="false"
+                      appPlacaFormat
                       (input)="formatarPlacaFrota($any($event.target).value)"
                       (blur)="onPlacaBlur()"
                     />
+                    @if (veiculoForm.get('placa')?.value && !placaFrotaValida) {
+                      <span class="field-hint field-hint--warn">Informe a placa completa no padrão Mercosul (ex.: ABC-1D23).</span>
+                    }
                   </div>
                   <div class="form-row">
                     <label for="frota-marca">Marca</label>
@@ -807,15 +869,11 @@
                     <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" placeholder="Ex.: 2022" min="1900" max="2100" />
                   </div>
                   <div class="form-row">
-                    <label for="frota-tipo">Tipo de veículo</label>
-                    <input id="frota-tipo" type="text" class="input-control" formControlName="tipoVeiculo" placeholder="Ex.: Cavalo mecânico" />
-                  </div>
-                  <div class="form-row">
-                    <label for="frota-peso">Veículo Leve/Pesado</label>
-                    <select id="frota-peso" class="input-control input-control--select" formControlName="tipoPeso">
-                      <option value="">Selecione</option>
-                      @for (o of tipoPesoOpcoes; track o.value) {
-                        <option [value]="o.value">{{ o.label }}</option>
+                    <label for="frota-tipo-carga">Tipo de carga</label>
+                    <select id="frota-tipo-carga" class="input-control input-control--select" formControlName="tipoCarga">
+                      <option [ngValue]="null">Selecione</option>
+                      @for (o of tipoCargaOpcoes; track o.value) {
+                        <option [ngValue]="o.value">{{ o.label }}</option>
                       }
                     </select>
                   </div>
@@ -921,7 +979,7 @@
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="!podeSalvarVeiculo || salvandoVeiculo"
+              [disabled]="!placaFrotaValida || salvandoVeiculo"
               (click)="salvarVeiculo()"
             >
               {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
@@ -956,11 +1014,49 @@
             </div>
             <div class="form-row">
               <label for="cond-cpf">CPF <span class="required">*</span></label>
-              <input id="cond-cpf" type="text" class="input-control" formControlName="cpf" placeholder="000.000.000-00" appCpfFormat />
+              <input
+                id="cond-cpf"
+                type="text"
+                class="input-control"
+                formControlName="cpf"
+                placeholder="000.000.000-00"
+                maxlength="14"
+                inputmode="numeric"
+                autocomplete="off"
+                appCpfFormat
+              />
+              @if (motoristaForm.get('cpf')?.invalid && motoristaForm.get('cpf')?.touched) {
+                <span class="field__error">
+                  @if (motoristaForm.get('cpf')?.errors?.['required']) {
+                    CPF obrigatório.
+                  } @else {
+                    Informe o CPF completo (11 dígitos).
+                  }
+                </span>
+              }
             </div>
             <div class="form-row">
               <label for="cond-email">E-mail</label>
               <input id="cond-email" type="email" class="input-control" formControlName="email" placeholder="E-mail" />
+            </div>
+            <div class="form-row">
+              <label for="cond-celular">Celular</label>
+              <input
+                id="cond-celular"
+                type="text"
+                class="input-control"
+                formControlName="celular"
+                placeholder="(00) 90000-0000"
+                inputmode="tel"
+                autocomplete="tel"
+                maxlength="15"
+                appTelefoneFormat
+              />
+              @if (motoristaForm.get('celular')?.invalid && motoristaForm.get('celular')?.touched) {
+                <span class="field__error">
+                  Informe o celular completo com DDD e o 9 (11 dígitos).
+                </span>
+              }
             </div>
             <div class="form-row">
               <label for="cond-cnh">CNH</label>

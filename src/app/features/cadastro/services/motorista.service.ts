@@ -154,7 +154,22 @@ export class MotoristaService {
     const emailCt = principalCt
       ? String(principalCt['email'] ?? principalCt['Email'] ?? '').trim()
       : '';
-    const email = emailPf || emailCt;
+    const emailRoot = String(get('email') ?? get('Email') ?? '').trim();
+    const email = emailPf || emailCt || emailRoot;
+
+    const celularCt = principalCt
+      ? String(
+          principalCt['celular'] ??
+            principalCt['Celular'] ??
+            principalCt['telefone'] ??
+            principalCt['Telefone'] ??
+            principalCt['numero'] ??
+            principalCt['Numero'] ??
+            ''
+        ).trim()
+      : '';
+    const celularRoot = String(get('celular') ?? get('Celular') ?? get('telefone') ?? get('Telefone') ?? '').trim();
+    const celular = celularCt || celularRoot;
 
     const enderecosArr = (getPessoa('enderecos') as Record<string, unknown>[] | undefined) ?? [];
     const e0 = enderecosArr[0];
@@ -168,6 +183,7 @@ export class MotoristaService {
       nomeCompleto,
       cpf: cpfValor,
       email: email || undefined,
+      celular: celular || undefined,
       cnh: String(get('cnh') ?? ''),
       vencimentoCnh: this.normalizeDate(validadeCnhRaw),
       ativo: getPessoa('ativo') !== false && get('ativo') !== false,
@@ -223,6 +239,7 @@ export class MotoristaService {
         : undefined;
 
     const validadeCNH = this.toIsoDateTimeUtc(dto.vencimentoCnh);
+    const celularDigits = String(dto.celular ?? '').replace(/\D/g, '').slice(0, 11);
 
     const endereco = {
       id: endId,
@@ -243,12 +260,11 @@ export class MotoristaService {
       pessoaId: pessoaIdNested,
       descricao: nome || 'Contato principal',
       cpf: cpfDigits,
-      telefone: '',
+      telefone: celularDigits || '',
       email,
       principal: true,
       observacao: ''
     };
-
     const pessoaFisica: Record<string, unknown> = {
       id: pfId,
       nome,

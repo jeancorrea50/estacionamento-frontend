@@ -39,7 +39,7 @@ describe('mapBuscarPorPlacaParaRegistroRapido', () => {
     expect(campos.placa).toBe('ABC-1D23');
     expect(campos.motoristaNome).toBe('EA Eduardo Augusto Rezende');
     expect(campos.motoristaCpf).toBe('59319251270');
-    expect(campos.tipoCargaLabel).toBe('Graneleiro');
+    expect(campos.tipoCargaLabel).toBe('Seca');
     expect(campos.transportadoraCnpj).toBe('12345678000195');
     expect(campos.transportadoraRazaoSocial).toBe('Transportes Rápidos Paraná LTDA');
     expect(campos.transportadoraResponsavelNome).toBe('Juninho Pereba');
@@ -82,7 +82,7 @@ describe('mapBuscarPorPlacaParaRegistroRapido', () => {
     });
 
     expect(campos.motoristaNome).toBe('Pedro');
-    expect(campos.tipoCargaLabel).toBe('Bitrem');
+    expect(campos.tipoCargaLabel).toBe('Refrigerada');
     expect(campos.existeEntradaEmAberto).toBe(true);
   });
 
@@ -118,9 +118,13 @@ describe('mapBuscarPorPlacaParaRegistroRapido', () => {
 });
 
 describe('mapearTipoCargaEnumParaLabel', () => {
-  it('mapeia enum e texto', () => {
-    expect(mapearTipoCargaEnumParaLabel(1)).toBe('Graneleiro');
-    expect(mapearTipoCargaEnumParaLabel('sider')).toBe('Sider');
+  it('mapeia enum e texto do contrato atual', () => {
+    expect(mapearTipoCargaEnumParaLabel(1)).toBe('Seca');
+    expect(mapearTipoCargaEnumParaLabel(2)).toBe('Refrigerada');
+    expect(mapearTipoCargaEnumParaLabel(3)).toBe('Perigosa');
+    expect(mapearTipoCargaEnumParaLabel(4)).toBe('Granel');
+    expect(mapearTipoCargaEnumParaLabel(5)).toBe('Líquida');
+    expect(mapearTipoCargaEnumParaLabel('liquida')).toBe('Líquida');
     expect(mapearTipoCargaEnumParaLabel('')).toBe('');
   });
 });

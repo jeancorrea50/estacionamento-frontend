@@ -41,12 +41,14 @@
                 <input
                   class="input-control"
                   type="text"
-                  placeholder="ABC1D23"
+                  placeholder="ABC-1D23"
                   required
                   aria-required="true"
                   [(ngModel)]="registroRapido.placa"
                   (ngModelChange)="onRegistroRapidoPlacaInput($event)"
                   maxlength="8"
+                  autocomplete="off"
+                  spellcheck="false"
                   [ngModelOptions]="{ standalone: true }"
                 />
               </label>

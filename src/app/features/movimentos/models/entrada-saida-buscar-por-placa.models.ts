@@ -23,7 +23,7 @@ export interface EntradaSaidaBuscarPorPlacaVeiculo {
   id?: number;
   placa?: string | null;
   placaVeiculo?: string | null;
-  /** Enum byte: 1 Graneleiro, 2 Bitrem, 3 Rodotrem, 4 Caçamba, 5 Sider. */
+  /** Enum byte: 1 Seca, 2 Refrigerada, 3 Perigosa, 4 Granel, 5 Líquida. */
   tipoCarga?: 1 | 2 | 3 | 4 | 5 | number | string | null;
   tipoCargaDescricao?: string | null;
 }

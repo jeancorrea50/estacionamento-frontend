@@ -1,3 +1,9 @@
+import type {
+  EntradaSaidaBuscarPorPlacaMotorista,
+  EntradaSaidaBuscarPorPlacaTransportadora,
+  EntradaSaidaBuscarPorPlacaVeiculo
+} from './entrada-saida-buscar-por-placa.models';
+
 /** Espelha `EntradaSaidaStatus` (byte) do backend. */
 export enum EntradaSaidaStatus {
   Entrada = 0,
@@ -120,9 +126,10 @@ export interface EntradaSaidaOutput {
   usuarioFinalizacaoNome?: string | null;
   existeEntradaEmAberto?: boolean;
   suspensoes: EntradaSaidaSuspensaoOutput[];
-  motorista?: unknown;
-  transportadora?: unknown;
-  veiculo?: unknown;
+  /** Objetos aninhados do GET buscar-por-placa / detalhe (contrato Registro Rápido). */
+  motorista?: EntradaSaidaBuscarPorPlacaMotorista | null;
+  transportadora?: EntradaSaidaBuscarPorPlacaTransportadora | null;
+  veiculo?: EntradaSaidaBuscarPorPlacaVeiculo | null;
 }
 
 export interface EntradaSaidaPostInput {

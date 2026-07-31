@@ -884,7 +884,7 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Acima de outros overlays do app (muitos usam 1000–1100); abaixo dos toasts (9999). */
+  /* Acima de overlays comuns (1000–1100) e alinhado ao CDK; busca paginada usa 10100 por cima. */
   z-index: 10050;
   padding: 1.5rem;
   box-sizing: border-box;

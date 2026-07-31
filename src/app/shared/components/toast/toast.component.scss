@@ -3,7 +3,8 @@
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  /* Acima de modais de feature/CDK (~10050) e busca paginada (~10100). */
+  z-index: 10200;
   pointer-events: none;
 }
 

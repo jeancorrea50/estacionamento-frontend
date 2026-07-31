@@ -13,21 +13,11 @@ import {
 const API_BASE = environment.API_BASE_URL;
 const MOTORISTA = `${API_BASE}/Motorista`;
 
-/** Query opcional para vínculo com transportadora (não faz parte do JSON do Swagger). */
-function transportadoraQuery(transportadoraId: number | undefined): string {
-  if (transportadoraId == null || !Number.isFinite(transportadoraId) || transportadoraId <= 0) return '';
-  return `?TransportadoraId=${encodeURIComponent(String(transportadoraId))}`;
-}
-
 @Injectable({
   providedIn: 'root'
 })
 export class MotoristaService {
   constructor(private http: HttpClient) {}
-
-  private motoristaUrlComTransportadora(transportadoraId: number | undefined): string {
-    return `${MOTORISTA}${transportadoraQuery(transportadoraId)}`;
-  }
 
   buscar(params: MotoristaBuscarParams): Observable<PagedResultMotoristaDTO> {
     const query = new URLSearchParams();
@@ -74,8 +64,7 @@ export class MotoristaService {
 
   gravar(dto: MotoristaDTO): Observable<MotoristaDTO> {
     const payload = this.dtoToPayload(dto);
-    const url = this.motoristaUrlComTransportadora(dto.transportadoraId);
-    return this.http.post<unknown>(url, payload).pipe(
+    return this.http.post<unknown>(MOTORISTA, payload).pipe(
       timeout(15000),
       map((res) => {
         const response = res as Record<string, unknown>;
@@ -88,8 +77,7 @@ export class MotoristaService {
 
   alterar(dto: MotoristaDTO): Observable<MotoristaDTO> {
     const payload = this.dtoToPayload(dto);
-    const url = this.motoristaUrlComTransportadora(dto.transportadoraId);
-    return this.http.put<unknown>(url, payload).pipe(
+    return this.http.put<unknown>(MOTORISTA, payload).pipe(
       timeout(15000),
       map(() => dto),
       catchError((err) => throwError(() => err))
@@ -215,8 +203,8 @@ export class MotoristaService {
   }
 
   /**
-   * Contrato real API (Swagger): POST/PUT `/api/Motorista` com `pessoaFisica` (nome, enderecos[], contatos[]).
-   * `transportadoraId` não faz parte do body — vínculo conforme regras do backend (ex.: contexto da rota).
+   * Contrato: POST/PUT `/api/Motorista` (sem query).
+   * `transportadoraId` vai no body (camelCase JSON ↔ TransportadoraId no backend).
    */
   private dtoToPayload(dto: MotoristaDTO): Record<string, unknown> {
     const nome = (dto.nomeCompleto ?? '').trim();
@@ -229,6 +217,10 @@ export class MotoristaService {
     const endId = dto.primeiroEnderecoId != null && dto.primeiroEnderecoId > 0 ? dto.primeiroEnderecoId : 0;
     const ctId = dto.primeiroContatoId != null && dto.primeiroContatoId > 0 ? dto.primeiroContatoId : 0;
     const pessoaIdNested = pessoaIdRoot > 0 ? pessoaIdRoot : 0;
+    const transportadoraId =
+      dto.transportadoraId != null && Number.isFinite(dto.transportadoraId) && dto.transportadoraId > 0
+        ? dto.transportadoraId
+        : undefined;
 
     const validadeCNH = this.toIsoDateTimeUtc(dto.vencimentoCnh);
 
@@ -268,6 +260,7 @@ export class MotoristaService {
 
     const payload: Record<string, unknown> = {
       id: motoristaId,
+      transportadoraId,
       cnh,
       pessoaId: pessoaIdRoot,
       pessoaFisica

@@ -28,6 +28,7 @@ import { forkJoin, map, of } from 'rxjs';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
+import { mapBuscarPorPlacaParaRegistroRapido } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -501,33 +502,6 @@ export class MovimentosPageComponent implements OnInit {
     return mapa[key];
   }
 
-  private mapearTipoCargaEnumParaLabel(valor: string | null | undefined): string | undefined {
-    const raw = String(valor ?? '').trim();
-    if (!raw) return undefined;
-
-    const byText = raw.toLowerCase();
-    const mapaTexto: Record<string, string> = {
-      graneleiro: 'Graneleiro',
-      bitrem: 'Bitrem',
-      rodotrem: 'Rodotrem',
-      caçamba: 'Caçamba',
-      cacamba: 'Caçamba',
-      sider: 'Sider'
-    };
-    if (mapaTexto[byText]) return mapaTexto[byText];
-
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return undefined;
-    const mapaEnum: Record<number, string> = {
-      1: 'Graneleiro',
-      2: 'Bitrem',
-      3: 'Rodotrem',
-      4: 'Caçamba',
-      5: 'Sider'
-    };
-    return mapaEnum[n];
-  }
-
   registrarSaidaRapida(): void {
     if (!this.canGravar || this.processandoRegistroRapido()) return;
     const placaNorm = normalizePlaca(this.registroRapido.placa);
@@ -814,94 +788,36 @@ export class MovimentosPageComponent implements OnInit {
   }
 
   private aplicarRespostaEntradaPorPlacaNaTela(entrada: EntradaSaidaOutput): void {
-    const pickAny = (objs: Array<Record<string, unknown> | undefined>, ...keys: string[]): string => {
-      for (const obj of objs) {
-        if (!obj) continue;
-        for (const key of keys) {
-          const val = obj[key] ?? obj[key.charAt(0).toUpperCase() + key.slice(1)];
-          if (val == null) continue;
-          const s = String(val).trim();
-          if (s) return s;
-        }
-      }
-      return '';
-    };
-    const root = entrada as unknown as Record<string, unknown>;
-    const motorista =
-      entrada.motorista && typeof entrada.motorista === 'object'
-        ? (entrada.motorista as Record<string, unknown>)
-        : undefined;
-    const transportadora =
-      entrada.transportadora && typeof entrada.transportadora === 'object'
-        ? (entrada.transportadora as Record<string, unknown>)
-        : undefined;
-    const veiculo =
-      entrada.veiculo && typeof entrada.veiculo === 'object'
-        ? (entrada.veiculo as Record<string, unknown>)
-        : undefined;
-
-    const placa = pickAny([veiculo, root], 'placa', 'placaVeiculo');
-    if (placa) {
-      this.registroRapido.placa = formatPlacaDisplay(normalizePlaca(placa));
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada);
+    if (campos.placa) {
+      this.registroRapido.placa = campos.placa;
     }
-    const nomeMotorista = pickAny(
-      [motorista, root],
-      'nome',
-      'nomeCompleto',
-      'nomeRazaoSocial',
-      'descricao',
-      'nomeMotorista'
-    );
-    if (nomeMotorista) {
-      this.registroRapido.motorista = this.encurtarTextoLivre(nomeMotorista);
+    if (campos.motoristaNome) {
+      this.registroRapido.motorista = this.encurtarTextoLivre(campos.motoristaNome);
     }
-    const cpfMotorista = pickAny([motorista, root], 'cpf', 'documento', 'cpfMotorista');
-    if (cpfMotorista) {
-      this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(cpfMotorista);
+    if (campos.motoristaCpf) {
+      this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(campos.motoristaCpf);
     }
-    const razaoSocial = pickAny(
-      [transportadora, root],
-      'razaoSocial',
-      'nomeFantasia',
-      'nomeRazaoSocial',
-      'nomeTransportadora'
-    );
-    if (razaoSocial) {
-      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(razaoSocial);
-    }
-    const cnpj = pickAny([transportadora, root], 'cnpj', 'documento', 'cnpjTransportadora');
-    if (String(cnpj).replace(/\D/g, '').length > 0) {
-      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(cnpj);
-    }
-    const responsavelNome = pickAny(
-      [transportadora, root],
-      'responsavelLegal',
-      'nomeResponsavel',
-      'responsavelNome',
-      'transportadoraResponsavelNome'
-    );
-    if (responsavelNome) {
-      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(responsavelNome);
-    }
-    const responsavelTelefone = pickAny(
-      [transportadora, root],
-      'responsavelTelefone',
-      'telefoneResponsavel',
-      'telefone',
-      'transportadoraResponsavelTelefone'
-    );
-    if (responsavelTelefone) {
-      this.registroRapido.transportadoraResponsavelTelefone = this.formatarTelefoneRegistroRapido(
-        responsavelTelefone
+    if (campos.transportadoraRazaoSocial) {
+      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
+        campos.transportadoraRazaoSocial
       );
     }
-    const tipoCargaRaw = pickAny([veiculo, root], 'tipoCarga', 'tipoCargaDescricao');
-    const tipoCargaLabel = this.mapearTipoCargaEnumParaLabel(tipoCargaRaw);
-    if (tipoCargaLabel) {
-      this.registroRapido.tipoCarga = tipoCargaLabel;
+    if (String(campos.transportadoraCnpj).replace(/\D/g, '').length > 0) {
+      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(campos.transportadoraCnpj);
     }
-    this.existeEntradaEmAbertoPorPlaca =
-      Boolean(root['existeEntradaEmAberto'] ?? root['ExisteEntradaEmAberto']) === true;
+    if (campos.transportadoraResponsavelNome) {
+      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(
+        campos.transportadoraResponsavelNome
+      );
+    }
+    if (campos.transportadoraResponsavelTelefone) {
+      this.registroRapido.transportadoraResponsavelTelefone = campos.transportadoraResponsavelTelefone;
+    }
+    if (campos.tipoCargaLabel) {
+      this.registroRapido.tipoCarga = campos.tipoCargaLabel;
+    }
+    this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
     this.camposBloqueadosPorPlaca = true;
   }
 

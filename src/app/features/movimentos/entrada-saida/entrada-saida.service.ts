@@ -37,13 +37,20 @@ export class EntradaSaidaService {
     );
   }
 
+  /**
+   * GET `/api/EntradaSaida/buscar-por-placa/{placa}`.
+   * Aceita contrato aninhado (`motorista`/`veiculo`/`transportadora`) ou flat na raiz
+   * (`placa`, `cnpj`, `razaoSocial`, `responsavelLegal`, …) + IDs.
+   * @see mapBuscarPorPlacaParaRegistroRapido
+   */
   obterPorPlaca(placa: string): Observable<EntradaSaidaOutput | null> {
     return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/buscar-por-placa/${encodeURIComponent(placa)}`).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body);
         if (!raw) return null;
         const id = this.pickNumber(raw, 'id', 'Id');
-        return this.mapDetailItem(raw, id > 0 ? id : 0);
+        const detail = this.mapDetailItem(raw, id > 0 ? id : 0);
+        return this.enrichBuscarPorPlacaFromFlat(raw, detail);
       })
     );
   }
@@ -195,9 +202,113 @@ export class EntradaSaidaService {
       suspensoes: Array.isArray(suspensoesRaw)
         ? (suspensoesRaw as EntradaSaidaOutput['suspensoes'])
         : [],
-      motorista: row['motorista'] ?? row['Motorista'],
-      transportadora: row['transportadora'] ?? row['Transportadora'],
-      veiculo: row['veiculo'] ?? row['Veiculo']
+      motorista: (row['motorista'] ?? row['Motorista']) as EntradaSaidaOutput['motorista'],
+      transportadora: (row['transportadora'] ?? row['Transportadora']) as EntradaSaidaOutput['transportadora'],
+      veiculo: (row['veiculo'] ?? row['Veiculo']) as EntradaSaidaOutput['veiculo']
+    };
+  }
+
+  /**
+   * Só em buscar-por-placa: se a API não enviar objetos aninhados,
+   * monta `veiculo`/`transportadora`/`motorista` a partir dos campos flat da raiz.
+   */
+  private enrichBuscarPorPlacaFromFlat(
+    row: Record<string, unknown>,
+    detail: EntradaSaidaOutput
+  ): EntradaSaidaOutput {
+    return {
+      ...detail,
+      motorista: detail.motorista ?? this.synthesizeMotoristaFromFlat(row),
+      transportadora: detail.transportadora ?? this.synthesizeTransportadoraFromFlat(row),
+      veiculo: detail.veiculo ?? this.synthesizeVeiculoFromFlat(row)
+    };
+  }
+
+  private synthesizeTransportadoraFromFlat(
+    row: Record<string, unknown>
+  ): EntradaSaidaOutput['transportadora'] {
+    const cnpj = this.pickString(row, 'cnpj', 'Cnpj', 'cnpjTransportadora', 'CnpjTransportadora');
+    const razaoSocial = this.pickString(
+      row,
+      'razaoSocial',
+      'RazaoSocial',
+      'nomeTransportadora',
+      'NomeTransportadora',
+      'nomeFantasia',
+      'NomeFantasia'
+    );
+    const responsavelLegal = this.pickString(
+      row,
+      'responsavelLegal',
+      'ResponsavelLegal',
+      'nomeResponsavel',
+      'NomeResponsavel',
+      'responsavelNome',
+      'ResponsavelNome'
+    );
+    const responsavelTelefone = this.pickString(
+      row,
+      'responsavelTelefone',
+      'ResponsavelTelefone',
+      'telefoneResponsavel',
+      'TelefoneResponsavel'
+    );
+    const responsavelCpf = this.pickString(row, 'responsavelCpf', 'ResponsavelCpf');
+    const responsavelEmail = this.pickString(row, 'responsavelEmail', 'ResponsavelEmail');
+    const id = this.pickNumber(row, 'transportadoraId', 'TransportadoraId');
+
+    if (
+      !cnpj &&
+      !razaoSocial &&
+      !responsavelLegal &&
+      !responsavelTelefone &&
+      !responsavelCpf &&
+      !responsavelEmail &&
+      id <= 0
+    ) {
+      return undefined;
+    }
+
+    return {
+      id: id > 0 ? id : undefined,
+      cnpj: cnpj || undefined,
+      razaoSocial: razaoSocial || undefined,
+      responsavelLegal: responsavelLegal || undefined,
+      responsavelTelefone: responsavelTelefone || undefined,
+      responsavelCpf: responsavelCpf || undefined,
+      responsavelEmail: responsavelEmail || undefined
+    };
+  }
+
+  private synthesizeVeiculoFromFlat(row: Record<string, unknown>): EntradaSaidaOutput['veiculo'] {
+    const placa = this.pickString(row, 'placa', 'Placa', 'placaVeiculo', 'PlacaVeiculo');
+    const tipoCargaRaw = this.pickRaw(row, 'tipoCarga', 'TipoCarga', 'tipoCargaDescricao', 'TipoCargaDescricao');
+    const id = this.pickNumber(row, 'veiculoId', 'VeiculoId');
+
+    if (!placa && tipoCargaRaw == null && id <= 0) {
+      return undefined;
+    }
+
+    return {
+      id: id > 0 ? id : undefined,
+      placa: placa || undefined,
+      tipoCarga: (tipoCargaRaw as number | string | null | undefined) ?? undefined
+    };
+  }
+
+  private synthesizeMotoristaFromFlat(row: Record<string, unknown>): EntradaSaidaOutput['motorista'] {
+    const nome = this.pickString(row, 'nomeMotorista', 'NomeMotorista');
+    const cpf = this.pickString(row, 'cpfMotorista', 'CpfMotorista');
+    const id = this.pickNumber(row, 'motoristaId', 'MotoristaId');
+
+    if (!nome && !cpf && id <= 0) {
+      return undefined;
+    }
+
+    return {
+      id: id > 0 ? id : undefined,
+      nome: nome || undefined,
+      cpf: cpf || undefined
     };
   }
 

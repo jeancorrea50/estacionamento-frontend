@@ -12,10 +12,14 @@ export interface VeiculoListItemDTO {
   transportadoraId?: number;
 }
 
-/** Item de vínculo veículo ↔ motorista (GET paralelo `motoristaIds` + `motoristas`). */
+/** Item de vínculo veículo ↔ motorista (GET `motoristas[]` ou legado `motoristaIds` + nomes). */
 export interface VeiculoMotoristaVinculoDTO {
   id: number;
+  /** Descrição / nome do motorista. */
   nome: string;
+  cnh?: string;
+  /** Validade CNH já formatada para exibição (DD/MM/AAAA) quando possível. */
+  validadeCnh?: string;
 }
 
 /** Dados do veículo (formulário / API) */
@@ -41,7 +45,7 @@ export interface VeiculoDTO {
   /** Alguns GET retornam na raiz ou em `veiculoDetalhe` — uso local do formulário de frota. */
   quantidadeEixos?: string | number | null;
   tipoPeso?: string | null;
-  /** GET: preenchido a partir de `motoristaIds` + `motoristas` quando o backend envia listas paralelas. */
+  /** GET: preenchido a partir de `motoristas[]` (objetos) ou listas paralelas legadas. */
   motoristasVinculos?: VeiculoMotoristaVinculoDTO[];
   /** POST/PUT: lista de ids dos motoristas vinculados ao veículo (contrato API frota). */
   motoristaIds?: number[];

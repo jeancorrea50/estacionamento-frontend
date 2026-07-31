@@ -750,7 +750,7 @@
             Motoristas vinculados
           </button>
         </div>
-        <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
+        <form [formGroup]="veiculoForm" novalidate>
           <div class="modal-body modal-body--frota">
             @if (transportadoraId == null) {
               <p class="modal-frota-hint" role="alert">
@@ -853,6 +853,8 @@
                       <thead>
                         <tr>
                           <th>Motorista</th>
+                          <th>CNH</th>
+                          <th>Validade CNH</th>
                           <th>Principal</th>
                           <th class="table-cell--actions">Ações</th>
                         </tr>
@@ -865,6 +867,20 @@
                                 <span class="frota-vinculo-item__avatar" aria-hidden="true">{{ motoristaIniciais(m.nome) }}</span>
                                 <span>{{ m.nome }}</span>
                               </span>
+                            </td>
+                            <td>
+                              @if (m.cnh) {
+                                {{ m.cnh }}
+                              } @else {
+                                <span class="frota-vinculos__cell-muted">—</span>
+                              }
+                            </td>
+                            <td>
+                              @if (m.validadeCnh) {
+                                {{ m.validadeCnh }}
+                              } @else {
+                                <span class="frota-vinculos__cell-muted">—</span>
+                              }
                             </td>
                             <td>
                               @if (m.principal) {
@@ -902,7 +918,12 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="veiculoForm.invalid || salvandoVeiculo">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!podeSalvarVeiculo || salvandoVeiculo"
+              (click)="salvarVeiculo()"
+            >
               {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
             </button>
           </div>

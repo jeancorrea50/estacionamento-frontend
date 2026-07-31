@@ -240,17 +240,85 @@ export class VeiculoService {
     };
   }
 
-  /** GET: listas paralelas `motoristaIds` e `motoristas` (nomes). */
+  /**
+   * GET: `motoristas` como array de objetos (contrato atual) ou
+   * legado com listas paralelas `motoristaIds` + `motoristas` (nomes).
+   */
   private parseMotoristasVinculosGet(result: Record<string, unknown>): VeiculoMotoristaVinculoDTO[] {
+    const motoristasRaw = result['motoristas'] ?? result['Motoristas'];
+
+    if (Array.isArray(motoristasRaw) && motoristasRaw.length > 0) {
+      const comoObjetos = motoristasRaw.filter(
+        (x): x is Record<string, unknown> => x != null && typeof x === 'object' && !Array.isArray(x)
+      );
+      if (comoObjetos.length > 0) {
+        return comoObjetos
+          .map((m) => this.mapMotoristaVinculoObjeto(m))
+          .filter((v) => v.id > 0);
+      }
+    }
+
     const idsRaw = result['motoristaIds'] ?? result['MotoristaIds'];
-    const nomesRaw = result['motoristas'] ?? result['Motoristas'];
     if (!Array.isArray(idsRaw)) return [];
     const ids = idsRaw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
-    const nomes = Array.isArray(nomesRaw) ? nomesRaw.map((n) => String(n ?? '').trim()) : [];
+    const nomes = Array.isArray(motoristasRaw) ? motoristasRaw.map((n) => String(n ?? '').trim()) : [];
     return ids.map((id, i) => ({
       id,
       nome: nomes[i] && nomes[i].length > 0 ? nomes[i] : `Motorista ${id}`
     }));
+  }
+
+  private mapMotoristaVinculoObjeto(m: Record<string, unknown>): VeiculoMotoristaVinculoDTO {
+    const get = (k: string) => m[k] ?? m[k.charAt(0).toUpperCase() + k.slice(1)];
+    const id = Number(get('id') ?? get('motoristaId')) || 0;
+
+    const pfRaw = get('pessoaFisica') ?? get('PessoaFisica') ?? get('pessoa') ?? get('Pessoa');
+    let nomePf = '';
+    if (pfRaw != null && typeof pfRaw === 'object' && !Array.isArray(pfRaw)) {
+      const pf = pfRaw as Record<string, unknown>;
+      const pg = (k: string) => pf[k] ?? pf[k.charAt(0).toUpperCase() + k.slice(1)];
+      nomePf = String(pg('nome') ?? pg('nomeCompleto') ?? pg('descricao') ?? '').trim();
+    }
+
+    const nome = String(
+      get('descricao') ??
+        get('Descricao') ??
+        get('nomeCompleto') ??
+        get('NomeCompleto') ??
+        get('nome') ??
+        nomePf ??
+        ''
+    ).trim();
+
+    const cnh = String(get('cnh') ?? get('Cnh') ?? '').trim();
+    const validadeCnh = this.formatValidadeCnhDisplay(
+      get('validadeCNH') ?? get('validadeCnh') ?? get('ValidadeCNH')
+    );
+
+    return {
+      id,
+      nome: nome || `Motorista ${id}`,
+      cnh: cnh || undefined,
+      validadeCnh: validadeCnh || undefined
+    };
+  }
+
+  /** Normaliza validade CNH (ISO / date-time) para DD/MM/AAAA. */
+  private formatValidadeCnhDisplay(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
+    const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+    if (isoDate) {
+      const [, year, month, day] = isoDate;
+      return `${day}/${month}/${year}`;
+    }
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return raw;
+    const day = String(dt.getDate()).padStart(2, '0');
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const year = dt.getFullYear();
+    return `${day}/${month}/${year}`;
   }
 
   /** POST /api/Veiculo */

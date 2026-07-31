@@ -87,7 +87,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   numeroPagina = 1;
   totalCount = 0;
   /** Itens por página na grade (enviado ao GET Buscar). */
-  tamanhoPaginaLista = 10;
+  tamanhoPaginaLista = 25;
   readonly opcoesTamanhoPaginaLista: number[] = [10, 25, 50];
   transportadoraForm!: FormGroup;
   salvando = false;
@@ -575,6 +575,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       }).format(d);
     }
     return String(raw).trim();
+  }
+
+  /** Telefone da listagem (`responsavelTelefone` / `contato`). */
+  formatTelefoneLista(raw: string | null | undefined): string {
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (!digits) return '—';
+    return formatTelefone(digits);
   }
 
   private resolveSearchProperty(field: TransportadoraSearchField): string | undefined {

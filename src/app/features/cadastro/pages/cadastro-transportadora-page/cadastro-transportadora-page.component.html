@@ -114,9 +114,10 @@
                       <th scope="col">Nome fantasia</th>
                       <th scope="col">CNPJ</th>
                       <th scope="col">E-mail</th>
+                      <th scope="col">Telefone</th>
+                      <th scope="col">Atualização</th>
                       <th scope="col">Frota</th>
                       <th scope="col">Status</th>
-                      <th scope="col">Atualização</th>
                       <th scope="col" class="trn-table__th-acoes">Ações</th>
                     </tr>
                   </thead>
@@ -128,6 +129,8 @@
                         <td>{{ item.nomeFantasia || '—' }}</td>
                         <td>{{ formatCnpjList(item.cnpj) }}</td>
                         <td>{{ item.email.trim() ? item.email : '—' }}</td>
+                        <td>{{ formatTelefoneLista(item.telefone) }}</td>
+                        <td>{{ formatDataAtualizacaoLista(item.dataAtualizacao) }}</td>
                         <td class="trn-cell-frota">
                           @if (item.quantidadeVeiculos != null && item.quantidadeVeiculos >= 0) {
                             <span class="trn-frota-pill">
@@ -141,7 +144,6 @@
                         <td>
                           <app-est-status-pill-estacionamento [ativo]="item.ativo" />
                         </td>
-                        <td>{{ formatDataAtualizacaoLista(item.dataAtualizacao) }}</td>
                         <td class="trn-table__acoes">
                           <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para transportadora ' + item.id">
                             <a

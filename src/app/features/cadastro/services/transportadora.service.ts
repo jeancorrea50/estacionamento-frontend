@@ -287,9 +287,25 @@ export class TransportadoraService {
         'Descricao'
       ),
       cnpj: firstStr('cnpj', 'Cnpj', 'documento', 'Documento'),
-      email: firstStr('email', 'Email'),
+      email: firstStr(
+        'responsavelEmail',
+        'ResponsavelEmail',
+        'email',
+        'Email'
+      ),
+      telefone: firstStr(
+        'responsavelTelefone',
+        'ResponsavelTelefone',
+        'responsavelCelular',
+        'contato',
+        'Contato',
+        'telefone',
+        'Telefone'
+      ),
       ativo: ativoVal(),
       quantidadeVeiculos: firstNum(
+        'quantidadeVeiculo',
+        'QuantidadeVeiculo',
         'quantidadeVeiculos',
         'QuantidadeVeiculos',
         'totalVeiculos',

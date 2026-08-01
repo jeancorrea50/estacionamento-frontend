@@ -1,5 +1,5 @@
 <section class="horario-page" aria-labelledby="horario-title">
-  @if (loading) {
+  @if (loading()) {
     <p class="horario-page__status" role="status">Carregando horários...</p>
   } @else {
     <div class="horario-card">
@@ -16,13 +16,14 @@
           id="timeZoneId"
           class="horario-card__select"
           name="timeZoneId"
-          [(ngModel)]="timeZoneId"
-          [disabled]="salvando || padroes.length === 0"
+          [ngModel]="timeZoneId()"
+          (ngModelChange)="onTimeZoneChange($event)"
+          [disabled]="salvando() || padroes().length === 0"
         >
-          @if (!padroes.length) {
+          @if (!padroes().length) {
             <option value="">Nenhum fuso disponível</option>
           }
-          @for (p of padroes; track p.timeZoneId) {
+          @for (p of padroes(); track p.timeZoneId) {
             <option [value]="p.timeZoneId">{{ p.nome }}</option>
           }
         </select>
@@ -32,10 +33,10 @@
         <button
           type="button"
           class="btn btn--primary horario-card__save"
-          [disabled]="!podeSalvar"
+          [disabled]="!podeSalvar()"
           (click)="salvar()"
         >
-          {{ salvando ? 'Salvando...' : 'Salvar' }}
+          {{ salvando() ? 'Salvando...' : 'Salvar horário' }}
         </button>
       </footer>
     </div>

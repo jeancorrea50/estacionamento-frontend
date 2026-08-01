@@ -17,11 +17,11 @@
   border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
-  padding: 18px 18px 16px;
+  padding: 20px 20px 18px;
 }
 
 .horario-card__head {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .horario-card__title {
@@ -53,8 +53,8 @@
 .horario-card__select {
   box-sizing: border-box;
   width: 100%;
-  min-height: 42px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--border-subtle);
   background: var(--input-bg, var(--surface-2));
@@ -77,11 +77,29 @@
 .horario-card__actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .horario-card__save {
-  min-width: 120px;
+  box-sizing: border-box;
+  min-width: 168px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  line-height: 1;
+}
+
+.horario-card__save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 560px) {
@@ -91,5 +109,6 @@
 
   .horario-card__save {
     width: 100%;
+    min-width: 0;
   }
 }

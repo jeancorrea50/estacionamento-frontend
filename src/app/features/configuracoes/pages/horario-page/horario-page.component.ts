@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import type { EstacionamentoConfiguracaoPadrao } from '../../models/estacionamento-configuracao.models';
+import type {
+  EstacionamentoConfiguracao,
+  EstacionamentoConfiguracaoPadrao
+} from '../../models/estacionamento-configuracao.models';
 import { EstacionamentoConfiguracaoService } from '../../services/estacionamento-configuracao.service';
 
 @Component({
@@ -19,84 +22,119 @@ export class HorarioPageComponent implements OnInit {
   private readonly api = inject(EstacionamentoConfiguracaoService);
   private readonly toast = inject(ToastService);
 
-  padroes: EstacionamentoConfiguracaoPadrao[] = [];
-  timeZoneId = '';
+  readonly padroes = signal<EstacionamentoConfiguracaoPadrao[]>([]);
+  readonly timeZoneId = signal('');
   /** Id da config atual; `null` = ainda não gravada (POST). */
-  configId: number | null = null;
+  readonly configId = signal<number | null>(null);
 
-  loading = true;
-  salvando = false;
+  readonly loading = signal(true);
+  readonly salvando = signal(false);
+
+  readonly podeSalvar = computed(
+    () => !!this.timeZoneId().trim() && !this.loading() && !this.salvando()
+  );
 
   ngOnInit(): void {
     this.carregar();
   }
 
   carregar(): void {
-    this.loading = true;
-    // Dropdown depende só de /padroes. A config atual (GET raiz) é opcional:
-    // 404 = ainda não gravada e não pode derrubar a lista de fusos.
-    this.api
-      .listarPadroes()
-      .pipe(finalize(() => (this.loading = false)))
-      .subscribe({
-        next: (padroes) => {
-          this.padroes = padroes;
-          this.timeZoneId = padroes[0]?.timeZoneId ?? '';
-          this.configId = null;
-          this.carregarConfigAtual();
-        },
-        error: (err: ApiError) => {
-          this.padroes = [];
+    this.loading.set(true);
+    this.padroes.set([]);
+    this.timeZoneId.set('');
+    this.configId.set(null);
+
+    let padroesOk = false;
+    let atualOk = false;
+
+    const liberarSePossivel = (): void => {
+      if (this.padroes().length > 0 || !!this.timeZoneId() || (padroesOk && atualOk)) {
+        this.loading.set(false);
+      }
+    };
+
+    // Chamadas em paralelo — signals atualizam a UI no app zoneless.
+    this.api.listarPadroes().subscribe({
+      next: (padroes) => {
+        this.aplicarPadroes(padroes);
+        padroesOk = true;
+        liberarSePossivel();
+      },
+      error: (err: ApiError) => {
+        padroesOk = true;
+        if (!this.padroes().length) {
           this.toast.error(err?.message ?? 'Não foi possível carregar os fusos horários.');
         }
-      });
-  }
+        liberarSePossivel();
+      }
+    });
 
-  /** Pré-seleciona o fuso já salvo (se existir). */
-  private carregarConfigAtual(): void {
     this.api.obterAtual().subscribe({
       next: (atual) => {
-        if (!atual?.id || atual.id <= 0 || !atual.timeZoneId) return;
-        this.configId = atual.id;
-        this.timeZoneId = atual.timeZoneId;
-        if (!this.padroes.some((p) => p.timeZoneId === atual.timeZoneId)) {
-          this.padroes = [
-            {
-              timeZoneId: atual.timeZoneId,
-              nome: atual.nome || atual.timeZoneId,
-              utcOffset: atual.utcOffset || ''
-            },
-            ...this.padroes
-          ];
-        }
+        this.aplicarAtual(atual);
+        atualOk = true;
+        liberarSePossivel();
       },
       error: () => {
         // Sem toast: ausência de config é cenário esperado antes do primeiro POST.
-        this.configId = null;
+        this.configId.set(null);
+        atualOk = true;
+        liberarSePossivel();
       }
     });
   }
 
+  onTimeZoneChange(value: string): void {
+    this.timeZoneId.set(value);
+  }
+
+  private aplicarPadroes(padroes: EstacionamentoConfiguracaoPadrao[]): void {
+    const selecionado = this.timeZoneId();
+    this.padroes.set(padroes);
+
+    if (selecionado) {
+      this.garantirPadraoNaLista(selecionado, selecionado, '');
+      this.timeZoneId.set(selecionado);
+      return;
+    }
+
+    this.timeZoneId.set(padroes[0]?.timeZoneId ?? '');
+  }
+
+  private aplicarAtual(atual: EstacionamentoConfiguracao | null): void {
+    if (!atual?.id || atual.id <= 0 || !atual.timeZoneId) return;
+
+    this.configId.set(atual.id);
+    this.timeZoneId.set(atual.timeZoneId);
+    this.garantirPadraoNaLista(atual.timeZoneId, atual.nome || atual.timeZoneId, atual.utcOffset || '');
+  }
+
+  private garantirPadraoNaLista(timeZoneId: string, nome: string, utcOffset: string): void {
+    if (this.padroes().some((p) => p.timeZoneId === timeZoneId)) return;
+    this.padroes.set([{ timeZoneId, nome, utcOffset }, ...this.padroes()]);
+  }
+
   salvar(): void {
-    const tz = this.timeZoneId?.trim();
+    const tz = this.timeZoneId().trim();
     if (!tz) {
       this.toast.error('Selecione um horário.');
       return;
     }
-    if (this.salvando) return;
-    this.salvando = true;
+    if (this.salvando()) return;
+    this.salvando.set(true);
 
+    const id = this.configId();
     const req$ =
-      this.configId != null && this.configId > 0
-        ? this.api.alterar({ id: this.configId, timeZoneId: tz })
+      id != null && id > 0
+        ? this.api.alterar({ id, timeZoneId: tz })
         : this.api.gravar({ timeZoneId: tz });
 
-    req$.pipe(finalize(() => (this.salvando = false))).subscribe({
+    req$.pipe(finalize(() => this.salvando.set(false))).subscribe({
       next: (saved) => {
-        const eraNovo = !(this.configId != null && this.configId > 0);
+        const eraNovo = !(id != null && id > 0);
         if (saved?.id && saved.id > 0) {
-          this.configId = saved.id;
-          this.timeZoneId = saved.timeZoneId || tz;
+          this.configId.set(saved.id);
+          this.timeZoneId.set(saved.timeZoneId || tz);
         } else if (eraNovo) {
           this.carregar();
         }
@@ -107,8 +145,5 @@ export class HorarioPageComponent implements OnInit {
       }
     });
   }
-
-  get podeSalvar(): boolean {
-    return !!this.timeZoneId?.trim() && !this.loading && !this.salvando;
-  }
 }
+

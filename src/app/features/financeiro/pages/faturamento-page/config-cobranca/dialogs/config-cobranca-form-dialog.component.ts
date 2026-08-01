@@ -24,14 +24,18 @@ import {
   MODALIDADE_OPCOES,
   RegraFechamento,
   SERVICO_VALOR_LABELS,
+  diaSemanaLabel,
+  isDiaSemanaValido,
   montarRegistroDoFormulario,
   servicosFromItem,
   servicosVazios,
   valorCobrancaLabel,
   valorInformado,
-  validarFormularioConfig
+  validarFormularioConfig,
+  type DiaSemanaCobranca
 } from '../faturamento-config-cobranca.helpers';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
+import { ConfigCobrancaWeekdayDialogComponent } from './config-cobranca-weekday-dialog.component';
 
 class ValorCobrancaErrorStateMatcher implements ErrorStateMatcher {
   constructor(private readonly host: () => boolean) {}
@@ -47,7 +51,6 @@ export interface ConfigCobrancaFormDialogData {
   mode: ConfigCobrancaFormMode;
   item?: ConfigCobrancaListaItem;
   transportadoras: ConfigCobrancaLookupOption[];
-  estacionamentos: ConfigCobrancaLookupOption[];
   statusOpcoes: ConfigCobrancaStatus[];
 }
 
@@ -111,7 +114,6 @@ export class ConfigCobrancaFormDialogComponent {
   ];
 
   transportadoraId: number | null = null;
-  estacionamentoId: number | null = null;
   modalidade: ConfigCobrancaModalidade | '' = '';
   /** ISO `yyyy-MM-dd`, exigida apenas na modalidade personalizada. */
   dataCobranca: string | null = null;
@@ -121,7 +123,6 @@ export class ConfigCobrancaFormDialogComponent {
   email = '';
   envioAuto = false;
   gerarAuto = false;
-  pagamentoParcial = false;
   multa = false;
   multaPct = 0;
   juros = false;
@@ -147,11 +148,23 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   get subtitulo(): string {
-    return 'Defina como a transportadora será faturada neste estacionamento.';
+    return 'Defina como a transportadora será faturada.';
   }
 
   get exigeDataCobranca(): boolean {
     return this.modalidade === 'Personalizada';
+  }
+
+  get exigeDiaMensal(): boolean {
+    return this.modalidade === 'Mensal';
+  }
+
+  get exigeDiaSemanal(): boolean {
+    return this.modalidade === 'Semanal';
+  }
+
+  get diaSemanaSelecionadoLabel(): string {
+    return isDiaSemanaValido(this.diaFechamento) ? diaSemanaLabel(this.diaFechamento) : '';
   }
 
   get valorCobrancaLabel(): string {
@@ -166,16 +179,17 @@ export class ConfigCobrancaFormDialogComponent {
     const r = this.data.item;
     if (r) {
       this.transportadoraId = r.transportadoraId || null;
-      this.estacionamentoId = r.estacionamentoId || null;
       this.modalidade = r.modalidade;
       this.dataCobranca = r.dataCobranca ?? null;
       this.diaFechamento = r.diaFechamento;
       this.regraFechamento = r.regraFechamento || RegraFechamento.UltimoDiaDoMes;
+      if (r.modalidade === 'Mensal' || r.modalidade === 'Semanal') {
+        this.regraFechamento = RegraFechamento.DiaFixo;
+      }
       this.prazoVencimentoDias = r.prazoVencimentoDias || 10;
       this.email = r.emailFinanceiro ?? '';
       this.envioAuto = r.envioAutomatico;
       this.gerarAuto = r.gerarFaturaAutomaticamente;
-      this.pagamentoParcial = r.pagamentoParcial;
       this.multa = r.multaAplicar;
       this.multaPct = r.multaPercentual;
       this.juros = r.jurosAplicar;
@@ -190,8 +204,10 @@ export class ConfigCobrancaFormDialogComponent {
       this.servicos = servicosFromItem(r);
     } else {
       this.modalidade = 'Mensal';
-      this.regraFechamento = RegraFechamento.UltimoDiaDoMes;
+      this.regraFechamento = RegraFechamento.DiaFixo;
+      this.diaFechamento = null;
       this.prazoVencimentoDias = 10;
+      this.gerarAuto = true;
       this.status = 'Ativa';
     }
     this.jurosMultaAberto = this.multa || this.juros || this.descFixo || this.acresFixo;
@@ -203,12 +219,49 @@ export class ConfigCobrancaFormDialogComponent {
 
   /** Trocar a regra descarta valores específicos da modalidade anterior. */
   selecionarModalidade(value: ConfigCobrancaModalidade): void {
-    if (this.modalidade === value) return;
+    if (!this.gerarAuto) return;
+    if (this.modalidade === value) {
+      if (value === 'Semanal') this.abrirModalDiaSemana();
+      return;
+    }
     this.modalidade = value;
     if (value !== 'Personalizada') this.dataCobranca = null;
     this.valorEstacionamento = null;
     this.valorEstacionamentoTexto = '';
     this.valorEstacionamentoTocado = false;
+
+    if (value === 'Mensal') {
+      this.regraFechamento = RegraFechamento.DiaFixo;
+      if (!this.diaFechamento || this.diaFechamento < 1 || this.diaFechamento > 31) {
+        this.diaFechamento = null;
+      }
+      return;
+    }
+
+    if (value === 'Semanal') {
+      this.regraFechamento = RegraFechamento.DiaFixo;
+      this.diaFechamento = isDiaSemanaValido(this.diaFechamento) ? this.diaFechamento : null;
+      this.abrirModalDiaSemana();
+      return;
+    }
+  }
+
+  abrirModalDiaSemana(): void {
+    if (!this.gerarAuto) return;
+    const ref = this.dialog.open(ConfigCobrancaWeekdayDialogComponent, {
+      width: '420px',
+      maxWidth: '96vw',
+      data: {
+        diaSelecionado: isDiaSemanaValido(this.diaFechamento)
+          ? (this.diaFechamento as DiaSemanaCobranca)
+          : null
+      }
+    });
+    ref.afterClosed().subscribe((dia) => {
+      if (dia == null) return;
+      this.diaFechamento = dia;
+      this.regraFechamento = RegraFechamento.DiaFixo;
+    });
   }
 
   toggleServico(key: ConfigCobrancaServicoKey): void {
@@ -222,6 +275,10 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   testarEnvio(): void {
+    if (!this.envioAuto) {
+      this.snack.open('Ative o envio automático por e-mail para testar o envio.', 'Fechar', { duration: 4500 });
+      return;
+    }
     const mail = this.email?.trim();
     if (!mail) {
       this.snack.open('Cadastre um e-mail financeiro para testar o envio.', 'Fechar', { duration: 4500 });
@@ -244,13 +301,14 @@ export class ConfigCobrancaFormDialogComponent {
     this.sincronizarValorEstacionamentoDoTexto();
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
-      estacionamentoId: this.estacionamentoId ?? 0,
       modalidade: this.modalidade,
       dataCobranca: this.dataCobranca,
       regraFechamento: this.regraFechamento,
       diaFechamento: this.diaFechamento,
       prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
       email: this.email,
+      gerarFaturaAutomaticamente: this.gerarAuto,
+      envioAutomaticoEmail: this.envioAuto,
       multa: this.multa,
       multaPct: this.multaPct,
       juros: this.juros,
@@ -291,13 +349,10 @@ export class ConfigCobrancaFormDialogComponent {
 
   private montarRegistro(id: number): ConfigCobrancaListaItem {
     const transportadora = this.data.transportadoras.find((t) => t.id === this.transportadoraId);
-    const estacionamento = this.data.estacionamentos.find((e) => e.id === this.estacionamentoId);
     return montarRegistroDoFormulario({
       id,
       transportadoraId: this.transportadoraId ?? 0,
       transportadoraNome: transportadora?.label ?? '',
-      estacionamentoId: this.estacionamentoId ?? 0,
-      estacionamentoNome: estacionamento?.label ?? '',
       status: this.status === 'Inativa' ? 'Inativa' : 'Ativa',
       modalidade: this.modalidade as ConfigCobrancaModalidade,
       dataCobranca: this.dataCobranca,
@@ -307,7 +362,6 @@ export class ConfigCobrancaFormDialogComponent {
       email: this.email,
       envioAuto: this.envioAuto,
       gerarAuto: this.gerarAuto,
-      pagamentoParcial: this.pagamentoParcial,
       multa: this.multa,
       multaPct: this.multaPct,
       juros: this.juros,

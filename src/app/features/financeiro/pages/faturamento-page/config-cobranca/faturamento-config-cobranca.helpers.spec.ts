@@ -11,11 +11,10 @@ type EntradaValidacao = Parameters<typeof validarFormularioConfig>[0];
 function entradaValida(overrides: Partial<EntradaValidacao> = {}): EntradaValidacao {
   return {
     transportadoraId: 1,
-    estacionamentoId: 2,
     modalidade: 'Mensal',
     dataCobranca: null,
-    regraFechamento: RegraFechamento.UltimoDiaDoMes,
-    diaFechamento: null,
+    regraFechamento: RegraFechamento.DiaFixo,
+    diaFechamento: 10,
     prazoVencimentoDias: 10,
     email: 'financeiro@empresa.com',
     multa: false,
@@ -56,7 +55,8 @@ describe('validarFormularioConfig', () => {
   it('exige valor de cobrança maior que zero com mensagem correspondente à modalidade', () => {
     const casos = [
       ['Diária', 'Informe o valor da diária maior que zero.'],
-      ['Mensal', 'Informe o valor da mensalidade maior que zero.'],
+      ['Semanal', 'Informe o valor da semana maior que zero.'],
+      ['Mensal', 'Informe o valor estadia maior que zero.'],
       ['Quinzenal', 'Informe o valor da quinzena maior que zero.'],
       ['Personalizada', 'Informe o valor da cobrança maior que zero.']
     ] as const;
@@ -66,6 +66,12 @@ describe('validarFormularioConfig', () => {
         entradaValida({
           modalidade,
           dataCobranca: modalidade === 'Personalizada' ? '2026-09-10' : null,
+          diaFechamento:
+            modalidade === 'Semanal' ? 2 : modalidade === 'Mensal' ? 10 : null,
+          regraFechamento:
+            modalidade === 'Semanal' || modalidade === 'Mensal'
+              ? RegraFechamento.DiaFixo
+              : RegraFechamento.UltimoDiaDoMes,
           valorEstacionamento: 0
         })
       );
@@ -77,15 +83,44 @@ describe('validarFormularioConfig', () => {
     expect(validarFormularioConfig(entradaValida({ valorEstacionamento: -1 })).ok).toBe(false);
   });
 
-  it('obriga reescolher a regra em registros legados com modalidade semanal', () => {
-    const r = validarFormularioConfig(entradaValida({ modalidade: 'Semanal' }));
-    expect(r.ok).toBe(false);
-    expect(r.ok === false && r.mensagens).toContain('Selecione a regra de cobrança.');
+  it('exige dia da semana na cobrança semanal', () => {
+    const semDia = validarFormularioConfig(
+      entradaValida({ modalidade: 'Semanal', diaFechamento: null, regraFechamento: RegraFechamento.DiaFixo })
+    );
+    expect(semDia.ok).toBe(false);
+    expect(semDia.ok === false && semDia.mensagens).toContain('Selecione o dia da semana da cobrança.');
+
+    expect(
+      validarFormularioConfig(
+        entradaValida({ modalidade: 'Semanal', diaFechamento: 2, regraFechamento: RegraFechamento.DiaFixo })
+      ).ok
+    ).toBe(true);
+  });
+
+  it('exige dia da cobrança na modalidade mensal', () => {
+    const semDia = validarFormularioConfig(entradaValida({ modalidade: 'Mensal', diaFechamento: null }));
+    expect(semDia.ok).toBe(false);
+    expect(semDia.ok === false && semDia.mensagens).toContain(
+      'Informe o dia da cobrança mensal (1 a 31).'
+    );
+
+    expect(validarFormularioConfig(entradaValida({ modalidade: 'Mensal', diaFechamento: 15 })).ok).toBe(true);
+  });
+
+  it('não exige dia/fechamento quando gerar fatura automaticamente está desligado', () => {
+    const r = validarFormularioConfig(
+      entradaValida({
+        modalidade: 'Mensal',
+        diaFechamento: null,
+        gerarFaturaAutomaticamente: false
+      })
+    );
+    expect(r.ok).toBe(true);
   });
 
   it('exige data da cobrança apenas na modalidade personalizada', () => {
     const semData = validarFormularioConfig(
-      entradaValida({ modalidade: 'Personalizada', dataCobranca: null })
+      entradaValida({ modalidade: 'Personalizada', dataCobranca: null, diaFechamento: null })
     );
     expect(semData.ok).toBe(false);
     expect(semData.ok === false && semData.mensagens).toContain(
@@ -93,12 +128,37 @@ describe('validarFormularioConfig', () => {
     );
 
     const comData = validarFormularioConfig(
-      entradaValida({ modalidade: 'Personalizada', dataCobranca: '2026-09-10' })
+      entradaValida({
+        modalidade: 'Personalizada',
+        dataCobranca: '2026-09-10',
+        diaFechamento: null,
+        regraFechamento: RegraFechamento.UltimoDiaDoMes
+      })
     );
     expect(comData.ok).toBe(true);
 
     // Nas demais modalidades a data é irrelevante e não bloqueia o salvamento.
-    expect(validarFormularioConfig(entradaValida({ modalidade: 'Diária' })).ok).toBe(true);
+    expect(
+      validarFormularioConfig(
+        entradaValida({
+          modalidade: 'Diária',
+          diaFechamento: null,
+          regraFechamento: RegraFechamento.UltimoDiaDoMes
+        })
+      ).ok
+    ).toBe(true);
+  });
+
+  it('não exige e-mail quando o envio automático está desligado', () => {
+    expect(
+      validarFormularioConfig(entradaValida({ email: '', envioAutomaticoEmail: false })).ok
+    ).toBe(true);
+  });
+
+  it('exige e-mail quando o envio automático está ligado', () => {
+    const r = validarFormularioConfig(entradaValida({ email: '', envioAutomaticoEmail: true }));
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.mensagens).toContain('Informe o e-mail financeiro.');
   });
 
   it('exige percentual quando juros ou multa estão ativos', () => {
@@ -129,7 +189,11 @@ describe('validarFormularioConfig', () => {
   });
 
   it('exige dia de fechamento quando a regra é dia fixo', () => {
-    const semDia = entradaValida({ regraFechamento: RegraFechamento.DiaFixo, diaFechamento: null });
+    const semDia = entradaValida({
+      modalidade: 'Diária',
+      regraFechamento: RegraFechamento.DiaFixo,
+      diaFechamento: null
+    });
     expect(validarFormularioConfig(semDia).ok).toBe(false);
     expect(validarFormularioConfig({ ...semDia, diaFechamento: 40 }).ok).toBe(false);
     expect(validarFormularioConfig({ ...semDia, diaFechamento: 15 }).ok).toBe(true);
@@ -141,18 +205,15 @@ describe('montarRegistroDoFormulario', () => {
     id: 0,
     transportadoraId: 1,
     transportadoraNome: 'Transp',
-    estacionamentoId: 2,
-    estacionamentoNome: 'Estac',
     status: 'Ativa' as const,
     modalidade: 'Mensal' as const,
     dataCobranca: '2026-09-10',
-    regraFechamento: RegraFechamento.UltimoDiaDoMes,
-    diaFechamento: null,
+    regraFechamento: RegraFechamento.DiaFixo,
+    diaFechamento: 10,
     prazoVencimentoDias: 10,
     email: 'fin@empresa.com',
     envioAuto: true,
     gerarAuto: false,
-    pagamentoParcial: false,
     multa: false,
     multaPct: 0,
     juros: false,
@@ -168,6 +229,29 @@ describe('montarRegistroDoFormulario', () => {
   it('descarta a data da cobrança fora da modalidade personalizada', () => {
     expect(montarRegistroDoFormulario(campos).dataCobranca).toBeNull();
     expect(montarRegistroDoFormulario({ ...campos, modalidade: 'Personalizada' }).dataCobranca).toBe('2026-09-10');
+  });
+
+  it('monta fechamento semanal a partir do dia da semana', () => {
+    const registro = montarRegistroDoFormulario({
+      ...campos,
+      modalidade: 'Semanal',
+      diaFechamento: 2
+    });
+    expect(registro.diaFechamento).toBe(2);
+    expect(registro.regraFechamento).toBe(RegraFechamento.DiaFixo);
+    expect(registro.fechamento).toBe('Toda segunda-feira');
+  });
+
+  it('força dia fixo na cobrança mensal', () => {
+    const registro = montarRegistroDoFormulario({
+      ...campos,
+      modalidade: 'Mensal',
+      regraFechamento: RegraFechamento.UltimoDiaDoMes,
+      diaFechamento: 15
+    });
+    expect(registro.regraFechamento).toBe(RegraFechamento.DiaFixo);
+    expect(registro.diaFechamento).toBe(15);
+    expect(registro.fechamento).toBe('Todo dia 15');
   });
 
   it('descarta o valor de serviço desabilitado e resume os habilitados', () => {

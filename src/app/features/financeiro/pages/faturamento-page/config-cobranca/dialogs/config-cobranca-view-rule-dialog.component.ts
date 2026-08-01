@@ -18,8 +18,13 @@ export interface ConfigCobrancaViewRuleDialogData {
     <mat-dialog-content class="cfg-view__body">
       <dl class="cfg-view__dl">
         <div><dt>Transportadora</dt><dd>{{ data.row.transportadora }}</dd></div>
-        <div><dt>Estacionamento</dt><dd>{{ data.row.estacionamento }}</dd></div>
         <div><dt>Modalidade</dt><dd>{{ data.row.modalidade }}</dd></div>
+        @if (data.row.modalidade === 'Mensal' && data.row.diaFechamento) {
+          <div><dt>Dia da cobrança</dt><dd>Todo dia {{ data.row.diaFechamento }}</dd></div>
+        }
+        @if (data.row.modalidade === 'Semanal') {
+          <div><dt>Dia da semana</dt><dd>{{ data.row.fechamento }}</dd></div>
+        }
         @if (data.row.dataCobranca) {
           <div><dt>Data da cobrança</dt><dd>{{ formatarData(data.row.dataCobranca) }}</dd></div>
         }
@@ -31,7 +36,6 @@ export interface ConfigCobrancaViewRuleDialogData {
           <dd>{{ data.row.gerarFaturaAutomaticamente ? 'Sim' : 'Não' }}</dd>
         </div>
         <div><dt>E-mail financeiro</dt><dd>{{ data.row.emailFinanceiro ?? '—' }}</dd></div>
-        <div><dt>Permite pagamento parcial</dt><dd>{{ data.row.pagamentoParcial ? 'Sim' : 'Não' }}</dd></div>
         <div><dt>Multa</dt><dd>{{ data.row.multaAplicar ? data.row.multaPercentual + '%' : 'Não' }}</dd></div>
         <div><dt>Juros</dt><dd>{{ data.row.jurosAplicar ? data.row.jurosPercentual + '%' : 'Não' }}</dd></div>
         <div><dt>Serviços adicionais</dt><dd>{{ data.row.servicosCobrados }}</dd></div>

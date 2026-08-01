@@ -158,6 +158,31 @@
   width: 100%;
 }
 
+.cfg-block__head--with-action {
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cfg-block__head-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cfg-block__head-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.cfg-block--locked .cfg-block__body,
+.cfg-block--locked .cfg-block__grid {
+  opacity: 0.48;
+  pointer-events: none;
+  user-select: none;
+}
+
 .cfg-block__head--toggle {
   margin-bottom: 0;
   background: none;
@@ -221,6 +246,37 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px dashed var(--cfg-input-border);
+}
+
+.cfg-weekday-summary__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--cfg-input-border);
+  background: color-mix(in srgb, var(--cfg-surface, #151f34) 88%, #000);
+}
+
+.cfg-weekday-summary__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cfg-weekday-summary__label {
+  font-size: 0.75rem;
+  color: var(--cfg-muted, #94a3b8);
+}
+
+.cfg-weekday-summary__value {
+  font-size: 0.9375rem;
+  color: var(--cfg-text, #f8fafc);
+  font-weight: 700;
 }
 
 /* Campo monetário com prefixo integrado ao controle. */

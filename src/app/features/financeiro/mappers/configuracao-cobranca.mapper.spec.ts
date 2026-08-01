@@ -159,6 +159,12 @@ describe('configuracao-cobranca.mapper', () => {
     expect(mapListaItemToPostInput(mensal).dataCobranca).toBeNull();
   });
 
+  it('não deve enviar estacionamentoId no POST/PUT', () => {
+    const lista = mapOutputToListaItem(mapRawOutput(rawOutputBase()));
+    const payload = mapListaItemToPostInput(lista);
+    expect(payload).not.toHaveProperty('estacionamentoId');
+  });
+
   it('deve sempre zerar o agrupamento removido do cadastro', () => {
     const lista = mapOutputToListaItem(mapRawOutput(rawOutputBase()));
     const payload = mapListaItemToPostInput(lista);

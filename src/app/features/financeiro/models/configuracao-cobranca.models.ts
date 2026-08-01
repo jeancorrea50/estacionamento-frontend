@@ -95,7 +95,6 @@ export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicos
 export interface ConfiguracaoCobrancaPostInput extends ConfiguracaoCobrancaServicosAdicionais {
   id?: number;
   transportadoraId: number;
-  estacionamentoId: number;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
   diaFechamento: number | null;

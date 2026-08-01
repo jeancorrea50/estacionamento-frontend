@@ -12,7 +12,6 @@ import { ConfiguracaoCobrancaService } from './configuracao-cobranca.service';
 function postInput(overrides: Partial<ConfiguracaoCobrancaPostInput> = {}): ConfiguracaoCobrancaPostInput {
   return {
     transportadoraId: 1,
-    estacionamentoId: 2,
     status: StatusConfiguracaoCobranca.Ativa,
     modalidadeCobranca: ModalidadeCobranca.Mensal,
     diaFechamento: null,

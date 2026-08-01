@@ -1,6 +1,6 @@
 /**
- * `Semanal` não é oferecida no cadastro, mas continua no contrato do backend
- * e precisa ser exibida em registros antigos.
+ * Modalidades do contrato de configuração de cobrança.
+ * Semanal e Mensal exigem `diaFechamento` (1–7 = dia da semana; 1–31 = dia do mês).
  */
 export type ConfigCobrancaModalidade = 'Diária' | 'Semanal' | 'Quinzenal' | 'Mensal' | 'Personalizada';
 

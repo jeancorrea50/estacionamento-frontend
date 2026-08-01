@@ -94,6 +94,29 @@ export function regraFechamentoLabel(
   return 'Último dia do mês';
 }
 
+const DIA_SEMANA_NOMES: Record<number, string> = {
+  1: 'domingo',
+  2: 'segunda-feira',
+  3: 'terça-feira',
+  4: 'quarta-feira',
+  5: 'quinta-feira',
+  6: 'sexta-feira',
+  7: 'sábado'
+};
+
+/** Resumo de fechamento/cobrança para listagem (Semanal usa dia 1–7). */
+export function fechamentoResumoLabel(
+  modalidade: ModalidadeCobranca | number,
+  regra: RegraFechamento | number,
+  diaFechamento: number | null | undefined
+): string {
+  if (Number(modalidade) === ModalidadeCobranca.Semanal) {
+    const nome = diaFechamento != null ? DIA_SEMANA_NOMES[diaFechamento] : undefined;
+    return nome ? `Toda ${nome}` : 'Semanal';
+  }
+  return regraFechamentoLabel(regra, diaFechamento);
+}
+
 /** Rótulo amigável da modalidade para badges na listagem. */
 export function modalidadeBadgeLabel(modalidade: ConfigCobrancaModalidade | string): string {
   return modalidade === 'Personalizada' ? 'Data personalizada' : modalidade;
@@ -147,7 +170,7 @@ export function mapSearchToListaItem(dto: ConfiguracaoCobrancaSearchOutput): Con
     modalidadeCobranca: dto.modalidadeCobranca,
     diaFechamento: dto.diaFechamento,
     regraFechamento: dto.regraFechamento,
-    fechamento: regraFechamentoLabel(dto.regraFechamento, dto.diaFechamento),
+    fechamento: fechamentoResumoLabel(dto.modalidadeCobranca, dto.regraFechamento, dto.diaFechamento),
     prazoVencimentoDias: dto.prazoVencimentoDias,
     prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
     dataCobranca: null,
@@ -183,7 +206,7 @@ export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCob
     modalidadeCobranca: dto.modalidadeCobranca,
     diaFechamento: dto.diaFechamento,
     regraFechamento: dto.regraFechamento,
-    fechamento: regraFechamentoLabel(dto.regraFechamento, dto.diaFechamento),
+    fechamento: fechamentoResumoLabel(dto.modalidadeCobranca, dto.regraFechamento, dto.diaFechamento),
     prazoVencimentoDias: dto.prazoVencimentoDias,
     prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
     dataCobranca: toIsoDate(dto.dataCobranca),
@@ -218,7 +241,6 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
   return {
     id: item.id > 0 ? item.id : 0,
     transportadoraId: item.transportadoraId,
-    estacionamentoId: item.estacionamentoId,
     status: statusFromLabel(item.status),
     modalidadeCobranca,
     diaFechamento: dia,

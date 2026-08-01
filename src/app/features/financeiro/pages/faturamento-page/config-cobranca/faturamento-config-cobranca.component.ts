@@ -6,12 +6,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { forkJoin, of } from 'rxjs';
+import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
 import { EstStatusPillEstacionamentoComponent } from '../../../../cadastro/components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
-import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
 import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import {
   mapListaItemToPostInput,
@@ -53,29 +52,25 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
   private readonly api = inject(ConfiguracaoCobrancaService);
   private readonly transportadoraLookup = inject(TransportadoraLookupService);
-  private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
 
   readonly items = signal<ConfigCobrancaListaItem[]>([]);
   readonly loading = signal(false);
   readonly jaBuscou = signal(false);
   private readonly transportadorasLookup = signal<ConfigCobrancaLookupOption[]>([]);
-  private readonly estacionamentosLookup = signal<ConfigCobrancaLookupOption[]>([]);
 
   readonly pageSizeOpcoes = [10, 25, 50, 100] as const;
 
   readonly transportadoraFiltro = signal<number | 'all'>('all');
-  readonly estacionamentoFiltro = signal<number | 'all'>('all');
   readonly modalidadeFiltro = signal<string>('all');
   readonly statusFiltro = signal<string>('all');
   readonly envioFiltro = signal<ConfigCobrancaEnvioFiltroId>('all');
   readonly searchText = signal<string>('');
-  readonly campoBusca = signal<'geral' | 'transportadora' | 'estacionamento' | 'email'>('geral');
+  readonly campoBusca = signal<'geral' | 'transportadora' | 'email'>('geral');
 
   readonly paginaAtual = signal(0);
   readonly itensPorPagina = signal(25);
 
   readonly listaTransportadorasForm = computed(() => this.transportadorasLookup());
-  readonly listaEstacionamentosForm = computed(() => this.estacionamentosLookup());
 
   readonly linhasFiltradas = computed(() => this.aplicarFiltros());
 
@@ -93,12 +88,10 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     switch (this.campoBusca()) {
       case 'transportadora':
         return 'Pesquisar por transportadora...';
-      case 'estacionamento':
-        return 'Pesquisar por estacionamento...';
       case 'email':
         return 'Pesquisar por e-mail financeiro...';
       default:
-        return 'Pesquisar por transportadora, estacionamento ou e-mail financeiro...';
+        return 'Pesquisar por transportadora ou e-mail financeiro...';
     }
   }
 
@@ -125,11 +118,9 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     this.jaBuscou.set(true);
     this.loading.set(true);
     const tr = this.transportadoraFiltro();
-    const es = this.estacionamentoFiltro();
     const st = this.statusFiltro();
     const q = this.searchText().trim();
     const transportadoraId = tr !== 'all' && Number(tr) > 0 ? Number(tr) : undefined;
-    const estacionamentoId = es !== 'all' && Number(es) > 0 ? Number(es) : undefined;
     const status =
       st === 'Ativa'
         ? StatusConfiguracaoCobranca.Ativa
@@ -143,7 +134,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         tamanhoPagina: 200,
         descricao: q || undefined,
         transportadoraId,
-        estacionamentoId,
         status
       })
       .pipe(finalize(() => this.loading.set(false)))
@@ -168,17 +158,14 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   }
 
   private carregarLookups(): void {
-    forkJoin({
-      transportadoras: this.transportadoraLookup.list().pipe(catchError(() => of([]))),
-      estacionamentos: this.estacionamentoLookup.list().pipe(catchError(() => of([])))
-    }).subscribe(({ transportadoras, estacionamentos }) => {
-      this.transportadorasLookup.set(
-        transportadoras.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
-      );
-      this.estacionamentosLookup.set(
-        estacionamentos.map((e) => ({ id: e.id, label: e.label.split(' — ')[0] || e.label }))
-      );
-    });
+    this.transportadoraLookup
+      .list()
+      .pipe(catchError(() => of([])))
+      .subscribe((transportadoras) => {
+        this.transportadorasLookup.set(
+          transportadoras.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
+        );
+      });
   }
 
   onTamanhoPaginaChange(size: number | string): void {
@@ -280,7 +267,6 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         mode,
         item,
         transportadoras: this.listaTransportadorasForm(),
-        estacionamentos: this.listaEstacionamentosForm(),
         statusOpcoes: ['Ativa', 'Inativa'] as ConfigCobrancaStatus[]
       }
     });
@@ -347,16 +333,12 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   private aplicarFiltros(): ConfigCobrancaListaItem[] {
     let rows = [...this.items()];
     const tr = this.transportadoraFiltro();
-    const es = this.estacionamentoFiltro();
     const mo = this.modalidadeFiltro();
     const st = this.statusFiltro();
     const env = this.envioFiltro();
 
     if (tr !== 'all') {
       rows = rows.filter((r) => r.transportadoraId === tr);
-    }
-    if (es !== 'all') {
-      rows = rows.filter((r) => r.estacionamentoId === es);
     }
     if (mo !== 'all') rows = rows.filter((r) => r.modalidade === mo);
     if (st !== 'all') rows = rows.filter((r) => r.status === st);

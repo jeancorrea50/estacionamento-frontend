@@ -99,6 +99,16 @@ function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
 }
 
 /**
+ * GET da config de horário: 404 = ainda não cadastrada (cenário esperado).
+ * O toast genérico atrapalhava o fluxo da aba Horário.
+ */
+function isEstacionamentoConfiguracaoAtualGet(req: HttpRequest<unknown>): boolean {
+  if (req.method !== 'GET') return false;
+  const u = req.url.toLowerCase().split('?')[0];
+  return u.endsWith('/estacionamentoconfiguracao') || u.endsWith('/estacionamentoconfiguracao/');
+}
+
+/**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
  */
@@ -111,13 +121,14 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         status: undefined,
         fieldErrors: undefined
       };
-      if (
-        !isLoginRequest(req) &&
-        !isBrasilApiCnpjRequest(req) &&
-        !isConfirmarEmailRequest(req) &&
-        !isPasswordResetPublicRequest(req) &&
-        !isUsuarioRegisterRequest(req)
-      ) {
+      const skipToast =
+        isLoginRequest(req) ||
+        isBrasilApiCnpjRequest(req) ||
+        isConfirmarEmailRequest(req) ||
+        isPasswordResetPublicRequest(req) ||
+        isUsuarioRegisterRequest(req) ||
+        (isEstacionamentoConfiguracaoAtualGet(req) && apiError.status === 404);
+      if (!skipToast) {
         toast.error(apiError.message);
       }
       return throwError(() => apiError);

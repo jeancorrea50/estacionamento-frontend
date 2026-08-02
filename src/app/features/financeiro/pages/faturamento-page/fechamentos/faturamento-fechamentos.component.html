@@ -10,9 +10,6 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Fechamentos disponíveis</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-disponiveis')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
           <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ kpisGlobais().disponiveis }}</p>
           <p class="rec-kpi-card__sub">registros no período</p>
@@ -28,15 +25,9 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Prontos para faturar</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-prontos')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
           <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ kpisGlobais().prontos }}</p>
-          <p class="rec-kpi-card__sub rec-kpi-card__sub--up">
-            <span class="material-symbols-outlined rec-kpi-card__trend-ico" aria-hidden="true">trending_up</span>
-            prontos para gerar
-          </p>
+          <p class="rec-kpi-card__sub">prontos para gerar</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -49,9 +40,6 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Valor estimado total</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-valor')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
           <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ formatCurrency(kpisGlobais().valorEstimado) }}</p>
           <p class="rec-kpi-card__sub">somatório do período</p>
@@ -67,9 +55,6 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Com divergência</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-divergencias')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
           <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ kpisGlobais().divergencias }}</p>
           <p class="rec-kpi-card__sub">exigem atenção</p>
@@ -77,6 +62,12 @@
       </mat-card-content>
     </mat-card>
   </div>
+
+  @if (loading()) {
+    <p class="loading-msg" role="status" style="margin: 0 0 12px; color: var(--muted);">
+      Carregando fechamentos...
+    </p>
+  }
 
   <!-- Tabela -->
   <mat-card class="rec-table-card" appearance="outlined">
@@ -93,6 +84,7 @@
             placeholder="Buscar..."
             [ngModel]="searchText()"
             (ngModelChange)="searchText.set($event)"
+            (keyup.enter)="carregarLista()"
           />
         </mat-form-field>
         <div class="rec-filter-bar rec-filter-bar--table">

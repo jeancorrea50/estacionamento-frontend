@@ -16,6 +16,7 @@ export class FaturamentoPageComponent {
     { path: 'fechamentos',     label: 'Fechamentos' },
     { path: 'recebimentos',    label: 'Recebimentos' },
     { path: 'inadimplencia',   label: 'Inadimplência' },
+    { path: 'faturas',         label: 'Faturas' },
     { path: 'config-cobranca', label: 'Configurações de Cobrança' }
   ];
 }

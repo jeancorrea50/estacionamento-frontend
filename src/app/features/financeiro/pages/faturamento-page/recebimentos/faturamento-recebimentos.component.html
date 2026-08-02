@@ -10,15 +10,8 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Total recebido no período</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-total')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
-          <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ formatCurrency(124800) }}</p>
-          <p class="rec-kpi-card__sub rec-kpi-card__sub--up">
-            <span class="material-symbols-outlined rec-kpi-card__trend-ico" aria-hidden="true">trending_up</span>
-            12,4% vs período anterior
-          </p>
+          <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ totalRecebidoFormatado() }}</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -31,12 +24,9 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Pagamentos parciais</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-parciais')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
-          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ formatCurrency(18500) }}</p>
-          <p class="rec-kpi-card__sub">9 registros</p>
+          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ pagamentosParciaisFormatado() }}</p>
+          <p class="rec-kpi-card__sub">{{ quantidadePagamentosParciais() }} registros</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -49,12 +39,9 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Valor pendente</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-pendente')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
-          <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ formatCurrency(48320.75) }}</p>
-          <p class="rec-kpi-card__sub">32 registros</p>
+          <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ valorPendenteFormatado() }}</p>
+          <p class="rec-kpi-card__sub">{{ quantidadePendentes() }} registros</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -67,19 +54,18 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Recebimentos do dia</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-dia')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
-          <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ formatCurrency(6850) }}</p>
-          <p class="rec-kpi-card__sub rec-kpi-card__sub--up">
-            <span class="material-symbols-outlined rec-kpi-card__trend-ico" aria-hidden="true">trending_up</span>
-            8,7% vs ontem
-          </p>
+          <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ recebimentosDoDiaFormatado() }}</p>
         </div>
       </mat-card-content>
     </mat-card>
   </div>
+
+  @if (loading()) {
+    <p class="loading-msg" role="status" style="margin: 0 0 12px; color: var(--muted);">
+      Carregando recebimentos...
+    </p>
+  }
 
   <!-- Tabela -->
   <mat-card class="rec-table-card" appearance="outlined">
@@ -96,6 +82,7 @@
             placeholder="Buscar..."
             [ngModel]="searchText()"
             (ngModelChange)="searchText.set($event)"
+            (keyup.enter)="carregarLista()"
           />
         </mat-form-field>
         <div class="rec-filter-bar rec-filter-bar--table">

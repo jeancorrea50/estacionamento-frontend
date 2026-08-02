@@ -1,0 +1,126 @@
+<h2 mat-dialog-title>{{ titulo }}</h2>
+
+<mat-dialog-content class="fat-form">
+  <div class="fat-form__grid">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field fat-form__field--full">
+      <mat-label>Transportadora</mat-label>
+      <mat-select [(ngModel)]="transportadoraId" name="transportadoraId" [disabled]="readOnly">
+        @for (t of data.transportadoras; track t.id) {
+          <mat-option [value]="t.id">{{ t.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field fat-form__field--full">
+      <mat-label>Estacionamento{{ isCreate ? ' (opcional)' : '' }}</mat-label>
+      <mat-select [(ngModel)]="estacionamentoId" name="estacionamentoId" [disabled]="readOnly">
+        @if (isCreate) {
+          <mat-option [value]="null">Usar do token</mat-option>
+        }
+        @for (e of data.estacionamentos; track e.id) {
+          <mat-option [value]="e.id">{{ e.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (!isCreate) {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Número</mat-label>
+        <input matInput [(ngModel)]="numero" name="numero" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Status</mat-label>
+        <mat-select [(ngModel)]="status" name="status" [disabled]="readOnly">
+          @for (s of statusOpcoes; track s) {
+            <mat-option [value]="s">{{ s }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Modalidade de recebimento</mat-label>
+        <mat-select [(ngModel)]="modalidadeRecebimento" name="modalidadeRecebimento" [disabled]="readOnly">
+          <mat-option value="">—</mat-option>
+          @for (m of modalidadeOpcoes; track m) {
+            <mat-option [value]="m">{{ m }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Valor total</mat-label>
+        <input matInput type="number" step="0.01" [(ngModel)]="valorTotal" name="valorTotal" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Valor recebido</mat-label>
+        <input matInput type="number" step="0.01" [(ngModel)]="valorRecebido" name="valorRecebido" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Desconto</mat-label>
+        <input matInput type="number" step="0.01" [(ngModel)]="valorDesconto" name="valorDesconto" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Acréscimo</mat-label>
+        <input matInput type="number" step="0.01" [(ngModel)]="valorAcrescimo" name="valorAcrescimo" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Juros</mat-label>
+        <input matInput type="number" step="0.01" [(ngModel)]="valorJuros" name="valorJuros" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Multa</mat-label>
+        <input matInput type="number" step="0.01" [(ngModel)]="valorMulta" name="valorMulta" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Emissão</mat-label>
+        <input matInput type="date" [(ngModel)]="dataEmissao" name="dataEmissao" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Vencimento</mat-label>
+        <input matInput type="date" [(ngModel)]="vencimento" name="vencimento" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Pagamento</mat-label>
+        <input matInput type="date" [(ngModel)]="dataPagamento" name="dataPagamento" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Período início</mat-label>
+        <input matInput type="date" [(ngModel)]="periodoInicio" name="periodoInicio" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field">
+        <mat-label>Período fim</mat-label>
+        <input matInput type="date" [(ngModel)]="periodoFim" name="periodoFim" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field fat-form__field--full">
+        <mat-label>E-mail de envio</mat-label>
+        <input matInput type="email" [(ngModel)]="emailEnvio" name="emailEnvio" [readonly]="readOnly" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field fat-form__field--full">
+        <mat-label>Observação</mat-label>
+        <textarea matInput rows="2" [(ngModel)]="observacao" name="observacao" [readonly]="readOnly"></textarea>
+      </mat-form-field>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (isView) {
+    <button type="button" mat-flat-button color="primary" (click)="fechar()">Fechar</button>
+  } @else {
+    <button type="button" mat-button (click)="fechar()">Cancelar</button>
+    <button type="button" mat-flat-button color="primary" (click)="salvar()">Gerar fatura</button>
+  }
+</mat-dialog-actions>

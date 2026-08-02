@@ -1,22 +1,38 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
-import type { FaturaStatusVisao, PeriodoFiltroId } from '../faturamento-visao.types';
-import { FATURAS_MOCK } from './faturamento-faturas.mock';
-import type { FaturaListaItem, FiltroRapidoFaturas, ModalidadeCobrancaFatura } from './faturamento-faturas.types';
+import type { ApiError } from '../../../../../core/api/models';
+import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
+import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
+import { StatusFatura } from '../../../models/fatura.models';
+import { FaturaService } from '../../../services/fatura.service';
+import type { PeriodoFiltroId } from '../faturamento-visao.types';
+import {
+  FaturaConfirmDialogComponent
+} from './dialogs/fatura-confirm-dialog.component';
+import {
+  FaturaFormDialogComponent,
+  type FaturaFormDialogResult
+} from './dialogs/fatura-form-dialog.component';
+import type {
+  FaturaListaItem,
+  FaturaLookupOption,
+  FaturaStatusLabel,
+  FiltroRapidoFaturas
+} from './faturamento-faturas.types';
+
+type CampoBuscaFaturas = 'geral' | 'numero' | 'transportadora' | 'descricao';
 
 interface PeriodoOpcao {
   id: PeriodoFiltroId;
@@ -29,24 +45,29 @@ interface PeriodoOpcao {
   imports: [
     CommonModule,
     FormsModule,
-    MatButtonModule,
     MatCardModule,
     MatCheckboxModule,
+    MatDialogModule,
     MatDividerModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatMenuModule,
-    MatSelectModule,
-    MatSnackBarModule,
-    MatTableModule,
-    MatTooltipModule
+    MatSnackBarModule
   ],
   templateUrl: './faturamento-faturas.component.html',
   styleUrl: './faturamento-faturas.component.scss'
 })
-export class FaturamentoFaturasComponent {
+export class FaturamentoFaturasComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
-  readonly todas = FATURAS_MOCK;
+  private readonly dialog = inject(MatDialog);
+  private readonly api = inject(FaturaService);
+  private readonly transportadoraLookup = inject(TransportadoraLookupService);
+  private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
+
+  readonly items = signal<FaturaListaItem[]>([]);
+  readonly loading = signal(false);
+  readonly jaBuscou = signal(false);
+  readonly salvando = signal(false);
+  private readonly transportadorasLookup = signal<FaturaLookupOption[]>([]);
+  private readonly estacionamentosLookup = signal<FaturaLookupOption[]>([]);
 
   readonly periodoOpcoes: PeriodoOpcao[] = [
     { id: 'hoje', label: 'Hoje' },
@@ -55,15 +76,7 @@ export class FaturamentoFaturasComponent {
     { id: 'personalizado', label: 'Personalizado' }
   ];
 
-  readonly modalidades: ModalidadeCobrancaFatura[] = [
-    'Diária',
-    'Semanal',
-    'Quinzenal',
-    'Mensal',
-    'Por data personalizada'
-  ];
-
-  readonly statusOpcoes: FaturaStatusVisao[] = [
+  readonly statusOpcoes: FaturaStatusLabel[] = [
     'Pago',
     'Em aberto',
     'Vencido',
@@ -84,41 +97,49 @@ export class FaturamentoFaturasComponent {
   dataInicioPersonalizado = '';
   dataFimPersonalizado = '';
 
-  readonly transportadoraFiltro = signal<string>('all');
-  readonly estacionamentoFiltro = signal<string>('all');
-  readonly modalidadeFiltro = signal<string>('all');
   readonly statusFiltro = signal<string>('all');
   readonly filtroRapido = signal<FiltroRapidoFaturas | null>(null);
+  readonly searchText = signal('');
+  readonly campoBusca = signal<CampoBuscaFaturas>('geral');
+
+  readonly paginaAtual = signal(0);
+  readonly itensPorPagina = signal(25);
+  readonly pageSizeOpcoes = [10, 25, 50, 100] as const;
+  readonly totalCount = signal(0);
 
   readonly selection = new SelectionModel<FaturaListaItem>(true, []);
 
-  readonly displayedColumns: string[] = [
-    'select',
-    'fatura',
-    'transportadora',
-    'estacionamento',
-    'modalidade',
-    'periodo',
-    'valor',
-    'vencimento',
-    'status',
-    'envio',
-    'acoes'
-  ];
+  readonly linhasFiltradas = computed(() => this.aplicarFiltrosCliente(this.items()));
 
-  readonly transportadorasOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.transportadora));
-    return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  readonly linhasPaginadas = computed(() => {
+    const rows = this.linhasFiltradas();
+    const start = this.paginaAtual() * this.itensPorPagina();
+    return rows.slice(start, start + this.itensPorPagina());
   });
 
-  readonly estacionamentosOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.estacionamento));
-    return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  });
+  readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.linhasFiltradas().length / this.itensPorPagina()))
+  );
 
-  readonly linhasFiltradas = computed(() => this.aplicarFiltros());
+  get searchPlaceholder(): string {
+    switch (this.campoBusca()) {
+      case 'numero':
+        return 'Pesquisar por número da fatura...';
+      case 'transportadora':
+        return 'Pesquisar por transportadora...';
+      case 'descricao':
+        return 'Pesquisar por descrição...';
+      default:
+        return 'Pesquisar por número, transportadora ou descrição...';
+    }
+  }
 
   constructor() {
+    effect(() => {
+      this.linhasFiltradas();
+      untracked(() => this.paginaAtual.set(0));
+    });
+
     effect(() => {
       const vis = this.linhasFiltradas();
       const ids = new Set(vis.map((r) => r.id));
@@ -128,6 +149,10 @@ export class FaturamentoFaturasComponent {
         }
       }
     });
+  }
+
+  ngOnInit(): void {
+    this.carregarLookups();
   }
 
   setPeriodo(id: PeriodoFiltroId): void {
@@ -142,27 +167,192 @@ export class FaturamentoFaturasComponent {
     return this.filtroRapido() === id;
   }
 
-  /** Linhas visíveis e selecionadas (para ações em lote). */
+  buscar(): void {
+    if (this.loading()) return;
+    this.paginaAtual.set(0);
+    this.carregarLista();
+  }
+
+  carregarLista(): void {
+    this.jaBuscou.set(true);
+    this.loading.set(true);
+    const range = this.periodoRangeAtual();
+    const st = this.statusFiltro();
+    const q = this.searchText().trim();
+
+    this.api
+      .listar({
+        numeroPagina: 1,
+        tamanhoPagina: 200,
+        ...this.termoBuscaParams(q),
+        dataInicial: range ? this.toApiDate(range.inicio, false) : undefined,
+        dataFinal: range ? this.toApiDate(range.fim, true) : undefined,
+        status: this.statusCodigoFromFiltro(st)
+      })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (page) => {
+          this.selection.clear();
+          this.items.set(page.items);
+          this.totalCount.set(page.totalCount);
+          if (page.totalCount > page.items.length) {
+            this.snack.open(
+              `Exibindo ${page.items.length} de ${page.totalCount} registros. Refine a busca para ver os demais.`,
+              'Fechar',
+              { duration: 5000 }
+            );
+          }
+        },
+        error: (err) => {
+          this.items.set([]);
+          this.totalCount.set(0);
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar faturas.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
+  }
+
+  abrirNova(): void {
+    const ref = this.dialog.open(FaturaFormDialogComponent, {
+      width: '640px',
+      maxWidth: '95vw',
+      data: {
+        mode: 'create',
+        transportadoras: this.transportadorasLookup(),
+        estacionamentos: this.estacionamentosLookup()
+      }
+    });
+    ref.afterClosed().subscribe((result: FaturaFormDialogResult | undefined) => {
+      if (!result?.create) return;
+      this.salvando.set(true);
+      this.api
+        .gravar(result.create)
+        .pipe(finalize(() => this.salvando.set(false)))
+        .subscribe({
+          next: () => {
+            this.snack.open('Fatura gerada com sucesso.', 'Fechar', { duration: 3500 });
+            this.carregarLista();
+          },
+          error: (err) => {
+            this.snack.open(this.mensagemErro(err, 'Falha ao gerar fatura.'), 'Fechar', {
+              duration: 5500
+            });
+          }
+        });
+    });
+  }
+
+  visualizar(row: FaturaListaItem): void {
+    this.loading.set(true);
+    this.api
+      .obterListaItemPorId(row.id)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (item) => {
+          if (!item) {
+            this.snack.open('Não foi possível carregar os detalhes da fatura.', 'Fechar', {
+              duration: 4500
+            });
+            return;
+          }
+          this.dialog.open(FaturaFormDialogComponent, {
+            width: '720px',
+            maxWidth: '95vw',
+            data: {
+              mode: 'view',
+              item,
+              transportadoras: this.transportadorasLookup(),
+              estacionamentos: this.estacionamentosLookup()
+            }
+          });
+        },
+        error: (err) => {
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar fatura.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
+  }
+
+  excluir(row: FaturaListaItem): void {
+    const ref = this.dialog.open(FaturaConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        titulo: 'Excluir fatura',
+        mensagem: `Deseja excluir a fatura ${row.numero || row.id}?`,
+        confirmLabel: 'Excluir'
+      }
+    });
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+      this.salvando.set(true);
+      this.api
+        .excluir(row.id)
+        .pipe(finalize(() => this.salvando.set(false)))
+        .subscribe({
+          next: () => {
+            this.snack.open('Fatura excluída.', 'Fechar', { duration: 3000 });
+            this.carregarLista();
+          },
+          error: (err) => {
+            this.snack.open(this.mensagemErro(err, 'Falha ao excluir fatura.'), 'Fechar', {
+              duration: 5500
+            });
+          }
+        });
+    });
+  }
+
+  baixarPdf(row: FaturaListaItem): void {
+    this.api.baixarPdf(row.id).subscribe({
+      next: (blob) =>
+        this.downloadBlob(blob, `fatura-${row.numero || row.id}.pdf`, 'application/pdf'),
+      error: (err) => {
+        this.snack.open(this.mensagemErro(err, 'Falha ao baixar PDF.'), 'Fechar', { duration: 5500 });
+      }
+    });
+  }
+
+  baixarExcel(row: FaturaListaItem): void {
+    this.api.baixarExcel(row.id).subscribe({
+      next: (blob) =>
+        this.downloadBlob(
+          blob,
+          `fatura-${row.numero || row.id}.xlsx`,
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ),
+      error: (err) => {
+        this.snack.open(this.mensagemErro(err, 'Falha ao baixar Excel.'), 'Fechar', {
+          duration: 5500
+        });
+      }
+    });
+  }
+
+  lotePdf(): void {
+    const rows = this.selecionadasVisiveis();
+    for (const row of rows) {
+      this.baixarPdf(row);
+    }
+  }
+
   selecionadasVisiveis(): FaturaListaItem[] {
     const ids = new Set(this.linhasFiltradas().map((r) => r.id));
     return this.selection.selected.filter((r) => ids.has(r.id));
   }
 
   isAllSelected(): boolean {
-    const rows = this.linhasFiltradas();
-    return rows.length > 0 && this.selecionadasVisiveis().length === rows.length;
+    const rows = this.linhasPaginadas();
+    return rows.length > 0 && rows.every((r) => this.selection.isSelected(r));
   }
 
   onMasterChange(ev: MatCheckboxChange): void {
-    const rows = this.linhasFiltradas();
+    const rows = this.linhasPaginadas();
     if (ev.checked) {
-      for (const r of rows) {
-        this.selection.select(r);
-      }
+      for (const r of rows) this.selection.select(r);
     } else {
-      for (const r of rows) {
-        this.selection.deselect(r);
-      }
+      for (const r of rows) this.selection.deselect(r);
     }
   }
 
@@ -170,7 +360,7 @@ export class FaturamentoFaturasComponent {
     if (!row) {
       return `${this.isAllSelected() ? 'Desmarcar' : 'Marcar'} todas as faturas visíveis`;
     }
-    return `${this.selection.isSelected(row) ? 'Desmarcar' : 'Marcar'} fatura ${row.id}`;
+    return `${this.selection.isSelected(row) ? 'Desmarcar' : 'Marcar'} fatura ${row.numero || row.id}`;
   }
 
   formatCurrency(v: number): string {
@@ -178,38 +368,23 @@ export class FaturamentoFaturasComponent {
   }
 
   formatData(iso: string): string {
+    if (!iso) return '—';
     const [y, m, d] = iso.split('-').map(Number);
-    if (!y || !m || !d) {
-      return iso;
-    }
-    const dt = new Date(y, m - 1, d);
-    return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (!y || !m || !d) return iso;
+    return new Date(y, m - 1, d).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   }
 
   formatPeriodo(inicioIso: string, fimIso: string): string {
-    const [yi, mi, di] = inicioIso.split('-').map(Number);
-    const [yf, mf, df] = fimIso.split('-').map(Number);
-    const i = new Date(yi, mi - 1, di);
-    const f = new Date(yf, mf - 1, df);
-    const p1 = i.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    const p2 = f.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    return `${p1} – ${p2}`;
+    if (!inicioIso || !fimIso) return '—';
+    return `${this.formatData(inicioIso)} – ${this.formatData(fimIso)}`;
   }
 
-  textoEnvio(row: FaturaListaItem): string {
-    const e = row.envio;
-    if (e.situacao === 'Não enviado') {
-      return '—';
-    }
-    if (e.situacao === 'Agendado') {
-      return `Agendado${e.detalhe ? ` · ${e.detalhe}` : ''}`;
-    }
-    const canal = e.canal ?? '—';
-    return e.detalhe ? `${canal} · ${e.detalhe}` : canal;
-  }
-
-  statusChipClass(status: FaturaStatusVisao): string {
-    const map: Record<FaturaStatusVisao, string> = {
+  statusChipClass(status: FaturaStatusLabel): string {
+    const map: Record<FaturaStatusLabel, string> = {
       Pago: 'fat-faturas-chip fat-faturas-chip--pago',
       'Em aberto': 'fat-faturas-chip fat-faturas-chip--aberto',
       Vencido: 'fat-faturas-chip fat-faturas-chip--vencido',
@@ -220,54 +395,57 @@ export class FaturamentoFaturasComponent {
     return map[status] ?? 'fat-faturas-chip';
   }
 
-  acaoMock(rotulo: string, fatura?: FaturaListaItem): void {
-    void rotulo;
-    void fatura;
+  irParaPagina(p: number): void {
+    this.paginaAtual.set(Math.max(0, Math.min(p, this.totalPaginas() - 1)));
   }
 
-  loteEmail(): void {
-    void this.selecionadasVisiveis().map((r) => r.id);
+  onTamanhoPaginaChange(size: number | string): void {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.itensPorPagina.set(n);
+    this.paginaAtual.set(0);
   }
 
-  loteWhatsapp(): void {
-    void this.selecionadasVisiveis().map((r) => r.id);
+  get intervaloLista(): { de: number; ate: number } {
+    const total = this.linhasFiltradas().length;
+    if (total === 0) return { de: 0, ate: 0 };
+    const de = this.paginaAtual() * this.itensPorPagina() + 1;
+    const ate = Math.min(de + this.itensPorPagina() - 1, total);
+    return { de, ate };
   }
 
-  lotePdf(): void {
-    void this.selecionadasVisiveis().map((r) => r.id);
+  private carregarLookups(): void {
+    this.transportadoraLookup
+      .list()
+      .pipe(catchError(() => of([])))
+      .subscribe((list) => {
+        this.transportadorasLookup.set(
+          list.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
+        );
+      });
+    this.estacionamentoLookup
+      .list()
+      .pipe(catchError(() => of([])))
+      .subscribe((list) => {
+        this.estacionamentosLookup.set(
+          list.map((e) => ({ id: e.id, label: e.label.split(' — ')[0] || e.label }))
+        );
+      });
   }
 
-  loteReenviar(): void {
-    void this.selecionadasVisiveis().map((r) => r.id);
-  }
-
-  private aplicarFiltros(): FaturaListaItem[] {
-    const range = this.periodoRangeAtual();
-    let rows = this.todas.filter((r) => this.passPeriodo(r, range));
-
-    const tr = this.transportadoraFiltro();
-    if (tr !== 'all') {
-      rows = rows.filter((r) => r.transportadora === tr);
-    }
-    const es = this.estacionamentoFiltro();
-    if (es !== 'all') {
-      rows = rows.filter((r) => r.estacionamento === es);
-    }
-    const md = this.modalidadeFiltro();
-    if (md !== 'all') {
-      rows = rows.filter((r) => r.modalidade === md);
-    }
-    const st = this.statusFiltro();
-    if (st !== 'all') {
-      rows = rows.filter((r) => r.status === st);
-    }
-
+  private aplicarFiltrosCliente(rows: FaturaListaItem[]): FaturaListaItem[] {
+    let out = rows;
     const q = this.filtroRapido();
     if (q) {
-      rows = rows.filter((r) => this.passFiltroRapido(r, q));
+      out = out.filter((r) => this.passFiltroRapido(r, q));
     }
 
-    return rows;
+    const text = this.searchText().trim().toLowerCase();
+    if (text && this.campoBusca() === 'transportadora') {
+      out = out.filter((r) => (r.transportadora || '').toLowerCase().includes(text));
+    }
+
+    return out;
   }
 
   private passFiltroRapido(row: FaturaListaItem, q: FiltroRapidoFaturas): boolean {
@@ -276,13 +454,14 @@ export class FaturamentoFaturasComponent {
 
     switch (q) {
       case 'vencidas':
-        return row.status === 'Vencido' || (row.status === 'Em aberto' && venc < hoje);
+        return row.status === 'Vencido' || (row.status === 'Em aberto' && !!venc && venc < hoje);
       case 'a-vencer': {
+        if (!venc) return false;
         const limite = this.addDays(hoje, 14);
         return row.status === 'Em aberto' && venc > hoje && venc <= limite;
       }
       case 'dentro-prazo':
-        return row.status === 'Em aberto' && venc >= hoje;
+        return row.status === 'Em aberto' && !!venc && venc >= hoje;
       case 'pagas':
         return row.status === 'Pago';
       case 'aguardando-envio':
@@ -292,49 +471,109 @@ export class FaturamentoFaturasComponent {
     }
   }
 
-  private passPeriodo(row: FaturaListaItem, range: { inicio: Date; fim: Date } | null): boolean {
-    if (!range) {
-      return true;
-    }
-    const a0 = this.parseIsoDate(row.periodoInicio);
-    const a1 = this.endOfDay(this.parseIsoDate(row.periodoFim));
-    return a0 <= range.fim && a1 >= range.inicio;
-  }
-
   private periodoRangeAtual(): { inicio: Date; fim: Date } | null {
     const id = this.periodoFiltro();
     const hoje = this.startOfDay(new Date());
 
     if (id === 'personalizado') {
-      if (!this.dataInicioPersonalizado || !this.dataFimPersonalizado) {
-        return null;
-      }
+      if (!this.dataInicioPersonalizado || !this.dataFimPersonalizado) return null;
       const i = this.parseIsoDate(this.dataInicioPersonalizado);
-      const f = this.endOfDay(this.parseIsoDate(this.dataFimPersonalizado));
-      if (f < i) {
-        return null;
-      }
+      const fimRaw = this.parseIsoDate(this.dataFimPersonalizado);
+      if (!i || !fimRaw) return null;
+      const f = this.endOfDay(fimRaw);
+      if (f < i) return null;
       return { inicio: i, fim: f };
     }
-
-    if (id === 'hoje') {
-      const fim = this.endOfDay(hoje);
-      return { inicio: hoje, fim };
-    }
-
+    if (id === 'hoje') return { inicio: hoje, fim: this.endOfDay(hoje) };
     if (id === 'semana') {
       const start = this.startOfWeekMonday(hoje);
-      const end = this.endOfDay(this.addDays(start, 6));
-      return { inicio: start, fim: end };
+      return { inicio: start, fim: this.endOfDay(this.addDays(start, 6)) };
     }
-
     if (id === 'mes') {
-      const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-      const fim = this.endOfDay(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
-      return { inicio, fim };
+      return {
+        inicio: new Date(hoje.getFullYear(), hoje.getMonth(), 1),
+        fim: this.endOfDay(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0))
+      };
+    }
+    return null;
+  }
+
+  private statusCodigoFromFiltro(st: string): StatusFatura | undefined {
+    switch (st) {
+      case 'Aguardando envio':
+        return StatusFatura.AguardandoEnvio;
+      case 'Em aberto':
+        return StatusFatura.EmAberto;
+      case 'Parcial':
+        return StatusFatura.Parcial;
+      case 'Pago':
+        return StatusFatura.Pago;
+      case 'Vencido':
+        return StatusFatura.Vencido;
+      case 'Cancelada':
+        return StatusFatura.Cancelada;
+      default:
+        return undefined;
+    }
+  }
+
+  private downloadBlob(blob: Blob, fileName: string, mimeType: string): void {
+    if (!blob || blob.size === 0) {
+      this.snack.open('Arquivo vazio ou inválido.', 'Fechar', { duration: 4500 });
+      return;
     }
 
-    return null;
+    const safeName = (fileName || 'download').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_');
+    const typedBlob = blob.type && blob.type !== 'application/octet-stream' ? blob : new Blob([blob], { type: mimeType });
+
+    const url = URL.createObjectURL(typedBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeName;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // Revogar só depois do navegador iniciar o download.
+    window.setTimeout(() => URL.revokeObjectURL(url), 2500);
+  }
+
+  private termoBuscaParams(q: string): { numero?: string; descricao?: string } {
+    if (!q) return {};
+    switch (this.campoBusca()) {
+      case 'numero':
+        return { numero: q };
+      case 'descricao':
+        return { descricao: q };
+      case 'transportadora':
+        return {};
+      default:
+        if (/^[A-Za-z0-9._\-\/]+$/.test(q) && /\d/.test(q) && !/\s/.test(q)) {
+          return { numero: q };
+        }
+        return { descricao: q };
+    }
+  }
+
+  private mensagemErro(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const msg = (err as ApiError).message;
+      if (typeof msg === 'string' && msg.trim()) return msg;
+    }
+    if (err instanceof HttpErrorResponse) {
+      return err.message || fallback;
+    }
+    return fallback;
+  }
+
+  private toApiDate(d: Date, endOfDay: boolean): string {
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return endOfDay
+      ? `${d.getFullYear()}-${mes}-${dia}T23:59:59`
+      : `${d.getFullYear()}-${mes}-${dia}T00:00:00`;
   }
 
   private startOfDay(d: Date): Date {
@@ -359,8 +598,10 @@ export class FaturamentoFaturasComponent {
     return d;
   }
 
-  private parseIsoDate(ymd: string): Date {
+  private parseIsoDate(ymd: string): Date | null {
+    if (!ymd) return null;
     const [y, m, d] = ymd.split('-').map(Number);
+    if (!y || !m || !d) return null;
     return new Date(y, m - 1, d);
   }
 }

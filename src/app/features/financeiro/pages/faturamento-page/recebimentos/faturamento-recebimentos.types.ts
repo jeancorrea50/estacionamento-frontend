@@ -38,7 +38,9 @@ export interface RecebimentoHistoricoItem {
 }
 
 export interface RecebimentoListaItem {
+  faturaId: number;
   id: string;
+  transportadoraId: number;
   transportadora: string;
   estacionamento: string;
   valorFatura: number;
@@ -49,6 +51,15 @@ export interface RecebimentoListaItem {
   comprovante: RecebimentoComprovanteEstado;
   status: RecebimentoPagamentoStatus;
   historico: RecebimentoHistoricoItem[];
+}
+
+export interface RecebimentoResumo {
+  totalRecebidoPeriodo: number;
+  pagamentosParciais: number;
+  quantidadePagamentosParciais: number;
+  valorPendente: number;
+  quantidadePendentes: number;
+  recebimentosDoDia: number;
 }
 
 export interface RecebimentoPartialDialogData {

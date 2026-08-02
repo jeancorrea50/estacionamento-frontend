@@ -1,310 +1,332 @@
-<div class="fat-faturas">
+<div class="rec-page">
 
-  <div class="fat-faturas__hero-row">
-    <div class="fat-faturas__titles">
-      <h2 class="fat-faturas__title">Faturas</h2>
-      <p class="fat-faturas__subtitle">Consulte, envie, baixe e acompanhe as faturas geradas.</p>
-    </div>
-    <div class="fat-faturas__periodo" role="group" aria-label="Período">
-      @for (p of periodoOpcoes; track p.id) {
-        <button
-          type="button"
-          class="btn fat-mat-btn"
-          [class.btn-primary]="periodoFiltro() === p.id"
-          [class.btn-secondary]="periodoFiltro() !== p.id"
-          [attr.aria-pressed]="periodoFiltro() === p.id"
-          (click)="setPeriodo(p.id)"
-        >
-          @if (p.id === 'personalizado') {
-            <span class="material-symbols-outlined fat-faturas__periodo-ico" aria-hidden="true">calendar_month</span>
-          }
-          {{ p.label }}
-        </button>
-      }
-    </div>
-  </div>
-
-  @if (periodoFiltro() === 'personalizado') {
-    <div class="fat-faturas__custom-dates">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-        <mat-label>De</mat-label>
-        <input matInput type="date" [(ngModel)]="dataInicioPersonalizado" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__date-field">
-        <mat-label>Até</mat-label>
-        <input matInput type="date" [(ngModel)]="dataFimPersonalizado" />
-      </mat-form-field>
-    </div>
-  }
-
-  <div class="fat-faturas__filters-shell" aria-labelledby="fat-faturas-filtros-titulo">
-    <p id="fat-faturas-filtros-titulo" class="fat-faturas__panel-label">Refinar lista</p>
-    <div class="fat-faturas__filters">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-        <mat-label>Transportadora</mat-label>
-        <mat-select
-          [value]="transportadoraFiltro()"
-          (selectionChange)="transportadoraFiltro.set($event.value)"
-        >
-          <mat-option value="all">Todas</mat-option>
-          @for (t of transportadorasOpcoes(); track t) {
-            <mat-option [value]="t">{{ t }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-        <mat-label>Estacionamento</mat-label>
-        <mat-select
-          [value]="estacionamentoFiltro()"
-          (selectionChange)="estacionamentoFiltro.set($event.value)"
-        >
-          <mat-option value="all">Todos</mat-option>
-          @for (e of estacionamentosOpcoes(); track e) {
-            <mat-option [value]="e">{{ e }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-        <mat-label>Modalidade</mat-label>
-        <mat-select
-          [value]="modalidadeFiltro()"
-          (selectionChange)="modalidadeFiltro.set($event.value)"
-        >
-          <mat-option value="all">Todas</mat-option>
-          @for (m of modalidades; track m) {
-            <mat-option [value]="m">{{ m }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-faturas__field">
-        <mat-label>Status</mat-label>
-        <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
-          <mat-option value="all">Todos</mat-option>
-          @for (s of statusOpcoes; track s) {
-            <mat-option [value]="s">{{ s }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    </div>
-  </div>
-
-  <div class="fat-faturas__quick-shell" aria-labelledby="fat-faturas-situacao-titulo">
-    <p id="fat-faturas-situacao-titulo" class="fat-faturas__panel-label">Situação</p>
-    <div class="fat-faturas__quick" role="group" aria-label="Filtros rápidos por situação">
-      @for (o of filtroRapidoOpcoes; track o.id) {
-        <button
-          type="button"
-          class="fat-faturas__qf"
-          [class.fat-faturas__qf--active]="isFiltroRapidoAtivo(o.id)"
-          (click)="alternarFiltroRapido(o.id)"
-        >
-          {{ o.label }}
-        </button>
-      }
-    </div>
-  </div>
-
-  @if (selecionadasVisiveis().length > 0) {
-    <div class="fat-faturas__batch" role="region" aria-label="Ações em lote">
-      <span class="fat-faturas__batch-count"
-        >{{ selecionadasVisiveis().length }}
-        {{ selecionadasVisiveis().length === 1 ? 'fatura selecionada' : 'faturas selecionadas' }}</span
-      >
-      <div class="fat-faturas__batch-actions">
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="loteEmail()">
-          <span class="material-symbols-outlined" aria-hidden="true">mail</span>
-          E-mail
-        </button>
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="loteWhatsapp()">
-          <span class="material-symbols-outlined" aria-hidden="true">chat</span>
-          WhatsApp
-        </button>
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="lotePdf()">
-          <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-          PDFs
-        </button>
-        <button type="button" class="btn btn-secondary fat-mat-btn" (click)="loteReenviar()">
-          <span class="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
-          Reenviar cobrança
-        </button>
-      </div>
-    </div>
-  }
-
-  <mat-card class="fat-faturas__table-card" appearance="outlined">
-    <mat-card-content>
-      <div class="fat-faturas__table-head">
-        <span class="fat-faturas__result-count">{{ linhasFiltradas().length }} faturas</span>
-      </div>
-      <div class="fat-faturas__table-scroll">
-        <table mat-table [dataSource]="linhasFiltradas()" class="fat-faturas-table">
-          <ng-container matColumnDef="select">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-select">
-              <mat-checkbox
-                (change)="onMasterChange($event)"
-                [checked]="selection.hasValue() && isAllSelected()"
-                [indeterminate]="selection.hasValue() && !isAllSelected()"
-                [aria-label]="checkboxLabel()"
-              />
-            </th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-select">
-              <mat-checkbox
-                (click)="$event.stopPropagation()"
-                (change)="$event.checked ? selection.select(row) : selection.deselect(row)"
-                [checked]="selection.isSelected(row)"
-                [aria-label]="checkboxLabel(row)"
-              />
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="fatura">
-            <th mat-header-cell *matHeaderCellDef>Fatura</th>
-            <td mat-cell *matCellDef="let row">
-              <span class="fat-faturas-table__mono">{{ row.id }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="transportadora">
-            <th mat-header-cell *matHeaderCellDef>Transportadora</th>
-            <td mat-cell *matCellDef="let row">
-              <span class="fat-faturas-table__ellipsis" [matTooltip]="row.transportadora">{{ row.transportadora }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="estacionamento">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-est">Estacionamento</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-est">
-              <span class="fat-faturas-table__ellipsis" [matTooltip]="row.estacionamento">{{ row.estacionamento }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="modalidade">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-mod">Modalidade</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-mod">{{ row.modalidade }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="periodo">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-per">Período</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-per fat-faturas-table__nowrap">
-              {{ formatPeriodo(row.periodoInicio, row.periodoFim) }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="valor">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__num">Valor</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__num">{{ formatCurrency(row.valor) }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="vencimento">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-ven">Vencimento</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-ven fat-faturas-table__nowrap">
-              {{ formatData(row.vencimento) }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let row">
-              <span [class]="statusChipClass(row.status)">{{ row.status }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="envio">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-env">Envio</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-env">
-              <span class="fat-faturas-table__env" [matTooltip]="textoEnvio(row)">{{ textoEnvio(row) }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="acoes">
-            <th mat-header-cell *matHeaderCellDef class="fat-faturas-table__col-ac">Ações</th>
-            <td mat-cell *matCellDef="let row" class="fat-faturas-table__col-ac">
-              <div class="fat-faturas-table__actions">
-                <button
-                  type="button"
-                  mat-icon-button
-                  class="fat-faturas-ico"
-                  matTooltip="Visualizar"
-                  (click)="acaoMock('visualizar', row)"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                </button>
-                <button
-                  type="button"
-                  mat-icon-button
-                  class="fat-faturas-ico"
-                  matTooltip="Baixar PDF"
-                  (click)="acaoMock('pdf', row)"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-                </button>
-                <button
-                  type="button"
-                  mat-icon-button
-                  class="fat-faturas-ico"
-                  matTooltip="Enviar por e-mail"
-                  (click)="acaoMock('email', row)"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">mail</span>
-                </button>
-                <button
-                  type="button"
-                  mat-icon-button
-                  class="fat-faturas-ico"
-                  matTooltip="Mais ações"
-                  [matMenuTriggerFor]="menuMais"
-                  [matMenuTriggerData]="{ fatura: row }"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-                </button>
-              </div>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-        </table>
-        @if (linhasFiltradas().length === 0) {
-          <p class="fat-faturas__empty">Nenhuma fatura encontrada com os filtros atuais.</p>
-        }
-      </div>
+  <mat-card class="cfg-cta-card" appearance="outlined">
+    <mat-card-content class="cfg-cta-card__content">
+      <h2 class="cfg-cta-card__title">Faturas</h2>
     </mat-card-content>
   </mat-card>
 
+  <section class="cfg-search-bar" aria-label="Busca de faturas">
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="campoBusca()"
+        (ngModelChange)="campoBusca.set($event)"
+        aria-label="Tipo de busca"
+      >
+        <option value="geral">Busca geral</option>
+        <option value="numero">Número</option>
+        <option value="transportadora">Transportadora</option>
+        <option value="descricao">Descrição</option>
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="periodoFiltro()"
+        (ngModelChange)="setPeriodo($event)"
+        aria-label="Período"
+      >
+        @for (p of periodoOpcoes; track p.id) {
+          <option [ngValue]="p.id">{{ p.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="statusFiltro()"
+        (ngModelChange)="statusFiltro.set($event)"
+        aria-label="Status"
+      >
+        <option value="all">Todos os status</option>
+        @for (s of statusOpcoes; track s) {
+          <option [ngValue]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+    <label class="cfg-search-bar__search">
+      <span class="material-symbols-outlined cfg-search-bar__search-ico" aria-hidden="true">search</span>
+      <input
+        type="text"
+        class="cfg-search-bar__search-input"
+        [placeholder]="searchPlaceholder"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+        (keyup.enter)="buscar()"
+        autocomplete="off"
+        aria-label="Termo de busca"
+      />
+    </label>
+    <button
+      type="button"
+      class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
+      [disabled]="loading()"
+      (click)="buscar()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      Buscar
+    </button>
+    <button
+      type="button"
+      class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+      [disabled]="salvando()"
+      (click)="abrirNova()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Novo
+    </button>
+  </section>
+
+  @if (periodoFiltro() === 'personalizado') {
+    <section class="cfg-search-bar cfg-search-bar--dates" aria-label="Período personalizado">
+      <label class="cfg-date-field">
+        <span class="cfg-date-field__label">De</span>
+        <input class="cfg-search-bar__select" type="date" [(ngModel)]="dataInicioPersonalizado" />
+      </label>
+      <label class="cfg-date-field">
+        <span class="cfg-date-field__label">Até</span>
+        <input class="cfg-search-bar__select" type="date" [(ngModel)]="dataFimPersonalizado" />
+      </label>
+    </section>
+  }
+
+  <section class="fat-quick-bar" aria-label="Filtros rápidos por situação">
+    @for (o of filtroRapidoOpcoes; track o.id) {
+      <button
+        type="button"
+        class="fat-quick-chip"
+        [class.fat-quick-chip--active]="isFiltroRapidoAtivo(o.id)"
+        (click)="alternarFiltroRapido(o.id)"
+      >
+        {{ o.label }}
+      </button>
+    }
+  </section>
+
+  @if (selecionadasVisiveis().length > 0) {
+    <div class="fat-batch-bar" role="region" aria-label="Ações em lote">
+      <span class="fat-batch-bar__count">
+        {{ selecionadasVisiveis().length }}
+        {{ selecionadasVisiveis().length === 1 ? 'fatura selecionada' : 'faturas selecionadas' }}
+      </span>
+      <div class="fat-batch-bar__actions">
+        <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" disabled title="Em breve">
+          <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+          E-mail
+        </button>
+        <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="lotePdf()">
+          <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+          PDFs
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (!jaBuscou() && !loading()) {
+    <div class="empty-state empty-state--compact cfg-before-search">
+      <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
+      <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as faturas.</p>
+    </div>
+  } @else {
+    @if (loading()) {
+      <p class="loading-msg cfg-loading" role="status">Carregando faturas...</p>
+    }
+
+    @if (!loading()) {
+      <div class="trn-list-table-card cfg-list-table-card">
+        <div class="trn-list-table-scroll">
+          <table class="data-table trn-table fat-table">
+            <thead>
+              <tr>
+                <th scope="col" class="fat-table__th-select">
+                  <mat-checkbox
+                    (change)="onMasterChange($event)"
+                    [checked]="selection.hasValue() && isAllSelected()"
+                    [indeterminate]="selection.hasValue() && !isAllSelected()"
+                    [aria-label]="checkboxLabel()"
+                  />
+                </th>
+                <th scope="col">Fatura</th>
+                <th scope="col">Transportadora</th>
+                <th scope="col" class="fat-table__col-est">Estacionamento</th>
+                <th scope="col" class="fat-table__col-mod">Recebimento</th>
+                <th scope="col">Emissão</th>
+                <th scope="col" class="fat-table__num">Valor</th>
+                <th scope="col">Vencimento</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="trn-table__th-acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of linhasPaginadas(); track row.id) {
+                <tr class="trn-table__row">
+                  <td class="fat-table__td-select">
+                    <mat-checkbox
+                      (click)="$event.stopPropagation()"
+                      (change)="$event.checked ? selection.select(row) : selection.deselect(row)"
+                      [checked]="selection.isSelected(row)"
+                      [aria-label]="checkboxLabel(row)"
+                    />
+                  </td>
+                  <td>
+                    <span class="fat-table__mono">{{ row.numero || row.id }}</span>
+                  </td>
+                  <td>{{ row.transportadora || '—' }}</td>
+                  <td class="fat-table__col-est">{{ row.estacionamento || '—' }}</td>
+                  <td class="fat-table__col-mod">{{ row.modalidadeRecebimento || '—' }}</td>
+                  <td class="fat-table__nowrap">{{ formatData(row.dataEmissao) }}</td>
+                  <td class="fat-table__num">{{ formatCurrency(row.valorTotal) }}</td>
+                  <td class="fat-table__nowrap">{{ formatData(row.vencimento) }}</td>
+                  <td>
+                    <span [class]="statusChipClass(row.status)">{{ row.status }}</span>
+                  </td>
+                  <td class="trn-table__acoes">
+                    <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para fatura ' + (row.numero || row.id)">
+                      <button
+                        type="button"
+                        class="trn-act-btn"
+                        title="Visualizar"
+                        aria-label="Visualizar fatura"
+                        (click)="visualizar(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="trn-act-btn trn-act-btn--accent"
+                        title="Baixar PDF"
+                        aria-label="Baixar PDF"
+                        (click)="baixarPdf(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="trn-act-btn"
+                        title="Baixar Excel"
+                        aria-label="Baixar Excel"
+                        (click)="baixarExcel(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="trn-act-btn"
+                        title="Mais ações"
+                        aria-label="Mais ações"
+                        [matMenuTriggerFor]="menuMais"
+                        [matMenuTriggerData]="{ fatura: row }"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (linhasFiltradas().length === 0) {
+          <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            <p class="empty-msg">Nenhuma fatura encontrada.</p>
+          </div>
+        }
+      </div>
+
+      <footer class="trn-list-footer">
+        <p class="trn-list-footer__info">
+          Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+          <strong>{{ linhasFiltradas().length }}</strong>
+          {{ linhasFiltradas().length === 1 ? 'fatura' : 'faturas' }}
+        </p>
+        <div class="trn-list-footer__right">
+          <label class="trn-page-size">
+            <span class="trn-page-size__label">Linhas por página</span>
+            <select
+              class="trn-page-size__select input-control"
+              [ngModel]="itensPorPagina()"
+              (ngModelChange)="onTamanhoPaginaChange($event)"
+              aria-label="Linhas por página"
+            >
+              @for (n of pageSizeOpcoes; track n) {
+                <option [ngValue]="n">{{ n }}</option>
+              }
+            </select>
+          </label>
+          <div class="trn-footer-pager" aria-label="Paginação">
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(0)"
+              aria-label="Primeira página"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+            </button>
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(paginaAtual() - 1)"
+              aria-label="Página anterior"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+            </button>
+            <span class="trn-foot-current" aria-current="page">
+              {{ linhasFiltradas().length === 0 ? 0 : paginaAtual() + 1 }}
+            </span>
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(paginaAtual() + 1)"
+              aria-label="Próxima página"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            <button
+              type="button"
+              class="trn-foot-page"
+              [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
+              (click)="irParaPagina(totalPaginas() - 1)"
+              aria-label="Última página"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+            </button>
+          </div>
+        </div>
+      </footer>
+    }
+  }
+
   <mat-menu #menuMais="matMenu">
     <ng-template matMenuContent let-fatura="fatura">
-      <button type="button" mat-menu-item (click)="acaoMock('whatsapp', fatura)">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">chat</span>
+      <button type="button" mat-menu-item (click)="visualizar(fatura)">
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">visibility</span>
+        Visualizar
+      </button>
+      <button type="button" mat-menu-item (click)="baixarPdf(fatura)">
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">picture_as_pdf</span>
+        Baixar PDF
+      </button>
+      <button type="button" mat-menu-item (click)="baixarExcel(fatura)">
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">table_view</span>
+        Baixar Excel
+      </button>
+      <button type="button" mat-menu-item disabled>
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">chat</span>
         Enviar por WhatsApp
       </button>
-      <button type="button" mat-menu-item (click)="acaoMock('reenviar', fatura)">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">forward_to_inbox</span>
+      <button type="button" mat-menu-item disabled>
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">forward_to_inbox</span>
         Reenviar cobrança
       </button>
       <mat-divider />
-      <button type="button" mat-menu-item (click)="acaoMock('editar-vencimento', fatura)">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">edit_calendar</span>
-        Editar vencimento
-      </button>
-      <button type="button" mat-menu-item (click)="acaoMock('desconto', fatura)">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">percent</span>
-        Adicionar desconto
-      </button>
-      <button type="button" mat-menu-item (click)="acaoMock('acrescimo', fatura)">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">add_circle</span>
-        Adicionar acréscimo
-      </button>
-      <mat-divider />
-      <button type="button" mat-menu-item (click)="acaoMock('itens', fatura)">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">list_alt</span>
-        Ver itens da fatura
-      </button>
-      <button type="button" mat-menu-item (click)="acaoMock('cancelar', fatura)" class="fat-faturas-menu-danger">
-        <span class="material-symbols-outlined fat-faturas-menu-ico" aria-hidden="true">block</span>
-        Cancelar fatura
+      <button type="button" mat-menu-item class="fat-menu-danger" (click)="excluir(fatura)">
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">delete</span>
+        Excluir fatura
       </button>
     </ng-template>
   </mat-menu>

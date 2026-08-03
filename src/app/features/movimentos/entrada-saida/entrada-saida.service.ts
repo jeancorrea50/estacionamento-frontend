@@ -10,7 +10,9 @@ import {
   EntradaSaidaPutInput,
   EntradaSaidaOutput,
   EntradaSaidaSearchOutput,
-  parseEntradaSaidaStatus
+  ModoRecibo,
+  parseEntradaSaidaStatus,
+  ValorEstacionamentoResponse
 } from '../models/entrada-saida.models';
 
 const ENTRADA_SAIDA_API = `${environment.API_BASE_URL}/EntradaSaida`;
@@ -58,12 +60,23 @@ export class EntradaSaidaService {
   }
 
   create(data: EntradaSaidaPostInput): Observable<EntradaSaidaOutput> {
-    return this.http.post<EntradaSaidaOutput>(ENTRADA_SAIDA_API, data);
+    return this.http.post<unknown>(ENTRADA_SAIDA_API, data).pipe(
+      map((body) => {
+        const raw = this.extractResultRecord(body) ?? {};
+        const id = this.pickNumber(raw, 'id', 'Id');
+        return this.mapDetailItem(raw, id);
+      })
+    );
   }
 
   update(id: number, data: EntradaSaidaPostInput): Observable<EntradaSaidaOutput> {
     const payload: EntradaSaidaPutInput = { ...data, id };
-    return this.http.put<EntradaSaidaOutput>(ENTRADA_SAIDA_API, payload);
+    return this.http.put<unknown>(ENTRADA_SAIDA_API, payload).pipe(
+      map((body) => {
+        const raw = this.extractResultRecord(body) ?? {};
+        return this.mapDetailItem(raw, id);
+      })
+    );
   }
 
   suspenderPermanencia(id: number, payload: EntradaSaidaPermanenciaInput): Observable<void> {
@@ -83,11 +96,50 @@ export class EntradaSaidaService {
   }
 
   /**
-   * GET `/api/EntradaSaida/{id}/recibo?valor=`
-   * Gera PDF do recibo (e fatura avulsa no backend quando aplicável).
+   * GET `/api/EntradaSaida/valor-estacionamento?entradaSaidaId=`
+   * Valor do recibo / pré-preenchimento da saída (não exige transportadora no front).
    */
-  baixarRecibo(id: number, valor: number): Observable<Blob> {
-    const params = new HttpParams().set('valor', String(valor));
+  obterValorEstacionamento(entradaSaidaId: number): Observable<ValorEstacionamentoResponse> {
+    const params = new HttpParams().set('entradaSaidaId', String(entradaSaidaId));
+    return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/valor-estacionamento`, { params }).pipe(
+      map((body) => {
+        const raw = this.extractResultRecord(body) ?? {};
+        return {
+          entradaSaidaId:
+            this.pickNumber(raw, 'entradaSaidaId', 'EntradaSaidaId') || entradaSaidaId,
+          estacionamentoId: this.pickNumber(raw, 'estacionamentoId', 'EstacionamentoId'),
+          transportadoraId: this.pickNumberOrNull(raw, 'transportadoraId', 'TransportadoraId'),
+          configuracaoCobrancaId: this.pickNumberOrNull(
+            raw,
+            'configuracaoCobrancaId',
+            'ConfiguracaoCobrancaId'
+          ),
+          valor: this.pickNumberOrNull(raw, 'valor', 'Valor'),
+          origem: this.pickString(raw, 'origem', 'Origem') || 'Indisponivel',
+          valorUnitarioDiario: this.pickNumberOrNull(
+            raw,
+            'valorUnitarioDiario',
+            'ValorUnitarioDiario'
+          ),
+          quantidadeDias: this.pickNumberOrNull(raw, 'quantidadeDias', 'QuantidadeDias'),
+          tipoCobranca: this.pickString(raw, 'tipoCobranca', 'TipoCobranca') || 'Avulso'
+        };
+      })
+    );
+  }
+
+  /**
+   * GET `/api/EntradaSaida/{id}/recibo?modo=&valor=`
+   * `modo`: {@link ModoRecibo.Saida}=1 (exige valor) | {@link ModoRecibo.Entrada}=2.
+   */
+  baixarRecibo(id: number, modo: ModoRecibo, valor?: number | null): Observable<Blob> {
+    let params = new HttpParams().set('modo', String(modo));
+    if (modo === ModoRecibo.Saida) {
+      if (valor == null || !Number.isFinite(valor)) {
+        throw new Error('Valor do recibo é obrigatório no modo saída.');
+      }
+      params = params.set('valor', String(valor));
+    }
     return this.http.get(`${ENTRADA_SAIDA_API}/${id}/recibo`, {
       params,
       responseType: 'blob'
@@ -351,6 +403,20 @@ export class EntradaSaidaService {
       }
     }
     return 0;
+  }
+
+  private pickNumberOrNull(row: Record<string, unknown>, ...keys: string[]): number | null {
+    for (const key of keys) {
+      if (!(key in row)) continue;
+      const value = row[key];
+      if (value == null || value === '') return null;
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+    }
+    return null;
   }
 
   private pickString(row: Record<string, unknown>, ...keys: string[]): string {

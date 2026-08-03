@@ -8,8 +8,7 @@ import type {
   ConfiguracaoCobrancaPagedResult,
   ConfiguracaoCobrancaPostInput,
   ConfiguracaoCobrancaPutInput,
-  ConfiguracaoCobrancaSearchOutput,
-  ValorEstacionamentoResponse
+  ConfiguracaoCobrancaSearchOutput
 } from '../models/configuracao-cobranca.models';
 import type { ConfigCobrancaListaItem } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
 import {
@@ -18,7 +17,6 @@ import {
   mapRawSearchItem,
   mapSearchToListaItem,
   pickNumber,
-  pickNumberOrNull,
   unwrapResult
 } from '../mappers/configuracao-cobranca.mapper';
 
@@ -93,25 +91,6 @@ export class ConfiguracaoCobrancaService {
    */
   excluir(id: number): Observable<void> {
     return this.http.delete<unknown>(`${API}/${id}`).pipe(map(() => undefined));
-  }
-
-  /**
-   * GET `/api/financeiro/ConfiguracaoCobranca/valor-estacionamento?transportadoraId=`
-   * Pré-preenche valor do recibo na saída do veículo.
-   */
-  obterValorEstacionamento(transportadoraId: number): Observable<ValorEstacionamentoResponse> {
-    const params = new HttpParams().set('transportadoraId', String(transportadoraId));
-    return this.http.get<unknown>(`${API}/valor-estacionamento`, { params }).pipe(
-      map((body) => {
-        const raw = this.extractRecord(body) ?? {};
-        return {
-          transportadoraId: pickNumber(raw, 'transportadoraId', 'TransportadoraId') || transportadoraId,
-          estacionamentoId: pickNumber(raw, 'estacionamentoId', 'EstacionamentoId'),
-          configuracaoCobrancaId: pickNumberOrNull(raw, 'configuracaoCobrancaId', 'ConfiguracaoCobrancaId'),
-          valorEstacionamento: pickNumberOrNull(raw, 'valorEstacionamento', 'ValorEstacionamento')
-        };
-      })
-    );
   }
 
   private buildBuscarParams(filtro: ConfiguracaoCobrancaFilter): HttpParams {

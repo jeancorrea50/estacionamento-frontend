@@ -178,28 +178,4 @@ describe('ConfiguracaoCobrancaService', () => {
     req.flush({ result: true });
     expect(resolved).toBeNull();
   });
-
-  it('deve obter valor-estacionamento por transportadoraId', () => {
-    let valor: number | null = -1;
-    service.obterValorEstacionamento(10).subscribe((res) => {
-      valor = res.valorEstacionamento;
-      expect(res.transportadoraId).toBe(10);
-      expect(res.configuracaoCobrancaId).toBe(15);
-    });
-
-    const req = httpMock.expectOne(
-      (r) =>
-        r.url === `${base}/valor-estacionamento` && r.params.get('transportadoraId') === '10'
-    );
-    expect(req.request.method).toBe('GET');
-    req.flush({
-      result: {
-        transportadoraId: 10,
-        estacionamentoId: 2,
-        configuracaoCobrancaId: 15,
-        valorEstacionamento: 25
-      }
-    });
-    expect(valor).toBe(25);
-  });
 });

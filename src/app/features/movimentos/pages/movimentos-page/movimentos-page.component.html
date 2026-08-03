@@ -382,93 +382,202 @@
     </section>
   }
 
-  @if (permanenciaOpen() && registroSelecionado(); as registroModal) {
-    <div class="modal-overlay" (click)="fecharPermanencia()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <h2>
-          @if (permanenciaAcao === 'suspender') {
-            Suspender permanência
-          }
-          @if (permanenciaAcao === 'retornar') {
-            Finalizar suspensão / retornar ao pátio
-          }
-          @if (permanenciaAcao === 'finalizar') {
-            Registrar saída
-          }
-        </h2>
-
-        <p>Placa: <strong>{{ placaSelecionada() }}</strong></p>
-        <p>
-          Status:
-          {{
-            registroModal.finalizado
-              ? 'Finalizado'
-              : registroModal.permanenciaSuspensa
-                ? 'Suspenso'
-                : 'Em aberto'
-          }}
-        </p>
-        <label class="modal-field-label" for="permanenciaDataHora">Data/hora</label>
-        <input
-          id="permanenciaDataHora"
-          class="input-control"
-          type="datetime-local"
-          [(ngModel)]="permanenciaDataHora"
-        />
-
-        @if (permanenciaAcao === 'finalizar') {
-          <label class="modal-field-label" for="saidaValor">Valor do estacionamento</label>
-          @if (saidaValorLoading()) {
-            <p class="modal-hint" role="status">Consultando valor da configuração de cobrança...</p>
-          }
-          <div class="modal-money">
-            <span class="modal-money__prefix" aria-hidden="true">R$</span>
-            <input
-              id="saidaValor"
-              class="input-control modal-money__input"
-              type="text"
-              inputmode="decimal"
-              autocomplete="off"
-              placeholder="0,00"
-              [ngModel]="saidaValorTexto()"
-              (ngModelChange)="onSaidaValorChange($event)"
-              (blur)="onSaidaValorBlur()"
-              [disabled]="saidaValorBloqueado() || saidaValorLoading() || saidaProcessando()"
-              [attr.aria-describedby]="saidaValorBloqueado() ? 'saidaValorHint' : null"
-            />
-          </div>
-          @if (saidaValorBloqueado()) {
-            <p id="saidaValorHint" class="modal-hint">
-              Valor definido pela configuração de cobrança ativa (não editável).
-            </p>
-          } @else if (!saidaValorLoading()) {
-            <p class="modal-hint">Informe o valor para gerar o recibo PDF.</p>
-          }
-        }
-
-        <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            type="button"
-            [disabled]="saidaProcessando()"
-            (click)="fecharPermanencia()"
-          >
-            Cancelar
+  @if (reciboConfirmOpen()) {
+    <div
+      class="modal-overlay recibo-confirm-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reciboConfirmTitle"
+    >
+      <div class="modal-content recibo-confirm-dialog" (click)="$event.stopPropagation()">
+        <h3 id="reciboConfirmTitle">Imprimir recibo</h3>
+        <p>{{ reciboConfirmMensagem() }}</p>
+        <div class="recibo-confirm-dialog__actions">
+          <button class="btn btn-secondary" type="button" (click)="recusarReciboConfirm()">
+            Não
           </button>
-          <button
-            class="btn btn-primary"
-            type="button"
-            [disabled]="
-              saidaProcessando() ||
-              (permanenciaAcao === 'finalizar' && !podeFinalizar()) ||
-              ((permanenciaAcao === 'suspender' || permanenciaAcao === 'retornar') &&
-                !podeSuspenderOuRetornar())
-            "
-            (click)="confirmarPermanencia()"
-          >
-            {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}
+          <button class="btn btn-primary" type="button" (click)="aceitarReciboConfirm()">
+            Sim, visualizar
           </button>
         </div>
+      </div>
+    </div>
+  }
+
+  @if (permanenciaOpen() && registroSelecionado(); as registroModal) {
+    <div class="modal-overlay" (click)="fecharPermanencia()">
+      <div
+        class="modal-content"
+        [class.modal-content--saida]="permanenciaAcao === 'finalizar'"
+        (click)="$event.stopPropagation()"
+      >
+        @if (permanenciaAcao === 'finalizar') {
+          <header class="saida-modal__header">
+            <h2 class="saida-modal__title">Registrar saída</h2>
+            <div class="saida-modal__identidade">
+              <p class="saida-modal__placa" aria-label="Placa do veículo">
+                <span class="saida-modal__placa-label">Placa:</span>
+                <span class="saida-modal__placa-valor">{{ formatarPlaca(placaSelecionada()) }}</span>
+              </p>
+              <span
+                class="saida-modal__status"
+                [class.saida-modal__status--aberto]="!registroModal.finalizado && !registroModal.permanenciaSuspensa"
+                [class.saida-modal__status--suspenso]="registroModal.permanenciaSuspensa && !registroModal.finalizado"
+                [class.saida-modal__status--finalizado]="registroModal.finalizado"
+              >
+                {{
+                  registroModal.finalizado
+                    ? 'Finalizado'
+                    : registroModal.permanenciaSuspensa
+                      ? 'Suspenso'
+                      : 'Em aberto'
+                }}
+              </span>
+            </div>
+          </header>
+
+          <section class="saida-modal__tempo" aria-label="Controle de tempo">
+            <div class="saida-modal__tempo-grid">
+              <div class="saida-modal__tempo-item">
+                <span class="saida-modal__label">Data/hora de entrada</span>
+                <strong class="saida-modal__tempo-valor">{{
+                  formatarDataHoraEntrada(registroModal)
+                }}</strong>
+              </div>
+              <div class="saida-modal__tempo-item">
+                <label class="saida-modal__label" for="permanenciaDataHora">Data/hora de saída</label>
+                <input
+                  id="permanenciaDataHora"
+                  class="input-control saida-modal__datetime"
+                  type="datetime-local"
+                  [ngModel]="permanenciaDataHora"
+                  (ngModelChange)="onPermanenciaDataHoraChange($event)"
+                  [disabled]="saidaProcessando()"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="saida-modal__valores" aria-label="Resumo da cobrança">
+            @if (saidaValorLoading()) {
+              <p class="modal-hint" role="status">Consultando valor da configuração de cobrança...</p>
+            }
+
+            <div class="saida-modal__cupom">
+              <div class="saida-modal__cupom-linha saida-modal__cupom-linha--diaria">
+                <label class="saida-modal__label" for="saidaValorDiaria">Valor da diária</label>
+                <div class="modal-money saida-modal__money">
+                  <span class="modal-money__prefix" aria-hidden="true">R$</span>
+                  <input
+                    id="saidaValorDiaria"
+                    class="input-control modal-money__input"
+                    type="text"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    placeholder="0,00"
+                    [ngModel]="saidaValorDiariaTexto()"
+                    (ngModelChange)="onSaidaValorDiariaChange($event)"
+                    (blur)="onSaidaValorDiariaBlur()"
+                    [disabled]="saidaValorBloqueado() || saidaValorLoading() || saidaProcessando()"
+                    [attr.aria-describedby]="
+                      saidaValorBloqueado() ? 'saidaValorHint' : 'saidaValorCalcHint'
+                    "
+                  />
+                </div>
+              </div>
+
+              <div class="saida-modal__cupom-linha">
+                <span class="saida-modal__label">Quantidade de diárias</span>
+                <strong class="saida-modal__cupom-valor">{{ saidaQuantidadeDiarias() }}</strong>
+              </div>
+
+              <div class="saida-modal__cupom-linha saida-modal__cupom-linha--total">
+                <span>Total do recibo</span>
+                <strong class="saida-modal__total">R$ {{ formatarMoeda(saidaValor()) }}</strong>
+              </div>
+            </div>
+
+            @if (saidaValorBloqueado()) {
+              <p id="saidaValorHint" class="modal-hint">
+                Diária definida pela configuração de cobrança. O total é diária × dias desde a entrada.
+              </p>
+            } @else if (!saidaValorLoading()) {
+              <p id="saidaValorCalcHint" class="modal-hint">
+                Informe o valor da diária. O total (diária × dias) será enviado no recibo.
+              </p>
+            }
+          </section>
+
+          <div class="modal-actions saida-modal__actions">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="saidaProcessando()"
+              (click)="fecharPermanencia()"
+            >
+              Cancelar
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              [disabled]="saidaProcessando() || !podeFinalizar()"
+              (click)="confirmarPermanencia()"
+            >
+              {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}
+            </button>
+          </div>
+        } @else {
+          <h2>
+            @if (permanenciaAcao === 'suspender') {
+              Suspender permanência
+            }
+            @if (permanenciaAcao === 'retornar') {
+              Finalizar suspensão / retornar ao pátio
+            }
+          </h2>
+
+          <p class="modal-meta">
+            Placa: <strong>{{ formatarPlaca(placaSelecionada()) }}</strong>
+          </p>
+          <p class="modal-meta">
+            Status:
+            {{
+              registroModal.finalizado
+                ? 'Finalizado'
+                : registroModal.permanenciaSuspensa
+                  ? 'Suspenso'
+                  : 'Em aberto'
+            }}
+          </p>
+
+          <label class="modal-field-label" for="permanenciaDataHoraAlt">Data/hora</label>
+          <input
+            id="permanenciaDataHoraAlt"
+            class="input-control"
+            type="datetime-local"
+            [ngModel]="permanenciaDataHora"
+            (ngModelChange)="onPermanenciaDataHoraChange($event)"
+          />
+
+          <div class="modal-actions">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="saidaProcessando()"
+              (click)="fecharPermanencia()"
+            >
+              Cancelar
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              [disabled]="saidaProcessando() || !podeSuspenderOuRetornar()"
+              (click)="confirmarPermanencia()"
+            >
+              {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}
+            </button>
+          </div>
+        }
       </div>
     </div>
   }

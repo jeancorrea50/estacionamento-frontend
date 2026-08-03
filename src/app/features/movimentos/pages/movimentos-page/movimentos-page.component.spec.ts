@@ -7,7 +7,6 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
-import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentosPageComponent } from './movimentos-page.component';
 
@@ -29,15 +28,18 @@ describe('MovimentosPageComponent', () => {
     saida: vi.fn().mockReturnValue(of(void 0)),
     baixarRecibo: vi.fn().mockReturnValue(of(new Blob(['%PDF']))),
     excluir: vi.fn().mockReturnValue(of(void 0)),
-    obterPorPlaca: vi.fn().mockReturnValue(of(null))
-  };
-  const configuracaoCobrancaMock = {
+    obterPorPlaca: vi.fn().mockReturnValue(of(null)),
     obterValorEstacionamento: vi.fn().mockReturnValue(
       of({
-        transportadoraId: 1,
+        entradaSaidaId: 1,
         estacionamentoId: 1,
+        transportadoraId: null,
         configuracaoCobrancaId: null,
-        valorEstacionamento: null
+        valor: null,
+        origem: 'Indisponivel',
+        valorUnitarioDiario: null,
+        quantidadeDias: null,
+        tipoCobranca: 'Avulso'
       })
     )
   };
@@ -70,7 +72,6 @@ describe('MovimentosPageComponent', () => {
       imports: [MovimentosPageComponent],
       providers: [
         { provide: EntradaSaidaService, useValue: entradaSaidaServiceMock },
-        { provide: ConfiguracaoCobrancaService, useValue: configuracaoCobrancaMock },
         { provide: ToastService, useValue: toastServiceMock },
         { provide: PermissionCacheService, useValue: permissionCacheMock },
         { provide: Router, useValue: routerMock },
@@ -103,21 +104,27 @@ describe('MovimentosPageComponent', () => {
     expect(component.podeFinalizar()).toBeFalsy();
   });
 
-  it('ao abrir Registrar saída deve consultar valor-estacionamento e preencher em BRL', () => {
+  it('ao abrir Registrar saída deve consultar valor-estacionamento por entradaSaidaId e calcular total por diárias', () => {
     entradaSaidaServiceMock.getById.mockReturnValue(
       of({
         id: 4038,
         finalizado: false,
         transportadoraId: 0,
-        transportadora: { id: 12 }
+        transportadora: { id: 12 },
+        dataHoraEntrada: '2026-08-01T10:00:00'
       })
     );
-    configuracaoCobrancaMock.obterValorEstacionamento.mockReturnValue(
+    entradaSaidaServiceMock.obterValorEstacionamento.mockReturnValue(
       of({
-        transportadoraId: 12,
+        entradaSaidaId: 4038,
         estacionamentoId: 1,
+        transportadoraId: 12,
         configuracaoCobrancaId: 5,
-        valorEstacionamento: 25
+        valor: 75,
+        origem: 'Calculado',
+        valorUnitarioDiario: 25,
+        quantidadeDias: 3,
+        tipoCobranca: 'Faturado'
       })
     );
 
@@ -133,29 +140,34 @@ describe('MovimentosPageComponent', () => {
         nomeTransportadora: '',
         veiculoId: 0,
         placaVeiculo: 'LWN9515',
-        dataHoraEntrada: '',
+        dataHoraEntrada: '2026-08-01T10:00:00',
         dataHoraSaida: null,
         avulso: true
       },
       'finalizar'
     );
 
-    expect(configuracaoCobrancaMock.obterValorEstacionamento).toHaveBeenCalledWith(12);
-    expect(component.saidaValor()).toBe(25);
-    expect(component.saidaValorTexto()).toBe('25,00');
+    expect(entradaSaidaServiceMock.obterValorEstacionamento).toHaveBeenCalledWith(4038);
+    expect(component.saidaValorDiaria()).toBe(25);
+    expect(component.saidaValorDiariaTexto()).toBe('25,00');
     expect(component.saidaValorBloqueado()).toBe(true);
     expect(component.permanenciaOpen()).toBe(true);
+
+    component.onPermanenciaDataHoraChange('2026-08-03T12:00');
+    expect(component.saidaQuantidadeDiarias()).toBe(3);
+    expect(component.saidaValor()).toBe(75);
   });
 
-  it('quando valor-estacionamento retorna 404 deve deixar o campo editável', () => {
+  it('quando valor-estacionamento retorna 404 deve deixar a diária editável', () => {
     entradaSaidaServiceMock.getById.mockReturnValue(
       of({
         id: 10,
         finalizado: false,
-        transportadoraId: 3
+        transportadoraId: 3,
+        dataHoraEntrada: '2026-08-03T08:00:00'
       })
     );
-    configuracaoCobrancaMock.obterValorEstacionamento.mockReturnValue(
+    entradaSaidaServiceMock.obterValorEstacionamento.mockReturnValue(
       throwError(() => ({ message: 'Não encontrado', status: 404 }))
     );
 
@@ -171,17 +183,20 @@ describe('MovimentosPageComponent', () => {
         nomeTransportadora: '',
         veiculoId: 0,
         placaVeiculo: 'ABC1D23',
-        dataHoraEntrada: '',
+        dataHoraEntrada: '2026-08-03T08:00:00',
         dataHoraSaida: null,
         avulso: true
       },
       'finalizar'
     );
 
+    expect(component.saidaValorDiaria()).toBeNull();
     expect(component.saidaValor()).toBeNull();
-    expect(component.saidaValorTexto()).toBe('');
     expect(component.saidaValorBloqueado()).toBe(false);
-    component.saidaValor.set(15);
+    component.onPermanenciaDataHoraChange('2026-08-03T18:00');
+    component.onSaidaValorDiariaChange('15');
+    expect(component.saidaQuantidadeDiarias()).toBe(1);
+    expect(component.saidaValor()).toBe(15);
     expect(component.podeFinalizar()).toBe(true);
   });
 

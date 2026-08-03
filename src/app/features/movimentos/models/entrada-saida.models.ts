@@ -14,6 +14,15 @@ export enum EntradaSaidaStatus {
   Cancelado = 4
 }
 
+/**
+ * Espelha `Estac.Domain.Models.Enuns.ModoRecibo`.
+ * Query `modo` em `GET /EntradaSaida/{id}/recibo`.
+ */
+export enum ModoRecibo {
+  Saida = 1,
+  Entrada = 2
+}
+
 /** Labels alinhados aos `[Description]` do enum no backend. */
 export const ENTRADA_SAIDA_STATUS_LABEL: Record<EntradaSaidaStatus, string> = {
   [EntradaSaidaStatus.Entrada]: 'Entrada',
@@ -189,4 +198,24 @@ export interface EntradaSaidaPagedResult<T> {
   totalCount: number;
   numeroPagina: number;
   tamanhoPagina: number;
+}
+
+/**
+ * GET `/api/EntradaSaida/valor-estacionamento?entradaSaidaId=`
+ * Espelha `ValorEstacionamentoOutput` do backend.
+ */
+export type ValorEstacionamentoOrigem = 'FaturaItem' | 'Calculado' | 'Indisponivel';
+
+export interface ValorEstacionamentoResponse {
+  entradaSaidaId: number;
+  estacionamentoId: number;
+  transportadoraId: number | null;
+  configuracaoCobrancaId: number | null;
+  /** Valor final (FaturaItem.ValorTotal ou diária × dias). */
+  valor: number | null;
+  origem: ValorEstacionamentoOrigem | string;
+  valorUnitarioDiario: number | null;
+  quantidadeDias: number | null;
+  /** Avulso | Faturado */
+  tipoCobranca: string;
 }

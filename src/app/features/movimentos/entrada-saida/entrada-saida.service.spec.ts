@@ -2,6 +2,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../../environments/environment';
 import { mapBuscarPorPlacaParaRegistroRapido } from '../mappers/entrada-saida-buscar-por-placa.mapper';
+import { ModoRecibo } from '../models/entrada-saida.models';
 import { EntradaSaidaService } from './entrada-saida.service';
 
 describe('EntradaSaidaService', () => {
@@ -132,20 +133,65 @@ describe('EntradaSaidaService', () => {
     expect(item?.transportadoraId).toBe(9);
   });
 
-  it('deve baixar recibo PDF com query valor', () => {
+  it('deve obter valor-estacionamento por entradaSaidaId', () => {
+    let valor: number | null = -1;
+    service.obterValorEstacionamento(4038).subscribe((res) => {
+      valor = res.valor;
+      expect(res.entradaSaidaId).toBe(4038);
+      expect(res.origem).toBe('Calculado');
+      expect(res.valorUnitarioDiario).toBe(25);
+      expect(res.quantidadeDias).toBe(3);
+    });
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.API_BASE_URL}/EntradaSaida/valor-estacionamento` &&
+        r.params.get('entradaSaidaId') === '4038'
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      result: {
+        EntradaSaidaId: 4038,
+        EstacionamentoId: 2,
+        TransportadoraId: 12,
+        ConfiguracaoCobrancaId: 5,
+        Valor: 75,
+        Origem: 'Calculado',
+        ValorUnitarioDiario: 25,
+        QuantidadeDias: 3,
+        TipoCobranca: 'Faturado'
+      }
+    });
+    expect(valor).toBe(75);
+  });
+
+  it('deve baixar recibo PDF com modo e valor na saída', () => {
     let size = 0;
-    service.baixarRecibo(12, 25.5).subscribe((blob) => {
+    service.baixarRecibo(12, ModoRecibo.Saida, 25.5).subscribe((blob) => {
       size = blob.size;
     });
     const req = httpMock.expectOne(
       (r) =>
         r.url === `${environment.API_BASE_URL}/EntradaSaida/12/recibo` &&
+        r.params.get('modo') === '1' &&
         r.params.get('valor') === '25.5'
     );
     expect(req.request.method).toBe('GET');
     expect(req.request.responseType).toBe('blob');
     req.flush(new Blob(['%PDF'], { type: 'application/pdf' }));
     expect(size).toBeGreaterThan(0);
+  });
+
+  it('deve baixar recibo de entrada com modo e sem valor', () => {
+    service.baixarRecibo(12, ModoRecibo.Entrada).subscribe();
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.API_BASE_URL}/EntradaSaida/12/recibo` &&
+        r.params.get('modo') === '2' &&
+        r.params.get('valor') == null
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(new Blob(['%PDF'], { type: 'application/pdf' }));
   });
 
   it('deve enviar query dataHoraSaida em finalizarPermanencia', () => {

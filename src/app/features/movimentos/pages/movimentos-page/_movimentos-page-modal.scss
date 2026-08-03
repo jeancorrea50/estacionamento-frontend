@@ -16,6 +16,26 @@
   padding: 1rem;
 }
 
+.modal-content--saida {
+  width: min(560px, 94vw);
+  padding: 1.25rem 1.35rem 1.15rem;
+}
+
+.modal-content--saida .saida-modal__title,
+.modal-content--saida .saida-modal__label,
+.modal-content--saida .saida-modal__placa-label,
+.modal-content--saida .saida-modal__placa-valor,
+.modal-content--saida .saida-modal__status,
+.modal-content--saida .saida-modal__tempo-valor,
+.modal-content--saida .saida-modal__cupom-valor,
+.modal-content--saida .saida-modal__cupom-linha--total > span,
+.modal-content--saida .saida-modal__total,
+.modal-content--saida .modal-hint,
+.modal-content--saida .modal-money__prefix,
+.modal-content--saida .saida-modal__actions .btn {
+  text-transform: uppercase;
+}
+
 .modal-actions {
   margin-top: 1rem;
   display: flex;
@@ -32,10 +52,10 @@
 }
 
 .modal-hint {
-  margin: 0.35rem 0 0;
+  margin: 0.5rem 0 0;
   font-size: 0.8125rem;
-  line-height: 1.4;
-  color: var(--muted, #64748b);
+  line-height: 1.45;
+  color: #64748b;
 }
 
 .modal-money {
@@ -48,12 +68,216 @@
   flex-shrink: 0;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--text, #e2e8f0);
+  color: #334155;
 }
 
 .modal-money__input {
   flex: 1;
   min-width: 0;
+}
+
+.modal-meta {
+  margin: 0.35rem 0;
+  font-size: 0.9375rem;
+  color: #334155;
+}
+
+/* —— Modal Registrar Saída —— */
+.saida-modal__header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.saida-modal__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #0f172a;
+}
+
+.saida-modal__identidade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.saida-modal__placa {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.saida-modal__placa-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.saida-modal__placa-valor {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+.saida-modal__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.saida-modal__status--aberto {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.saida-modal__status--suspenso {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.saida-modal__status--finalizado {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.saida-modal__tempo {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.saida-modal__tempo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+}
+
+.saida-modal__tempo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.saida-modal__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.saida-modal__tempo-valor {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.saida-modal__datetime {
+  width: 100%;
+}
+
+.saida-modal__valores {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.saida-modal__cupom {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.saida-modal__cupom-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.saida-modal__cupom-linha--diaria {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.saida-modal__money {
+  width: 100%;
+}
+
+.saida-modal__money .modal-money__input {
+  background: #fff;
+}
+
+.saida-modal__cupom-valor {
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+.saida-modal__cupom-linha--total {
+  margin-top: 0.15rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #cbd5e1;
+  align-items: baseline;
+}
+
+.saida-modal__cupom-linha--total > span {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #334155;
+}
+
+.saida-modal__total {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  color: #0f766e;
+  line-height: 1.1;
+}
+
+.saida-modal__actions {
+  margin-top: 1.15rem;
+  justify-content: center;
+}
+
+@media (max-width: 560px) {
+  .saida-modal__tempo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .saida-modal__placa-valor {
+    font-size: 0.95rem;
+  }
+
+  .saida-modal__total {
+    font-size: 1.3rem;
+  }
 }
 
 .modal-footer .btn:disabled {
@@ -200,4 +424,36 @@
   padding: 0.875rem 1rem;
   border-top: 1px solid #e2e8f0;
   background: #fff;
+}
+
+.recibo-confirm-overlay {
+  z-index: 1200;
+}
+
+.recibo-confirm-dialog {
+  width: min(420px, 92vw);
+  padding: 1.25rem 1.35rem;
+  text-align: center;
+  background: #fff;
+  color: #0f172a;
+}
+
+.recibo-confirm-dialog h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  color: #0f172a;
+}
+
+.recibo-confirm-dialog p {
+  margin: 0 0 1.15rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.recibo-confirm-dialog__actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }

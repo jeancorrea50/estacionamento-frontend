@@ -1,12 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
+import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentosPageComponent } from './movimentos-page.component';
 
@@ -25,7 +26,20 @@ describe('MovimentosPageComponent', () => {
     update: vi.fn().mockReturnValue(of({})),
     suspenderPermanencia: vi.fn().mockReturnValue(of(void 0)),
     finalizarPermanencia: vi.fn().mockReturnValue(of(void 0)),
-    excluir: vi.fn().mockReturnValue(of(void 0))
+    saida: vi.fn().mockReturnValue(of(void 0)),
+    baixarRecibo: vi.fn().mockReturnValue(of(new Blob(['%PDF']))),
+    excluir: vi.fn().mockReturnValue(of(void 0)),
+    obterPorPlaca: vi.fn().mockReturnValue(of(null))
+  };
+  const configuracaoCobrancaMock = {
+    obterValorEstacionamento: vi.fn().mockReturnValue(
+      of({
+        transportadoraId: 1,
+        estacionamentoId: 1,
+        configuracaoCobrancaId: null,
+        valorEstacionamento: null
+      })
+    )
   };
   const toastServiceMock = {
     success: vi.fn(),
@@ -56,6 +70,7 @@ describe('MovimentosPageComponent', () => {
       imports: [MovimentosPageComponent],
       providers: [
         { provide: EntradaSaidaService, useValue: entradaSaidaServiceMock },
+        { provide: ConfiguracaoCobrancaService, useValue: configuracaoCobrancaMock },
         { provide: ToastService, useValue: toastServiceMock },
         { provide: PermissionCacheService, useValue: permissionCacheMock },
         { provide: Router, useValue: routerMock },
@@ -75,12 +90,143 @@ describe('MovimentosPageComponent', () => {
     );
   });
 
-  it('deve permitir finalizar apenas quando registro não finalizado', () => {
+  it('deve permitir finalizar apenas quando registro não finalizado e valor informado', () => {
     const fixture = TestBed.createComponent(MovimentosPageComponent);
     const component = fixture.componentInstance;
     component.registroSelecionado.set({ finalizado: false } as never);
+    component.saidaValor.set(25);
     expect(component.podeFinalizar()).toBeTruthy();
+    component.saidaValor.set(null);
+    expect(component.podeFinalizar()).toBeFalsy();
+    component.saidaValor.set(10);
     component.registroSelecionado.set({ finalizado: true } as never);
     expect(component.podeFinalizar()).toBeFalsy();
+  });
+
+  it('ao abrir Registrar saída deve consultar valor-estacionamento e preencher em BRL', () => {
+    entradaSaidaServiceMock.getById.mockReturnValue(
+      of({
+        id: 4038,
+        finalizado: false,
+        transportadoraId: 0,
+        transportadora: { id: 12 }
+      })
+    );
+    configuracaoCobrancaMock.obterValorEstacionamento.mockReturnValue(
+      of({
+        transportadoraId: 12,
+        estacionamentoId: 1,
+        configuracaoCobrancaId: 5,
+        valorEstacionamento: 25
+      })
+    );
+
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+    component.abrirPermanencia(
+      {
+        id: 4038,
+        descricao: '',
+        motoristaId: 0,
+        nomeMotorista: '',
+        transportadoraId: 12,
+        nomeTransportadora: '',
+        veiculoId: 0,
+        placaVeiculo: 'LWN9515',
+        dataHoraEntrada: '',
+        dataHoraSaida: null,
+        avulso: true
+      },
+      'finalizar'
+    );
+
+    expect(configuracaoCobrancaMock.obterValorEstacionamento).toHaveBeenCalledWith(12);
+    expect(component.saidaValor()).toBe(25);
+    expect(component.saidaValorTexto()).toBe('25,00');
+    expect(component.saidaValorBloqueado()).toBe(true);
+    expect(component.permanenciaOpen()).toBe(true);
+  });
+
+  it('quando valor-estacionamento retorna 404 deve deixar o campo editável', () => {
+    entradaSaidaServiceMock.getById.mockReturnValue(
+      of({
+        id: 10,
+        finalizado: false,
+        transportadoraId: 3
+      })
+    );
+    configuracaoCobrancaMock.obterValorEstacionamento.mockReturnValue(
+      throwError(() => ({ message: 'Não encontrado', status: 404 }))
+    );
+
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+    component.abrirPermanencia(
+      {
+        id: 10,
+        descricao: '',
+        motoristaId: 0,
+        nomeMotorista: '',
+        transportadoraId: 3,
+        nomeTransportadora: '',
+        veiculoId: 0,
+        placaVeiculo: 'ABC1D23',
+        dataHoraEntrada: '',
+        dataHoraSaida: null,
+        avulso: true
+      },
+      'finalizar'
+    );
+
+    expect(component.saidaValor()).toBeNull();
+    expect(component.saidaValorTexto()).toBe('');
+    expect(component.saidaValorBloqueado()).toBe(false);
+    component.saidaValor.set(15);
+    expect(component.podeFinalizar()).toBe(true);
+  });
+
+  it('deve abrir pré-visualização do recibo sem download automático', () => {
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+    const blob = new Blob(['%PDF'], { type: 'application/pdf' });
+
+    (component as unknown as { abrirPreviewRecibo: (b: Blob, n: string) => void }).abrirPreviewRecibo(
+      blob,
+      'recibo-ABC1D23.pdf'
+    );
+
+    expect(component.reciboPreviewOpen()).toBe(true);
+    expect(component.reciboPreviewUrl()).toBeTruthy();
+    expect(component.reciboPreviewFileName()).toBe('recibo-ABC1D23.pdf');
+
+    component.fecharPreviewRecibo();
+    expect(component.reciboPreviewOpen()).toBe(false);
+    expect(component.reciboPreviewUrl()).toBeNull();
+  });
+
+  it('imprimir deve abrir aba com URL própria (independente do modal)', () => {
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+    const blob = new Blob(['%PDF'], { type: 'application/pdf' });
+    (component as unknown as { abrirPreviewRecibo: (b: Blob, n: string) => void }).abrirPreviewRecibo(
+      blob,
+      'recibo-X.pdf'
+    );
+
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue({
+      focus: vi.fn(),
+      print: vi.fn(),
+      addEventListener: vi.fn()
+    } as unknown as Window);
+
+    component.imprimirReciboDaPreview();
+
+    expect(openSpy).toHaveBeenCalled();
+    const openedUrl = openSpy.mock.calls[0]?.[0];
+    expect(typeof openedUrl).toBe('string');
+    expect(String(openedUrl).startsWith('blob:')).toBe(true);
+
+    component.fecharPreviewRecibo();
+    openSpy.mockRestore();
   });
 });

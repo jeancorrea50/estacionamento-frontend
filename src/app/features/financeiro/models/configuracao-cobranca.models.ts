@@ -128,3 +128,14 @@ export interface ConfiguracaoCobrancaPagedResult {
   numeroPagina: number;
   tamanhoPagina: number;
 }
+
+/**
+ * GET `/api/financeiro/ConfiguracaoCobranca/valor-estacionamento?transportadoraId=`
+ * `estacionamentoId` vem do usuário logado no backend.
+ */
+export interface ValorEstacionamentoResponse {
+  transportadoraId: number;
+  estacionamentoId: number;
+  configuracaoCobrancaId: number | null;
+  valorEstacionamento: number | null;
+}

@@ -226,13 +226,20 @@
   gap: 8px;
 }
 
+.historico-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .historico-card__header {
-  padding: 0 0 10px;
+  padding: 0 0 8px;
 }
 
 .historico-card__header h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 @media (max-width: 1200px) {

@@ -94,6 +94,14 @@ export interface EntradaSaidaSearchOutput {
   dataHoraSaida?: string | null;
   /** Enum byte do backend (`EntradaSaidaStatus` / Situacao). */
   status?: EntradaSaidaStatus | number | string;
+  /** Movimento já vinculado a fatura (paga ou não). */
+  faturado?: boolean;
+  dataFaturado?: string | null;
+  /**
+   * `true` = ainda sem FaturaItem com fatura Status=Pago (elegível a cobrança avulsa).
+   * `false` = já tem fatura paga vinculada.
+   */
+  avulso?: boolean;
 }
 
 export interface EntradaSaidaSuspensaoOutput {

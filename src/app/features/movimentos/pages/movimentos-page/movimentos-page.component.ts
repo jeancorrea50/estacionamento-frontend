@@ -1,6 +1,7 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import {
@@ -24,7 +25,8 @@ import {
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { MotoristaService } from '../../../cadastro/services/motorista.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
-import { forkJoin, map, of } from 'rxjs';
+import { Subject, forkJoin, map, of, throwError } from 'rxjs';
+import { catchError, finalize, switchMap, takeUntil } from 'rxjs/operators';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
@@ -38,6 +40,11 @@ import {
   mapearTipoCargaParaEnum as toTipoCargaEnum,
   TIPO_CARGA_LABELS
 } from '../../../../shared/models/tipo-carga';
+import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
+import {
+  formatarBrl,
+  parseBrl
+} from '../../../financeiro/pages/faturamento-page/config-cobranca/config-cobranca-moeda.util';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -81,8 +88,9 @@ interface AlertaItemVm {
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
 })
-export class MovimentosPageComponent implements OnInit {
+export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly service = inject(EntradaSaidaService);
+  private readonly configuracaoCobranca = inject(ConfiguracaoCobrancaService);
   private readonly signalrDashboardService = inject(SignalrDashboardService);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly motoristaService = inject(MotoristaService);
@@ -90,6 +98,7 @@ export class MovimentosPageComponent implements OnInit {
   private readonly permissionCache = inject(PermissionCacheService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
 
   readonly canVisualizar = this.permissionCache.has('entradasaida.visualizar') || this.permissionCache.hasAny(['*']);
   readonly canGravar = this.permissionCache.has('entradasaida.gravar') || this.permissionCache.hasAny(['*']);
@@ -128,6 +137,24 @@ export class MovimentosPageComponent implements OnInit {
   permanenciaAcao: PermanenciaAcao = 'suspender';
   registroSelecionado = signal<EntradaSaidaOutput | null>(null);
   permanenciaDataHora = '';
+  /** Valor numérico do recibo (enviado à API). */
+  saidaValor = signal<number | null>(null);
+  /** Valor formatado pt-BR com 2 casas (ex.: 25,00). */
+  saidaValorTexto = signal('');
+  saidaValorBloqueado = signal(false);
+  saidaValorLoading = signal(false);
+  saidaProcessando = signal(false);
+  /** Pré-visualização do recibo PDF (object URL sanitizado). */
+  readonly reciboPreviewOpen = signal(false);
+  readonly reciboPreviewUrl = signal<SafeResourceUrl | null>(null);
+  readonly reciboPreviewFileName = signal('recibo.pdf');
+  private reciboPreviewBlob: Blob | null = null;
+  private reciboPreviewObjectUrl: string | null = null;
+  /** Id do movimento com download de recibo em andamento. */
+  readonly reciboBaixandoId = signal<number | null>(null);
+  /** Id/transportadora do movimento em aberto no registro rápido (para recibo). */
+  private registroRapidoEntradaId = 0;
+  private registroRapidoTransportadoraId = 0;
   processandoRegistroRapido = signal(false);
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
@@ -141,6 +168,8 @@ export class MovimentosPageComponent implements OnInit {
   private ultimaConsultaCnpjRegistroRapido = '';
   private consultaCnpjSequencia = 0;
   private ultimaPlacaConsultadaRegistroRapido = '';
+  /** Cancela GET valor-estacionamento ao fechar/reabrir o modal (evita corrida). */
+  private readonly cancelarValorEstacionamento$ = new Subject<void>();
   registroRapido = {
     placa: '',
     motorista: '',
@@ -160,6 +189,12 @@ export class MovimentosPageComponent implements OnInit {
   ngOnInit(): void {
     if (!this.canVisualizar) return;
     void this.signalrDashboardService.connect();
+  }
+
+  ngOnDestroy(): void {
+    this.cancelarValorEstacionamento$.next();
+    this.cancelarValorEstacionamento$.complete();
+    this.fecharPreviewRecibo();
   }
 
   buscar(): void {
@@ -260,6 +295,7 @@ export class MovimentosPageComponent implements OnInit {
       }
       this.permanenciaAcao = acao;
       this.permanenciaDataHora = toDateTimeLocalInputValue();
+      this.resetSaidaValorState();
       this.service.getById(item.id).subscribe({
         next: (detalhe) => {
           if (!detalhe?.id) {
@@ -270,6 +306,10 @@ export class MovimentosPageComponent implements OnInit {
           // Garante "agora" no momento em que o modal abre (após o GET).
           this.permanenciaDataHora = toDateTimeLocalInputValue();
           this.permanenciaOpen.set(true);
+          if (acao === 'finalizar') {
+            const transportadoraId = this.resolverTransportadoraId(detalhe, item.transportadoraId);
+            this.carregarValorEstacionamentoParaSaida(transportadoraId);
+          }
         },
         error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.')
       });
@@ -278,6 +318,7 @@ export class MovimentosPageComponent implements OnInit {
 
   fecharPermanencia(): void {
     this.permanenciaOpen.set(false);
+    this.resetSaidaValorState();
   }
 
   confirmarPermanencia(): void {
@@ -288,15 +329,7 @@ export class MovimentosPageComponent implements OnInit {
     }
     const isoData = this.toIsoOrUndefined(this.permanenciaDataHora);
     if (this.permanenciaAcao === 'finalizar') {
-      const placa = this.placaSelecionada();
-      if (!placa || placa === '—') {
-        this.toast.error('Placa não encontrada para registrar a saída.');
-        return;
-      }
-      this.service.saida(placa).subscribe({
-        next: () => this.finalizarAcaoPermanencia('Saída registrada com sucesso.'),
-        error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
-      });
+      this.confirmarSaidaComRecibo(item);
       return;
     }
     if (this.permanenciaAcao === 'retornar') {
@@ -497,6 +530,26 @@ export class MovimentosPageComponent implements OnInit {
       this.toast.error('Informe uma placa válida para registrar saída.');
       return;
     }
+    const id = this.registroRapidoEntradaId;
+    if (id > 0) {
+      this.abrirPermanencia(
+        {
+          id,
+          descricao: '',
+          motoristaId: 0,
+          nomeMotorista: '',
+          transportadoraId: this.registroRapidoTransportadoraId,
+          nomeTransportadora: '',
+          veiculoId: 0,
+          placaVeiculo: placaNorm,
+          dataHoraEntrada: '',
+          dataHoraSaida: null,
+          avulso: true
+        },
+        'finalizar'
+      );
+      return;
+    }
     this.processandoRegistroRapido.set(true);
     this.service.saida(placaNorm).subscribe({
       next: () => {
@@ -536,6 +589,8 @@ export class MovimentosPageComponent implements OnInit {
     this.ultimaPlacaConsultadaRegistroRapido = '';
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoEntradaId = 0;
+    this.registroRapidoTransportadoraId = 0;
   }
 
   formatarMinutos(minutos?: number | null): string {
@@ -544,6 +599,11 @@ export class MovimentosPageComponent implements OnInit {
     const h = Math.floor(minutos / 60);
     const m = minutos % 60;
     return m ? `${h}h ${m}min` : `${h}h`;
+  }
+
+  /** Exibe placa com hífen (ABC-1234 / ABC-1D23). */
+  formatarPlaca(placa: string | null | undefined): string {
+    return formatPlacaDisplay(placa) || '—';
   }
 
   podeSuspenderOuRetornar(): boolean {
@@ -555,7 +615,142 @@ export class MovimentosPageComponent implements OnInit {
   podeFinalizar(): boolean {
     const registro = this.registroSelecionado();
     if (!registro) return false;
-    return !registro.finalizado;
+    if (registro.finalizado) return false;
+    if (this.saidaValorLoading() || this.saidaProcessando()) return false;
+    const valor = this.saidaValor();
+    return valor != null && Number.isFinite(valor) && valor >= 0;
+  }
+
+  onSaidaValorChange(raw: string | number | null): void {
+    if (this.saidaValorBloqueado()) return;
+    const texto = raw == null ? '' : String(raw);
+    this.saidaValorTexto.set(texto);
+    const n = parseBrl(texto);
+    this.saidaValor.set(n != null && n >= 0 ? n : null);
+  }
+
+  onSaidaValorBlur(): void {
+    if (this.saidaValorBloqueado()) return;
+    const n = this.saidaValor();
+    this.saidaValorTexto.set(n != null ? formatarBrl(n) : '');
+  }
+
+  /** Recibo disponível após saída registrada. */
+  podeVisualizarRecibo(item: EntradaSaidaSearchOutput): boolean {
+    return !!item?.id && item.id > 0 && !!item.dataHoraSaida;
+  }
+
+  /** Mantido como alias para templates/testes legados. */
+  podeBaixarRecibo(item: EntradaSaidaSearchOutput): boolean {
+    return this.podeVisualizarRecibo(item);
+  }
+
+  reciboEmCarregamento(): boolean {
+    return this.reciboBaixandoId() != null;
+  }
+
+  abrirReciboHistorico(item: EntradaSaidaSearchOutput): void {
+    if (!this.podeVisualizarRecibo(item) || this.reciboEmCarregamento()) return;
+
+    const transportadoraId = item.transportadoraId;
+    if (transportadoraId > 0) {
+      this.reciboBaixandoId.set(item.id);
+      this.configuracaoCobranca
+        .obterValorEstacionamento(transportadoraId)
+        .pipe(catchError((err: ApiError) => this.tratarErroValorEstacionamento(err, transportadoraId)))
+        .subscribe({
+          next: (res) => {
+            const configurado =
+              res.valorEstacionamento != null && Number.isFinite(res.valorEstacionamento)
+                ? Number(res.valorEstacionamento)
+                : null;
+            const valor = configurado ?? this.perguntarValorRecibo();
+            if (valor == null) {
+              this.reciboBaixandoId.set(null);
+              return;
+            }
+            this.executarPreviewRecibo(item, valor);
+          },
+          error: (err: ApiError) => {
+            this.reciboBaixandoId.set(null);
+            this.handleApiError(err, 'Erro ao consultar valor do estacionamento.');
+          }
+        });
+      return;
+    }
+
+    const valor = this.perguntarValorRecibo();
+    if (valor == null) return;
+    this.reciboBaixandoId.set(item.id);
+    this.executarPreviewRecibo(item, valor);
+  }
+
+  /** @deprecated Use {@link abrirReciboHistorico}. */
+  baixarReciboHistorico(item: EntradaSaidaSearchOutput): void {
+    this.abrirReciboHistorico(item);
+  }
+
+  fecharPreviewRecibo(): void {
+    if (this.reciboPreviewObjectUrl) {
+      URL.revokeObjectURL(this.reciboPreviewObjectUrl);
+      this.reciboPreviewObjectUrl = null;
+    }
+    this.reciboPreviewBlob = null;
+    this.reciboPreviewUrl.set(null);
+    this.reciboPreviewOpen.set(false);
+  }
+
+  baixarReciboDaPreview(): void {
+    const blob = this.reciboPreviewBlob;
+    if (!blob) {
+      this.toast.error('Recibo indisponível para download.');
+      return;
+    }
+    this.downloadBlob(blob, this.reciboPreviewFileName());
+  }
+
+  imprimirReciboDaPreview(): void {
+    const blob = this.reciboPreviewBlob;
+    if (!blob) {
+      this.toast.error('Recibo indisponível para impressão.');
+      return;
+    }
+
+    // URL própria da impressão: sobrevive ao fechar o modal (não usa o object URL do iframe).
+    const printUrl = URL.createObjectURL(blob);
+    const printWin = window.open(printUrl, '_blank');
+    if (!printWin) {
+      URL.revokeObjectURL(printUrl);
+      const frame = document.getElementById('recibo-preview-iframe') as HTMLIFrameElement | null;
+      if (frame?.contentWindow) {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+          return;
+        } catch {
+          /* fallthrough */
+        }
+      }
+      this.toast.error('Permita pop-ups para imprimir o recibo, ou use Download.');
+      return;
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
+
+    const tentarPrint = (): void => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {
+        /* Visualizador nativo: o usuário pode imprimir pelo menu da aba. */
+      }
+    };
+    try {
+      printWin.addEventListener('load', tentarPrint);
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(tentarPrint, 400);
   }
 
   estaSuspenso(item: EntradaSaidaSearchOutput | EntradaSaidaOutput | null | undefined): boolean {
@@ -576,7 +771,164 @@ export class MovimentosPageComponent implements OnInit {
   private finalizarAcaoPermanencia(msg: string): void {
     this.toast.success(msg);
     this.permanenciaOpen.set(false);
+    this.resetSaidaValorState();
     this.buscar();
+  }
+
+  private confirmarSaidaComRecibo(item: EntradaSaidaOutput): void {
+    const placa = this.placaSelecionada();
+    if (!placa || placa === '—') {
+      this.toast.error('Placa não encontrada para registrar a saída.');
+      return;
+    }
+    const valor = this.saidaValor();
+    if (valor == null || !Number.isFinite(valor) || valor < 0) {
+      this.toast.error('Informe o valor do estacionamento (maior ou igual a zero).');
+      return;
+    }
+    if (this.saidaProcessando()) return;
+
+    this.saidaProcessando.set(true);
+    this.service
+      .saida(placa)
+      .pipe(
+        switchMap(() =>
+          this.service.baixarRecibo(item.id, valor).pipe(
+            catchError((err: ApiError) => {
+              this.toast.error(
+                err?.message ??
+                  'Saída registrada, mas não foi possível gerar o recibo PDF.'
+              );
+              return of(null);
+            })
+          )
+        ),
+        finalize(() => this.saidaProcessando.set(false))
+      )
+      .subscribe({
+        next: (blob) => {
+          this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
+          this.limparRegistroRapido();
+          if (blob) {
+            this.abrirPreviewRecibo(blob, `recibo-${placa}.pdf`);
+          }
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
+      });
+  }
+
+  private carregarValorEstacionamentoParaSaida(transportadoraId: number): void {
+    this.cancelarValorEstacionamento$.next();
+    if (!transportadoraId || transportadoraId <= 0) {
+      this.aplicarValorEstacionamento(null, false);
+      return;
+    }
+    this.saidaValorLoading.set(true);
+    this.configuracaoCobranca
+      .obterValorEstacionamento(transportadoraId)
+      .pipe(
+        takeUntil(this.cancelarValorEstacionamento$),
+        catchError((err: ApiError) => this.tratarErroValorEstacionamento(err, transportadoraId)),
+        finalize(() => this.saidaValorLoading.set(false))
+      )
+      .subscribe({
+        next: (res) => {
+          const valor =
+            res.valorEstacionamento != null && Number.isFinite(Number(res.valorEstacionamento))
+              ? Math.round(Number(res.valorEstacionamento) * 100) / 100
+              : null;
+          this.aplicarValorEstacionamento(valor, valor != null);
+        },
+        error: (err: ApiError) => {
+          this.aplicarValorEstacionamento(null, false);
+          this.handleApiError(err, 'Erro ao consultar valor do estacionamento.');
+        }
+      });
+  }
+
+  /** 404/204 = sem config ativa (editável). Demais erros sobem para toast. */
+  private tratarErroValorEstacionamento(err: ApiError, transportadoraId: number) {
+    if (err?.status === 404 || err?.status === 204) {
+      return of({
+        transportadoraId,
+        estacionamentoId: 0,
+        configuracaoCobrancaId: null,
+        valorEstacionamento: null as number | null
+      });
+    }
+    return throwError(() => err);
+  }
+
+  private aplicarValorEstacionamento(valor: number | null, bloqueado: boolean): void {
+    this.saidaValor.set(valor);
+    this.saidaValorTexto.set(valor != null ? formatarBrl(valor) : '');
+    this.saidaValorBloqueado.set(bloqueado);
+  }
+
+  private resolverTransportadoraId(
+    detalhe: EntradaSaidaOutput,
+    fallbackId?: number
+  ): number {
+    if (detalhe.transportadoraId > 0) return detalhe.transportadoraId;
+    const nested = Number(detalhe.transportadora?.id ?? 0);
+    if (Number.isFinite(nested) && nested > 0) return nested;
+    if (typeof fallbackId === 'number' && fallbackId > 0) return fallbackId;
+    return 0;
+  }
+
+  private resetSaidaValorState(): void {
+    this.cancelarValorEstacionamento$.next();
+    this.saidaValor.set(null);
+    this.saidaValorTexto.set('');
+    this.saidaValorBloqueado.set(false);
+    this.saidaValorLoading.set(false);
+    this.saidaProcessando.set(false);
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private perguntarValorRecibo(): number | null {
+    const raw = window.prompt('Informe o valor do estacionamento (R$) para o recibo:', '0');
+    if (raw == null) return null;
+    const n = Number(String(raw).trim().replace(',', '.'));
+    if (!Number.isFinite(n) || n < 0) {
+      this.toast.error('Valor inválido. Informe um número maior ou igual a zero.');
+      return null;
+    }
+    return n;
+  }
+
+  private executarPreviewRecibo(item: EntradaSaidaSearchOutput, valor: number): void {
+    const placa = item.placaVeiculo || String(item.id);
+    this.service
+      .baixarRecibo(item.id, valor)
+      .pipe(finalize(() => this.reciboBaixandoId.set(null)))
+      .subscribe({
+        next: (blob) => {
+          this.abrirPreviewRecibo(blob, `recibo-${placa}.pdf`);
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Falha ao gerar o recibo PDF.')
+      });
+  }
+
+  private abrirPreviewRecibo(blob: Blob, fileName: string): void {
+    this.fecharPreviewRecibo();
+    const pdfBlob =
+      blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+    this.reciboPreviewBlob = pdfBlob;
+    this.reciboPreviewObjectUrl = URL.createObjectURL(pdfBlob);
+    this.reciboPreviewFileName.set(fileName);
+    this.reciboPreviewUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(this.reciboPreviewObjectUrl)
+    );
+    this.reciboPreviewOpen.set(true);
   }
 
   private applyPagedResult(paged: EntradaSaidaPagedResult<EntradaSaidaSearchOutput>): void {
@@ -767,6 +1119,8 @@ export class MovimentosPageComponent implements OnInit {
     this.consultaCnpjSequencia++;
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoEntradaId = 0;
+    this.registroRapidoTransportadoraId = 0;
   }
 
   private limparCamposDetalheTransportadoraRegistroRapido(): void {
@@ -807,6 +1161,12 @@ export class MovimentosPageComponent implements OnInit {
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
     this.camposBloqueadosPorPlaca = true;
+    this.registroRapidoEntradaId =
+      campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;
+    this.registroRapidoTransportadoraId =
+      entrada.transportadoraId > 0
+        ? entrada.transportadoraId
+        : Number(entrada.transportadora?.id ?? 0) || 0;
   }
 
   private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {

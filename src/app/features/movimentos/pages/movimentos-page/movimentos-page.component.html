@@ -298,12 +298,18 @@
           </thead>
           <tbody>
             @for (item of registros(); track item.id) {
-              <tr>
-                <td>{{ item.placaVeiculo }}</td>
-                <td>{{ item.nomeMotorista }}</td>
-                <td>{{ item.nomeTransportadora }}</td>
-                <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+              <tr class="historico-row">
+                <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                <td>
+                  <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
+                </td>
+                <td>
+                  <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                    item.nomeTransportadora
+                  }}</span>
+                </td>
+                <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
+                <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
                 <td>
                   <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
                     {{ statusLabel(item) }}
@@ -325,6 +331,15 @@
                     (click)="abrirPermanencia(item, 'finalizar')"
                   >
                     Saída
+                  </button>
+                  <button
+                    class="btn btn-secondary btn--sm"
+                    type="button"
+                    [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
+                    title="Visualizar recibo PDF"
+                    (click)="abrirReciboHistorico(item)"
+                  >
+                    {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
                   </button>
                 </td>
               </tr>
@@ -393,23 +408,106 @@
                 : 'Em aberto'
           }}
         </p>
-        <input class="input-control" type="datetime-local" [(ngModel)]="permanenciaDataHora" />
+        <label class="modal-field-label" for="permanenciaDataHora">Data/hora</label>
+        <input
+          id="permanenciaDataHora"
+          class="input-control"
+          type="datetime-local"
+          [(ngModel)]="permanenciaDataHora"
+        />
+
+        @if (permanenciaAcao === 'finalizar') {
+          <label class="modal-field-label" for="saidaValor">Valor do estacionamento</label>
+          @if (saidaValorLoading()) {
+            <p class="modal-hint" role="status">Consultando valor da configuração de cobrança...</p>
+          }
+          <div class="modal-money">
+            <span class="modal-money__prefix" aria-hidden="true">R$</span>
+            <input
+              id="saidaValor"
+              class="input-control modal-money__input"
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="0,00"
+              [ngModel]="saidaValorTexto()"
+              (ngModelChange)="onSaidaValorChange($event)"
+              (blur)="onSaidaValorBlur()"
+              [disabled]="saidaValorBloqueado() || saidaValorLoading() || saidaProcessando()"
+              [attr.aria-describedby]="saidaValorBloqueado() ? 'saidaValorHint' : null"
+            />
+          </div>
+          @if (saidaValorBloqueado()) {
+            <p id="saidaValorHint" class="modal-hint">
+              Valor definido pela configuração de cobrança ativa (não editável).
+            </p>
+          } @else if (!saidaValorLoading()) {
+            <p class="modal-hint">Informe o valor para gerar o recibo PDF.</p>
+          }
+        }
 
         <div class="modal-actions">
-          <button class="btn btn-secondary" type="button" (click)="fecharPermanencia()">
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="saidaProcessando()"
+            (click)="fecharPermanencia()"
+          >
             Cancelar
           </button>
           <button
             class="btn btn-primary"
             type="button"
             [disabled]="
+              saidaProcessando() ||
               (permanenciaAcao === 'finalizar' && !podeFinalizar()) ||
               ((permanenciaAcao === 'suspender' || permanenciaAcao === 'retornar') &&
                 !podeSuspenderOuRetornar())
             "
             (click)="confirmarPermanencia()"
           >
-            Confirmar
+            {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (reciboPreviewOpen() && reciboPreviewUrl(); as previewUrl) {
+    <div
+      class="modal-overlay recibo-preview-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reciboPreviewTitle"
+      (click)="fecharPreviewRecibo()"
+    >
+      <div class="modal-content recibo-preview-modal" (click)="$event.stopPropagation()">
+        <div class="recibo-preview-modal__header">
+          <h2 id="reciboPreviewTitle">Pré-visualização do recibo</h2>
+          <button
+            type="button"
+            class="modal-close"
+            aria-label="Fechar pré-visualização"
+            (click)="fecharPreviewRecibo()"
+          >
+            ×
+          </button>
+        </div>
+        <iframe
+          id="recibo-preview-iframe"
+          class="recibo-preview-modal__frame"
+          title="Pré-visualização do recibo PDF"
+          [src]="previewUrl"
+        ></iframe>
+        <div class="modal-actions recibo-preview-modal__actions">
+          <button class="btn btn-secondary" type="button" (click)="fecharPreviewRecibo()">
+            Fechar
+          </button>
+          <button class="btn btn-secondary" type="button" (click)="imprimirReciboDaPreview()">
+            Imprimir
+          </button>
+          <button class="btn btn-primary" type="button" (click)="baixarReciboDaPreview()">
+            Download
           </button>
         </div>
       </div>

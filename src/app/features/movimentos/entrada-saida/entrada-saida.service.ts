@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   EntradaSaidaFiltro,
@@ -51,7 +51,9 @@ export class EntradaSaidaService {
         const id = this.pickNumber(raw, 'id', 'Id');
         const detail = this.mapDetailItem(raw, id > 0 ? id : 0);
         return this.enrichBuscarPorPlacaFromFlat(raw, detail);
-      })
+      }),
+      // 404 / ausência = sem histórico prévio; silencioso no registro rápido.
+      catchError(() => of(null))
     );
   }
 
@@ -78,6 +80,18 @@ export class EntradaSaidaService {
 
   saida(placa: string): Observable<void> {
     return this.http.post<void>(`${ENTRADA_SAIDA_API}/saida`, { placa });
+  }
+
+  /**
+   * GET `/api/EntradaSaida/{id}/recibo?valor=`
+   * Gera PDF do recibo (e fatura avulsa no backend quando aplicável).
+   */
+  baixarRecibo(id: number, valor: number): Observable<Blob> {
+    const params = new HttpParams().set('valor', String(valor));
+    return this.http.get(`${ENTRADA_SAIDA_API}/${id}/recibo`, {
+      params,
+      responseType: 'blob'
+    });
   }
 
   excluir(id: number): Observable<void> {
@@ -150,7 +164,10 @@ export class EntradaSaidaService {
       dataHoraSaida: this.pickStringOrNull(row, 'dataHoraSaida', 'DataHoraSaida'),
       status: parseEntradaSaidaStatus(
         this.pickRaw(row, 'status', 'Status', 'situacao', 'Situacao') as number | string | undefined
-      )
+      ),
+      faturado: this.pickBool(row, 'faturado', 'Faturado'),
+      dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
+      avulso: this.pickBool(row, 'avulso', 'Avulso')
     };
   }
 
@@ -158,12 +175,18 @@ export class EntradaSaidaService {
   private mapDetailItem(row: Record<string, unknown>, fallbackId: number): EntradaSaidaOutput {
     const id = this.pickNumber(row, 'id', 'Id') || fallbackId;
     const suspensoesRaw = row['suspensoes'] ?? row['Suspensoes'];
+    const transportadora = (row['transportadora'] ?? row['Transportadora']) as EntradaSaidaOutput['transportadora'];
+    const transportadoraId =
+      this.pickNumber(row, 'transportadoraId', 'TransportadoraId') ||
+      (transportadora && typeof transportadora === 'object'
+        ? this.pickNumber(transportadora as Record<string, unknown>, 'id', 'Id')
+        : 0);
 
     return {
       id,
       descricao: this.pickString(row, 'descricao', 'Descricao'),
       motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
-      transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
+      transportadoraId,
       veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),
       observacao: this.pickStringOrNull(row, 'observacao', 'Observacao', 'observao', 'Observao'),
       dataHoraEntrada: this.pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),
@@ -203,7 +226,7 @@ export class EntradaSaidaService {
         ? (suspensoesRaw as EntradaSaidaOutput['suspensoes'])
         : [],
       motorista: (row['motorista'] ?? row['Motorista']) as EntradaSaidaOutput['motorista'],
-      transportadora: (row['transportadora'] ?? row['Transportadora']) as EntradaSaidaOutput['transportadora'],
+      transportadora,
       veiculo: (row['veiculo'] ?? row['Veiculo']) as EntradaSaidaOutput['veiculo']
     };
   }
@@ -357,6 +380,13 @@ export class EntradaSaidaService {
       if (row[key] != null && row[key] !== '') return row[key];
     }
     return undefined;
+  }
+
+  private pickBool(row: Record<string, unknown>, ...keys: string[]): boolean {
+    for (const key of keys) {
+      if (key in row) return Boolean(row[key]);
+    }
+    return false;
   }
 
   private unwrap(body: unknown): unknown {

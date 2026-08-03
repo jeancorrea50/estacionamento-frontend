@@ -19,4 +19,35 @@
     flex: 1;
     min-width: 0;
   }
+
+  .filtros-grid--single {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .filtros-acoes {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .filtros-acoes .btn {
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+
+  .historico-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-content {
+    padding: 12px 14px;
+  }
+
+  .historico-card__header h2 {
+    font-size: 0.9375rem;
+  }
 }

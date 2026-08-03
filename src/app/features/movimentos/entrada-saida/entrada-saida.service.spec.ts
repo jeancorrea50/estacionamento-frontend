@@ -53,6 +53,23 @@ describe('EntradaSaidaService', () => {
     expect(resultId).toBe(99);
   });
 
+  it('getById deve resolver transportadoraId aninhado quando raiz vier zerada', () => {
+    let transportadoraId = 0;
+    service.getById(4038).subscribe((res) => {
+      transportadoraId = res?.transportadoraId ?? 0;
+    });
+
+    const req = httpMock.expectOne(`${environment.API_BASE_URL}/EntradaSaida/4038`);
+    req.flush({
+      result: {
+        transportadoraId: 0,
+        transportadora: { id: 12, razaoSocial: 'Transp' },
+        finalizado: false
+      }
+    });
+    expect(transportadoraId).toBe(12);
+  });
+
   it('deve mapear Id PascalCase da busca para suspender-permanencia', () => {
     let mappedId = 0;
     service
@@ -75,7 +92,11 @@ describe('EntradaSaidaService', () => {
           NomeTransportadora: 'GT',
           DataHoraEntrada: '2026-07-21T17:25:00',
           DataHoraSaida: null,
-          Status: 0
+          Status: 0,
+          Avulso: true,
+          Faturado: false,
+          DataFaturado: null,
+          TransportadoraId: 7
         }
       ],
       RowCount: 1,
@@ -83,6 +104,48 @@ describe('EntradaSaidaService', () => {
       PageSize: 20
     });
     expect(mappedId).toBe(42);
+  });
+
+  it('deve mapear avulso/faturado na busca', () => {
+    let item: import('../models/entrada-saida.models').EntradaSaidaSearchOutput | undefined;
+    service
+      .buscar({ somenteEmAberto: true, numeroPagina: 1, tamanhoPagina: 20 })
+      .subscribe((paged) => {
+        item = paged.items[0];
+      });
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.API_BASE_URL}/EntradaSaida`);
+    req.flush({
+      results: [
+        {
+          id: 3,
+          placaVeiculo: 'ABC1D23',
+          transportadoraId: 9,
+          avulso: true,
+          faturado: false,
+          dataFaturado: null
+        }
+      ]
+    });
+    expect(item?.avulso).toBe(true);
+    expect(item?.faturado).toBe(false);
+    expect(item?.transportadoraId).toBe(9);
+  });
+
+  it('deve baixar recibo PDF com query valor', () => {
+    let size = 0;
+    service.baixarRecibo(12, 25.5).subscribe((blob) => {
+      size = blob.size;
+    });
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${environment.API_BASE_URL}/EntradaSaida/12/recibo` &&
+        r.params.get('valor') === '25.5'
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['%PDF'], { type: 'application/pdf' }));
+    expect(size).toBeGreaterThan(0);
   });
 
   it('deve enviar query dataHoraSaida em finalizarPermanencia', () => {

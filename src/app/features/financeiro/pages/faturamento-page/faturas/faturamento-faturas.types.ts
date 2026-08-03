@@ -1,4 +1,4 @@
-import type { ModalidadeRecebimento, StatusFatura } from '../../../models/fatura.models';
+import type { ModalidadeRecebimento, StatusFatura, TipoFatura } from '../../../models/fatura.models';
 
 export type FaturaStatusLabel =
   | 'Pago'
@@ -9,6 +9,8 @@ export type FaturaStatusLabel =
   | 'Cancelada';
 
 export type ModalidadeRecebimentoLabel = 'Pix' | 'Boleto' | 'Transferência' | 'Cartão';
+
+export type TipoFaturaLabel = 'Avulso' | 'Cobrança';
 
 export type FiltroRapidoFaturas =
   | 'vencidas'
@@ -30,6 +32,8 @@ export interface FaturaListaItem {
   transportadora: string;
   estacionamentoId: number;
   estacionamento: string;
+  tipoFatura: TipoFaturaLabel;
+  tipoFaturaCodigo: TipoFatura;
   status: FaturaStatusLabel;
   statusCodigo: StatusFatura;
   modalidadeRecebimento: ModalidadeRecebimentoLabel | '—';

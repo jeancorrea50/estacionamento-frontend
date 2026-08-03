@@ -16,6 +16,12 @@ export enum ModalidadeRecebimento {
   Cartao = 4
 }
 
+/** Alinhado a `Estac.Domain.Models.Enuns.TipoFatura`. */
+export enum TipoFatura {
+  Avulso = 1,
+  Cobranca = 2
+}
+
 export interface FaturaFilter {
   transportadoraId?: number;
   estacionamentoId?: number;
@@ -38,6 +44,7 @@ export interface FaturaSearchOutput {
   transportadoraNome: string;
   estacionamentoId: number;
   estacionamentoNome: string;
+  tipoFatura: TipoFatura;
   status: StatusFatura;
   modalidadeRecebimento: ModalidadeRecebimento | null;
   valorTotal: number;
@@ -58,6 +65,7 @@ export interface FaturaOutput {
   estacionamentoNome: string;
   configuracaoCobrancaId: number | null;
   numero: string;
+  tipoFatura: TipoFatura;
   status: StatusFatura;
   modalidadeRecebimento: ModalidadeRecebimento | null;
   valorTotal: number;
@@ -139,6 +147,7 @@ export interface FaturaInadimplenteItemOutput {
   numero: string;
   transportadoraId: number;
   transportadoraNome: string;
+  tipoFatura: TipoFatura;
   status: StatusFatura;
   valorTotal: number;
   valorRecebido: number;
@@ -194,6 +203,7 @@ export interface FaturaRecebimentoItemOutput {
   saldoRestante: number;
   dataPagamento: string | null;
   formaPagamento: ModalidadeRecebimento | null;
+  tipoFatura: TipoFatura;
   status: StatusFatura;
   comprovante: string | null;
 }

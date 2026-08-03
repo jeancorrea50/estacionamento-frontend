@@ -148,6 +148,7 @@
                   />
                 </th>
                 <th scope="col">Fatura</th>
+                <th scope="col">Tipo</th>
                 <th scope="col">Transportadora</th>
                 <th scope="col" class="fat-table__col-est">Estacionamento</th>
                 <th scope="col" class="fat-table__col-mod">Recebimento</th>
@@ -172,6 +173,7 @@
                   <td>
                     <span class="fat-table__mono">{{ row.numero || row.id }}</span>
                   </td>
+                  <td>{{ row.tipoFatura || '—' }}</td>
                   <td>{{ row.transportadora || '—' }}</td>
                   <td class="fat-table__col-est">{{ row.estacionamento || '—' }}</td>
                   <td class="fat-table__col-mod">{{ row.modalidadeRecebimento || '—' }}</td>

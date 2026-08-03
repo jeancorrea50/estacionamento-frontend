@@ -1,6 +1,7 @@
 import {
   ModalidadeRecebimento,
   StatusFatura,
+  TipoFatura,
   type FaturaInadimplenteItemOutput,
   type FaturaInadimplentesOutput,
   type FaturaFechamentoItemOutput,
@@ -20,7 +21,12 @@ import type {
   InadimplenciaListaItem,
   InadimplenciaStatusCobranca
 } from '../pages/faturamento-page/inadimplencia/faturamento-inadimplencia.types';
-import type { FaturaListaItem, FaturaStatusLabel, ModalidadeRecebimentoLabel } from '../pages/faturamento-page/faturas/faturamento-faturas.types';
+import type {
+  FaturaListaItem,
+  FaturaStatusLabel,
+  ModalidadeRecebimentoLabel,
+  TipoFaturaLabel
+} from '../pages/faturamento-page/faturas/faturamento-faturas.types';
 import type {
   RecebimentoComprovanteEstado,
   RecebimentoListaItem,
@@ -113,6 +119,15 @@ export function modalidadeRecebimentoFromLabel(
   }
 }
 
+/** Default `Cobranca` alinhado ao DEFAULT do backend. */
+export function parseTipoFatura(value: number | null | undefined): TipoFatura {
+  return Number(value) === TipoFatura.Avulso ? TipoFatura.Avulso : TipoFatura.Cobranca;
+}
+
+export function tipoFaturaLabel(value: TipoFatura | number | null | undefined): TipoFaturaLabel {
+  return parseTipoFatura(value) === TipoFatura.Avulso ? 'Avulso' : 'Cobran\u00e7a';
+}
+
 export function mapSearchToListaItem(dto: FaturaSearchOutput): FaturaListaItem {
   return {
     id: dto.id,
@@ -121,6 +136,8 @@ export function mapSearchToListaItem(dto: FaturaSearchOutput): FaturaListaItem {
     transportadora: dto.transportadoraNome || '\u2014',
     estacionamentoId: dto.estacionamentoId,
     estacionamento: dto.estacionamentoNome || '\u2014',
+    tipoFatura: tipoFaturaLabel(dto.tipoFatura),
+    tipoFaturaCodigo: parseTipoFatura(dto.tipoFatura),
     status: statusFaturaLabel(dto.status),
     statusCodigo: dto.status,
     modalidadeRecebimento: modalidadeRecebimentoLabel(dto.modalidadeRecebimento),
@@ -152,6 +169,8 @@ export function mapOutputToListaItem(dto: FaturaOutput): FaturaListaItem {
     transportadora: dto.transportadoraNome || '\u2014',
     estacionamentoId: dto.estacionamentoId,
     estacionamento: dto.estacionamentoNome || '\u2014',
+    tipoFatura: tipoFaturaLabel(dto.tipoFatura),
+    tipoFaturaCodigo: parseTipoFatura(dto.tipoFatura),
     status: statusFaturaLabel(dto.status),
     statusCodigo: dto.status,
     modalidadeRecebimento: modalidadeRecebimentoLabel(dto.modalidadeRecebimento),
@@ -222,6 +241,7 @@ export function mapRawSearchItem(row: Record<string, unknown>): FaturaSearchOutp
     transportadoraNome: pickString(row, 'transportadoraNome', 'TransportadoraNome'),
     estacionamentoId: pickNumber(row, 'estacionamentoId', 'EstacionamentoId'),
     estacionamentoNome: pickString(row, 'estacionamentoNome', 'EstacionamentoNome'),
+    tipoFatura: parseTipoFatura(pickNumber(row, 'tipoFatura', 'TipoFatura')),
     status: pickNumber(row, 'status', 'Status') as StatusFatura,
     modalidadeRecebimento: pickNumberOrNull(row, 'modalidadeRecebimento', 'ModalidadeRecebimento') as
       | ModalidadeRecebimento
@@ -259,6 +279,7 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Fatu
     estacionamentoNome,
     configuracaoCobrancaId: pickNumberOrNull(row, 'configuracaoCobrancaId', 'ConfiguracaoCobrancaId'),
     numero: pickString(row, 'numero', 'Numero'),
+    tipoFatura: parseTipoFatura(pickNumber(row, 'tipoFatura', 'TipoFatura')),
     status: pickNumber(row, 'status', 'Status') as StatusFatura,
     modalidadeRecebimento: pickNumberOrNull(row, 'modalidadeRecebimento', 'ModalidadeRecebimento') as
       | ModalidadeRecebimento
@@ -304,6 +325,7 @@ export function mapRawInadimplenteItem(row: Record<string, unknown>): FaturaInad
     numero: pickString(row, 'numero', 'Numero'),
     transportadoraId: pickNumber(row, 'transportadoraId', 'TransportadoraId'),
     transportadoraNome: pickString(row, 'transportadoraNome', 'TransportadoraNome'),
+    tipoFatura: parseTipoFatura(pickNumber(row, 'tipoFatura', 'TipoFatura')),
     status: pickNumber(row, 'status', 'Status') as StatusFatura,
     valorTotal: pickNumber(row, 'valorTotal', 'ValorTotal'),
     valorRecebido: pickNumber(row, 'valorRecebido', 'ValorRecebido'),
@@ -329,6 +351,8 @@ export function mapInadimplenteItemToLista(dto: FaturaInadimplenteItemOutput): I
     transportadoraId: dto.transportadoraId,
     transportadora: dto.transportadoraNome || '\u2014',
     estacionamento: '\u2014',
+    tipoFatura: tipoFaturaLabel(dto.tipoFatura),
+    tipoFaturaCodigo: parseTipoFatura(dto.tipoFatura),
     valor,
     vencimento: toIsoDate(dto.dataVencimento) ?? '',
     diasAtraso: Math.max(0, Number(dto.diasEmAtraso) || 0),
@@ -474,6 +498,7 @@ export function mapRawRecebimentoItem(row: Record<string, unknown>): FaturaReceb
     formaPagamento: pickNumberOrNull(row, 'formaPagamento', 'FormaPagamento') as
       | ModalidadeRecebimento
       | null,
+    tipoFatura: parseTipoFatura(pickNumber(row, 'tipoFatura', 'TipoFatura')),
     status: pickNumber(row, 'status', 'Status') as StatusFatura,
     comprovante: pickStringOrNull(row, 'comprovante', 'Comprovante')
   };
@@ -491,6 +516,8 @@ export function mapRecebimentoItemToLista(dto: FaturaRecebimentoItemOutput): Rec
     transportadoraId: dto.transportadoraId,
     transportadora: dto.transportadoraNome || '\u2014',
     estacionamento: '\u2014',
+    tipoFatura: tipoFaturaLabel(dto.tipoFatura),
+    tipoFaturaCodigo: parseTipoFatura(dto.tipoFatura),
     valorFatura: Number(dto.valorTotal) || 0,
     valorRecebido: Number(dto.valorRecebido) || 0,
     saldoRestante: saldo,

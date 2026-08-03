@@ -9,10 +9,16 @@ import {
   mapSearchToListaItem,
   statusFaturaFromLabel,
   statusFaturaLabel,
-  modalidadeRecebimentoLabel
+  modalidadeRecebimentoLabel,
+  tipoFaturaLabel
 } from './fatura.mapper';
 import { ModalidadeCobranca } from '../models/configuracao-cobranca.models';
-import { ModalidadeRecebimento, SituacaoFechamento, StatusFatura } from '../models/fatura.models';
+import {
+  ModalidadeRecebimento,
+  SituacaoFechamento,
+  StatusFatura,
+  TipoFatura
+} from '../models/fatura.models';
 
 describe('fatura.mapper', () => {
   it('mapeia status e modalidade para labels', () => {
@@ -20,6 +26,8 @@ describe('fatura.mapper', () => {
     expect(statusFaturaFromLabel('Vencido')).toBe(StatusFatura.Vencido);
     expect(modalidadeRecebimentoLabel(ModalidadeRecebimento.Boleto)).toBe('Boleto');
     expect(modalidadeRecebimentoLabel(null)).toBe('—');
+    expect(tipoFaturaLabel(TipoFatura.Avulso)).toBe('Avulso');
+    expect(tipoFaturaLabel(TipoFatura.Cobranca)).toBe('Cobrança');
   });
 
   it('mapeia search PascalCase para item da lista', () => {
@@ -30,6 +38,7 @@ describe('fatura.mapper', () => {
       TransportadoraNome: 'ABC',
       EstacionamentoId: 20,
       EstacionamentoNome: 'Pátio',
+      TipoFatura: TipoFatura.Avulso,
       Status: StatusFatura.AguardandoEnvio,
       ModalidadeRecebimento: ModalidadeRecebimento.Pix,
       ValorTotal: 50.5,
@@ -42,6 +51,8 @@ describe('fatura.mapper', () => {
     const item = mapSearchToListaItem(dto);
     expect(item.id).toBe(1);
     expect(item.numero).toBe('FT-1');
+    expect(item.tipoFatura).toBe('Avulso');
+    expect(item.tipoFaturaCodigo).toBe(TipoFatura.Avulso);
     expect(item.status).toBe('Aguardando envio');
     expect(item.vencimento).toBe('2026-08-15');
     expect(item.parcial).toBe(true);
@@ -88,6 +99,7 @@ describe('fatura.mapper', () => {
     const item = mapInadimplenteItemToLista(page.itens.items[0]);
     expect(item.faturaId).toBe(9);
     expect(item.id).toBe('FAT-9');
+    expect(item.tipoFatura).toBe('Cobrança');
     expect(item.diasAtraso).toBe(30);
     expect(item.statusCobranca).toBe('Não enviada');
   });
@@ -116,6 +128,7 @@ describe('fatura.mapper', () => {
                 SaldoRestante: 50,
                 DataPagamento: '2026-08-01T00:00:00',
                 FormaPagamento: ModalidadeRecebimento.Boleto,
+                TipoFatura: TipoFatura.Cobranca,
                 Status: StatusFatura.Parcial,
                 Comprovante: null
               }
@@ -134,6 +147,7 @@ describe('fatura.mapper', () => {
     const item = mapRecebimentoItemToLista(page.itens.items[0]);
     expect(item.faturaId).toBe(8);
     expect(item.id).toBe('FAT-8');
+    expect(item.tipoFatura).toBe('Cobrança');
     expect(item.status).toBe('Parcial');
     expect(item.formaPagamento).toBe('Boleto');
     expect(item.saldoRestante).toBe(50);

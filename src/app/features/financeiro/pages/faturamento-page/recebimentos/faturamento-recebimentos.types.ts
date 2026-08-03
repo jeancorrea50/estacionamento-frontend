@@ -1,3 +1,6 @@
+import type { TipoFatura } from '../../../models/fatura.models';
+import type { TipoFaturaLabel } from '../faturas/faturamento-faturas.types';
+
 export type RecebimentoPagamentoStatus =
   | 'Pago'
   | 'Parcial'
@@ -43,6 +46,8 @@ export interface RecebimentoListaItem {
   transportadoraId: number;
   transportadora: string;
   estacionamento: string;
+  tipoFatura: TipoFaturaLabel;
+  tipoFaturaCodigo: TipoFatura;
   valorFatura: number;
   valorRecebido: number;
   saldoRestante: number;

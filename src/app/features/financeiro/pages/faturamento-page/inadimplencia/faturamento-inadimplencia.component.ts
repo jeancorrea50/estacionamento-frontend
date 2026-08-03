@@ -157,6 +157,7 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
   readonly displayedColumns: string[] = [
     'select',
     'fatura',
+    'tipoFatura',
     'transportadora',
     'valor',
     'vencimento',

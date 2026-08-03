@@ -153,6 +153,7 @@ export class FaturamentoRecebimentosComponent implements OnInit {
   readonly displayedColumns: string[] = [
     'select',
     'fatura',
+    'tipoFatura',
     'transportadora',
     'valorFatura',
     'valorRecebido',

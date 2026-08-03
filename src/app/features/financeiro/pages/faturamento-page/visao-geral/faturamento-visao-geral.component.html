@@ -379,10 +379,10 @@
         <ul class="visao-alert-list" aria-label="Alertas do faturamento">
           @for (a of visaoAlertas; track a.id) {
             <li class="visao-alert-list__item">
-              <button
-                type="button"
+              <a
                 class="visao-alert"
-                (click)="abrirAlerta(a.id)"
+                [routerLink]="a.route"
+                [queryParams]="a.queryParams ?? {}"
                 [attr.aria-label]="a.titulo + ': ' + a.quantidade + ' — abrir detalhes'"
               >
                 <span class="material-symbols-outlined visao-alert__ico" aria-hidden="true">{{ a.icon }}</span>
@@ -394,7 +394,7 @@
                   <span class="visao-alert__badge">{{ a.quantidade }}</span>
                   <span class="material-symbols-outlined visao-alert__chev" aria-hidden="true">chevron_right</span>
                 </span>
-              </button>
+              </a>
             </li>
           }
         </ul>
@@ -409,10 +409,10 @@
         <ul class="visao-alert-list" aria-label="Próximos vencimentos">
           @for (row of proximosVencimentos; track row.vencimento + row.transportadora) {
             <li class="visao-alert-list__item">
-              <button
-                type="button"
+              <a
                 class="visao-alert"
-                (click)="abrirProximoVencimento(row)"
+                [routerLink]="row.route"
+                [queryParams]="row.queryParams"
                 [attr.aria-label]="'Abrir faturas de ' + row.transportadora"
               >
                 <span class="material-symbols-outlined visao-alert__ico" aria-hidden="true">event_upcoming</span>
@@ -424,7 +424,7 @@
                   <span [class]="statusChipClass(row.status)">{{ row.status }}</span>
                   <span class="material-symbols-outlined visao-alert__chev" aria-hidden="true">chevron_right</span>
                 </span>
-              </button>
+              </a>
             </li>
           }
         </ul>

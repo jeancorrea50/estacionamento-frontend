@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import type {
   ApexAxisChartSeries,
@@ -24,13 +24,10 @@ import type {
 import { ThemeService } from '../../../../../core/services/theme.service';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
 
-/** Prefixo absoluto das abas de faturamento (evita falha de navigate relativo em prod). */
-const FATURAMENTO_BASE = ['/app', 'financeiro', 'faturamento'] as const;
-
-interface AlertaNavegacao {
-  commands: string[];
-  queryParams?: Record<string, string>;
-}
+/** Rotas absolutas das abas (iguais ao path real do SPA sob /app). */
+const ROTA_FATURAS = '/app/financeiro/faturamento/faturas';
+const ROTA_INADIMPLENCIA = '/app/financeiro/faturamento/inadimplencia';
+const ROTA_FECHAMENTOS = '/app/financeiro/faturamento/fechamentos';
 
 type VisaoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
 
@@ -44,13 +41,31 @@ interface VisaoCalendarioCelula {
 interface BarraMes { mes: string; valor: number; }
 interface StatusContagem { status: FaturaStatusVisao; quantidade: number; }
 interface ModalidadeValor { modalidade: string; valor: number; }
-interface AlertaResumo { id: string; titulo: string; quantidade: number; detalhe: string; icon: string; }
-interface ProximoVencimento { transportadora: string; valor: number; vencimento: string; status: FaturaStatusVisao; }
+
+interface AlertaResumo {
+  id: string;
+  titulo: string;
+  quantidade: number;
+  detalhe: string;
+  icon: string;
+  /** Path absoluto Angular, ex.: /app/financeiro/faturamento/faturas */
+  route: string;
+  queryParams?: Record<string, string>;
+}
+
+interface ProximoVencimento {
+  transportadora: string;
+  valor: number;
+  vencimento: string;
+  status: FaturaStatusVisao;
+  route: string;
+  queryParams: Record<string, string>;
+}
 
 @Component({
   selector: 'app-faturamento-visao-geral',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatFormFieldModule, MatSelectModule, NgApexchartsModule],
+  imports: [CommonModule, FormsModule, MatCardModule, MatFormFieldModule, MatSelectModule, NgApexchartsModule, RouterLink],
   templateUrl: './faturamento-visao-geral.component.html',
   styleUrls: ['./faturamento-visao-geral.component.scss']
 })
@@ -60,13 +75,6 @@ export class FaturamentoVisaoGeralComponent {
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
-
-  private readonly alertaDestinos: Record<string, AlertaNavegacao> = {
-    fat: { commands: [...FATURAMENTO_BASE, 'faturas'], queryParams: { filtro: 'vencidas' } },
-    cob: { commands: [...FATURAMENTO_BASE, 'inadimplencia'], queryParams: { filtro: 'semCobranca' } },
-    fech: { commands: [...FATURAMENTO_BASE, 'fechamentos'], queryParams: { filtro: 'andamento' } },
-    env: { commands: [...FATURAMENTO_BASE, 'faturas'], queryParams: { filtro: 'aguardando-envio' } }
-  };
 
   readonly isDarkTheme = computed(() => {
     const mode = this.themeConfig().mode;
@@ -185,18 +193,50 @@ export class FaturamentoVisaoGeralComponent {
   ];
 
   readonly visaoAlertas: AlertaResumo[] = [
-    { id: 'fat', titulo: 'Faturas vencidas', quantidade: 7, detalhe: 'Requer atenção imediata', icon: 'gpp_bad' },
-    { id: 'cob', titulo: 'Cobranças pendentes', quantidade: 11, detalhe: 'Envio ou confirmação pendente', icon: 'mark_email_unread' },
-    { id: 'fech', titulo: 'Fechamentos pendentes', quantidade: 2, detalhe: 'Períodos aguardando conferência', icon: 'fact_check' },
-    { id: 'env', titulo: 'Faturas aguardando envio', quantidade: 3, detalhe: 'Ainda não disparadas ao cliente', icon: 'schedule_send' }
+    {
+      id: 'fat',
+      titulo: 'Faturas vencidas',
+      quantidade: 7,
+      detalhe: 'Requer atenção imediata',
+      icon: 'gpp_bad',
+      route: ROTA_FATURAS,
+      queryParams: { filtro: 'vencidas' }
+    },
+    {
+      id: 'cob',
+      titulo: 'Cobranças pendentes',
+      quantidade: 11,
+      detalhe: 'Envio ou confirmação pendente',
+      icon: 'mark_email_unread',
+      route: ROTA_INADIMPLENCIA,
+      queryParams: { filtro: 'semCobranca' }
+    },
+    {
+      id: 'fech',
+      titulo: 'Fechamentos pendentes',
+      quantidade: 2,
+      detalhe: 'Períodos aguardando conferência',
+      icon: 'fact_check',
+      route: ROTA_FECHAMENTOS,
+      queryParams: { filtro: 'andamento' }
+    },
+    {
+      id: 'env',
+      titulo: 'Faturas aguardando envio',
+      quantidade: 3,
+      detalhe: 'Ainda não disparadas ao cliente',
+      icon: 'schedule_send',
+      route: ROTA_FATURAS,
+      queryParams: { filtro: 'aguardando-envio' }
+    }
   ];
 
   readonly proximosVencimentos: ProximoVencimento[] = [
-    { transportadora: 'Transp. Horizonte Ltda', valor: 4_200, vencimento: '14/05/2026', status: 'Em aberto' },
-    { transportadora: 'Logística Sul ME', valor: 2_890.5, vencimento: '15/05/2026', status: 'Aguardando envio' },
-    { transportadora: 'Cargo Prime Transportes', valor: 6_150, vencimento: '16/05/2026', status: 'Parcial' },
-    { transportadora: 'Rota Azul Logística', valor: 1_980, vencimento: '18/05/2026', status: 'Em aberto' },
-    { transportadora: 'Expresso Centro Oeste', valor: 3_310, vencimento: '08/05/2026', status: 'Vencido' }
+    this.criarProximoVencimento('Transp. Horizonte Ltda', 4_200, '14/05/2026', 'Em aberto'),
+    this.criarProximoVencimento('Logística Sul ME', 2_890.5, '15/05/2026', 'Aguardando envio'),
+    this.criarProximoVencimento('Cargo Prime Transportes', 6_150, '16/05/2026', 'Parcial'),
+    this.criarProximoVencimento('Rota Azul Logística', 1_980, '18/05/2026', 'Em aberto'),
+    this.criarProximoVencimento('Expresso Centro Oeste', 3_310, '08/05/2026', 'Vencido')
   ];
 
   /* ── ApexCharts ───────────────────────────────────────────────────── */
@@ -345,28 +385,42 @@ export class FaturamentoVisaoGeralComponent {
   }
 
   /* ── Navegação (Alertas / Próximos vencimentos) ───────────────────── */
-  abrirAlerta(id: string): void {
-    const dest = this.alertaDestinos[id];
-    if (!dest) return;
-    void this.router.navigate(dest.commands, { queryParams: dest.queryParams });
+  /** Fallback programático (ex.: testes); o template usa routerLink. */
+  abrirAlerta(a: AlertaResumo, event?: Event): void {
+    event?.preventDefault();
+    void this.router.navigateByUrl(this.montarUrl(a.route, a.queryParams));
   }
 
-  abrirProximoVencimento(row: ProximoVencimento): void {
-    const queryParams: Record<string, string> = {
-      transportadora: row.transportadora
-    };
+  abrirProximoVencimento(row: ProximoVencimento, event?: Event): void {
+    event?.preventDefault();
+    void this.router.navigateByUrl(this.montarUrl(row.route, row.queryParams));
+  }
 
-    if (row.status === 'Vencido') {
+  private criarProximoVencimento(
+    transportadora: string,
+    valor: number,
+    vencimento: string,
+    status: FaturaStatusVisao
+  ): ProximoVencimento {
+    const queryParams: Record<string, string> = { transportadora };
+    if (status === 'Vencido') {
       queryParams['filtro'] = 'vencidas';
-    } else if (row.status === 'Aguardando envio') {
+    } else if (status === 'Aguardando envio') {
       queryParams['filtro'] = 'aguardando-envio';
-    } else if (row.status === 'Pago') {
+    } else if (status === 'Pago') {
       queryParams['filtro'] = 'pagas';
     } else {
-      queryParams['status'] = row.status;
+      queryParams['status'] = status;
     }
+    return { transportadora, valor, vencimento, status, route: ROTA_FATURAS, queryParams };
+  }
 
-    void this.router.navigate([...FATURAMENTO_BASE, 'faturas'], { queryParams });
+  private montarUrl(route: string, queryParams?: Record<string, string>): string {
+    if (!queryParams || Object.keys(queryParams).length === 0) {
+      return route;
+    }
+    const qs = new URLSearchParams(queryParams).toString();
+    return `${route}?${qs}`;
   }
 
   /* ── Utilities ────────────────────────────────────────────────────── */

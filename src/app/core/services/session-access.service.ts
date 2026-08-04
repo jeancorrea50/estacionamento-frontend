@@ -8,6 +8,8 @@ export interface SessionSubMenuAccess {
   descricao?: string | null;
   rota?: string | null;
   ativo?: boolean | null;
+  /** Se false, o item não aparece na sidebar (pode continuar acessível por rota/permissão). */
+  exibirNoSidebar?: boolean | null;
   selecionado?: boolean | null;
   ordem?: number | null;
 }
@@ -18,6 +20,8 @@ export interface SessionMenuAccess {
   icone?: string | null;
   rota?: string | null;
   ativo?: boolean | null;
+  /** Se false, o item não aparece na sidebar (pode continuar acessível por rota/permissão). */
+  exibirNoSidebar?: boolean | null;
   selecionado?: boolean | null;
   ordem?: number | null;
   subMenus?: SessionSubMenuAccess[] | null;

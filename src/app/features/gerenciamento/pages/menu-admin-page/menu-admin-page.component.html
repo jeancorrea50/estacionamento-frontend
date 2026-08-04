@@ -88,6 +88,17 @@
               <span class="status-chip__dot" aria-hidden="true"></span>
               {{ menu.ativo ? 'Ativo' : 'Inativo' }}
             </span>
+            <span
+              class="status-chip status-chip--icon-only"
+              [class.status-chip--on]="menu.exibirNoSidebar !== false"
+              [class.status-chip--off]="menu.exibirNoSidebar === false"
+              [title]="menu.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+              [attr.aria-label]="menu.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+            >
+              <span class="material-symbols-outlined status-chip__icon" aria-hidden="true">
+                {{ menu.exibirNoSidebar !== false ? 'visibility' : 'visibility_off' }}
+              </span>
+            </span>
             <div class="menu-card__actions">
               <button type="button" class="btn btn--icon" (click)="openEditMenu(menu)" title="Editar menu">
                 <span class="material-symbols-outlined">edit</span>
@@ -135,6 +146,17 @@
                       <span class="status-chip status-chip--sm" [class.status-chip--on]="sub.ativo" [class.status-chip--off]="!sub.ativo">
                         <span class="status-chip__dot" aria-hidden="true"></span>
                         {{ sub.ativo ? 'Ativo' : 'Inativo' }}
+                      </span>
+                      <span
+                        class="status-chip status-chip--sm status-chip--icon-only"
+                        [class.status-chip--on]="sub.exibirNoSidebar !== false"
+                        [class.status-chip--off]="sub.exibirNoSidebar === false"
+                        [title]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+                        [attr.aria-label]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+                      >
+                        <span class="material-symbols-outlined status-chip__icon" aria-hidden="true">
+                          {{ sub.exibirNoSidebar !== false ? 'visibility' : 'visibility_off' }}
+                        </span>
                       </span>
                     </div>
                     <div class="sub-row__perm-list">
@@ -209,6 +231,11 @@
             Ativo
           </label>
         }
+        <label class="form-row-check">
+          <input type="checkbox" [(ngModel)]="menuFormExibirNoSidebar" [disabled]="salvandoMenuModal()" />
+          Exibir no sidebar
+        </label>
+        <span class="form-hint">Desmarque para manter o menu no sistema sem listá-lo no menu lateral.</span>
       </div>
       <div class="modal-footer dk-modal-footer">
         <button
@@ -266,6 +293,11 @@
             Ativo
           </label>
         }
+        <label class="form-row-check">
+          <input type="checkbox" [(ngModel)]="subFormExibirNoSidebar" [disabled]="salvandoSubModal()" />
+          Exibir no sidebar
+        </label>
+        <span class="form-hint">Desmarque para ocultar este item no menu lateral (a rota e as permissões continuam válidas).</span>
         <div class="form-section form-section--permissions">
           <div class="form-section__header">
             <h3 class="form-section__title">Permissões do submenu</h3>

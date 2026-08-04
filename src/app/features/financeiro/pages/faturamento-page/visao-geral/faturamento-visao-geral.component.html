@@ -377,7 +377,7 @@
       </mat-card-header>
       <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--alerts">
         <ul class="visao-alert-list" aria-label="Alertas do faturamento">
-          @for (a of visaoAlertas; track a.id) {
+          @for (a of visaoAlertas(); track a.id) {
             <li class="visao-alert-list__item">
               <a
                 class="visao-alert"
@@ -407,7 +407,7 @@
       </mat-card-header>
       <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--table">
         <ul class="visao-alert-list" aria-label="Próximos vencimentos">
-          @for (row of proximosVencimentos; track row.vencimento + row.transportadora) {
+          @for (row of proximosVencimentos(); track row.vencimento + row.transportadora) {
             <li class="visao-alert-list__item">
               <a
                 class="visao-alert"

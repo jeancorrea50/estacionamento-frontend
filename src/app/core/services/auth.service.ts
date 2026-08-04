@@ -12,6 +12,7 @@ import {
 import { LoggedUser } from './user.service';
 import { PermissionCacheService } from './permission-cache.service';
 import { SessionAccessService, SessionMenuAccess } from './session-access.service';
+import { resolveExibirNoSidebar } from '../../features/gerenciamento/services/menu-sidebar-visibility';
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
 import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/service-result.util';
@@ -425,25 +426,38 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
     if (!Array.isArray(candidate)) continue;
     return candidate
       .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-      .map((menu) => ({
-        id: toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']),
-        descricao:
-          toStringValue(menu['descricao']) ??
-          toStringValue(menu['nome']) ??
-          toStringValue(menu['menuDescricao']),
-        icone: toStringValue(menu['icone']),
-        rota: toStringValue(menu['rota']) ?? toStringValue(menu['route']),
-        ativo: toBoolean(menu['ativo'] ?? menu['isActive']),
-        selecionado: toBoolean(menu['selecionado'] ?? menu['selected']),
-        ordem: toNumber(menu['ordem'] ?? menu['menuOrdem']),
-        subMenus: mapSubMenus(
-          menu['subMenus'] ??
-            menu['submenus'] ??
-            menu['submodules'] ??
-            menu['subModules'] ??
-            menu['subMenusDto']
-        ),
-      }));
+      .map((menu) => {
+        const id = toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']) ?? 0;
+        const rota = toStringValue(menu['rota']) ?? toStringValue(menu['route']);
+        const fromApi = toBoolean(
+          menu['exibirNoSidebar'] ?? menu['mostrarSidebar'] ?? menu['exibeSidebar'] ?? menu['sidebar']
+        );
+        return {
+          id,
+          descricao:
+            toStringValue(menu['descricao']) ??
+            toStringValue(menu['nome']) ??
+            toStringValue(menu['menuDescricao']),
+          icone: toStringValue(menu['icone']),
+          rota,
+          ativo: toBoolean(menu['ativo'] ?? menu['isActive']),
+          exibirNoSidebar: resolveExibirNoSidebar({
+            id,
+            kind: 'menu',
+            rota,
+            fromApi: fromApi === null ? undefined : fromApi,
+          }),
+          selecionado: toBoolean(menu['selecionado'] ?? menu['selected']),
+          ordem: toNumber(menu['ordem'] ?? menu['menuOrdem']),
+          subMenus: mapSubMenus(
+            menu['subMenus'] ??
+              menu['submenus'] ??
+              menu['submodules'] ??
+              menu['subModules'] ??
+              menu['subMenusDto']
+          ),
+        };
+      });
   }
 
   return [];
@@ -453,18 +467,31 @@ function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
   if (!Array.isArray(value)) return [];
   return value
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-    .map((sub) => ({
-      id: toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']),
-      descricao:
-        toStringValue(sub['descricao']) ??
-        toStringValue(sub['nome']) ??
-        toStringValue(sub['subDescricao']) ??
-        toStringValue(sub['subNome']),
-      rota: toStringValue(sub['rota']) ?? toStringValue(sub['subRota']),
-      ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
-      selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
-      ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
-    }));
+    .map((sub) => {
+      const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
+      const rota = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
+      const fromApi = toBoolean(
+        sub['exibirNoSidebar'] ?? sub['mostrarSidebar'] ?? sub['exibeSidebar'] ?? sub['sidebar']
+      );
+      return {
+        id,
+        descricao:
+          toStringValue(sub['descricao']) ??
+          toStringValue(sub['nome']) ??
+          toStringValue(sub['subDescricao']) ??
+          toStringValue(sub['subNome']),
+        rota,
+        ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
+        exibirNoSidebar: resolveExibirNoSidebar({
+          id,
+          kind: 'sub',
+          rota,
+          fromApi: fromApi === null ? undefined : fromApi,
+        }),
+        selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
+        ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
+      };
+    });
 }
 
 function tryExtractProfileMenus(value: unknown, jwtRole?: string | null): unknown[] | null {

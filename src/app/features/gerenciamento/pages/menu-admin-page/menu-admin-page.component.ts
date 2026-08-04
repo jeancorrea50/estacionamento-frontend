@@ -5,6 +5,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { finalize, firstValueFrom } from 'rxjs';
 import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { FaturamentoMenuSeedService } from '../../services/faturamento-menu-seed.service';
 import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
@@ -25,6 +26,10 @@ import {
   permissionRowMatchesUi,
   slugSubModuloNome,
 } from '../../services/menu-permission-acao';
+import {
+  defaultExibirNoSidebar,
+  rememberSidebarVisibility,
+} from '../../services/menu-sidebar-visibility';
 
 @Component({
   selector: 'app-menu-admin-page',
@@ -36,6 +41,7 @@ import {
 export class MenuAdminPageComponent implements OnInit {
   protected readonly admin = inject(MenuAdminService);
   private readonly menuApi = inject(MenuApiService);
+  private readonly faturamentoSeed = inject(FaturamentoMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -78,16 +84,36 @@ export class MenuAdminPageComponent implements OnInit {
       });
   }
 
-  private applyBuscarPayload(raw: unknown): void {
+  private applyBuscarPayload(raw: unknown, options?: { seedFaturamento?: boolean }): void {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
+
+    if (options?.seedFaturamento === false) return;
+
+    // Publica (idempotente) Visão Geral, Fechamentos, Recebimentos, Inadimplência,
+    // Faturas e Configurações de Cobrança no menu Financeiro, se ainda não existirem.
+    this.faturamentoSeed.ensureFinanceiroFaturamentoSubMenus(menus).subscribe({
+      next: (result) => {
+        if (result.created <= 0) return;
+        const financeId = this.admin
+          .menus()
+          .find((m) => m.nome.toLowerCase().includes('financeiro'))?.id;
+        if (financeId != null) {
+          this.expandedMenuIds.update((set) => new Set(set).add(financeId));
+        }
+        this.toast.success(
+          `Submenus de Faturamento criados: ${result.labels.join(', ')}.`
+        );
+      },
+      // Erro: toast do errorInterceptor.
+    });
   }
 
   /** Atualiza lista após Gravar/Alterar sem bloquear a tela com o spinner inicial. */
   private refreshMenusAfterMutation(): void {
     this.menuApi.buscar().subscribe({
-      next: (raw) => this.applyBuscarPayload(raw),
+      next: (raw) => this.applyBuscarPayload(raw, { seedFaturamento: false }),
       // Falha no Buscar: toast já exibido pelo errorInterceptor.
     });
   }
@@ -119,6 +145,7 @@ export class MenuAdminPageComponent implements OnInit {
   protected menuFormIcon = '';
   protected menuFormRota = '';
   protected menuFormAtivo = true;
+  protected menuFormExibirNoSidebar = true;
 
   /** Modal submenu */
   protected readonly subModalOpen = signal(false);
@@ -127,6 +154,7 @@ export class MenuAdminPageComponent implements OnInit {
   protected subFormNome = '';
   protected subFormRota = '';
   protected subFormAtivo = true;
+  protected subFormExibirNoSidebar = true;
   protected subFormRotaManualOverride = false;
   protected subFormPermissoesSelecionadas: string[] = [];
   protected subFormPermissoesCustomizadas: string[] = [];
@@ -153,6 +181,7 @@ export class MenuAdminPageComponent implements OnInit {
     this.menuFormIcon = 'menu';
     this.menuFormRota = '';
     this.menuFormAtivo = true;
+    this.menuFormExibirNoSidebar = true;
     this.menuModalOpen.set(true);
   }
 
@@ -162,6 +191,7 @@ export class MenuAdminPageComponent implements OnInit {
     this.menuFormIcon = m.icone;
     this.menuFormRota = m.rota ?? '';
     this.menuFormAtivo = m.ativo;
+    this.menuFormExibirNoSidebar = m.exibirNoSidebar !== false;
     this.menuModalOpen.set(true);
   }
 
@@ -193,6 +223,8 @@ export class MenuAdminPageComponent implements OnInit {
         ordem: this.admin.menus().length,
         rota,
         ativo: true,
+        exibirNoSidebar: this.menuFormExibirNoSidebar,
+        mostrarSidebar: this.menuFormExibirNoSidebar,
         subMenus: null,
       };
       this.salvandoMenuModal.set(true);
@@ -215,19 +247,41 @@ export class MenuAdminPageComponent implements OnInit {
 
     /** Id temporário/local (sem registro no servidor): só estado local. */
     if (id <= 0) {
-      this.admin.updateMenu(id, { nome, icone, rota, ativo: this.menuFormAtivo });
+      this.admin.updateMenu(id, {
+        nome,
+        icone,
+        rota,
+        ativo: this.menuFormAtivo,
+        exibirNoSidebar: this.menuFormExibirNoSidebar,
+      });
       this.menuModalOpen.set(false);
       return;
     }
 
     /** Qualquer menu com id vindo do Buscar deve usar PUT Alterar (nome, ícone, rota, ativo, submenus). */
-    const atualizado: MenuAdmin = { ...m, nome, icone, rota, ativo: this.menuFormAtivo };
+    const atualizado: MenuAdmin = {
+      ...m,
+      nome,
+      icone,
+      rota,
+      ativo: this.menuFormAtivo,
+      exibirNoSidebar: this.menuFormExibirNoSidebar,
+    };
+    rememberSidebarVisibility('menu', id, this.menuFormExibirNoSidebar);
     this.salvandoMenuModal.set(true);
     this.menuApi
       .alterar(menuAdminToUpdateInput(atualizado))
       .pipe(finalize(() => this.salvandoMenuModal.set(false)))
       .subscribe({
         next: () => {
+          // Mantém preferência local mesmo se o backend ainda não gravar o campo.
+          this.admin.updateMenu(id, {
+            nome,
+            icone,
+            rota,
+            ativo: this.menuFormAtivo,
+            exibirNoSidebar: this.menuFormExibirNoSidebar,
+          });
           this.menuModalOpen.set(false);
           this.toast.success('Menu atualizado no servidor.');
           this.refreshMenusAfterMutation();
@@ -277,6 +331,7 @@ export class MenuAdminPageComponent implements OnInit {
     this.subFormNome = '';
     this.subFormRota = this.buildSubmenuBaseRoute(menuId);
     this.subFormAtivo = true;
+    this.subFormExibirNoSidebar = defaultExibirNoSidebar(this.subFormRota);
     this.subFormRotaManualOverride = false;
     this.subFormPermissoesSelecionadas = [];
     this.subFormPermissoesCustomizadas = [];
@@ -291,6 +346,7 @@ export class MenuAdminPageComponent implements OnInit {
     this.subFormNome = s.nome;
     this.subFormRota = s.rota;
     this.subFormAtivo = s.ativo;
+    this.subFormExibirNoSidebar = s.exibirNoSidebar !== false;
     this.subFormRotaManualOverride = false;
     this.subPermissoesOriginais = s.permissions.map((p) => ({ ...p }));
     this.subFormPermissoesSelecionadas = this.acoes.filter((acao) =>
@@ -523,6 +579,9 @@ export class MenuAdminPageComponent implements OnInit {
 
   protected onSubmenuRotaChange(_value: string): void {
     this.subFormRotaManualOverride = true;
+    if (this.subEditId() === null) {
+      this.subFormExibirNoSidebar = defaultExibirNoSidebar(this.subFormRota);
+    }
   }
 
   private normalizeSubRoute(rawRoute: string, menuId: number, nome: string): string {
@@ -545,6 +604,8 @@ export class MenuAdminPageComponent implements OnInit {
       ordem: menu.ordem,
       rota: menu.rota?.trim() ? menu.rota.trim() : undefined,
       ativo: menu.ativo,
+      exibirNoSidebar: menu.exibirNoSidebar !== false,
+      mostrarSidebar: menu.exibirNoSidebar !== false,
       subMenus: menu.subMenus.map((s) => ({
         id: s.id > 0 ? s.id : 0,
         nome: s.nome,
@@ -554,6 +615,8 @@ export class MenuAdminPageComponent implements OnInit {
         ativo: s.ativo,
         isAtivo: s.ativo,
         isActive: s.ativo,
+        exibirNoSidebar: s.exibirNoSidebar !== false,
+        mostrarSidebar: s.exibirNoSidebar !== false,
         permissions: (s.permissions ?? []).map((p, i) => ({
           ordem: p.ordem ?? i,
           id: p.id > 0 ? p.id : 0,
@@ -584,6 +647,7 @@ export class MenuAdminPageComponent implements OnInit {
           ordem: menu.subMenus.length,
           rota,
           ativo: this.subFormAtivo,
+          exibirNoSidebar: this.subFormExibirNoSidebar,
           permissions: this.buildPermissionRowsForSubmenu(
             0,
             nome,
@@ -624,9 +688,10 @@ export class MenuAdminPageComponent implements OnInit {
             []
           )
         );
-      }
-      if (!this.subFormAtivo) {
-        if (created) this.admin.updateSubMenu(menuId, created.id, { ativo: false });
+        this.admin.updateSubMenu(menuId, created.id, {
+          ativo: this.subFormAtivo,
+          exibirNoSidebar: this.subFormExibirNoSidebar,
+        });
       }
       this.subModalOpen.set(false);
       return;
@@ -647,6 +712,7 @@ export class MenuAdminPageComponent implements OnInit {
               nome,
               rota,
               ativo: this.subFormAtivo,
+              exibirNoSidebar: this.subFormExibirNoSidebar,
               permissions: this.buildPermissionRowsForSubmenu(
                 sid,
                 nome,
@@ -664,6 +730,7 @@ export class MenuAdminPageComponent implements OnInit {
         nome,
         rota,
         ativo: this.subFormAtivo,
+        exibirNoSidebar: this.subFormExibirNoSidebar,
       });
       this.subModalOpen.set(false);
       return;
@@ -688,7 +755,8 @@ export class MenuAdminPageComponent implements OnInit {
     const hasMetaChanges =
       subOriginal.nome !== nome ||
       subOriginal.rota !== rota ||
-      subOriginal.ativo !== this.subFormAtivo;
+      subOriginal.ativo !== this.subFormAtivo ||
+      subOriginal.exibirNoSidebar !== this.subFormExibirNoSidebar;
     const hasPermissionChanges =
       addedPermissions.length > 0 || removedPermissionIds.length > 0 || updatedExistingPermissions;
 
@@ -697,6 +765,8 @@ export class MenuAdminPageComponent implements OnInit {
       this.toast.show('Nenhuma alteração para salvar.', 'info');
       return;
     }
+
+    rememberSidebarVisibility('sub', sid, this.subFormExibirNoSidebar);
 
     this.salvandoSubModal.set(true);
     this.deleteRemovedPermissions(removedPermissionIds)

@@ -183,6 +183,7 @@ export class AcessosPerfisPageComponent implements OnInit {
       ordem: this.readNumber(record, 'ordem') ?? 0,
       icone: this.readString(record, 'icone') ?? 'menu',
       ativo: !this.readBoolean(record, 'inativo'),
+      exibirNoSidebar: true,
       subMenus,
       existeNoServidor: true,
     };
@@ -211,6 +212,7 @@ export class AcessosPerfisPageComponent implements OnInit {
       ordem: this.readNumber(record, 'ordem') ?? fallbackOrder,
       rota: this.readString(record, 'rota') ?? '',
       ativo: !this.readBoolean(record, 'inativo'),
+      exibirNoSidebar: true,
       permissions,
     };
   }

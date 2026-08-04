@@ -22,12 +22,15 @@ import type {
 } from 'ng-apexcharts';
 
 import { ThemeService } from '../../../../../core/services/theme.service';
+import { FaturamentoNavService } from '../../../services/faturamento-nav.service';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
-
-/** Rotas absolutas das abas (iguais ao path real do SPA sob /app). */
-const ROTA_FATURAS = '/app/financeiro/faturamento/faturas';
-const ROTA_INADIMPLENCIA = '/app/financeiro/faturamento/inadimplencia';
-const ROTA_FECHAMENTOS = '/app/financeiro/faturamento/fechamentos';
+import {
+  PROXIMOS_VENCIMENTOS,
+  VISAO_ALERTAS,
+  filtrosPorStatusFatura,
+  type AlertaResumo,
+  type ProximoVencimento
+} from './faturamento-visao-alertas';
 
 type VisaoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
 
@@ -42,26 +45,6 @@ interface BarraMes { mes: string; valor: number; }
 interface StatusContagem { status: FaturaStatusVisao; quantidade: number; }
 interface ModalidadeValor { modalidade: string; valor: number; }
 
-interface AlertaResumo {
-  id: string;
-  titulo: string;
-  quantidade: number;
-  detalhe: string;
-  icon: string;
-  /** Path absoluto Angular, ex.: /app/financeiro/faturamento/faturas */
-  route: string;
-  queryParams?: Record<string, string>;
-}
-
-interface ProximoVencimento {
-  transportadora: string;
-  valor: number;
-  vencimento: string;
-  status: FaturaStatusVisao;
-  route: string;
-  queryParams: Record<string, string>;
-}
-
 @Component({
   selector: 'app-faturamento-visao-geral',
   standalone: true,
@@ -72,6 +55,7 @@ interface ProximoVencimento {
 export class FaturamentoVisaoGeralComponent {
   private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
+  private readonly nav = inject(FaturamentoNavService);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
@@ -192,52 +176,19 @@ export class FaturamentoVisaoGeralComponent {
     { modalidade: 'Cartão', valor: 6_000 }
   ];
 
-  readonly visaoAlertas: AlertaResumo[] = [
-    {
-      id: 'fat',
-      titulo: 'Faturas vencidas',
-      quantidade: 7,
-      detalhe: 'Requer atenção imediata',
-      icon: 'gpp_bad',
-      route: ROTA_FATURAS,
-      queryParams: { filtro: 'vencidas' }
-    },
-    {
-      id: 'cob',
-      titulo: 'Cobranças pendentes',
-      quantidade: 11,
-      detalhe: 'Envio ou confirmação pendente',
-      icon: 'mark_email_unread',
-      route: ROTA_INADIMPLENCIA,
-      queryParams: { filtro: 'semCobranca' }
-    },
-    {
-      id: 'fech',
-      titulo: 'Fechamentos pendentes',
-      quantidade: 2,
-      detalhe: 'Períodos aguardando conferência',
-      icon: 'fact_check',
-      route: ROTA_FECHAMENTOS,
-      queryParams: { filtro: 'andamento' }
-    },
-    {
-      id: 'env',
-      titulo: 'Faturas aguardando envio',
-      quantidade: 3,
-      detalhe: 'Ainda não disparadas ao cliente',
-      icon: 'schedule_send',
-      route: ROTA_FATURAS,
-      queryParams: { filtro: 'aguardando-envio' }
-    }
-  ];
+  /** Alertas com a rota da aba conforme cadastro em Gerenciamento > Menu. */
+  readonly visaoAlertas = computed<AlertaResumo[]>(() =>
+    VISAO_ALERTAS.map((a) => ({ ...a, route: this.nav.resolveTabRoute(a.tab) }))
+  );
 
-  readonly proximosVencimentos: ProximoVencimento[] = [
-    this.criarProximoVencimento('Transp. Horizonte Ltda', 4_200, '14/05/2026', 'Em aberto'),
-    this.criarProximoVencimento('Logística Sul ME', 2_890.5, '15/05/2026', 'Aguardando envio'),
-    this.criarProximoVencimento('Cargo Prime Transportes', 6_150, '16/05/2026', 'Parcial'),
-    this.criarProximoVencimento('Rota Azul Logística', 1_980, '18/05/2026', 'Em aberto'),
-    this.criarProximoVencimento('Expresso Centro Oeste', 3_310, '08/05/2026', 'Vencido')
-  ];
+  readonly proximosVencimentos = computed<ProximoVencimento[]>(() => {
+    const route = this.nav.resolveTabRoute('faturas');
+    return PROXIMOS_VENCIMENTOS.map((row) => ({
+      ...row,
+      route,
+      queryParams: filtrosPorStatusFatura(row)
+    }));
+  });
 
   /* ── ApexCharts ───────────────────────────────────────────────────── */
   readonly evolutionChart: ApexChart = { type: 'area', height: 252, width: '100%', fontFamily: 'inherit', foreColor: '#8ea0b8', background: 'transparent', toolbar: { show: false }, zoom: { enabled: false }, animations: { enabled: true, speed: 400 }, redrawOnParentResize: true, offsetX: 0, offsetY: 0 };
@@ -394,25 +345,6 @@ export class FaturamentoVisaoGeralComponent {
   abrirProximoVencimento(row: ProximoVencimento, event?: Event): void {
     event?.preventDefault();
     void this.router.navigateByUrl(this.montarUrl(row.route, row.queryParams));
-  }
-
-  private criarProximoVencimento(
-    transportadora: string,
-    valor: number,
-    vencimento: string,
-    status: FaturaStatusVisao
-  ): ProximoVencimento {
-    const queryParams: Record<string, string> = { transportadora };
-    if (status === 'Vencido') {
-      queryParams['filtro'] = 'vencidas';
-    } else if (status === 'Aguardando envio') {
-      queryParams['filtro'] = 'aguardando-envio';
-    } else if (status === 'Pago') {
-      queryParams['filtro'] = 'pagas';
-    } else {
-      queryParams['status'] = status;
-    }
-    return { transportadora, valor, vencimento, status, route: ROTA_FATURAS, queryParams };
   }
 
   private montarUrl(route: string, queryParams?: Record<string, string>): string {

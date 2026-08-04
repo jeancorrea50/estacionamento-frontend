@@ -464,6 +464,18 @@
   min-width: 5rem;
 }
 
+.status-chip--icon-only {
+  min-width: 0;
+  padding: 4px 8px;
+}
+
+.status-chip__icon {
+  font-size: 1rem;
+  line-height: 1;
+  width: 1em;
+  height: 1em;
+}
+
 .menu-card__actions {
   display: inline-flex;
   align-items: center;

@@ -4,6 +4,8 @@ export interface MotoristaDTO {
   nomeCompleto: string;
   cpf: string;
   email?: string;
+  /** Celular BR (DDD + 9 dígitos); UI mascarada, API com dígitos no contato.telefone. */
+  celular?: string;
   cnh?: string;
   vencimentoCnh?: string;
   ativo: boolean;
@@ -20,6 +22,7 @@ export interface MotoristaListItemDTO {
   nomeCompleto: string;
   cpf: string;
   email?: string;
+  celular?: string;
   cnh?: string;
   vencimentoCnh?: string;
   ativo: boolean;

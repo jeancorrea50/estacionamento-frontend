@@ -24,14 +24,23 @@ export type FechamentoFiltroRapidoId =
 
 export interface FechamentoListaItem {
   id: string;
+  transportadoraId: number;
+  configuracaoCobrancaId: number | null;
   transportadora: string;
   estacionamento: string;
-  modalidade: FechamentoModalidade;
+  modalidade: FechamentoModalidade | string;
   periodoApurado: string;
   movimentacoes: number;
   valorEstimado: number;
   divergencias: number;
   situacao: FechamentoSituacao;
+}
+
+export interface FechamentoResumo {
+  fechamentosDisponiveis: number;
+  prontosParaFaturar: number;
+  valorEstimadoTotal: number;
+  comDivergencia: number;
 }
 
 export interface FechamentoDetalheResumo {

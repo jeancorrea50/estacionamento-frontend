@@ -1,0 +1,25 @@
+.fat-form {
+  min-width: min(100vw - 48px, 640px);
+  max-width: 720px;
+  padding-top: 8px !important;
+}
+
+.fat-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.fat-form__field {
+  width: 100%;
+}
+
+.fat-form__field--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .fat-form__grid {
+    grid-template-columns: 1fr;
+  }
+}

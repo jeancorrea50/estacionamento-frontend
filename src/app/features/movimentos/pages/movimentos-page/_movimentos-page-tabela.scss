@@ -2,47 +2,81 @@
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
+  min-width: 760px;
 }
 
 .historico-table th,
 .historico-table td {
   text-align: left;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* Placa */
 .historico-table th:nth-child(1),
 .historico-table td:nth-child(1) {
-  width: 12%;
+  width: 9%;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
+/* Motorista */
 .historico-table th:nth-child(2),
 .historico-table td:nth-child(2) {
-  width: 17%;
+  width: 16%;
 }
 
+/* Transportadora */
 .historico-table th:nth-child(3),
 .historico-table td:nth-child(3) {
-  width: 17%;
+  width: 18%;
 }
 
+/* Entrada / Saída */
 .historico-table th:nth-child(4),
-.historico-table td:nth-child(4) {
-  width: 14%;
-}
-
+.historico-table td:nth-child(4),
 .historico-table th:nth-child(5),
 .historico-table td:nth-child(5) {
   width: 12%;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
 }
 
+/* Status */
 .historico-table th:nth-child(6),
 .historico-table td:nth-child(6) {
   width: 10%;
 }
 
+/* Ações */
 .historico-table th:nth-child(7),
 .historico-table td:nth-child(7) {
-  width: 18%;
+  width: 22%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.historico-table .cell-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historico-table .status-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .historico-row {
@@ -61,7 +95,7 @@
 }
 
 .acoes-cell .btn + .btn {
-  margin-left: 0.5rem;
+  margin-left: 0.35rem;
 }
 
 .col-acoes {
@@ -80,11 +114,11 @@
 }
 
 .historico-menu-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 28px;
+  min-height: 28px;
   border: 1px solid var(--border-subtle);
   background: var(--surface);
   border-radius: 6px;
@@ -212,36 +246,43 @@
   min-width: 0;
 }
 
-.operacao-card--full .table-wrap {
-  overflow: hidden;
+.operacao-card--full .table-wrap,
+.historico-card .table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 0 0 18px 18px;
+  max-width: 100%;
 }
 
-.operacao-card--full .data-table {
+.operacao-card--full .data-table,
+.historico-card .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 0.8125rem;
 }
 
 /* Operação e Histórico: mesmo espaçamento e tamanho de fonte nos registros */
 .operacao-card--full .data-table th,
-.operacao-card--full .data-table td {
-  padding: 4px 10px;
+.operacao-card--full .data-table td,
+.historico-card .data-table th,
+.historico-card .data-table td {
+  padding: 6px 8px;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .operacao-card--full .data-table thead tr:first-child th:first-child {
   border-radius: 0;
 }
 
-.operacao-card--full .data-table th {
+.operacao-card--full .data-table th,
+.historico-card .data-table th {
   color: var(--muted);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 0.75rem;
   background: rgba(255, 255, 255, 0.04);
+  letter-spacing: 0.01em;
 }
 
 .operacao-card--full .data-table th.th-sortable {
@@ -258,41 +299,49 @@
 
 .operacao-card--full .data-table .th-sort-icon {
   margin-left: 3px;
-  font-size: 16px;
+  font-size: 14px;
   opacity: 0.9;
 }
 
-.operacao-card--full .data-table tbody tr {
+.operacao-card--full .data-table tbody tr,
+.historico-card .data-table tbody tr {
   transition: background 0.15s ease;
 }
 
-.operacao-card--full .data-table tbody tr:hover {
+.operacao-card--full .data-table tbody tr:hover,
+.historico-card .data-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.operacao-card--full .data-table tbody tr:last-child td {
+.operacao-card--full .data-table tbody tr:last-child td,
+.historico-card .data-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.operacao-card--full .data-table td {
+.operacao-card--full .data-table td,
+.historico-card .data-table td {
   color: var(--text);
-  font-size: 14px;
+  font-size: 0.8125rem;
 }
 
-.operacao-card--full .data-table .acoes-cell {
+.operacao-card--full .data-table .acoes-cell,
+.historico-card .data-table .acoes-cell {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 4px;
+  padding: 4px 6px;
   vertical-align: middle;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 0.8125rem;
+  line-height: 1.3;
 
   .btn {
-    height: 22px;
+    height: 26px;
+    min-height: 26px;
     padding: 0 8px;
     font-size: 0.6875rem;
+    border-radius: 6px;
+    flex-shrink: 0;
   }
 }
 
@@ -302,14 +351,14 @@
   background: var(--surface-2, rgba(255, 255, 255, 0.04));
   border-top: none;
   vertical-align: top;
-  font-size: 14px;
+  font-size: 0.8125rem;
 }
 
 .suspensao-historico {
   padding-left: 1.75rem;
   max-width: 100%;
   box-sizing: border-box;
-  font-size: 14px;
+  font-size: 0.8125rem;
 }
 
 .suspensao-campos {
@@ -337,7 +386,7 @@
 }
 
 .suspensao-campo__valor {
-  font-size: 14px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -359,8 +408,51 @@
   max-width: 28rem;
 }
 
+@media (max-width: 1024px) {
+  .historico-table {
+    min-width: 680px;
+  }
+
+  .historico-table th:nth-child(2),
+  .historico-table td:nth-child(2) {
+    width: 14%;
+  }
+
+  .historico-table th:nth-child(3),
+  .historico-table td:nth-child(3) {
+    width: 16%;
+  }
+
+  .historico-table th:nth-child(7),
+  .historico-table td:nth-child(7) {
+    width: 24%;
+  }
+}
+
 @media (max-width: 768px) {
   .suspensao-historico {
     padding-left: 1rem;
+  }
+
+  .historico-card .table-wrap {
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+
+  .historico-table {
+    min-width: 640px;
+    font-size: 0.75rem;
+  }
+
+  .historico-card .data-table th,
+  .historico-card .data-table td {
+    padding: 5px 6px;
+  }
+
+  .historico-card .data-table .acoes-cell .btn {
+    height: 24px;
+    min-height: 24px;
+    padding: 0 6px;
+    font-size: 0.625rem;
   }
 }

@@ -12,6 +12,12 @@ import {
 import { MotoristaPorPlacaAggregateVm } from '../models/motorista-por-placa.vm';
 import { mapMotoristaPorPlacaResponse } from '../mappers/motorista-por-placa.mapper';
 import { normalizePlaca } from '../utils/placa-br';
+import {
+  descricaoFromApiField,
+  joinMarcaModelo,
+  splitMarcaModelo
+} from '../utils/marca-modelo';
+import { parseTipoCarga } from '../../../shared/models/tipo-carga';
 
 /**
  * Contrato: GET/POST/PUT `/api/Veiculo`, GET/DELETE `/api/Veiculo/{id}`.
@@ -94,9 +100,13 @@ export class VeiculoService {
   private mapItem(row: Record<string, unknown>): VeiculoListItemDTO {
     const get = (k: string) => row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
     const modeloMarcaApi = get('modeloMarca');
-    const marca = get('marcaModelo') ?? get('MarcaModelo') ?? modeloMarcaApi ?? get('marca') ?? get('Marca') ?? '';
-    const modelo = get('modelo') ?? get('Modelo') ?? '';
-    const marcaModelo = [String(marca), String(modelo)].filter(Boolean).join(' / ') || String(marca || modelo);
+    const marca = descricaoFromApiField(
+      get('marcaModelo') ?? get('MarcaModelo') ?? modeloMarcaApi ?? get('marca') ?? get('Marca')
+    );
+    const modelo = descricaoFromApiField(get('modelo') ?? get('Modelo'));
+    const marcaModelo =
+      joinMarcaModelo(marca, modelo) || String(marca || modelo);
+    const motoristas = this.parseMotoristasVinculosGet(row);
     return {
       id: Number(get('id') ?? get('Id')) || 0,
       placa: String(get('placa') ?? get('Placa') ?? ''),
@@ -107,7 +117,11 @@ export class VeiculoService {
       tipoVeiculo: get('tipoVeiculo') != null ? String(get('tipoVeiculo')) : undefined,
       centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
       ativo: get('ativo') !== false && get('Ativo') !== false,
-      transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined
+      transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined,
+      tipoCarga: parseTipoCarga(
+        (get('tipoCarga') ?? get('TipoCarga')) as number | string | null | undefined
+      ),
+      motoristas: motoristas.length > 0 ? motoristas : undefined
     };
   }
 
@@ -173,7 +187,13 @@ export class VeiculoService {
     const vmRaw = get('veiculoModelo') ?? get('VeiculoModelo');
     let veiculoModeloId = get('veiculoModeloId') ?? get('VeiculoModeloId');
     const mmFlat = get('marcaModelo') ?? get('MarcaModelo');
-    let marcaModeloCombined = mmFlat != null ? String(mmFlat) : undefined;
+    let marcaDescricao = '';
+    let modeloDescricao = '';
+    if (mmFlat != null) {
+      const parsed = splitMarcaModelo(String(mmFlat));
+      marcaDescricao = parsed.marca;
+      modeloDescricao = parsed.modelo;
+    }
     if (vmRaw && typeof vmRaw === 'object') {
       const vm = vmRaw as Record<string, unknown>;
       const vg = (k: string) => vm[k] ?? vm[k.charAt(0).toUpperCase() + k.slice(1)];
@@ -185,10 +205,40 @@ export class VeiculoService {
         marcaDesc = String(mr['descricao'] ?? mr['Descricao'] ?? '');
       }
       const modeloDesc = String(vg('descricao') ?? vg('Descricao') ?? '');
-      const combined = [marcaDesc, modeloDesc].filter(Boolean).join(' ').trim();
-      if (combined) marcaModeloCombined = combined;
+      if (marcaDesc) marcaDescricao = marcaDesc.trim();
+      if (modeloDesc) modeloDescricao = modeloDesc.trim();
     }
 
+    // Contrato atual GET/POST: `modelo` + `marca` aninhados
+    const modeloApi = get('modelo') ?? get('Modelo');
+    const marcaApi = get('marca') ?? get('Marca');
+    if (modeloApi && typeof modeloApi === 'object' && !Array.isArray(modeloApi)) {
+      const mo = modeloApi as Record<string, unknown>;
+      const mg = (k: string) => mo[k] ?? mo[k.charAt(0).toUpperCase() + k.slice(1)];
+      if (veiculoModeloId == null && mg('id') != null) {
+        const mid = Number(mg('id'));
+        if (Number.isFinite(mid) && mid > 0) veiculoModeloId = mid;
+      }
+      const modeloDesc = String(mg('descricao') ?? '').trim();
+      let marcaDesc = '';
+      const nestedMarca = mg('marca');
+      if (nestedMarca && typeof nestedMarca === 'object' && !Array.isArray(nestedMarca)) {
+        const nm = nestedMarca as Record<string, unknown>;
+        marcaDesc = String(nm['descricao'] ?? nm['Descricao'] ?? '').trim();
+      }
+      if (!marcaDesc && marcaApi && typeof marcaApi === 'object' && !Array.isArray(marcaApi)) {
+        const ma = marcaApi as Record<string, unknown>;
+        marcaDesc = String(ma['descricao'] ?? ma['Descricao'] ?? '').trim();
+      }
+      if (marcaDesc) marcaDescricao = marcaDesc;
+      if (modeloDesc) modeloDescricao = modeloDesc;
+    } else if (marcaApi && typeof marcaApi === 'object' && !Array.isArray(marcaApi)) {
+      const ma = marcaApi as Record<string, unknown>;
+      const marcaDesc = String(ma['descricao'] ?? ma['Descricao'] ?? '').trim();
+      if (marcaDesc) marcaDescricao = marcaDesc;
+    }
+
+    const marcaModeloCombined = joinMarcaModelo(marcaDescricao, modeloDescricao) || undefined;
     const ano = get('ano') ?? get('Ano');
     const anoFabricacaoRaw = get('anoFabricacao') ?? get('AnoFabricacao');
     const anoModeloRaw = get('anoModelo') ?? get('AnoModelo');
@@ -218,6 +268,17 @@ export class VeiculoService {
     }
 
     const motoristasVinculos = this.parseMotoristasVinculosGet(result);
+    const principalFromVinculos = motoristasVinculos.find((m) => m.principal === true)?.id;
+    if (motoristaId == null && principalFromVinculos != null) {
+      motoristaId = principalFromVinculos;
+    }
+    if (motoristaId == null && motoristasVinculos.length === 1) {
+      motoristaId = motoristasVinculos[0].id;
+    }
+
+    const tipoCarga = parseTipoCarga(
+      (get('tipoCarga') ?? get('TipoCarga')) as number | string | null | undefined
+    );
 
     return {
       id,
@@ -228,10 +289,13 @@ export class VeiculoService {
       descricao: descricaoRaw != null ? String(descricaoRaw) : undefined,
       veiculoModeloId: Number.isFinite(veiculoModeloIdNum as number) ? veiculoModeloIdNum : undefined,
       marcaModelo: marcaModeloCombined,
+      marcaDescricao: marcaDescricao || undefined,
+      modeloDescricao: modeloDescricao || undefined,
       cor: get('cor') != null ? String(get('cor')) : undefined,
       anoFabricacao,
       anoModelo,
       tipoVeiculo: get('tipoVeiculo') != null ? String(get('tipoVeiculo')) : undefined,
+      tipoCarga: tipoCarga ?? undefined,
       centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
       ativo: get('ativo') !== false && get('Ativo') !== false,
       quantidadeEixos: quantidadeEixos != null ? quantidadeEixos : undefined,
@@ -240,22 +304,98 @@ export class VeiculoService {
     };
   }
 
-  /** GET: listas paralelas `motoristaIds` e `motoristas` (nomes). */
+  /**
+   * GET: `motoristas` como array de objetos (contrato atual) ou
+   * legado com listas paralelas `motoristaIds` + `motoristas` (nomes).
+   */
   private parseMotoristasVinculosGet(result: Record<string, unknown>): VeiculoMotoristaVinculoDTO[] {
+    const motoristasRaw = result['motoristas'] ?? result['Motoristas'];
+
+    if (Array.isArray(motoristasRaw) && motoristasRaw.length > 0) {
+      const comoObjetos = motoristasRaw.filter(
+        (x): x is Record<string, unknown> => x != null && typeof x === 'object' && !Array.isArray(x)
+      );
+      if (comoObjetos.length > 0) {
+        return comoObjetos
+          .map((m) => this.mapMotoristaVinculoObjeto(m))
+          .filter((v) => v.id > 0);
+      }
+    }
+
     const idsRaw = result['motoristaIds'] ?? result['MotoristaIds'];
-    const nomesRaw = result['motoristas'] ?? result['Motoristas'];
     if (!Array.isArray(idsRaw)) return [];
     const ids = idsRaw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
-    const nomes = Array.isArray(nomesRaw) ? nomesRaw.map((n) => String(n ?? '').trim()) : [];
+    const nomes = Array.isArray(motoristasRaw) ? motoristasRaw.map((n) => String(n ?? '').trim()) : [];
     return ids.map((id, i) => ({
       id,
       nome: nomes[i] && nomes[i].length > 0 ? nomes[i] : `Motorista ${id}`
     }));
   }
 
-  /** POST /api/Veiculo */
+  private mapMotoristaVinculoObjeto(m: Record<string, unknown>): VeiculoMotoristaVinculoDTO {
+    const get = (k: string) => m[k] ?? m[k.charAt(0).toUpperCase() + k.slice(1)];
+    const id = Number(get('id') ?? get('motoristaId')) || 0;
+
+    const pfRaw = get('pessoaFisica') ?? get('PessoaFisica') ?? get('pessoa') ?? get('Pessoa');
+    let nomePf = '';
+    let cpfPf = '';
+    if (pfRaw != null && typeof pfRaw === 'object' && !Array.isArray(pfRaw)) {
+      const pf = pfRaw as Record<string, unknown>;
+      const pg = (k: string) => pf[k] ?? pf[k.charAt(0).toUpperCase() + k.slice(1)];
+      nomePf = String(pg('nome') ?? pg('nomeCompleto') ?? pg('descricao') ?? '').trim();
+      cpfPf = String(pg('cpf') ?? pg('Cpf') ?? '').trim();
+    }
+
+    const nome = String(
+      get('descricao') ??
+        get('Descricao') ??
+        get('nomeCompleto') ??
+        get('NomeCompleto') ??
+        get('nome') ??
+        nomePf ??
+        ''
+    ).trim();
+
+    const cnh = String(get('cnh') ?? get('Cnh') ?? '').trim();
+    const validadeCnh = this.formatValidadeCnhDisplay(
+      get('validadeCNH') ?? get('validadeCnh') ?? get('ValidadeCNH')
+    );
+    const cpf = String(get('cpf') ?? get('Cpf') ?? cpfPf ?? '').replace(/\D/g, '');
+
+    return {
+      id,
+      nome: nome || `Motorista ${id}`,
+      cpf: cpf || undefined,
+      cnh: cnh || undefined,
+      validadeCnh: validadeCnh || undefined,
+      principal:
+        get('principal') != null || get('Principal') != null
+          ? Boolean(get('principal') ?? get('Principal'))
+          : undefined
+    };
+  }
+
+  /** Normaliza validade CNH (ISO / date-time) para DD/MM/AAAA. */
+  private formatValidadeCnhDisplay(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
+    const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+    if (isoDate) {
+      const [, year, month, day] = isoDate;
+      return `${day}/${month}/${year}`;
+    }
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return raw;
+    const day = String(dt.getDate()).padStart(2, '0');
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const year = dt.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  /** POST /api/Veiculo — mesmo shape do PUT, sem `id`. */
   gravar(dto: VeiculoDTO): Observable<VeiculoDTO> {
-    const payload = this.dtoToPayload(dto);
+    const payload = this.dtoToPayload(dto, 'gravar');
     return this.http.post<VeiculoDTO>(VEICULO, payload).pipe(
       timeout(15000),
       map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
@@ -263,9 +403,13 @@ export class VeiculoService {
     );
   }
 
-  /** PUT /api/Veiculo */
+  /** PUT /api/Veiculo — mesmos campos do POST + `id` obrigatório. */
   alterar(dto: VeiculoDTO): Observable<VeiculoDTO> {
-    const payload = this.dtoToPayload(dto);
+    const id = dto.id != null ? Number(dto.id) : NaN;
+    if (!Number.isFinite(id) || id <= 0) {
+      return throwError(() => new Error('Id obrigatório para alterar veículo.'));
+    }
+    const payload = this.dtoToPayload({ ...dto, id }, 'alterar');
     return this.http.put<VeiculoDTO>(VEICULO, payload).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
@@ -280,29 +424,126 @@ export class VeiculoService {
     );
   }
 
-  /** Payload para POST Gravar e PUT Alterar (backend: placa obrigatória). */
-  private dtoToPayload(dto: VeiculoDTO): Record<string, unknown> {
-    const placa = (dto.placa ?? '').replace(/\s/g, '').toUpperCase();
+  /**
+   * Payload POST/PUT `/api/Veiculo` alinhado ao contrato:
+   * placa, ano, ativo, cor, tipoCarga, transportadoraId, marca, modelo, motoristas.
+   * Em `alterar`, inclui também `id` (único campo a mais em relação ao gravar).
+   * Não envia campos fora do contrato (`marcaModelo`, `anoFabricacao`, `centroCusto`, etc.).
+   */
+  private dtoToPayload(dto: VeiculoDTO, modo: 'gravar' | 'alterar'): Record<string, unknown> {
+    const placa = normalizePlaca(dto.placa);
+    const tipoCarga = parseTipoCarga(dto.tipoCarga as number | string | null | undefined);
+    const { marcaDesc, modeloDesc } = this.resolveMarcaModeloDesc(dto);
+    const ano = this.resolveAnoPayload(dto);
+    const modeloId =
+      dto.veiculoModeloId != null && Number(dto.veiculoModeloId) > 0
+        ? Number(dto.veiculoModeloId)
+        : undefined;
+
     const payload: Record<string, unknown> = {
-      id: dto.id,
-      transportadoraId: dto.transportadoraId,
       placa: placa || undefined,
-      veiculoModeloId: dto.veiculoModeloId,
-      marcaModelo: dto.marcaModelo,
-      descricao: dto.descricao ?? undefined,
-      cor: dto.cor ?? undefined,
-      anoFabricacao: dto.anoFabricacao ?? undefined,
-      anoModelo: dto.anoModelo ?? undefined,
-      tipoVeiculo: dto.tipoVeiculo ?? undefined,
-      centroCusto: dto.centroCusto ?? undefined,
-      ativo: dto.ativo
+      ativo: dto.ativo !== false,
+      /** Contrato C#: `List<MotoristaVinculoInput>` — não enviar `motoristaId` / `motoristaIds`. */
+      motoristas: this.buildMotoristasVinculoPayload(dto)
     };
-    if (dto.motoristaId != null && dto.motoristaId > 0) {
-      payload['motoristaId'] = dto.motoristaId;
+
+    if (modo === 'alterar') {
+      payload['id'] = Number(dto.id);
     }
-    if (dto.motoristaIds != null) {
-      payload['motoristaIds'] = dto.motoristaIds;
+
+    if (dto.transportadoraId != null && Number(dto.transportadoraId) > 0) {
+      payload['transportadoraId'] = Number(dto.transportadoraId);
     }
+    const cor = String(dto.cor ?? '').trim();
+    if (cor) payload['cor'] = cor;
+    if (tipoCarga != null) payload['tipoCarga'] = tipoCarga;
+    if (ano != null) payload['ano'] = ano;
+
+    if (marcaDesc) {
+      payload['marca'] = { descricao: marcaDesc };
+    }
+
+    if (modeloDesc || modeloId != null) {
+      const modelo: Record<string, unknown> = {};
+      if (modeloId != null) modelo['id'] = modeloId;
+      if (modeloDesc) modelo['descricao'] = modeloDesc;
+      if (marcaDesc) modelo['marca'] = { descricao: marcaDesc };
+      payload['modelo'] = modelo;
+    }
+
     return payload;
+  }
+
+  /** `ano` do POST: Ano Fabricação da tela, com fallback para Ano Modelo. */
+  private resolveAnoPayload(dto: VeiculoDTO): number | undefined {
+    const fab = dto.anoFabricacao != null ? Number(dto.anoFabricacao) : NaN;
+    if (Number.isFinite(fab) && fab > 0) return fab;
+    const mod = dto.anoModelo != null ? Number(dto.anoModelo) : NaN;
+    if (Number.isFinite(mod) && mod > 0) return mod;
+    return undefined;
+  }
+
+  /** Resolve marca/modelo a partir dos campos do formulário ou do texto combinado. */
+  private resolveMarcaModeloDesc(dto: VeiculoDTO): {
+    marcaDesc?: string;
+    modeloDesc?: string;
+  } {
+    const marcaFromForm = String(dto.marcaDescricao ?? '').trim();
+    const modeloFromForm = String(dto.modeloDescricao ?? '').trim();
+    if (marcaFromForm || modeloFromForm) {
+      return {
+        marcaDesc: marcaFromForm || undefined,
+        modeloDesc: modeloFromForm || undefined
+      };
+    }
+
+    const parsed = splitMarcaModelo(dto.marcaModelo);
+    return {
+      marcaDesc: parsed.marca || undefined,
+      modeloDesc: parsed.modelo || undefined
+    };
+  }
+
+  /**
+   * Monta `motoristas: [{ id, principal }]` a partir de `dto.motoristas`
+   * ou, em fallback, de `motoristaIds` + `motoristaId` (principal).
+   */
+  private buildMotoristasVinculoPayload(
+    dto: VeiculoDTO
+  ): Array<{ id: number; principal?: boolean }> {
+    if (dto.motoristas != null) {
+      return dto.motoristas
+        .map((m) => {
+          const id = Number(m?.id);
+          if (!Number.isFinite(id) || id <= 0) return null;
+          const item: { id: number; principal?: boolean } = { id };
+          if (m.principal != null) item.principal = Boolean(m.principal);
+          return item;
+        })
+        .filter((m): m is { id: number; principal?: boolean } => m != null);
+    }
+
+    const ids = (dto.motoristaIds ?? [])
+      .map((x) => Number(x))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const principalId =
+      dto.motoristaId != null && Number(dto.motoristaId) > 0 ? Number(dto.motoristaId) : undefined;
+
+    if (ids.length > 0) {
+      const unique = [...new Set(ids)];
+      if (principalId != null && !unique.includes(principalId)) {
+        unique.unshift(principalId);
+      }
+      return unique.map((id) => ({
+        id,
+        principal: principalId != null ? id === principalId : undefined
+      }));
+    }
+
+    if (principalId != null) {
+      return [{ id: principalId, principal: true }];
+    }
+
+    return [];
   }
 }

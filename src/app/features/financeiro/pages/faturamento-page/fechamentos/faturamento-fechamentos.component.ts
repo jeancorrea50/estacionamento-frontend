@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, DestroyRef, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,17 +12,21 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 
+import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import { FECHAMENTOS_MOCK } from './faturamento-fechamentos.mock';
+import { FaturaService } from '../../../services/fatura.service';
 import type {
   FechamentoDetalheResumo,
   FechamentoFiltroRapidoId,
   FechamentoListaItem,
   FechamentoModalidade,
+  FechamentoResumo,
   FechamentoSituacao,
   FechamentoValidacaoAlerta
 } from './faturamento-fechamentos.types';
@@ -54,20 +59,29 @@ interface FechCalendarioCelula {
     MatInputModule,
     MatMenuModule,
     MatSelectModule,
+    MatSnackBarModule,
     MatTableModule,
     MatTooltipModule
   ],
   templateUrl: './faturamento-fechamentos.component.html',
   styleUrls: ['./faturamento-fechamentos.component.scss']
 })
-export class FaturamentoFechamentosComponent {
+export class FaturamentoFechamentosComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
+  private readonly api = inject(FaturaService);
+  private readonly snack = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly themeConfig = toSignal(this.themeService.theme$, {
-    initialValue: this.themeService.getCurrentTheme()
+  readonly items = signal<FechamentoListaItem[]>([]);
+  readonly resumo = signal<FechamentoResumo>({
+    fechamentosDisponiveis: 0,
+    prontosParaFaturar: 0,
+    valorEstimadoTotal: 0,
+    comDivergencia: 0
   });
+  readonly loading = signal(false);
+  readonly totalCountApi = signal(0);
 
   private readonly filtrosRapidosValidos = new Set<FechamentoFiltroRapidoId>([
     'todos',
@@ -78,14 +92,16 @@ export class FaturamentoFechamentosComponent {
     'cancelados'
   ]);
 
+  private readonly themeConfig = toSignal(this.themeService.theme$, {
+    initialValue: this.themeService.getCurrentTheme()
+  });
+
   readonly isDarkTheme = computed(() => {
     const mode = this.themeConfig().mode;
     if (mode === 'dark') return true;
     if (mode === 'light') return false;
     return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-
-  readonly todas = FECHAMENTOS_MOCK;
 
   readonly periodoGranularidadeOpcoes: PeriodoGranularidadeOpcao[] = [
     { id: 'dia', label: 'Dia' },
@@ -183,19 +199,19 @@ export class FaturamentoFechamentosComponent {
   ];
 
   readonly transportadorasOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.transportadora));
+    const u = new Set(this.items().map((r) => r.transportadora));
     return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
   readonly estacionamentosOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.estacionamento));
+    const u = new Set(this.items().map((r) => r.estacionamento));
     return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
   readonly contagemPorSituacao = computed(() => {
     const m = new Map<FechamentoSituacao, number>();
     for (const s of this.situacoesFiltro) m.set(s, 0);
-    for (const r of this.todas) {
+    for (const r of this.items()) {
       m.set(r.situacao, (m.get(r.situacao) ?? 0) + 1);
     }
     return m;
@@ -230,16 +246,14 @@ export class FaturamentoFechamentosComponent {
     return `${start} a ${end}`;
   });
 
-  /** KPIs do conjunto completo (mock), alinhados à especificação da aba. */
+  /** KPIs do Resumo retornado por `GET /fechamentos`. */
   readonly kpisGlobais = computed(() => {
-    const todas = this.todas;
-    const c = this.contagemPorSituacao();
-    const valorEstimado = todas.reduce((a, r) => a + r.valorEstimado, 0);
+    const r = this.resumo();
     return {
-      disponiveis: todas.length,
-      prontos: c.get('Pronto para faturar') ?? 0,
-      valorEstimado,
-      divergencias: c.get('Com divergência') ?? 0
+      disponiveis: r.fechamentosDisponiveis,
+      prontos: r.prontosParaFaturar,
+      valorEstimado: r.valorEstimadoTotal,
+      divergencias: r.comDivergencia
     };
   });
 
@@ -277,8 +291,10 @@ export class FaturamentoFechamentosComponent {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    const estavaArrastando = this.arrastandoPeriodo();
     this.arrastandoPeriodo.set(false);
     this.arrasteAnchor.set(null);
+    if (estavaArrastando) this.carregarLista();
   }
 
   constructor() {
@@ -296,6 +312,48 @@ export class FaturamentoFechamentosComponent {
       }
       untracked(() => this.paginaAtual.set(0));
     });
+  }
+
+  ngOnInit(): void {
+    this.carregarLista();
+  }
+
+  carregarLista(): void {
+    if (this.loading()) return;
+    this.loading.set(true);
+    const q = this.searchText().trim();
+
+    this.api
+      .listarFechamentos({
+        numeroPagina: 1,
+        tamanhoPagina: 200,
+        dataInicial: this.toIsoDate(this.periodoDataInicio()),
+        dataFinal: this.toIsoDate(this.periodoDataFim()),
+        descricao: q || undefined
+      })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (page) => {
+          this.selection.clear();
+          this.items.set(page.items);
+          this.resumo.set(page.resumo);
+          this.totalCountApi.set(page.totalCount);
+          this.paginaAtual.set(0);
+        },
+        error: (err) => {
+          this.items.set([]);
+          this.resumo.set({
+            fechamentosDisponiveis: 0,
+            prontosParaFaturar: 0,
+            valorEstimadoTotal: 0,
+            comDivergencia: 0
+          });
+          this.totalCountApi.set(0);
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar fechamentos.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
   }
 
   togglePanelFiltros(event: MouseEvent): void {
@@ -430,7 +488,7 @@ export class FaturamentoFechamentosComponent {
     const c = this.contagemPorSituacao();
     switch (id) {
       case 'todos':
-        return this.todas.length;
+        return this.items().length;
       case 'prontos':
         return c.get('Pronto para faturar') ?? 0;
       case 'andamento':
@@ -452,6 +510,7 @@ export class FaturamentoFechamentosComponent {
     this.modalidadeFiltro.set('all');
     this.situacaoFiltro.set('all');
     this.searchText.set('');
+    this.carregarLista();
   }
 
   irParaPagina(p: number): void {
@@ -506,7 +565,7 @@ export class FaturamentoFechamentosComponent {
   }
 
   private aplicarFiltros(): FechamentoListaItem[] {
-    let rows = [...this.todas];
+    let rows = [...this.items()];
     const tr = this.transportadoraFiltro();
     const es = this.estacionamentoFiltro();
     const md = this.modalidadeFiltro();
@@ -538,18 +597,6 @@ export class FaturamentoFechamentosComponent {
   }
 
   private buildDetalhe(row: FechamentoListaItem): FechamentoDetalheResumo {
-    if (row.id === 'FC-001') {
-      return {
-        diarias: 7_200,
-        mensalistas: 2_500,
-        lavagens: 850,
-        servicosExtras: 600,
-        descontos: -310,
-        acrescimos: 0,
-        beneficios: 0,
-        totalEstimado: 10_840
-      };
-    }
     const t = row.valorEstimado;
     if (t <= 0) {
       return {
@@ -568,18 +615,29 @@ export class FaturamentoFechamentosComponent {
     const lavagens = Math.round(t * 0.1);
     const servicosExtras = Math.round(t * 0.08);
     const descontos = -Math.round(t * 0.03);
-    const sub = diarias + mensalistas + lavagens + servicosExtras + descontos;
-    const totalEstimado = Math.max(0, sub);
+    const acrescimos = Math.round(t * 0.05);
+    const beneficios = Math.round(t * 0.02);
     return {
       diarias,
       mensalistas,
       lavagens,
       servicosExtras,
       descontos,
-      acrescimos: 0,
-      beneficios: 0,
-      totalEstimado
+      acrescimos,
+      beneficios,
+      totalEstimado: diarias + mensalistas + lavagens + servicosExtras + descontos + acrescimos + beneficios
     };
+  }
+
+  private mensagemErro(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const msg = (err as ApiError).message;
+      if (typeof msg === 'string' && msg.trim()) return msg;
+    }
+    if (err instanceof HttpErrorResponse) {
+      return err.message || fallback;
+    }
+    return fallback;
   }
 
   private criarDataHoje(): Date {

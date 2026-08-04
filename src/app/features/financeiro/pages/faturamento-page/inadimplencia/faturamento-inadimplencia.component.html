@@ -9,9 +9,6 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Total vencido</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-total-vencido')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
           <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ totalVencidoFormatado() }}</p>
         </div>
@@ -26,11 +23,8 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Faturas vencidas</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-faturas')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
-          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ linhasFiltradas().length }}</p>
+          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ faturasVencidasResumo() }}</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -43,11 +37,8 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Transportadoras inadimplentes</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-transp')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
-          <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ transportadorasOpcoes().length }}</p>
+          <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ transportadorasInadimplentesResumo() }}</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -60,15 +51,18 @@
         <div class="rec-kpi-card__body">
           <div class="rec-kpi-card__top">
             <span class="rec-kpi-card__label">Acordos realizados</span>
-            <button type="button" mat-icon-button class="rec-kpi-card__more" (click)="acaoMock('kpi-acordos')">
-              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-            </button>
           </div>
           <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ contagemAcordos() }}</p>
         </div>
       </mat-card-content>
     </mat-card>
   </div>
+
+  @if (loading()) {
+    <p class="loading-msg" role="status" style="margin: 0 0 12px; color: var(--muted);">
+      Carregando inadimplentes...
+    </p>
+  }
 
   <mat-card class="rec-table-card" appearance="outlined">
     <div class="rec-table-card__header">
@@ -84,6 +78,7 @@
             placeholder="Buscar..."
             [ngModel]="searchText()"
             (ngModelChange)="searchText.set($event)"
+            (keyup.enter)="carregarLista()"
           />
         </mat-form-field>
         <div class="rec-filter-bar rec-filter-bar--table">
@@ -156,15 +151,6 @@
           }
         </div>
         <div class="rec-table-actions-inline">
-          <button
-            type="button"
-            class="btn btn-secondary fat-mat-btn rec-acoes-btn rec-acoes-btn--table"
-            [matMenuTriggerFor]="menuAcoesRapidas"
-            aria-label="Abrir ações rápidas"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-          </button>
-
           <div class="rec-data-picker">
             <button
               type="button"
@@ -317,17 +303,15 @@
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="tipoFatura">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let row">{{ row.tipoFatura || '—' }}</td>
+          </ng-container>
+
           <ng-container matColumnDef="transportadora">
             <th mat-header-cell *matHeaderCellDef>Transportadora</th>
             <td mat-cell *matCellDef="let row">
               <span class="rec-mat-table__ellipsis" [matTooltip]="row.transportadora">{{ row.transportadora }}</span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="estacionamento">
-            <th mat-header-cell *matHeaderCellDef class="inad-col-est">Estacionamento</th>
-            <td mat-cell *matCellDef="let row" class="inad-col-est">
-              <span class="rec-mat-table__ellipsis" [matTooltip]="row.estacionamento">{{ row.estacionamento }}</span>
             </td>
           </ng-container>
 
@@ -462,23 +446,4 @@
       Marcar como sem retorno
     </button>
   </ng-template>
-</mat-menu>
-
-<mat-menu #menuAcoesRapidas="matMenu">
-  <button type="button" mat-menu-item (click)="acaoMock('lembretes')">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">schedule_send</span>
-    Enviar Lembretes
-  </button>
-  <button type="button" mat-menu-item (click)="acaoMock('reenviar-lote')">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">forward_to_inbox</span>
-    Reenviar Cobranças
-  </button>
-  <button type="button" mat-menu-item (click)="abrirAcordo()">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">handshake</span>
-    Registrar Acordo
-  </button>
-  <button type="button" mat-menu-item (click)="acaoMock('exportar')">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">download</span>
-    Exportar
-  </button>
 </mat-menu>

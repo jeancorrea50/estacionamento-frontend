@@ -18,6 +18,11 @@ export const CONFIGURACOES_ROUTES: Routes = [
         data: { permissions: ['usuario.visualizar'] },
       },
       {
+        path: 'horario',
+        loadComponent: () =>
+          import('./pages/horario-page/horario-page.component').then((m) => m.HorarioPageComponent),
+      },
+      {
         path: 'perfis',
         redirectTo: '/app/gerenciamento/perfil',
         pathMatch: 'full',

@@ -1,11 +1,16 @@
-import type { FaturaStatusVisao } from '../faturamento-visao.types';
+import type { ModalidadeRecebimento, StatusFatura, TipoFatura } from '../../../models/fatura.models';
 
-export type ModalidadeCobrancaFatura =
-  | 'Diária'
-  | 'Semanal'
-  | 'Quinzenal'
-  | 'Mensal'
-  | 'Por data personalizada';
+export type FaturaStatusLabel =
+  | 'Pago'
+  | 'Em aberto'
+  | 'Vencido'
+  | 'Parcial'
+  | 'Aguardando envio'
+  | 'Cancelada';
+
+export type ModalidadeRecebimentoLabel = 'Pix' | 'Boleto' | 'Transferência' | 'Cartão';
+
+export type TipoFaturaLabel = 'Avulso' | 'Cobrança';
 
 export type FiltroRapidoFaturas =
   | 'vencidas'
@@ -14,25 +19,42 @@ export type FiltroRapidoFaturas =
   | 'pagas'
   | 'aguardando-envio';
 
-export interface FaturaListaEnvio {
-  situacao: 'Enviado' | 'Não enviado' | 'Agendado';
-  canal?: 'E-mail' | 'WhatsApp' | 'E-mail e WhatsApp';
-  /** Texto curto para exibição (mock). */
-  detalhe?: string;
+export interface FaturaLookupOption {
+  id: number;
+  label: string;
 }
 
+/** Item da grid / formulário — alinhado a FaturaSearchOutput + campos extras do Output. */
 export interface FaturaListaItem {
-  id: string;
+  id: number;
+  numero: string;
+  transportadoraId: number;
   transportadora: string;
+  estacionamentoId: number;
   estacionamento: string;
-  modalidade: ModalidadeCobrancaFatura;
-  /** Início do período faturado (YYYY-MM-DD). */
-  periodoInicio: string;
-  /** Fim do período faturado (YYYY-MM-DD). */
-  periodoFim: string;
-  valor: number;
-  /** Vencimento da fatura (YYYY-MM-DD). */
+  tipoFatura: TipoFaturaLabel;
+  tipoFaturaCodigo: TipoFatura;
+  status: FaturaStatusLabel;
+  statusCodigo: StatusFatura;
+  modalidadeRecebimento: ModalidadeRecebimentoLabel | '—';
+  modalidadeRecebimentoCodigo: ModalidadeRecebimento | null;
+  valorTotal: number;
+  valorRecebido: number;
+  valorEmAberto: number;
+  /** yyyy-MM-dd */
+  dataEmissao: string;
+  /** yyyy-MM-dd */
   vencimento: string;
-  status: FaturaStatusVisao;
-  envio: FaturaListaEnvio;
+  dataPagamento: string | null;
+  periodoInicio: string;
+  periodoFim: string;
+  emailEnvio: string | null;
+  observacao: string | null;
+  configuracaoCobrancaId: number | null;
+  valorDesconto: number;
+  valorAcrescimo: number;
+  valorJuros: number;
+  valorMulta: number;
+  /** true = veio só da listagem (sem detalhes completos). */
+  parcial: boolean;
 }

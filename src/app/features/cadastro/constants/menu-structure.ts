@@ -48,6 +48,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'settings',
     children: [
       { id: 'sub-usuarios', label: 'Usuários', route: '/app/configuracoes/usuarios' },
+      { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
     ],
   },
   {

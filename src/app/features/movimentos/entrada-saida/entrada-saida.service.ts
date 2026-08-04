@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   EntradaSaidaFiltro,
@@ -10,7 +10,9 @@ import {
   EntradaSaidaPutInput,
   EntradaSaidaOutput,
   EntradaSaidaSearchOutput,
-  parseEntradaSaidaStatus
+  ModoRecibo,
+  parseEntradaSaidaStatus,
+  ValorEstacionamentoResponse
 } from '../models/entrada-saida.models';
 
 const ENTRADA_SAIDA_API = `${environment.API_BASE_URL}/EntradaSaida`;
@@ -37,24 +39,44 @@ export class EntradaSaidaService {
     );
   }
 
+  /**
+   * GET `/api/EntradaSaida/buscar-por-placa/{placa}`.
+   * Aceita contrato aninhado (`motorista`/`veiculo`/`transportadora`) ou flat na raiz
+   * (`placa`, `cnpj`, `razaoSocial`, `responsavelLegal`, …) + IDs.
+   * @see mapBuscarPorPlacaParaRegistroRapido
+   */
   obterPorPlaca(placa: string): Observable<EntradaSaidaOutput | null> {
     return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/buscar-por-placa/${encodeURIComponent(placa)}`).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body);
         if (!raw) return null;
         const id = this.pickNumber(raw, 'id', 'Id');
-        return this.mapDetailItem(raw, id > 0 ? id : 0);
-      })
+        const detail = this.mapDetailItem(raw, id > 0 ? id : 0);
+        return this.enrichBuscarPorPlacaFromFlat(raw, detail);
+      }),
+      // 404 / ausência = sem histórico prévio; silencioso no registro rápido.
+      catchError(() => of(null))
     );
   }
 
   create(data: EntradaSaidaPostInput): Observable<EntradaSaidaOutput> {
-    return this.http.post<EntradaSaidaOutput>(ENTRADA_SAIDA_API, data);
+    return this.http.post<unknown>(ENTRADA_SAIDA_API, data).pipe(
+      map((body) => {
+        const raw = this.extractResultRecord(body) ?? {};
+        const id = this.pickNumber(raw, 'id', 'Id');
+        return this.mapDetailItem(raw, id);
+      })
+    );
   }
 
   update(id: number, data: EntradaSaidaPostInput): Observable<EntradaSaidaOutput> {
     const payload: EntradaSaidaPutInput = { ...data, id };
-    return this.http.put<EntradaSaidaOutput>(ENTRADA_SAIDA_API, payload);
+    return this.http.put<unknown>(ENTRADA_SAIDA_API, payload).pipe(
+      map((body) => {
+        const raw = this.extractResultRecord(body) ?? {};
+        return this.mapDetailItem(raw, id);
+      })
+    );
   }
 
   suspenderPermanencia(id: number, payload: EntradaSaidaPermanenciaInput): Observable<void> {
@@ -71,6 +93,57 @@ export class EntradaSaidaService {
 
   saida(placa: string): Observable<void> {
     return this.http.post<void>(`${ENTRADA_SAIDA_API}/saida`, { placa });
+  }
+
+  /**
+   * GET `/api/EntradaSaida/valor-estacionamento?entradaSaidaId=`
+   * Valor do recibo / pré-preenchimento da saída (não exige transportadora no front).
+   */
+  obterValorEstacionamento(entradaSaidaId: number): Observable<ValorEstacionamentoResponse> {
+    const params = new HttpParams().set('entradaSaidaId', String(entradaSaidaId));
+    return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/valor-estacionamento`, { params }).pipe(
+      map((body) => {
+        const raw = this.extractResultRecord(body) ?? {};
+        return {
+          entradaSaidaId:
+            this.pickNumber(raw, 'entradaSaidaId', 'EntradaSaidaId') || entradaSaidaId,
+          estacionamentoId: this.pickNumber(raw, 'estacionamentoId', 'EstacionamentoId'),
+          transportadoraId: this.pickNumberOrNull(raw, 'transportadoraId', 'TransportadoraId'),
+          configuracaoCobrancaId: this.pickNumberOrNull(
+            raw,
+            'configuracaoCobrancaId',
+            'ConfiguracaoCobrancaId'
+          ),
+          valor: this.pickNumberOrNull(raw, 'valor', 'Valor'),
+          origem: this.pickString(raw, 'origem', 'Origem') || 'Indisponivel',
+          valorUnitarioDiario: this.pickNumberOrNull(
+            raw,
+            'valorUnitarioDiario',
+            'ValorUnitarioDiario'
+          ),
+          quantidadeDias: this.pickNumberOrNull(raw, 'quantidadeDias', 'QuantidadeDias'),
+          tipoCobranca: this.pickString(raw, 'tipoCobranca', 'TipoCobranca') || 'Avulso'
+        };
+      })
+    );
+  }
+
+  /**
+   * GET `/api/EntradaSaida/{id}/recibo?modo=&valor=`
+   * `modo`: {@link ModoRecibo.Saida}=1 (exige valor) | {@link ModoRecibo.Entrada}=2.
+   */
+  baixarRecibo(id: number, modo: ModoRecibo, valor?: number | null): Observable<Blob> {
+    let params = new HttpParams().set('modo', String(modo));
+    if (modo === ModoRecibo.Saida) {
+      if (valor == null || !Number.isFinite(valor)) {
+        throw new Error('Valor do recibo é obrigatório no modo saída.');
+      }
+      params = params.set('valor', String(valor));
+    }
+    return this.http.get(`${ENTRADA_SAIDA_API}/${id}/recibo`, {
+      params,
+      responseType: 'blob'
+    });
   }
 
   excluir(id: number): Observable<void> {
@@ -143,7 +216,10 @@ export class EntradaSaidaService {
       dataHoraSaida: this.pickStringOrNull(row, 'dataHoraSaida', 'DataHoraSaida'),
       status: parseEntradaSaidaStatus(
         this.pickRaw(row, 'status', 'Status', 'situacao', 'Situacao') as number | string | undefined
-      )
+      ),
+      faturado: this.pickBool(row, 'faturado', 'Faturado'),
+      dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
+      avulso: this.pickBool(row, 'avulso', 'Avulso')
     };
   }
 
@@ -151,12 +227,18 @@ export class EntradaSaidaService {
   private mapDetailItem(row: Record<string, unknown>, fallbackId: number): EntradaSaidaOutput {
     const id = this.pickNumber(row, 'id', 'Id') || fallbackId;
     const suspensoesRaw = row['suspensoes'] ?? row['Suspensoes'];
+    const transportadora = (row['transportadora'] ?? row['Transportadora']) as EntradaSaidaOutput['transportadora'];
+    const transportadoraId =
+      this.pickNumber(row, 'transportadoraId', 'TransportadoraId') ||
+      (transportadora && typeof transportadora === 'object'
+        ? this.pickNumber(transportadora as Record<string, unknown>, 'id', 'Id')
+        : 0);
 
     return {
       id,
       descricao: this.pickString(row, 'descricao', 'Descricao'),
       motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
-      transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
+      transportadoraId,
       veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),
       observacao: this.pickStringOrNull(row, 'observacao', 'Observacao', 'observao', 'Observao'),
       dataHoraEntrada: this.pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),
@@ -195,9 +277,113 @@ export class EntradaSaidaService {
       suspensoes: Array.isArray(suspensoesRaw)
         ? (suspensoesRaw as EntradaSaidaOutput['suspensoes'])
         : [],
-      motorista: row['motorista'] ?? row['Motorista'],
-      transportadora: row['transportadora'] ?? row['Transportadora'],
-      veiculo: row['veiculo'] ?? row['Veiculo']
+      motorista: (row['motorista'] ?? row['Motorista']) as EntradaSaidaOutput['motorista'],
+      transportadora,
+      veiculo: (row['veiculo'] ?? row['Veiculo']) as EntradaSaidaOutput['veiculo']
+    };
+  }
+
+  /**
+   * Só em buscar-por-placa: se a API não enviar objetos aninhados,
+   * monta `veiculo`/`transportadora`/`motorista` a partir dos campos flat da raiz.
+   */
+  private enrichBuscarPorPlacaFromFlat(
+    row: Record<string, unknown>,
+    detail: EntradaSaidaOutput
+  ): EntradaSaidaOutput {
+    return {
+      ...detail,
+      motorista: detail.motorista ?? this.synthesizeMotoristaFromFlat(row),
+      transportadora: detail.transportadora ?? this.synthesizeTransportadoraFromFlat(row),
+      veiculo: detail.veiculo ?? this.synthesizeVeiculoFromFlat(row)
+    };
+  }
+
+  private synthesizeTransportadoraFromFlat(
+    row: Record<string, unknown>
+  ): EntradaSaidaOutput['transportadora'] {
+    const cnpj = this.pickString(row, 'cnpj', 'Cnpj', 'cnpjTransportadora', 'CnpjTransportadora');
+    const razaoSocial = this.pickString(
+      row,
+      'razaoSocial',
+      'RazaoSocial',
+      'nomeTransportadora',
+      'NomeTransportadora',
+      'nomeFantasia',
+      'NomeFantasia'
+    );
+    const responsavelLegal = this.pickString(
+      row,
+      'responsavelLegal',
+      'ResponsavelLegal',
+      'nomeResponsavel',
+      'NomeResponsavel',
+      'responsavelNome',
+      'ResponsavelNome'
+    );
+    const responsavelTelefone = this.pickString(
+      row,
+      'responsavelTelefone',
+      'ResponsavelTelefone',
+      'telefoneResponsavel',
+      'TelefoneResponsavel'
+    );
+    const responsavelCpf = this.pickString(row, 'responsavelCpf', 'ResponsavelCpf');
+    const responsavelEmail = this.pickString(row, 'responsavelEmail', 'ResponsavelEmail');
+    const id = this.pickNumber(row, 'transportadoraId', 'TransportadoraId');
+
+    if (
+      !cnpj &&
+      !razaoSocial &&
+      !responsavelLegal &&
+      !responsavelTelefone &&
+      !responsavelCpf &&
+      !responsavelEmail &&
+      id <= 0
+    ) {
+      return undefined;
+    }
+
+    return {
+      id: id > 0 ? id : undefined,
+      cnpj: cnpj || undefined,
+      razaoSocial: razaoSocial || undefined,
+      responsavelLegal: responsavelLegal || undefined,
+      responsavelTelefone: responsavelTelefone || undefined,
+      responsavelCpf: responsavelCpf || undefined,
+      responsavelEmail: responsavelEmail || undefined
+    };
+  }
+
+  private synthesizeVeiculoFromFlat(row: Record<string, unknown>): EntradaSaidaOutput['veiculo'] {
+    const placa = this.pickString(row, 'placa', 'Placa', 'placaVeiculo', 'PlacaVeiculo');
+    const tipoCargaRaw = this.pickRaw(row, 'tipoCarga', 'TipoCarga', 'tipoCargaDescricao', 'TipoCargaDescricao');
+    const id = this.pickNumber(row, 'veiculoId', 'VeiculoId');
+
+    if (!placa && tipoCargaRaw == null && id <= 0) {
+      return undefined;
+    }
+
+    return {
+      id: id > 0 ? id : undefined,
+      placa: placa || undefined,
+      tipoCarga: (tipoCargaRaw as number | string | null | undefined) ?? undefined
+    };
+  }
+
+  private synthesizeMotoristaFromFlat(row: Record<string, unknown>): EntradaSaidaOutput['motorista'] {
+    const nome = this.pickString(row, 'nomeMotorista', 'NomeMotorista');
+    const cpf = this.pickString(row, 'cpfMotorista', 'CpfMotorista');
+    const id = this.pickNumber(row, 'motoristaId', 'MotoristaId');
+
+    if (!nome && !cpf && id <= 0) {
+      return undefined;
+    }
+
+    return {
+      id: id > 0 ? id : undefined,
+      nome: nome || undefined,
+      cpf: cpf || undefined
     };
   }
 
@@ -217,6 +403,20 @@ export class EntradaSaidaService {
       }
     }
     return 0;
+  }
+
+  private pickNumberOrNull(row: Record<string, unknown>, ...keys: string[]): number | null {
+    for (const key of keys) {
+      if (!(key in row)) continue;
+      const value = row[key];
+      if (value == null || value === '') return null;
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+      }
+    }
+    return null;
   }
 
   private pickString(row: Record<string, unknown>, ...keys: string[]): string {
@@ -246,6 +446,13 @@ export class EntradaSaidaService {
       if (row[key] != null && row[key] !== '') return row[key];
     }
     return undefined;
+  }
+
+  private pickBool(row: Record<string, unknown>, ...keys: string[]): boolean {
+    for (const key of keys) {
+      if (key in row) return Boolean(row[key]);
+    }
+    return false;
   }
 
   private unwrap(body: unknown): unknown {

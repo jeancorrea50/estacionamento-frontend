@@ -1,0 +1,114 @@
+:host {
+  display: block;
+}
+
+.horario-page {
+  max-width: 560px;
+}
+
+.horario-page__status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.horario-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 20px 18px;
+}
+
+.horario-card__head {
+  margin-bottom: 18px;
+}
+
+.horario-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.horario-card__subtitle {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.horario-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.horario-card__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.horario-card__select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg, var(--surface-2));
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.horario-card__select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border-subtle));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.horario-card__select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.horario-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.horario-card__save {
+  box-sizing: border-box;
+  min-width: 168px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  line-height: 1;
+}
+
+.horario-card__save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .horario-card__actions {
+    justify-content: stretch;
+  }
+
+  .horario-card__save {
+    width: 100%;
+    min-width: 0;
+  }
+}

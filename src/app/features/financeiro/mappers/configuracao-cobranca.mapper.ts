@@ -1,7 +1,6 @@
 import {
   ConfiguracaoCobrancaOutput,
   ConfiguracaoCobrancaPostInput,
-  ConfiguracaoCobrancaRegraDto,
   ConfiguracaoCobrancaSearchOutput,
   ModalidadeCobranca,
   RegraFechamento,
@@ -12,48 +11,33 @@ export { ModalidadeCobranca, RegraFechamento, StatusConfiguracaoCobranca };
 import type {
   ConfigCobrancaListaItem,
   ConfigCobrancaModalidade,
+  ConfigCobrancaServicoKey,
+  ConfigCobrancaServicos,
   ConfigCobrancaStatus
 } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
 
-export interface ServicosChecks {
-  diaria: boolean;
-  semanal: boolean;
-  quinzenal: boolean;
-  mensal: boolean;
-  personal: boolean;
-  lavagem: boolean;
-  pernoite: boolean;
-  extras: boolean;
-  beneficio: boolean;
+/** Rótulo de cada serviço adicional, usado no resumo textual e nas telas de visualização. */
+export const SERVICO_LABELS: Record<ConfigCobrancaServicoKey, string> = {
+  lavagem: 'Lavagem',
+  pernoite: 'Pernoite',
+  extras: 'Serviços extras',
+  beneficio: 'Benefício por abastecimento'
+};
+
+export const SERVICO_KEYS: ConfigCobrancaServicoKey[] = ['lavagem', 'pernoite', 'extras', 'beneficio'];
+
+export function servicosVazios(): ConfigCobrancaServicos {
+  return {
+    lavagem: { habilitado: false, valor: null },
+    pernoite: { habilitado: false, valor: null },
+    extras: { habilitado: false, valor: null },
+    beneficio: { habilitado: false, valor: null }
+  };
 }
 
-export interface AgrupamentoChecks {
-  placa: boolean;
-  periodo: boolean;
-  transportadora: boolean;
-}
-
-export function servicosCobradosFromChecks(c: ServicosChecks): string {
-  const parts: string[] = [];
-  if (c.diaria) parts.push('Diária');
-  if (c.semanal) parts.push('Semanal');
-  if (c.quinzenal) parts.push('Quinzenal');
-  if (c.mensal) parts.push('Mensal');
-  if (c.personal) parts.push('Personalizado');
-  if (c.lavagem) parts.push('Lavagem');
-  if (c.pernoite) parts.push('Pernoite');
-  if (c.extras) parts.push('Extras');
-  if (c.beneficio) parts.push('Benefícios por abastecimento');
+export function servicosCobradosLabel(servicos: ConfigCobrancaServicos): string {
+  const parts = SERVICO_KEYS.filter((k) => servicos[k]?.habilitado).map((k) => SERVICO_LABELS[k]);
   return parts.length ? parts.join(', ') : '—';
-}
-
-export function agrupamentoFromChecks(c: AgrupamentoChecks): string {
-  const parts: string[] = [];
-  if (c.placa) parts.push('placa');
-  if (c.periodo) parts.push('período');
-  if (c.transportadora) parts.push('transportadora');
-  if (!parts.length) return 'Sem agrupamento definido';
-  return `Por ${parts.join(', ')}`;
 }
 
 export function modalidadeLabel(value: ModalidadeCobranca | number): ConfigCobrancaModalidade {
@@ -64,6 +48,8 @@ export function modalidadeLabel(value: ModalidadeCobranca | number): ConfigCobra
       return 'Semanal';
     case ModalidadeCobranca.Quinzenal:
       return 'Quinzenal';
+    case ModalidadeCobranca.Personalizado:
+      return 'Personalizada';
     case ModalidadeCobranca.Mensal:
     default:
       return 'Mensal';
@@ -78,6 +64,8 @@ export function modalidadeFromLabel(label: ConfigCobrancaModalidade | string): M
       return ModalidadeCobranca.Semanal;
     case 'Quinzenal':
       return ModalidadeCobranca.Quinzenal;
+    case 'Personalizada':
+      return ModalidadeCobranca.Personalizado;
     case 'Mensal':
     default:
       return ModalidadeCobranca.Mensal;
@@ -97,9 +85,41 @@ export function regraFechamentoLabel(
   diaFechamento: number | null | undefined
 ): string {
   if (Number(regra) === RegraFechamento.DiaFixo) {
-    return diaFechamento && diaFechamento > 0 ? `Dia ${diaFechamento}` : 'Dia fixo';
+    if (diaFechamento && diaFechamento > 0) {
+      const dia = String(diaFechamento).padStart(2, '0');
+      return `Todo dia ${dia}`;
+    }
+    return 'Dia fixo';
   }
   return 'Último dia do mês';
+}
+
+const DIA_SEMANA_NOMES: Record<number, string> = {
+  1: 'domingo',
+  2: 'segunda-feira',
+  3: 'terça-feira',
+  4: 'quarta-feira',
+  5: 'quinta-feira',
+  6: 'sexta-feira',
+  7: 'sábado'
+};
+
+/** Resumo de fechamento/cobrança para listagem (Semanal usa dia 1–7). */
+export function fechamentoResumoLabel(
+  modalidade: ModalidadeCobranca | number,
+  regra: RegraFechamento | number,
+  diaFechamento: number | null | undefined
+): string {
+  if (Number(modalidade) === ModalidadeCobranca.Semanal) {
+    const nome = diaFechamento != null ? DIA_SEMANA_NOMES[diaFechamento] : undefined;
+    return nome ? `Toda ${nome}` : 'Semanal';
+  }
+  return regraFechamentoLabel(regra, diaFechamento);
+}
+
+/** Rótulo amigável da modalidade para badges na listagem. */
+export function modalidadeBadgeLabel(modalidade: ConfigCobrancaModalidade | string): string {
+  return modalidade === 'Personalizada' ? 'Data personalizada' : modalidade;
 }
 
 export function prazoVencimentoLabel(dias: number): string {
@@ -107,93 +127,39 @@ export function prazoVencimentoLabel(dias: number): string {
   return dias === 1 ? '1 dia após fechamento' : `${dias} dias após fechamento`;
 }
 
-export function regraToServicosChecks(regra: ConfiguracaoCobrancaRegraDto | null | undefined): ServicosChecks {
-  return {
-    diaria: !!regra?.cobrarDiaria,
-    semanal: !!regra?.cobrarSemanal,
-    quinzenal: !!regra?.cobrarQuinzenal,
-    mensal: !!regra?.cobrarMensal,
-    personal: !!regra?.cobrarDataPersonalizada,
-    lavagem: !!regra?.cobrarLavagem,
-    pernoite: !!regra?.cobrarPernoite,
-    extras: !!regra?.cobrarServicosExtras,
-    beneficio: !!regra?.considerarBeneficioAbastecimento
-  };
+/** Normaliza o `DateTime` do backend para `yyyy-MM-dd`, formato aceito por `input[type=date]`. */
+export function toIsoDate(value: unknown): string | null {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string') {
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+    if (match) return match[1];
+  }
+  const d = new Date(value as string);
+  if (Number.isNaN(d.getTime())) return null;
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
-export function servicosChecksToRegra(
-  checks: ServicosChecks,
-  regraId = 0
-): ConfiguracaoCobrancaRegraDto {
-  return {
-    id: regraId,
-    cobrarDiaria: !!checks.diaria,
-    cobrarSemanal: !!checks.semanal,
-    cobrarQuinzenal: !!checks.quinzenal,
-    cobrarMensal: !!checks.mensal,
-    cobrarDataPersonalizada: !!checks.personal,
-    cobrarLavagem: !!checks.lavagem,
-    cobrarPernoite: !!checks.pernoite,
-    cobrarServicosExtras: !!checks.extras,
-    considerarBeneficioAbastecimento: !!checks.beneficio
-  };
+function numeroOuNull(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
-export function agrupamentoToChecks(item: {
-  agruparPorPlaca: boolean;
-  agruparPorPeriodo: boolean;
-  agruparPorTransportadora: boolean;
-}): AgrupamentoChecks {
+export function servicosFromOutput(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaServicos {
   return {
-    placa: !!item.agruparPorPlaca,
-    periodo: !!item.agruparPorPeriodo,
-    transportadora: !!item.agruparPorTransportadora
+    lavagem: { habilitado: !!dto.cobrarLavagem, valor: numeroOuNull(dto.valorLavagem) },
+    pernoite: { habilitado: !!dto.cobrarPernoite, valor: numeroOuNull(dto.valorPernoite) },
+    extras: { habilitado: !!dto.cobrarServicosExtras, valor: numeroOuNull(dto.valorServicosExtras) },
+    beneficio: {
+      habilitado: !!dto.considerarBeneficioAbastecimento,
+      valor: numeroOuNull(dto.valorBeneficioAbastecimento)
+    }
   };
 }
 
 export function mapSearchToListaItem(dto: ConfiguracaoCobrancaSearchOutput): ConfigCobrancaListaItem {
-  const modalidade = modalidadeLabel(dto.modalidadeCobranca);
-  const status = statusLabel(dto.status);
-  return {
-    id: dto.id,
-    transportadoraId: dto.transportadoraId,
-    estacionamentoId: dto.estacionamentoId,
-    transportadora: dto.transportadoraNome || '—',
-    estacionamento: dto.estacionamentoNome || '—',
-    modalidade,
-    modalidadeCobranca: dto.modalidadeCobranca,
-    diaFechamento: null,
-    regraFechamento: RegraFechamento.UltimoDiaDoMes,
-    fechamento: '—',
-    prazoVencimentoDias: 0,
-    prazoVencimento: '—',
-    envioAutomatico: false,
-    gerarFaturaAutomaticamente: false,
-    emailFinanceiro: dto.emailFinanceiro?.trim() || null,
-    status,
-    multaAplicar: false,
-    multaPercentual: 0,
-    jurosAplicar: false,
-    jurosPercentual: 0,
-    aplicarDescontoFixo: false,
-    valorDescontoFixo: 0,
-    aplicarAcrescimoFixo: false,
-    valorAcrescimoFixo: 0,
-    valorEstadia: dto.valorEstadia,
-    pagamentoParcial: false,
-    servicosCobrados: '—',
-    agrupamentoFatura: '—',
-    agruparPorPlaca: false,
-    agruparPorPeriodo: false,
-    agruparPorTransportadora: false,
-    regra: emptyRegra(),
-    parcial: true
-  };
-}
-
-export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaListaItem {
-  const serv = regraToServicosChecks(dto.regra);
-  const agr = agrupamentoToChecks(dto);
   return {
     id: dto.id,
     transportadoraId: dto.transportadoraId,
@@ -204,9 +170,46 @@ export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCob
     modalidadeCobranca: dto.modalidadeCobranca,
     diaFechamento: dto.diaFechamento,
     regraFechamento: dto.regraFechamento,
-    fechamento: regraFechamentoLabel(dto.regraFechamento, dto.diaFechamento),
+    fechamento: fechamentoResumoLabel(dto.modalidadeCobranca, dto.regraFechamento, dto.diaFechamento),
     prazoVencimentoDias: dto.prazoVencimentoDias,
     prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
+    dataCobranca: null,
+    envioAutomatico: dto.envioAutomaticoEmail,
+    gerarFaturaAutomaticamente: dto.gerarFaturaAutomaticamente,
+    emailFinanceiro: dto.emailFinanceiro?.trim() || null,
+    status: statusLabel(dto.status),
+    multaAplicar: false,
+    multaPercentual: 0,
+    jurosAplicar: false,
+    jurosPercentual: 0,
+    aplicarDescontoFixo: false,
+    valorDescontoFixo: 0,
+    aplicarAcrescimoFixo: false,
+    valorAcrescimoFixo: 0,
+    valorEstacionamento: dto.valorEstacionamento,
+    pagamentoParcial: false,
+    servicos: servicosVazios(),
+    servicosCobrados: '—',
+    parcial: true
+  };
+}
+
+export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaListaItem {
+  const servicos = servicosFromOutput(dto);
+  return {
+    id: dto.id,
+    transportadoraId: dto.transportadoraId,
+    estacionamentoId: dto.estacionamentoId,
+    transportadora: dto.transportadoraNome || '—',
+    estacionamento: dto.estacionamentoNome || '—',
+    modalidade: modalidadeLabel(dto.modalidadeCobranca),
+    modalidadeCobranca: dto.modalidadeCobranca,
+    diaFechamento: dto.diaFechamento,
+    regraFechamento: dto.regraFechamento,
+    fechamento: fechamentoResumoLabel(dto.modalidadeCobranca, dto.regraFechamento, dto.diaFechamento),
+    prazoVencimentoDias: dto.prazoVencimentoDias,
+    prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
+    dataCobranca: toIsoDate(dto.dataCobranca),
     envioAutomatico: !!dto.envioAutomaticoEmail,
     gerarFaturaAutomaticamente: !!dto.gerarFaturaAutomaticamente,
     emailFinanceiro: dto.emailFinanceiro?.trim() || null,
@@ -219,43 +222,27 @@ export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCob
     valorDescontoFixo: Number(dto.valorDescontoFixo) || 0,
     aplicarAcrescimoFixo: !!dto.aplicarAcrescimoFixo,
     valorAcrescimoFixo: Number(dto.valorAcrescimoFixo) || 0,
-    valorEstadia: dto.valorEstadia,
+    valorEstacionamento: dto.valorEstacionamento,
     pagamentoParcial: !!dto.permitirPagamentoParcial,
-    servicosCobrados: servicosCobradosFromChecks(serv),
-    agrupamentoFatura: agrupamentoFromChecks(agr),
-    agruparPorPlaca: !!dto.agruparPorPlaca,
-    agruparPorPeriodo: !!dto.agruparPorPeriodo,
-    agruparPorTransportadora: !!dto.agruparPorTransportadora,
-    regra: dto.regra
-      ? {
-          id: dto.regra.id,
-          cobrarDiaria: !!dto.regra.cobrarDiaria,
-          cobrarSemanal: !!dto.regra.cobrarSemanal,
-          cobrarQuinzenal: !!dto.regra.cobrarQuinzenal,
-          cobrarMensal: !!dto.regra.cobrarMensal,
-          cobrarDataPersonalizada: !!dto.regra.cobrarDataPersonalizada,
-          cobrarLavagem: !!dto.regra.cobrarLavagem,
-          cobrarPernoite: !!dto.regra.cobrarPernoite,
-          cobrarServicosExtras: !!dto.regra.cobrarServicosExtras,
-          considerarBeneficioAbastecimento: !!dto.regra.considerarBeneficioAbastecimento
-        }
-      : emptyRegra(),
+    servicos,
+    servicosCobrados: servicosCobradosLabel(servicos),
     parcial: false
   };
 }
 
 export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): ConfiguracaoCobrancaPostInput {
+  const modalidadeCobranca = item.modalidadeCobranca || modalidadeFromLabel(item.modalidade);
   const dia =
     item.regraFechamento === RegraFechamento.DiaFixo && item.diaFechamento && item.diaFechamento > 0
       ? item.diaFechamento
       : null;
+  const servicos = item.servicos ?? servicosVazios();
 
   return {
     id: item.id > 0 ? item.id : 0,
     transportadoraId: item.transportadoraId,
-    estacionamentoId: item.estacionamentoId,
     status: statusFromLabel(item.status),
-    modalidadeCobranca: item.modalidadeCobranca || modalidadeFromLabel(item.modalidade),
+    modalidadeCobranca,
     diaFechamento: dia,
     regraFechamento: item.regraFechamento || RegraFechamento.UltimoDiaDoMes,
     prazoVencimentoDias: item.prazoVencimentoDias,
@@ -271,37 +258,20 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
     valorDescontoFixo: item.aplicarDescontoFixo ? Number(item.valorDescontoFixo) || 0 : 0,
     aplicarAcrescimoFixo: !!item.aplicarAcrescimoFixo,
     valorAcrescimoFixo: item.aplicarAcrescimoFixo ? Number(item.valorAcrescimoFixo) || 0 : 0,
-    valorEstadia: item.valorEstadia,
-    agruparPorPlaca: !!item.agruparPorPlaca,
-    agruparPorPeriodo: !!item.agruparPorPeriodo,
-    agruparPorTransportadora: !!item.agruparPorTransportadora,
-    regra: {
-      id: item.regra?.id ?? 0,
-      cobrarDiaria: !!item.regra?.cobrarDiaria,
-      cobrarSemanal: !!item.regra?.cobrarSemanal,
-      cobrarQuinzenal: !!item.regra?.cobrarQuinzenal,
-      cobrarMensal: !!item.regra?.cobrarMensal,
-      cobrarDataPersonalizada: !!item.regra?.cobrarDataPersonalizada,
-      cobrarLavagem: !!item.regra?.cobrarLavagem,
-      cobrarPernoite: !!item.regra?.cobrarPernoite,
-      cobrarServicosExtras: !!item.regra?.cobrarServicosExtras,
-      considerarBeneficioAbastecimento: !!item.regra?.considerarBeneficioAbastecimento
-    }
-  };
-}
-
-export function emptyRegra(): ConfiguracaoCobrancaRegraDto {
-  return {
-    id: 0,
-    cobrarDiaria: false,
-    cobrarSemanal: false,
-    cobrarQuinzenal: false,
-    cobrarMensal: true,
-    cobrarDataPersonalizada: false,
-    cobrarLavagem: false,
-    cobrarPernoite: false,
-    cobrarServicosExtras: false,
-    considerarBeneficioAbastecimento: false
+    valorEstacionamento: item.valorEstacionamento,
+    dataCobranca: modalidadeCobranca === ModalidadeCobranca.Personalizado ? item.dataCobranca : null,
+    cobrarLavagem: servicos.lavagem.habilitado,
+    valorLavagem: servicos.lavagem.habilitado ? servicos.lavagem.valor : null,
+    cobrarPernoite: servicos.pernoite.habilitado,
+    valorPernoite: servicos.pernoite.habilitado ? servicos.pernoite.valor : null,
+    cobrarServicosExtras: servicos.extras.habilitado,
+    valorServicosExtras: servicos.extras.habilitado ? servicos.extras.valor : null,
+    considerarBeneficioAbastecimento: servicos.beneficio.habilitado,
+    valorBeneficioAbastecimento: servicos.beneficio.habilitado ? servicos.beneficio.valor : null,
+    // Agrupamento foi removido do cadastro; o contrato mantém as colunas, sempre falsas.
+    agruparPorPlaca: false,
+    agruparPorPeriodo: false,
+    agruparPorTransportadora: false
   };
 }
 
@@ -315,6 +285,14 @@ export function pickNumber(row: Record<string, unknown>, ...keys: string[]): num
     }
   }
   return 0;
+}
+
+export function pickNumberOrNull(row: Record<string, unknown>, ...keys: string[]): number | null {
+  for (const key of keys) {
+    if (!(key in row)) continue;
+    return numeroOuNull(row[key]);
+  }
+  return null;
 }
 
 export function pickString(row: Record<string, unknown>, ...keys: string[]): string {
@@ -373,45 +351,18 @@ export function mapRawSearchItem(row: Record<string, unknown>): ConfiguracaoCobr
     estacionamentoNome: pickString(row, 'estacionamentoNome', 'EstacionamentoNome'),
     status: pickNumber(row, 'status', 'Status') as StatusConfiguracaoCobranca,
     modalidadeCobranca: pickNumber(row, 'modalidadeCobranca', 'ModalidadeCobranca') as ModalidadeCobranca,
-    valorEstadia: (() => {
-      const raw = row['valorEstadia'] ?? row['ValorEstadia'];
-      if (raw == null || raw === '') return null;
-      const n = Number(raw);
-      return Number.isFinite(n) ? n : null;
-    })(),
+    diaFechamento: pickNumberOrNull(row, 'diaFechamento', 'DiaFechamento'),
+    regraFechamento: pickNumber(row, 'regraFechamento', 'RegraFechamento') as RegraFechamento,
+    prazoVencimentoDias: pickNumber(row, 'prazoVencimentoDias', 'PrazoVencimentoDias'),
+    valorEstacionamento: pickNumberOrNull(row, 'valorEstacionamento', 'ValorEstacionamento'),
     emailFinanceiro: pickStringOrNull(row, 'emailFinanceiro', 'EmailFinanceiro'),
+    envioAutomaticoEmail: pickBool(row, 'envioAutomaticoEmail', 'EnvioAutomaticoEmail'),
+    gerarFaturaAutomaticamente: pickBool(row, 'gerarFaturaAutomaticamente', 'GerarFaturaAutomaticamente'),
     dataCriacao: pickString(row, 'dataCriacao', 'DataCriacao')
   };
 }
 
-export function mapRawRegra(row: Record<string, unknown> | null | undefined): ConfiguracaoCobrancaRegraDto | null {
-  if (!row) return null;
-  return {
-    id: pickNumber(row, 'id', 'Id'),
-    configuracaoCobrancaId: pickNumber(row, 'configuracaoCobrancaId', 'ConfiguracaoCobrancaId') || undefined,
-    cobrarDiaria: pickBool(row, 'cobrarDiaria', 'CobrarDiaria'),
-    cobrarSemanal: pickBool(row, 'cobrarSemanal', 'CobrarSemanal'),
-    cobrarQuinzenal: pickBool(row, 'cobrarQuinzenal', 'CobrarQuinzenal'),
-    cobrarMensal: pickBool(row, 'cobrarMensal', 'CobrarMensal'),
-    cobrarDataPersonalizada: pickBool(row, 'cobrarDataPersonalizada', 'CobrarDataPersonalizada'),
-    cobrarLavagem: pickBool(row, 'cobrarLavagem', 'CobrarLavagem'),
-    cobrarPernoite: pickBool(row, 'cobrarPernoite', 'CobrarPernoite'),
-    cobrarServicosExtras: pickBool(row, 'cobrarServicosExtras', 'CobrarServicosExtras'),
-    considerarBeneficioAbastecimento: pickBool(
-      row,
-      'considerarBeneficioAbastecimento',
-      'ConsiderarBeneficioAbastecimento'
-    )
-  };
-}
-
 export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): ConfiguracaoCobrancaOutput {
-  const regraRaw = row['regra'] ?? row['Regra'];
-  const regra =
-    regraRaw && typeof regraRaw === 'object' && !Array.isArray(regraRaw)
-      ? mapRawRegra(regraRaw as Record<string, unknown>)
-      : null;
-
   const transportadoraRaw = row['transportadora'] ?? row['Transportadora'];
   const estacionamentoRaw = row['estacionamento'] ?? row['Estacionamento'];
   const transportadoraNome =
@@ -425,22 +376,6 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
       ? pickString(estacionamentoRaw as Record<string, unknown>, 'descricao', 'Descricao', 'nomeFantasia', 'NomeFantasia')
       : '');
 
-  const diaRaw = row['diaFechamento'] ?? row['DiaFechamento'];
-  const diaFechamento =
-    diaRaw == null || diaRaw === ''
-      ? null
-      : Number.isFinite(Number(diaRaw))
-        ? Number(diaRaw)
-        : null;
-
-  const valorEstadiaRaw = row['valorEstadia'] ?? row['ValorEstadia'];
-  const valorEstadia =
-    valorEstadiaRaw == null || valorEstadiaRaw === ''
-      ? null
-      : Number.isFinite(Number(valorEstadiaRaw))
-        ? Number(valorEstadiaRaw)
-        : null;
-
   return {
     id: pickNumber(row, 'id', 'Id') || fallbackId,
     dataCriacao: pickString(row, 'dataCriacao', 'DataCriacao') || undefined,
@@ -451,7 +386,7 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     estacionamentoNome,
     status: pickNumber(row, 'status', 'Status') as StatusConfiguracaoCobranca,
     modalidadeCobranca: pickNumber(row, 'modalidadeCobranca', 'ModalidadeCobranca') as ModalidadeCobranca,
-    diaFechamento,
+    diaFechamento: pickNumberOrNull(row, 'diaFechamento', 'DiaFechamento'),
     regraFechamento: pickNumber(row, 'regraFechamento', 'RegraFechamento') as RegraFechamento,
     prazoVencimentoDias: pickNumber(row, 'prazoVencimentoDias', 'PrazoVencimentoDias'),
     emailFinanceiro: pickStringOrNull(row, 'emailFinanceiro', 'EmailFinanceiro'),
@@ -466,10 +401,26 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     valorDescontoFixo: pickNumber(row, 'valorDescontoFixo', 'ValorDescontoFixo'),
     aplicarAcrescimoFixo: pickBool(row, 'aplicarAcrescimoFixo', 'AplicarAcrescimoFixo'),
     valorAcrescimoFixo: pickNumber(row, 'valorAcrescimoFixo', 'ValorAcrescimoFixo'),
-    valorEstadia,
+    valorEstacionamento: pickNumberOrNull(row, 'valorEstacionamento', 'ValorEstacionamento'),
+    dataCobranca: pickStringOrNull(row, 'dataCobranca', 'DataCobranca'),
+    cobrarLavagem: pickBool(row, 'cobrarLavagem', 'CobrarLavagem'),
+    valorLavagem: pickNumberOrNull(row, 'valorLavagem', 'ValorLavagem'),
+    cobrarPernoite: pickBool(row, 'cobrarPernoite', 'CobrarPernoite'),
+    valorPernoite: pickNumberOrNull(row, 'valorPernoite', 'ValorPernoite'),
+    cobrarServicosExtras: pickBool(row, 'cobrarServicosExtras', 'CobrarServicosExtras'),
+    valorServicosExtras: pickNumberOrNull(row, 'valorServicosExtras', 'ValorServicosExtras'),
+    considerarBeneficioAbastecimento: pickBool(
+      row,
+      'considerarBeneficioAbastecimento',
+      'ConsiderarBeneficioAbastecimento'
+    ),
+    valorBeneficioAbastecimento: pickNumberOrNull(
+      row,
+      'valorBeneficioAbastecimento',
+      'ValorBeneficioAbastecimento'
+    ),
     agruparPorPlaca: pickBool(row, 'agruparPorPlaca', 'AgruparPorPlaca'),
     agruparPorPeriodo: pickBool(row, 'agruparPorPeriodo', 'AgruparPorPeriodo'),
-    agruparPorTransportadora: pickBool(row, 'agruparPorTransportadora', 'AgruparPorTransportadora'),
-    regra
+    agruparPorTransportadora: pickBool(row, 'agruparPorTransportadora', 'AgruparPorTransportadora')
   };
 }

@@ -99,6 +99,33 @@ function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
 }
 
 /**
+ * GET da config de horário: 404 = ainda não cadastrada (cenário esperado).
+ * O toast genérico atrapalhava o fluxo da aba Horário.
+ */
+function isEstacionamentoConfiguracaoAtualGet(req: HttpRequest<unknown>): boolean {
+  if (req.method !== 'GET') return false;
+  const u = req.url.toLowerCase().split('?')[0];
+  return u.endsWith('/estacionamentoconfiguracao') || u.endsWith('/estacionamentoconfiguracao/');
+}
+
+/**
+ * Lookups do registro rápido em Movimentos: 404 = sem cadastro prévio (esperado).
+ * A tela preenche silenciosamente quando houver dado; não deve exibir toast.
+ */
+function isMovimentosLookupSilencioso(req: HttpRequest<unknown>): boolean {
+  if (req.method !== 'GET') return false;
+  const u = req.url.toLowerCase().split('?')[0];
+  return u.includes('/entradasaida/buscar-por-placa/') || u.includes('/motorista/cpf/');
+}
+
+/** GET valor-estacionamento: ausência de config ativa (404) é cenário esperado na saída. */
+function isValorEstacionamentoGet(req: HttpRequest<unknown>): boolean {
+  if (req.method !== 'GET') return false;
+  const u = req.url.toLowerCase().split('?')[0];
+  return u.includes('/entradasaida/valor-estacionamento');
+}
+
+/**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
  */
@@ -111,13 +138,16 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         status: undefined,
         fieldErrors: undefined
       };
-      if (
-        !isLoginRequest(req) &&
-        !isBrasilApiCnpjRequest(req) &&
-        !isConfirmarEmailRequest(req) &&
-        !isPasswordResetPublicRequest(req) &&
-        !isUsuarioRegisterRequest(req)
-      ) {
+      const skipToast =
+        isLoginRequest(req) ||
+        isBrasilApiCnpjRequest(req) ||
+        isConfirmarEmailRequest(req) ||
+        isPasswordResetPublicRequest(req) ||
+        isUsuarioRegisterRequest(req) ||
+        (isEstacionamentoConfiguracaoAtualGet(req) && apiError.status === 404) ||
+        (isMovimentosLookupSilencioso(req) && (apiError.status === 404 || apiError.status === 204)) ||
+        (isValorEstacionamentoGet(req) && (apiError.status === 404 || apiError.status === 204));
+      if (!skipToast) {
         toast.error(apiError.message);
       }
       return throwError(() => apiError);

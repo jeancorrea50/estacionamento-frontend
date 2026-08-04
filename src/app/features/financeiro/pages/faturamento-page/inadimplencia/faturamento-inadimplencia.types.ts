@@ -1,3 +1,6 @@
+import type { TipoFatura } from '../../../models/fatura.models';
+import type { TipoFaturaLabel } from '../faturas/faturamento-faturas.types';
+
 export type InadimplenciaStatusCobranca =
   | 'Não enviada'
   | 'Enviada'
@@ -26,9 +29,15 @@ export interface InadimplenciaHistoricoCobrancaItem {
 }
 
 export interface InadimplenciaListaItem {
+  /** Id numérico da fatura (API). */
+  faturaId: number;
+  /** Número da fatura (exibição na grid). */
   id: string;
+  transportadoraId: number;
   transportadora: string;
   estacionamento: string;
+  tipoFatura: TipoFaturaLabel;
+  tipoFaturaCodigo: TipoFatura;
   valor: number;
   vencimento: string;
   diasAtraso: number;
@@ -37,6 +46,14 @@ export interface InadimplenciaListaItem {
   emailFinanceiro: string;
   contato: string;
   historicoCobranca: InadimplenciaHistoricoCobrancaItem[];
+  quantidadeMovimentos: number;
+}
+
+export interface InadimplenciaResumo {
+  totalVencido: number;
+  faturasVencidas: number;
+  transportadorasInadimplentes: number;
+  acordosRealizados: number;
 }
 
 export interface InadimplenciaAcordoDialogData {

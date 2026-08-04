@@ -1,0 +1,44 @@
+<section class="horario-page" aria-labelledby="horario-title">
+  @if (loading()) {
+    <p class="horario-page__status" role="status">Carregando horários...</p>
+  } @else {
+    <div class="horario-card">
+      <header class="horario-card__head">
+        <h2 id="horario-title" class="horario-card__title">Horário do estacionamento</h2>
+        <p class="horario-card__subtitle">
+          Selecione o fuso horário usado nos registros de entrada, saída e faturamento.
+        </p>
+      </header>
+
+      <div class="horario-card__field">
+        <label class="horario-card__label" for="timeZoneId">Horário</label>
+        <select
+          id="timeZoneId"
+          class="horario-card__select"
+          name="timeZoneId"
+          [ngModel]="timeZoneId()"
+          (ngModelChange)="onTimeZoneChange($event)"
+          [disabled]="salvando() || padroes().length === 0"
+        >
+          @if (!padroes().length) {
+            <option value="">Nenhum fuso disponível</option>
+          }
+          @for (p of padroes(); track p.timeZoneId) {
+            <option [value]="p.timeZoneId">{{ p.nome }}</option>
+          }
+        </select>
+      </div>
+
+      <footer class="horario-card__actions">
+        <button
+          type="button"
+          class="btn btn--primary horario-card__save"
+          [disabled]="!podeSalvar()"
+          (click)="salvar()"
+        >
+          {{ salvando() ? 'Salvando...' : 'Salvar horário' }}
+        </button>
+      </footer>
+    </div>
+  }
+</section>

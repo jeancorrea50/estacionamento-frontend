@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, DestroyRef, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,17 +13,21 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectChange, MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 
+import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
+import { FaturaService } from '../../../services/fatura.service';
 import { FaturamentoInadimplenciaAcordoDialogComponent } from './faturamento-inadimplencia-acordo-dialog.component';
-import { INADIMPLENCIA_MOCK } from './faturamento-inadimplencia.mock';
 import type {
   InadimplenciaDiasFiltroId,
   InadimplenciaFiltroRapidoId,
   InadimplenciaListaItem,
+  InadimplenciaResumo,
   InadimplenciaStatusCobranca
 } from './faturamento-inadimplencia.types';
 
@@ -55,19 +60,30 @@ interface InadCalendarioCelula {
     MatInputModule,
     MatMenuModule,
     MatSelectModule,
+    MatSnackBarModule,
     MatTableModule,
     MatTooltipModule
   ],
   templateUrl: './faturamento-inadimplencia.component.html',
   styleUrls: ['./faturamento-inadimplencia.component.scss']
 })
-export class FaturamentoInadimplenciaComponent {
+export class FaturamentoInadimplenciaComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly themeService = inject(ThemeService);
+  private readonly api = inject(FaturaService);
+  private readonly snack = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly todas = INADIMPLENCIA_MOCK;
+  readonly items = signal<InadimplenciaListaItem[]>([]);
+  readonly resumo = signal<InadimplenciaResumo>({
+    totalVencido: 0,
+    faturasVencidas: 0,
+    transportadorasInadimplentes: 0,
+    acordosRealizados: 0
+  });
+  readonly loading = signal(false);
+  readonly totalCountApi = signal(0);
 
   private readonly filtrosRapidosValidos = new Set<InadimplenciaFiltroRapidoId>([
     'todas',
@@ -154,8 +170,8 @@ export class FaturamentoInadimplenciaComponent {
   readonly displayedColumns: string[] = [
     'select',
     'fatura',
+    'tipoFatura',
     'transportadora',
-    'estacionamento',
     'valor',
     'vencimento',
     'diasAtraso',
@@ -165,17 +181,17 @@ export class FaturamentoInadimplenciaComponent {
   ];
 
   readonly transportadorasOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.transportadora));
+    const u = new Set(this.items().map((r) => r.transportadora));
     return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
   readonly estacionamentosOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.estacionamento));
+    const u = new Set(this.items().map((r) => r.estacionamento));
     return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
   readonly contagensChips = computed(() => {
-    const rows = this.todas;
+    const rows = this.items();
     const d1_7 = (d: number) => d >= 1 && d <= 7;
     const d8_15 = (d: number) => d >= 8 && d <= 15;
     const m15 = (d: number) => d > 15;
@@ -230,12 +246,12 @@ export class FaturamentoInadimplenciaComponent {
     return c;
   });
 
-  readonly totalVencidoFormatado = computed(() =>
-    this.formatCurrency(this.linhasFiltradas().reduce((acc, row) => acc + row.valor, 0))
+  readonly totalVencidoFormatado = computed(() => this.formatCurrency(this.resumo().totalVencido));
+  readonly faturasVencidasResumo = computed(() => this.resumo().faturasVencidas);
+  readonly transportadorasInadimplentesResumo = computed(
+    () => this.resumo().transportadorasInadimplentes
   );
-  readonly contagemAcordos = computed(
-    () => this.linhasFiltradas().filter((row) => row.statusCobranca === 'Acordo realizado').length
-  );
+  readonly contagemAcordos = computed(() => this.resumo().acordosRealizados);
 
   constructor() {
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
@@ -252,6 +268,48 @@ export class FaturamentoInadimplenciaComponent {
       }
       untracked(() => this.paginaAtual.set(0));
     });
+  }
+
+  ngOnInit(): void {
+    this.carregarLista();
+  }
+
+  carregarLista(): void {
+    if (this.loading()) return;
+    this.loading.set(true);
+    const q = this.searchText().trim();
+    const looksLikeNumero = /^[A-Za-z0-9._\-\/]+$/.test(q) && /\d/.test(q) && !/\s/.test(q);
+
+    this.api
+      .listarInadimplentes({
+        numeroPagina: 1,
+        tamanhoPagina: 200,
+        numero: looksLikeNumero ? q : undefined,
+        descricao: q && !looksLikeNumero ? q : undefined
+      })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (page) => {
+          this.selection.clear();
+          this.items.set(page.items);
+          this.resumo.set(page.resumo);
+          this.totalCountApi.set(page.totalCount);
+          this.paginaAtual.set(0);
+        },
+        error: (err) => {
+          this.items.set([]);
+          this.resumo.set({
+            totalVencido: 0,
+            faturasVencidas: 0,
+            transportadorasInadimplentes: 0,
+            acordosRealizados: 0
+          });
+          this.totalCountApi.set(0);
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar inadimplentes.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
   }
 
   @HostListener('document:click', ['$event'])
@@ -316,6 +374,7 @@ export class FaturamentoInadimplenciaComponent {
     this.diasFiltro.set('all');
     this.statusCobrancaFiltro.set('all');
     this.searchText.set('');
+    this.carregarLista();
   }
 
   irParaPagina(p: number): void {
@@ -487,7 +546,7 @@ export class FaturamentoInadimplenciaComponent {
   }
 
   private aplicarFiltros(): InadimplenciaListaItem[] {
-    let rows = [...this.todas];
+    let rows = [...this.items()];
     const tr = this.transportadoraFiltro();
     const es = this.estacionamentoFiltro();
     const di = this.diasFiltro();
@@ -520,6 +579,17 @@ export class FaturamentoInadimplenciaComponent {
     }
 
     return rows;
+  }
+
+  private mensagemErro(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const msg = (err as ApiError).message;
+      if (typeof msg === 'string' && msg.trim()) return msg;
+    }
+    if (err instanceof HttpErrorResponse) {
+      return err.message || fallback;
+    }
+    return fallback;
   }
 
   private criarDataHoje(): Date {

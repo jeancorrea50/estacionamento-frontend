@@ -41,6 +41,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   estacionamento: '/app/cadastro/estacionamento',
   motorista: '/app/cadastro/motorista',
   usuarios: '/app/configuracoes/usuarios',
+  horario: '/app/configuracoes/horario',
+  'fuso horario': '/app/configuracoes/horario',
+  fusohorario: '/app/configuracoes/horario',
   /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
   /** Alias legado / API — gestão de usuários em Configurações */

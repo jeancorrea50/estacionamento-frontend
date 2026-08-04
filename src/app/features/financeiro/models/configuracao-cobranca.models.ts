@@ -9,7 +9,8 @@ export enum ModalidadeCobranca {
   Diaria = 1,
   Semanal = 2,
   Quinzenal = 3,
-  Mensal = 4
+  Mensal = 4,
+  Personalizado = 5
 }
 
 export enum RegraFechamento {
@@ -17,18 +18,16 @@ export enum RegraFechamento {
   DiaFixo = 2
 }
 
-export interface ConfiguracaoCobrancaRegraDto {
-  id: number;
-  configuracaoCobrancaId?: number;
-  cobrarDiaria: boolean;
-  cobrarSemanal: boolean;
-  cobrarQuinzenal: boolean;
-  cobrarMensal: boolean;
-  cobrarDataPersonalizada: boolean;
+/** Serviços adicionais: cada flag habilita o respectivo valor, obrigatório quando ativa. */
+export interface ConfiguracaoCobrancaServicosAdicionais {
   cobrarLavagem: boolean;
+  valorLavagem: number | null;
   cobrarPernoite: boolean;
+  valorPernoite: number | null;
   cobrarServicosExtras: boolean;
+  valorServicosExtras: number | null;
   considerarBeneficioAbastecimento: boolean;
+  valorBeneficioAbastecimento: number | null;
 }
 
 export interface ConfiguracaoCobrancaFilter {
@@ -50,12 +49,17 @@ export interface ConfiguracaoCobrancaSearchOutput {
   estacionamentoNome: string;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
-  valorEstadia: number | null;
+  diaFechamento: number | null;
+  regraFechamento: RegraFechamento;
+  prazoVencimentoDias: number;
+  valorEstacionamento: number | null;
   emailFinanceiro: string | null;
+  envioAutomaticoEmail: boolean;
+  gerarFaturaAutomaticamente: boolean;
   dataCriacao: string;
 }
 
-export interface ConfiguracaoCobrancaOutput {
+export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicosAdicionais {
   id: number;
   dataCriacao?: string;
   dataAtualizacao?: string | null;
@@ -80,17 +84,17 @@ export interface ConfiguracaoCobrancaOutput {
   valorDescontoFixo: number;
   aplicarAcrescimoFixo: boolean;
   valorAcrescimoFixo: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
+  /** Preenchida somente quando `modalidadeCobranca` é `Personalizado`. */
+  dataCobranca: string | null;
   agruparPorPlaca: boolean;
   agruparPorPeriodo: boolean;
   agruparPorTransportadora: boolean;
-  regra: ConfiguracaoCobrancaRegraDto | null;
 }
 
-export interface ConfiguracaoCobrancaPostInput {
+export interface ConfiguracaoCobrancaPostInput extends ConfiguracaoCobrancaServicosAdicionais {
   id?: number;
   transportadoraId: number;
-  estacionamentoId: number;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
   diaFechamento: number | null;
@@ -108,11 +112,12 @@ export interface ConfiguracaoCobrancaPostInput {
   valorDescontoFixo: number;
   aplicarAcrescimoFixo: boolean;
   valorAcrescimoFixo: number;
-  valorEstadia: number | null;
+  valorEstacionamento: number | null;
+  /** Enviada somente quando `modalidadeCobranca` é `Personalizado`. */
+  dataCobranca: string | null;
   agruparPorPlaca: boolean;
   agruparPorPeriodo: boolean;
   agruparPorTransportadora: boolean;
-  regra: ConfiguracaoCobrancaRegraDto;
 }
 
 export type ConfiguracaoCobrancaPutInput = ConfiguracaoCobrancaPostInput & { id: number };

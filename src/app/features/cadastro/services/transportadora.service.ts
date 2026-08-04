@@ -261,7 +261,7 @@ export class TransportadoraService {
     const ativoVal = (): boolean => {
       for (const base of bases) {
         const a = getFrom(base, 'ativo');
-        if (a !== undefined && a !== null) return a !== false && a !== 0 && String(a).toLowerCase() !== 'false';
+        if (a !== undefined && a !== null) return this.parseAtivoFlag(a);
       }
       return true;
     };
@@ -287,9 +287,25 @@ export class TransportadoraService {
         'Descricao'
       ),
       cnpj: firstStr('cnpj', 'Cnpj', 'documento', 'Documento'),
-      email: firstStr('email', 'Email'),
+      email: firstStr(
+        'responsavelEmail',
+        'ResponsavelEmail',
+        'email',
+        'Email'
+      ),
+      telefone: firstStr(
+        'responsavelTelefone',
+        'ResponsavelTelefone',
+        'responsavelCelular',
+        'contato',
+        'Contato',
+        'telefone',
+        'Telefone'
+      ),
       ativo: ativoVal(),
       quantidadeVeiculos: firstNum(
+        'quantidadeVeiculo',
+        'QuantidadeVeiculo',
         'quantidadeVeiculos',
         'QuantidadeVeiculos',
         'totalVeiculos',
@@ -431,7 +447,7 @@ export class TransportadoraService {
       inscricaoEstadual: get('inscricaoEstadual') != null ? String(get('inscricaoEstadual')) : undefined,
       email: String(get('email') ?? getPessoa('email') ?? ''),
       telefone: telefoneDto,
-      ativo: (get('ativo') ?? getPessoa('ativo')) !== false,
+      ativo: this.parseAtivoFlag(get('ativo') ?? getPessoa('ativo')),
       responsavelNome: nomeLegalFlat || (pickMetaOuFlat(metaLegal.n, 'responsavelNome') ?? pickFlat('nomeResponsavel')),
       responsavelCpf: cpfLegalFlat || (pickMetaOuFlat(metaLegal.c, 'responsavelCpf') ?? pickFlat('cpfResponsavel')),
       responsavelCelular: responsavelCelularDto,
@@ -450,6 +466,17 @@ export class TransportadoraService {
           }
         : undefined
     };
+  }
+
+  /** Interpreta `ativo` do GET /api/Transportadora (raiz ou pessoa). Ausente => true. */
+  private parseAtivoFlag(raw: unknown): boolean {
+    if (raw === undefined || raw === null || raw === '') return true;
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw === 'number') return raw !== 0;
+    const s = String(raw).trim().toLowerCase();
+    if (['false', '0', 'inativo', 'n', 'nao', 'não'].includes(s)) return false;
+    if (['true', '1', 'ativo', 's', 'sim'].includes(s)) return true;
+    return true;
   }
 
   private ordenarContatosPrincipalPrimeiro(contatos: Record<string, unknown>[]): Record<string, unknown>[] {

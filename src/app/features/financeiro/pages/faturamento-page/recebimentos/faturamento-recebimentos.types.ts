@@ -1,3 +1,6 @@
+import type { TipoFatura } from '../../../models/fatura.models';
+import type { TipoFaturaLabel } from '../faturas/faturamento-faturas.types';
+
 export type RecebimentoPagamentoStatus =
   | 'Pago'
   | 'Parcial'
@@ -38,9 +41,13 @@ export interface RecebimentoHistoricoItem {
 }
 
 export interface RecebimentoListaItem {
+  faturaId: number;
   id: string;
+  transportadoraId: number;
   transportadora: string;
   estacionamento: string;
+  tipoFatura: TipoFaturaLabel;
+  tipoFaturaCodigo: TipoFatura;
   valorFatura: number;
   valorRecebido: number;
   saldoRestante: number;
@@ -49,6 +56,15 @@ export interface RecebimentoListaItem {
   comprovante: RecebimentoComprovanteEstado;
   status: RecebimentoPagamentoStatus;
   historico: RecebimentoHistoricoItem[];
+}
+
+export interface RecebimentoResumo {
+  totalRecebidoPeriodo: number;
+  pagamentosParciais: number;
+  quantidadePagamentosParciais: number;
+  valorPendente: number;
+  quantidadePendentes: number;
+  recebimentosDoDia: number;
 }
 
 export interface RecebimentoPartialDialogData {

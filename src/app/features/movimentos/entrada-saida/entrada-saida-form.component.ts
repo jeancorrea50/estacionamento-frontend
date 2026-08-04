@@ -25,6 +25,7 @@ import { EntradaSaidaFormDetailVm } from './entrada-saida-form.models';
 import { ModalBuscaMotoristaComponent } from './components/modal-busca-motorista/modal-busca-motorista.component';
 import { ModalBuscaTransportadoraComponent } from './components/modal-busca-transportadora/modal-busca-transportadora.component';
 import { ModalBuscaVeiculoComponent } from './components/modal-busca-veiculo/modal-busca-veiculo.component';
+import { datetimeLocalInputToApiIso } from '../../../shared/utils/local-iso-datetime';
 import {
   Observable,
   Subject,
@@ -537,12 +538,12 @@ export class EntradaSaidaFormComponent implements OnInit {
   }
 
   private toIsoOrUndefined(value: string | null | undefined): string | undefined {
-    if (!value?.trim()) return undefined;
-    return new Date(value).toISOString();
+    const iso = datetimeLocalInputToApiIso(value);
+    return iso || undefined;
   }
 
   private toIsoOrEmpty(value: string | null | undefined): string {
-    return value?.trim() ? new Date(value).toISOString() : '';
+    return datetimeLocalInputToApiIso(value);
   }
 
   private dataSaidaMaiorOuIgualValidator(control: AbstractControl): ValidationErrors | null {

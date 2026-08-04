@@ -2,14 +2,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import {
-  mapOutputToListaItem,
-  mapRawOutput,
-  mapRawSearchItem,
-  mapSearchToListaItem,
-  pickNumber,
-  unwrapResult
-} from '../mappers/configuracao-cobranca.mapper';
 import type {
   ConfiguracaoCobrancaFilter,
   ConfiguracaoCobrancaOutput,
@@ -19,6 +11,14 @@ import type {
   ConfiguracaoCobrancaSearchOutput
 } from '../models/configuracao-cobranca.models';
 import type { ConfigCobrancaListaItem } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
+import {
+  mapOutputToListaItem,
+  mapRawOutput,
+  mapRawSearchItem,
+  mapSearchToListaItem,
+  pickNumber,
+  unwrapResult
+} from '../mappers/configuracao-cobranca.mapper';
 
 const API = `${environment.API_BASE_URL}/financeiro/ConfiguracaoCobranca`;
 

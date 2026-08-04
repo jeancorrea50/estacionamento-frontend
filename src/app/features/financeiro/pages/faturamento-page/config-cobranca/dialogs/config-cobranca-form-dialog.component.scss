@@ -158,6 +158,31 @@
   width: 100%;
 }
 
+.cfg-block__head--with-action {
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cfg-block__head-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cfg-block__head-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.cfg-block--locked .cfg-block__body,
+.cfg-block--locked .cfg-block__grid {
+  opacity: 0.48;
+  pointer-events: none;
+  user-select: none;
+}
+
 .cfg-block__head--toggle {
   margin-bottom: 0;
   background: none;
@@ -216,46 +241,66 @@
   grid-column: 1 / -1;
 }
 
-/* Campo monetário: R$ fora do outline para não colidir com o label flutuante */
-.cfg-money-field {
+/* Campo dependente da opção selecionada logo acima */
+.cfg-block__grid--inset {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--cfg-input-border);
+}
+
+.cfg-weekday-summary__card {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--cfg-input-border);
+  background: color-mix(in srgb, var(--cfg-surface, #151f34) 88%, #000);
+}
+
+.cfg-weekday-summary__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cfg-weekday-summary__label {
+  font-size: 0.75rem;
+  color: var(--cfg-muted, #94a3b8);
+}
+
+.cfg-weekday-summary__value {
+  font-size: 0.9375rem;
+  color: var(--cfg-text, #f8fafc);
+  font-weight: 700;
+}
+
+/* Campo monetário com prefixo integrado ao controle. */
+.cfg-money-field {
   width: 100%;
   max-width: 320px;
 }
 
-.cfg-money-field__currency {
-  flex: 0 0 auto;
-  margin-top: 16px;
-  min-width: 2rem;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.cfg-money-field__prefix {
   color: var(--cfg-text);
-  line-height: 40px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.cfg-money-field__control {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.cfg-money-field__control input.mat-mdc-input-element {
-  text-align: right;
+.cfg-money-field input.mat-mdc-input-element {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
 
-/* ── Cards selecionáveis (Bloco 2 e 6) ─────────────────────────────── */
+/* ── Cards selecionáveis (Blocos 2 e 7) ────────────────────────────── */
 .cfg-options {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-.cfg-options--compact {
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 .cfg-option {
@@ -321,6 +366,49 @@
   flex: 1 1 auto;
   font-size: 13px;
   line-height: 1.3;
+}
+
+/* Indicador circular para a seleção única da regra de cobrança */
+.cfg-option__check--radio {
+  border-radius: 50%;
+}
+
+.cfg-option--active .cfg-option__check--radio {
+  background: transparent;
+  border-color: var(--cfg-primary);
+}
+
+.cfg-option__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.cfg-option--active .cfg-option__dot {
+  background: var(--cfg-primary);
+}
+
+/* ── Bloco 7 — serviços adicionais ─────────────────────────────────── */
+.cfg-services {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.cfg-service {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cfg-service__toggle {
+  width: 100%;
+}
+
+.cfg-service__valor {
+  width: 100%;
 }
 
 /* ── Switches (Bloco 4) ────────────────────────────────────────────── */
@@ -479,4 +567,9 @@
 ::ng-deep .cfg-form-dialog-panel .mat-mdc-slide-toggle .mdc-label {
   color: #dbe7fb;
   font-size: 13px;
+}
+
+/* Sem color-scheme o seletor nativo de data renderiza o ícone escuro sobre fundo escuro */
+::ng-deep .cfg-form-dialog-panel input[type='date'].mat-mdc-input-element {
+  color-scheme: dark;
 }

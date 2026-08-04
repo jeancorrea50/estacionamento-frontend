@@ -37,14 +37,6 @@
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-          <mat-label>Estacionamento</mat-label>
-          <mat-select [(ngModel)]="estacionamentoId" required>
-            @for (e of data.estacionamentos; track e.id) {
-              <mat-option [value]="e.id">{{ e.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Status da configuração</mat-label>
           <mat-select [(ngModel)]="status">
             @for (s of data.statusOpcoes; track s) {
@@ -55,118 +47,182 @@
       </div>
     </section>
 
-    <!-- Bloco 2 — Regra de cobrança (cards selecionáveis) -->
-    <section class="cfg-block">
-      <div class="cfg-block__head">
-        <span class="cfg-block__num">2</span>
-        <h3 class="cfg-block__title">Regra de cobrança</h3>
+    <!-- Bloco 2 — Regra de cobrança (seleção única) -->
+    <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
+      <div class="cfg-block__head cfg-block__head--with-action">
+        <div class="cfg-block__head-main">
+          <span class="cfg-block__num">2</span>
+          <h3 class="cfg-block__title">Regra de cobrança</h3>
+        </div>
+        <mat-slide-toggle class="cfg-block__head-toggle" [(ngModel)]="gerarAuto">
+          Gerar fatura automaticamente
+        </mat-slide-toggle>
       </div>
-      <div class="cfg-options">
-        @for (o of servicosOpcoes; track o.key) {
-          <button
-            type="button"
-            class="cfg-option"
-            [class.cfg-option--active]="serv[o.key]"
-            [attr.aria-pressed]="serv[o.key]"
-            (click)="toggleServico(o.key)"
-          >
-            <span class="cfg-option__check" aria-hidden="true">
-              <span class="material-symbols-outlined">{{ serv[o.key] ? 'check' : '' }}</span>
-            </span>
-            <span class="material-symbols-outlined cfg-option__ico" aria-hidden="true">{{ o.icon }}</span>
-            <span class="cfg-option__label">{{ o.label }}</span>
-          </button>
+
+      <div class="cfg-block__body" [attr.aria-disabled]="!gerarAuto">
+        <div class="cfg-options" role="radiogroup" aria-label="Regra de cobrança">
+          @for (o of modalidadeOpcoes; track o.value) {
+            <button
+              type="button"
+              role="radio"
+              class="cfg-option"
+              [class.cfg-option--active]="modalidade === o.value"
+              [attr.aria-checked]="modalidade === o.value"
+              [disabled]="!gerarAuto"
+              (click)="selecionarModalidade(o.value)"
+            >
+              <span class="cfg-option__check cfg-option__check--radio" aria-hidden="true">
+                <span class="cfg-option__dot"></span>
+              </span>
+              <span class="material-symbols-outlined cfg-option__ico" aria-hidden="true">{{ o.icon }}</span>
+              <span class="cfg-option__label">{{ o.label }}</span>
+            </button>
+          }
+        </div>
+
+        @if (exigeDataCobranca) {
+          <div class="cfg-block__grid cfg-block__grid--inset">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+              <mat-label>Data da cobrança</mat-label>
+              <input matInput type="date" [(ngModel)]="dataCobranca" [disabled]="!gerarAuto" required />
+              <mat-hint>Data em que a fatura será gerada.</mat-hint>
+            </mat-form-field>
+          </div>
+        }
+
+        @if (exigeDiaMensal) {
+          <div class="cfg-block__grid cfg-block__grid--inset">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+              <mat-label>Dia da cobrança</mat-label>
+              <input
+                matInput
+                type="number"
+                min="1"
+                max="31"
+                [(ngModel)]="diaFechamento"
+                [disabled]="!gerarAuto"
+                required
+                placeholder="1 a 31"
+              />
+              <mat-hint>Dia do mês em que a cobrança mensal será gerada.</mat-hint>
+            </mat-form-field>
+          </div>
+        }
+
+        @if (exigeDiaSemanal) {
+          <div class="cfg-block__grid cfg-block__grid--inset cfg-weekday-summary">
+            <div class="cfg-weekday-summary__card">
+              <div class="cfg-weekday-summary__text">
+                <span class="cfg-weekday-summary__label">Dia da semana</span>
+                <strong class="cfg-weekday-summary__value">
+                  {{ diaSemanaSelecionadoLabel || 'Nenhum dia selecionado' }}
+                </strong>
+              </div>
+              <button
+                type="button"
+                mat-stroked-button
+                color="primary"
+                [disabled]="!gerarAuto"
+                (click)="abrirModalDiaSemana()"
+              >
+                {{ diaSemanaSelecionadoLabel ? 'Alterar dia' : 'Selecionar dia' }}
+              </button>
+            </div>
+          </div>
         }
       </div>
     </section>
 
-    <!-- Bloco 3 — Fechamento e vencimento -->
-    <section class="cfg-block">
+    <!-- Bloco 3 — Vencimento da fatura -->
+    <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
       <div class="cfg-block__head">
         <span class="cfg-block__num">3</span>
-        <h3 class="cfg-block__title">Fechamento e vencimento</h3>
+        <h3 class="cfg-block__title">Vencimento da fatura</h3>
       </div>
       <div class="cfg-block__grid">
+        @if (!exigeDiaMensal && !exigeDiaSemanal) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+            <mat-label>Regra de fechamento</mat-label>
+            <mat-select [(ngModel)]="regraFechamento" [disabled]="!gerarAuto" required>
+              @for (r of regraFechamentoOpcoes; track r.value) {
+                <mat-option [value]="r.value">{{ r.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+            <mat-label>Dia de fechamento</mat-label>
+            <input
+              matInput
+              type="number"
+              min="1"
+              max="31"
+              [(ngModel)]="diaFechamento"
+              [disabled]="!gerarAuto || regraFechamento !== RegraFechamento.DiaFixo"
+              placeholder="1 a 31"
+            />
+          </mat-form-field>
+        }
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-          <mat-label>Modalidade de cobrança</mat-label>
-          <mat-select [(ngModel)]="modalidade" required>
-            @for (m of data.modalidades; track m) {
-              <mat-option [value]="m">{{ m }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-          <mat-label>Regra de fechamento</mat-label>
-          <mat-select [(ngModel)]="regraFechamento" required>
-            @for (r of regraFechamentoOpcoes; track r.value) {
-              <mat-option [value]="r.value">{{ r.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-          <mat-label>Dia de fechamento</mat-label>
+          <mat-label>Prazo de vencimento (dias após fechamento)</mat-label>
           <input
             matInput
             type="number"
             min="1"
-            max="31"
-            [(ngModel)]="diaFechamento"
-            [disabled]="regraFechamento !== RegraFechamento.DiaFixo"
-            placeholder="1 a 31"
+            [(ngModel)]="prazoVencimentoDias"
+            [disabled]="!gerarAuto"
+            required
           />
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-field--full">
-          <mat-label>Prazo de vencimento (dias após fechamento)</mat-label>
-          <input matInput type="number" min="1" [(ngModel)]="prazoVencimentoDias" required />
         </mat-form-field>
       </div>
     </section>
 
     <!-- Bloco 4 — Envio e automações -->
-    <section class="cfg-block">
-      <div class="cfg-block__head">
-        <span class="cfg-block__num">4</span>
-        <h3 class="cfg-block__title">Envio e automações</h3>
+    <section class="cfg-block" [class.cfg-block--locked]="!envioAuto">
+      <div class="cfg-block__head cfg-block__head--with-action">
+        <div class="cfg-block__head-main">
+          <span class="cfg-block__num">4</span>
+          <h3 class="cfg-block__title">Envio e automações</h3>
+        </div>
+        <mat-slide-toggle class="cfg-block__head-toggle" [(ngModel)]="envioAuto">
+          Envio automático por e-mail
+        </mat-slide-toggle>
       </div>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-field--full">
-        <mat-label>E-mail financeiro</mat-label>
-        <input matInput type="email" [(ngModel)]="email" />
-      </mat-form-field>
-      <div class="cfg-switches">
-        <div class="cfg-switch">
-          <mat-slide-toggle [(ngModel)]="envioAuto">Envio automático por e-mail</mat-slide-toggle>
-        </div>
-        <div class="cfg-switch">
-          <mat-slide-toggle [(ngModel)]="gerarAuto">Gerar fatura automaticamente</mat-slide-toggle>
-        </div>
-        <div class="cfg-switch">
-          <mat-slide-toggle [(ngModel)]="pagamentoParcial">Permitir pagamento parcial</mat-slide-toggle>
-        </div>
+      <div class="cfg-block__body">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-field--full">
+          <mat-label>E-mail financeiro</mat-label>
+          <input matInput type="email" [(ngModel)]="email" [disabled]="!envioAuto" [required]="envioAuto" />
+        </mat-form-field>
       </div>
     </section>
 
-    <!-- Bloco 5 — Configuração de valor -->
+    <!-- Bloco 5 — Valor da cobrança -->
     <section class="cfg-block">
       <div class="cfg-block__head">
         <span class="cfg-block__num">5</span>
-        <h3 class="cfg-block__title">Configuração de valor</h3>
+        <h3 class="cfg-block__title">Valor da cobrança</h3>
       </div>
       <div class="cfg-block__grid">
         <div class="cfg-money-field">
-          <span class="cfg-money-field__currency" aria-hidden="true">R$</span>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-money-field__control">
-            <mat-label>Valor da estadia</mat-label>
+          <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic" class="cfg-field">
+            <mat-label>{{ valorCobrancaLabel }}</mat-label>
+            <span matTextPrefix class="cfg-money-field__prefix">R$&nbsp;</span>
             <input
               matInput
               type="text"
               inputmode="decimal"
               autocomplete="off"
-              [(ngModel)]="valorEstadiaTexto"
-              (blur)="onValorEstadiaBlur()"
-              (focus)="onValorEstadiaFocus()"
-              aria-describedby="cfg-valor-estadia-hint"
+              placeholder="0,00"
+              [(ngModel)]="valorEstacionamentoTexto"
+              [errorStateMatcher]="valorCobrancaMatcher"
+              (blur)="onValorEstacionamentoBlur()"
+              (focus)="onValorEstacionamentoFocus()"
+              required
             />
-            <mat-hint id="cfg-valor-estadia-hint">Formato brasileiro. Ex.: 1.250,00</mat-hint>
+            @if (valorEstacionamentoTocado && valorCobrancaInvalido) {
+              <mat-error>Informe o {{ valorCobrancaLabel.toLowerCase() }} maior que zero.</mat-error>
+            } @else {
+              <mat-hint>Formato brasileiro. Ex.: 1.250,00</mat-hint>
+            }
           </mat-form-field>
         </div>
       </div>
@@ -189,57 +245,81 @@
         <div class="cfg-fees">
           <div class="cfg-fee-row">
             <mat-slide-toggle [(ngModel)]="multa">Aplicar multa</mat-slide-toggle>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Percentual de multa</mat-label>
-              <input matInput type="number" [(ngModel)]="multaPct" [disabled]="!multa" />
-            </mat-form-field>
+            @if (multa) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                <mat-label>Percentual de multa</mat-label>
+                <input matInput type="number" min="0" step="0.01" [(ngModel)]="multaPct" required />
+              </mat-form-field>
+            }
           </div>
           <div class="cfg-fee-row">
             <mat-slide-toggle [(ngModel)]="juros">Aplicar juros</mat-slide-toggle>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Percentual de juros</mat-label>
-              <input matInput type="number" [(ngModel)]="jurosPct" [disabled]="!juros" />
-            </mat-form-field>
+            @if (juros) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                <mat-label>Percentual de juros</mat-label>
+                <input matInput type="number" min="0" step="0.01" [(ngModel)]="jurosPct" required />
+              </mat-form-field>
+            }
           </div>
           <div class="cfg-fee-row">
             <mat-slide-toggle [(ngModel)]="descFixo">Aplicar desconto fixo</mat-slide-toggle>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Valor do desconto fixo</mat-label>
-              <input matInput type="number" [(ngModel)]="descValor" [disabled]="!descFixo" />
-            </mat-form-field>
+            @if (descFixo) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                <mat-label>Valor do desconto fixo</mat-label>
+                <input matInput type="number" min="0" step="0.01" [(ngModel)]="descValor" required />
+              </mat-form-field>
+            }
           </div>
           <div class="cfg-fee-row">
             <mat-slide-toggle [(ngModel)]="acresFixo">Aplicar acréscimo fixo</mat-slide-toggle>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Valor do acréscimo fixo</mat-label>
-              <input matInput type="number" [(ngModel)]="acresValor" [disabled]="!acresFixo" />
-            </mat-form-field>
+            @if (acresFixo) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                <mat-label>Valor do acréscimo fixo</mat-label>
+                <input matInput type="number" min="0" step="0.01" [(ngModel)]="acresValor" required />
+              </mat-form-field>
+            }
           </div>
         </div>
       }
     </section>
 
-    <!-- Bloco 7 — Agrupamento da fatura -->
+    <!-- Bloco 7 — Serviços adicionais -->
     <section class="cfg-block">
       <div class="cfg-block__head">
         <span class="cfg-block__num">7</span>
-        <h3 class="cfg-block__title">Agrupamento da fatura</h3>
+        <h3 class="cfg-block__title">Serviços adicionais</h3>
       </div>
-      <div class="cfg-options cfg-options--compact">
-        @for (o of agrupamentoOpcoes; track o.key) {
-          <button
-            type="button"
-            class="cfg-option"
-            [class.cfg-option--active]="agr[o.key]"
-            [attr.aria-pressed]="agr[o.key]"
-            (click)="toggleAgrupamento(o.key)"
-          >
-            <span class="cfg-option__check" aria-hidden="true">
-              <span class="material-symbols-outlined">{{ agr[o.key] ? 'check' : '' }}</span>
-            </span>
-            <span class="material-symbols-outlined cfg-option__ico" aria-hidden="true">{{ o.icon }}</span>
-            <span class="cfg-option__label">{{ o.label }}</span>
-          </button>
+      <div class="cfg-services">
+        @for (o of servicosOpcoes; track o.key) {
+          <div class="cfg-service">
+            <button
+              type="button"
+              class="cfg-option cfg-service__toggle"
+              [class.cfg-option--active]="servicos[o.key].habilitado"
+              [attr.aria-pressed]="servicos[o.key].habilitado"
+              (click)="toggleServico(o.key)"
+            >
+              <span class="cfg-option__check" aria-hidden="true">
+                <span class="material-symbols-outlined">{{ servicos[o.key].habilitado ? 'check' : '' }}</span>
+              </span>
+              <span class="material-symbols-outlined cfg-option__ico" aria-hidden="true">{{ o.icon }}</span>
+              <span class="cfg-option__label">{{ o.label }}</span>
+            </button>
+
+            @if (servicos[o.key].habilitado) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-service__valor">
+                <mat-label>{{ o.valorLabel }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="servicos[o.key].valor"
+                  required
+                />
+              </mat-form-field>
+            }
+          </div>
         }
       </div>
     </section>

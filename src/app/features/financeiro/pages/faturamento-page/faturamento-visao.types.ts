@@ -5,6 +5,7 @@ export type FaturamentoTabId =
   | 'faturas'
   | 'recebimentos'
   | 'inadimplencia'
+  | 'faturas'
   | 'config-cobranca';
 
 export type PeriodoFiltroId = 'hoje' | 'semana' | 'mes' | 'personalizado';

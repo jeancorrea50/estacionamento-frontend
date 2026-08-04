@@ -1,3 +1,10 @@
+import type {
+  EntradaSaidaBuscarPorPlacaMotorista,
+  EntradaSaidaBuscarPorPlacaTransportadora,
+  EntradaSaidaBuscarPorPlacaVeiculo
+} from './entrada-saida-buscar-por-placa.models';
+import type { TipoCarga } from '../../../shared/models/tipo-carga';
+
 /** Espelha `EntradaSaidaStatus` (byte) do backend. */
 export enum EntradaSaidaStatus {
   Entrada = 0,
@@ -5,6 +12,15 @@ export enum EntradaSaidaStatus {
   Suspenso = 2,
   Agendado = 3,
   Cancelado = 4
+}
+
+/**
+ * Espelha `Estac.Domain.Models.Enuns.ModoRecibo`.
+ * Query `modo` em `GET /EntradaSaida/{id}/recibo`.
+ */
+export enum ModoRecibo {
+  Saida = 1,
+  Entrada = 2
 }
 
 /** Labels alinhados aos `[Description]` do enum no backend. */
@@ -87,6 +103,14 @@ export interface EntradaSaidaSearchOutput {
   dataHoraSaida?: string | null;
   /** Enum byte do backend (`EntradaSaidaStatus` / Situacao). */
   status?: EntradaSaidaStatus | number | string;
+  /** Movimento já vinculado a fatura (paga ou não). */
+  faturado?: boolean;
+  dataFaturado?: string | null;
+  /**
+   * `true` = ainda sem FaturaItem com fatura Status=Pago (elegível a cobrança avulsa).
+   * `false` = já tem fatura paga vinculada.
+   */
+  avulso?: boolean;
 }
 
 export interface EntradaSaidaSuspensaoOutput {
@@ -120,9 +144,10 @@ export interface EntradaSaidaOutput {
   usuarioFinalizacaoNome?: string | null;
   existeEntradaEmAberto?: boolean;
   suspensoes: EntradaSaidaSuspensaoOutput[];
-  motorista?: unknown;
-  transportadora?: unknown;
-  veiculo?: unknown;
+  /** Objetos aninhados do GET buscar-por-placa / detalhe (contrato Registro Rápido). */
+  motorista?: EntradaSaidaBuscarPorPlacaMotorista | null;
+  transportadora?: EntradaSaidaBuscarPorPlacaTransportadora | null;
+  veiculo?: EntradaSaidaBuscarPorPlacaVeiculo | null;
 }
 
 export interface EntradaSaidaPostInput {
@@ -155,7 +180,7 @@ export interface EntradaSaidaPostInput {
     id?: number;
     placa?: string;
     /** Enum byte do backend (`TipoCarga`). */
-    tipoCarga?: 1 | 2 | 3 | 4 | 5;
+    tipoCarga?: TipoCarga;
   };
 }
 
@@ -173,4 +198,24 @@ export interface EntradaSaidaPagedResult<T> {
   totalCount: number;
   numeroPagina: number;
   tamanhoPagina: number;
+}
+
+/**
+ * GET `/api/EntradaSaida/valor-estacionamento?entradaSaidaId=`
+ * Espelha `ValorEstacionamentoOutput` do backend.
+ */
+export type ValorEstacionamentoOrigem = 'FaturaItem' | 'Calculado' | 'Indisponivel';
+
+export interface ValorEstacionamentoResponse {
+  entradaSaidaId: number;
+  estacionamentoId: number;
+  transportadoraId: number | null;
+  configuracaoCobrancaId: number | null;
+  /** Valor final (FaturaItem.ValorTotal ou diária × dias). */
+  valor: number | null;
+  origem: ValorEstacionamentoOrigem | string;
+  valorUnitarioDiario: number | null;
+  quantidadeDias: number | null;
+  /** Avulso | Faturado */
+  tipoCobranca: string;
 }

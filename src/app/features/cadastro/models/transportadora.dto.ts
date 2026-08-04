@@ -26,11 +26,14 @@ export interface TransportadoraListItemDTO {
   razaoSocial: string;
   nomeFantasia: string;
   cnpj: string;
+  /** Preferência: `responsavelEmail` do payload; fallback `email`. */
   email: string;
+  /** Preferência: `responsavelTelefone`; fallback `contato`. */
+  telefone?: string;
   ativo: boolean;
-  /** Contagem exibida na coluna Frota quando a API enviar o campo */
+  /** Contagem da coluna Frota (`quantidadeVeiculo` no payload). */
   quantidadeVeiculos?: number | null;
-  /** ISO ou string da API para coluna Atualização */
+  /** ISO ou string da API para coluna Atualização (`dataAtualizacao`). */
   dataAtualizacao?: string | null;
 }
 

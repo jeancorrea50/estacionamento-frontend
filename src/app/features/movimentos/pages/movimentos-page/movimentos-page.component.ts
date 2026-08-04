@@ -1,6 +1,7 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import {
@@ -11,6 +12,7 @@ import {
   EntradaSaidaSearchOutput,
   EntradaSaidaStatus,
   entradaSaidaStatusLabel,
+  ModoRecibo,
   parseEntradaSaidaStatus
 } from '../../models/entrada-saida.models';
 import { ToastService } from '../../../../core/api/services/toast.service';
@@ -24,10 +26,29 @@ import {
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { MotoristaService } from '../../../cadastro/services/motorista.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
-import { forkJoin, map, of } from 'rxjs';
+import { Subject, forkJoin, map, of, throwError } from 'rxjs';
+import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
+import {
+  datetimeLocalInputToApiIso,
+  toDateTimeLocalInputValue,
+  toLocalIsoDateTime
+} from '../../../../shared/utils/local-iso-datetime';
+import { mapBuscarPorPlacaParaRegistroRapido } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
+import {
+  mapearTipoCargaParaEnum as toTipoCargaEnum,
+  TIPO_CARGA_LABELS
+} from '../../../../shared/models/tipo-carga';
+import {
+  formatarBrl,
+  parseBrl
+} from '../../../financeiro/pages/faturamento-page/config-cobranca/config-cobranca-moeda.util';
+import {
+  calcularQuantidadeDiarias,
+  calcularTotalDiarias
+} from '../../utils/calcular-diarias';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -71,7 +92,7 @@ interface AlertaItemVm {
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
 })
-export class MovimentosPageComponent implements OnInit {
+export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly service = inject(EntradaSaidaService);
   private readonly signalrDashboardService = inject(SignalrDashboardService);
   private readonly transportadoraService = inject(TransportadoraService);
@@ -80,6 +101,7 @@ export class MovimentosPageComponent implements OnInit {
   private readonly permissionCache = inject(PermissionCacheService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
 
   readonly canVisualizar = this.permissionCache.has('entradasaida.visualizar') || this.permissionCache.hasAny(['*']);
   readonly canGravar = this.permissionCache.has('entradasaida.gravar') || this.permissionCache.hasAny(['*']);
@@ -118,6 +140,34 @@ export class MovimentosPageComponent implements OnInit {
   permanenciaAcao: PermanenciaAcao = 'suspender';
   registroSelecionado = signal<EntradaSaidaOutput | null>(null);
   permanenciaDataHora = '';
+  /** Valor unitário da diária (config ou digitado). */
+  saidaValorDiaria = signal<number | null>(null);
+  /** Valor da diária formatado pt-BR. */
+  saidaValorDiariaTexto = signal('');
+  /** Quantidade de diárias (entrada → saída). */
+  saidaQuantidadeDiarias = signal(1);
+  /** Total do recibo = diária × quantidade. */
+  saidaValor = signal<number | null>(null);
+  saidaValorBloqueado = signal(false);
+  saidaValorLoading = signal(false);
+  saidaProcessando = signal(false);
+  /** Quando true, total veio de FaturaItem e não deve ser recalculado pela data. */
+  private saidaValorFixoDaFatura = false;
+  /** Pré-visualização do recibo PDF (object URL sanitizado). */
+  readonly reciboPreviewOpen = signal(false);
+  readonly reciboPreviewUrl = signal<SafeResourceUrl | null>(null);
+  readonly reciboPreviewFileName = signal('recibo.pdf');
+  private reciboPreviewBlob: Blob | null = null;
+  private reciboPreviewObjectUrl: string | null = null;
+  /** Confirmação "imprimir recibo?" centralizada na tabela de histórico. */
+  readonly reciboConfirmOpen = signal(false);
+  readonly reciboConfirmMensagem = signal('Deseja visualizar o recibo agora?');
+  private reciboConfirmResolver: ((aceitar: boolean) => void) | null = null;
+  /** Id do movimento com download de recibo em andamento. */
+  readonly reciboBaixandoId = signal<number | null>(null);
+  /** Id/transportadora do movimento em aberto no registro rápido (para recibo). */
+  private registroRapidoEntradaId = 0;
+  private registroRapidoTransportadoraId = 0;
   processandoRegistroRapido = signal(false);
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
@@ -131,6 +181,8 @@ export class MovimentosPageComponent implements OnInit {
   private ultimaConsultaCnpjRegistroRapido = '';
   private consultaCnpjSequencia = 0;
   private ultimaPlacaConsultadaRegistroRapido = '';
+  /** Cancela GET valor-estacionamento ao fechar/reabrir o modal (evita corrida). */
+  private readonly cancelarValorEstacionamento$ = new Subject<void>();
   registroRapido = {
     placa: '',
     motorista: '',
@@ -144,21 +196,19 @@ export class MovimentosPageComponent implements OnInit {
     observacao: ''
   };
 
-  /** Opções comuns para tipo de carga / tipo de equipamento rodoviário. */
-  readonly tipoCargaOpcoes = [
-    'Graneleiro',
-    'Bitrem',
-    'Rodotrem',
-    'Caçamba',
-    'Sider',
-    'Tanque',
-    'Porta contêiner',
-    'Frigorífico'
-  ] as const;
+  /** Opções do enum `TipoCarga` do backend (Seca, Refrigerada, …). */
+  readonly tipoCargaOpcoes = TIPO_CARGA_LABELS;
 
   ngOnInit(): void {
     if (!this.canVisualizar) return;
     void this.signalrDashboardService.connect();
+  }
+
+  ngOnDestroy(): void {
+    this.cancelarValorEstacionamento$.next();
+    this.cancelarValorEstacionamento$.complete();
+    this.fecharReciboConfirm(false);
+    this.fecharPreviewRecibo();
   }
 
   buscar(): void {
@@ -258,7 +308,8 @@ export class MovimentosPageComponent implements OnInit {
         return;
       }
       this.permanenciaAcao = acao;
-      this.permanenciaDataHora = '';
+      this.permanenciaDataHora = toDateTimeLocalInputValue();
+      this.resetSaidaValorState();
       this.service.getById(item.id).subscribe({
         next: (detalhe) => {
           if (!detalhe?.id) {
@@ -266,7 +317,12 @@ export class MovimentosPageComponent implements OnInit {
             return;
           }
           this.registroSelecionado.set(detalhe);
+          // Garante "agora" no momento em que o modal abre (após o GET).
+          this.permanenciaDataHora = toDateTimeLocalInputValue();
           this.permanenciaOpen.set(true);
+          if (acao === 'finalizar') {
+            this.carregarValorEstacionamentoParaSaida(detalhe.id);
+          }
         },
         error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.')
       });
@@ -275,6 +331,7 @@ export class MovimentosPageComponent implements OnInit {
 
   fecharPermanencia(): void {
     this.permanenciaOpen.set(false);
+    this.resetSaidaValorState();
   }
 
   confirmarPermanencia(): void {
@@ -285,15 +342,7 @@ export class MovimentosPageComponent implements OnInit {
     }
     const isoData = this.toIsoOrUndefined(this.permanenciaDataHora);
     if (this.permanenciaAcao === 'finalizar') {
-      const placa = this.placaSelecionada();
-      if (!placa || placa === '—') {
-        this.toast.error('Placa não encontrada para registrar a saída.');
-        return;
-      }
-      this.service.saida(placa).subscribe({
-        next: () => this.finalizarAcaoPermanencia('Saída registrada com sucesso.'),
-        error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
-      });
+      this.confirmarSaidaComRecibo(item);
       return;
     }
     if (this.permanenciaAcao === 'retornar') {
@@ -425,11 +474,19 @@ export class MovimentosPageComponent implements OnInit {
 
   /** POST `EntradaSaida` — chamado somente após `mensagemValidacaoCamposObrigatoriosEntrada()` retornar null. */
   private postEntradaSaidaAposValidacao(): void {
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
     this.montarPayloadEntradaSaidaAtualizado().subscribe({
       next: (payload) => {
         this.service.create(payload).subscribe({
-          next: () => {
+          next: (criado) => {
             this.processandoRegistroRapido.set(false);
+            // Confirmação imediata no retorno do POST (antes de buscar/limpar).
+            void this.ofertarReciboAposOperacao({
+              id: criado?.id ?? 0,
+              modo: ModoRecibo.Entrada,
+              placa: placaNorm,
+              mensagem: 'Entrada registrada. Deseja visualizar o recibo de entrada?'
+            });
             this.toast.success('Entrada registrada com sucesso.');
             this.buscar();
             this.limparRegistroRapido();
@@ -462,7 +519,7 @@ export class MovimentosPageComponent implements OnInit {
     return forkJoin({ motorista: motorista$, transportadora: transportadora$ }).pipe(
       map(({ motorista, transportadora }) => ({
         status: EntradaSaidaStatus.Entrada,
-        dataHoraEntrada: new Date().toISOString(),
+        dataHoraEntrada: toLocalIsoDateTime(),
         observacao: this.observacaoParaApi(this.registroRapido.observacao),
         motorista: {
           id: Number(motorista?.id) > 0 ? Number(motorista?.id) : undefined,
@@ -481,51 +538,10 @@ export class MovimentosPageComponent implements OnInit {
         },
         veiculo: {
           placa: placaNorm || undefined,
-          tipoCarga: this.mapearTipoCargaParaEnum(this.registroRapido.tipoCarga)
+          tipoCarga: toTipoCargaEnum(this.registroRapido.tipoCarga)
         }
       } satisfies EntradaSaidaPostInput))
     );
-  }
-
-  private mapearTipoCargaParaEnum(valor: string | null | undefined): 1 | 2 | 3 | 4 | 5 | undefined {
-    const key = String(valor ?? '').trim().toLowerCase();
-    if (!key) return undefined;
-    const mapa: Record<string, 1 | 2 | 3 | 4 | 5> = {
-      graneleiro: 1,
-      bitrem: 2,
-      rodotrem: 3,
-      caçamba: 4,
-      cacamba: 4,
-      sider: 5
-    };
-    return mapa[key];
-  }
-
-  private mapearTipoCargaEnumParaLabel(valor: string | null | undefined): string | undefined {
-    const raw = String(valor ?? '').trim();
-    if (!raw) return undefined;
-
-    const byText = raw.toLowerCase();
-    const mapaTexto: Record<string, string> = {
-      graneleiro: 'Graneleiro',
-      bitrem: 'Bitrem',
-      rodotrem: 'Rodotrem',
-      caçamba: 'Caçamba',
-      cacamba: 'Caçamba',
-      sider: 'Sider'
-    };
-    if (mapaTexto[byText]) return mapaTexto[byText];
-
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return undefined;
-    const mapaEnum: Record<number, string> = {
-      1: 'Graneleiro',
-      2: 'Bitrem',
-      3: 'Rodotrem',
-      4: 'Caçamba',
-      5: 'Sider'
-    };
-    return mapaEnum[n];
   }
 
   registrarSaidaRapida(): void {
@@ -533,6 +549,26 @@ export class MovimentosPageComponent implements OnInit {
     const placaNorm = normalizePlaca(this.registroRapido.placa);
     if (!placaCompleta(placaNorm)) {
       this.toast.error('Informe uma placa válida para registrar saída.');
+      return;
+    }
+    const id = this.registroRapidoEntradaId;
+    if (id > 0) {
+      this.abrirPermanencia(
+        {
+          id,
+          descricao: '',
+          motoristaId: 0,
+          nomeMotorista: '',
+          transportadoraId: this.registroRapidoTransportadoraId,
+          nomeTransportadora: '',
+          veiculoId: 0,
+          placaVeiculo: placaNorm,
+          dataHoraEntrada: '',
+          dataHoraSaida: null,
+          avulso: true
+        },
+        'finalizar'
+      );
       return;
     }
     this.processandoRegistroRapido.set(true);
@@ -574,6 +610,8 @@ export class MovimentosPageComponent implements OnInit {
     this.ultimaPlacaConsultadaRegistroRapido = '';
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoEntradaId = 0;
+    this.registroRapidoTransportadoraId = 0;
   }
 
   formatarMinutos(minutos?: number | null): string {
@@ -582,6 +620,11 @@ export class MovimentosPageComponent implements OnInit {
     const h = Math.floor(minutos / 60);
     const m = minutos % 60;
     return m ? `${h}h ${m}min` : `${h}h`;
+  }
+
+  /** Exibe placa com hífen (ABC-1234 / ABC-1D23). */
+  formatarPlaca(placa: string | null | undefined): string {
+    return formatPlacaDisplay(placa) || '—';
   }
 
   podeSuspenderOuRetornar(): boolean {
@@ -593,7 +636,250 @@ export class MovimentosPageComponent implements OnInit {
   podeFinalizar(): boolean {
     const registro = this.registroSelecionado();
     if (!registro) return false;
-    return !registro.finalizado;
+    if (registro.finalizado) return false;
+    if (this.saidaValorLoading() || this.saidaProcessando()) return false;
+    const valor = this.saidaValor();
+    return valor != null && Number.isFinite(valor) && valor >= 0;
+  }
+
+  onPermanenciaDataHoraChange(value: string): void {
+    this.permanenciaDataHora = value;
+    if (this.permanenciaAcao === 'finalizar') {
+      this.recalcularCobrancaSaida();
+    }
+  }
+
+  onSaidaValorDiariaChange(raw: string | number | null): void {
+    if (this.saidaValorBloqueado()) return;
+    const texto = raw == null ? '' : String(raw);
+    this.saidaValorDiariaTexto.set(texto);
+    const n = parseBrl(texto);
+    this.saidaValorDiaria.set(n != null && n >= 0 ? n : null);
+    this.recalcularCobrancaSaida();
+  }
+
+  onSaidaValorDiariaBlur(): void {
+    if (this.saidaValorBloqueado()) return;
+    const n = this.saidaValorDiaria();
+    this.saidaValorDiariaTexto.set(n != null ? formatarBrl(n) : '');
+  }
+
+  formatarMoeda(valor: number | null | undefined): string {
+    if (valor == null || !Number.isFinite(valor)) return '—';
+    return formatarBrl(valor);
+  }
+
+  formatarDataHoraEntrada(registro: EntradaSaidaOutput | null | undefined): string {
+    const raw = registro?.dataHoraEntrada?.trim();
+    if (!raw) return '—';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  /** Recibo disponível após saída registrada. */
+  podeVisualizarRecibo(item: EntradaSaidaSearchOutput): boolean {
+    return !!item?.id && item.id > 0 && !!item.dataHoraSaida;
+  }
+
+  /** Mantido como alias para templates/testes legados. */
+  podeBaixarRecibo(item: EntradaSaidaSearchOutput): boolean {
+    return this.podeVisualizarRecibo(item);
+  }
+
+  reciboEmCarregamento(): boolean {
+    return this.reciboBaixandoId() != null;
+  }
+
+  abrirReciboHistorico(item: EntradaSaidaSearchOutput): void {
+    if (!this.podeVisualizarRecibo(item) || this.reciboEmCarregamento()) return;
+    if (!item?.id || item.id <= 0) {
+      this.toast.error('Registro sem id válido para gerar o recibo.');
+      return;
+    }
+
+    this.reciboBaixandoId.set(item.id);
+    this.service
+      .obterValorEstacionamento(item.id)
+      .pipe(catchError((err: ApiError) => this.tratarErroValorEstacionamento(err, item.id)))
+      .subscribe({
+        next: (res) => {
+          this.reciboBaixandoId.set(null);
+          const valor =
+            res.valor != null && Number.isFinite(Number(res.valor))
+              ? Math.round(Number(res.valor) * 100) / 100
+              : null;
+          if (valor == null) {
+            this.toast.error(
+              'Não há valor de estacionamento disponível para gerar o recibo.'
+            );
+            return;
+          }
+          void this.ofertarReciboAposOperacao({
+            id: item.id,
+            modo: ModoRecibo.Saida,
+            valor,
+            placa: item.placaVeiculo || String(item.id),
+            mensagem: 'Deseja visualizar o recibo de saída?'
+          });
+        },
+        error: (err: ApiError) => {
+          this.reciboBaixandoId.set(null);
+          this.handleApiError(err, 'Erro ao consultar valor do estacionamento.');
+        }
+      });
+  }
+
+  /** @deprecated Use {@link abrirReciboHistorico}. */
+  baixarReciboHistorico(item: EntradaSaidaSearchOutput): void {
+    this.abrirReciboHistorico(item);
+  }
+
+  aceitarReciboConfirm(): void {
+    this.fecharReciboConfirm(true);
+  }
+
+  recusarReciboConfirm(): void {
+    this.fecharReciboConfirm(false);
+  }
+
+  private fecharReciboConfirm(aceitar: boolean): void {
+    this.reciboConfirmOpen.set(false);
+    const resolver = this.reciboConfirmResolver;
+    this.reciboConfirmResolver = null;
+    resolver?.(aceitar);
+  }
+
+  private perguntarImprimirRecibo(mensagem: string): Promise<boolean> {
+    if (this.reciboConfirmResolver) {
+      this.reciboConfirmResolver(false);
+      this.reciboConfirmResolver = null;
+    }
+    this.reciboConfirmMensagem.set(mensagem);
+    this.reciboConfirmOpen.set(true);
+    return new Promise<boolean>((resolve) => {
+      this.reciboConfirmResolver = resolve;
+    });
+  }
+
+  /**
+   * Pergunta imediatamente; só resolve id / chama recibo se o usuário aceitar.
+   */
+  private async ofertarReciboAposOperacao(opts: {
+    id: number;
+    modo: ModoRecibo;
+    valor?: number | null;
+    placa: string;
+    mensagem: string;
+  }): Promise<void> {
+    const aceitar = await this.perguntarImprimirRecibo(opts.mensagem);
+    if (!aceitar) return;
+
+    let id = opts.id;
+    if ((!id || id <= 0) && opts.placa) {
+      id = await this.resolverIdMovimentoPorPlaca(opts.placa);
+    }
+    if (!id || id <= 0) {
+      this.toast.error('Não foi possível identificar o movimento para gerar o recibo.');
+      return;
+    }
+
+    this.reciboBaixandoId.set(id);
+    this.service
+      .baixarRecibo(id, opts.modo, opts.modo === ModoRecibo.Saida ? opts.valor : null)
+      .pipe(finalize(() => this.reciboBaixandoId.set(null)))
+      .subscribe({
+        next: (blob) => {
+          const prefixo = opts.modo === ModoRecibo.Entrada ? 'ticket-entrada' : 'recibo';
+          this.abrirPreviewRecibo(blob, `${prefixo}-${opts.placa || id}.pdf`);
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Falha ao gerar o recibo PDF.')
+      });
+  }
+
+  private resolverIdMovimentoPorPlaca(placa: string): Promise<number> {
+    return new Promise((resolve) => {
+      this.service
+        .buscar({
+          placa,
+          somenteEmAberto: true,
+          numeroPagina: 1,
+          tamanhoPagina: 1
+        })
+        .subscribe({
+          next: (paged) => resolve(paged.items[0]?.id ?? 0),
+          error: () => resolve(0)
+        });
+    });
+  }
+
+  fecharPreviewRecibo(): void {
+    if (this.reciboPreviewObjectUrl) {
+      URL.revokeObjectURL(this.reciboPreviewObjectUrl);
+      this.reciboPreviewObjectUrl = null;
+    }
+    this.reciboPreviewBlob = null;
+    this.reciboPreviewUrl.set(null);
+    this.reciboPreviewOpen.set(false);
+  }
+
+  baixarReciboDaPreview(): void {
+    const blob = this.reciboPreviewBlob;
+    if (!blob) {
+      this.toast.error('Recibo indisponível para download.');
+      return;
+    }
+    this.downloadBlob(blob, this.reciboPreviewFileName());
+  }
+
+  imprimirReciboDaPreview(): void {
+    const blob = this.reciboPreviewBlob;
+    if (!blob) {
+      this.toast.error('Recibo indisponível para impressão.');
+      return;
+    }
+
+    // URL própria da impressão: sobrevive ao fechar o modal (não usa o object URL do iframe).
+    const printUrl = URL.createObjectURL(blob);
+    const printWin = window.open(printUrl, '_blank');
+    if (!printWin) {
+      URL.revokeObjectURL(printUrl);
+      const frame = document.getElementById('recibo-preview-iframe') as HTMLIFrameElement | null;
+      if (frame?.contentWindow) {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+          return;
+        } catch {
+          /* fallthrough */
+        }
+      }
+      this.toast.error('Permita pop-ups para imprimir o recibo, ou use Download.');
+      return;
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
+
+    const tentarPrint = (): void => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {
+        /* Visualizador nativo: o usuário pode imprimir pelo menu da aba. */
+      }
+    };
+    try {
+      printWin.addEventListener('load', tentarPrint);
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(tentarPrint, 400);
   }
 
   estaSuspenso(item: EntradaSaidaSearchOutput | EntradaSaidaOutput | null | undefined): boolean {
@@ -614,7 +900,176 @@ export class MovimentosPageComponent implements OnInit {
   private finalizarAcaoPermanencia(msg: string): void {
     this.toast.success(msg);
     this.permanenciaOpen.set(false);
+    this.resetSaidaValorState();
     this.buscar();
+  }
+
+  private confirmarSaidaComRecibo(item: EntradaSaidaOutput): void {
+    const placa = this.placaSelecionada();
+    if (!placa || placa === '—') {
+      this.toast.error('Placa não encontrada para registrar a saída.');
+      return;
+    }
+    const valor = this.saidaValor();
+    if (valor == null || !Number.isFinite(valor) || valor < 0) {
+      this.toast.error('Informe o valor da diária para calcular o total do recibo.');
+      return;
+    }
+    if (this.saidaProcessando()) return;
+
+    this.saidaProcessando.set(true);
+    this.service
+      .saida(placa)
+      .pipe(finalize(() => this.saidaProcessando.set(false)))
+      .subscribe({
+        next: () => {
+          void this.ofertarReciboAposOperacao({
+            id: item.id,
+            modo: ModoRecibo.Saida,
+            valor,
+            placa,
+            mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
+          });
+          this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
+          this.limparRegistroRapido();
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
+      });
+  }
+
+  private carregarValorEstacionamentoParaSaida(entradaSaidaId: number): void {
+    this.cancelarValorEstacionamento$.next();
+    if (!entradaSaidaId || entradaSaidaId <= 0) {
+      this.aplicarValorEstacionamento(null, false);
+      return;
+    }
+    this.saidaValorLoading.set(true);
+    this.service
+      .obterValorEstacionamento(entradaSaidaId)
+      .pipe(
+        takeUntil(this.cancelarValorEstacionamento$),
+        catchError((err: ApiError) => this.tratarErroValorEstacionamento(err, entradaSaidaId)),
+        finalize(() => this.saidaValorLoading.set(false))
+      )
+      .subscribe({
+        next: (res) => this.aplicarRespostaValorEstacionamento(res),
+        error: (err: ApiError) => {
+          this.aplicarValorEstacionamento(null, false);
+          this.handleApiError(err, 'Erro ao consultar valor do estacionamento.');
+        }
+      });
+  }
+
+  /** 404/204 = sem config ativa (editável). Demais erros sobem para toast. */
+  private tratarErroValorEstacionamento(err: ApiError, entradaSaidaId: number) {
+    if (err?.status === 404 || err?.status === 204) {
+      return of({
+        entradaSaidaId,
+        estacionamentoId: 0,
+        transportadoraId: null,
+        configuracaoCobrancaId: null,
+        valor: null as number | null,
+        origem: 'Indisponivel',
+        valorUnitarioDiario: null as number | null,
+        quantidadeDias: null as number | null,
+        tipoCobranca: 'Avulso'
+      });
+    }
+    return throwError(() => err);
+  }
+
+  private aplicarRespostaValorEstacionamento(res: {
+    valor: number | null;
+    valorUnitarioDiario: number | null;
+    quantidadeDias: number | null;
+    origem: string;
+  }): void {
+    this.saidaValorFixoDaFatura = false;
+    const valorTotal =
+      res.valor != null && Number.isFinite(Number(res.valor))
+        ? Math.round(Number(res.valor) * 100) / 100
+        : null;
+    const diaria =
+      res.valorUnitarioDiario != null && Number.isFinite(Number(res.valorUnitarioDiario))
+        ? Math.round(Number(res.valorUnitarioDiario) * 100) / 100
+        : null;
+    const qtdApi =
+      res.quantidadeDias != null && Number.isFinite(Number(res.quantidadeDias)) && Number(res.quantidadeDias) > 0
+        ? Math.trunc(Number(res.quantidadeDias))
+        : null;
+    const origemFaturaItem = String(res.origem ?? '').toLowerCase() === 'faturaitem';
+
+    if (diaria != null) {
+      this.aplicarValorEstacionamento(diaria, true);
+      if (qtdApi != null) {
+        this.saidaQuantidadeDiarias.set(qtdApi);
+        this.saidaValor.set(valorTotal ?? calcularTotalDiarias(diaria, qtdApi));
+      }
+      return;
+    }
+
+    if (valorTotal != null) {
+      const qtd = qtdApi ?? Math.max(this.saidaQuantidadeDiarias() || 1, 1);
+      const unitario = Math.round((valorTotal / qtd) * 100) / 100;
+      this.saidaValorFixoDaFatura = origemFaturaItem;
+      this.saidaQuantidadeDiarias.set(qtd);
+      this.saidaValorDiaria.set(unitario);
+      this.saidaValorDiariaTexto.set(formatarBrl(unitario));
+      this.saidaValorBloqueado.set(true);
+      this.saidaValor.set(valorTotal);
+      return;
+    }
+
+    this.aplicarValorEstacionamento(null, false);
+  }
+
+  private aplicarValorEstacionamento(valorDiaria: number | null, bloqueado: boolean): void {
+    this.saidaValorDiaria.set(valorDiaria);
+    this.saidaValorDiariaTexto.set(valorDiaria != null ? formatarBrl(valorDiaria) : '');
+    this.saidaValorBloqueado.set(bloqueado);
+    this.recalcularCobrancaSaida();
+  }
+
+  private recalcularCobrancaSaida(): void {
+    if (this.saidaValorFixoDaFatura) return;
+    const entrada = this.registroSelecionado()?.dataHoraEntrada;
+    const qtd = calcularQuantidadeDiarias(entrada, this.permanenciaDataHora);
+    this.saidaQuantidadeDiarias.set(qtd);
+    this.saidaValor.set(calcularTotalDiarias(this.saidaValorDiaria(), qtd));
+  }
+
+  private resetSaidaValorState(): void {
+    this.cancelarValorEstacionamento$.next();
+    this.saidaValorFixoDaFatura = false;
+    this.saidaValorDiaria.set(null);
+    this.saidaValorDiariaTexto.set('');
+    this.saidaQuantidadeDiarias.set(1);
+    this.saidaValor.set(null);
+    this.saidaValorBloqueado.set(false);
+    this.saidaValorLoading.set(false);
+    this.saidaProcessando.set(false);
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private abrirPreviewRecibo(blob: Blob, fileName: string): void {
+    this.fecharPreviewRecibo();
+    const pdfBlob =
+      blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+    this.reciboPreviewBlob = pdfBlob;
+    this.reciboPreviewObjectUrl = URL.createObjectURL(pdfBlob);
+    this.reciboPreviewFileName.set(fileName);
+    this.reciboPreviewUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(this.reciboPreviewObjectUrl)
+    );
+    this.reciboPreviewOpen.set(true);
   }
 
   private applyPagedResult(paged: EntradaSaidaPagedResult<EntradaSaidaSearchOutput>): void {
@@ -805,6 +1260,8 @@ export class MovimentosPageComponent implements OnInit {
     this.consultaCnpjSequencia++;
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoEntradaId = 0;
+    this.registroRapidoTransportadoraId = 0;
   }
 
   private limparCamposDetalheTransportadoraRegistroRapido(): void {
@@ -814,95 +1271,43 @@ export class MovimentosPageComponent implements OnInit {
   }
 
   private aplicarRespostaEntradaPorPlacaNaTela(entrada: EntradaSaidaOutput): void {
-    const pickAny = (objs: Array<Record<string, unknown> | undefined>, ...keys: string[]): string => {
-      for (const obj of objs) {
-        if (!obj) continue;
-        for (const key of keys) {
-          const val = obj[key] ?? obj[key.charAt(0).toUpperCase() + key.slice(1)];
-          if (val == null) continue;
-          const s = String(val).trim();
-          if (s) return s;
-        }
-      }
-      return '';
-    };
-    const root = entrada as unknown as Record<string, unknown>;
-    const motorista =
-      entrada.motorista && typeof entrada.motorista === 'object'
-        ? (entrada.motorista as Record<string, unknown>)
-        : undefined;
-    const transportadora =
-      entrada.transportadora && typeof entrada.transportadora === 'object'
-        ? (entrada.transportadora as Record<string, unknown>)
-        : undefined;
-    const veiculo =
-      entrada.veiculo && typeof entrada.veiculo === 'object'
-        ? (entrada.veiculo as Record<string, unknown>)
-        : undefined;
-
-    const placa = pickAny([veiculo, root], 'placa', 'placaVeiculo');
-    if (placa) {
-      this.registroRapido.placa = formatPlacaDisplay(normalizePlaca(placa));
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada);
+    if (campos.placa) {
+      this.registroRapido.placa = campos.placa;
     }
-    const nomeMotorista = pickAny(
-      [motorista, root],
-      'nome',
-      'nomeCompleto',
-      'nomeRazaoSocial',
-      'descricao',
-      'nomeMotorista'
-    );
-    if (nomeMotorista) {
-      this.registroRapido.motorista = this.encurtarTextoLivre(nomeMotorista);
+    if (campos.motoristaNome) {
+      this.registroRapido.motorista = this.encurtarTextoLivre(campos.motoristaNome);
     }
-    const cpfMotorista = pickAny([motorista, root], 'cpf', 'documento', 'cpfMotorista');
-    if (cpfMotorista) {
-      this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(cpfMotorista);
+    if (campos.motoristaCpf) {
+      this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(campos.motoristaCpf);
     }
-    const razaoSocial = pickAny(
-      [transportadora, root],
-      'razaoSocial',
-      'nomeFantasia',
-      'nomeRazaoSocial',
-      'nomeTransportadora'
-    );
-    if (razaoSocial) {
-      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(razaoSocial);
-    }
-    const cnpj = pickAny([transportadora, root], 'cnpj', 'documento', 'cnpjTransportadora');
-    if (String(cnpj).replace(/\D/g, '').length > 0) {
-      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(cnpj);
-    }
-    const responsavelNome = pickAny(
-      [transportadora, root],
-      'responsavelLegal',
-      'nomeResponsavel',
-      'responsavelNome',
-      'transportadoraResponsavelNome'
-    );
-    if (responsavelNome) {
-      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(responsavelNome);
-    }
-    const responsavelTelefone = pickAny(
-      [transportadora, root],
-      'responsavelTelefone',
-      'telefoneResponsavel',
-      'telefone',
-      'transportadoraResponsavelTelefone'
-    );
-    if (responsavelTelefone) {
-      this.registroRapido.transportadoraResponsavelTelefone = this.formatarTelefoneRegistroRapido(
-        responsavelTelefone
+    if (campos.transportadoraRazaoSocial) {
+      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
+        campos.transportadoraRazaoSocial
       );
     }
-    const tipoCargaRaw = pickAny([veiculo, root], 'tipoCarga', 'tipoCargaDescricao');
-    const tipoCargaLabel = this.mapearTipoCargaEnumParaLabel(tipoCargaRaw);
-    if (tipoCargaLabel) {
-      this.registroRapido.tipoCarga = tipoCargaLabel;
+    if (String(campos.transportadoraCnpj).replace(/\D/g, '').length > 0) {
+      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(campos.transportadoraCnpj);
     }
-    this.existeEntradaEmAbertoPorPlaca =
-      Boolean(root['existeEntradaEmAberto'] ?? root['ExisteEntradaEmAberto']) === true;
+    if (campos.transportadoraResponsavelNome) {
+      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(
+        campos.transportadoraResponsavelNome
+      );
+    }
+    if (campos.transportadoraResponsavelTelefone) {
+      this.registroRapido.transportadoraResponsavelTelefone = campos.transportadoraResponsavelTelefone;
+    }
+    if (campos.tipoCargaLabel) {
+      this.registroRapido.tipoCarga = campos.tipoCargaLabel;
+    }
+    this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
     this.camposBloqueadosPorPlaca = true;
+    this.registroRapidoEntradaId =
+      campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;
+    this.registroRapidoTransportadoraId =
+      entrada.transportadoraId > 0
+        ? entrada.transportadoraId
+        : Number(entrada.transportadora?.id ?? 0) || 0;
   }
 
   private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {
@@ -925,8 +1330,8 @@ export class MovimentosPageComponent implements OnInit {
   }
 
   private toIsoOrUndefined(value: string | null | undefined): string | undefined {
-    if (!value?.trim()) return undefined;
-    return new Date(value).toISOString();
+    const iso = datetimeLocalInputToApiIso(value);
+    return iso || undefined;
   }
 
   private mapMovimentacaoHubParaVm(

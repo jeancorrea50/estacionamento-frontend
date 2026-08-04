@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,11 +13,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { finalize } from 'rxjs/operators';
 
+import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import { RECEBIMENTOS_MOCK } from './faturamento-recebimentos.mock';
+import { FaturaService } from '../../../services/fatura.service';
 import { FaturamentoRecebimentosPartialDialogComponent } from './faturamento-recebimentos-partial-dialog.component';
 import type {
   RecebimentoComprovanteEstado,
@@ -24,7 +28,8 @@ import type {
   RecebimentoListaItem,
   RecebimentoPagamentoStatus,
   RecebimentoPartialDialogData,
-  RecebimentoPeriodoGranularidade
+  RecebimentoPeriodoGranularidade,
+  RecebimentoResumo
 } from './faturamento-recebimentos.types';
 
 interface PeriodoGranularidadeOpcao {
@@ -54,15 +59,30 @@ interface RecCalendarioCelula {
     MatInputModule,
     MatMenuModule,
     MatSelectModule,
+    MatSnackBarModule,
     MatTableModule,
     MatTooltipModule
   ],
   templateUrl: './faturamento-recebimentos.component.html',
   styleUrls: ['./faturamento-recebimentos.component.scss']
 })
-export class FaturamentoRecebimentosComponent {
+export class FaturamentoRecebimentosComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly themeService = inject(ThemeService);
+  private readonly api = inject(FaturaService);
+  private readonly snack = inject(MatSnackBar);
+
+  readonly items = signal<RecebimentoListaItem[]>([]);
+  readonly resumo = signal<RecebimentoResumo>({
+    totalRecebidoPeriodo: 0,
+    pagamentosParciais: 0,
+    quantidadePagamentosParciais: 0,
+    valorPendente: 0,
+    quantidadePendentes: 0,
+    recebimentosDoDia: 0
+  });
+  readonly loading = signal(false);
+  readonly totalCountApi = signal(0);
 
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
@@ -74,8 +94,6 @@ export class FaturamentoRecebimentosComponent {
     if (mode === 'light') return false;
     return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-
-  readonly todas = RECEBIMENTOS_MOCK;
 
   readonly periodoGranularidadeOpcoes: PeriodoGranularidadeOpcao[] = [
     { id: 'dia', label: 'Dia' },
@@ -135,6 +153,7 @@ export class FaturamentoRecebimentosComponent {
   readonly displayedColumns: string[] = [
     'select',
     'fatura',
+    'tipoFatura',
     'transportadora',
     'valorFatura',
     'valorRecebido',
@@ -147,17 +166,17 @@ export class FaturamentoRecebimentosComponent {
   ];
 
   readonly transportadorasOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.transportadora));
+    const u = new Set(this.items().map((r) => r.transportadora));
     return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
   readonly estacionamentosOpcoes = computed(() => {
-    const u = new Set(this.todas.map((r) => r.estacionamento));
+    const u = new Set(this.items().map((r) => r.estacionamento));
     return [...u].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   });
 
   readonly contagensChips = computed(() => {
-    const rows = this.todas;
+    const rows = this.items();
     const comArquivo = (r: RecebimentoListaItem) =>
       r.comprovante === 'Anexado' || r.comprovante === 'Aguardando conferência';
     return {
@@ -217,6 +236,21 @@ export class FaturamentoRecebimentosComponent {
     return c;
   });
 
+  readonly totalRecebidoFormatado = computed(() =>
+    this.formatCurrency(this.resumo().totalRecebidoPeriodo)
+  );
+  readonly pagamentosParciaisFormatado = computed(() =>
+    this.formatCurrency(this.resumo().pagamentosParciais)
+  );
+  readonly quantidadePagamentosParciais = computed(
+    () => this.resumo().quantidadePagamentosParciais
+  );
+  readonly valorPendenteFormatado = computed(() => this.formatCurrency(this.resumo().valorPendente));
+  readonly quantidadePendentes = computed(() => this.resumo().quantidadePendentes);
+  readonly recebimentosDoDiaFormatado = computed(() =>
+    this.formatCurrency(this.resumo().recebimentosDoDia)
+  );
+
   readonly panelFiltrosAberto = signal(false);
 
   @HostListener('document:click', ['$event'])
@@ -232,8 +266,10 @@ export class FaturamentoRecebimentosComponent {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    const estavaArrastando = this.arrastandoPeriodo();
     this.arrastandoPeriodo.set(false);
     this.arrasteAnchor.set(null);
+    if (estavaArrastando) this.carregarLista();
   }
 
   togglePanelFiltros(event: MouseEvent): void {
@@ -249,6 +285,52 @@ export class FaturamentoRecebimentosComponent {
       }
       untracked(() => this.paginaAtual.set(0));
     });
+  }
+
+  ngOnInit(): void {
+    this.carregarLista();
+  }
+
+  carregarLista(): void {
+    if (this.loading()) return;
+    this.loading.set(true);
+    const q = this.searchText().trim();
+    const looksLikeNumero = /^[A-Za-z0-9._\-\/]+$/.test(q) && /\d/.test(q) && !/\s/.test(q);
+
+    this.api
+      .listarRecebimentos({
+        numeroPagina: 1,
+        tamanhoPagina: 200,
+        dataInicial: this.toIsoDate(this.periodoDataInicio()),
+        dataFinal: this.toIsoDate(this.periodoDataFim()),
+        numero: looksLikeNumero ? q : undefined,
+        descricao: q && !looksLikeNumero ? q : undefined
+      })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (page) => {
+          this.selection.clear();
+          this.items.set(page.items);
+          this.resumo.set(page.resumo);
+          this.totalCountApi.set(page.totalCount);
+          this.paginaAtual.set(0);
+        },
+        error: (err) => {
+          this.items.set([]);
+          this.resumo.set({
+            totalRecebidoPeriodo: 0,
+            pagamentosParciais: 0,
+            quantidadePagamentosParciais: 0,
+            valorPendente: 0,
+            quantidadePendentes: 0,
+            recebimentosDoDia: 0
+          });
+          this.totalCountApi.set(0);
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar recebimentos.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
   }
 
   togglePanelData(event: MouseEvent): void {
@@ -382,6 +464,7 @@ export class FaturamentoRecebimentosComponent {
     this.statusFiltro.set('all');
     this.formaFiltro.set('all');
     this.searchText.set('');
+    this.carregarLista();
   }
 
   irParaPagina(p: number): void {
@@ -515,7 +598,7 @@ export class FaturamentoRecebimentosComponent {
   }
 
   private aplicarFiltros(): RecebimentoListaItem[] {
-    let rows = [...this.todas];
+    let rows = [...this.items()];
     const tr = this.transportadoraFiltro();
     const es = this.estacionamentoFiltro();
     const st = this.statusFiltro();
@@ -543,5 +626,16 @@ export class FaturamentoRecebimentosComponent {
     }
 
     return rows;
+  }
+
+  private mensagemErro(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const msg = (err as ApiError).message;
+      if (typeof msg === 'string' && msg.trim()) return msg;
+    }
+    if (err instanceof HttpErrorResponse) {
+      return err.message || fallback;
+    }
+    return fallback;
   }
 }

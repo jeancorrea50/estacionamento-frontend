@@ -31,7 +31,7 @@ export interface FaturaConfirmDialogData {
         padding-top: 4px !important;
         font-size: 14px;
         line-height: 1.45;
-        color: var(--text, #e2e8f0);
+        color: var(--text);
       }
     `
   ]

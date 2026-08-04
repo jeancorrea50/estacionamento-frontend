@@ -152,12 +152,12 @@ export class FaturamentoVisaoGeralComponent {
   };
 
   readonly visaoEvolucaoMensal: BarraMes[] = [
-    { mes: 'DEZ', valor: 38_000 },
-    { mes: 'JAN', valor: 45_000 },
-    { mes: 'FEV', valor: 62_000 },
-    { mes: 'MAR', valor: 55_000 },
-    { mes: 'ABR', valor: 74_000 },
-    { mes: 'MAI', valor: 88_000 }
+    { mes: 'Dez', valor: 38_000 },
+    { mes: 'Jan', valor: 45_000 },
+    { mes: 'Fev', valor: 62_000 },
+    { mes: 'Mar', valor: 55_000 },
+    { mes: 'Abr', valor: 74_000 },
+    { mes: 'Mai', valor: 88_000 }
   ];
 
   readonly visaoPorStatus: StatusContagem[] = [
@@ -190,35 +190,196 @@ export class FaturamentoVisaoGeralComponent {
     }));
   });
 
-  /* ── ApexCharts ───────────────────────────────────────────────────── */
-  readonly evolutionChart: ApexChart = { type: 'area', height: 252, width: '100%', fontFamily: 'inherit', foreColor: '#8ea0b8', background: 'transparent', toolbar: { show: false }, zoom: { enabled: false }, animations: { enabled: true, speed: 400 }, redrawOnParentResize: true, offsetX: 0, offsetY: 0 };
+  readonly faturasRoute = computed(() => this.nav.resolveTabRoute('faturas'));
+
+  /* ── ApexCharts (eixos/tooltips white/dark; rótulo em barra azul = texto claro) ── */
+  private readonly chartAxisColor = computed(() => (this.isDarkTheme() ? '#8ea0b8' : '#4870a0'));
+  /** Rótulos sobre o fill azul da série — contraste com a cor da barra, não com o tema. */
+  private readonly chartOnBarLabel = '#f8fafc';
+  private readonly chartGridColor = computed(() =>
+    this.isDarkTheme() ? 'rgba(148, 163, 184, 0.22)' : 'rgba(72, 112, 160, 0.22)'
+  );
+
+  readonly evolutionChart = computed<ApexChart>(() => ({
+    type: 'area',
+    height: 252,
+    width: '100%',
+    fontFamily: 'inherit',
+    foreColor: this.chartAxisColor(),
+    background: 'transparent',
+    toolbar: { show: false },
+    zoom: { enabled: false },
+    animations: { enabled: true, speed: 400 },
+    redrawOnParentResize: true,
+    offsetX: 0,
+    offsetY: 0
+  }));
   readonly evolutionSeries: ApexAxisChartSeries = [{ name: 'Faturamento', data: this.visaoEvolucaoMensal.map((b) => b.valor) }];
-  readonly evolutionXaxis: ApexXAxis = { categories: this.visaoEvolucaoMensal.map((b) => b.mes), labels: { style: { colors: '#8ea0b8', fontSize: '10px', fontWeight: 600 }, rotate: -38, rotateAlways: true, hideOverlappingLabels: true, trim: true, maxHeight: 64 }, axisBorder: { show: false }, axisTicks: { show: false }, crosshairs: { show: false }, tooltip: { enabled: false } };
-  readonly evolutionYaxis: ApexYAxis = { labels: { align: 'right', offsetX: 2, style: { fontSize: '10px', colors: '#8ea0b8' }, formatter: (val: string | number) => { const n = Number(val); if (!Number.isFinite(n)) return ''; if (Math.abs(n) >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`; if (Math.abs(n) >= 1_000) return `${Math.round(n / 100) / 10}k`; return String(Math.round(n)); } } };
+  readonly evolutionXaxis = computed<ApexXAxis>(() => ({
+    categories: this.visaoEvolucaoMensal.map((b) => b.mes),
+    labels: {
+      style: { colors: this.chartAxisColor(), fontSize: '10px', fontWeight: 600 },
+      rotate: -38,
+      rotateAlways: true,
+      hideOverlappingLabels: true,
+      trim: true,
+      maxHeight: 64
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+    crosshairs: { show: false },
+    tooltip: { enabled: false }
+  }));
+  readonly evolutionYaxis = computed<ApexYAxis>(() => ({
+    labels: {
+      align: 'right',
+      offsetX: 2,
+      style: { fontSize: '10px', colors: this.chartAxisColor() },
+      formatter: (val: string | number) => {
+        const n = Number(val);
+        if (!Number.isFinite(n)) return '';
+        if (Math.abs(n) >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`;
+        if (Math.abs(n) >= 1_000) return `${Math.round(n / 100) / 10}k`;
+        return String(Math.round(n));
+      }
+    }
+  }));
   readonly evolutionStroke: ApexStroke = { curve: 'smooth', width: 2 };
-  readonly evolutionFill: ApexFill = { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.42, opacityTo: 0.03, stops: [0, 100] } };
-  readonly evolutionGrid: ApexGrid = { borderColor: 'rgba(148, 163, 184, 0.22)', strokeDashArray: 4, padding: { top: 6, right: 4, bottom: 40, left: 48 }, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } } };
-  readonly evolutionTooltip: ApexTooltip = { theme: 'dark', custom: (opts: { dataPointIndex?: number }) => { const idx = opts.dataPointIndex ?? -1; const row = idx >= 0 ? this.visaoEvolucaoMensal[idx] : undefined; if (!row) return '<div class="visao-evolucao-tooltip"></div>'; return '<div class="visao-evolucao-tooltip"><div class="visao-evolucao-tooltip__mes">' + this.escapeHtml(row.mes) + '</div><div class="visao-evolucao-tooltip__valor">' + this.escapeHtml(this.formatCurrency(row.valor)) + '</div></div>'; } };
+  readonly evolutionFill: ApexFill = {
+    type: 'gradient',
+    gradient: { shadeIntensity: 1, opacityFrom: 0.42, opacityTo: 0.03, stops: [0, 100] }
+  };
+  readonly evolutionGrid = computed<ApexGrid>(() => ({
+    borderColor: this.chartGridColor(),
+    strokeDashArray: 4,
+    padding: { top: 12, right: 8, bottom: 40, left: 48 },
+    xaxis: { lines: { show: false } },
+    yaxis: { lines: { show: true } }
+  }));
+  readonly evolutionTooltip = computed<ApexTooltip>(() => ({
+    theme: this.isDarkTheme() ? 'dark' : 'light',
+    custom: (opts: { dataPointIndex?: number }) => {
+      const idx = opts.dataPointIndex ?? -1;
+      const row = idx >= 0 ? this.visaoEvolucaoMensal[idx] : undefined;
+      if (!row) return '<div class="visao-evolucao-tooltip"></div>';
+      return (
+        '<div class="visao-evolucao-tooltip"><div class="visao-evolucao-tooltip__mes">' +
+        this.escapeHtml(row.mes) +
+        '</div><div class="visao-evolucao-tooltip__valor">' +
+        this.escapeHtml(this.formatCurrency(row.valor)) +
+        '</div></div>'
+      );
+    }
+  }));
   readonly evolutionDataLabels: ApexDataLabels = { enabled: false };
 
-  readonly statusChart: ApexChart = { type: 'bar', height: 252, fontFamily: 'inherit', foreColor: '#8ea0b8', background: 'transparent', toolbar: { show: false } };
+  readonly statusChart = computed<ApexChart>(() => ({
+    type: 'bar',
+    height: 252,
+    fontFamily: 'inherit',
+    foreColor: this.chartAxisColor(),
+    background: 'transparent',
+    toolbar: { show: false },
+    parentHeightOffset: 0,
+    redrawOnParentResize: true
+  }));
   readonly statusSeries: ApexAxisChartSeries = [{ name: 'Quantidade', data: this.visaoPorStatus.map((s) => s.quantidade) }];
-  readonly statusPlotOptions: ApexPlotOptions = { bar: { horizontal: true, borderRadius: 4, barHeight: '68%', distributed: false, dataLabels: { position: 'top' } } };
-  readonly statusXaxis: ApexXAxis = { categories: this.visaoPorStatus.map((s) => s.status), labels: { style: { colors: '#8ea0b8', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } };
-  readonly statusDataLabels: ApexDataLabels = { enabled: true, formatter: (val: number, opts: { dataPointIndex?: number }) => { const idx = opts?.dataPointIndex ?? 0; const q = this.visaoPorStatus[idx]?.quantidade ?? Number(val); return `${q} (${this.pctStatus(q)}%)`; }, offsetX: 6, style: { colors: ['#f8fafc'], fontSize: '11px', fontWeight: 600 } };
-  readonly statusGrid: ApexGrid = { borderColor: 'rgba(148, 163, 184, 0.2)', padding: { top: 0, right: 12, bottom: 0, left: 0 }, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } };
+  readonly statusPlotOptions: ApexPlotOptions = {
+    bar: { horizontal: true, borderRadius: 4, barHeight: '68%', distributed: false, dataLabels: { position: 'center' } }
+  };
+  readonly statusXaxis = computed<ApexXAxis>(() => ({
+    categories: this.visaoPorStatus.map((s) => s.status),
+    min: 0,
+    max: Math.ceil(Math.max(...this.visaoPorStatus.map((s) => s.quantidade), 1) * 1.15),
+    tickAmount: 4,
+    decimalsInFloat: 0,
+    labels: {
+      style: { colors: this.chartAxisColor(), fontSize: '11px' },
+      formatter: (val: string) => {
+        const n = Number(val);
+        return Number.isFinite(n) && n >= 0 ? String(Math.round(n)) : '';
+      }
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
+  }));
+  readonly statusDataLabels = computed<ApexDataLabels>(() => ({
+    enabled: true,
+    formatter: (val: number, opts: { dataPointIndex?: number }) => {
+      const idx = opts?.dataPointIndex ?? 0;
+      const q = this.visaoPorStatus[idx]?.quantidade ?? Number(val);
+      return `${q} (${this.pctStatus(q)}%)`;
+    },
+    offsetX: 0,
+    style: { colors: [this.chartOnBarLabel], fontSize: '11px', fontWeight: 600 }
+  }));
+  readonly statusGrid = computed<ApexGrid>(() => ({
+    borderColor: this.chartGridColor(),
+    padding: { top: 12, right: 12, bottom: 4, left: 4 },
+    xaxis: { lines: { show: true } },
+    yaxis: { lines: { show: false } }
+  }));
 
-  readonly modalChart: ApexChart = { type: 'bar', height: 252, fontFamily: 'inherit', foreColor: '#8ea0b8', background: 'transparent', toolbar: { show: false } };
+  readonly modalChart = computed<ApexChart>(() => ({
+    type: 'bar',
+    height: 252,
+    fontFamily: 'inherit',
+    foreColor: this.chartAxisColor(),
+    background: 'transparent',
+    toolbar: { show: false },
+    parentHeightOffset: 0,
+    redrawOnParentResize: true
+  }));
   readonly modalSeries: ApexAxisChartSeries = [{ name: 'Valor', data: this.visaoPorModalidade.map((m) => m.valor) }];
-  readonly modalPlotOptions: ApexPlotOptions = { bar: { horizontal: true, borderRadius: 4, barHeight: '70%', dataLabels: { position: 'end' } } };
-  readonly modalXaxis: ApexXAxis = { categories: this.visaoPorModalidade.map((m) => m.modalidade), labels: { style: { colors: '#8ea0b8', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } };
-  readonly modalDataLabels: ApexDataLabels = { enabled: true, formatter: (val: number) => this.formatCurrency(Number(val)), offsetX: 4, style: { colors: ['#f8fafc'], fontSize: '11px', fontWeight: 600 } };
-  readonly modalGrid: ApexGrid = { borderColor: 'rgba(148, 163, 184, 0.2)', padding: { top: 0, right: 8, bottom: 0, left: 0 }, xaxis: { lines: { show: true } }, yaxis: { lines: { show: false } } };
+  readonly modalPlotOptions: ApexPlotOptions = {
+    bar: { horizontal: true, borderRadius: 4, barHeight: '70%', dataLabels: { position: 'center' } }
+  };
+  readonly modalXaxis = computed<ApexXAxis>(() => ({
+    categories: this.visaoPorModalidade.map((m) => m.modalidade),
+    min: 0,
+    max: Math.ceil(Math.max(...this.visaoPorModalidade.map((m) => m.valor), 1) * 1.12 / 1000) * 1000,
+    tickAmount: 4,
+    decimalsInFloat: 0,
+    labels: {
+      style: { colors: this.chartAxisColor(), fontSize: '10px' },
+      formatter: (val: string) => {
+        const n = Number(val);
+        if (!Number.isFinite(n) || n < 0) return '';
+        if (n >= 1000) return `${Math.round(n / 1000)}k`;
+        return String(Math.round(n));
+      }
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false }
+  }));
+  readonly modalDataLabels = computed<ApexDataLabels>(() => ({
+    enabled: true,
+    formatter: (val: number) => this.formatCurrency(Number(val)),
+    offsetX: 0,
+    style: { colors: [this.chartOnBarLabel], fontSize: '11px', fontWeight: 600 }
+  }));
+  readonly modalGrid = computed<ApexGrid>(() => ({
+    borderColor: this.chartGridColor(),
+    padding: { top: 16, right: 12, bottom: 4, left: 4 },
+    xaxis: { lines: { show: true } },
+    yaxis: { lines: { show: false } }
+  }));
 
-  readonly statusTooltip: ApexTooltip = { theme: 'dark', y: { formatter: (val: number) => String(val) } };
-  readonly modalTooltip: ApexTooltip = { theme: 'dark', y: { formatter: (val: number) => this.formatCurrency(val) } };
-  readonly chartColors = ['#3b82f6'];
-  readonly chartTheme: ApexTheme = { mode: 'dark', monochrome: { enabled: false } };
+  readonly statusTooltip = computed<ApexTooltip>(() => ({
+    theme: this.isDarkTheme() ? 'dark' : 'light',
+    y: { formatter: (val: number) => String(val) },
+    style: { fontSize: '12px', fontFamily: 'inherit' }
+  }));
+  readonly modalTooltip = computed<ApexTooltip>(() => ({
+    theme: this.isDarkTheme() ? 'dark' : 'light',
+    y: { formatter: (val: number) => this.formatCurrency(val) },
+    style: { fontSize: '12px', fontFamily: 'inherit' }
+  }));
+  readonly chartColors = computed(() => [this.isDarkTheme() ? '#3b82f6' : '#5088d0']);
+  readonly chartTheme = computed<ApexTheme>(() => ({
+    mode: this.isDarkTheme() ? 'dark' : 'light',
+    monochrome: { enabled: false }
+  }));
 
   /* ── Host listeners ───────────────────────────────────────────────── */
   @HostListener('document:click', ['$event'])

@@ -14,7 +14,7 @@ import {
   removePermissionRowsForUi,
 } from './menu-permission-acao';
 import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
-import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
+import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule, formatAppMenuDisplayLabel } from './menu-route-resolver';
 import {
   defaultExibirNoSidebar,
   rememberSidebarVisibility,
@@ -525,7 +525,38 @@ export class MenuAdminService {
           icon: item.icon,
         };
       })
-      .map((item) => this.sanitizeCadastroSidebarNavItem(item));
+      .map((item) => this.sanitizeCadastroSidebarNavItem(item))
+      .map((item) => this.applyDisplayLabelsToNavItem(item));
+  }
+
+  /** Padroniza rótulos legados da API (ex.: Movimento → Entrada e Saída). */
+  private applyDisplayLabelsToNavItem<
+    T extends {
+      label: string;
+      route: string;
+      children?: {
+        label: string;
+        route: string;
+        children?: { label: string; route: string }[];
+      }[];
+    },
+  >(item: T): T {
+    const children = item.children?.map((c) => {
+      const nested = c.children?.map((n) => ({
+        ...n,
+        label: formatAppMenuDisplayLabel(n.label, n.route),
+      }));
+      return {
+        ...c,
+        label: formatAppMenuDisplayLabel(c.label, c.route),
+        children: nested?.length ? nested : c.children,
+      };
+    });
+    return {
+      ...item,
+      label: formatAppMenuDisplayLabel(item.label, item.route),
+      children: children?.length ? children : item.children,
+    } as T;
   }
 
   /**

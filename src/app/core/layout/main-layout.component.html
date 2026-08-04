@@ -60,10 +60,10 @@
             [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
           >
             @if (currentMode() === 'dark') {
-              <span class="material-symbols-outlined theme-switcher__icon">dark_mode</span>
+              <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">light_mode</span>
               <span class="theme-switcher__label">Claro</span>
             } @else {
-              <span class="material-symbols-outlined theme-switcher__icon">light_mode</span>
+              <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">dark_mode</span>
               <span class="theme-switcher__label">Escuro</span>
             }
           </button>

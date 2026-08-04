@@ -30,7 +30,7 @@
       <div class="cfg-block__grid">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Transportadora</mat-label>
-          <mat-select [(ngModel)]="transportadoraId" required>
+          <mat-select name="transportadoraId" [(ngModel)]="transportadoraId" required>
             @for (t of data.transportadoras; track t.id) {
               <mat-option [value]="t.id">{{ t.label }}</mat-option>
             }
@@ -38,7 +38,7 @@
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Status da configuração</mat-label>
-          <mat-select [(ngModel)]="status">
+          <mat-select name="status" [(ngModel)]="status">
             @for (s of data.statusOpcoes; track s) {
               <mat-option [value]="s">{{ s }}</mat-option>
             }
@@ -97,6 +97,7 @@
               <input
                 matInput
                 type="number"
+                name="diaCobranca"
                 min="1"
                 max="31"
                 [(ngModel)]="diaFechamento"
@@ -167,7 +168,11 @@
           <input
             matInput
             type="number"
+            name="prazoVencimentoDias"
+            id="cfg-prazo-vencimento"
             min="1"
+            max="365"
+            step="1"
             [(ngModel)]="prazoVencimentoDias"
             [disabled]="!gerarAuto"
             required

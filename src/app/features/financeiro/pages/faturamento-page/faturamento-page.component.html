@@ -1,17 +1,17 @@
 <div class="faturamento-shell">
   <div class="page-container">
 
-    <header class="page-header page-header-card fat-page-header">
-      <div class="fat-page-header__top">
-        <div class="fat-page-header__titles">
-          <h1 class="page-title">Faturamento</h1>
-          <p class="page-subtitle">Controle de faturas, cobranças e recebimentos</p>
+    <header class="page-header page-header-card dk-page-header fat-page-header">
+      <div class="dk-page-header__top fat-page-header__top">
+        <div class="dk-page-header__titles fat-page-header__titles">
+          <h1 class="page-title dk-page-title">Faturamento</h1>
+          <p class="page-subtitle dk-page-subtitle">Controle de faturas, cobranças e recebimentos</p>
         </div>
       </div>
-      <nav class="fat-fin-tabs" role="tablist" aria-label="Abas de Faturamento">
+      <nav class="dk-tabs fat-fin-tabs" role="tablist" aria-label="Abas de Faturamento">
         @for (t of tabs; track t.path) {
           <a
-            class="fat-fin-tabs__tab"
+            class="dk-tabs__tab fat-fin-tabs__tab"
             role="tab"
             [routerLink]="t.path"
             routerLinkActive="tab--active"

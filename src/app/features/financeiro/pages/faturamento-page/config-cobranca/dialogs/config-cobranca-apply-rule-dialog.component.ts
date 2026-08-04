@@ -60,7 +60,7 @@ export interface ConfigCobrancaApplyRuleDialogResult {
         align-items: center;
         gap: 10px;
         font-size: 13px;
-        color: var(--text, #e2e8f0);
+        color: var(--text);
       }
     `
   ]

@@ -39,7 +39,7 @@ export interface ConfigCobrancaHistoryDialogData {
         flex-direction: column;
         gap: 10px;
         font-size: 13px;
-        color: var(--text, #e2e8f0);
+        color: var(--text);
       }
       .cfg-hist__dt {
         display: inline-block;

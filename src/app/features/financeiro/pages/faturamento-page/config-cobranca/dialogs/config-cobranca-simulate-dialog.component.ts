@@ -65,7 +65,7 @@ export interface ConfigCobrancaSimulateDialogData {
       }
       .cfg-sim__dl dd {
         margin: 0;
-        color: var(--text, #e2e8f0);
+        color: var(--text);
         font-weight: 600;
       }
       .cfg-sim__total {

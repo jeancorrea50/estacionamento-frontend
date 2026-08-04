@@ -75,7 +75,7 @@ export interface ConfigCobrancaViewRuleDialogData {
       }
       .cfg-view__dl dd {
         margin: 0;
-        color: var(--text, #e2e8f0);
+        color: var(--text);
       }
     `
   ]

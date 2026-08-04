@@ -400,18 +400,6 @@
             <td mat-cell *matCellDef="let row" class="rec-mat-table__dt">{{ textoCelula(row.dataPagamento) }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="formaPagamento">
-            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__forma">Forma de pagamento</th>
-            <td mat-cell *matCellDef="let row" class="rec-mat-table__forma">{{ textoCelula(row.formaPagamento) }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="comprovante">
-            <th mat-header-cell *matHeaderCellDef>Comprovante</th>
-            <td mat-cell *matCellDef="let row">
-              <span [class]="comprovanteChipClass(row.comprovante)">{{ row.comprovante }}</span>
-            </td>
-          </ng-container>
-
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let row">

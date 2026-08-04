@@ -317,16 +317,16 @@
       <mat-card-content class="visao-chart-card__body">
         <apx-chart
           [series]="evolutionSeries"
-          [chart]="evolutionChart"
-          [xaxis]="evolutionXaxis"
-          [yaxis]="evolutionYaxis"
+          [chart]="evolutionChart()"
+          [xaxis]="evolutionXaxis()"
+          [yaxis]="evolutionYaxis()"
           [stroke]="evolutionStroke"
           [fill]="evolutionFill"
-          [colors]="chartColors"
-          [grid]="evolutionGrid"
-          [tooltip]="evolutionTooltip"
+          [colors]="chartColors()"
+          [grid]="evolutionGrid()"
+          [tooltip]="evolutionTooltip()"
           [dataLabels]="evolutionDataLabels"
-          [theme]="chartTheme"
+          [theme]="chartTheme()"
         ></apx-chart>
       </mat-card-content>
     </mat-card>
@@ -338,14 +338,14 @@
       <mat-card-content class="visao-chart-card__body">
         <apx-chart
           [series]="statusSeries"
-          [chart]="statusChart"
+          [chart]="statusChart()"
           [plotOptions]="statusPlotOptions"
-          [xaxis]="statusXaxis"
-          [colors]="chartColors"
-          [dataLabels]="statusDataLabels"
-          [grid]="statusGrid"
-          [theme]="chartTheme"
-          [tooltip]="statusTooltip"
+          [xaxis]="statusXaxis()"
+          [colors]="chartColors()"
+          [dataLabels]="statusDataLabels()"
+          [grid]="statusGrid()"
+          [theme]="chartTheme()"
+          [tooltip]="statusTooltip()"
         ></apx-chart>
       </mat-card-content>
     </mat-card>
@@ -357,14 +357,14 @@
       <mat-card-content class="visao-chart-card__body">
         <apx-chart
           [series]="modalSeries"
-          [chart]="modalChart"
+          [chart]="modalChart()"
           [plotOptions]="modalPlotOptions"
-          [xaxis]="modalXaxis"
-          [colors]="chartColors"
-          [dataLabels]="modalDataLabels"
-          [grid]="modalGrid"
-          [theme]="chartTheme"
-          [tooltip]="modalTooltip"
+          [xaxis]="modalXaxis()"
+          [colors]="chartColors()"
+          [dataLabels]="modalDataLabels()"
+          [grid]="modalGrid()"
+          [theme]="chartTheme()"
+          [tooltip]="modalTooltip()"
         ></apx-chart>
       </mat-card-content>
     </mat-card>
@@ -428,10 +428,13 @@
             </li>
           }
         </ul>
-        <button mat-button type="button" class="visao-link-footer visao-link-footer--due-block">
+        <a
+          class="visao-link-footer visao-link-footer--due-block"
+          [routerLink]="faturasRoute()"
+        >
           Ver todos os vencimentos
           <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-        </button>
+        </a>
       </mat-card-content>
     </mat-card>
   </div>

@@ -1,42 +1,62 @@
 @use '../../faturamento-shared-form-list';
 
-/* ──────────────────────────────────────────────────────────────────────
- * Modal de Configuração de Cobrança — segue o padrão visual da tela de
- * Fechamentos: fundo dark azul, cards com borda azul discreta, cantos
- * arredondados, título branco, textos secundários cinza claro e botão
- * principal azul. Sem bordas duplas / efeito 3D.
- * ──────────────────────────────────────────────────────────────────── */
+/* Modal Config. Cobrança — tokens theme-aware (light e dark). */
 
 :host {
+  --cfg-surface: var(--surface, #ffffff);
+  --cfg-card-bg: var(--surface-2, #f1f5f9);
+  --cfg-border: var(--border-subtle, var(--border));
+  --cfg-border-strong: color-mix(in srgb, var(--primary, #5088d0) 45%, var(--border-subtle));
+  --cfg-input-bg: var(--input-bg, var(--surface));
+  --cfg-input-border: var(--input-border, var(--border));
+  --cfg-text: var(--text);
+  --cfg-muted: var(--muted);
+  --cfg-primary: var(--primary, #3d6cff);
+  --cfg-primary-hover: color-mix(in srgb, var(--primary, #3d6cff) 88%, #000);
+  --cfg-option-bg: color-mix(in srgb, var(--cfg-card-bg) 70%, var(--cfg-surface));
+  --cfg-option-hover: color-mix(in srgb, var(--cfg-primary) 10%, var(--cfg-card-bg));
+  --cfg-option-active: color-mix(in srgb, var(--cfg-primary) 14%, var(--cfg-surface));
+  --cfg-footer-bg: color-mix(in srgb, var(--cfg-surface) 92%, var(--cfg-card-bg));
+  --cfg-danger-border: color-mix(in srgb, #ef4444 40%, transparent);
+  --cfg-danger-bg: color-mix(in srgb, #ef4444 10%, transparent);
+  --cfg-danger-text: #b91c1c;
+}
+
+:host-context(html.theme-dark) {
   --cfg-surface: #0f1a30;
   --cfg-card-bg: #14213c;
   --cfg-border: rgba(96, 130, 190, 0.32);
   --cfg-border-strong: rgba(67, 118, 230, 0.7);
   --cfg-input-bg: #1a2746;
   --cfg-input-border: rgba(73, 104, 173, 0.5);
-  --cfg-text: #eaf1ff;
+  --cfg-text: var(--text, #eaf1ff);
   --cfg-muted: #8ea0b8;
   --cfg-primary: #3d6cff;
   --cfg-primary-hover: #2f5be0;
+  --cfg-option-bg: rgba(26, 39, 70, 0.45);
+  --cfg-option-hover: rgba(36, 56, 100, 0.55);
+  --cfg-option-active: rgba(61, 108, 255, 0.16);
+  --cfg-footer-bg: rgba(13, 22, 42, 0.6);
+  --cfg-danger-border: rgba(248, 113, 113, 0.4);
+  --cfg-danger-bg: rgba(248, 113, 113, 0.1);
+  --cfg-danger-text: #fecaca;
 }
 
-/* Superfície do diálogo (escopo via panelClass) */
-::ng-deep .cfg-form-dialog-panel .mat-mdc-dialog-surface,
-::ng-deep .cfg-form-dialog-panel .mdc-dialog__surface {
-  background: var(--cfg-surface, #0f1a30) !important;
-  color: #eaf1ff !important;
-  border: 1px solid rgba(96, 130, 190, 0.32);
-  border-radius: 18px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  padding: 0 !important;
-  overflow: hidden;
+/* Superfície do painel (global styles.css define --cfg-form-*; aqui alinhamos host + body). */
+:host {
+  display: block;
+  color: var(--cfg-text);
+  background: transparent;
 }
 
 .cfg-modal {
   display: flex;
   flex-direction: column;
-  max-height: 88vh;
+  max-height: min(88vh, 920px);
+  min-height: 0;
   color: var(--cfg-text);
+  background: var(--cfg-surface);
+  font-family: var(--font-family-base, inherit);
 }
 
 /* ── Cabeçalho ─────────────────────────────────────────────────────── */
@@ -47,6 +67,7 @@
   gap: 16px;
   padding: 20px 22px 14px;
   border-bottom: 1px solid var(--cfg-border);
+  background: var(--cfg-surface);
 }
 
 .cfg-modal__titles {
@@ -59,9 +80,9 @@
   margin: 0;
   padding: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   line-height: 1.25;
-  color: #ffffff;
+  color: var(--cfg-text);
   letter-spacing: 0.01em;
 }
 
@@ -85,20 +106,20 @@
   height: 34px;
   border-radius: 9px;
   border: 1px solid var(--cfg-border);
-  background: rgba(20, 33, 60, 0.6);
+  background: var(--cfg-card-bg);
   color: var(--cfg-muted);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .cfg-modal__close:hover {
-  background: rgba(61, 108, 255, 0.16);
+  background: color-mix(in srgb, var(--cfg-primary) 14%, var(--cfg-card-bg));
   border-color: var(--cfg-border-strong);
-  color: #fff;
+  color: var(--cfg-text);
 }
 
 .cfg-modal__close .material-symbols-outlined {
-  font-size: 20px;
+  font-size: var(--icon-size, 20px);
 }
 
 /* ── Erros ─────────────────────────────────────────────────────────── */
@@ -110,14 +131,14 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  background: rgba(248, 113, 113, 0.1);
-  color: #fecaca;
+  border: 1px solid var(--cfg-danger-border);
+  background: var(--cfg-danger-bg);
+  color: var(--cfg-danger-text);
   font-size: 12.5px;
 }
 
 .cfg-modal__erros .material-symbols-outlined {
-  font-size: 18px;
+  font-size: var(--icon-size-sm, 18px);
   margin-top: 1px;
 }
 
@@ -132,6 +153,7 @@
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 16px 22px 20px !important;
   display: flex;
@@ -140,9 +162,10 @@
   color: inherit;
   width: min(92vw, 880px);
   box-sizing: border-box;
+  background: var(--cfg-surface);
 }
 
-/* ── Blocos (cards com borda azul discreta) ────────────────────────── */
+/* ── Blocos ────────────────────────────────────────────────────────── */
 .cfg-block {
   border: 1px solid var(--cfg-border);
   border-radius: 12px;
@@ -201,11 +224,11 @@
   width: 22px;
   height: 22px;
   border-radius: 7px;
-  background: rgba(61, 108, 255, 0.16);
-  border: 1px solid rgba(61, 108, 255, 0.4);
-  color: #9cc0ff;
+  background: color-mix(in srgb, var(--cfg-primary) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cfg-primary) 40%, transparent);
+  color: var(--cfg-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
 }
 
 .cfg-block__title {
@@ -213,7 +236,7 @@
   flex: 1 1 auto;
   font-size: 14px;
   font-weight: 600;
-  color: #f3f7ff;
+  color: var(--cfg-text);
 }
 
 .cfg-block__chevron {
@@ -241,7 +264,6 @@
   grid-column: 1 / -1;
 }
 
-/* Campo dependente da opção selecionada logo acima */
 .cfg-block__grid--inset {
   margin-top: 12px;
   padding-top: 12px;
@@ -258,7 +280,7 @@
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--cfg-input-border);
-  background: color-mix(in srgb, var(--cfg-surface, #151f34) 88%, #000);
+  background: color-mix(in srgb, var(--cfg-surface) 70%, var(--cfg-card-bg));
 }
 
 .cfg-weekday-summary__text {
@@ -270,16 +292,15 @@
 
 .cfg-weekday-summary__label {
   font-size: 0.75rem;
-  color: var(--cfg-muted, #94a3b8);
+  color: var(--cfg-muted);
 }
 
 .cfg-weekday-summary__value {
   font-size: 0.9375rem;
-  color: var(--cfg-text, #f8fafc);
-  font-weight: 700;
+  color: var(--cfg-text);
+  font-weight: var(--font-weight-section, 600);
 }
 
-/* Campo monetário com prefixo integrado ao controle. */
 .cfg-money-field {
   width: 100%;
   max-width: 320px;
@@ -287,7 +308,7 @@
 
 .cfg-money-field__prefix {
   color: var(--cfg-text);
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   white-space: nowrap;
 }
 
@@ -296,7 +317,7 @@
   letter-spacing: 0.01em;
 }
 
-/* ── Cards selecionáveis (Blocos 2 e 7) ────────────────────────────── */
+/* ── Cards selecionáveis ───────────────────────────────────────────── */
 .cfg-options {
   display: grid;
   gap: 10px;
@@ -310,8 +331,8 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--cfg-input-border);
-  background: rgba(26, 39, 70, 0.45);
-  color: #cdd9f0;
+  background: var(--cfg-option-bg);
+  color: var(--cfg-text);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -319,13 +340,13 @@
 
 .cfg-option:hover {
   border-color: var(--cfg-border-strong);
-  background: rgba(36, 56, 100, 0.55);
+  background: var(--cfg-option-hover);
 }
 
 .cfg-option--active {
   border-color: var(--cfg-primary);
-  background: rgba(61, 108, 255, 0.16);
-  color: #ffffff;
+  background: var(--cfg-option-active);
+  color: var(--cfg-text);
 }
 
 .cfg-option__check {
@@ -344,7 +365,7 @@
 .cfg-option__check .material-symbols-outlined {
   font-size: 16px;
   color: #fff;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
 }
 
 .cfg-option--active .cfg-option__check {
@@ -354,12 +375,12 @@
 
 .cfg-option__ico {
   flex: 0 0 auto;
-  font-size: 19px;
+  font-size: var(--font-page-title, 18px);
   color: var(--cfg-muted);
 }
 
 .cfg-option--active .cfg-option__ico {
-  color: #9cc0ff;
+  color: var(--cfg-primary);
 }
 
 .cfg-option__label {
@@ -368,7 +389,6 @@
   line-height: 1.3;
 }
 
-/* Indicador circular para a seleção única da regra de cobrança */
 .cfg-option__check--radio {
   border-radius: 50%;
 }
@@ -390,7 +410,7 @@
   background: var(--cfg-primary);
 }
 
-/* ── Bloco 7 — serviços adicionais ─────────────────────────────────── */
+/* ── Serviços / switches / taxas ───────────────────────────────────── */
 .cfg-services {
   display: grid;
   gap: 10px;
@@ -403,15 +423,11 @@
   gap: 8px;
 }
 
-.cfg-service__toggle {
-  width: 100%;
-}
-
+.cfg-service__toggle,
 .cfg-service__valor {
   width: 100%;
 }
 
-/* ── Switches (Bloco 4) ────────────────────────────────────────────── */
 .cfg-switches {
   display: grid;
   gap: 8px;
@@ -425,10 +441,9 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--cfg-input-border);
-  background: rgba(26, 39, 70, 0.4);
+  background: var(--cfg-option-bg);
 }
 
-/* ── Bloco 5 — taxas ───────────────────────────────────────────────── */
 .cfg-fees {
   display: grid;
   gap: 10px;
@@ -443,7 +458,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--cfg-input-border);
-  background: rgba(26, 39, 70, 0.4);
+  background: var(--cfg-option-bg);
 }
 
 .cfg-fee-row .mat-mdc-form-field {
@@ -459,7 +474,7 @@
   gap: 8px;
   padding: 14px 22px;
   border-top: 1px solid var(--cfg-border);
-  background: rgba(13, 22, 42, 0.6);
+  background: var(--cfg-footer-bg);
 }
 
 .cfg-modal__footer-spacer {
@@ -477,10 +492,11 @@
   cursor: pointer;
   border: 1px solid transparent;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
 }
 
 .cfg-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: var(--icon-size-sm, 18px);
 }
 
 .cfg-btn--ghost {
@@ -489,19 +505,19 @@
 }
 
 .cfg-btn--ghost:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--cfg-text);
+  background: color-mix(in srgb, var(--cfg-text) 6%, transparent);
 }
 
 .cfg-btn--outline {
-  background: rgba(20, 39, 70, 0.7);
+  background: var(--cfg-option-bg);
   border-color: var(--cfg-input-border);
-  color: #dbe7fb;
+  color: var(--cfg-text);
 }
 
 .cfg-btn--outline:hover {
   border-color: var(--cfg-border-strong);
-  background: rgba(36, 56, 100, 0.8);
+  background: var(--cfg-option-hover);
 }
 
 .cfg-btn--primary {
@@ -528,48 +544,51 @@
   }
 }
 
-/* ── Material form-field no tema do modal ──────────────────────────── */
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+/* ── Material: herda tokens do host (não força dark) ───────────────── */
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-text-field-wrapper {
   border-radius: 10px;
-  background: var(--cfg-input-bg, #1a2746) !important;
+  background: var(--cfg-input-bg) !important;
 }
 
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-form-field-flex {
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-flex {
   min-height: 44px;
   align-items: center;
 }
 
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mdc-floating-label,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-placeholder,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-input-element::placeholder {
-  color: rgba(185, 199, 226, 0.6) !important;
+:host ::ng-deep .mat-mdc-form-field .mdc-floating-label,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-select-placeholder,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-input-element::placeholder {
+  color: var(--cfg-muted) !important;
 }
 
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field input.mat-mdc-input-element,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-value-text,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-min-line,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-select-arrow {
-  color: rgba(243, 247, 255, 0.96) !important;
+:host ::ng-deep .mat-mdc-form-field input.mat-mdc-input-element,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-select-value-text,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-select-min-line,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-select-arrow {
+  color: var(--cfg-text) !important;
 }
 
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mdc-notched-outline__leading,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mdc-notched-outline__notch,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field .mdc-notched-outline__trailing {
-  border-color: var(--cfg-input-border, rgba(73, 104, 173, 0.5)) !important;
+:host ::ng-deep .mat-mdc-form-field .mdc-notched-outline__leading,
+:host ::ng-deep .mat-mdc-form-field .mdc-notched-outline__notch,
+:host ::ng-deep .mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: var(--cfg-input-border) !important;
 }
 
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
-::ng-deep .cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
-  border-color: var(--cfg-primary, #3d6cff) !important;
+:host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+:host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+:host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--cfg-primary) !important;
 }
 
-::ng-deep .cfg-form-dialog-panel .mat-mdc-slide-toggle .mdc-label {
-  color: #dbe7fb;
+:host ::ng-deep .mat-mdc-slide-toggle .mdc-label {
+  color: var(--cfg-text);
   font-size: 13px;
 }
 
-/* Sem color-scheme o seletor nativo de data renderiza o ícone escuro sobre fundo escuro */
-::ng-deep .cfg-form-dialog-panel input[type='date'].mat-mdc-input-element {
+:host ::ng-deep input[type='date'].mat-mdc-input-element {
+  color-scheme: light;
+}
+
+:host-context(html.theme-dark) ::ng-deep input[type='date'].mat-mdc-input-element {
   color-scheme: dark;
 }

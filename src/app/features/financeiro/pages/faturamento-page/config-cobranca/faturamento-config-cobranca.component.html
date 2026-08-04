@@ -10,20 +10,25 @@
   <!-- Consulta explícita: mesmo padrão visual da listagem de Transportadoras. -->
   <section class="cfg-search-bar" aria-label="Busca de configurações de cobrança">
     <div class="cfg-search-bar__select-wrap">
+      <label class="cfg-search-bar__sr-only" for="cfg-campo-busca">Tipo de busca</label>
       <select
+        id="cfg-campo-busca"
+        name="campoBusca"
         class="cfg-search-bar__select"
         [ngModel]="campoBusca()"
         (ngModelChange)="campoBusca.set($event)"
-        aria-label="Tipo de busca"
       >
         <option value="geral">Busca geral</option>
         <option value="transportadora">Transportadora</option>
         <option value="email">E-mail financeiro</option>
       </select>
     </div>
-    <label class="cfg-search-bar__search">
+    <label class="cfg-search-bar__search" for="cfg-termo-busca">
       <span class="material-symbols-outlined cfg-search-bar__search-ico" aria-hidden="true">search</span>
+      <span class="cfg-search-bar__sr-only">Termo de busca</span>
       <input
+        id="cfg-termo-busca"
+        name="termoBusca"
         type="text"
         class="cfg-search-bar__search-input"
         [placeholder]="searchPlaceholder"
@@ -31,7 +36,6 @@
         (ngModelChange)="searchText.set($event)"
         (keyup.enter)="buscar()"
         autocomplete="off"
-        aria-label="Termo de busca"
       />
     </label>
     <button
@@ -148,13 +152,14 @@
           {{ linhasFiltradas().length === 1 ? 'configuração' : 'configurações' }}
         </p>
         <div class="trn-list-footer__right">
-          <label class="trn-page-size">
+          <label class="trn-page-size" for="cfg-itens-por-pagina">
             <span class="trn-page-size__label">Linhas por página</span>
             <select
+              id="cfg-itens-por-pagina"
+              name="itensPorPagina"
               class="trn-page-size__select input-control"
               [ngModel]="itensPorPagina()"
               (ngModelChange)="onTamanhoPaginaChange($event)"
-              aria-label="Linhas por página"
             >
               @for (n of pageSizeOpcoes; track n) {
                 <option [ngValue]="n">{{ n }}</option>

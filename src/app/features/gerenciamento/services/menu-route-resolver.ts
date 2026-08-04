@@ -18,6 +18,7 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   movimentos: '/app/movimentos/entrada-saida',
   'entrada e saida': '/app/movimentos/entrada-saida',
   entradaesaida: '/app/movimentos/entrada-saida',
+  'entrada e saída': '/app/movimentos/entrada-saida',
   /** API costuma mandar singular; rota real do SPA é plural */
   movimento: '/app/movimentos/entrada-saida',
   relatorio: '/app/relatorios',
@@ -111,6 +112,32 @@ function normalizeApiRota(raw: string | null | undefined): string | null {
 }
 
 /**
+ * Rótulo amigável na sidebar/UI. API e seeds legados ainda usam "Movimento(s)".
+ */
+export function formatAppMenuDisplayLabel(label: string, route?: string | null): string {
+  const raw = (label ?? '').trim();
+  const key = norm(raw);
+  if (key === 'movimento' || key === 'movimentos') {
+    return 'Entrada e Saída';
+  }
+
+  const path = (route ?? '').replace(/\/+$/, '').toLowerCase();
+  if (
+    path === '/app/movimento' ||
+    path === '/app/movimentos' ||
+    path.startsWith('/app/movimentos/') ||
+    path.startsWith('/app/movimento/')
+  ) {
+    // Rótulo de menu de topo associado à feature (não reescreve subrótulos técnicos).
+    if (!raw || key === 'movimento' || key === 'movimentos' || key === 'entrada e saida') {
+      return 'Entrada e Saída';
+    }
+  }
+
+  return raw || label;
+}
+
+/**
  * Define a rota do Angular para sidebar/navegação quando a API omite `rota` ou
  * envia só `/app` (equivalente a "sem rota").
  */
@@ -145,6 +172,11 @@ for (const node of MENU_STRUCTURE) {
     }
   }
 }
+// Aliases legados da API (singular/plural)
+LABEL_TO_MATERIAL_ICON.set('movimento', 'swap_horiz');
+LABEL_TO_MATERIAL_ICON.set('movimentos', 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set('/app/movimentos', 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set('/app/movimento', 'swap_horiz');
 
 /**
  * Ícone Material Symbols para a sidebar (`<span class="material-symbols-outlined">`).

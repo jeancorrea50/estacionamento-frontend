@@ -1,3 +1,5 @@
+@use './faturamento-shared-list-shell';
+
 /* Listagens Financeiro: filtros, chips e tabelas — tokens theme-aware (B) + form tokens (C). */
 
 /**
@@ -135,38 +137,43 @@
   letter-spacing: 0.01em;
   text-transform: none;
   box-shadow: none !important;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 8px !important;
+  height: 30px;
+  line-height: 1.2;
+}
+
+/* Density + sem quebra de palavras em todas as tabelas do Faturamento */
+:host ::ng-deep .fat-faturas-table .mat-mdc-row,
+:host ::ng-deep .fat-fech-table .mat-mdc-row,
+:host ::ng-deep .rec-mat-table .mat-mdc-row {
+  height: 30px;
+  min-height: 30px !important;
+  max-height: 34px;
 }
 
 :host ::ng-deep .fat-faturas-table .mat-mdc-cell,
 :host ::ng-deep .fat-fech-table .mat-mdc-cell,
 :host ::ng-deep .rec-mat-table .mat-mdc-cell {
-  font-family: var(--font-family-base, 'Inter', system-ui, sans-serif);
-  color: var(--input-text, var(--text));
-  border-bottom: 1px solid var(--fat-table-border, var(--border-subtle));
-  background: transparent !important;
-  box-shadow: none !important;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 8px !important;
+  line-height: 1.2;
+  font-size: 13px;
+  vertical-align: middle;
 }
 
-:host ::ng-deep .fat-faturas-table .mat-mdc-row,
-:host ::ng-deep .fat-fech-table .mat-mdc-row,
-:host ::ng-deep .rec-mat-table .mat-mdc-row {
-  background: transparent;
-  transition: background 0.12s ease;
+:host ::ng-deep .fat-faturas-table .mat-mdc-header-row,
+:host ::ng-deep .fat-fech-table .mat-mdc-header-row,
+:host ::ng-deep .rec-mat-table .mat-mdc-header-row {
+  height: 30px;
+  min-height: 30px !important;
 }
 
-:host ::ng-deep .fat-faturas-table .mat-mdc-row:hover,
-:host ::ng-deep .fat-fech-table .mat-mdc-row:hover,
-:host ::ng-deep .rec-mat-table .mat-mdc-row:hover {
-  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent)));
-}
-
-:host ::ng-deep .fat-faturas-table .mat-mdc-row:hover .mat-mdc-cell,
-:host ::ng-deep .fat-fech-table .mat-mdc-row:hover .mat-mdc-cell,
-:host ::ng-deep .rec-mat-table .mat-mdc-row:hover .mat-mdc-cell {
-  background: transparent !important;
-}
-
-/* Tabelas nativas (trn-table) usadas no Financeiro, ex.: Config. Cobrança */
+/* Tabelas nativas (trn-table) usadas no Financeiro, ex.: Config. Cobrança / Faturas */
 :host ::ng-deep .trn-list-table-card {
   background: var(--fat-list-surface, var(--surface)) !important;
 }
@@ -184,26 +191,65 @@
   color: var(--fat-table-header-text, var(--muted));
   box-shadow: none !important;
   position: static !important;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 6px 10px !important;
+  line-height: 1.2;
+  font-size: 12px;
+  height: auto;
+}
+
+/* Linhas sólidas (sem zebra "cor sim / cor não" do .data-table global) */
+:host ::ng-deep .trn-table tbody tr,
+:host ::ng-deep .trn-table tbody tr:nth-child(odd),
+:host ::ng-deep .trn-table tbody tr:nth-child(even),
+:host ::ng-deep .data-table.trn-table tbody tr,
+:host ::ng-deep .data-table.trn-table tbody tr:nth-child(odd),
+:host ::ng-deep .data-table.trn-table tbody tr:nth-child(even),
+:host ::ng-deep .data-table.fat-table tbody tr,
+:host ::ng-deep .data-table.fat-table tbody tr:nth-child(odd),
+:host ::ng-deep .data-table.fat-table tbody tr:nth-child(even),
+:host ::ng-deep .data-table.cfg-table tbody tr,
+:host ::ng-deep .data-table.cfg-table tbody tr:nth-child(odd),
+:host ::ng-deep .data-table.cfg-table tbody tr:nth-child(even) {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+  height: auto;
 }
 
 :host ::ng-deep .trn-table tbody td,
-:host ::ng-deep .trn-table tbody th {
-  background: transparent !important;
+:host ::ng-deep .trn-table tbody th,
+:host ::ng-deep .data-table.trn-table tbody td,
+:host ::ng-deep .data-table.fat-table tbody td,
+:host ::ng-deep .data-table.cfg-table tbody td {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
   box-shadow: none !important;
   position: static !important;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 10px !important;
+  line-height: 1.2;
+  font-size: 13px;
+  vertical-align: middle;
 }
 
 :host ::ng-deep .trn-table tbody tr {
-  background: transparent;
   transition: background 0.12s ease;
 }
 
-:host ::ng-deep .trn-table tbody tr:hover {
+:host ::ng-deep .trn-table tbody tr:hover,
+:host ::ng-deep .data-table.trn-table tbody tr:hover,
+:host ::ng-deep .data-table.fat-table tbody tr:hover,
+:host ::ng-deep .data-table.cfg-table tbody tr:hover {
   background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
 }
 
 :host ::ng-deep .trn-table tbody tr:hover td,
-:host ::ng-deep .trn-table tbody tr:hover th {
+:host ::ng-deep .trn-table tbody tr:hover th,
+:host ::ng-deep .data-table.trn-table tbody tr:hover td,
+:host ::ng-deep .data-table.fat-table tbody tr:hover td,
+:host ::ng-deep .data-table.cfg-table tbody tr:hover td {
   background: transparent !important;
 }
 
@@ -212,6 +258,82 @@
 :host ::ng-deep .trn-table .trn-act-btns {
   background: transparent !important;
   box-shadow: none !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+:host ::ng-deep .trn-table .trn-table__acoes {
+  text-overflow: clip;
+}
+
+:host ::ng-deep .trn-table .trn-act-btn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
+}
+
+:host ::ng-deep .trn-table .trn-act-btn .material-symbols-outlined {
+  font-size: 18px !important;
+  line-height: 1;
+}
+
+:host ::ng-deep .trn-table .mat-mdc-checkbox,
+:host ::ng-deep .rec-mat-table .mat-mdc-checkbox {
+  --mdc-checkbox-state-layer-size: 28px;
+  transform: scale(0.9);
+  transform-origin: center;
+}
+
+/* Material tables (Recebimentos / Fechamentos / Inadimplência): mesmas linhas sólidas */
+:host ::ng-deep .fat-faturas-table .mat-mdc-row,
+:host ::ng-deep .fat-fech-table .mat-mdc-row,
+:host ::ng-deep .rec-mat-table .mat-mdc-row,
+:host ::ng-deep .fat-faturas-table .mat-mdc-row:nth-child(odd),
+:host ::ng-deep .fat-fech-table .mat-mdc-row:nth-child(odd),
+:host ::ng-deep .rec-mat-table .mat-mdc-row:nth-child(odd),
+:host ::ng-deep .fat-faturas-table .mat-mdc-row:nth-child(even),
+:host ::ng-deep .fat-fech-table .mat-mdc-row:nth-child(even),
+:host ::ng-deep .rec-mat-table .mat-mdc-row:nth-child(even) {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .fat-faturas-table .mat-mdc-cell,
+:host ::ng-deep .fat-fech-table .mat-mdc-cell,
+:host ::ng-deep .rec-mat-table .mat-mdc-cell {
+  font-family: var(--font-family-base, 'Inter', system-ui, sans-serif);
+  color: var(--input-text, var(--text));
+  border-bottom: 1px solid var(--fat-table-border, var(--border-subtle));
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .fat-faturas-table .mat-mdc-row:hover,
+:host ::ng-deep .fat-fech-table .mat-mdc-row:hover,
+:host ::ng-deep .rec-mat-table .mat-mdc-row:hover {
+  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
+}
+
+:host ::ng-deep .fat-faturas-table .mat-mdc-row:hover .mat-mdc-cell,
+:host ::ng-deep .fat-fech-table .mat-mdc-row:hover .mat-mdc-cell,
+:host ::ng-deep .rec-mat-table .mat-mdc-row:hover .mat-mdc-cell {
+  background: transparent !important;
+}
+
+:host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button,
+:host ::ng-deep .fat-faturas-table .mat-mdc-icon-button,
+:host ::ng-deep .fat-fech-table .mat-mdc-icon-button {
+  --mdc-icon-button-state-layer-size: 28px;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+}
+
+:host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button .material-symbols-outlined,
+:host ::ng-deep .fat-faturas-table .mat-mdc-icon-button .material-symbols-outlined,
+:host ::ng-deep .fat-fech-table .mat-mdc-icon-button .material-symbols-outlined {
+  font-size: 18px !important;
+  line-height: 1;
 }
 
 /* Form fields Material: mapeiam tokens globais de form (sem hex hardcoded) */

@@ -58,103 +58,59 @@
     </mat-card>
   </div>
 
-  @if (loading()) {
-    <p class="loading-msg" role="status" style="margin: 0 0 12px; color: var(--muted);">
-      Carregando inadimplentes...
-    </p>
-  }
-
-  <mat-card class="rec-table-card" appearance="outlined">
-    <div class="rec-table-card__header">
-      <div class="rec-table-card__header-left">
-        <h3 class="rec-table-card__title">Faturas em atraso</h3>
-        <p class="rec-table-card__count">{{ linhasFiltradas().length }} registros com os filtros atuais</p>
-      </div>
-      <div class="rec-table-card__header-right">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-table-search">
-          <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">search</span>
-          <input
-            matInput
-            placeholder="Buscar..."
-            [ngModel]="searchText()"
-            (ngModelChange)="searchText.set($event)"
-            (keyup.enter)="carregarLista()"
-          />
-        </mat-form-field>
-        <div class="rec-filter-bar rec-filter-bar--table">
-          <button
-            type="button"
-            class="btn btn-secondary fat-mat-btn rec-filtros-btn rec-filtros-tabela-btn"
-            [class.rec-filtros-btn--ativo]="panelFiltrosAberto()"
-            (click)="togglePanelFiltros($event)"
-            aria-label="Abrir filtros"
-            [attr.aria-expanded]="panelFiltrosAberto()"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
-            Filtros da tabela
-            @if (filtrosAtivosCount() > 0) {
-              <span class="rec-filtros-badge">{{ filtrosAtivosCount() }}</span>
-            }
-            <span class="material-symbols-outlined rec-filtros-arrow" [class.rec-filtros-arrow--aberto]="panelFiltrosAberto()" aria-hidden="true">expand_more</span>
-          </button>
-
-          @if (filtrosAtivosCount() > 0) {
-            <button type="button" class="btn btn-secondary fat-mat-btn rec-btn-limpar" (click)="limparFiltros()">
-              <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-              Limpar filtros
-            </button>
-          }
-
-          @if (panelFiltrosAberto()) {
-            <div class="rec-filtros-dropdown" role="dialog" aria-label="Filtros avançados">
-              <p class="rec-filtros-panel__titulo">Filtros avançados</p>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">local_shipping</span>
-                <mat-label>Transportadora</mat-label>
-                <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value)">
-                  <mat-option value="all">Todas</mat-option>
-                  @for (t of transportadorasOpcoes(); track t) {
-                    <mat-option [value]="t">{{ t }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">location_on</span>
-                <mat-label>Estacionamento</mat-label>
-                <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value)">
-                  <mat-option value="all">Todos</mat-option>
-                  @for (e of estacionamentosOpcoes(); track e) {
-                    <mat-option [value]="e">{{ e }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">schedule</span>
-                <mat-label>Dias em atraso</mat-label>
-                <mat-select [value]="diasFiltro()" (selectionChange)="setDiasFiltro($event)">
-                  @for (o of diasAtrasoOpcoes; track o.id) {
-                    <mat-option [value]="o.id">{{ o.label }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">outgoing_mail</span>
-                <mat-label>Status da cobrança</mat-label>
-                <mat-select [value]="statusCobrancaFiltro()" (selectionChange)="setStatusCobrancaFiltro($event)">
-                  <mat-option value="all">Todos</mat-option>
-                  @for (s of statusCobrancaOpcoes; track s) {
-                    <mat-option [value]="s">{{ s }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </div>
-          }
-        </div>
-        <div class="rec-table-actions-inline">
-          <div class="rec-data-picker">
+  <section class="cfg-search-bar" aria-label="Busca de inadimplência">
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="transportadoraFiltro()" (ngModelChange)="transportadoraFiltro.set($event)" aria-label="Transportadora">
+        <option value="all">Todas transportadoras</option>
+        @for (t of transportadorasOpcoes(); track t) {
+          <option [ngValue]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="estacionamentoFiltro()" (ngModelChange)="estacionamentoFiltro.set($event)" aria-label="Estacionamento">
+        <option value="all">Todos estacionamentos</option>
+        @for (e of estacionamentosOpcoes(); track e) {
+          <option [ngValue]="e">{{ e }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="diasFiltro()" (ngModelChange)="diasFiltro.set($event)" aria-label="Dias em atraso">
+        @for (o of diasAtrasoOpcoes; track o.id) {
+          <option [ngValue]="o.id">{{ o.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="statusCobrancaFiltro()" (ngModelChange)="statusCobrancaFiltro.set($event)" aria-label="Status da cobrança">
+        <option value="all">Todos os status de cobrança</option>
+        @for (s of statusCobrancaOpcoes; track s) {
+          <option [ngValue]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+    <label class="cfg-search-bar__search">
+      <span class="material-symbols-outlined cfg-search-bar__search-ico" aria-hidden="true">search</span>
+      <input
+        type="text"
+        class="cfg-search-bar__search-input"
+        placeholder="Pesquisar por fatura, transportadora..."
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+        (keyup.enter)="carregarLista()"
+        autocomplete="off"
+        aria-label="Termo de busca"
+      />
+    </label>
+    <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" [disabled]="loading()" (click)="carregarLista()">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      Buscar
+    </button>
+          <div class="rec-data-picker cfg-search-bar__date">
             <button
               type="button"
-              class="rec-data-picker__trigger rec-data-picker__trigger--table"
+              class="rec-data-picker__trigger"
               [class.rec-data-picker__trigger--ativo]="panelDataAberto()"
               (click)="togglePanelData($event)"
               aria-label="Selecionar data"
@@ -163,7 +119,6 @@
               <span class="rec-data-picker__label">Data</span>
               <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
             </button>
-
             @if (panelDataAberto()) {
               <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
                 <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
@@ -182,34 +137,49 @@
                       </button>
                     }
                   </div>
-                  <!-- mesmo calendário visual de recebimentos -->
                   @if (periodoGranularidade() === 'ano') {
                     <div class="rec-cal__nav">
-                      <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()"><span class="material-symbols-outlined" aria-hidden="true">chevron_left</span></button>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
                       <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
-                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
                     </div>
                     <div class="rec-cal__anos-grid">
                       @for (ano of calendarioAnosOpcoes(); track ano) {
-                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">{{ ano }}</button>
+                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">
+                          {{ ano }}
+                        </button>
                       }
                     </div>
                   } @else if (periodoGranularidade() === 'mes') {
                     <div class="rec-cal__nav">
-                      <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()"><span class="material-symbols-outlined" aria-hidden="true">chevron_left</span></button>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
                       <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
-                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
                     </div>
                     <div class="rec-cal__meses-grid">
                       @for (mes of mesesLabels; track mes; let i = $index) {
-                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">{{ mes }}</button>
+                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">
+                          {{ mes }}
+                        </button>
                       }
                     </div>
                   } @else {
                     <div class="rec-cal__nav">
-                      <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()"><span class="material-symbols-outlined" aria-hidden="true">chevron_left</span></button>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
                       <span class="rec-cal__periodo-titulo">{{ calendarioTituloMes() }}</span>
-                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
                     </div>
                     <div class="rec-cal__weekdays" aria-hidden="true">
                       @for (dia of diasSemanaLabels; track dia) {
@@ -237,46 +207,39 @@
               </div>
             }
           </div>
-        </div>
-      </div>
-    </div>
+  </section>
 
-    <div class="rec-table-card__toolbar">
-      <nav class="rec-status-tabs rec-status-tabs--inline rec-status-tabs--in-table" role="group" aria-label="Filtros rápidos">
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todas')" (click)="alternarFiltroRapido('todas')">
-          <span class="rec-status-tabs__label">Todas</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().todas }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d1_7')" (click)="alternarFiltroRapido('d1_7')">
-          <span class="rec-status-tabs__label">1 a 7 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().d1_7 }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('d8_15')" (click)="alternarFiltroRapido('d8_15')">
-          <span class="rec-status-tabs__label">8 a 15 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().d8_15 }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais15')" (click)="alternarFiltroRapido('mais15')">
-          <span class="rec-status-tabs__label">Mais de 15 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().mais15 }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('mais30')" (click)="alternarFiltroRapido('mais30')">
-          <span class="rec-status-tabs__label">Mais de 30 dias</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().mais30 }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semCobranca')" (click)="alternarFiltroRapido('semCobranca')">
-          <span class="rec-status-tabs__label">Sem cobrança</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().semCobranca }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('emNegociacao')" (click)="alternarFiltroRapido('emNegociacao')">
-          <span class="rec-status-tabs__label">Em negociação</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().emNegociacao }}</span>
-        </button>
-      </nav>
-    </div>
+  <section class="fat-quick-bar" aria-label="Filtros rápidos">
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('todas')" (click)="alternarFiltroRapido('todas')">
+      Todas <span class="fat-quick-chip__count">{{ contagensChips().todas }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('d1_7')" (click)="alternarFiltroRapido('d1_7')">
+      1 a 7 dias <span class="fat-quick-chip__count">{{ contagensChips().d1_7 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('d8_15')" (click)="alternarFiltroRapido('d8_15')">
+      8 a 15 dias <span class="fat-quick-chip__count">{{ contagensChips().d8_15 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('mais15')" (click)="alternarFiltroRapido('mais15')">
+      Mais de 15 dias <span class="fat-quick-chip__count">{{ contagensChips().mais15 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('mais30')" (click)="alternarFiltroRapido('mais30')">
+      Mais de 30 dias <span class="fat-quick-chip__count">{{ contagensChips().mais30 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('semCobranca')" (click)="alternarFiltroRapido('semCobranca')">
+      Sem cobrança <span class="fat-quick-chip__count">{{ contagensChips().semCobranca }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('emNegociacao')" (click)="alternarFiltroRapido('emNegociacao')">
+      Em negociação <span class="fat-quick-chip__count">{{ contagensChips().emNegociacao }}</span>
+    </button>
+  </section>
 
-    <mat-card-content class="rec-table-card__inner">
-      <div class="rec-table-scroll">
-        <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table">
+  @if (loading()) {
+    <p class="loading-msg cfg-loading" role="status">Carregando inadimplentes...</p>
+  }
+
+  <div class="trn-list-table-card cfg-list-table-card rec-list-table">
+    <div class="trn-list-table-scroll rec-table-scroll">
+      <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table">
           <ng-container matColumnDef="select">
             <th mat-header-cell *matHeaderCellDef class="rec-mat-table__sel">
               <mat-checkbox
@@ -396,12 +359,10 @@
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
-        @if (linhasFiltradas().length === 0) {
-          <p class="rec-empty">Nenhum registro encontrado com os filtros atuais.</p>
-        }
-      </div>
-    </mat-card-content>
-
+      @if (linhasFiltradas().length === 0 && !loading()) {
+        <p class="rec-empty">Nenhum registro encontrado com os filtros atuais.</p>
+      }
+    </div>
     <div class="rec-table-footer">
       <span class="rec-table-footer__info">Mostrando {{ paginaInfo() }} de {{ linhasFiltradas().length }} registros</span>
       <div class="rec-table-footer__pages" role="navigation" aria-label="Paginação">
@@ -416,7 +377,7 @@
         </button>
       </div>
     </div>
-  </mat-card>
+  </div>
 </div>
 
 <mat-menu #menuMais="matMenu">
@@ -447,3 +408,4 @@
     </button>
   </ng-template>
 </mat-menu>
+

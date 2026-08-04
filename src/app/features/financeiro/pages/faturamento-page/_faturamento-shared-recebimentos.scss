@@ -182,7 +182,8 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-header-row {
-  height: 34px;
+  height: 30px;
+  min-height: 30px !important;
   background: transparent;
 }
 
@@ -195,41 +196,48 @@ html.theme-dark .rec-hero__periodo-shell {
   text-transform: none !important;
   letter-spacing: 0.01em;
   color: var(--fat-table-header-text, var(--muted)) !important;
+  white-space: nowrap !important;
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-header-cell {
-  padding: 0 8px !important;
+  padding: 4px 8px !important;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--fat-table-header-bg, var(--surface-2)) !important;
-  white-space: nowrap;
+  white-space: nowrap !important;
   overflow: hidden;
   text-overflow: ellipsis;
   box-shadow: none !important;
+  line-height: 1.2;
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-cell {
   font-family: var(--font-family-base, 'Inter', system-ui, sans-serif) !important;
-  padding: 4px 8px !important;
-  font-size: var(--font-body, 14px);
+  padding: 2px 8px !important;
+  font-size: 13px;
   font-weight: var(--font-weight-body, 400);
-  line-height: 1.25;
+  line-height: 1.2;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
   color: var(--text);
   overflow: hidden;
-  background: transparent !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis;
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
   box-shadow: none !important;
 }
 
-:host ::ng-deep .rec-mat-table .mat-mdc-row {
-  height: auto;
-  min-height: 36px;
-  background: transparent;
+:host ::ng-deep .rec-mat-table .mat-mdc-row,
+:host ::ng-deep .rec-mat-table .mat-mdc-row:nth-child(odd),
+:host ::ng-deep .rec-mat-table .mat-mdc-row:nth-child(even) {
+  height: 30px;
+  min-height: 30px !important;
+  max-height: 34px;
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
   transition: background 0.12s ease;
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-row:hover {
-  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent)));
+  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-row:hover .mat-mdc-cell {
@@ -277,14 +285,14 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 :host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button {
-  --mdc-icon-button-state-layer-size: 32px;
-  width: 32px;
-  height: 32px;
+  --mdc-icon-button-state-layer-size: 28px;
+  width: 28px;
+  height: 28px;
   padding: 0;
 }
 
 .rec-ico .material-symbols-outlined {
-  font-size: var(--icon-size, 20px);
+  font-size: 18px;
   font-weight: 400;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
   color: var(--text);

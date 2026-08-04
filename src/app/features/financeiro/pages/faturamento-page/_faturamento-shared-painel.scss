@@ -646,18 +646,19 @@ html.theme-dark .rec-filtros-dropdown {
   line-height: 1;
 }
 
-/* ── Filtros de status (tabs horizontais, padrão fat-fin-tabs) ─────── */
+/* ── Filtros de status (chips/pills, padrão Faturas) ──────────────── */
 .rec-status-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   max-width: 100%;
-  margin: 0 0 18px;
-  padding: 0 24px 2px;
+  margin: 0 0 14px;
+  padding: 0;
   background: transparent;
   border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  border-bottom: none;
   box-sizing: border-box;
 }
 
@@ -676,51 +677,43 @@ html.theme-dark .rec-filtros-dropdown {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  height: 40px;
+  gap: 6px;
+  height: auto;
+  min-height: 0;
   margin: 0;
-  margin-bottom: -1px;
-  padding: 0 1.1rem;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  background: transparent;
-  color: var(--muted);
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000);
+  color: var(--text);
   font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
   box-sizing: border-box;
   transition:
-    color 0.18s ease,
-    background 0.18s ease,
-    border-color 0.18s ease;
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .rec-status-tabs__tab:hover {
-  color: color-mix(in srgb, var(--text) 88%, var(--muted));
-  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 40%, var(--border-subtle));
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 80%, transparent);
 }
 
 .rec-status-tabs__tab--active {
-  color: var(--text);
+  color: color-mix(in srgb, var(--primary, #1d4ed8) 88%, var(--text));
   font-weight: 600;
-  background: color-mix(in srgb, var(--surface-2) 75%, transparent);
-  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
-  border-bottom-color: transparent;
+  background: color-mix(in srgb, var(--primary, #2563eb) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 45%, var(--border-subtle));
 }
 
 .rec-status-tabs__tab--active::after {
-  content: '';
-  position: absolute;
-  left: 0.65rem;
-  right: 0.65rem;
-  bottom: 0;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--primary, #4d7cfe);
+  display: none;
 }
 
 .rec-status-tabs__label {
@@ -728,15 +721,68 @@ html.theme-dark .rec-filtros-dropdown {
 }
 
 .rec-status-tabs__count {
-  font-size: 0.8125rem;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, currentColor 52%, transparent);
+  color: color-mix(in srgb, currentColor 58%, transparent);
   line-height: 1;
 }
 
 .rec-status-tabs__tab--active .rec-status-tabs__count {
-  color: color-mix(in srgb, currentColor 68%, transparent);
+  color: color-mix(in srgb, currentColor 78%, transparent);
+}
+
+/* Alias canônico (Faturas e demais telas do Financeiro) */
+.fat-quick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.fat-quick-chip {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.fat-quick-chip:hover {
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 40%, var(--border-subtle));
+}
+
+.fat-quick-chip--active {
+  background: color-mix(in srgb, var(--primary, #2563eb) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 45%, var(--border-subtle));
+  color: color-mix(in srgb, var(--primary, #1d4ed8) 88%, var(--text));
+}
+
+.fat-quick-chip__count {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  margin-left: 2px;
+}
+
+.fat-quick-chip--active .fat-quick-chip__count {
+  color: color-mix(in srgb, currentColor 78%, transparent);
 }
 
 /* ── KPI cards row ─────────────────────────────────────────────────── */
@@ -879,7 +925,7 @@ html.theme-dark .rec-filtros-dropdown {
   border-radius: 12px;
   box-shadow: none;
   border-color: var(--border-subtle) !important;
-  background: var(--card-bg, #ffffff);
+  background: var(--fat-list-surface, var(--card-bg, #ffffff));
   display: flex;
   flex-direction: column;
 }
@@ -922,8 +968,8 @@ html.theme-dark .rec-filtros-dropdown {
 }
 
 .rec-table-card__toolbar {
-  padding: 0 8px 0 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   flex-shrink: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1161,28 +1207,31 @@ html.theme-dark .rec-hero-titles__subtitle {
   color: var(--fat-card-muted, var(--muted));
 }
 
-/* Filtros de status no dark mode (espelha fat-fin-tabs) */
-html.theme-dark .rec-status-tabs {
-  border-bottom-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
-}
-
-html.theme-dark .rec-status-tabs__tab {
-  color: var(--fat-card-muted, var(--muted));
-}
-
-html.theme-dark .rec-status-tabs__tab:hover {
+/* Filtros rápidos (chips/pills) — dark */
+html.theme-dark .rec-status-tabs__tab,
+html.theme-dark .fat-quick-chip {
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, #000);
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
   color: var(--fat-card-value, var(--text));
-  background: rgba(59, 130, 246, 0.08);
 }
 
-html.theme-dark .rec-status-tabs__tab--active {
+html.theme-dark .rec-status-tabs__tab:hover,
+html.theme-dark .fat-quick-chip:hover {
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 45%, var(--fat-card-border, rgba(96, 130, 190, 0.32)));
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 70%, #000);
   color: var(--fat-card-value, var(--text));
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(96, 130, 190, 0.35);
 }
 
-html.theme-dark .rec-status-tabs__tab--active::after {
-  background: var(--primary, #4d7cfe);
+html.theme-dark .rec-status-tabs__tab--active,
+html.theme-dark .fat-quick-chip--active {
+  background: #3b82f6;
+  border-color: #93c5fd;
+  color: #fff;
+}
+
+html.theme-dark .rec-status-tabs__tab--active .rec-status-tabs__count,
+html.theme-dark .fat-quick-chip--active .fat-quick-chip__count {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 html.theme-dark .rec-kpi-card.mat-mdc-card {
@@ -1295,8 +1344,8 @@ html.theme-dark .rec-page-nav-btn .material-symbols-outlined {
 
   .rec-status-tabs__tab {
     flex: 0 0 auto;
-    padding: 0 0.85rem;
-    font-size: 0.8125rem;
+    padding: 6px 12px;
+    font-size: 12px;
   }
 
   .rec-quick-actions .btn.fat-mat-btn {

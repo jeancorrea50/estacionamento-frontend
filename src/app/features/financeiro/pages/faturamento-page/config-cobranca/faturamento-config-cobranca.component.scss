@@ -52,6 +52,8 @@
   letter-spacing: 0.01em;
   font-size: 0.75rem;
   font-weight: var(--font-weight-section, 600);
+  white-space: nowrap;
+  padding: 6px 10px !important;
 }
 
 /* Larguras fluidas + ellipsis — sem sticky (evita faixa de cor diferente nas laterais). */
@@ -60,6 +62,13 @@
   vertical-align: middle;
   background: transparent !important;
   box-shadow: none !important;
+  white-space: nowrap !important;
+}
+
+.cfg-table.trn-table td {
+  padding: 4px 10px !important;
+  line-height: 1.2;
+  font-size: 13px;
 }
 
 .cfg-table.trn-table th:nth-child(1),
@@ -115,6 +124,31 @@
 
 .cfg-list-table-card {
   background: var(--fat-list-surface, var(--surface)) !important;
+}
+
+/* Linhas sólidas (sem zebra global de .data-table) */
+:host ::ng-deep .cfg-table.trn-table tbody tr,
+:host ::ng-deep .cfg-table.trn-table tbody tr:nth-child(odd),
+:host ::ng-deep .cfg-table.trn-table tbody tr:nth-child(even),
+:host ::ng-deep table.data-table.cfg-table tbody tr,
+:host ::ng-deep table.data-table.cfg-table tbody tr:nth-child(odd),
+:host ::ng-deep table.data-table.cfg-table tbody tr:nth-child(even) {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .cfg-table.trn-table tbody td,
+:host ::ng-deep table.data-table.cfg-table tbody td {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .cfg-table.trn-table tbody tr:hover,
+:host ::ng-deep table.data-table.cfg-table tbody tr:hover {
+  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
+}
+
+:host ::ng-deep .cfg-table.trn-table tbody tr:hover td,
+:host ::ng-deep table.data-table.cfg-table tbody tr:hover td {
+  background: transparent !important;
 }
 
 .cfg-list-table-card .trn-list-table-scroll {

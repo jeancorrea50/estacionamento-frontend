@@ -1,0 +1,255 @@
+/* Shell visual unificado: título + barra de busca (padrão Faturas / Config. Cobrança) */
+
+.cfg-cta-card.mat-mdc-card {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--card-bg, var(--surface));
+  box-shadow: none;
+  margin: 0 0 12px;
+}
+
+.cfg-cta-card__content {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px !important;
+}
+
+.cfg-cta-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--font-weight-section, 600);
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.cfg-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0.7rem 0.9rem;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, #000);
+  box-shadow: none;
+}
+
+.cfg-search-bar__select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.cfg-search-bar__select {
+  height: 42px;
+  min-width: 150px;
+  max-width: 220px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 90%, #000);
+  color: var(--text);
+  appearance: auto;
+  cursor: pointer;
+}
+
+.cfg-search-bar__search {
+  flex: 1;
+  min-width: min(100%, 220px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 90%, #000);
+  box-sizing: border-box;
+  color: var(--text);
+}
+
+.cfg-search-bar__search-ico {
+  flex: 0 0 auto;
+  font-size: var(--font-page-title, 18px) !important;
+  color: var(--muted);
+}
+
+.cfg-search-bar__search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.cfg-search-bar__search-input::placeholder {
+  color: color-mix(in srgb, var(--muted) 88%, var(--text));
+}
+
+.cfg-search-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.cfg-search-bar__btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cfg-search-bar__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cfg-search-bar__btn--neutral {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000);
+  border-color: var(--border-subtle);
+}
+
+.cfg-search-bar__btn--neutral:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 40%, var(--border-subtle));
+}
+
+.cfg-search-bar__btn--primary {
+  color: #fff;
+  background: var(--primary, #2563eb);
+  border-color: var(--primary, #2563eb);
+}
+
+.cfg-search-bar__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.cfg-search-bar__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Calendário embutido na barra de busca (mantém painel rec-cal) */
+.cfg-search-bar .rec-data-picker {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+}
+
+.cfg-search-bar .rec-data-picker__trigger {
+  height: 42px;
+  min-width: 108px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.cfg-search-bar .rec-data-picker__trigger:hover,
+.cfg-search-bar .rec-data-picker__trigger--ativo {
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 45%, var(--border-subtle));
+}
+
+.cfg-search-bar .rec-data-picker__ico {
+  font-size: 18px !important;
+  line-height: 1;
+}
+
+.cfg-search-bar .rec-data-picker__panel {
+  right: 0;
+  left: auto;
+  top: calc(100% + 6px);
+  z-index: 40;
+}
+
+/* Chips fora do card da tabela */
+.rec-page > .fat-quick-bar {
+  margin: 0 0 12px;
+}
+
+/* Lista: mesmo container de Faturas (sem header interno / sem fundo duplo) */
+.rec-list-table.cfg-list-table-card,
+.rec-list-table.trn-list-table-card {
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid var(--fat-fill-border, var(--border-subtle));
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.rec-list-table .trn-list-table-scroll,
+.rec-list-table .rec-table-scroll {
+  background: transparent !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rec-list-table .rec-table-footer {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  background: transparent;
+  padding: 10px 14px;
+}
+
+html.theme-dark .cfg-cta-card.mat-mdc-card,
+html.theme-dark .cfg-search-bar {
+  background: var(--fat-card-bg, #151f34);
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+}
+
+html.theme-dark .cfg-search-bar__select,
+html.theme-dark .cfg-search-bar__search,
+html.theme-dark .cfg-search-bar__btn--neutral,
+html.theme-dark .cfg-search-bar .rec-data-picker__trigger {
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, #000);
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+  color: var(--fat-card-value, var(--text));
+}
+
+html.theme-dark .cfg-cta-card__title {
+  color: var(--fat-card-value, var(--text));
+}
+
+html.theme-dark .rec-list-table.cfg-list-table-card,
+html.theme-dark .rec-list-table.trn-list-table-card {
+  background: var(--fat-list-surface, #0f1d39) !important;
+  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+}

@@ -1,6 +1,5 @@
 <div class="rec-page">
 
-  <!-- KPI cards -->
   <div class="rec-kpi-row">
     <mat-card class="rec-kpi-card" appearance="outlined">
       <mat-card-content class="rec-kpi-card__content">
@@ -61,118 +60,72 @@
     </mat-card>
   </div>
 
-  @if (loading()) {
-    <p class="loading-msg" role="status" style="margin: 0 0 12px; color: var(--muted);">
-      Carregando recebimentos...
-    </p>
-  }
-
-  <!-- Tabela -->
-  <mat-card class="rec-table-card" appearance="outlined">
-    <div class="rec-table-card__header">
-      <div class="rec-table-card__header-left">
-        <h3 class="rec-table-card__title">Recebimentos por fatura</h3>
-        <p class="rec-table-card__count">{{ linhasFiltradas().length }} registros com os filtros atuais</p>
-      </div>
-      <div class="rec-table-card__header-right">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-table-search">
-          <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">search</span>
-          <input
-            matInput
-            placeholder="Buscar..."
-            [ngModel]="searchText()"
-            (ngModelChange)="searchText.set($event)"
-            (keyup.enter)="carregarLista()"
-          />
-        </mat-form-field>
-        <div class="rec-filter-bar rec-filter-bar--table">
-          <button
-            type="button"
-            class="btn btn-secondary fat-mat-btn rec-filtros-btn rec-filtros-tabela-btn"
-            [class.rec-filtros-btn--ativo]="panelFiltrosAberto()"
-            (click)="togglePanelFiltros($event)"
-            aria-label="Abrir filtros"
-            [attr.aria-expanded]="panelFiltrosAberto()"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
-            Filtros da tabela
-            @if (filtrosAtivosCount() > 0) {
-              <span class="rec-filtros-badge">{{ filtrosAtivosCount() }}</span>
-            }
-            <span class="material-symbols-outlined rec-filtros-arrow" [class.rec-filtros-arrow--aberto]="panelFiltrosAberto()" aria-hidden="true">expand_more</span>
-          </button>
-
-          @if (filtrosAtivosCount() > 0) {
-            <button type="button" class="btn btn-secondary fat-mat-btn rec-btn-limpar" (click)="limparFiltros()">
-              <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-              Limpar filtros
-            </button>
-          }
-
-          @if (panelFiltrosAberto()) {
-            <div class="rec-filtros-dropdown" role="dialog" aria-label="Filtros avançados">
-              <p class="rec-filtros-panel__titulo">Filtros avançados</p>
-
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">local_shipping</span>
-                <mat-label>Transportadora</mat-label>
-                <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value)">
-                  <mat-option value="all">Todas</mat-option>
-                  @for (t of transportadorasOpcoes(); track t) {
-                    <mat-option [value]="t">{{ t }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">location_on</span>
-                <mat-label>Estacionamento</mat-label>
-                <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value)">
-                  <mat-option value="all">Todos</mat-option>
-                  @for (e of estacionamentosOpcoes(); track e) {
-                    <mat-option [value]="e">{{ e }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">schedule</span>
-                <mat-label>Status do pagamento</mat-label>
-                <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
-                  <mat-option value="all">Todos</mat-option>
-                  @for (s of statusPagamentoOpcoes; track s) {
-                    <mat-option [value]="s">{{ s }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
-                <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">credit_card</span>
-                <mat-label>Forma de pagamento</mat-label>
-                <mat-select [value]="formaFiltro()" (selectionChange)="formaFiltro.set($event.value)">
-                  <mat-option value="all">Todas</mat-option>
-                  @for (f of formasPagamento; track f) {
-                    <mat-option [value]="f">{{ f }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </div>
-          }
-        </div>
-        <div class="rec-table-actions-inline">
-          <button
-            type="button"
-            class="btn btn-secondary fat-mat-btn rec-acoes-btn rec-acoes-btn--table"
-            [matMenuTriggerFor]="menuAcoesRapidas"
-            aria-label="Abrir ações rápidas"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
-          </button>
-
-          <div class="rec-data-picker">
+  <section class="cfg-search-bar" aria-label="Busca de recebimentos">
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="transportadoraFiltro()"
+        (ngModelChange)="transportadoraFiltro.set($event)"
+        aria-label="Transportadora"
+      >
+        <option value="all">Todas transportadoras</option>
+        @for (t of transportadorasOpcoes(); track t) {
+          <option [ngValue]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="estacionamentoFiltro()"
+        (ngModelChange)="estacionamentoFiltro.set($event)"
+        aria-label="Estacionamento"
+      >
+        <option value="all">Todos estacionamentos</option>
+        @for (e of estacionamentosOpcoes(); track e) {
+          <option [ngValue]="e">{{ e }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="statusFiltro()"
+        (ngModelChange)="statusFiltro.set($event)"
+        aria-label="Status do pagamento"
+      >
+        <option value="all">Todos os status</option>
+        @for (s of statusPagamentoOpcoes; track s) {
+          <option [ngValue]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+    <label class="cfg-search-bar__search">
+      <span class="material-symbols-outlined cfg-search-bar__search-ico" aria-hidden="true">search</span>
+      <input
+        type="text"
+        class="cfg-search-bar__search-input"
+        placeholder="Pesquisar por fatura, transportadora..."
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+        (keyup.enter)="carregarLista()"
+        autocomplete="off"
+        aria-label="Termo de busca"
+      />
+    </label>
+    <button
+      type="button"
+      class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
+      [disabled]="loading()"
+      (click)="carregarLista()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      Buscar
+    </button>
+          <div class="rec-data-picker cfg-search-bar__date">
             <button
               type="button"
-              class="rec-data-picker__trigger rec-data-picker__trigger--table"
+              class="rec-data-picker__trigger"
               [class.rec-data-picker__trigger--ativo]="panelDataAberto()"
               (click)="togglePanelData($event)"
               aria-label="Selecionar data"
@@ -181,12 +134,10 @@
               <span class="rec-data-picker__label">Data</span>
               <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
             </button>
-
             @if (panelDataAberto()) {
               <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
                 <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
                   <h3 class="rec-cal__titulo">Calendário</h3>
-
                   <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
                     @for (g of periodoGranularidadeOpcoes; track g.id) {
                       <button
@@ -201,7 +152,6 @@
                       </button>
                     }
                   </div>
-
                   @if (periodoGranularidade() === 'ano') {
                     <div class="rec-cal__nav">
                       <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
@@ -214,12 +164,7 @@
                     </div>
                     <div class="rec-cal__anos-grid">
                       @for (ano of calendarioAnosOpcoes(); track ano) {
-                        <button
-                          type="button"
-                          class="rec-cal__ano"
-                          [ngClass]="anoCalendarioModificadores(ano)"
-                          (click)="selecionarAnoCalendario(ano)"
-                        >
+                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">
                           {{ ano }}
                         </button>
                       }
@@ -236,12 +181,7 @@
                     </div>
                     <div class="rec-cal__meses-grid">
                       @for (mes of mesesLabels; track mes; let i = $index) {
-                        <button
-                          type="button"
-                          class="rec-cal__mes"
-                          [ngClass]="mesCalendarioModificadores(i)"
-                          (click)="selecionarMesCalendario(i)"
-                        >
+                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">
                           {{ mes }}
                         </button>
                       }
@@ -256,19 +196,12 @@
                         <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
                       </button>
                     </div>
-
                     <div class="rec-cal__weekdays" aria-hidden="true">
                       @for (dia of diasSemanaLabels; track dia) {
                         <span class="rec-cal__weekday">{{ dia }}</span>
                       }
                     </div>
-
-                    <div
-                      class="rec-cal__grid"
-                      role="grid"
-                      aria-label="Dias do mês"
-                      (mouseleave)="onDocumentMouseUp()"
-                    >
+                    <div class="rec-cal__grid" role="grid" aria-label="Dias do mês" (mouseleave)="onDocumentMouseUp()">
                       @for (cell of calendarioGrade(); track cell.iso) {
                         <button
                           type="button"
@@ -289,46 +222,49 @@
               </div>
             }
           </div>
-        </div>
-      </div>
-    </div>
+    <button
+      type="button"
+      class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+      [matMenuTriggerFor]="menuAcoesRapidas"
+      aria-label="Ações"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Novo
+    </button>
+  </section>
 
-    <div class="rec-table-card__toolbar">
-      <nav class="rec-status-tabs rec-status-tabs--inline rec-status-tabs--in-table" role="group" aria-label="Filtros rápidos">
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('todos')" (click)="alternarFiltroRapido('todos')">
-          <span class="rec-status-tabs__label">Todos</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().todos }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('pagos')" (click)="alternarFiltroRapido('pagos')">
-          <span class="rec-status-tabs__label">Pagos</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().pagos }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('parciais')" (click)="alternarFiltroRapido('parciais')">
-          <span class="rec-status-tabs__label">Parciais</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().parciais }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('pendentes')" (click)="alternarFiltroRapido('pendentes')">
-          <span class="rec-status-tabs__label">Pendentes</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().pendentes }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('vencidos')" (click)="alternarFiltroRapido('vencidos')">
-          <span class="rec-status-tabs__label">Vencidos</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().vencidos }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('comComprovante')" (click)="alternarFiltroRapido('comComprovante')">
-          <span class="rec-status-tabs__label">Com comprovante</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().comComprovante }}</span>
-        </button>
-        <button type="button" class="rec-status-tabs__tab" [class.rec-status-tabs__tab--active]="isFiltroRapidoAtivo('semComprovante')" (click)="alternarFiltroRapido('semComprovante')">
-          <span class="rec-status-tabs__label">Sem comprovante</span>
-          <span class="rec-status-tabs__count">{{ contagensChips().semComprovante }}</span>
-        </button>
-      </nav>
-    </div>
+  <section class="fat-quick-bar" aria-label="Filtros rápidos">
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('todos')" (click)="alternarFiltroRapido('todos')">
+      Todos <span class="fat-quick-chip__count">{{ contagensChips().todos }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('pagos')" (click)="alternarFiltroRapido('pagos')">
+      Pagos <span class="fat-quick-chip__count">{{ contagensChips().pagos }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('parciais')" (click)="alternarFiltroRapido('parciais')">
+      Parciais <span class="fat-quick-chip__count">{{ contagensChips().parciais }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('pendentes')" (click)="alternarFiltroRapido('pendentes')">
+      Pendentes <span class="fat-quick-chip__count">{{ contagensChips().pendentes }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('vencidos')" (click)="alternarFiltroRapido('vencidos')">
+      Vencidos <span class="fat-quick-chip__count">{{ contagensChips().vencidos }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('comComprovante')" (click)="alternarFiltroRapido('comComprovante')">
+      Com comprovante <span class="fat-quick-chip__count">{{ contagensChips().comComprovante }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('semComprovante')" (click)="alternarFiltroRapido('semComprovante')">
+      Sem comprovante <span class="fat-quick-chip__count">{{ contagensChips().semComprovante }}</span>
+    </button>
+  </section>
 
-    <mat-card-content class="rec-table-card__inner">
-      <div class="rec-table-scroll">
-        <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table">
+  @if (loading()) {
+    <p class="loading-msg cfg-loading" role="status">Carregando recebimentos...</p>
+  }
+
+
+  <div class="trn-list-table-card cfg-list-table-card rec-list-table">
+    <div class="trn-list-table-scroll rec-table-scroll">
+      <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table">
 
           <ng-container matColumnDef="select">
             <th mat-header-cell *matHeaderCellDef class="rec-mat-table__sel">
@@ -440,12 +376,10 @@
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
-        @if (linhasFiltradas().length === 0) {
-          <p class="rec-empty">Nenhum recebimento encontrado com os filtros atuais.</p>
-        }
-      </div>
-    </mat-card-content>
-
+      @if (linhasFiltradas().length === 0 && !loading()) {
+        <p class="rec-empty">Nenhum recebimento encontrado com os filtros atuais.</p>
+      }
+    </div>
     <div class="rec-table-footer">
       <span class="rec-table-footer__info">Mostrando {{ paginaInfo() }} de {{ linhasFiltradas().length }} registros</span>
       <div class="rec-table-footer__pages" role="navigation" aria-label="Paginação">
@@ -477,7 +411,7 @@
         </button>
       </div>
     </div>
-  </mat-card>
+  </div>
 
 </div>
 

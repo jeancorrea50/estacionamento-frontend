@@ -12,14 +12,17 @@ export const MOVIMENTOS_ROUTES: Routes = [
   {
     path: 'entrada-saida',
     component: EntradaSaidaShellComponent,
+    title: 'Entrada e Saída',
     children: [
       {
         path: '',
-        component: MovimentosPageComponent
+        component: MovimentosPageComponent,
+        title: 'Entrada e Saída'
       },
       {
         path: ':id',
-        component: EntradaSaidaFormComponent
+        component: EntradaSaidaFormComponent,
+        title: 'Entrada e Saída'
       }
     ]
   },

@@ -21,7 +21,7 @@ export const routes: Routes = [
 		children: LOGIN_ROUTES,
 	},
 
-	// LAYOUT PRINCIPAL (Dashboard, Movimentos, Relatórios, Financeiro, Configurações)
+	// LAYOUT PRINCIPAL (Dashboard, Entrada e Saída, Relatórios, Financeiro, Configurações)
 	// Layout Component renderiza sidebar + router-outlet
 	{
 		path: 'app',
@@ -34,10 +34,15 @@ export const routes: Routes = [
 				path: 'dashboard',
 				children: DASHBOARD_ROUTES
 			},
-			// Nome singular vindo da API / links antigos → rota real do SPA
+			// Nome singular / legado da API → rota real do SPA (módulo Entrada e Saída)
 			{
 				path: 'movimento',
 				redirectTo: 'movimentos',
+				pathMatch: 'full',
+			},
+			{
+				path: 'entrada-saida',
+				redirectTo: 'movimentos/entrada-saida',
 				pathMatch: 'full',
 			},
 			{
@@ -45,7 +50,7 @@ export const routes: Routes = [
 				redirectTo: 'relatorios',
 				pathMatch: 'full',
 			},
-			// 3. MOVIMENTOS
+			// 3. ENTRADA E SAÍDA (path técnico: movimentos/*)
 			{
 				path: 'movimentos',
 				children: MOVIMENTOS_ROUTES

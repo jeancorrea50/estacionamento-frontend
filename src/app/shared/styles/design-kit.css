@@ -1,14 +1,71 @@
+/**
+ * Design Kit GTS — utilitários de UI reutilizáveis (Prioridade C).
+ * Preferir estas classes (ou `.page-title` / `.btn` / `.input-control` globais)
+ * a estilos localizados com hex e tamanhos ad-hoc.
+ */
+
+/* ── Ícones (Material Symbols) ─────────────────────────────────────── */
+.dk-icon,
+.dk-btn .material-symbols-outlined,
+.dk-page-header .material-symbols-outlined,
+.dk-action-bar .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-size: var(--icon-size, 20px);
+  font-weight: 400;
+  line-height: 1;
+  font-style: normal;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  user-select: none;
+}
+
+.dk-icon--md {
+  font-size: var(--icon-size-md, 22px);
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22;
+}
+
+.dk-icon--sm {
+  font-size: var(--icon-size-sm, 18px);
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 18;
+}
+
+/* ── Page header (família única: Cadastro / Faturamento / Gerenciamento) ── */
 .dk-page-header {
   padding: var(--space-md, 12px) 0 var(--space-lg, 16px);
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  margin-bottom: var(--space-lg, 16px);
+  box-sizing: border-box;
+}
+
+.dk-page-header__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md, 12px) var(--space-lg, 16px);
+}
+
+.dk-page-header__titles {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.dk-page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm, 8px);
+  min-width: 0;
 }
 
 .dk-page-title {
   margin: 0;
   font-size: var(--font-page-title, 18px);
-  font-weight: var(--font-weight-page-title, 700);
+  font-weight: var(--font-weight-page-title, 600);
   color: var(--text);
   line-height: 1.3;
+  font-family: inherit;
+  letter-spacing: -0.01em;
 }
 
 .dk-page-subtitle {
@@ -18,6 +75,54 @@
   line-height: 1.4;
 }
 
+/* Hero compacto (dashboard listagem — espelho suave do est-dash-hero) */
+.dk-page-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-sizing: border-box;
+}
+
+.dk-page-hero__icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md, 10px);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border-subtle));
+  color: var(--primary);
+}
+
+.dk-page-hero__icon .material-symbols-outlined {
+  font-size: var(--icon-size-md, 22px);
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22;
+}
+
+.dk-page-hero__title {
+  margin: 0;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 600);
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.dk-page-hero__subtitle {
+  margin: 0.15rem 0 0;
+  font-size: var(--font-caption, 12px);
+  line-height: 1.35;
+  color: var(--muted);
+  max-width: 40rem;
+}
+
+/* ── Action bar ────────────────────────────────────────────────────── */
 .dk-action-bar {
   display: flex;
   align-items: center;
@@ -38,6 +143,189 @@
   margin-left: auto;
 }
 
+/* ── Botões (somente tokens --btn-*) ─────────────────────────────── */
+.dk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm, 8px);
+  height: var(--btn-height, 40px);
+  min-height: var(--btn-height, 40px);
+  padding: 0 var(--space-lg, 16px);
+  border-radius: var(--btn-radius, 6px);
+  border-style: solid;
+  border-width: 1px;
+  font-size: var(--font-body, 14px);
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  box-shadow: var(--btn-shadow);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.dk-btn:disabled,
+.dk-btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dk-btn--sm {
+  height: var(--btn-height-sm, 34px);
+  min-height: var(--btn-height-sm, 34px);
+  padding: 0 0.85rem;
+  font-size: 0.8125rem;
+}
+
+.dk-btn--primary {
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-border);
+  color: var(--btn-primary-text);
+}
+
+.dk-btn--primary:hover:not(:disabled) {
+  background: var(--btn-primary-bg-hover);
+  box-shadow: var(--btn-shadow-hover);
+}
+
+.dk-btn--secondary {
+  background: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
+  color: var(--btn-secondary-text);
+}
+
+.dk-btn--secondary:hover:not(:disabled) {
+  background: var(--btn-secondary-bg-hover);
+  box-shadow: var(--btn-shadow-hover);
+}
+
+.dk-btn--success {
+  background: var(--btn-success-bg);
+  border-color: var(--btn-success-border);
+  color: var(--btn-success-text);
+}
+
+.dk-btn--success:hover:not(:disabled) {
+  background: var(--btn-success-bg-hover);
+  box-shadow: var(--btn-shadow-hover);
+}
+
+.dk-btn--danger {
+  background: var(--btn-danger-bg);
+  border-color: var(--btn-danger-border);
+  color: var(--btn-danger-text);
+}
+
+.dk-btn--danger:hover:not(:disabled) {
+  background: var(--btn-danger-bg-hover);
+  box-shadow: var(--btn-shadow-hover);
+}
+
+.dk-btn--warning {
+  background: var(--btn-warning-bg);
+  border-color: var(--btn-warning-border);
+  color: var(--btn-warning-text);
+}
+
+.dk-btn--warning:hover:not(:disabled) {
+  background: var(--btn-warning-bg-hover);
+  box-shadow: var(--btn-shadow-hover);
+}
+
+/* ── Inputs (tokens de form do styles.css) ────────────────────────── */
+.dk-input {
+  height: var(--btn-height, 40px);
+  min-height: var(--btn-height, 40px);
+  padding: 0 var(--space-md, 12px);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: var(--font-body, 14px);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.dk-input::placeholder {
+  color: var(--input-placeholder, var(--muted));
+}
+
+.dk-input:focus {
+  outline: none;
+  border-color: var(--focus, var(--primary));
+  box-shadow: var(--focus-ring);
+}
+
+/* ── Abas de página (shell com subrotas) ──────────────────────────── */
+.dk-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  background: transparent;
+}
+
+.dk-tabs__tab {
+  position: relative;
+  height: 40px;
+  padding: 0 1.25rem;
+  margin-bottom: -1px;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--font-subtitle, 14px);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-bottom: none;
+  box-sizing: border-box;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+.dk-tabs__tab:hover {
+  color: color-mix(in srgb, var(--text) 88%, var(--muted));
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.dk-tabs__tab--active,
+.dk-tabs__tab.tab--active {
+  color: var(--text);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--surface-2) 75%, transparent);
+  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  border-bottom-color: transparent;
+}
+
+.dk-tabs__tab--active::after,
+.dk-tabs__tab.tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary);
+}
+
+/* ── Tabelas ─────────────────────────────────────────────────────── */
 .dk-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -55,8 +343,22 @@
 .dk-table td {
   padding: var(--space-sm, 8px) var(--space-md, 12px);
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  color: var(--text);
+  font-family: var(--font-family-base, inherit);
 }
 
+.dk-table th {
+  color: var(--table-header-text, var(--muted));
+  background: var(--table-header-bg, transparent);
+  font-weight: var(--font-weight-section, 600);
+  font-size: var(--font-caption, 12px);
+}
+
+.dk-table tbody tr:hover td {
+  background: var(--table-row-hover, transparent);
+}
+
+/* ── Modal ───────────────────────────────────────────────────────── */
 .dk-modal-overlay {
   position: fixed;
   inset: 0;
@@ -65,8 +367,12 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-lg, 16px);
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, #0f172a 50%, transparent);
   backdrop-filter: blur(2px);
+}
+
+html.theme-light .dk-modal-overlay {
+  background: color-mix(in srgb, #0a3890 22%, transparent);
 }
 
 .dk-modal-content {
@@ -106,6 +412,18 @@
 @media (max-width: 768px) {
   .dk-page-header {
     padding-bottom: var(--space-md, 12px);
+  }
+
+  .dk-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .dk-tabs__tab {
+    flex: 1;
+    min-width: 0;
+    padding: 0 0.75rem;
   }
 
   .dk-modal-overlay {

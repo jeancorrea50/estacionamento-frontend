@@ -69,7 +69,7 @@ export interface ConfigCobrancaWeekdayDialogData {
         border-radius: 10px;
         border: 1px solid color-mix(in srgb, var(--border-subtle, #334155) 90%, transparent);
         background: color-mix(in srgb, var(--surface-2, #1e293b) 70%, transparent);
-        color: var(--text, #e2e8f0);
+        color: var(--text);
         font: inherit;
         font-size: 14px;
         cursor: pointer;

@@ -2,6 +2,8 @@
  * Estrutura do menu da aplicação (menu > módulos > submenus).
  * Usada na tela de Permissões para exibir e vincular permissões por item.
  */
+import { FATURAMENTO_ROUTE, FATURAMENTO_TABS } from '../../financeiro/faturamento-rotas';
+
 export interface MenuSubItem {
   id: string;
   label: string;
@@ -17,6 +19,16 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
+/** Submenus do Financeiro: container Faturamento + uma entrada por aba (mesmas rotas do SPA). */
+const FINANCEIRO_SUBMENUS: MenuSubItem[] = [
+  { id: 'sub-faturamento', label: 'Faturamento', route: FATURAMENTO_ROUTE },
+  ...FATURAMENTO_TABS.map((t) => ({
+    id: `sub-faturamento-${t.id}`,
+    label: t.label,
+    route: t.route,
+  })),
+];
+
 /** Estrutura completa do menu (seed admin / permissões). A sidebar omite Estacionamento — acesso via `/app/gerenciamento`. */
 export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
@@ -27,7 +39,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     label: 'Financeiro',
     route: '/app/financeiro',
     icon: 'payments',
-    children: [{ id: 'sub-faturamento', label: 'Faturamento', route: '/app/financeiro/faturamento' }],
+    children: FINANCEIRO_SUBMENUS,
   },
   {
     id: 'menu-configuracoes',

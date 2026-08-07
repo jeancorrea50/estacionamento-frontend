@@ -14,7 +14,11 @@ import {
   removePermissionRowsForUi,
 } from './menu-permission-acao';
 import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
-import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
+import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule, formatAppMenuDisplayLabel } from './menu-route-resolver';
+import {
+  defaultExibirNoSidebar,
+  rememberSidebarVisibility,
+} from './menu-sidebar-visibility';
 import {
   SessionAccessService,
   type SessionMenuAccess,
@@ -28,12 +32,20 @@ function cloneState(s: MenuAdminState): MenuAdminState {
 }
 
 /**
- * Migração: estado antigo sem `existeNoServidor` seguia fluxo de **Alterar** ao salvar.
+ * Migração: estado antigo sem `existeNoServidor` / `exibirNoSidebar`.
  */
 function migrateMenuServidorFlagsFromStorage(menus: MenuAdmin[]): void {
   for (const m of menus) {
     if (m.existeNoServidor === undefined) {
       m.existeNoServidor = true;
+    }
+    if (m.exibirNoSidebar === undefined) {
+      m.exibirNoSidebar = defaultExibirNoSidebar(m.rota);
+    }
+    for (const s of m.subMenus ?? []) {
+      if (s.exibirNoSidebar === undefined) {
+        s.exibirNoSidebar = defaultExibirNoSidebar(s.rota);
+      }
     }
   }
 }
@@ -53,6 +65,7 @@ function buildSeedState(): MenuAdminState {
           ordem: ordem++,
           rota: c.route,
           ativo: true,
+          exibirNoSidebar: defaultExibirNoSidebar(c.route),
           permissions: [],
         });
       }
@@ -63,6 +76,7 @@ function buildSeedState(): MenuAdminState {
         ordem: 0,
         rota: node.route,
         ativo: true,
+        exibirNoSidebar: defaultExibirNoSidebar(node.route),
         permissions: [],
       });
     }
@@ -73,6 +87,7 @@ function buildSeedState(): MenuAdminState {
       icone: node.icon,
       rota: node.route,
       ativo: true,
+      exibirNoSidebar: defaultExibirNoSidebar(node.route),
       subMenus: subs,
       existeNoServidor: false,
     };
@@ -183,6 +198,7 @@ export class MenuAdminService {
             descricao: sub.nome,
             rota: sub.rota,
             ativo: sub.ativo,
+            exibirNoSidebar: sub.exibirNoSidebar !== false,
             selecionado: selectedSubMenuIds.has(sub.id),
             ordem: sub.ordem,
           }));
@@ -196,6 +212,7 @@ export class MenuAdminService {
           icone: menu.icone,
           rota: menu.rota,
           ativo: menu.ativo,
+          exibirNoSidebar: menu.exibirNoSidebar !== false,
           selecionado: menuSelecionado,
           ordem: menu.ordem,
           subMenus,
@@ -252,6 +269,7 @@ export class MenuAdminService {
         ordem: s.menus.length,
         icone: icone || 'menu',
         ativo: true,
+        exibirNoSidebar: true,
         subMenus: [],
         existeNoServidor: false,
       });
@@ -260,13 +278,17 @@ export class MenuAdminService {
 
   updateMenu(
     id: number,
-    patch: Partial<Pick<MenuAdmin, 'nome' | 'icone' | 'ativo' | 'rota'>>
+    patch: Partial<Pick<MenuAdmin, 'nome' | 'icone' | 'ativo' | 'rota' | 'exibirNoSidebar'>>
   ): void {
     this.patch((s) => {
       const m = s.menus.find((x) => x.id === id);
       if (!m) return;
       Object.assign(m, patch);
+      if (patch.exibirNoSidebar !== undefined) {
+        rememberSidebarVisibility('menu', id, patch.exibirNoSidebar);
+      }
     });
+    this.syncSessionMenusWithCurrentTree(this.state().menus);
   }
 
   deleteMenu(id: number): void {
@@ -298,6 +320,7 @@ export class MenuAdminService {
         ordem: menu.subMenus.length,
         rota: path,
         ativo: true,
+        exibirNoSidebar: defaultExibirNoSidebar(path),
         permissions: [],
       });
     });
@@ -306,14 +329,18 @@ export class MenuAdminService {
   updateSubMenu(
     menuId: number,
     subId: number,
-    patch: Partial<Pick<SubMenuAdmin, 'nome' | 'rota' | 'ativo'>>
+    patch: Partial<Pick<SubMenuAdmin, 'nome' | 'rota' | 'ativo' | 'exibirNoSidebar'>>
   ): void {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
       const sub = menu?.subMenus.find((x) => x.id === subId);
       if (!sub) return;
       Object.assign(sub, patch);
+      if (patch.exibirNoSidebar !== undefined) {
+        rememberSidebarVisibility('sub', subId, patch.exibirNoSidebar);
+      }
     });
+    this.syncSessionMenusWithCurrentTree(this.state().menus);
   }
 
   deleteSubMenu(menuId: number, subId: number): void {
@@ -498,7 +525,38 @@ export class MenuAdminService {
           icon: item.icon,
         };
       })
-      .map((item) => this.sanitizeCadastroSidebarNavItem(item));
+      .map((item) => this.sanitizeCadastroSidebarNavItem(item))
+      .map((item) => this.applyDisplayLabelsToNavItem(item));
+  }
+
+  /** Padroniza rótulos legados da API (ex.: Movimento → Entrada e Saída). */
+  private applyDisplayLabelsToNavItem<
+    T extends {
+      label: string;
+      route: string;
+      children?: {
+        label: string;
+        route: string;
+        children?: { label: string; route: string }[];
+      }[];
+    },
+  >(item: T): T {
+    const children = item.children?.map((c) => {
+      const nested = c.children?.map((n) => ({
+        ...n,
+        label: formatAppMenuDisplayLabel(n.label, n.route),
+      }));
+      return {
+        ...c,
+        label: formatAppMenuDisplayLabel(c.label, c.route),
+        children: nested?.length ? nested : c.children,
+      };
+    });
+    return {
+      ...item,
+      label: formatAppMenuDisplayLabel(item.label, item.route),
+      children: children?.length ? children : item.children,
+    } as T;
   }
 
   /**
@@ -567,13 +625,13 @@ export class MenuAdminService {
   }[] {
     return this.sessionAccess
       .menus()
-      .filter((m) => m.ativo !== false)
+      .filter((m) => m.ativo !== false && this.resolveShowInSidebar(m, 'menu'))
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
       .map((m) => {
         const menuLabel = m.descricao?.trim() ?? 'menu';
         const icon = resolveMaterialSymbolIconFromModule(menuLabel, m.icone);
         const activeSubs = (m.subMenus ?? [])
-          .filter((s) => s.ativo !== false)
+          .filter((s) => s.ativo !== false && this.resolveShowInSidebar(s, 'sub'))
           .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
 
         if (activeSubs.length === 0) {
@@ -620,11 +678,14 @@ export class MenuAdminService {
     children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
   }[] {
     return this.state()
-      .menus.filter((m) => m.ativo)
+      .menus.filter((m) => m.ativo && m.exibirNoSidebar !== false)
       .sort((a, b) => a.ordem - b.ordem)
       .map((m) => {
-        const subs = m.subMenus.filter((s) => s.ativo).sort((a, b) => a.ordem - b.ordem);
+        const subs = m.subMenus
+          .filter((s) => s.ativo && s.exibirNoSidebar !== false)
+          .sort((a, b) => a.ordem - b.ordem);
         if (m.subMenus.length > 0 && subs.length === 0) {
+          // Tem submenus, mas nenhum no sidebar: link único para a rota do módulo.
           return {
             label: m.nome,
             route: resolveAppRouteFromNome(m.nome, m.rota ?? null),
@@ -662,6 +723,36 @@ export class MenuAdminService {
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
+  }
+
+  /**
+   * Preferência explícita no item > valor no admin local > rota default.
+   * Abas internas de faturamento ficam ocultas na sidebar por padrão.
+   */
+  private resolveShowInSidebar(
+    item: {
+      id?: number | null;
+      rota?: string | null;
+      exibirNoSidebar?: boolean | null;
+    },
+    kind: 'menu' | 'sub'
+  ): boolean {
+    if (item.exibirNoSidebar === false) return false;
+    if (item.exibirNoSidebar === true) return true;
+
+    if (item.id != null && item.id > 0) {
+      if (kind === 'menu') {
+        const menu = this.state().menus.find((m) => m.id === item.id);
+        if (menu) return menu.exibirNoSidebar !== false;
+      } else {
+        for (const menu of this.state().menus) {
+          const sub = menu.subMenus.find((s) => s.id === item.id);
+          if (sub) return sub.exibirNoSidebar !== false;
+        }
+      }
+    }
+
+    return defaultExibirNoSidebar(item.rota);
   }
 
   /** Sidebar: Gerenciamento é sempre um único link (sem filhos). */

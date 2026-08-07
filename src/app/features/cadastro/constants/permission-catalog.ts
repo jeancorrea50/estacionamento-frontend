@@ -62,7 +62,7 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'usuarios.visualizar',
     'usuarios.gerenciar',
   ],
-  Movimentos: [
+  Movimentos: [ // módulo interno (permissões/API); exibição na UI: "Entrada e Saída"
     'movimentos.entrada',
     'movimentos.saida',
     'movimentos.consultar',

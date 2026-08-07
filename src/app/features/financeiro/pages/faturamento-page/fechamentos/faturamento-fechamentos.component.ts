@@ -1,8 +1,8 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, HostListener, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
@@ -69,6 +70,8 @@ export class FaturamentoFechamentosComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly api = inject(FaturaService);
   private readonly snack = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly items = signal<FechamentoListaItem[]>([]);
   readonly resumo = signal<FechamentoResumo>({
@@ -79,6 +82,15 @@ export class FaturamentoFechamentosComponent implements OnInit {
   });
   readonly loading = signal(false);
   readonly totalCountApi = signal(0);
+
+  private readonly filtrosRapidosValidos = new Set<FechamentoFiltroRapidoId>([
+    'todos',
+    'prontos',
+    'andamento',
+    'divergencia',
+    'faturados',
+    'cancelados'
+  ]);
 
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
@@ -286,6 +298,13 @@ export class FaturamentoFechamentosComponent implements OnInit {
   }
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const filtro = params.get('filtro');
+      if (filtro && this.filtrosRapidosValidos.has(filtro as FechamentoFiltroRapidoId)) {
+        this.filtroRapido.set(filtro as FechamentoFiltroRapidoId);
+      }
+    });
+
     effect(() => {
       const vis = this.linhasFiltradas();
       for (const r of [...this.selection.selected]) {

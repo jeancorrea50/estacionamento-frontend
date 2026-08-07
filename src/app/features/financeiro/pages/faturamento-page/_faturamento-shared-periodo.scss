@@ -63,7 +63,7 @@
 }
 
 html.theme-dark .fat-faturas__periodo {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, var(--fat-card-muted, #8ea0b8) 18%);
+  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, var(--fat-card-muted, var(--muted)) 18%);
   border-color: rgba(148, 163, 184, 0.32);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -73,7 +73,7 @@ html.theme-dark .fat-faturas__custom-dates {
 }
 
 html.theme-dark .fat-faturas__periodo .btn.btn-secondary.fat-mat-btn {
-  color: #f8fafc !important;
+  color: var(--btn-secondary-text, var(--text)) !important;
   border: 1px solid rgba(248, 250, 252, 0.45) !important;
   background: rgba(30, 41, 59, 0.85) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);

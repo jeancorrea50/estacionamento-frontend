@@ -32,7 +32,7 @@ export class AndamentosPageComponent {
     '/app                       → redirect /app/dashboard',
     '/app (MainLayout)',
     '├── /dashboard             → Dashboard',
-    '├── /movimentos            → Movimentos',
+    '├── /movimentos            → Entrada e Saída',
     '├── /relatorios            → Relatórios',
     '├── /financeiro            → Financeiro',
     '├── /configuracoes         → Configurações',
@@ -64,7 +64,7 @@ export class AndamentosPageComponent {
   readonly telas: TelaItem[] = [
     { rota: '/', tela: 'Login', descricao: 'Login (usuário/senha). Após sucesso → navega para /app/dashboard.' },
     { rota: '/app/dashboard', tela: 'Dashboard', descricao: 'Página inicial da área logada.' },
-    { rota: '/app/movimentos', tela: 'Movimentos', descricao: 'Página de movimentos.' },
+    { rota: '/app/movimentos/entrada-saida', tela: 'Entrada e Saída', descricao: 'Operação de entrada e saída no pátio.' },
     { rota: '/app/relatorios', tela: 'Relatórios', descricao: 'Página de relatórios.' },
     { rota: '/app/financeiro', tela: 'Financeiro', descricao: 'Página financeiro.' },
     { rota: '/app/configuracoes', tela: 'Configurações', descricao: 'Página de configurações.' },

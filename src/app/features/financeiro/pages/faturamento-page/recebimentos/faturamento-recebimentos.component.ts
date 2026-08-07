@@ -159,8 +159,6 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     'valorRecebido',
     'saldoRestante',
     'dataPagamento',
-    'formaPagamento',
-    'comprovante',
     'status',
     'acoes'
   ];

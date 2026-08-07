@@ -11,23 +11,8 @@
   flex-shrink: 0;
 }
 
-.rec-hero__actions .btn.fat-mat-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 0.85rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 8px;
-  box-sizing: border-box;
-}
-
 .rec-hero__actions .fat-mat-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: var(--icon-size, 20px);
   line-height: 1;
 }
 
@@ -53,9 +38,9 @@ html.theme-dark .rec-hero__periodo-shell {
 .rec-filters__label {
   margin: 0 0 10px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: var(--font-weight-section, 600);
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
   line-height: 1.2;
 }
@@ -105,7 +90,7 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 .rec-quick > .btn.fat-mat-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: var(--icon-size-sm, 18px);
   line-height: 1;
 }
 
@@ -158,7 +143,7 @@ html.theme-dark .rec-hero__periodo-shell {
   padding: 0 6px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   background: rgba(59, 130, 246, 0.15);
   color: var(--btn-primary-bg, #2563eb);
   border: 1px solid rgba(59, 130, 246, 0.28);
@@ -185,7 +170,7 @@ html.theme-dark .rec-hero__periodo-shell {
   overflow-x: auto;
   border-radius: 10px;
   border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--card-bg, #ffffff) 94%, transparent);
+  background: var(--fat-list-surface, var(--surface));
 }
 
 :host ::ng-deep .rec-mat-table.mat-mdc-table {
@@ -197,37 +182,66 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-header-row {
-  height: 34px;
+  height: 30px;
+  min-height: 30px !important;
+  background: transparent;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-header-cell,
+:host ::ng-deep .rec-mat-table .mat-mdc-header-cell .mat-sort-header-content,
+:host ::ng-deep .rec-mat-table .mat-mdc-header-cell .mat-sort-header-button {
+  font-family: var(--font-family-base, 'Inter', system-ui, sans-serif) !important;
+  font-size: var(--font-caption, 12px) !important;
+  font-weight: var(--font-weight-section, 600) !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em;
+  color: var(--fat-table-header-text, var(--muted)) !important;
+  white-space: nowrap !important;
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-header-cell {
-  font-family: inherit !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted) !important;
-  padding: 0 8px !important;
+  padding: 4px 8px !important;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(100, 116, 139, 0.08);
-  white-space: nowrap;
+  background: var(--fat-table-header-bg, var(--surface-2)) !important;
+  white-space: nowrap !important;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: none !important;
+  line-height: 1.2;
 }
 
 :host ::ng-deep .rec-mat-table .mat-mdc-cell {
-  padding: 4px 8px !important;
-  font-size: 12px;
-  line-height: 1.25;
+  font-family: var(--font-family-base, 'Inter', system-ui, sans-serif) !important;
+  padding: 2px 8px !important;
+  font-size: 13px;
+  font-weight: var(--font-weight-body, 400);
+  line-height: 1.2;
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
   color: var(--text);
   overflow: hidden;
+  white-space: nowrap !important;
+  text-overflow: ellipsis;
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+  box-shadow: none !important;
 }
 
-:host ::ng-deep .rec-mat-table .mat-mdc-row {
-  height: auto;
-  min-height: 36px;
+:host ::ng-deep .rec-mat-table .mat-mdc-row,
+:host ::ng-deep .rec-mat-table .mat-mdc-row:nth-child(odd),
+:host ::ng-deep .rec-mat-table .mat-mdc-row:nth-child(even) {
+  height: 30px;
+  min-height: 30px !important;
+  max-height: 34px;
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+  transition: background 0.12s ease;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-row:hover {
+  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
+}
+
+:host ::ng-deep .rec-mat-table .mat-mdc-row:hover .mat-mdc-cell {
+  background: transparent !important;
 }
 
 .rec-mat-table__sel {
@@ -271,15 +285,17 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 :host ::ng-deep .rec-mat-table__ac .mat-mdc-icon-button {
-  --mdc-icon-button-state-layer-size: 32px;
-  width: 32px;
-  height: 32px;
+  --mdc-icon-button-state-layer-size: 28px;
+  width: 28px;
+  height: 28px;
   padding: 0;
 }
 
 .rec-ico .material-symbols-outlined {
   font-size: 18px;
-  color: #e2e8f0;
+  font-weight: 400;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  color: var(--text);
 }
 
 .rec-ico.mat-mdc-icon-button[disabled] .material-symbols-outlined {
@@ -320,8 +336,8 @@ html.theme-dark .rec-hero__periodo-shell {
   margin: 0;
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: var(--muted);
 }
 
@@ -336,9 +352,9 @@ html.theme-dark .rec-hero__periodo-shell {
   margin: 10px 0 0;
   padding: 0 12px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: var(--font-weight-section, 600);
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
 }
 
@@ -350,7 +366,7 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 .rec-hist-row__ico {
-  font-size: 20px;
+  font-size: var(--icon-size, 20px);
   color: #94a3b8;
   flex-shrink: 0;
 }
@@ -399,7 +415,7 @@ html.theme-dark .rec-hero__periodo-shell {
 }
 
 .rec-inline-partial__upload .material-symbols-outlined {
-  font-size: 20px;
+  font-size: var(--icon-size, 20px);
   opacity: 0.85;
 }
 

@@ -6,17 +6,63 @@
   /* Altura natural: o scroll fica no main.main-content do layout (evita cabeçalho cortado e rolagem dupla). */
 }
 
+/**
+ * Tokens base do Faturamento (Prioridade B): herdam o tema global.
+ * Dark/Light só reforçam contraste; sem hex de texto “sempre claro”.
+ */
 .faturamento-shell {
   min-height: 0;
   box-sizing: border-box;
-  --fat-fill-surface: color-mix(in srgb, var(--card-bg, var(--surface)) 96%, var(--surface-2, rgba(15, 23, 42, 0.04)) 4%);
+
+  --fat-page-canvas: var(--bg, var(--app-bg-simple, transparent));
+  --fat-shell-surface: var(--surface);
+  --fat-card-bg: var(--card-bg, var(--surface));
+  --fat-card-bg-elevated: var(--surface-2, var(--surface));
+  --fat-card-border: var(--border-subtle);
+  --fat-card-border-accent: color-mix(in srgb, var(--primary, #3b82f6) 36%, transparent);
+  --fat-card-shadow: var(--card-shadow, var(--shadow-md));
+  --fat-card-shadow-soft: var(--shadow-sm, var(--shadow));
+  --fat-card-shadow-hover: 0 0 0 1px color-mix(in srgb, var(--primary, #3b82f6) 28%, transparent),
+    var(--shadow-md);
+  --fat-card-title: var(--muted);
+  --fat-card-value: var(--text);
+  --fat-card-muted: var(--muted);
+
+  --fat-fill-surface: color-mix(
+    in srgb,
+    var(--card-bg, var(--surface)) 96%,
+    var(--surface-2, transparent) 4%
+  );
   --fat-fill-border: color-mix(in srgb, var(--border-subtle) 86%, var(--primary, #3b82f6) 14%);
   --fat-fill-border-strong: color-mix(in srgb, var(--border-subtle) 58%, var(--primary, #3b82f6) 42%);
   --fat-fill-label: var(--muted);
-  --fat-fill-chip-bg: color-mix(in srgb, var(--surface-2, rgba(15, 23, 42, 0.04)) 80%, transparent);
-  --fat-fill-chip-hover: color-mix(in srgb, var(--surface-2, rgba(15, 23, 42, 0.08)) 92%, var(--primary, #3b82f6) 8%);
-  --fat-fill-chip-active: color-mix(in srgb, var(--primary, #3b82f6) 18%, var(--card-bg, var(--surface)) 82%);
-  --fat-list-surface: color-mix(in srgb, var(--card-bg, var(--surface)) 94%, black 6%);
+  --fat-fill-chip-bg: color-mix(in srgb, var(--surface-2, transparent) 80%, transparent);
+  --fat-fill-chip-hover: color-mix(
+    in srgb,
+    var(--surface-2, transparent) 88%,
+    var(--primary, #3b82f6) 12%
+  );
+  --fat-fill-chip-active: color-mix(
+    in srgb,
+    var(--primary, #3b82f6) 16%,
+    var(--card-bg, var(--surface)) 84%
+  );
+  --fat-list-surface: var(--surface);
+  --fat-table-header-bg: var(--table-header-bg, var(--surface-2, var(--surface)));
+  --fat-table-header-text: var(--table-header-text, var(--muted));
+  --fat-table-row-hover: var(--table-row-hover, color-mix(in srgb, var(--primary) 12%, transparent));
+  --fat-table-border: var(--border-subtle);
+  --fat-chip-badge-bg: color-mix(in srgb, var(--primary, #3b82f6) 14%, var(--surface));
+  --fat-chip-badge-border: color-mix(in srgb, var(--primary, #3b82f6) 34%, transparent);
+  --fat-chip-badge-text: var(--primary, #3b82f6);
+
+  --ds-select-panel-bg: var(--surface);
+  --ds-select-panel-border: var(--border-subtle);
+  --ds-select-panel-shadow: var(--shadow-lg);
+  --ds-select-item-hover-bg: var(--table-row-hover, color-mix(in srgb, var(--primary) 10%, transparent));
+  --ds-select-item-active-bg: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  --ds-select-item-active-text: var(--text);
+
   /* Respiro no fim da rolagem (Alertas / Próximos vencimentos). */
   padding-bottom: 28px;
 }
@@ -63,8 +109,10 @@ header.page-header.fat-header {
   }
 
   .material-symbols-outlined {
-    font-size: 18px;
+    font-size: var(--icon-size, 20px);
     line-height: 1;
+    font-weight: 400;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
   }
 }
 
@@ -185,7 +233,7 @@ header.page-header.fat-header {
 }
 
 .fat-metric__ico {
-  font-size: 20px;
+  font-size: var(--icon-size, 20px);
   color: rgba(100, 116, 139, 0.95);
   opacity: 0.9;
 }
@@ -201,15 +249,15 @@ header.page-header.fat-header {
 .fat-metric__label {
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: var(--muted);
   line-height: 1.2;
 }
 
 .fat-metric__value {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--font-section-title, 16px);
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
   line-height: 1.15;
   word-break: break-word;
@@ -322,8 +370,8 @@ header.page-header.fat-header {
 .fat-dash__date-label {
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: var(--muted);
 }
 
@@ -344,8 +392,8 @@ header.page-header.fat-header {
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .fat-dash__cards {
@@ -388,7 +436,7 @@ header.page-header.fat-header {
 }
 
 .fat-kpi__ico {
-  font-size: 22px;
+  font-size: var(--icon-size-md, 22px);
   color: rgba(96, 165, 250, 0.85);
   flex-shrink: 0;
 }
@@ -405,8 +453,8 @@ header.page-header.fat-header {
 }
 
 .fat-kpi__value {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -512,7 +560,7 @@ header.page-header.fat-header {
 .fat-evol__point-val {
   fill: rgba(224, 231, 255, 0.92);
   font-size: 2.7px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   text-anchor: middle;
   letter-spacing: 0.01em;
 }
@@ -534,9 +582,9 @@ header.page-header.fat-header {
 
 .fat-evol__axis-mes {
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-section, 600);
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: var(--muted);
 }
 
@@ -655,7 +703,7 @@ header.page-header.fat-header {
 
 .fat-hbar__qty {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -671,7 +719,7 @@ header.page-header.fat-header {
 
 .fat-hbar__valor {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -750,7 +798,7 @@ header.page-header.fat-header {
 .fat-alert-card__count {
   flex-shrink: 0;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   color: #cfe1ff;
   min-width: 24px;
   text-align: center;
@@ -821,10 +869,10 @@ header.page-header.fat-header {
 
 .fat-table--venc thead th {
   font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   padding: 8px 10px;
   border-bottom: 1px solid var(--border-subtle);
   background: rgba(100, 116, 139, 0.06);
@@ -862,7 +910,7 @@ header.page-header.fat-header {
 
 .fat-venc-tr--atraso .fat-td-date {
   color: #b91c1c;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
 }
 
 .fat-venc-tr--proximo {
@@ -1092,7 +1140,7 @@ html.theme-dark .fat-status--parcial {
 
 html.theme-dark .fat-status--aguardando {
   background: rgba(148, 163, 184, 0.12);
-  color: #cbd5e1;
+  color: var(--muted);
   border-color: rgba(148, 163, 184, 0.28);
 }
 
@@ -1120,7 +1168,7 @@ html.theme-dark .fat-status--cancelada {
   }
 }
 
-/* ---------- Cabeçalho da página (padrão page-header-card, igual Transportadora) ---------- */
+/* ---------- Cabeçalho da página (família dk-page-header + page-header-card) ---------- */
 
 .fat-page-header {
   padding: 16px 20px 0;
@@ -1141,16 +1189,17 @@ html.theme-dark .fat-status--cancelada {
   flex: 1 1 220px;
 }
 
-/* ---------- Shell Angular Material (Faturamento) — mantido para compatibilidade ---------- */
+/* ---------- Layout de aba (compatível; visual canônico = shell page-header + painel) ---------- */
 
 .fat-mat-page-wrap {
   flex: 1 1 auto;
   min-width: 0;
   padding-top: 0;
+  background: transparent;
 }
 
 .fat-mat-page {
-  background: transparent;
+  background: transparent !important;
   border: none !important;
   border-color: transparent !important;
   border-radius: 0;
@@ -1205,25 +1254,7 @@ html.theme-dark .fat-status--cancelada {
   }
 }
 
-.fat-mat-header__actions .btn.fat-mat-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 0.85rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 8px;
-  box-sizing: border-box;
-}
-
-.fat-mat-header__actions .fat-mat-btn .material-symbols-outlined {
-  font-size: 18px;
-  line-height: 1;
-}
+/* Ações / toolbar: fat-mat-btn canônico em form-list */
 
 .fat-fin-tab-row {
   display: flex;
@@ -1239,70 +1270,9 @@ html.theme-dark .fat-status--cancelada {
   min-height: 0;
 }
 
-/* Abas: mesmo padrão visual de Gerenciamento (nav .tabs + .tab--active + barra inferior). */
+/* Abas: herdam visual de .dk-tabs; refinamentos locais mínimos */
 .fat-fin-tabs {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
-  width: 100%;
-  max-width: 100%;
-}
-
-.fat-fin-tabs__tab {
-  position: relative;
-  height: 40px;
-  padding: 0 1.25rem;
-  margin-bottom: -1px;
-  border-radius: 10px 10px 0 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    color 0.18s ease,
-    background 0.18s ease;
-  box-sizing: border-box;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-bottom: none;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.fat-fin-tabs__tab:hover {
-  color: color-mix(in srgb, var(--text) 88%, var(--muted));
-  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
-}
-
-.fat-fin-tabs__tab.tab--active {
-  color: var(--text);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--surface-2) 75%, transparent);
-  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
-  border-bottom-color: transparent;
-  box-shadow: none;
-}
-
-.fat-fin-tabs__tab.tab--active::after {
-  content: '';
-  position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--primary, #4d7cfe);
+  margin-top: 0;
 }
 
 .fat-fin-tab-body {
@@ -1315,20 +1285,6 @@ html.theme-dark .fat-status--cancelada {
 @media (max-width: 768px) {
   .fat-mat-page__inner {
     padding: 12px 12px 16px !important;
-  }
-
-  .fat-fin-tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  .fat-fin-tabs__tab {
-    flex: 1;
-    min-width: 0;
-    justify-content: center;
-    padding: 0 0.75rem;
-    font-size: 0.875rem;
   }
 }
 
@@ -1347,7 +1303,7 @@ html.theme-dark :host .faturamento-shell {
   --fat-card-shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.14);
   --fat-card-shadow-hover: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2);
   --fat-card-title: #9caec8;
-  --fat-card-value: #f8fafc;
+  --fat-card-value: var(--text, #f8fafc);
   --fat-card-muted: #8ea0b8;
   --input-bg: #1a2746;
   --input-border: rgba(73, 104, 173, 0.58);
@@ -1363,12 +1319,19 @@ html.theme-dark :host .faturamento-shell {
   --fat-fill-chip-hover: rgba(20, 40, 76, 0.98);
   --fat-fill-chip-active: rgba(52, 103, 234, 0.28);
   --fat-list-surface: #0f1d39;
+  --fat-table-header-bg: rgba(21, 38, 70, 0.96);
+  --fat-table-header-text: #8ea0b8;
+  --fat-table-row-hover: rgba(22, 41, 76, 0.82);
+  --fat-table-border: rgba(67, 100, 168, 0.22);
+  --fat-chip-badge-bg: rgba(22, 45, 86, 0.92);
+  --fat-chip-badge-border: rgba(96, 165, 250, 0.34);
+  --fat-chip-badge-text: #93c5fd;
   --ds-select-panel-bg: #0f1d39;
   --ds-select-panel-border: rgba(67, 118, 230, 0.62);
   --ds-select-panel-shadow: 0 16px 36px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(74, 118, 214, 0.24);
   --ds-select-item-hover-bg: rgba(24, 44, 82, 0.96);
   --ds-select-item-active-bg: rgba(52, 103, 234, 0.28);
-  --ds-select-item-active-text: #f8fbff;
+  --ds-select-item-active-text: var(--text, #f8fbff);
 }
 
 html.theme-dark :host .fat-mat-page-wrap {
@@ -1440,5 +1403,93 @@ html.theme-dark :host .fat-mat-header .page-title {
 }
 
 html.theme-dark :host .fat-fin-tabs {
+  border-bottom-color: var(--fat-card-border);
+}
+
+/* -----------------------------------------------------------------------------
+   White mode — paridade com tokens globais (Prioridade B)
+   ----------------------------------------------------------------------------- */
+html.theme-light :host .faturamento-shell {
+  --fat-page-canvas: var(--bg, #f3f4f6);
+  --fat-shell-surface: var(--surface, #ffffff);
+  --fat-card-bg: var(--card-bg, #ffffff);
+  --fat-card-bg-elevated: var(--surface-2, #f1f5f9);
+  --fat-card-border: var(--border-subtle, #b9d4f2);
+  --fat-card-border-accent: color-mix(in srgb, var(--primary, #5088d0) 32%, transparent);
+  --fat-card-shadow: var(--card-shadow, 0 2px 14px rgba(39, 94, 168, 0.12));
+  --fat-card-shadow-soft: var(--shadow-sm, 0 1px 2px rgba(10, 56, 120, 0.06));
+  --fat-card-shadow-hover: 0 0 0 1px color-mix(in srgb, var(--primary, #5088d0) 28%, transparent),
+    var(--shadow-md, 0 4px 14px rgba(10, 56, 120, 0.1));
+  --fat-card-title: var(--muted);
+  --fat-card-value: var(--text);
+  --fat-card-muted: var(--muted);
+
+  --fat-fill-surface: var(--surface, #ffffff);
+  --fat-fill-border: var(--border-subtle, #b9d4f2);
+  --fat-fill-border-strong: color-mix(in srgb, var(--primary, #5088d0) 40%, var(--border-subtle));
+  --fat-fill-label: var(--muted);
+  --fat-fill-chip-bg: var(--surface-2, #f1f5f9);
+  --fat-fill-chip-hover: color-mix(in srgb, var(--primary, #5088d0) 10%, #ffffff);
+  --fat-fill-chip-active: color-mix(in srgb, var(--primary, #5088d0) 16%, #ffffff);
+  --fat-list-surface: var(--surface, #ffffff);
+  --fat-table-header-bg: var(--table-header-bg, #e8ecf2);
+  --fat-table-header-text: var(--table-header-text, var(--text));
+  --fat-table-row-hover: var(--table-row-hover, rgba(80, 136, 208, 0.12));
+  --fat-table-border: var(--border-subtle, #b9d4f2);
+  --fat-chip-badge-bg: color-mix(in srgb, var(--primary, #5088d0) 12%, #ffffff);
+  --fat-chip-badge-border: color-mix(in srgb, var(--primary, #5088d0) 30%, transparent);
+  --fat-chip-badge-text: var(--primary, #3080d0);
+
+  --ds-select-panel-bg: var(--surface, #ffffff);
+  --ds-select-panel-border: var(--border, #9fc3eb);
+  --ds-select-panel-shadow: var(--shadow-lg, 0 10px 28px rgba(10, 56, 120, 0.12));
+  --ds-select-item-hover-bg: rgba(80, 136, 208, 0.1);
+  --ds-select-item-active-bg: rgba(80, 136, 208, 0.16);
+  --ds-select-item-active-text: var(--text);
+}
+
+html.theme-light :host .fat-panel {
+  background: var(--fat-card-bg);
+  border: 1px solid var(--fat-card-border);
+  box-shadow: var(--fat-card-shadow-soft);
+}
+
+html.theme-light :host .fat-panel:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border-subtle));
+  box-shadow: var(--fat-card-shadow-hover);
+}
+
+html.theme-light :host .fat-panel__title {
+  color: var(--fat-card-title);
+}
+
+html.theme-light :host .fat-panel__hint {
+  color: var(--fat-card-muted);
+}
+
+html.theme-light :host .fat-table-wrap {
+  border: 1px solid var(--fat-card-border);
+  background: var(--fat-list-surface);
+}
+
+html.theme-light :host .fat-config-row {
+  background: var(--fat-card-bg-elevated);
+  border: 1px solid var(--fat-card-border);
+  box-shadow: var(--fat-card-shadow-soft);
+}
+
+html.theme-light :host .fat-config-row__name {
+  color: var(--fat-card-value);
+}
+
+html.theme-light :host .fat-config-row__meta {
+  color: var(--fat-card-muted);
+}
+
+html.theme-light :host .fat-mat-header .page-title {
+  color: var(--fat-card-value);
+}
+
+html.theme-light :host .fat-fin-tabs {
   border-bottom-color: var(--fat-card-border);
 }

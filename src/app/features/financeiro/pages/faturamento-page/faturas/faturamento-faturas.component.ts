@@ -1,7 +1,8 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
@@ -9,6 +10,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
@@ -61,6 +63,8 @@ export class FaturamentoFaturasComponent implements OnInit {
   private readonly api = inject(FaturaService);
   private readonly transportadoraLookup = inject(TransportadoraLookupService);
   private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly items = signal<FaturaListaItem[]>([]);
   readonly loading = signal(false);
@@ -68,6 +72,14 @@ export class FaturamentoFaturasComponent implements OnInit {
   readonly salvando = signal(false);
   private readonly transportadorasLookup = signal<FaturaLookupOption[]>([]);
   private readonly estacionamentosLookup = signal<FaturaLookupOption[]>([]);
+
+  private readonly filtrosRapidosValidos = new Set<FiltroRapidoFaturas>([
+    'vencidas',
+    'a-vencer',
+    'dentro-prazo',
+    'pagas',
+    'aguardando-envio'
+  ]);
 
   readonly periodoOpcoes: PeriodoOpcao[] = [
     { id: 'hoje', label: 'Hoje' },
@@ -135,6 +147,33 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const filtro = params.get('filtro');
+      const status = params.get('status');
+      const transportadora = params.get('transportadora');
+      const temDeepLink = !!(filtro || status || transportadora);
+
+      if (filtro && this.filtrosRapidosValidos.has(filtro as FiltroRapidoFaturas)) {
+        this.filtroRapido.set(filtro as FiltroRapidoFaturas);
+      }
+
+      if (status && this.statusOpcoes.includes(status as FaturaStatusLabel)) {
+        this.statusFiltro.set(status);
+      }
+
+      if (transportadora) {
+        this.campoBusca.set('transportadora');
+        this.searchText.set(transportadora);
+      }
+
+      // Deep-link dos Alertas: não restringir ao mês atual.
+      if (temDeepLink) {
+        this.periodoFiltro.set('personalizado');
+        this.dataInicioPersonalizado = '';
+        this.dataFimPersonalizado = '';
+      }
+    });
+
     effect(() => {
       this.linhasFiltradas();
       untracked(() => this.paginaAtual.set(0));

@@ -1,4 +1,5 @@
 @use '../../../../cadastro/styles/cadastro-dash-list' as *;
+@use '../faturamento-shared-form-list';
 @use '../faturamento-shared-painel';
 
 :host {
@@ -24,7 +25,7 @@
 .cfg-cta-card__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
   letter-spacing: 0.01em;
 }
@@ -86,7 +87,7 @@
 
 .cfg-search-bar__search-ico {
   flex: 0 0 auto;
-  font-size: 20px !important;
+  font-size: var(--font-page-title, 18px) !important;
   color: var(--muted);
 }
 
@@ -164,8 +165,8 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .cfg-before-search {
@@ -204,38 +205,7 @@
   color: var(--muted);
 }
 
-/* Chips de situação */
-.fat-quick-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.fat-quick-chip {
-  appearance: none;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.fat-quick-chip:hover {
-  border-color: color-mix(in srgb, var(--est-primary, #3b82f6) 40%, var(--border-subtle));
-}
-
-.fat-quick-chip--active {
-  background: color-mix(in srgb, var(--est-primary, #2563eb) 14%, transparent);
-  border-color: color-mix(in srgb, var(--est-primary, #2563eb) 45%, var(--border-subtle));
-  color: color-mix(in srgb, var(--est-primary, #1d4ed8) 88%, var(--text));
-}
+/* Chips de situação: estilos em _faturamento-shared-painel.scss (.fat-quick-*) */
 
 .fat-batch-bar {
   display: flex;
@@ -269,6 +239,31 @@
 
 .fat-table {
   min-width: 980px;
+}
+
+/* Força linhas sólidas (anula zebra global de .data-table no light) */
+:host ::ng-deep .fat-table.trn-table tbody tr,
+:host ::ng-deep .fat-table.trn-table tbody tr:nth-child(odd),
+:host ::ng-deep .fat-table.trn-table tbody tr:nth-child(even),
+:host ::ng-deep table.data-table.fat-table tbody tr,
+:host ::ng-deep table.data-table.fat-table tbody tr:nth-child(odd),
+:host ::ng-deep table.data-table.fat-table tbody tr:nth-child(even) {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .fat-table.trn-table tbody td,
+:host ::ng-deep table.data-table.fat-table tbody td {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .fat-table.trn-table tbody tr:hover,
+:host ::ng-deep table.data-table.fat-table tbody tr:hover {
+  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
+}
+
+:host ::ng-deep .fat-table.trn-table tbody tr:hover td,
+:host ::ng-deep table.data-table.fat-table tbody tr:hover td {
+  background: transparent !important;
 }
 
 .fat-table__th-select,
@@ -389,23 +384,18 @@ html.theme-dark .cfg-before-search {
 html.theme-dark .cfg-cta-card__title,
 html.theme-dark .fat-batch-bar__count,
 html.theme-dark .fat-table__mono {
-  color: var(--fat-card-value, #f8fafc);
+  color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .cfg-search-bar__select,
 html.theme-dark .cfg-search-bar__search,
-html.theme-dark .cfg-search-bar__btn--neutral,
-html.theme-dark .fat-quick-chip {
+html.theme-dark .cfg-search-bar__btn--neutral {
   background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, #000);
   border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
-  color: var(--fat-card-value, #f8fafc);
+  color: var(--fat-card-value, var(--text));
 }
 
-html.theme-dark .fat-quick-chip--active {
-  background: #3b82f6;
-  border-color: #93c5fd;
-  color: #fff;
-}
+/* .fat-quick-chip dark: _faturamento-shared-painel.scss */
 
 html.theme-dark .fat-batch-bar {
   background: var(--fat-card-bg-elevated, #18243a);
@@ -430,7 +420,7 @@ html.theme-dark .fat-faturas-chip--parcial {
 
 html.theme-dark .fat-faturas-chip--aguardando,
 html.theme-dark .fat-faturas-chip--cancelada {
-  color: #cbd5e1;
+  color: var(--muted);
 }
 
 html.theme-dark .fat-menu-danger {

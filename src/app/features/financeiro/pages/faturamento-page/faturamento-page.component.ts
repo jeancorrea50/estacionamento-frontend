@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
+import { FATURAMENTO_TABS } from '../../faturamento-rotas';
+
 export type { FaturamentoTabId, FaturaStatusVisao, PeriodoFiltroId } from './faturamento-visao.types';
 
 @Component({
@@ -11,12 +13,5 @@ export type { FaturamentoTabId, FaturaStatusVisao, PeriodoFiltroId } from './fat
   styleUrls: ['./faturamento-page.component.scss']
 })
 export class FaturamentoPageComponent {
-  readonly tabs = [
-    { path: 'visao-geral',     label: 'Visão Geral' },
-    { path: 'fechamentos',     label: 'Fechamentos' },
-    { path: 'recebimentos',    label: 'Recebimentos' },
-    { path: 'inadimplencia',   label: 'Inadimplência' },
-    { path: 'faturas',         label: 'Faturas' },
-    { path: 'config-cobranca', label: 'Configurações de Cobrança' }
-  ];
+  readonly tabs = FATURAMENTO_TABS;
 }

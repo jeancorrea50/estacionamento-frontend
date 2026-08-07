@@ -1,10 +1,11 @@
 :host {
-  --accent: #1d4ed8;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Herda tipografia global; marca unificada com tokens do ThemeService */
+  font-family: inherit;
+  --accent: var(--primary, #5b7cff);
 }
 
 :host-context(html.theme-light) {
-  --accent: var(--color-primary, #5088d0);
+  --accent: var(--primary, var(--color-primary, #5088d0));
 }
 
 .login-page {
@@ -21,16 +22,16 @@
   overflow: auto;
 }
 
-/** WHITE MODE: fundo #dbeafe + gradiente suave */
+/** WHITE MODE: mesmo canvas do app (tokens), sem azul “marketing” paralelo */
 :host-context(html.theme-light) .login-page {
-  --login-shell-bg: linear-gradient(165deg, #dbeafe 0%, #cfe4fc 48%, #bfdafc 100%);
+  --login-shell-bg: var(--app-bg-simple, var(--color-bg-main, #f3f4f6));
 }
 
 /** Dark: fundo alinhado ao app */
 :host-context(html.theme-dark) .login-page {
   --login-shell-bg:
-    radial-gradient(900px 420px at 50% -10%, rgba(79, 107, 255, 0.14), transparent 55%),
-    radial-gradient(700px 380px at 80% 110%, rgba(0, 212, 255, 0.06), transparent 50%),
+    radial-gradient(900px 420px at 50% -10%, color-mix(in srgb, var(--primary, #5b7cff) 14%, transparent), transparent 55%),
+    radial-gradient(700px 380px at 80% 110%, rgba(0, 212, 255, 0.05), transparent 50%),
     linear-gradient(165deg, #070f1c 0%, #0b1628 100%);
 }
 

@@ -1,11 +1,13 @@
 /**
- * Desenvolvimento: usar backend HTTPS local na porta oficial da API.
+ * Desenvolvimento: frontend em localhost:4200.
+ * Chamadas usam `/api` relativo para passar pelo proxy (`proxy.conf.json` → VPS),
+ * evitando CORS e a necessidade da API HTTPS local (44317).
  */
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:44317',
-  API_BASE_URL: 'https://localhost:44317/api',
-  dashboardHubUrl: 'http://localhost:62299/hubs/movimento/entradasaida',
+  apiUrl: '',
+  API_BASE_URL: '/api',
+  dashboardHubUrl: 'http://108.174.145.123:8081/hubs/movimento/entradasaida',
   emergencyAdmin: {
     enabled: true,
     username: 'teste.admin',

@@ -1,3 +1,4 @@
+@use '../faturamento-shared-form-list';
 @use '../faturamento-shared-periodo';
 @use '../faturamento-shared-visao';
 @use '../faturamento-shared-painel';
@@ -5,7 +6,7 @@
 :host {
   display: block;
   min-width: 0;
-  overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* Tipografia dos títulos de card (Material pode herdar serif do tema) */
@@ -16,7 +17,7 @@
   font-weight: 600 !important;
   line-height: 1.3 !important;
   letter-spacing: 0 !important;
-  color: #e2e8f0 !important;
+  color: var(--fat-card-value, var(--text)) !important;
   margin: 0 !important;
 }
 
@@ -52,8 +53,8 @@
   margin: 2px 0 0;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: var(--muted);
 }
 
@@ -146,7 +147,7 @@
 }
 
 .visao-metric__ico {
-  font-size: 20px;
+  font-size: var(--icon-size, 20px);
   opacity: 0.85;
 }
 
@@ -169,19 +170,20 @@
 .visao-metric__label {
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0.01em;
   color: var(--muted);
 }
 
 .visao-metric__value {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: var(--font-weight-section, 600);
+  color: var(--fat-card-value, var(--text));
   letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.2;
   word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .visao-metric__value--ok {
@@ -193,7 +195,7 @@
 }
 
 .visao-metric__value--muted {
-  color: #cbd5e1;
+  color: var(--muted);
   font-weight: 600;
 }
 
@@ -205,7 +207,7 @@
 }
 
 .visao-kpi__ico {
-  font-size: 22px;
+  font-size: var(--icon-size-md, 22px);
   color: #60a5fa;
   flex-shrink: 0;
   line-height: 1;
@@ -226,10 +228,11 @@
 
 .visao-kpi__value {
   margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
-  line-height: 1.1;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .visao-kpi__value--danger {
@@ -254,11 +257,11 @@
 }
 
 .visao-chart-card__body {
-  padding: 2px 6px 8px !important;
+  padding: 8px 10px 12px !important;
   flex: 1 1 auto;
   min-height: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }
@@ -270,60 +273,48 @@
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
-/* Evolução: Apex usa min-width fixo no container e estoura o card em colunas estreitas. */
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-container {
+/* Apex: sem clip de tooltip/datalabel */
+:host ::ng-deep .visao-chart-card .apexcharts-canvas,
+:host ::ng-deep .visao-chart-card .apexcharts-inner,
+:host ::ng-deep .visao-chart-card .apexcharts-graphical,
+:host ::ng-deep .visao-chart-card .apexcharts-container {
   min-width: 0 !important;
   width: 100% !important;
+  overflow: visible !important;
 }
 
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-canvas {
-  margin: 0 auto;
+:host ::ng-deep .visao-chart-card .apexcharts-tooltip {
+  z-index: 20;
 }
 
-/*
- * Camada HTML do Apex (foreignObject): ajuste da prévia do navegador para não colidir
- * com os rótulos do eixo Y. O SVG precisa ser position: relative para o absolute do foreignObject.
- */
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-svg {
-  position: relative;
+:host ::ng-deep .visao-chart-card .apexcharts-svg > title,
+:host ::ng-deep .visao-chart-card .apexcharts-legend-series title {
+  display: none !important;
 }
 
-:host ::ng-deep .visao-chart-card--evolucao .apexcharts-svg > foreignObject {
-  width: 239px !important;
-  height: 240px !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  position: absolute !important;
-  top: 251px !important;
-  /* Desloca a camada para a direita (evita colisão com eixo Y), conforme ajuste na prévia. */
-  left: 100px !important;
-  right: auto !important;
-  bottom: auto !important;
-}
-
-/* Tooltip do gráfico de evolução: HTML custom (sem coluna de série à esquerda). */
 :host ::ng-deep .visao-evolucao-tooltip {
   padding: 10px 12px;
   text-align: center;
   min-width: 108px;
   box-sizing: border-box;
+  font-family: var(--font-family-base, inherit);
 }
 
 :host ::ng-deep .visao-evolucao-tooltip__mes {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #e2e8f0;
+  font-weight: var(--font-weight-section, 600);
+  letter-spacing: 0.01em;
+  color: var(--text);
   margin-bottom: 4px;
 }
 
 :host ::ng-deep .visao-evolucao-tooltip__valor {
   font-size: 14px;
-  font-weight: 700;
-  color: #93c5fd;
+  font-weight: var(--font-weight-section, 600);
+  color: var(--primary, #5088d0);
   font-variant-numeric: tabular-nums;
 }
 
@@ -372,15 +363,6 @@
   align-self: center;
 }
 
-.visao-link-footer--due-block {
-  align-self: stretch;
-  width: 100%;
-  margin-top: 0;
-  padding: 8px 12px 10px !important;
-  text-align: left;
-  box-sizing: border-box;
-}
-
 /* ---------- Alertas (lista nativa, sem mat-button no item) ---------- */
 
 .visao-alert-list {
@@ -414,6 +396,7 @@
   font: inherit;
   color: inherit;
   text-align: left;
+  text-decoration: none;
   background: transparent;
   border-radius: 0;
 }
@@ -428,7 +411,7 @@
 }
 
 .visao-alert__ico {
-  font-size: 22px;
+  font-size: var(--icon-size-md, 22px);
   color: #94a3b8;
   flex: 0 0 24px;
   width: 24px;
@@ -475,31 +458,64 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-weight-section, 600);
   background: rgba(59, 130, 246, 0.2);
   color: #bfdbfe;
   border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
 .visao-alert__chev {
-  font-size: 20px;
+  font-size: var(--icon-size, 20px);
   color: #64748b;
   flex-shrink: 0;
 }
 
-.visao-link-footer {
+.visao-link-footer,
+:host ::ng-deep .visao-link-footer.mat-mdc-button {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
   margin-top: 2px;
-  padding-left: 4px !important;
+  padding: 10px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #6fa8ff;
+  font-family: var(--font-family-base, inherit);
+  line-height: 1.3;
+  color: var(--primary, #5088d0) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-height: 40px;
+  text-decoration: none;
+  cursor: pointer;
+  justify-content: flex-start;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.visao-link-footer:hover {
+  color: color-mix(in srgb, var(--primary, #5088d0) 88%, var(--text)) !important;
+  background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
+}
+
+.visao-link-footer--due-block,
+:host ::ng-deep .visao-link-footer--due-block.mat-mdc-button {
+  align-self: stretch;
+  width: 100%;
+  margin-top: auto;
+  text-align: left;
+  box-sizing: border-box;
+  border-top: 1px solid var(--border-subtle) !important;
+  background: transparent !important;
 }
 
 .visao-link-footer .material-symbols-outlined {
-  font-size: 18px;
+  font-size: var(--icon-size-sm, 18px);
   vertical-align: middle;
   margin-left: 2px;
+  color: inherit;
 }
 
 .visao-chip {
@@ -538,7 +554,7 @@
 
 .visao-chip--aguardando {
   background: rgba(100, 116, 139, 0.14);
-  color: #cbd5e1;
+  color: var(--muted);
   border-color: rgba(100, 116, 139, 0.28);
 }
 
@@ -582,24 +598,24 @@ html.theme-dark .visao-bottom-card:hover {
 
 html.theme-dark .visao-card-head .mat-mdc-card-title,
 html.theme-dark .visao-bottom-card .mat-mdc-card-header .mat-mdc-card-title {
-  color: var(--fat-card-title, #9caec8) !important;
+  color: var(--fat-card-title, var(--muted)) !important;
 }
 
 html.theme-dark .visao-card-head .mat-mdc-card-subtitle {
-  color: var(--fat-card-muted, #8ea0b8) !important;
+  color: var(--fat-card-muted, var(--muted)) !important;
 }
 
 html.theme-dark .visao-geral__section-label {
-  color: var(--fat-card-muted, #8ea0b8);
+  color: var(--fat-card-muted, var(--muted));
 }
 
 html.theme-dark .visao-metric__label,
 html.theme-dark .visao-kpi__label {
-  color: var(--fat-card-muted, #8ea0b8);
+  color: var(--fat-card-muted, var(--muted));
 }
 
 html.theme-dark .visao-metric__value {
-  color: var(--fat-card-value, #f8fafc);
+  color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .visao-metric__value--ok {
@@ -611,7 +627,7 @@ html.theme-dark .visao-metric__value--danger {
 }
 
 html.theme-dark .visao-kpi__value {
-  color: var(--fat-card-value, #f8fafc);
+  color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .visao-kpi__value--danger {
@@ -619,7 +635,7 @@ html.theme-dark .visao-kpi__value--danger {
 }
 
 html.theme-dark .visao-metric__value--muted {
-  color: color-mix(in srgb, var(--fat-card-muted, #8ea0b8) 88%, var(--fat-card-value, #f8fafc));
+  color: color-mix(in srgb, var(--fat-card-muted, var(--muted)) 88%, var(--fat-card-value, var(--text)));
 }
 
 html.theme-dark .visao-link-footer {
@@ -627,17 +643,17 @@ html.theme-dark .visao-link-footer {
 }
 
 html.theme-dark .visao-alert__title {
-  color: var(--fat-card-value, #f8fafc);
+  color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .visao-alert__detail {
-  color: var(--fat-card-muted, #8ea0b8);
+  color: var(--fat-card-muted, var(--muted));
 }
 
 html.theme-dark .visao-geral__title {
-  color: var(--fat-card-value, #f8fafc);
+  color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .visao-geral__subtitle {
-  color: var(--fat-card-muted, #8ea0b8);
+  color: var(--fat-card-muted, var(--muted));
 }

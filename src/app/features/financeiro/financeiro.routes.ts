@@ -31,6 +31,13 @@ export const FINANCEIRO_ROUTES: Routes = [
           )
       },
       {
+        path: 'faturas',
+        loadComponent: () =>
+          import('./pages/faturamento-page/faturas/faturamento-faturas.component').then(
+            m => m.FaturamentoFaturasComponent
+          )
+      },
+      {
         path: 'recebimentos',
         loadComponent: () =>
           import('./pages/faturamento-page/recebimentos/faturamento-recebimentos.component').then(

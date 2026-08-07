@@ -269,6 +269,12 @@ export class AuthService {
     }
   }
 
+  /** True se o perfil da sessão é Admin (claim Role do JWT). */
+  isAdmin(): boolean {
+    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
+    return perfil === 'admin' || perfil === 'administrator' || perfil === 'adm';
+  }
+
   /**
    * Verifica se a tela de boas-vindas já foi vista
    */

@@ -42,6 +42,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   acessos: '/app/configuracoes/usuarios',
   admin: '/app/gerenciamento/menu',
   perfil: '/app/gerenciamento/perfil',
+  bancodados: '/app/gerenciamento/bancoDados',
+  'banco de dados': '/app/gerenciamento/bancoDados',
+  'banco dados': '/app/gerenciamento/bancoDados',
 };
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {

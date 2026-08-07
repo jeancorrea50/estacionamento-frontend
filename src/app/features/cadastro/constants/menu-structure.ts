@@ -47,6 +47,8 @@ export const MENU_STRUCTURE: MenuNode[] = [
     children: [
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
       { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
+      { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
+      { id: 'sub-estacionamento-ger', label: 'Estacionamento', route: '/app/gerenciamento/estacionamento' },
     ],
   },
   {

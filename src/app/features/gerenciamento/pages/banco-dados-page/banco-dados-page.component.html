@@ -1,0 +1,212 @@
+<section class="bd-page" aria-labelledby="bd-title">
+  @if (loading()) {
+    <p class="bd-page__status" role="status">Carregando conexões...</p>
+  } @else {
+    <div class="bd-layout">
+      <aside class="bd-list card">
+        <header class="bd-list__head">
+          <div>
+            <h2 id="bd-title" class="bd-list__title">Bancos de dados</h2>
+            <p class="bd-list__sub">Perfis de conexão do GtCentral</p>
+          </div>
+          <button type="button" class="btn btn--primary" (click)="novo()">Nova</button>
+        </header>
+
+        @if (!lista().length) {
+          <p class="bd-empty">Nenhum perfil cadastrado.</p>
+        } @else {
+          <ul class="bd-list__items">
+            @for (item of lista(); track item.id) {
+              <li>
+                <button
+                  type="button"
+                  class="bd-list__item"
+                  [class.bd-list__item--active]="selecionadoId() === item.id && !modoNovo()"
+                  (click)="selecionar(item)"
+                >
+                  <span class="bd-list__item-name">{{ item.nome }}</span>
+                  <span class="bd-list__item-meta">
+                    {{ ambienteLabel[item.ambiente] || item.ambiente }} ·
+                    {{ item.host }}/{{ item.nomeBanco }}
+                  </span>
+                  <span class="bd-list__item-meta">
+                    {{ item.quantidadeEstacionamentos ?? item.estacionamentos?.length ?? 0 }} estacionamento(s)
+                    @if (!item.ativo) {
+                      · <strong>inativo</strong>
+                    }
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </aside>
+
+      <div class="bd-form card">
+        <header class="bd-form__head">
+          <h3 class="bd-form__title">{{ tituloForm() }}</h3>
+          <p class="bd-form__sub">
+            Teste a conexão antes de gravar. POST/PUT também validam no servidor (HTTP 400 se falhar).
+          </p>
+        </header>
+
+        @if (!modoNovo() && !selecionadoId()) {
+          <p class="bd-empty">Selecione um perfil à esquerda ou clique em Nova.</p>
+        } @else {
+          <form class="bd-form__body" [formGroup]="form" (ngSubmit)="salvar()">
+            <div class="bd-grid bd-grid--2">
+              <label class="bd-field">
+                <span>Nome *</span>
+                <input class="bd-input" formControlName="nome" maxlength="120" />
+              </label>
+              <label class="bd-field">
+                <span>Ambiente *</span>
+                <select class="bd-input" formControlName="ambiente">
+                  @for (opt of opcoes()?.ambientes ?? []; track opt.value) {
+                    <option [value]="opt.value">{{ ambienteLabel[+opt.value] || opt.label }}</option>
+                  }
+                  @if (!(opcoes()?.ambientes?.length)) {
+                    <option value="1">Desenvolvimento</option>
+                    <option value="2">Homologação</option>
+                    <option value="3">Produção</option>
+                  }
+                </select>
+              </label>
+            </div>
+
+            <label class="bd-field">
+              <span>Descrição</span>
+              <input class="bd-input" formControlName="descricao" maxlength="300" />
+            </label>
+
+            <div class="bd-grid bd-grid--3">
+              <label class="bd-field">
+                <span>Tipo *</span>
+                <select
+                  class="bd-input"
+                  formControlName="tipoBanco"
+                  (change)="onTipoChange(+$any($event.target).value)"
+                >
+                  @for (opt of opcoes()?.tiposBanco ?? []; track opt.value) {
+                    <option [value]="opt.value">{{ tipoLabel[+opt.value] || opt.label }}</option>
+                  }
+                  @if (!(opcoes()?.tiposBanco?.length)) {
+                    <option [value]="1">SQL Server</option>
+                    <option [value]="2">Oracle</option>
+                    <option [value]="3">PostgreSQL</option>
+                    <option [value]="4">MySQL</option>
+                  }
+                </select>
+              </label>
+              <label class="bd-field">
+                <span>Host *</span>
+                <input
+                  class="bd-input"
+                  list="bd-hosts"
+                  formControlName="host"
+                  (change)="onHostChange(form.controls.host.value)"
+                />
+                <datalist id="bd-hosts">
+                  @for (h of opcoes()?.hosts ?? []; track h.value) {
+                    <option [value]="h.value"></option>
+                  }
+                </datalist>
+              </label>
+              <label class="bd-field">
+                <span>Porta *</span>
+                <input class="bd-input" type="number" formControlName="porta" />
+              </label>
+            </div>
+
+            <div class="bd-grid bd-grid--2">
+              <label class="bd-field">
+                <span>Database *</span>
+                <input class="bd-input" list="bd-bancos" formControlName="nomeBanco" />
+                <datalist id="bd-bancos">
+                  @for (b of bancosDoHost(); track b.host + b.nomeBanco) {
+                    <option [value]="b.nomeBanco">{{ b.label }}</option>
+                  }
+                </datalist>
+              </label>
+              <label class="bd-field">
+                <span>Usuário *</span>
+                <input class="bd-input" formControlName="usuario" autocomplete="off" />
+              </label>
+            </div>
+
+            <label class="bd-field">
+              <span>
+                Senha
+                @if (modoNovo()) {
+                  *
+                } @else {
+                  (deixe em branco para manter)
+                }
+              </span>
+              <input class="bd-input" type="password" formControlName="senha" autocomplete="new-password" />
+            </label>
+
+            <label class="bd-field">
+              <span>Parâmetros extras</span>
+              <input class="bd-input" formControlName="parametrosExtras" placeholder="Application Name=...;Connection Timeout=30" />
+            </label>
+
+            <div class="bd-checks">
+              <label class="bd-check">
+                <input type="checkbox" formControlName="trustServerCertificate" />
+                TrustServerCertificate
+              </label>
+              <label class="bd-check">
+                <input type="checkbox" formControlName="encrypt" />
+                Encrypt
+              </label>
+              <label class="bd-check">
+                <input type="checkbox" formControlName="ativo" />
+                Ativo
+              </label>
+            </div>
+
+            <footer class="bd-form__actions">
+              <button type="button" class="btn btn--ghost" [disabled]="testando() || salvando()" (click)="testar()">
+                {{ testando() ? 'Testando...' : 'Testar conexão' }}
+              </button>
+              <button type="submit" class="btn btn--primary" [disabled]="salvando() || testando()">
+                {{ salvando() ? 'Salvando...' : 'Salvar' }}
+              </button>
+            </footer>
+          </form>
+
+          @if (!modoNovo() && estacionamentosDoSelecionado()?.length) {
+            <section class="bd-estacs">
+              <h4 class="bd-estacs__title">Estacionamentos vinculados</h4>
+              <table class="bd-table">
+                <thead>
+                  <tr>
+                    <th>Id</th>
+                    <th>Descrição</th>
+                    <th>Fantasia</th>
+                    <th>Cidade</th>
+                    <th>Isolamento</th>
+                    <th>Ativo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (e of estacionamentosDoSelecionado(); track e.codExportacao) {
+                    <tr>
+                      <td>{{ e.estacionamentoId }}</td>
+                      <td>{{ e.descricao }}</td>
+                      <td>{{ e.fantasia || '—' }}</td>
+                      <td>{{ e.cidade || '—' }}{{ e.estado ? '/' + e.estado : '' }}</td>
+                      <td>{{ isolationLabel[e.isolationMode] || e.isolationMode }}</td>
+                      <td>{{ e.ativo ? 'Sim' : 'Não' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </section>
+          }
+        }
+      </div>
+    </div>
+  }
+</section>

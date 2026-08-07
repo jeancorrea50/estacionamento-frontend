@@ -38,6 +38,9 @@ import { ViacepService } from '../../services/viacep.service';
 import { EstacionamentoFormStepService } from '../../services/estacionamento-form-step.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import type { ApiError } from '../../../../core/api/models/api-error.model';
+import { AuthService } from '../../../../core/services/auth.service';
+import { BancoDadosConexaoService } from '../../../gerenciamento/services/banco-dados-conexao.service';
+import type { BancoDadosConexaoSelect } from '../../../gerenciamento/models/banco-dados-conexao.models';
 import { documentoValidator } from '../../validators/documento.validator';
 import { TipoPessoa, type EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
 import { CnpjFormatDirective, formatCnpj as formatCnpjDigits } from '../../directives/cnpj-format.directive';
@@ -108,6 +111,11 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   fotoUploading = false;
   /** Loading da remoção (DeletarFotos). */
   fotoDeleting = false;
+  /** Opções de perfil BancoDadosConexao (Admin). */
+  conexoesOpcoes: BancoDadosConexaoSelect[] = [];
+  readonly isAdmin = inject(AuthService).isAdmin();
+  private readonly bancoDadosApi = inject(BancoDadosConexaoService);
+  private readonly auth = inject(AuthService);
   /** URL da foto em exibição ampliada (lightbox). */
   fotoAmpliadaUrl: string | null = null;
   /** True quando o usuário arrasta arquivos sobre a zona de drop. */
@@ -297,12 +305,29 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       contaBancariaId: [null as number | null],
       titularMesmoResponsavel: [true],
       titularRazaoSocial: [''],
-      titularCnpj: ['']
+      titularCnpj: [''],
+      codExportacao: [''],
+      isolationMode: [1 as 1 | 2],
+      bancoDadosConexaoId: [null as number | null],
+      ativoTenant: [true]
     });
     this.setupTaxaMensalidadeToggle();
     this.setupTitularBancarioSync();
     this.setupCnpjBusca();
     this.setupEmailResponsavelParaPessoa();
+    this.carregarOpcoesConexao();
+  }
+
+  private carregarOpcoesConexao(): void {
+    if (!this.auth.isAdmin()) return;
+    this.bancoDadosApi.listarOpcoes().subscribe({
+      next: (op) => {
+        this.conexoesOpcoes = op?.conexoes ?? [];
+      },
+      error: () => {
+        this.conexoesOpcoes = [];
+      },
+    });
   }
 
   /** Mantém `pessoa.email` alinhado ao e-mail do responsável (campo exibido na UI). */
@@ -766,8 +791,17 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               taxaPercentual: dto.taxaPercentual,
               mensalidadeValor: dto.mensalidadeValor,
               latitude: dto.latitude ?? null,
-              longitude: dto.longitude ?? null
+              longitude: dto.longitude ?? null,
+              codExportacao: dto.codExportacao ?? '',
+              isolationMode: dto.isolationMode ?? 1,
+              bancoDadosConexaoId: dto.bancoDadosConexaoId ?? null,
+              ativoTenant: dto.ativoTenant ?? true,
             });
+            if (dto.codExportacao) {
+              this.form.get('codExportacao')?.disable({ emitEvent: false });
+            } else {
+              this.form.get('codExportacao')?.enable({ emitEvent: false });
+            }
             this.fotoItems = [];
             this.carregarFotos();
             const emailPessoaCarregado = trim(dto.pessoa.email);

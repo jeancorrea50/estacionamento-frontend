@@ -65,6 +65,11 @@ export interface EstacionamentoFormValue {
   loadedFotosBase64?: string[];
   /** Dados do GET para montar PUT completo (datas, conta preservada). */
   payloadMerge?: EstacionamentoPayloadMergeContext;
+  /** Multi-tenant GtCentral */
+  codExportacao?: string;
+  isolationMode?: 1 | 2;
+  bancoDadosConexaoId?: number | null;
+  ativoTenant?: boolean;
 }
 
 @Injectable({
@@ -590,7 +595,17 @@ export class EstacionamentoService {
       titularRazaoSocial: String(titular ?? ''),
       titularCnpj: String(cpfCnpj ?? ''),
       loadedFotosBase64: r.fotos ?? [],
-      payloadMerge
+      payloadMerge,
+      codExportacao: String(raw['codExportacao'] ?? raw['CodExportacao'] ?? r.codExportacao ?? '').trim(),
+      isolationMode: (Number(raw['isolationMode'] ?? raw['IsolationMode'] ?? r.isolationMode ?? 1) === 2
+        ? 2
+        : 1) as 1 | 2,
+      bancoDadosConexaoId:
+        Number(raw['bancoDadosConexaoId'] ?? raw['BancoDadosConexaoId'] ?? r.bancoDadosConexaoId) || null,
+      ativoTenant:
+        raw['ativo'] !== undefined || raw['Ativo'] !== undefined
+          ? Boolean(raw['ativo'] ?? raw['Ativo'])
+          : r.ativo !== false,
     };
   }
 }

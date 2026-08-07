@@ -1,11 +1,13 @@
 import { Routes } from '@angular/router';
 import { GerenciamentoLayoutComponent } from './gerenciamento-layout/gerenciamento-layout.component';
-import { permissionGuard } from '../../core/guards/permission.guard';
+import { adminRoleGuard } from '../../core/guards/admin-role.guard';
 
 export const GERENCIAMENTO_ROUTES: Routes = [
   {
     path: '',
     component: GerenciamentoLayoutComponent,
+    canActivate: [adminRoleGuard],
+    canActivateChild: [adminRoleGuard],
     children: [
       {
         path: '',
@@ -20,8 +22,6 @@ export const GERENCIAMENTO_ROUTES: Routes = [
           import('./pages/menu-admin-page/menu-admin-page.component').then(
             (m) => m.MenuAdminPageComponent
           ),
-        canActivate: [permissionGuard],
-        data: { permissions: ['menu.visualizar'] },
       },
       {
         path: 'perfil',
@@ -29,6 +29,18 @@ export const GERENCIAMENTO_ROUTES: Routes = [
           import('../cadastro/pages/acessos-perfis-page/acessos-perfis-page.component').then(
             (m) => m.AcessosPerfisPageComponent
           ),
+      },
+      {
+        path: 'bancoDados',
+        loadComponent: () =>
+          import('./pages/banco-dados-page/banco-dados-page.component').then(
+            (m) => m.BancoDadosPageComponent
+          ),
+      },
+      {
+        path: 'banco-dados',
+        redirectTo: 'bancoDados',
+        pathMatch: 'full',
       },
       /**
        * Lista + toolbar iguais a `/app/cadastro/estacionamento` (layout compartilhado).

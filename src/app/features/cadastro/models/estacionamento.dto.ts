@@ -105,6 +105,23 @@ export interface EstacionamentoObterPorIdResultDTO {
   chavePix?: string;
   /** Fotos em base64 ou URLs (integração backend) */
   fotos?: string[];
+
+  /** Multi-tenant / GtCentral */
+  codExportacao?: string | null;
+  isolationMode?: number | null;
+  bancoDadosConexaoId?: number | null;
+  ativo?: boolean | null;
+  nomeRazaoSocialCatalogo?: string | null;
+  fantasiaCatalogo?: string | null;
+  cidadeCatalogo?: string | null;
+  estadoCatalogo?: string | null;
+  bairroCatalogo?: string | null;
+  bancoDadosConexao?: {
+    id?: number;
+    nome?: string;
+    host?: string;
+    nomeBanco?: string;
+  } | null;
 }
 
 /** Resposta da API (wrapper success / result) */

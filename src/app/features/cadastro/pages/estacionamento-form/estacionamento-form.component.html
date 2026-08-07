@@ -119,6 +119,69 @@
             </div>
             </section>
 
+            @if (isAdmin) {
+            <section class="card card--cadastro-section est-card">
+              <div class="est-card__head">
+                <span class="est-card__icon material-symbols-outlined" aria-hidden="true">database</span>
+                <div>
+                  <h2 class="card__title est-card__title">Conexão / Multi-tenant</h2>
+                  <p class="card__description est-card__lede">
+                    Dados sincronizados com GtCentral (CodExportacao e perfil de banco).
+                  </p>
+                </div>
+              </div>
+              <div class="est-card__body">
+                <div class="est-field-grid est-field-grid--2">
+                  <div class="est-field">
+                    <label class="est-field__label" for="codExportacao">Cod. exportação</label>
+                    <input
+                      id="codExportacao"
+                      class="field__input est-field__control"
+                      type="text"
+                      formControlName="codExportacao"
+                      placeholder="Gerado automaticamente se vazio"
+                      maxlength="36"
+                    />
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="isolationMode">Isolamento</label>
+                    <select id="isolationMode" class="field__input est-field__control" formControlName="isolationMode">
+                      <option [ngValue]="1">Shared (compartilhado)</option>
+                      <option [ngValue]="2">Dedicated (exige conexão)</option>
+                    </select>
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="bancoDadosConexaoId">Perfil de conexão</label>
+                    <select
+                      id="bancoDadosConexaoId"
+                      class="field__input est-field__control"
+                      formControlName="bancoDadosConexaoId"
+                    >
+                      <option [ngValue]="null">Padrão / DefaultConnection</option>
+                      @for (c of conexoesOpcoes; track c.id) {
+                        <option [ngValue]="c.id">{{ c.label || c.nome }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="est-field est-field--status-row">
+                    <span class="est-field__label">Tenant ativo</span>
+                    <label class="est-switch">
+                      <input type="checkbox" formControlName="ativoTenant" />
+                      <span class="est-switch__track"></span>
+                      <span class="est-switch__text">
+                        @if (form.get('ativoTenant')?.value) {
+                          Ativo no GtCentral
+                        } @else {
+                          Inativo no GtCentral
+                        }
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+            }
+
             <section class="card card--cadastro-section est-card">
               <div class="est-card__head">
                 <span class="est-card__icon material-symbols-outlined" aria-hidden="true">badge</span>

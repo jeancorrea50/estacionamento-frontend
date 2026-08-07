@@ -55,6 +55,11 @@ export interface FormValue {
   /** Titular da conta (padrão = pessoa responsável). */
   titularRazaoSocial?: string;
   titularCnpj?: string;
+  /** Multi-tenant */
+  codExportacao?: string;
+  isolationMode?: 1 | 2;
+  bancoDadosConexaoId?: number | null;
+  ativoTenant?: boolean;
 }
 
 /** TipoCobranca no backend: 0 = nenhum, 1 = taxa, 2 = mensalidade (ajustar se o backend usar outros valores). */
@@ -354,8 +359,19 @@ export function montarPayloadEstacionamento(
     tipoCobranca,
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
-    pessoa
+    pessoa,
+    isolationMode: value.isolationMode ?? 1,
+    bancoDadosConexaoId:
+      value.bancoDadosConexaoId != null && Number(value.bancoDadosConexaoId) > 0
+        ? Number(value.bancoDadosConexaoId)
+        : null,
+    ativo: value.ativoTenant ?? true,
   };
+
+  const cod = String(value.codExportacao ?? '').trim();
+  if (cod) {
+    payload['codExportacao'] = cod;
+  }
 
   if (contaBancariaPayload) {
     payload['contaBancaria'] = contaBancariaPayload;

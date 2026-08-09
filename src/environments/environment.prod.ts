@@ -10,8 +10,8 @@ export const environment = {
   apiUrl: 'http://108.174.145.123:5000/estac',
   API_BASE_URL: 'http://108.174.145.123:5000/estac/api',
   dashboardHubUrl: 'http://108.174.145.123:8081/estac/worker/hubs/movimento/entradasaida',
-  notificationApiUrl: 'http://108.174.145.123:8083/estac/notification/api',
-  notificationHubUrl: 'http://108.174.145.123:8083/estac/notification/hubs/notificacao',
+  notificationApiUrl: 'http://108.174.145.123:8081/estac/notification/api',
+  notificationHubUrl: 'http://108.174.145.123:8081/estac/notification/hubs/notificacao',
   emergencyAdmin: {
     enabled: false,
     username: '',

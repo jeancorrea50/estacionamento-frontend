@@ -111,6 +111,14 @@ export interface BancoDadosConexaoOpcoes {
   estacionamentos: EstacionamentoSelect[];
 }
 
+/** Resultado unificado de POST (202 enfileirado) / PUT da conexão. */
+export interface BancoDadosConexaoSalvarResult {
+  perfil: BancoDadosConexao;
+  mensagem?: string;
+  hangfireJobId?: string;
+  migracaoEnfileirada?: boolean;
+}
+
 export interface BancoDadosConexaoFormPayload {
   id?: number;
   nome: string;

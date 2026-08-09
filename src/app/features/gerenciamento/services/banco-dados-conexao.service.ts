@@ -9,6 +9,7 @@ import type {
   BancoDadosConexaoFormPayload,
   BancoDadosConexaoMigration,
   BancoDadosConexaoOpcoes,
+  BancoDadosConexaoSalvarResult,
   BancoDadosConexaoTestarResult,
   BancoDadosConexaoTransferirPayload,
   BancoDadosNomeSelect,
@@ -151,46 +152,35 @@ export class BancoDadosConexaoService {
    * POST /api/BancoDadosConexao — valida, grava perfil, enfileira migrations (202).
    * Resposta: `{ sucesso, mensagem, hangfireJobId, data: { perfil } }` ou envelope legado.
    */
-  gravar(payload: BancoDadosConexaoFormPayload): Observable<{
-    perfil: BancoDadosConexao;
-    mensagem?: string;
-    hangfireJobId?: string;
-    migracaoEnfileirada?: boolean;
-  }> {
-    return this.http.post<unknown>(API, payload).pipe(
-      map((body) => {
-        if (!body || typeof body !== 'object') {
-          return { perfil: peel<BancoDadosConexao>(body) };
-        }
-        const o = mergeServiceResultToRoot(body as Record<string, unknown>);
-        const dataRaw = o['data'] ?? o['Data'];
-        const data =
-          dataRaw != null && typeof dataRaw === 'object'
-            ? (dataRaw as Record<string, unknown>)
-            : null;
-        const perfilRaw =
-          data?.['perfil'] ??
-          data?.['Perfil'] ??
-          o['perfil'] ??
-          o['Perfil'] ??
-          (o['id'] != null || o['Id'] != null ? o : null);
-
-        const perfil = normalizeConexao(
-          (perfilRaw ?? peel<BancoDadosConexao>(body)) as BancoDadosConexao
-        );
-
-        return {
-          perfil,
-          mensagem: String(o['mensagem'] ?? o['Mensagem'] ?? '').trim() || undefined,
-          hangfireJobId: (o['hangfireJobId'] ?? o['HangfireJobId']) as string | undefined,
-          migracaoEnfileirada: Boolean(o['migracaoEnfileirada'] ?? o['MigracaoEnfileirada'] ?? false),
-        };
-      })
-    );
+  gravar(payload: BancoDadosConexaoFormPayload): Observable<BancoDadosConexaoSalvarResult> {
+    return this.http.post<unknown>(API, payload).pipe(map((body) => this.mapSalvarResult(body)));
   }
 
-  alterar(payload: BancoDadosConexaoFormPayload & { id: number }): Observable<BancoDadosConexao> {
-    return this.http.put<unknown>(API, payload).pipe(map((body) => peel<BancoDadosConexao>(body)));
+  alterar(payload: BancoDadosConexaoFormPayload & { id: number }): Observable<BancoDadosConexaoSalvarResult> {
+    return this.http.put<unknown>(API, payload).pipe(map((body) => this.mapSalvarResult(body)));
+  }
+
+  private mapSalvarResult(body: unknown): BancoDadosConexaoSalvarResult {
+    if (!body || typeof body !== 'object') {
+      return { perfil: peel<BancoDadosConexao>(body) };
+    }
+    const o = mergeServiceResultToRoot(body as Record<string, unknown>);
+    const dataRaw = o['data'] ?? o['Data'];
+    const data =
+      dataRaw != null && typeof dataRaw === 'object' ? (dataRaw as Record<string, unknown>) : null;
+    const perfilRaw =
+      data?.['perfil'] ??
+      data?.['Perfil'] ??
+      o['perfil'] ??
+      o['Perfil'] ??
+      (o['id'] != null || o['Id'] != null ? o : null);
+
+    return {
+      perfil: normalizeConexao((perfilRaw ?? peel<BancoDadosConexao>(body)) as BancoDadosConexao),
+      mensagem: String(o['mensagem'] ?? o['Mensagem'] ?? '').trim() || undefined,
+      hangfireJobId: (o['hangfireJobId'] ?? o['HangfireJobId']) as string | undefined,
+      migracaoEnfileirada: Boolean(o['migracaoEnfileirada'] ?? o['MigracaoEnfileirada'] ?? false),
+    };
   }
 
   /** POST /api/BancoDadosConexao/transferir — enfileira BACPAC (202). */

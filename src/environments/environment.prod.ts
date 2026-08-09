@@ -1,23 +1,22 @@
 /**
- * Produção — frontend em :4200; APIs publicadas por porta direta.
+ * Produção via gateway nginx (porta 80) — sem porta na URL.
  *
- * Validação (probe TCP/HTTP em 2026-08-09):
- *   :80   nginx gateway → FECHADA (connection refused)
- *   :4200 frontend      → OK
- *   :5000 backend       → OK (/estac/api → 401 sem token = rota viva)
- *   :8081 workers       → OK (hub negotiate 200)
- *   :8083 notification  → FECHADA (serviço/porta não publicada)
+ * Público:
+ *   http://HOST/                         → frontend
+ *   http://HOST/estac/                   → backend
+ *   http://HOST/estac/worker/            → workers
+ *   http://HOST/estac/notification/      → notification
  *
- * Quando o gateway nginx (porta 80) estiver no ar de fato, trocar para:
- *   http://108.174.145.123/estac/...
+ * Fallback direto (só se gateway cair):
+ *   :5000 backend | :8081 workers | :8083 notification | :4200 frontend
  */
 export const environment = {
   production: true,
-  apiUrl: 'http://108.174.145.123:5000/estac',
-  API_BASE_URL: 'http://108.174.145.123:5000/estac/api',
-  dashboardHubUrl: 'http://108.174.145.123:8081/estac/worker/hubs/movimento/entradasaida',
-  notificationApiUrl: 'http://108.174.145.123:8083/estac/notification/api',
-  notificationHubUrl: 'http://108.174.145.123:8083/estac/notification/hubs/notificacao',
+  apiUrl: 'http://108.174.145.123/estac',
+  API_BASE_URL: 'http://108.174.145.123/estac/api',
+  dashboardHubUrl: 'http://108.174.145.123/estac/worker/hubs/movimento/entradasaida',
+  notificationApiUrl: 'http://108.174.145.123/estac/notification/api',
+  notificationHubUrl: 'http://108.174.145.123/estac/notification/hubs/notificacao',
   emergencyAdmin: {
     enabled: false,
     username: '',

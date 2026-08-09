@@ -1,17 +1,19 @@
 /**
- * Produção — frontend em :4200 (origem diferente das APIs).
- * URLs absolutas com PathBase de cada serviço.
+ * Produção — tráfego público via nginx (porta 80), sem porta na URL.
  *
- * Quando o gateway (porta 80) estiver no ar, pode trocar para:
- *   http://108.174.145.123/estac/...
+ * PathBases (gateway/nginx.conf):
+ *   /estac                → backend
+ *   /estac/worker         → workers
+ *   /estac/notification   → notification
+ *   /                     → frontend SPA
  */
 export const environment = {
   production: true,
-  apiUrl: 'http://108.174.145.123:5000/estac',
-  API_BASE_URL: 'http://108.174.145.123:5000/estac/api',
-  dashboardHubUrl: 'http://108.174.145.123:8081/estac/worker/hubs/movimento/entradasaida',
-  notificationApiUrl: 'http://108.174.145.123:8081/estac/notification/api',
-  notificationHubUrl: 'http://108.174.145.123:8081/estac/notification/hubs/notificacao',
+  apiUrl: 'http://108.174.145.123/estac',
+  API_BASE_URL: 'http://108.174.145.123/estac/api',
+  dashboardHubUrl: 'http://108.174.145.123/estac/worker/hubs/movimento/entradasaida',
+  notificationApiUrl: 'http://108.174.145.123/estac/notification/api',
+  notificationHubUrl: 'http://108.174.145.123/estac/notification/hubs/notificacao',
   emergencyAdmin: {
     enabled: false,
     username: '',

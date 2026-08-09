@@ -22,6 +22,32 @@ export interface BancoDadosConexaoEstacionamento {
   ativo: boolean;
 }
 
+/** Status alinhado ao enum backend StatusBancoDadosConexaoMigration. */
+export type StatusBancoDadosConexaoMigration = 1 | 2 | 3 | 4;
+
+export const STATUS_MIGRATION_LABEL: Record<number, string> = {
+  1: 'Pendente',
+  2: 'Em andamento',
+  3: 'Sucesso',
+  4: 'Falhou',
+};
+
+export interface BancoDadosConexaoMigration {
+  id: number;
+  bancoDadosConexaoId: number;
+  ambiente: AmbienteBancoDados;
+  host: string;
+  porta: number;
+  nomeBanco: string;
+  migrationName: string;
+  status: StatusBancoDadosConexaoMigration;
+  statusDescricao?: string;
+  detalheFalhaJson?: string | null;
+  dataCriacao: string;
+  dataUltimaAtualizacao: string;
+  dataAplicacao?: string | null;
+}
+
 export interface BancoDadosConexao {
   id: number;
   nome: string;
@@ -40,6 +66,8 @@ export interface BancoDadosConexao {
   connectionStringMascarada?: string | null;
   quantidadeEstacionamentos?: number;
   estacionamentos?: BancoDadosConexaoEstacionamento[];
+  /** Histórico GtCentral.BancoDadosConexaoMigration */
+  migration?: BancoDadosConexaoMigration[];
 }
 
 export interface BancoDadosConexaoSelect {
@@ -106,6 +134,83 @@ export interface BancoDadosConexaoTestarResult {
   tempoMs: number;
   connectionStringMascarada?: string | null;
   detalheErro?: string | null;
+}
+
+/** GET `/api/BancoDadosConexao/sugerir-nome` */
+export interface BancoDadosNomeSugerido {
+  nomeBanco: string;
+  descricaoSlug: string;
+  ambienteCodigo: string;
+  maxLength: number;
+  padrao?: string;
+}
+
+/** Limites oficiais usados na UI (alinhados ao backend). */
+export const NOME_BANCO_MAX_LENGTH: Record<number, number> = {
+  1: 128, // SQL Server
+  2: 30, // Oracle
+  3: 63, // PostgreSQL
+  4: 64, // MySQL
+};
+
+/** Status alinhado ao enum backend StatusTransferenciaBanco. */
+export type StatusTransferenciaBanco = 1 | 2 | 3 | 4 | 5;
+
+export const STATUS_TRANSFERENCIA_LABEL: Record<number, string> = {
+  1: 'Pendente',
+  2: 'Em andamento',
+  3: 'Concluída',
+  4: 'Falhou',
+  5: 'Cancelada',
+};
+
+export interface BancoDadosConexaoTransferirPayload {
+  bancoDadosConexaoId: number;
+  hostFuturo: string;
+  portaFuturo: number;
+  nomeBancoFuturo?: string | null;
+  usuarioFuturo: string;
+  senhaFuturo: string;
+  trustServerCertificate?: boolean;
+  encrypt?: boolean;
+  sobrescreverDestinoSeExistir?: boolean;
+}
+
+export interface TransferenciaBancoDados {
+  id: number;
+  codExportacao: string;
+  estacionamentoId: number;
+  bancoDadosConexaoId: number;
+  hostAnterior: string;
+  portaAnterior: number;
+  nomeBancoAnterior: string;
+  hostFuturo: string;
+  portaFuturo: number;
+  nomeBancoFuturo: string;
+  status: StatusTransferenciaBanco;
+  statusDescricao?: string;
+  mensagemErro?: string | null;
+  etapaAtual?: string | null;
+  solicitadoPorUsuarioId?: number | null;
+  dataCriacao: string;
+  dataInicio?: string | null;
+  dataFim?: string | null;
+}
+
+export interface TransferenciaEnfileiradaResult {
+  sucesso?: boolean;
+  mensagem?: string;
+  hangfireJobId?: string;
+  data?: TransferenciaBancoDados;
+}
+
+/** PUT `/api/Estacionamento/conexao` */
+export interface EstacionamentoConexaoPutPayload {
+  codExportacao: string;
+  estacionamentoId?: number | null;
+  isolationMode: IsolationModeEstacionamento;
+  bancoDadosConexaoId?: number | null;
+  ativo: boolean;
 }
 
 export const TIPO_BANCO_LABEL: Record<number, string> = {

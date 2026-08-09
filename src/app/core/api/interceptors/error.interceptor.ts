@@ -125,6 +125,12 @@ function isValorEstacionamentoGet(req: HttpRequest<unknown>): boolean {
   return u.includes('/entradasaida/valor-estacionamento');
 }
 
+/** Sugestão de NomeBanco: feedback fica no formulário (verde/vermelho), sem toast. */
+function isSugerirNomeBancoGet(req: HttpRequest<unknown>): boolean {
+  if (req.method !== 'GET') return false;
+  return req.url.toLowerCase().includes('/bancodadosconexao/sugerir-nome');
+}
+
 /**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
@@ -144,6 +150,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         isConfirmarEmailRequest(req) ||
         isPasswordResetPublicRequest(req) ||
         isUsuarioRegisterRequest(req) ||
+        isSugerirNomeBancoGet(req) ||
         (isEstacionamentoConfiguracaoAtualGet(req) && apiError.status === 404) ||
         (isMovimentosLookupSilencioso(req) && (apiError.status === 404 || apiError.status === 204)) ||
         (isValorEstacionamentoGet(req) && (apiError.status === 404 || apiError.status === 204));

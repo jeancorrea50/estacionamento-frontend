@@ -1045,3 +1045,31 @@ select.field__input.ng-invalid.ng-touched {
     justify-content: center;
   }
 }
+
+.est-field__hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.est-field__error {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--danger, #dc2626);
+  font-weight: 600;
+}
+
+.est-switch--locked {
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.est-card__body--readonly {
+  .field__input,
+  .est-field__control,
+  select.field__input {
+    opacity: 0.9;
+    cursor: not-allowed;
+  }
+}

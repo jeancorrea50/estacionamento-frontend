@@ -1,8 +1,9 @@
 {
   "/api": {
-    "target": "http://108.174.145.123:5000",
+    "target": "https://localhost:44317",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "logLevel": "warn"
   },
   "/viacep": {
     "target": "https://viacep.com.br",

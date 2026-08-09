@@ -26,6 +26,8 @@ export class HorarioPageComponent implements OnInit {
   readonly timeZoneId = signal('');
   /** Id da config atual; `null` = ainda não gravada (POST). */
   readonly configId = signal<number | null>(null);
+  /** Snapshot completo — preserva tarifa/tolerância ao salvar só o fuso. */
+  private configAtual: EstacionamentoConfiguracao | null = null;
 
   readonly loading = signal(true);
   readonly salvando = signal(false);
@@ -43,6 +45,7 @@ export class HorarioPageComponent implements OnInit {
     this.padroes.set([]);
     this.timeZoneId.set('');
     this.configId.set(null);
+    this.configAtual = null;
 
     let padroesOk = false;
     let atualOk = false;
@@ -104,6 +107,7 @@ export class HorarioPageComponent implements OnInit {
   private aplicarAtual(atual: EstacionamentoConfiguracao | null): void {
     if (!atual?.id || atual.id <= 0 || !atual.timeZoneId) return;
 
+    this.configAtual = atual;
     this.configId.set(atual.id);
     this.timeZoneId.set(atual.timeZoneId);
     this.garantirPadraoNaLista(atual.timeZoneId, atual.nome || atual.timeZoneId, atual.utcOffset || '');
@@ -124,15 +128,23 @@ export class HorarioPageComponent implements OnInit {
     this.salvando.set(true);
 
     const id = this.configId();
+    const preservado = this.configAtual;
+    const payloadBase = {
+      timeZoneId: tz,
+      tipoTarifaAvulsa: preservado?.tipoTarifaAvulsa ?? null,
+      valorAvulso: preservado?.valorAvulso ?? null,
+      minutosToleranciaPermanencia: preservado?.minutosToleranciaPermanencia ?? null
+    };
     const req$ =
       id != null && id > 0
-        ? this.api.alterar({ id, timeZoneId: tz })
-        : this.api.gravar({ timeZoneId: tz });
+        ? this.api.alterar({ id, ...payloadBase })
+        : this.api.gravar(payloadBase);
 
     req$.pipe(finalize(() => this.salvando.set(false))).subscribe({
       next: (saved) => {
         const eraNovo = !(id != null && id > 0);
         if (saved?.id && saved.id > 0) {
+          this.configAtual = saved;
           this.configId.set(saved.id);
           this.timeZoneId.set(saved.timeZoneId || tz);
         } else if (eraNovo) {

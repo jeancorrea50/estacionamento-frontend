@@ -1,0 +1,57 @@
+<div class="notif-bell" (click)="$event.stopPropagation()">
+  <button
+    type="button"
+    class="notif-bell__btn"
+    (click)="toggle($event)"
+    [attr.aria-expanded]="notifications.panelOpen()"
+    aria-label="Notificações"
+  >
+    <span class="material-symbols-outlined notif-bell__icon" aria-hidden="true">notifications</span>
+    @if (notifications.naoLidas() > 0) {
+      <span class="notif-bell__badge">{{ notifications.naoLidas() > 99 ? '99+' : notifications.naoLidas() }}</span>
+    }
+  </button>
+
+  @if (notifications.panelOpen()) {
+    <div class="notif-panel" role="dialog" aria-label="Painel de notificações">
+      <header class="notif-panel__header">
+        <h3>Notificações</h3>
+        @if (notifications.naoLidas() > 0) {
+          <button type="button" class="notif-panel__mark-all" (click)="markAll()">
+            Marcar todas como lidas
+          </button>
+        }
+      </header>
+
+      <div class="notif-panel__body">
+        @if (!notifications.itens().length) {
+          <p class="notif-panel__empty">Nenhuma notificação.</p>
+        } @else {
+          <ul class="notif-list">
+            @for (n of notifications.itens(); track n.id) {
+              <li
+                class="notif-list__item"
+                [class.notif-list__item--unread]="!n.lida"
+                (click)="onItemClick(n.id)"
+              >
+                <div class="notif-list__title-row">
+                  <span class="notif-list__title">{{ n.titulo }}</span>
+                  @if (!n.lida) {
+                    <span class="notif-list__dot" aria-hidden="true"></span>
+                  }
+                </div>
+                <p class="notif-list__msg">{{ n.mensagem }}</p>
+                <div class="notif-list__meta">
+                  <span class="notif-list__tipo">{{ n.tipo }}</span>
+                  <time [attr.datetime]="n.dataCriacao">
+                    {{ n.dataCriacao | date: 'dd/MM/yyyy HH:mm' }}
+                  </time>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -126,11 +126,15 @@
                 <div>
                   <h2 class="card__title est-card__title">Conexão / Multi-tenant</h2>
                   <p class="card__description est-card__lede">
-                    Dados sincronizados com GtCentral (CodExportacao e perfil de banco).
+                    @if (id != null) {
+                      Somente visualização — estes dados não podem ser alterados na edição.
+                    } @else {
+                      Dados sincronizados com GtCentral (CodExportacao e perfil de banco).
+                    }
                   </p>
                 </div>
               </div>
-              <div class="est-card__body">
+              <div class="est-card__body" [class.est-card__body--readonly]="id != null">
                 <div class="est-field-grid est-field-grid--2">
                   <div class="est-field">
                     <label class="est-field__label" for="codExportacao">Cod. exportação</label>
@@ -139,9 +143,16 @@
                       class="field__input est-field__control"
                       type="text"
                       formControlName="codExportacao"
-                      placeholder="Gerado automaticamente se vazio"
                       maxlength="36"
+                      readonly
                     />
+                    <p class="est-field__hint">
+                      @if (id != null) {
+                        Somente leitura.
+                      } @else {
+                        GUID gerado automaticamente (não editável).
+                      }
+                    </p>
                   </div>
                   <div class="est-field">
                     <label class="est-field__label" for="isolationMode">Isolamento</label>
@@ -151,31 +162,98 @@
                     </select>
                   </div>
                   <div class="est-field">
-                    <label class="est-field__label" for="bancoDadosConexaoId">Perfil de conexão</label>
+                    <label class="est-field__label" for="bancoDadosConexaoId">
+                      Perfil de conexão
+                      @if (id == null) {
+                        *
+                      }
+                    </label>
                     <select
                       id="bancoDadosConexaoId"
                       class="field__input est-field__control"
                       formControlName="bancoDadosConexaoId"
                     >
-                      <option [ngValue]="null">Padrão / DefaultConnection</option>
+                      <option [ngValue]="null">Selecione uma conexão</option>
                       @for (c of conexoesOpcoes; track c.id) {
                         <option [ngValue]="c.id">{{ c.label || c.nome }}</option>
                       }
                     </select>
+                    @if (id == null && form.get('bancoDadosConexaoId')?.touched && form.get('bancoDadosConexaoId')?.invalid) {
+                      <p class="est-field__error">Selecione um perfil de conexão.</p>
+                    }
                   </div>
                   <div class="est-field est-field--status-row">
                     <span class="est-field__label">Tenant ativo</span>
-                    <label class="est-switch">
+                    <label class="est-switch est-switch--locked">
                       <input type="checkbox" formControlName="ativoTenant" />
                       <span class="est-switch__track"></span>
-                      <span class="est-switch__text">
-                        @if (form.get('ativoTenant')?.value) {
-                          Ativo no GtCentral
-                        } @else {
-                          Inativo no GtCentral
-                        }
-                      </span>
+                      <span class="est-switch__text">Ativo no GtCentral</span>
                     </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+            }
+
+            @if (isAdmin) {
+            <section class="card card--cadastro-section est-card">
+              <div class="est-card__head">
+                <span class="est-card__icon material-symbols-outlined" aria-hidden="true">payments</span>
+                <div>
+                  <h2 class="card__title est-card__title">Configuração Valores</h2>
+                  <p class="card__description est-card__lede">
+                    Tarifa avulsa: Hora (1) ou Diária (2), valor (R$) e tolerância (0–1440 min).
+                    Diferente da taxa/mensalidade em Dados complementares.
+                  </p>
+                </div>
+              </div>
+              <div class="est-card__body">
+                <div class="est-field-grid est-field-grid--3">
+                  <div class="est-field">
+                    <label class="est-field__label" for="tipoTarifaAvulsa">Cobrança avulsa</label>
+                    <select
+                      id="tipoTarifaAvulsa"
+                      class="field__input est-field__control"
+                      formControlName="tipoTarifaAvulsa"
+                    >
+                      <option [ngValue]="null">Selecione</option>
+                      <option [ngValue]="1">Por hora</option>
+                      <option [ngValue]="2">Diária</option>
+                    </select>
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="valorAvulso">Valor (R$)</label>
+                    <div class="field__input-wrap">
+                      <span class="field__prefix">R$</span>
+                      <input
+                        id="valorAvulso"
+                        class="field__input est-field__control"
+                        type="number"
+                        formControlName="valorAvulso"
+                        min="0"
+                        step="0.01"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    @if (form.get('valorAvulso')?.invalid && form.get('valorAvulso')?.touched) {
+                      <span class="field__error">Valor não pode ser negativo.</span>
+                    }
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="minutosToleranciaPermanencia">Tolerância (min)</label>
+                    <input
+                      id="minutosToleranciaPermanencia"
+                      class="field__input est-field__control"
+                      type="number"
+                      formControlName="minutosToleranciaPermanencia"
+                      min="0"
+                      max="1440"
+                      step="1"
+                      placeholder="Ex: 15"
+                    />
+                    @if (form.get('minutosToleranciaPermanencia')?.invalid && form.get('minutosToleranciaPermanencia')?.touched) {
+                      <span class="field__error">Informe entre 0 e 1440 minutos.</span>
+                    }
                   </div>
                 </div>
               </div>
@@ -750,8 +828,29 @@
                 </div>
               </div>
               <div class="form-row">
+                <label for="tipoChave">Tipo da chave PIX</label>
+                <select id="tipoChave" class="field__input" formControlName="tipoChave">
+                  <option [ngValue]="null">Selecione</option>
+                  <option [ngValue]="1">CPF</option>
+                  <option [ngValue]="2">CNPJ</option>
+                  <option [ngValue]="3">E-mail</option>
+                  <option [ngValue]="4">Telefone</option>
+                  <option [ngValue]="5">Aleatória (UUID)</option>
+                </select>
+              </div>
+              <div class="form-row">
                 <label for="chavePix">Chave PIX</label>
-                <input id="chavePix" class="field__input" type="text" formControlName="chavePix" placeholder="E-mail, CPF/CNPJ ou telefone" />
+                <input
+                  id="chavePix"
+                  class="field__input"
+                  type="text"
+                  formControlName="chavePix"
+                  [placeholder]="chavePixPlaceholder"
+                  [attr.maxlength]="chavePixMaxLength"
+                  [attr.inputmode]="chavePixInputMode"
+                  autocomplete="off"
+                  (input)="onChavePixInput($event)"
+                />
               </div>
             </div>
           </section>

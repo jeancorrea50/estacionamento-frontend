@@ -8,6 +8,8 @@ export const EstacionamentoPaths = {
   obterPorId: (id: number) => `${id}`,
   gravar: '',
   alterar: '',
+  /** PUT `/api/Estacionamento/conexao` — vínculo multi-tenant (Admin). */
+  atualizarConexao: 'conexao',
   /** DELETE `/api/Estacionamento/{id}` */
   excluir: (id: number) => `${id}`,
   /** GET — `/api/Estacionamento/buscar-fotos/{id}` */

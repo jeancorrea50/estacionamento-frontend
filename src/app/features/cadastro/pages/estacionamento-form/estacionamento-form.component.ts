@@ -41,11 +41,17 @@ import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BancoDadosConexaoService } from '../../../gerenciamento/services/banco-dados-conexao.service';
 import type { BancoDadosConexaoSelect } from '../../../gerenciamento/models/banco-dados-conexao.models';
+import type { TipoTarifaAvulsa } from '../../../configuracoes/models/estacionamento-configuracao.models';
 import { documentoValidator } from '../../validators/documento.validator';
 import { TipoPessoa, type EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
 import { CnpjFormatDirective, formatCnpj as formatCnpjDigits } from '../../directives/cnpj-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
+import {
+  chavePixInputMode,
+  chavePixMaxLength,
+  formatChavePix
+} from '../../utils/chave-pix-format';
 import {
   formValueToEstacionamentoPayload,
   montarPayloadSalvarAbaDadosBancarios,
@@ -152,6 +158,32 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   get isMensalidade(): boolean {
     return this.form.get('tipoTaxaMensalidade')?.value === 'mensalidade';
+  }
+
+  /** Placeholder da chave PIX conforme o tipo selecionado. */
+  get chavePixPlaceholder(): string {
+    switch (this.form?.get('tipoChave')?.value as number | null) {
+      case 1:
+        return '000.000.000-00';
+      case 2:
+        return '00.000.000/0000-00';
+      case 3:
+        return 'email@exemplo.com';
+      case 4:
+        return '(00) 00000-0000';
+      case 5:
+        return 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+      default:
+        return 'Informe a chave conforme o tipo selecionado';
+    }
+  }
+
+  get chavePixMaxLength(): number {
+    return chavePixMaxLength(this.form?.get('tipoChave')?.value);
+  }
+
+  get chavePixInputMode(): string {
+    return chavePixInputMode(this.form?.get('tipoChave')?.value);
   }
 
   get isNovo(): boolean {
@@ -302,6 +334,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       contaDigito: [''],
       tipoConta: ['' as 'corrente' | 'poupanca' | ''],
       chavePix: [''],
+      tipoChave: [null as 1 | 2 | 3 | 4 | 5 | null],
       contaBancariaId: [null as number | null],
       titularMesmoResponsavel: [true],
       titularRazaoSocial: [''],
@@ -309,13 +342,111 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       codExportacao: [''],
       isolationMode: [1 as 1 | 2],
       bancoDadosConexaoId: [null as number | null],
-      ativoTenant: [true]
+      ativoTenant: [true],
+      // Configuração Valores (EstacionamentoConfiguracao — API separada)
+      tipoTarifaAvulsa: [null as TipoTarifaAvulsa | null],
+      valorAvulso: [null as number | null, [Validators.min(0)]],
+      minutosToleranciaPermanencia: [null as number | null, [Validators.min(0), Validators.max(1440)]]
     });
     this.setupTaxaMensalidadeToggle();
     this.setupTitularBancarioSync();
+    this.setupChavePixMask();
     this.setupCnpjBusca();
     this.setupEmailResponsavelParaPessoa();
+    this.aplicarRegrasMultiTenantAdmin();
     this.carregarOpcoesConexao();
+  }
+
+  /** Remascara a chave PIX ao trocar o tipo (CPF/CNPJ/e-mail/telefone/UUID). */
+  private setupChavePixMask(): void {
+    this.form
+      .get('tipoChave')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((tipo) => {
+        const atual = String(this.form.get('chavePix')?.value ?? '');
+        if (!atual.trim()) return;
+        const mascarado = formatChavePix(atual, tipo);
+        if (mascarado !== atual) {
+          this.form.get('chavePix')?.setValue(mascarado, { emitEvent: false });
+        }
+        this.cdr.markForCheck();
+      });
+  }
+
+  onChavePixInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const tipo = this.form.get('tipoChave')?.value as number | null;
+    const formatted = formatChavePix(input.value, tipo);
+    if (formatted === input.value) return;
+
+    const before = input.value.slice(0, input.selectionStart ?? 0);
+    const meaningfulBefore =
+      tipo === 5
+        ? (before.match(/[0-9a-fA-F]/g) || []).length
+        : (before.match(/\d/g) || []).length;
+    this.form.get('chavePix')?.setValue(formatted, { emitEvent: false });
+
+    // E-mail não tem máscara posicional; CPF/CNPJ/telefone/UUID reposicionam cursor.
+    if (tipo === 3 || tipo == null) return;
+
+    setTimeout(() => {
+      let pos = 0;
+      let count = 0;
+      const isHex = tipo === 5;
+      for (; pos < formatted.length && count < meaningfulBefore; pos++) {
+        if (isHex ? /[0-9a-f]/i.test(formatted[pos]) : /\d/.test(formatted[pos])) count++;
+      }
+      input.setSelectionRange(pos, pos);
+    }, 0);
+  }
+
+  /** Admin: no cadastro novo GUID/perfil obrigatório; na edição, seção só leitura. */
+  private aplicarRegrasMultiTenantAdmin(): void {
+    if (!this.isAdmin) return;
+
+    const codCtrl = this.form.get('codExportacao');
+    const isolamentoCtrl = this.form.get('isolationMode');
+    const conexaoCtrl = this.form.get('bancoDadosConexaoId');
+    const ativoCtrl = this.form.get('ativoTenant');
+    const somenteLeitura = this.id != null && this.id > 0;
+
+    const codAtual = String(codCtrl?.value ?? '').trim();
+    if (!somenteLeitura) {
+      codCtrl?.setValue(codAtual || this.gerarCodExportacaoGuid(), { emitEvent: false });
+    }
+    codCtrl?.disable({ emitEvent: false });
+
+    ativoCtrl?.setValue(true, { emitEvent: false });
+    ativoCtrl?.disable({ emitEvent: false });
+
+    if (somenteLeitura) {
+      isolamentoCtrl?.disable({ emitEvent: false });
+      conexaoCtrl?.clearValidators();
+      conexaoCtrl?.disable({ emitEvent: false });
+      conexaoCtrl?.updateValueAndValidity({ emitEvent: false });
+      return;
+    }
+
+    isolamentoCtrl?.enable({ emitEvent: false });
+    conexaoCtrl?.enable({ emitEvent: false });
+    conexaoCtrl?.setValidators([Validators.required]);
+    conexaoCtrl?.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** GUID aleatório (máx. 36) para CodExportacao — usuário não edita. */
+  private gerarCodExportacaoGuid(): string {
+    try {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch {
+      /* fallback abaixo */
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
   }
 
   private carregarOpcoesConexao(): void {
@@ -655,6 +786,18 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       this.syncTitularFromPessoa();
     }
     const raw = this.form.getRawValue() as FormValue;
+    const chavePix = String(raw.chavePix ?? '').trim();
+    const tipoChave = Number(raw.tipoChave ?? 0);
+    if (chavePix && (!Number.isFinite(tipoChave) || tipoChave < 1 || tipoChave > 5)) {
+      this.form.get('tipoChave')?.markAsTouched();
+      this.toast.warning('Selecione o tipo da chave PIX.');
+      return;
+    }
+    if (!chavePix && Number.isFinite(tipoChave) && tipoChave >= 1 && tipoChave <= 5) {
+      this.form.get('chavePix')?.markAsTouched();
+      this.toast.warning('Informe a chave PIX quando o tipo estiver selecionado.');
+      return;
+    }
     const payload = montarPayloadSalvarAbaDadosBancarios(raw, this.loadedEnderecos, this.payloadMerge, this.id);
     const contaPayloadRaw = payload['contaBancaria'] as unknown;
     const primeiraConta = Array.isArray(contaPayloadRaw)
@@ -721,7 +864,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       banco: trim(dto.banco),
       ...this.parseAgenciaContaDoDto(trim(dto.agencia ?? ''), trim(dto.conta ?? '')),
       tipoConta: trim(dto.tipoConta),
-      chavePix: trim(dto.chavePix),
+      tipoChave: dto.tipoChave ?? null,
+      chavePix: formatChavePix(trim(dto.chavePix), dto.tipoChave ?? null),
       contaBancariaId: dto.contaBancariaId ?? null,
       titularRazaoSocial: trim(dto.titularRazaoSocial ?? ''),
       titularCnpj: trim(dto.titularCnpj ?? '')
@@ -792,16 +936,15 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               mensalidadeValor: dto.mensalidadeValor,
               latitude: dto.latitude ?? null,
               longitude: dto.longitude ?? null,
-              codExportacao: dto.codExportacao ?? '',
+              codExportacao: dto.codExportacao?.trim() || this.gerarCodExportacaoGuid(),
               isolationMode: dto.isolationMode ?? 1,
               bancoDadosConexaoId: dto.bancoDadosConexaoId ?? null,
-              ativoTenant: dto.ativoTenant ?? true,
+              ativoTenant: true,
+              tipoTarifaAvulsa: dto.tipoTarifaAvulsa ?? null,
+              valorAvulso: dto.valorAvulso ?? null,
+              minutosToleranciaPermanencia: dto.minutosToleranciaPermanencia ?? null,
             });
-            if (dto.codExportacao) {
-              this.form.get('codExportacao')?.disable({ emitEvent: false });
-            } else {
-              this.form.get('codExportacao')?.enable({ emitEvent: false });
-            }
+            this.aplicarRegrasMultiTenantAdmin();
             this.fotoItems = [];
             this.carregarFotos();
             const emailPessoaCarregado = trim(dto.pessoa.email);
@@ -879,6 +1022,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   /**
    * POST /api/Estacionamento (novo) ou PUT completo (edição), com merge do GET quando existir.
+   * Configuração Valores vai no mesmo payload (`configuracaoValores`).
    */
   private salvarCadastroEstacionamento(stayOnPage = false): void {
     if (this.salvando) return;
@@ -888,6 +1032,20 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         this.toast.warning('Preencha os dados obrigatórios do cadastro antes de adicionar fotos.');
       }
       return;
+    }
+    const erroConfig = this.validarConfiguracaoValoresForm();
+    if (erroConfig) {
+      this.toast.warning(erroConfig);
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.isAdmin) {
+      const conexaoId = Number(this.form.getRawValue()?.bancoDadosConexaoId ?? 0);
+      if (!Number.isFinite(conexaoId) || conexaoId <= 0) {
+        this.toast.warning('Selecione o perfil de conexão (BancoDados) antes de salvar.');
+        this.cdr.markForCheck();
+        return;
+      }
     }
     const errosMinimosCriacao = this.validarCamposMinimosCriacao();
     if (errosMinimosCriacao.length > 0) {
@@ -905,22 +1063,23 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     // Fotos são gerenciadas apenas pelos endpoints BuscarFotos / UploadFotos / DeletarFotos (Azure); não enviamos no payload Gravar/Alterar.
     const raw = this.form.getRawValue() as FormValue;
     const dto = formValueToEstacionamentoPayload(raw, this.loadedEnderecos, [], this.payloadMerge);
+    const eraCriacao = this.id == null;
     const request$ = this.id
       ? this.EstacionamentoService.alterar(dto)
       : this.EstacionamentoService.gravar(dto);
     request$.subscribe({
       next: (res) => {
         this.salvando = false;
-        const criacaoComSucesso = this.id == null && res?.id != null;
+        const criacaoComSucesso = eraCriacao && res?.id != null;
         if (stayOnPage) {
           if (criacaoComSucesso && res?.id != null) {
             this.id = res.id;
             this.form.patchValue({ id: res.id }, { emitEvent: false });
-            this.router.navigate(['/app/cadastro/estacionamento', res.id], { replaceUrl: true });
+            this.router.navigate(['/app/cadastro/estacionamento/editar', res.id], { replaceUrl: true });
             this.carregarEstacionamentoPorId();
             this.toast.success('Cadastro salvo.');
           } else {
-            const idAtual = this.id;
+            const idAtual = this.id ?? res?.id ?? null;
             if (!idAtual) {
               this.toast.success('Alterações salvas.');
               return;
@@ -949,7 +1108,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
             });
           }
         } else {
-          this.toast.success(this.id ? 'Estacionamento atualizado com sucesso.' : 'Estacionamento criado com sucesso.');
+          this.toast.success(eraCriacao ? 'Estacionamento criado com sucesso.' : 'Estacionamento atualizado com sucesso.');
           this.router.navigate(['/app/cadastro/estacionamento']);
         }
       },
@@ -962,6 +1121,35 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         this.toast.error(fieldErrors.length > 0 ? `${msg} ${fieldErrors[0]}` : msg);
       }
     });
+  }
+
+  private validarConfiguracaoValoresForm(): string | null {
+    if (!this.isAdmin) return null;
+    const tipo = this.form.get('tipoTarifaAvulsa')?.value as TipoTarifaAvulsa | null;
+    const valorRaw = this.form.get('valorAvulso')?.value;
+    const valor =
+      valorRaw === null || valorRaw === undefined || valorRaw === ''
+        ? null
+        : Number(valorRaw);
+    const tolRaw = this.form.get('minutosToleranciaPermanencia')?.value;
+    const tolerancia =
+      tolRaw === null || tolRaw === undefined || tolRaw === ''
+        ? null
+        : Number(tolRaw);
+
+    if (tipo != null && (valor == null || !Number.isFinite(valor))) {
+      return 'Informe o valor da tarifa avulsa quando o tipo (hora/diária) estiver definido.';
+    }
+    if ((tipo == null || tipo === undefined) && valor != null && Number.isFinite(valor)) {
+      return 'Selecione se a cobrança avulsa é por hora ou diária.';
+    }
+    if (valor != null && Number.isFinite(valor) && valor < 0) {
+      return 'Valor avulso não pode ser negativo.';
+    }
+    if (tolerancia != null && Number.isFinite(tolerancia) && (tolerancia < 0 || tolerancia > 1440)) {
+      return 'Tolerância deve estar entre 0 e 1440 minutos.';
+    }
+    return null;
   }
 
   private extractApiError(err: unknown): ApiError | null {

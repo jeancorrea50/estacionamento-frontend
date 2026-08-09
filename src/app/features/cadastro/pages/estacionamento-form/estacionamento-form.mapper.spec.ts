@@ -45,6 +45,7 @@ describe('Estacionamento-form.mapper', () => {
     expect(payload).toHaveProperty('pessoaId', 0);
     expect(payload).toHaveProperty('capacidadeVeiculo', 50);
     expect(payload).toHaveProperty('tamanhoTerreno', '500');
+    expect(payload).toHaveProperty('responsavelLegal', 'Alexsander Penna');
     expect(payload).toHaveProperty('resposanvelLegal', 'Alexsander Penna');
     expect(payload).toHaveProperty('responsavelCpf', '06006431157');
     expect(payload).toHaveProperty('possuiSeguranca', true);
@@ -52,13 +53,55 @@ describe('Estacionamento-form.mapper', () => {
     expect(payload).toHaveProperty('tipoCobranca', 1);
     expect(payload).toHaveProperty('cobrancaPorcentagem', 10);
     expect(payload).toHaveProperty('cobrancaValor', 0);
+    expect(payload).toHaveProperty('pessoaJuridica');
     expect(payload).toHaveProperty('pessoa');
     expect(payload['contaBancaria']).toBeUndefined();
-    const pessoaRoot = payload['pessoa'] as Record<string, unknown>;
+    const pessoaRoot = payload['pessoaJuridica'] as Record<string, unknown>;
     expect(pessoaRoot['descricao']).toBe('Fantasia');
     expect(pessoaRoot['email']).toBe('resp@exemplo.com');
     expect(typeof pessoaRoot['dataCriacao']).toBe('string');
     expect(typeof pessoaRoot['dataAtualizacao']).toBe('string');
+    expect(payload['bancoDados']).toEqual({
+      isolationMode: 1,
+      bancoDadosConexaoId: 0
+    });
+    expect(payload['configuracaoValores']).toEqual({
+      tipoTarifaAvulsa: null,
+      valorAvulso: null,
+      minutosToleranciaPermanencia: null
+    });
+  });
+
+  it('deve enviar configuracaoValores com tipo Diaria=2, valor e tolerancia', () => {
+    const value: FormValue = {
+      ...baseFormValue,
+      tipoTarifaAvulsa: 2,
+      valorAvulso: 15,
+      minutosToleranciaPermanencia: 15
+    };
+    const payload = formValueToEstacionamentoPayload(value);
+    expect(payload['configuracaoValores']).toEqual({
+      tipoTarifaAvulsa: 2,
+      valorAvulso: 15,
+      minutosToleranciaPermanencia: 15
+    });
+  });
+
+  it('deve enviar bancoDados aninhado com isolationMode e bancoDadosConexaoId', () => {
+    const value: FormValue = {
+      ...baseFormValue,
+      isolationMode: 2,
+      bancoDadosConexaoId: 15,
+      codExportacao: 'abc-123'
+    };
+    const payload = formValueToEstacionamentoPayload(value);
+    expect(payload['bancoDados']).toEqual({
+      isolationMode: 2,
+      bancoDadosConexaoId: 15
+    });
+    expect(payload['codExportacao']).toBe('abc-123');
+    expect(payload['isolationMode']).toBeUndefined();
+    expect(payload['bancoDadosConexaoId']).toBeUndefined();
   });
 
   it('deve enviar CNPJ da pessoa apenas com dígitos', () => {
@@ -180,13 +223,14 @@ describe('Estacionamento-form.mapper', () => {
       contaDigito: '',
       banco: '001',
       tipoConta: 'corrente',
-      chavePix: '06006431157'
+      chavePix: '06006431157',
+      tipoChave: 1
     };
     const payload = montarPayloadEstacionamento(value, [], [], merge);
     expect(payload['dataCriacao']).toBe('2021-06-10T12:00:00.000Z');
     expect(payload['id']).toBe(10);
     expect(payload['pessoaId']).toBe(20);
-    const pessoa = payload['pessoa'] as Record<string, unknown>;
+    const pessoa = (payload['pessoaJuridica'] ?? payload['pessoa']) as Record<string, unknown>;
     expect(pessoa['descricao']).toBe('Descr merge');
     expect(pessoa['dataCriacao']).toBe('2021-05-01T10:00:00.000Z');
     const conta = payload['contaBancaria'] as Record<string, unknown>;
@@ -194,6 +238,8 @@ describe('Estacionamento-form.mapper', () => {
     expect(conta['dataCriacao']).toBe('2021-07-01T08:00:00.000Z');
     expect(conta['campoExtraDaApi']).toBe('mantido');
     expect(conta['EstacionamentoId']).toBe(10);
+    expect(conta['tipoChave']).toBe(1);
+    expect(conta['chavePix']).toBe('06006431157');
   });
 
   it('extrairContaBancariaDaRespostaApi aceita contaBancaria como objeto único', () => {

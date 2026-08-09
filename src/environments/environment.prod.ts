@@ -9,6 +9,8 @@ export const environment = {
   /** Base URL da API (uso em serviços HTTP e interceptors). */
   API_BASE_URL: 'http://108.174.145.123:5000/api',
   dashboardHubUrl: 'http://108.174.145.123:8081/hubs/movimento/entradasaida',
+  notificationApiUrl: 'http://108.174.145.123:8083/estacnotification/api',
+  notificationHubUrl: 'http://108.174.145.123:8083/estacnotification/hubs/notificacao',
   emergencyAdmin: {
     enabled: false,
     username: '',

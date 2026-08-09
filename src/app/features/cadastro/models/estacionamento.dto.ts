@@ -103,6 +103,7 @@ export interface EstacionamentoObterPorIdResultDTO {
   conta?: string;
   tipoConta?: string;
   chavePix?: string;
+  tipoChave?: 1 | 2 | 3 | 4 | 5 | null;
   /** Fotos em base64 ou URLs (integração backend) */
   fotos?: string[];
 

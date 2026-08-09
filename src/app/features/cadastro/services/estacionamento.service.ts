@@ -58,7 +58,13 @@ export interface EstacionamentoFormValue {
   conta?: string;
   tipoConta?: string;
   chavePix?: string;
+  /** TipoChave: 1=Cpf, 2=Cnpj, 3=Email, 4=Telefone, 5=Aleatoria */
+  tipoChave?: 1 | 2 | 3 | 4 | 5 | null;
   contaBancariaId?: number | null;
+  /** Configuração Valores (GET Estacionamento.configuracaoValores) */
+  tipoTarifaAvulsa?: 1 | 2 | null;
+  valorAvulso?: number | null;
+  minutosToleranciaPermanencia?: number | null;
   titularRazaoSocial?: string;
   titularCnpj?: string;
   /** Fotos retornadas pela API (base64 ou URL); exibidas no passo Fotos. */
@@ -96,6 +102,31 @@ export class EstacionamentoService {
     return this.http.put<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
+  }
+
+  /** PUT /api/Estacionamento/conexao — vincula tenant ao perfil BancoDadosConexao (Admin). */
+  atualizarConexao(payload: {
+    codExportacao: string;
+    estacionamentoId?: number | null;
+    isolationMode: 1 | 2;
+    bancoDadosConexaoId?: number | null;
+    ativo: boolean;
+  }): Observable<Record<string, unknown>> {
+    return this.http
+      .put<unknown>(`${Estacionamento}/${EstacionamentoPaths.atualizarConexao}`, payload)
+      .pipe(
+        map((body) => {
+          if (body != null && typeof body === 'object') {
+            const o = body as Record<string, unknown>;
+            const inner = o['result'] ?? o['Result'];
+            if (inner != null && typeof inner === 'object') {
+              return inner as Record<string, unknown>;
+            }
+            return o;
+          }
+          return {};
+        })
+      );
   }
 
   /** API GTS costuma devolver `{ success, result: { id, ... } }`; o formulário usa `res.id`. */
@@ -591,6 +622,12 @@ export class EstacionamentoService {
       conta: String(conta ?? ''),
       tipoConta: String(tipoContaNorm),
       chavePix: String(contaBancaria?.['chavePix'] ?? contaBancaria?.['ChavePix'] ?? r.chavePix ?? ''),
+      tipoChave: (() => {
+        const rawTipo = Number(
+          contaBancaria?.['tipoChave'] ?? contaBancaria?.['TipoChave'] ?? r.tipoChave ?? 0
+        );
+        return rawTipo >= 1 && rawTipo <= 5 ? (rawTipo as 1 | 2 | 3 | 4 | 5) : null;
+      })(),
       contaBancariaId: Number(contaBancaria?.['id'] ?? contaBancaria?.['Id']) || null,
       titularRazaoSocial: String(titular ?? ''),
       titularCnpj: String(cpfCnpj ?? ''),
@@ -606,6 +643,47 @@ export class EstacionamentoService {
         raw['ativo'] !== undefined || raw['Ativo'] !== undefined
           ? Boolean(raw['ativo'] ?? raw['Ativo'])
           : r.ativo !== false,
+      ...mapConfiguracaoValoresFromApi(raw, r as unknown as Record<string, unknown>),
     };
   }
+}
+
+function mapConfiguracaoValoresFromApi(
+  raw: Record<string, unknown>,
+  r: Record<string, unknown>
+): {
+  tipoTarifaAvulsa: 1 | 2 | null;
+  valorAvulso: number | null;
+  minutosToleranciaPermanencia: number | null;
+} {
+  const nested =
+    (raw['configuracaoValores'] as Record<string, unknown> | undefined) ??
+    (raw['ConfiguracaoValores'] as Record<string, unknown> | undefined) ??
+    (r['configuracaoValores'] as Record<string, unknown> | undefined) ??
+    (r['ConfiguracaoValores'] as Record<string, unknown> | undefined) ??
+    null;
+
+  const tipoRaw = Number(
+    nested?.['tipoTarifaAvulsa'] ??
+      nested?.['TipoTarifaAvulsa'] ??
+      raw['tipoTarifaAvulsa'] ??
+      raw['TipoTarifaAvulsa'] ??
+      0
+  );
+  const valorRaw = nested?.['valorAvulso'] ?? nested?.['ValorAvulso'] ?? raw['valorAvulso'] ?? raw['ValorAvulso'];
+  const tolRaw =
+    nested?.['minutosToleranciaPermanencia'] ??
+    nested?.['MinutosToleranciaPermanencia'] ??
+    raw['minutosToleranciaPermanencia'] ??
+    raw['MinutosToleranciaPermanencia'];
+
+  const valor = valorRaw == null || valorRaw === '' ? null : Number(valorRaw);
+  const tolerancia = tolRaw == null || tolRaw === '' ? null : Math.trunc(Number(tolRaw));
+
+  return {
+    tipoTarifaAvulsa: tipoRaw === 1 || tipoRaw === 2 ? tipoRaw : null,
+    valorAvulso: valor != null && Number.isFinite(valor) ? valor : null,
+    minutosToleranciaPermanencia:
+      tolerancia != null && Number.isFinite(tolerancia) ? tolerancia : null
+  };
 }

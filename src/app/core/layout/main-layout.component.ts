@@ -7,6 +7,8 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
 import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { SignalrNotificationService } from '../services/signalr-notification.service';
+import { NotificationBellComponent } from './notification-bell/notification-bell.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
 
 const MOBILE_BREAKPOINT = 768;
@@ -22,7 +24,7 @@ interface AccessContext {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterModule, SidebarComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterModule, SidebarComponent, NotificationBellComponent],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss']
 })
@@ -31,6 +33,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
   private authService = inject(AuthService);
+  private notificationHub = inject(SignalrNotificationService);
 
   sidebarCollapsed = false;
   private persistSidebarCollapsed(): void {
@@ -79,6 +82,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.loadSidebarCollapsed();
     this.checkMobile();
     this.updateFullWidthContent(this.router.url);
+    void this.notificationHub.connect();
     this.routerSub = this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
     ).subscribe((e) => {
@@ -102,6 +106,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routerSub?.unsubscribe();
+    void this.notificationHub.disconnect();
   }
 
   @HostListener('window:resize')

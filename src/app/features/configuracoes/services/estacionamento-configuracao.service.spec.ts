@@ -83,19 +83,30 @@ describe('EstacionamentoConfiguracaoService', () => {
     expect(atual).toBeNull();
   });
 
-  it('grava apenas timeZoneId no POST', () => {
+  it('grava timeZoneId e campos de tarifa no POST', () => {
     service.gravar({ timeZoneId: 'America/Cuiaba' }).subscribe();
     const req = http.expectOne(API);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ timeZoneId: 'America/Cuiaba' });
+    expect(req.request.body).toEqual({
+      timeZoneId: 'America/Cuiaba',
+      tipoTarifaAvulsa: null,
+      valorAvulso: null,
+      minutosToleranciaPermanencia: null
+    });
     req.flush({ success: true, data: { id: 1, timeZoneId: 'America/Cuiaba' } });
   });
 
-  it('altera com id + timeZoneId no PUT', () => {
+  it('altera com id + timeZoneId e tarifa no PUT', () => {
     service.alterar({ id: 1, timeZoneId: 'America/Sao_Paulo' }).subscribe();
     const req = http.expectOne(API);
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ id: 1, timeZoneId: 'America/Sao_Paulo' });
+    expect(req.request.body).toEqual({
+      id: 1,
+      timeZoneId: 'America/Sao_Paulo',
+      tipoTarifaAvulsa: null,
+      valorAvulso: null,
+      minutosToleranciaPermanencia: null
+    });
     req.flush({ success: true, data: { id: 1, timeZoneId: 'America/Sao_Paulo' } });
   });
 });

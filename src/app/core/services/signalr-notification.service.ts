@@ -89,8 +89,9 @@ export class SignalrNotificationService {
     try {
       const body = await firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/notificacoes`));
       this.itensSignal.set(this.peelLista(body));
-    } catch {
-      /* API offline — hub ainda pode empurrar eventos */
+    } catch (err) {
+      // API offline / 401 sem Admin — hub ainda pode empurrar eventos
+      console.warn('[NotificationApi] falha ao listar:', this.apiUrl + '/notificacoes', err);
     }
   }
 

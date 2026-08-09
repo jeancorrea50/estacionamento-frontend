@@ -1,11 +1,9 @@
 /**
  * Produção — frontend em :4200 (origem diferente das APIs).
- * URLs absolutas com PathBase de cada serviço (não usar paths relativos,
- * senão o browser resolve em http://host:4200/estac/... e bate no Angular).
+ * URLs absolutas com PathBase de cada serviço.
  *
- *   API:          :5000/estac
- *   Workers:      :8081/estac/worker
- *   Notification: :8083/estac/notification
+ * Quando o gateway (porta 80) estiver no ar, pode trocar para:
+ *   http://108.174.145.123/estac/...
  */
 export const environment = {
   production: true,

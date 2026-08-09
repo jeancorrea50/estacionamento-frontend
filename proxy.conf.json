@@ -13,6 +13,12 @@
     "ws": true,
     "logLevel": "warn"
   },
+  "/estac/report": {
+    "target": "http://localhost:8082",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
   "/estac": {
     "target": "https://localhost:44317",
     "secure": false,

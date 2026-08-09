@@ -1,0 +1,81 @@
+# Deploy na VPS: git pull + docker compose up --build
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   VPS_HOST       ex.: 108.174.145.123
+#   VPS_USER       usuário SSH
+#   VPS_SSH_KEY    chave privada SSH (PEM completo)
+#   VPS_APP_PATH   pasta na VPS, ex.: /opt/apps/estacionamento-frontend
+# Opcional:
+#   VPS_SSH_PORT   padrão 22
+
+name: Deploy VPS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - developer
+      - homolog
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar secrets
+        shell: bash
+        run: |
+          missing=0
+          for s in VPS_HOST VPS_USER VPS_SSH_KEY VPS_APP_PATH; do
+            val=$(printenv "$s" || true)
+            if [ -z "$val" ]; then
+              echo "Secret obrigatório ausente: $s"
+              missing=1
+            fi
+          done
+          exit $missing
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
+
+      - name: Configurar SSH
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Conhecer host da VPS
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${VPS_SSH_PORT:-22}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p "$PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: git pull + docker compose na VPS
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          PORT="${VPS_SSH_PORT:-22}"
+          ssh -p "$PORT" -o StrictHostKeyChecking=accept-new "${VPS_USER}@${VPS_HOST}" \
+            "set -euo pipefail
+             cd '${VPS_APP_PATH}'
+             echo '==> Branch: ${BRANCH}'
+             git fetch --all --prune
+             git checkout '${BRANCH}'
+             git pull --ff-only origin '${BRANCH}'
+             echo '==> docker compose up -d --build'
+             docker compose up -d --build
+             docker compose ps"

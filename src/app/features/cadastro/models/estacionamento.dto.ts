@@ -50,9 +50,12 @@ export interface EnderecoDTO {
 export interface ContatoDTO {
   pessoaId: number;
   principal: boolean;
-  tipoContato: number;
-  numero: string;
-  observacao: string;
+  tipoContato?: number;
+  /** Legado UI — API usa `telefone`. */
+  numero?: string;
+  telefone?: string;
+  email?: string;
+  observacao?: string;
 }
 
 /** Pessoa aninhada no resultado de ObterPorId */

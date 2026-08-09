@@ -297,8 +297,10 @@ export function montarPayloadEstacionamento(
     contatos.push({
       pessoaId,
       principal: true,
-      tipoContato: 1,
+      // Contrato API: PessoaContatoInput.Telefone (não `numero`).
+      telefone,
       numero: telefone,
+      email: String(value.responsavelLegalEmail ?? '').trim() || undefined,
       observacao: ''
     });
   }
@@ -309,8 +311,9 @@ export function montarPayloadEstacionamento(
       contatos.push({
         pessoaId,
         principal: false,
-        tipoContato: 1,
+        telefone: num,
         numero: num,
+        email: String(c.email ?? '').trim() || undefined,
         observacao: ''
       });
     }
@@ -426,8 +429,8 @@ export function montarPayloadEstacionamento(
      * TipoTarifaAvulsa: 1=Hora, 2=Diaria.
      */
     configuracaoValores: buildConfiguracaoValoresPayload(value),
-    /** Tenant GtCentral permanece ativo (UI bloqueia alteração). */
-    ativo: true,
+    /** Tenant GtCentral + flag raiz do contrato EstacionamentoPost/PutInput.Ativo */
+    ativo: value.ativoTenant ?? value.pessoa?.ativo ?? true,
   };
 
   const cod = String(value.codExportacao ?? '').trim();

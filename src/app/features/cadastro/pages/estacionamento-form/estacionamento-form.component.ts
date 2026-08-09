@@ -939,7 +939,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               codExportacao: dto.codExportacao?.trim() || this.gerarCodExportacaoGuid(),
               isolationMode: dto.isolationMode ?? 1,
               bancoDadosConexaoId: dto.bancoDadosConexaoId ?? null,
-              ativoTenant: true,
+              ativoTenant: dto.ativoTenant !== false,
               tipoTarifaAvulsa: dto.tipoTarifaAvulsa ?? null,
               valorAvulso: dto.valorAvulso ?? null,
               minutosToleranciaPermanencia: dto.minutosToleranciaPermanencia ?? null,

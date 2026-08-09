@@ -123,8 +123,22 @@ describe('Estacionamento-form.mapper', () => {
     expect(contatos.length).toBe(1);
     expect(contatos[0]['pessoaId']).toBe(0);
     expect(contatos[0]['principal']).toBe(true);
-    expect(contatos[0]['tipoContato']).toBe(1);
+    expect(contatos[0]['telefone']).toBe('11987654321');
     expect(contatos[0]['numero']).toBe('11987654321');
+  });
+
+  it('deve enviar responsavelEmail, responsavelTelefone e ativo no payload', () => {
+    const value: FormValue = {
+      ...baseFormValue,
+      pessoa: { ...baseFormValue.pessoa, ativo: false },
+      ativoTenant: false
+    };
+    const payload = formValueToEstacionamentoPayload(value);
+    expect(payload['responsavelEmail']).toBe('resp@exemplo.com');
+    expect(payload['responsavelTelefone']).toBe('11987654321');
+    expect(payload['ativo']).toBe(false);
+    const pessoa = payload['pessoaJuridica'] as Record<string, unknown>;
+    expect(pessoa['ativo']).toBe(false);
   });
 
   it('deve enviar pessoa com enderecos e contatos vazios quando telefone vazio', () => {

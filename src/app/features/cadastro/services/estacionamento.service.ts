@@ -522,8 +522,16 @@ export class EstacionamentoService {
 
   private mapResultToFormValue(r: EstacionamentoObterPorIdResultDTO): EstacionamentoFormValue {
     const p = r.pessoa;
-    const telefone = p?.contatos?.find((c) => c.principal)?.numero ?? p?.contatos?.[0]?.numero ?? '';
     const raw = r as unknown as Record<string, unknown>;
+    const contatoPrincipal =
+      p?.contatos?.find((c) => c.principal) ?? p?.contatos?.[0] ?? null;
+    const telefoneContato = String(
+      contatoPrincipal?.telefone ?? contatoPrincipal?.numero ?? ''
+    ).trim();
+    const telefoneRoot = String(
+      raw['responsavelTelefone'] ?? raw['ResponsavelTelefone'] ?? ''
+    ).trim();
+    const telefone = telefoneRoot || telefoneContato;
     const contaBancariaRaw = (raw['contaBancaria'] ?? raw['ContaBancaria']) as unknown;
     const contaBancaria =
       Array.isArray(contaBancariaRaw) && contaBancariaRaw.length > 0
@@ -576,10 +584,15 @@ export class EstacionamentoService {
       String(p?.nomeRazaoSocial ?? '').trim();
 
     const responsavelEmailRaw =
+      raw['responsavelEmail'] ??
+      raw['ResponsavelEmail'] ??
       raw['responsavelLegalEmail'] ??
       raw['ResponsavelLegalEmail'] ??
       raw['emailResponsavel'] ??
-      raw['EmailResponsavel'];
+      raw['EmailResponsavel'] ??
+      contatoPrincipal?.email ??
+      p?.email ??
+      '';
 
     return {
       id: r.id,
@@ -593,7 +606,7 @@ export class EstacionamentoService {
           String(raw['descricao'] ?? raw['Descricao'] ?? '').trim() ||
           String(p?.nomeFantasia ?? pObj['nomeFantasia'] ?? pObj['NomeFantasia'] ?? '').trim(),
         cnpj: p?.cnpj ?? String((pObj['documento'] ?? pObj['Documento'] ?? '') || ''),
-        email: p?.email ?? '',
+        email: String(responsavelEmailRaw ?? p?.email ?? '').trim(),
         ativo: p?.ativo ?? true
       },
       responsavelLegalNome: String(

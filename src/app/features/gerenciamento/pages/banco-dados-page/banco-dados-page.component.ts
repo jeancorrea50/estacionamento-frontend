@@ -514,8 +514,22 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
         : this.api.alterar({ ...payload, id: payload.id });
 
     req$.pipe(finalize(() => this.salvando.set(false))).subscribe({
-      next: () => {
-        this.toast.success('Conexão salva com sucesso.');
+      next: (res) => {
+        const msg =
+          res && typeof res === 'object' && 'mensagem' in res && typeof (res as { mensagem?: string }).mensagem === 'string'
+            ? String((res as { mensagem?: string }).mensagem).trim()
+            : '';
+        const enfileirada =
+          res && typeof res === 'object' && 'migracaoEnfileirada' in res
+            ? Boolean((res as { migracaoEnfileirada?: boolean }).migracaoEnfileirada)
+            : false;
+
+        this.toast.success(
+          msg ||
+            (enfileirada
+              ? 'Conexão criada e migrations enfileiradas. Acompanhe pela notificação.'
+              : 'Conexão salva com sucesso.')
+        );
         this.modalConexaoOpen.set(false);
         this.carregar();
       },

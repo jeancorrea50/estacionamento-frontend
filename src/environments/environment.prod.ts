@@ -1,23 +1,26 @@
 /**
- * Ambiente de produção.
- * O backend deve permitir CORS para a origem do frontend.
+ * Produção: frontend e APIs atrás do gateway (porta 80).
+ * Rotas relativas — sem IP/porta fixos (mesmo host do browser).
+ *
+ *   /estac                  → backend
+ *   /estac/worker           → workers (SignalR dashboard)
+ *   /estac/notification     → notification (API + SignalR)
+ *   /estac/report           → report
  */
 export const environment = {
   production: true,
-  /** Base do backend (sem /api no final). Ajuste para o host público da API em produção. */
-  apiUrl: 'http://108.174.145.123:5000',
-  /** Base URL da API (uso em serviços HTTP e interceptors). */
-  API_BASE_URL: 'http://108.174.145.123:5000/api',
-  dashboardHubUrl: 'http://108.174.145.123:8081/hubs/movimento/entradasaida',
-  notificationApiUrl: 'http://108.174.145.123:8083/estacnotification/api',
-  notificationHubUrl: 'http://108.174.145.123:8083/estacnotification/hubs/notificacao',
+  /** Base do backend (PathBase /estac). */
+  apiUrl: '/estac',
+  /** Base URL da API (serviços HTTP / interceptors). */
+  API_BASE_URL: '/estac/api',
+  dashboardHubUrl: '/estac/worker/hubs/movimento/entradasaida',
+  notificationApiUrl: '/estac/notification/api',
+  notificationHubUrl: '/estac/notification/hubs/notificacao',
   emergencyAdmin: {
     enabled: false,
     username: '',
     password: '',
   },
-  /** Base URL ViaCEP (chamada direta em prod; ViaCEP permite CORS). */
   viacepBaseUrl: 'https://viacep.com.br',
-  /** Base URL BrasilAPI (CNPJ). */
   brasilApiBaseUrl: 'https://brasilapi.com.br',
 };

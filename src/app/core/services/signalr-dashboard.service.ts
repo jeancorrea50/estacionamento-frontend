@@ -18,6 +18,7 @@ import {
 
 /**
  * Hub SignalR do dashboard/movimentos.
+ * URL: `environment.dashboardHubUrl` → `/estac/worker/hubs/movimento/entradasaida`
  * Estado em `signal` — sem Zone.js, só signals notificam a UI a cada evento do hub.
  */
 @Injectable({

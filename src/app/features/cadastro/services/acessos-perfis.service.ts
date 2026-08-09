@@ -71,7 +71,7 @@ export interface PerfilBuscarParams {
 
  * GET /api/auth/Perfil/usuario/buscarSimplicado
 
- * @see http://108.174.145.123:5000/swagger/v1/swagger.json (tag Perfil)
+ * @see /estac/swagger/v1/swagger.json (tag Perfil)
  */
 @Injectable({
   providedIn: 'root'

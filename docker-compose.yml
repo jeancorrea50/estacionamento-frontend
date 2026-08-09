@@ -3,7 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: Estacionamento-frontend
+    container_name: estacionamento-frontend
     ports:
       - "4200:80"
+    networks:
+      - estac-network
     restart: unless-stopped
+
+networks:
+  estac-network:
+    external: true

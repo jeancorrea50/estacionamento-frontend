@@ -14,14 +14,13 @@ import { normalizeBearerValue } from '../auth/auth-token.storage';
 import type { NotificacaoDto } from '../models/notificacao.models';
 
 /**
- * Hub SignalR de notificações genéricas (`/hubs/notificacao`).
+ * Hub SignalR de notificações genéricas.
  *
- * Como acessar:
- * - URL: `environment.notificationHubUrl` (ex.: http://localhost:5037/hubs/notificacao)
- * - Docker/PathBase: http://localhost:8083/estacnotification/hubs/notificacao
+ * Como acessar (PathBase /estac/notification):
+ * - Hub: `environment.notificationHubUrl` → `/estac/notification/hubs/notificacao`
+ * - HTTP: GET `{notificationApiUrl}/notificacoes`, POST `{notificationApiUrl}/notificacoes/{id}/lida`
  * - Auth: JWT do login via `accessTokenFactory` (query `access_token` no negotiate)
  * - Evento server→client: `notificacaoRecebida`
- * - HTTP: GET `{notificationApiUrl}/notificacoes`, POST `{notificationApiUrl}/notificacoes/{id}/lida`
  * - Role exigida: Admin
  */
 @Injectable({ providedIn: 'root' })

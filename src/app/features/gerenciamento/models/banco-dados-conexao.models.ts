@@ -212,6 +212,14 @@ export interface TransferenciaEnfileiradaResult {
   data?: TransferenciaBancoDados;
 }
 
+/** POST `/api/BancoDadosConexao/{id}/excluir` — 202 enfileirado. */
+export interface ExcluirBancoEnfileiradoResult {
+  sucesso?: boolean;
+  mensagem?: string;
+  hangfireJobId?: string;
+  exclusaoEnfileirada?: boolean;
+}
+
 /** PUT `/api/Estacionamento/conexao` */
 export interface EstacionamentoConexaoPutPayload {
   codExportacao: string;

@@ -47,6 +47,7 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   readonly testando = signal(false);
   readonly salvandoVinculo = signal(false);
   readonly transferindo = signal(false);
+  readonly excluindoId = signal<number | null>(null);
   readonly lista = signal<BancoDadosConexao[]>([]);
   readonly opcoes = signal<BancoDadosConexaoOpcoes | null>(null);
   readonly catalogoEstacionamentos = signal<EstacionamentoSelect[]>([]);
@@ -687,5 +688,45 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
 
   statusLabel(status: number): string {
     return this.statusTransferLabel[status] ?? String(status);
+  }
+
+  /** Exclusão física só para Desenvolvimento (1) ou Homologação (2). */
+  podeExcluirBanco(item: BancoDadosConexao): boolean {
+    return item.ambiente === 1 || item.ambiente === 2;
+  }
+
+  excluirBanco(item: BancoDadosConexao): void {
+    if (!this.podeExcluirBanco(item)) {
+      this.toast.error('Exclusão permitida apenas para Desenvolvimento ou Homologação.');
+      return;
+    }
+
+    const ambiente = this.ambienteLabel[item.ambiente] || String(item.ambiente);
+    const qtd = item.quantidadeEstacionamentos ?? item.estacionamentos?.length ?? 0;
+    const avisoTenants =
+      qtd > 0
+        ? `\n\nAtenção: ${qtd} estacionamento(s) vinculado(s) serão desvinculados e desativados.`
+        : '';
+
+    const ok = window.confirm(
+      `Excluir permanentemente o banco "${item.nomeBanco}" em ${item.host} (${ambiente})?\n\n` +
+        `Isso executa DROP DATABASE no servidor e desativa o perfil.${avisoTenants}\n\n` +
+        `Esta ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+
+    this.excluindoId.set(item.id);
+    this.api
+      .excluir(item.id)
+      .pipe(finalize(() => this.excluindoId.set(null)))
+      .subscribe({
+        next: (r) => {
+          this.toast.success(r?.mensagem || 'Exclusão enfileirada. Acompanhe pelo sino.');
+          this.carregar();
+        },
+        error: (err: ApiError) => {
+          this.toast.error(err?.message ?? 'Não foi possível enfileirar a exclusão.');
+        },
+      });
   }
 }

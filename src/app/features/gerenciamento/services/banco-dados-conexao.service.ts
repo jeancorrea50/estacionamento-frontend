@@ -19,6 +19,7 @@ import type {
   TipoBancoDados,
   TransferenciaBancoDados,
   TransferenciaEnfileiradaResult,
+  ExcluirBancoEnfileiradoResult,
 } from '../models/banco-dados-conexao.models';
 
 const API = `${environment.API_BASE_URL}/BancoDadosConexao`;
@@ -207,6 +208,24 @@ export class BancoDadosConexaoService {
         }
 
         return { sucesso: true, data: peel<TransferenciaBancoDados>(body) };
+      })
+    );
+  }
+
+  /** POST /api/BancoDadosConexao/{id}/excluir — enfileira DROP (202). Só Dev/Homolog no backend. */
+  excluir(id: number): Observable<ExcluirBancoEnfileiradoResult> {
+    return this.http.post<unknown>(`${API}/${id}/excluir`, {}).pipe(
+      map((body) => {
+        if (!body || typeof body !== 'object') {
+          return { sucesso: false, mensagem: 'Resposta inválida.' };
+        }
+        const o = mergeServiceResultToRoot(body as Record<string, unknown>);
+        return {
+          sucesso: Boolean(o['sucesso'] ?? o['Sucesso'] ?? true),
+          mensagem: String(o['mensagem'] ?? o['Mensagem'] ?? '').trim() || undefined,
+          hangfireJobId: (o['hangfireJobId'] ?? o['HangfireJobId']) as string | undefined,
+          exclusaoEnfileirada: Boolean(o['exclusaoEnfileirada'] ?? o['ExclusaoEnfileirada'] ?? false),
+        };
       })
     );
   }

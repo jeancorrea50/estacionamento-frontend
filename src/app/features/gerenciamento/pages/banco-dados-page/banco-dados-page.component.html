@@ -55,6 +55,17 @@
                   >
                     Transferir
                   </button>
+                  @if (podeExcluirBanco(item)) {
+                    <button
+                      type="button"
+                      class="btn btn-danger btn--sm"
+                      [disabled]="excluindoId() === item.id"
+                      [attr.title]="'Excluir banco físico (DROP) — somente Dev/Homolog'"
+                      (click)="excluirBanco(item)"
+                    >
+                      {{ excluindoId() === item.id ? 'Excluindo...' : 'Excluir' }}
+                    </button>
+                  }
                 </div>
               </td>
             </tr>

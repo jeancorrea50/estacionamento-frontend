@@ -204,7 +204,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   buscandoTransportadoraPorCnpj = false;
   transportadoraAutoPreenchidaPorCnpj = false;
   /** Modal: escolher motorista quando a placa tem mais de um vínculo. */
-  showSelecionarMotoristaPlaca = false;
+  readonly showSelecionarMotoristaPlaca = signal(false);
   motoristasVinculadosPlaca: EntradaSaidaMotoristaVinculoItem[] = [];
   private entradaPendenteSelecaoMotorista: EntradaSaidaOutput | null = null;
   private ultimaConsultaCpfRegistroRapido = '';
@@ -1328,7 +1328,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.aplicarCamposPlacaExcetoMotorista(entrada);
       this.entradaPendenteSelecaoMotorista = entrada;
       this.motoristasVinculadosPlaca = motoristas;
-      this.showSelecionarMotoristaPlaca = true;
+      this.showSelecionarMotoristaPlaca.set(true);
       return;
     }
 
@@ -1432,13 +1432,19 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   fecharSelecionarMotoristaPlaca(): void {
-    this.showSelecionarMotoristaPlaca = false;
+    this.showSelecionarMotoristaPlaca.set(false);
     this.motoristasVinculadosPlaca = [];
     this.entradaPendenteSelecaoMotorista = null;
   }
 
   formatarCpfListaMotorista(cpf: string | null | undefined): string {
     return this.aplicarMascaraCpf(cpf) || '—';
+  }
+
+  formatarPrincipalListaMotorista(principal: boolean | null | undefined): string {
+    if (principal === true) return 'Sim';
+    if (principal === false) return 'Não';
+    return '—';
   }
 
   private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {

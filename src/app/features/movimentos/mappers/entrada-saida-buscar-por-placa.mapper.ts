@@ -75,34 +75,51 @@ function mapMotoristaItem(raw: unknown): EntradaSaidaMotoristaVinculoItem | null
 
 /**
  * Normaliza `motorista` da resposta (objeto único ou lista) para array de vínculos.
+ * Também aceita `motoristas` / vínculos em `veiculo`.
  */
 export function extrairMotoristasVinculados(
   entrada: EntradaSaidaOutput | EntradaSaidaBuscarPorPlacaResult | Record<string, unknown>
 ): EntradaSaidaMotoristaVinculoItem[] {
   const root = entrada as unknown as Record<string, unknown>;
-  const raw = root['motorista'] ?? root['Motorista'];
+  const veiculo = asRecord(root['veiculo'] ?? root['Veiculo']);
+  const raw =
+    root['motorista'] ??
+    root['Motorista'] ??
+    root['motoristas'] ??
+    root['Motoristas'] ??
+    veiculo?.['motorista'] ??
+    veiculo?.['Motorista'] ??
+    veiculo?.['motoristas'] ??
+    veiculo?.['Motoristas'];
+
+  let lista: EntradaSaidaMotoristaVinculoItem[] = [];
 
   if (Array.isArray(raw)) {
-    return raw
+    lista = raw
       .map((item) => mapMotoristaItem(item))
       .filter((m): m is EntradaSaidaMotoristaVinculoItem => m != null);
+  } else {
+    const single = mapMotoristaItem(raw);
+    if (single) {
+      lista = [single];
+    } else {
+      // Fallback flat na raiz (contrato antigo)
+      const nome = pickStr([root], 'nomeMotorista');
+      const cpf = pickStr([root], 'cpfMotorista');
+      const id = Number(root['motoristaId'] ?? root['MotoristaId'] ?? 0);
+      if (nome || cpf || (Number.isFinite(id) && id > 0)) {
+        lista = [
+          {
+            id: Number.isFinite(id) && id > 0 ? id : undefined,
+            nome: nome || undefined,
+            cpf: cpf || undefined
+          }
+        ];
+      }
+    }
   }
 
-  const single = mapMotoristaItem(raw);
-  if (single) return [single];
-
-  // Fallback flat na raiz (contrato antigo)
-  const nome = pickStr([root], 'nomeMotorista');
-  const cpf = pickStr([root], 'cpfMotorista');
-  const id = Number(root['motoristaId'] ?? root['MotoristaId'] ?? 0);
-  if (!nome && !cpf && !(Number.isFinite(id) && id > 0)) return [];
-  return [
-    {
-      id: Number.isFinite(id) && id > 0 ? id : undefined,
-      nome: nome || undefined,
-      cpf: cpf || undefined
-    }
-  ];
+  return lista.sort((a, b) => Number(b.principal === true) - Number(a.principal === true));
 }
 
 /** Enum TipoCarga (1–5) → label do select do Registro Rápido. */

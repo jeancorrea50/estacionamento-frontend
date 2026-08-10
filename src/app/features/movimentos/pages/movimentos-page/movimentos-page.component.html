@@ -636,7 +636,7 @@
     </div>
   }
 
-  @if (showSelecionarMotoristaPlaca) {
+  @if (showSelecionarMotoristaPlaca()) {
     <div
       class="modal-overlay"
       (click)="fecharSelecionarMotoristaPlaca()"
@@ -647,7 +647,7 @@
       <div class="modal-content modal-content--selecionar-motorista" (click)="$event.stopPropagation()">
         <header class="selecionar-motorista__header">
           <h2 id="selecionar-motorista-placa-title" class="selecionar-motorista__title">
-            Selecionar motorista
+            Selecionar motorista do veículo
           </h2>
           <button
             type="button"
@@ -659,25 +659,49 @@
           </button>
         </header>
         <p class="selecionar-motorista__hint">
-          Esta placa possui mais de um motorista vinculado. Escolha quem dará entrada:
+          Esta placa possui {{ motoristasVinculadosPlaca.length }} motoristas vinculados. Selecione
+          qual motorista deve constar nesta entrada:
         </p>
-        <ul class="selecionar-motorista__lista" role="listbox" aria-label="Motoristas vinculados">
-          @for (m of motoristasVinculadosPlaca; track m.id ?? m.cpf ?? m.nome) {
-            <li>
-              <button
-                type="button"
-                class="selecionar-motorista__item"
-                (click)="selecionarMotoristaVinculadoPlaca(m)"
-              >
-                <span class="selecionar-motorista__nome">{{ m.nome || 'Motorista' }}</span>
-                <span class="selecionar-motorista__cpf">{{ formatarCpfListaMotorista(m.cpf) }}</span>
-                @if (m.principal) {
-                  <span class="selecionar-motorista__badge">Principal</span>
-                }
-              </button>
-            </li>
-          }
-        </ul>
+        <div class="selecionar-motorista__grid-wrap">
+          <table class="selecionar-motorista__grid">
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Nome</th>
+                <th scope="col">CPF</th>
+                <th scope="col">Principal</th>
+                <th scope="col">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of motoristasVinculadosPlaca; track m.id ?? m.cpf ?? m.nome) {
+                <tr [class.selecionar-motorista__row--principal]="m.principal === true">
+                  <td>{{ m.id ?? '—' }}</td>
+                  <td>
+                    <span class="selecionar-motorista__nome">{{ m.nome || 'Motorista' }}</span>
+                  </td>
+                  <td>{{ formatarCpfListaMotorista(m.cpf) }}</td>
+                  <td>
+                    @if (m.principal === true) {
+                      <span class="selecionar-motorista__badge">Principal</span>
+                    } @else {
+                      {{ formatarPrincipalListaMotorista(m.principal) }}
+                    }
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn--sm"
+                      (click)="selecionarMotoristaVinculadoPlaca(m)"
+                    >
+                      Selecionar
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" (click)="fecharSelecionarMotoristaPlaca()">
             Fechar

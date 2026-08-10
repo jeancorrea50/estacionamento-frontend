@@ -488,7 +488,7 @@
 }
 
 .modal-content--selecionar-motorista {
-  width: min(480px, 94vw);
+  width: min(760px, 96vw);
   padding: 1.15rem 1.25rem 1rem;
 }
 
@@ -513,56 +513,61 @@
   color: #475569;
 }
 
-.selecionar-motorista__lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: min(360px, 50vh);
+.selecionar-motorista__grid-wrap {
+  max-height: min(420px, 55vh);
   overflow: auto;
-}
-
-.selecionar-motorista__item {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    'nome badge'
-    'cpf badge';
-  gap: 0.15rem 0.75rem;
-  text-align: left;
-  padding: 0.75rem 0.9rem;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   background: #f8fafc;
-  cursor: pointer;
-  color: #0f172a;
 }
 
-.selecionar-motorista__item:hover,
-.selecionar-motorista__item:focus-visible {
-  border-color: #94a3b8;
+.selecionar-motorista__grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.selecionar-motorista__grid th,
+.selecionar-motorista__grid td {
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f172a;
+  vertical-align: middle;
+}
+
+.selecionar-motorista__grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef2ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.selecionar-motorista__grid tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.selecionar-motorista__grid tbody tr:hover {
   background: #f1f5f9;
-  outline: none;
+}
+
+.selecionar-motorista__row--principal {
+  background: #eff6ff;
 }
 
 .selecionar-motorista__nome {
-  grid-area: nome;
   font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.selecionar-motorista__cpf {
-  grid-area: cpf;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: 0.9rem;
 }
 
 .selecionar-motorista__badge {
-  grid-area: badge;
-  align-self: center;
+  display: inline-flex;
+  align-items: center;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -571,4 +576,8 @@
   background: #dbeafe;
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
+}
+
+.modal-content--selecionar-motorista .modal-actions {
+  margin-top: 0.9rem;
 }

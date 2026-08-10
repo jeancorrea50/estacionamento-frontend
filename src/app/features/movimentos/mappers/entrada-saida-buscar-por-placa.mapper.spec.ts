@@ -160,6 +160,20 @@ describe('extrairMotoristasVinculados', () => {
       })
     ).toHaveLength(2);
   });
+
+  it('prioriza motorista principal e aceita lista em veiculo.motoristas', () => {
+    const lista = extrairMotoristasVinculados({
+      veiculo: {
+        motoristas: [
+          { id: 2, nome: 'B', cpf: '2', principal: false },
+          { id: 1, nome: 'A', cpf: '1', principal: true }
+        ]
+      }
+    });
+    expect(lista).toHaveLength(2);
+    expect(lista[0].id).toBe(1);
+    expect(lista[0].principal).toBe(true);
+  });
 });
 
 describe('mapearTipoCargaEnumParaLabel', () => {

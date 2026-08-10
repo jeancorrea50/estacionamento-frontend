@@ -239,7 +239,8 @@ describe('EntradaSaidaService', () => {
     expect(mapped?.veiculoId).toBe(1);
     expect(mapped?.transportadoraId).toBe(1);
     expect(mapped?.existeEntradaEmAberto).toBe(false);
-    expect(mapped?.motorista?.nome).toBe('EA Eduardo');
+    const motoristaObj = Array.isArray(mapped?.motorista) ? mapped?.motorista[0] : mapped?.motorista;
+    expect(motoristaObj?.nome).toBe('EA Eduardo');
     expect(mapped?.veiculo?.placa).toBe('ABC1D23');
     expect(mapped?.transportadora?.razaoSocial).toBe('Transportes Rápidos');
   });
@@ -289,8 +290,9 @@ describe('EntradaSaidaService', () => {
     expect(mapped?.transportadora?.responsavelLegal).toBe('Juninho Pereba');
     expect(mapped?.transportadora?.responsavelCpf).toBe('312.402.060-03');
     expect(mapped?.transportadora?.responsavelEmail).toBe('ugne5565@uorak.com');
-    expect(mapped?.motorista?.nome).toBe('Valdimir Santicago');
-    expect(mapped?.motorista?.cpf).toBe('65272970520');
+    const motoristaObj = Array.isArray(mapped?.motorista) ? mapped?.motorista[0] : mapped?.motorista;
+    expect(motoristaObj?.nome).toBe('Valdimir Santicago');
+    expect(motoristaObj?.cpf).toBe('65272970520');
 
     const campos = mapBuscarPorPlacaParaRegistroRapido(mapped!);
     expect(campos.placa).toBe('KAI-6428');

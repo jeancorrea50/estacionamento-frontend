@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { throwIfServiceFailure } from '../../../core/api/utils/service-result.util';
 import { stripUndefinedDeep } from '../pages/estacionamento-form/estacionamento-form.mapper';
 import {
   MotoristaBuscarParams,
@@ -67,8 +68,13 @@ export class MotoristaService {
     return this.http.post<unknown>(MOTORISTA, payload).pipe(
       timeout(15000),
       map((res) => {
+        throwIfServiceFailure(res);
         const response = res as Record<string, unknown>;
-        const generatedId = Number(response?.['id'] ?? response?.['Id']);
+        const result =
+          response?.['result'] && typeof response['result'] === 'object'
+            ? (response['result'] as Record<string, unknown>)
+            : response;
+        const generatedId = Number(result?.['id'] ?? result?.['Id'] ?? response?.['id'] ?? response?.['Id']);
         return { ...dto, id: Number.isFinite(generatedId) && generatedId > 0 ? generatedId : dto.id };
       }),
       catchError((err) => throwError(() => err))
@@ -79,7 +85,10 @@ export class MotoristaService {
     const payload = this.dtoToPayload(dto);
     return this.http.put<unknown>(MOTORISTA, payload).pipe(
       timeout(15000),
-      map(() => dto),
+      map((res) => {
+        throwIfServiceFailure(res);
+        return dto;
+      }),
       catchError((err) => throwError(() => err))
     );
   }

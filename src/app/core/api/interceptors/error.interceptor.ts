@@ -156,6 +156,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         (isValorEstacionamentoGet(req) && (apiError.status === 404 || apiError.status === 204));
       if (!skipToast) {
         toast.error(apiError.message);
+        apiError.toastShown = true;
       }
       return throwError(() => apiError);
     })

@@ -18,6 +18,7 @@ import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefo
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { ApiError } from '../../../../core/api/models';
 import {
   MotoristaDTO,
   MotoristaListItemDTO
@@ -1882,9 +1883,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         this.toast.success(dto.id ? 'Motorista atualizado com sucesso.' : 'Motorista cadastrado com sucesso.');
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.salvandoMotorista = false;
-        this.toast.error('Erro ao salvar motorista.');
+        // Interceptor já exibe toast em erros HTTP; evita sobrescrever notifications com genérico.
+        // Em falha lógica (success:false), o toast ainda não saiu — exibe a mensagem da API.
+        if (!this.foiErroHttpJaNotificado(err)) {
+          this.toast.error(this.mensagemErroApi(err, 'Erro ao salvar motorista.'));
+        }
         this.cdr.markForCheck();
       }
     });
@@ -2042,8 +2047,37 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     if (condutor.id <= 0) return;
     this.motoristaService.excluir(condutor.id).subscribe({
       next: () => this.carregarCondutores(),
-      error: () => this.toast.error('Erro ao excluir motorista.')
+      error: (err: unknown) => {
+        if (!this.foiErroHttpJaNotificado(err)) {
+          this.toast.error(this.mensagemErroApi(err, 'Erro ao excluir motorista.'));
+        }
+      }
     });
+  }
+
+  /** Erro HTTP já tostado pelo interceptor (inclui `notifications` da API). */
+  private foiErroHttpJaNotificado(err: unknown): boolean {
+    return !!(err && typeof err === 'object' && (err as ApiError).toastShown === true);
+  }
+
+  /** Preferência: message do ApiError (já com notifications) → fallback. */
+  private mensagemErroApi(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object') {
+      const api = err as ApiError & {
+        error?: { notifications?: unknown; Notifications?: unknown; message?: string };
+      };
+      if (typeof api.message === 'string' && api.message.trim()) return api.message.trim();
+      const notes = api.error?.notifications ?? api.error?.Notifications;
+      if (Array.isArray(notes) && notes.length) {
+        const text = notes.filter((n): n is string => typeof n === 'string').join(' ').trim();
+        if (text) return text;
+      }
+      if (typeof api.error?.message === 'string' && api.error.message.trim()) {
+        return api.error.message.trim();
+      }
+    }
+    if (err instanceof Error && err.message.trim()) return err.message.trim();
+    return fallback;
   }
 
 }

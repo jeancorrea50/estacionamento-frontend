@@ -61,6 +61,14 @@
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
           Buscar
         </button>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="downloadModeloTransportadora()" [disabled]="baixandoModelo">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>
+          {{ baixandoModelo ? 'Baixando…' : 'Download modelo' }}
+        </button>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirImportarDados()">
+          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+          Importar dados
+        </button>
         <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="novoTransportadora()">
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
           Novo
@@ -1119,6 +1127,36 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  @if (showImportarDados) {
+    <div class="modal-overlay" (click)="fecharImportarDados()" role="dialog" aria-modal="true" aria-labelledby="importar-dados-title">
+      <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2 id="importar-dados-title" class="modal__title">Importar transportadoras</h2>
+          <button type="button" class="modal__close" (click)="fecharImportarDados()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__description">
+            Selecione o Excel do modelo padrão (dados da transportadora, responsável, endereço e contatos complementares).
+            A primeira linha deve conter o cabeçalho. Use <strong>Download modelo</strong> para obter o arquivo.
+          </p>
+          <div class="importacao-actions">
+            <input type="file" #fileDadosInput accept=".xlsx,.xls" (change)="onFileDadosChange($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileDadosInput.click()">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarDadosExcel()" [disabled]="!fileDados || importandoDados">
+              {{ importandoDados ? 'Importando…' : 'Importar' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloTransportadora()" [disabled]="baixandoModelo">
+              Baixar modelo
+            </button>
+          </div>
+          @if (fileDados) {
+            <p class="file-name">Arquivo: {{ fileDados.name }}</p>
+          }
+        </div>
       </div>
     </div>
   }

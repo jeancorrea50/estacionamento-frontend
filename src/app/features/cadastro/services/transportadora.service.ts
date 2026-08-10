@@ -149,6 +149,57 @@ export class TransportadoraService {
     );
   }
 
+  /**
+   * GET report /api/Transportadora/obterModeloImportacao
+   * Baixa o Excel modelo padrão (Tipo=Transportadora).
+   */
+  downloadModeloImportacao(): Observable<Blob> {
+    const url = `${environment.REPORT_BASE_URL}/Transportadora/obterModeloImportacao`;
+    return this.http.get(url, { responseType: 'blob' }).pipe(timeout(60000));
+  }
+
+  /**
+   * POST /api/Transportadora/ImportarDados — multipart Excel.
+   */
+  importarDadosExcel(file: File): Observable<{
+    ok: boolean;
+    message?: string;
+    totalLinhas?: number;
+    sucesso?: number;
+    falha?: number;
+    ignorado?: number;
+  }> {
+    const form = new FormData();
+    form.append('arquivo', file, file.name);
+    return this.http.post<unknown>(`${TRANSPORTADORA}/ImportarDados`, form).pipe(
+      timeout(120000),
+      map((body) => {
+        const o = (body ?? {}) as Record<string, unknown>;
+        const success = o['success'] === true || o['Success'] === true || o['sucesso'] === true;
+        const msg = String(o['message'] ?? o['Message'] ?? o['mensagem'] ?? '');
+        const raw = (o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'] ?? o) as Record<string, unknown>;
+        return {
+          ok: success,
+          message: msg || (success ? 'Importação concluída.' : 'Falha na importação.'),
+          totalLinhas: Number(raw['totalLinhas'] ?? raw['TotalLinhas'] ?? 0) || 0,
+          sucesso: Number(raw['sucesso'] ?? raw['Sucesso'] ?? 0) || 0,
+          falha: Number(raw['falha'] ?? raw['Falha'] ?? 0) || 0,
+          ignorado: Number(raw['ignorado'] ?? raw['Ignorado'] ?? 0) || 0
+        };
+      }),
+      catchError((err) => {
+        const msg =
+          err?.error?.message ??
+          err?.error?.mensagem ??
+          (Array.isArray(err?.error?.notifications) ? err.error.notifications[0] : null) ??
+          (Array.isArray(err?.error?.Notifications) ? err.error.Notifications[0] : null) ??
+          err?.message ??
+          'Falha ao importar planilha.';
+        return of({ ok: false, message: String(msg) });
+      })
+    );
+  }
+
   obterStatusImportacao(id: number): Observable<ImportacaoTransportadoraStatus | null> {
     if (!id || id <= 0) return of(null);
     return this.http.get<unknown>(`${TRANSPORTADORA}/importacao/status/${id}`).pipe(

@@ -157,6 +157,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   showImportarFrota = false;
   fileFrota: File | null = null;
 
+  /** Modal Importar transportadoras (Excel modelo padrão). */
+  showImportarDados = false;
+  fileDados: File | null = null;
+  importandoDados = false;
+  baixandoModelo = false;
+
   // --- Aba Motoristas ---
   condutores: MotoristaListItemDTO[] = [];
   loadingCondutores = false;
@@ -1612,6 +1618,72 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   /** Abre modal de importação de frota por Excel. */
+  abrirImportarDados(): void {
+    this.fileDados = null;
+    this.showImportarDados = true;
+  }
+
+  fecharImportarDados(): void {
+    if (this.importandoDados) return;
+    this.showImportarDados = false;
+    this.fileDados = null;
+  }
+
+  onFileDadosChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.fileDados = input.files?.[0] ?? null;
+  }
+
+  downloadModeloTransportadora(): void {
+    if (this.baixandoModelo) return;
+    this.baixandoModelo = true;
+    this.transportadoraService.downloadModeloImportacao().subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'modelo-importacao-transportadora.xlsx';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.baixandoModelo = false;
+        this.toast.success('Modelo baixado.');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.baixandoModelo = false;
+        this.toast.error(err?.message ?? 'Não foi possível baixar o modelo.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  importarDadosExcel(): void {
+    if (!this.fileDados || this.importandoDados) return;
+    this.importandoDados = true;
+    this.transportadoraService.importarDadosExcel(this.fileDados).subscribe({
+      next: (r) => {
+        this.importandoDados = false;
+        if (!r.ok) {
+          this.toast.error(r.message ?? 'Falha na importação.');
+          this.cdr.markForCheck();
+          return;
+        }
+        this.toast.success(
+          r.message ||
+            `Importação: ${r.sucesso ?? 0} ok, ${r.falha ?? 0} falha(s), ${r.ignorado ?? 0} ignorada(s).`
+        );
+        this.fecharImportarDados();
+        this.carregarLista();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.importandoDados = false;
+        this.toast.error(err?.message ?? 'Falha ao importar planilha.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   abrirImportarFrota(): void {
     this.fileFrota = null;
     this.showImportarFrota = true;

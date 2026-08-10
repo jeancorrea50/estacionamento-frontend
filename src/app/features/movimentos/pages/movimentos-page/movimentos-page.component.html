@@ -636,4 +636,55 @@
     </div>
   }
 
+  @if (showSelecionarMotoristaPlaca) {
+    <div
+      class="modal-overlay"
+      (click)="fecharSelecionarMotoristaPlaca()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="selecionar-motorista-placa-title"
+    >
+      <div class="modal-content modal-content--selecionar-motorista" (click)="$event.stopPropagation()">
+        <header class="selecionar-motorista__header">
+          <h2 id="selecionar-motorista-placa-title" class="selecionar-motorista__title">
+            Selecionar motorista
+          </h2>
+          <button
+            type="button"
+            class="modal-close"
+            (click)="fecharSelecionarMotoristaPlaca()"
+            aria-label="Fechar"
+          >
+            &times;
+          </button>
+        </header>
+        <p class="selecionar-motorista__hint">
+          Esta placa possui mais de um motorista vinculado. Escolha quem dará entrada:
+        </p>
+        <ul class="selecionar-motorista__lista" role="listbox" aria-label="Motoristas vinculados">
+          @for (m of motoristasVinculadosPlaca; track m.id ?? m.cpf ?? m.nome) {
+            <li>
+              <button
+                type="button"
+                class="selecionar-motorista__item"
+                (click)="selecionarMotoristaVinculadoPlaca(m)"
+              >
+                <span class="selecionar-motorista__nome">{{ m.nome || 'Motorista' }}</span>
+                <span class="selecionar-motorista__cpf">{{ formatarCpfListaMotorista(m.cpf) }}</span>
+                @if (m.principal) {
+                  <span class="selecionar-motorista__badge">Principal</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="fecharSelecionarMotoristaPlaca()">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
 </div>

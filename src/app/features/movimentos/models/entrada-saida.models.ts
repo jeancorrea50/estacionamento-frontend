@@ -145,7 +145,10 @@ export interface EntradaSaidaOutput {
   existeEntradaEmAberto?: boolean;
   suspensoes: EntradaSaidaSuspensaoOutput[];
   /** Objetos aninhados do GET buscar-por-placa / detalhe (contrato Registro Rápido). */
-  motorista?: EntradaSaidaBuscarPorPlacaMotorista | null;
+  motorista?:
+    | EntradaSaidaBuscarPorPlacaMotorista
+    | EntradaSaidaBuscarPorPlacaMotorista[]
+    | null;
   transportadora?: EntradaSaidaBuscarPorPlacaTransportadora | null;
   veiculo?: EntradaSaidaBuscarPorPlacaVeiculo | null;
 }

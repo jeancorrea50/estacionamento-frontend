@@ -486,3 +486,89 @@
   gap: 0.65rem;
   flex-wrap: wrap;
 }
+
+.modal-content--selecionar-motorista {
+  width: min(480px, 94vw);
+  padding: 1.15rem 1.25rem 1rem;
+}
+
+.selecionar-motorista__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.selecionar-motorista__title {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #0f172a;
+}
+
+.selecionar-motorista__hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.selecionar-motorista__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(360px, 50vh);
+  overflow: auto;
+}
+
+.selecionar-motorista__item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'nome badge'
+    'cpf badge';
+  gap: 0.15rem 0.75rem;
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.selecionar-motorista__item:hover,
+.selecionar-motorista__item:focus-visible {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+  outline: none;
+}
+
+.selecionar-motorista__nome {
+  grid-area: nome;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.selecionar-motorista__cpf {
+  grid-area: cpf;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.selecionar-motorista__badge {
+  grid-area: badge;
+  align-self: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}

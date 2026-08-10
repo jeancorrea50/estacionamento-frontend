@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  extrairMotoristasVinculados,
   mapBuscarPorPlacaParaRegistroRapido,
   mapearTipoCargaEnumParaLabel
 } from './entrada-saida-buscar-por-placa.mapper';
@@ -114,6 +115,50 @@ describe('mapBuscarPorPlacaParaRegistroRapido', () => {
     expect(campos.transportadoraResponsavelNome).toBe('Juninho Pereba');
     expect(campos.transportadoraResponsavelTelefone).toBe('');
     expect(campos.existeEntradaEmAberto).toBe(false);
+  });
+
+  it('deve usar o motorista selecionado quando a API retorna lista', () => {
+    const entrada = {
+      placa: 'KFN0722',
+      motorista: [
+        { id: 1, nome: 'Fernando Fernandes', cpf: '904.310.510-46', principal: true },
+        { id: 2, nome: 'Outro Motorista', cpf: '111.222.333-44', principal: false }
+      ]
+    };
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada, entrada.motorista[1]);
+    expect(campos.motoristaNome).toBe('Outro Motorista');
+    expect(campos.motoristaCpf).toBe('111.222.333-44');
+    expect(campos.placa).toBe('KFN-0722');
+  });
+
+  it('não deve preencher motorista quando seleção é null (aguarda modal)', () => {
+    const campos = mapBuscarPorPlacaParaRegistroRapido(
+      {
+        placa: 'KFN0722',
+        motorista: [
+          { id: 1, nome: 'A', cpf: '1' },
+          { id: 2, nome: 'B', cpf: '2' }
+        ]
+      },
+      null
+    );
+    expect(campos.motoristaNome).toBe('');
+    expect(campos.motoristaCpf).toBe('');
+    expect(campos.placa).toBe('KFN-0722');
+  });
+});
+
+describe('extrairMotoristasVinculados', () => {
+  it('normaliza objeto único e lista', () => {
+    expect(extrairMotoristasVinculados({ motorista: { id: 1, nome: 'A', cpf: '1' } })).toHaveLength(1);
+    expect(
+      extrairMotoristasVinculados({
+        motorista: [
+          { id: 1, nome: 'A', cpf: '1' },
+          { id: 2, nome: 'B', cpf: '2' }
+        ]
+      })
+    ).toHaveLength(2);
   });
 });
 

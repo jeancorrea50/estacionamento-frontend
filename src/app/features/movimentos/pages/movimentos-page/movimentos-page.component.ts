@@ -37,7 +37,8 @@ import {
   toDateTimeLocalInputValue,
   toLocalIsoDateTime
 } from '../../../../shared/utils/local-iso-datetime';
-import { mapBuscarPorPlacaParaRegistroRapido } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
+import { mapBuscarPorPlacaParaRegistroRapido, extrairMotoristasVinculados } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
+import { EntradaSaidaMotoristaVinculoItem } from '../../models/entrada-saida-buscar-por-placa.models';
 import {
   mapearTipoCargaParaEnum as toTipoCargaEnum,
   TIPO_CARGA_LABELS
@@ -202,6 +203,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   motoristaAutoPreenchidoPorCpf = false;
   buscandoTransportadoraPorCnpj = false;
   transportadoraAutoPreenchidaPorCnpj = false;
+  /** Modal: escolher motorista quando a placa tem mais de um vínculo. */
+  showSelecionarMotoristaPlaca = false;
+  motoristasVinculadosPlaca: EntradaSaidaMotoristaVinculoItem[] = [];
+  private entradaPendenteSelecaoMotorista: EntradaSaidaOutput | null = null;
   private ultimaConsultaCpfRegistroRapido = '';
   private consultaCpfSequencia = 0;
   private ultimaConsultaCnpjRegistroRapido = '';
@@ -638,6 +643,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.existeEntradaEmAbertoPorPlaca = false;
     this.registroRapidoEntradaId = 0;
     this.registroRapidoTransportadoraId = 0;
+    this.fecharSelecionarMotoristaPlaca();
   }
 
   formatarMinutos(minutos?: number | null): string {
@@ -1307,6 +1313,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.existeEntradaEmAbertoPorPlaca = false;
     this.registroRapidoEntradaId = 0;
     this.registroRapidoTransportadoraId = 0;
+    this.fecharSelecionarMotoristaPlaca();
   }
 
   private limparCamposDetalheTransportadoraRegistroRapido(): void {
@@ -1316,15 +1323,77 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private aplicarRespostaEntradaPorPlacaNaTela(entrada: EntradaSaidaOutput): void {
-    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada);
+    const motoristas = extrairMotoristasVinculados(entrada);
+    if (motoristas.length > 1) {
+      this.aplicarCamposPlacaExcetoMotorista(entrada);
+      this.entradaPendenteSelecaoMotorista = entrada;
+      this.motoristasVinculadosPlaca = motoristas;
+      this.showSelecionarMotoristaPlaca = true;
+      return;
+    }
+
+    this.aplicarRespostaEntradaPorPlacaComMotorista(entrada, motoristas[0] ?? null);
+  }
+
+  /** Preenche veículo/transportadora/status sem sobrescrever motorista (aguardando seleção). */
+  private aplicarCamposPlacaExcetoMotorista(entrada: EntradaSaidaOutput): void {
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada, null);
+    if (campos.placa) {
+      this.registroRapido.placa = campos.placa;
+    }
+    this.registroRapido.motorista = '';
+    this.registroRapido.motoristaCpf = '';
+    this.motoristaAutoPreenchidoPorCpf = false;
+    if (campos.transportadoraRazaoSocial) {
+      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
+        campos.transportadoraRazaoSocial
+      );
+    }
+    if (String(campos.transportadoraCnpj).replace(/\D/g, '').length > 0) {
+      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(campos.transportadoraCnpj);
+    }
+    if (campos.transportadoraResponsavelNome) {
+      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(
+        campos.transportadoraResponsavelNome
+      );
+    }
+    if (campos.transportadoraResponsavelTelefone) {
+      this.registroRapido.transportadoraResponsavelTelefone = campos.transportadoraResponsavelTelefone;
+    }
+    if (campos.tipoCargaLabel) {
+      this.registroRapido.tipoCarga = campos.tipoCargaLabel;
+    }
+    this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.camposBloqueadosPorPlaca = true;
+    this.registroRapidoEntradaId =
+      campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;
+    this.registroRapidoTransportadoraId =
+      entrada.transportadoraId > 0
+        ? entrada.transportadoraId
+        : Number(entrada.transportadora?.id ?? 0) || 0;
+  }
+
+  private aplicarRespostaEntradaPorPlacaComMotorista(
+    entrada: EntradaSaidaOutput,
+    motorista: EntradaSaidaMotoristaVinculoItem | null
+  ): void {
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada, motorista);
     if (campos.placa) {
       this.registroRapido.placa = campos.placa;
     }
     if (campos.motoristaNome) {
       this.registroRapido.motorista = this.encurtarTextoLivre(campos.motoristaNome);
+      this.motoristaAutoPreenchidoPorCpf = true;
+    } else {
+      this.registroRapido.motorista = '';
+      this.motoristaAutoPreenchidoPorCpf = false;
     }
     if (campos.motoristaCpf) {
       this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(campos.motoristaCpf);
+      this.ultimaConsultaCpfRegistroRapido = String(campos.motoristaCpf).replace(/\D/g, '');
+    } else {
+      this.registroRapido.motoristaCpf = '';
+      this.ultimaConsultaCpfRegistroRapido = '';
     }
     if (campos.transportadoraRazaoSocial) {
       this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
@@ -1353,6 +1422,23 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       entrada.transportadoraId > 0
         ? entrada.transportadoraId
         : Number(entrada.transportadora?.id ?? 0) || 0;
+  }
+
+  selecionarMotoristaVinculadoPlaca(item: EntradaSaidaMotoristaVinculoItem): void {
+    const entrada = this.entradaPendenteSelecaoMotorista;
+    this.fecharSelecionarMotoristaPlaca();
+    if (!entrada) return;
+    this.aplicarRespostaEntradaPorPlacaComMotorista(entrada, item);
+  }
+
+  fecharSelecionarMotoristaPlaca(): void {
+    this.showSelecionarMotoristaPlaca = false;
+    this.motoristasVinculadosPlaca = [];
+    this.entradaPendenteSelecaoMotorista = null;
+  }
+
+  formatarCpfListaMotorista(cpf: string | null | undefined): string {
+    return this.aplicarMascaraCpf(cpf) || '—';
   }
 
   private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {

@@ -4,7 +4,8 @@
  * Também aceita `pessoaFisica` / `pessoaJuridica` aninhados quando presentes.
  */
 
-export interface EntradaSaidaBuscarPorPlacaMotorista {
+/** Item de vínculo motorista↔placa (EntradaSaidaMotoristaVinculoOutput). */
+export interface EntradaSaidaMotoristaVinculoItem {
   id?: number;
   nome?: string | null;
   nomeCompleto?: string | null;
@@ -15,9 +16,12 @@ export interface EntradaSaidaBuscarPorPlacaMotorista {
   documento?: string | null;
   cpfMotorista?: string | null;
   cnh?: string | null;
+  principal?: boolean | null;
   pessoaFisica?: Record<string, unknown> | null;
   pessoa?: Record<string, unknown> | null;
 }
+
+export type EntradaSaidaBuscarPorPlacaMotorista = EntradaSaidaMotoristaVinculoItem;
 
 export interface EntradaSaidaBuscarPorPlacaVeiculo {
   id?: number;
@@ -57,7 +61,14 @@ export interface EntradaSaidaBuscarPorPlacaResult {
   transportadoraId?: number;
   veiculoId?: number;
   existeEntradaEmAberto?: boolean;
-  motorista?: EntradaSaidaBuscarPorPlacaMotorista | null;
+  /**
+   * Lista de motoristas vinculados à placa (`EntradaSaidaMotoristaVinculoOutput[]`).
+   * Aceita objeto único por compatibilidade com respostas antigas.
+   */
+  motorista?:
+    | EntradaSaidaBuscarPorPlacaMotorista
+    | EntradaSaidaBuscarPorPlacaMotorista[]
+    | null;
   veiculo?: EntradaSaidaBuscarPorPlacaVeiculo | null;
   transportadora?: EntradaSaidaBuscarPorPlacaTransportadora | null;
   /**

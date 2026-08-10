@@ -2,7 +2,9 @@ import { formatPlacaDisplay, normalizePlaca } from '../../cadastro/utils/placa-b
 import { formatTelefone } from '../../cadastro/directives/telefone-format.directive';
 import { tipoCargaLabel } from '../../../shared/models/tipo-carga';
 import {
+  EntradaSaidaBuscarPorPlacaMotorista,
   EntradaSaidaBuscarPorPlacaResult,
+  EntradaSaidaMotoristaVinculoItem,
   RegistroRapidoPorPlacaCampos
 } from '../models/entrada-saida-buscar-por-placa.models';
 import { EntradaSaidaOutput } from '../models/entrada-saida.models';
@@ -38,6 +40,71 @@ function pessoaAninhada(obj: Record<string, unknown> | undefined): Record<string
   );
 }
 
+function mapMotoristaItem(raw: unknown): EntradaSaidaMotoristaVinculoItem | null {
+  const obj = asRecord(raw);
+  if (!obj) return null;
+  const pessoa = pessoaAninhada(obj);
+  const idRaw = obj['id'] ?? obj['Id'];
+  const id = typeof idRaw === 'number' ? idRaw : Number(idRaw);
+  const nome = pickStr(
+    [pessoa, obj],
+    'nome',
+    'nomeCompleto',
+    'nomeRazaoSocial',
+    'descricao',
+    'nomeMotorista'
+  );
+  const cpf = pickStr([pessoa, obj], 'cpf', 'documento', 'cpfMotorista');
+  const principalRaw = obj['principal'] ?? obj['Principal'];
+  const principal =
+    typeof principalRaw === 'boolean'
+      ? principalRaw
+      : principalRaw == null
+        ? null
+        : Boolean(principalRaw);
+
+  if ((!Number.isFinite(id) || id <= 0) && !nome && !cpf) return null;
+
+  return {
+    id: Number.isFinite(id) && id > 0 ? id : undefined,
+    nome: nome || undefined,
+    cpf: cpf || undefined,
+    principal
+  };
+}
+
+/**
+ * Normaliza `motorista` da resposta (objeto único ou lista) para array de vínculos.
+ */
+export function extrairMotoristasVinculados(
+  entrada: EntradaSaidaOutput | EntradaSaidaBuscarPorPlacaResult | Record<string, unknown>
+): EntradaSaidaMotoristaVinculoItem[] {
+  const root = entrada as unknown as Record<string, unknown>;
+  const raw = root['motorista'] ?? root['Motorista'];
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => mapMotoristaItem(item))
+      .filter((m): m is EntradaSaidaMotoristaVinculoItem => m != null);
+  }
+
+  const single = mapMotoristaItem(raw);
+  if (single) return [single];
+
+  // Fallback flat na raiz (contrato antigo)
+  const nome = pickStr([root], 'nomeMotorista');
+  const cpf = pickStr([root], 'cpfMotorista');
+  const id = Number(root['motoristaId'] ?? root['MotoristaId'] ?? 0);
+  if (!nome && !cpf && !(Number.isFinite(id) && id > 0)) return [];
+  return [
+    {
+      id: Number.isFinite(id) && id > 0 ? id : undefined,
+      nome: nome || undefined,
+      cpf: cpf || undefined
+    }
+  ];
+}
+
 /** Enum TipoCarga (1–5) → label do select do Registro Rápido. */
 export function mapearTipoCargaEnumParaLabel(valor: string | number | null | undefined): string {
   return tipoCargaLabel(valor);
@@ -46,30 +113,49 @@ export function mapearTipoCargaEnumParaLabel(valor: string | number | null | und
 /**
  * Extrai campos do Registro Rápido a partir do GET buscar-por-placa
  * (EntradaSaidaOutput / result com motorista, veiculo, transportadora).
+ * @param motoristaSelecionado
+ *   - `undefined`: usa o primeiro da lista (ou objeto único)
+ *   - `null`: não preenche motorista (aguarda seleção no modal)
+ *   - objeto: motorista escolhido pelo usuário
  */
 export function mapBuscarPorPlacaParaRegistroRapido(
-  entrada: EntradaSaidaOutput | EntradaSaidaBuscarPorPlacaResult | Record<string, unknown>
+  entrada: EntradaSaidaOutput | EntradaSaidaBuscarPorPlacaResult | Record<string, unknown>,
+  motoristaSelecionado?: EntradaSaidaBuscarPorPlacaMotorista | null
 ): RegistroRapidoPorPlacaCampos {
   const root = entrada as unknown as Record<string, unknown>;
-  const motorista = asRecord(root['motorista'] ?? root['Motorista']);
   const transportadora = asRecord(root['transportadora'] ?? root['Transportadora']);
   const veiculo = asRecord(root['veiculo'] ?? root['Veiculo']);
-  const pessoaM = pessoaAninhada(motorista);
   const pessoaT = pessoaAninhada(transportadora);
+
+  const motoristas = extrairMotoristasVinculados(entrada);
+  const motoristaEscolhido =
+    motoristaSelecionado === undefined
+      ? motoristas[0]
+      : motoristaSelecionado == null
+        ? null
+        : mapMotoristaItem(motoristaSelecionado) ?? motoristaSelecionado;
+  const motorista = asRecord(motoristaEscolhido as unknown);
+  const pessoaM = pessoaAninhada(motorista);
 
   const placaRaw = pickStr([veiculo, root], 'placa', 'placaVeiculo');
   const placa = placaRaw ? formatPlacaDisplay(normalizePlaca(placaRaw)) : '';
 
-  const motoristaNome = pickStr(
-    [pessoaM, motorista, root],
-    'nome',
-    'nomeCompleto',
-    'nomeRazaoSocial',
-    'descricao',
-    'nomeMotorista'
-  );
+  const motoristaNome =
+    motoristaSelecionado === null
+      ? ''
+      : pickStr(
+          [pessoaM, motorista, root],
+          'nome',
+          'nomeCompleto',
+          'nomeRazaoSocial',
+          'descricao',
+          'nomeMotorista'
+        );
 
-  const motoristaCpf = pickStr([pessoaM, motorista, root], 'cpf', 'documento', 'cpfMotorista');
+  const motoristaCpf =
+    motoristaSelecionado === null
+      ? ''
+      : pickStr([pessoaM, motorista, root], 'cpf', 'documento', 'cpfMotorista');
 
   const transportadoraRazaoSocial = pickStr(
     [pessoaT, transportadora, root],

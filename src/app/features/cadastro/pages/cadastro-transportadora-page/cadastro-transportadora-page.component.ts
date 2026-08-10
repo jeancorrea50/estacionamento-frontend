@@ -156,6 +156,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   /** Modal Importar frota (Excel). */
   showImportarFrota = false;
   fileFrota: File | null = null;
+  importandoFrota = false;
+  baixandoModeloFrota = false;
 
   /** Modal Importar transportadoras (Excel modelo padrão). */
   showImportarDados = false;
@@ -172,6 +174,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   salvandoMotorista = false;
   showImportarCondutores = false;
   fileCondutores: File | null = null;
+  importandoCondutores = false;
+  baixandoModeloCondutores = false;
   private bloquearFecharModalAte = 0;
 
   ngOnInit(): void {
@@ -1685,24 +1689,35 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   abrirImportarFrota(): void {
+    if (this.transportadoraId == null) {
+      this.toast.error('Salve a transportadora antes de importar a frota.');
+      return;
+    }
     this.fileFrota = null;
     this.showImportarFrota = true;
   }
 
   fecharImportarFrota(): void {
+    if (this.importandoFrota) return;
     this.showImportarFrota = false;
     this.fileFrota = null;
   }
 
   /** Abre modal de importação de condutores por Excel. */
   abrirImportarCondutores(): void {
+    if (this.transportadoraId == null) {
+      this.toast.error('Salve a transportadora antes de importar motoristas.');
+      return;
+    }
     this.fileCondutores = null;
     this.showImportarCondutores = true;
     this.cdr.markForCheck();
   }
 
   fecharImportarCondutores(): void {
+    if (this.importandoCondutores) return;
     this.showImportarCondutores = false;
+    this.fileCondutores = null;
     this.cdr.markForCheck();
   }
 
@@ -1711,17 +1726,56 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.fileFrota = input.files?.[0] ?? null;
   }
 
-  /** Importar frota por Excel. TODO: integrar com endpoint quando disponível. */
+  /** Importar frota por Excel (vinculada à transportadora aberta). */
   importarFrota(): void {
-    if (!this.fileFrota || this.transportadoraId == null) return;
-    // TODO: chamar endpoint de importação de frota quando disponível no backend
-    alert('Importação de frota: integrar com backend quando o endpoint estiver disponível.');
+    if (!this.fileFrota || this.transportadoraId == null || this.importandoFrota) return;
+    this.importandoFrota = true;
+    this.veiculoService.importarDadosExcel(this.transportadoraId, this.fileFrota).subscribe({
+      next: (r) => {
+        this.importandoFrota = false;
+        if (!r.ok) {
+          this.toast.error(r.message ?? 'Falha na importação da frota.');
+          this.cdr.markForCheck();
+          return;
+        }
+        this.toast.success(
+          r.message ||
+            `Frota: ${r.sucesso ?? 0} ok, ${r.falha ?? 0} falha(s), ${r.ignorado ?? 0} ignorada(s).`
+        );
+        this.fecharImportarFrota();
+        this.carregarVeiculos();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.importandoFrota = false;
+        this.toast.error(err?.message ?? 'Falha ao importar frota.');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
-  /** Download do modelo da planilha para importação de frota. */
+  /** Download do modelo Excel de frota (report). */
   downloadModeloFrota(): void {
-    // TODO: gerar ou servir arquivo modelo quando disponível
-    window.open('#', '_blank');
+    if (this.baixandoModeloFrota) return;
+    this.baixandoModeloFrota = true;
+    this.veiculoService.downloadModeloImportacao().subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'modelo-importacao-frota.xlsx';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.baixandoModeloFrota = false;
+        this.toast.success('Modelo de frota baixado.');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.baixandoModeloFrota = false;
+        this.toast.error(err?.message ?? 'Não foi possível baixar o modelo de frota.');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   // ---------- Aba Motoristas ----------
@@ -1905,12 +1959,53 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   importarCondutores(): void {
-    if (!this.fileCondutores || this.transportadoraId == null) return;
-    this.fecharImportarCondutores();
+    if (!this.fileCondutores || this.transportadoraId == null || this.importandoCondutores) return;
+    this.importandoCondutores = true;
+    this.motoristaService.importarDadosExcel(this.transportadoraId, this.fileCondutores).subscribe({
+      next: (r) => {
+        this.importandoCondutores = false;
+        if (!r.ok) {
+          this.toast.error(r.message ?? 'Falha na importação de motoristas.');
+          this.cdr.markForCheck();
+          return;
+        }
+        this.toast.success(
+          r.message ||
+            `Motoristas: ${r.sucesso ?? 0} ok, ${r.falha ?? 0} falha(s), ${r.ignorado ?? 0} ignorada(s).`
+        );
+        this.fecharImportarCondutores();
+        this.carregarCondutores();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.importandoCondutores = false;
+        this.toast.error(err?.message ?? 'Falha ao importar motoristas.');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   downloadModeloCondutores(): void {
-    window.open('#', '_blank');
+    if (this.baixandoModeloCondutores) return;
+    this.baixandoModeloCondutores = true;
+    this.motoristaService.downloadModeloImportacao().subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'modelo-importacao-motorista.xlsx';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.baixandoModeloCondutores = false;
+        this.toast.success('Modelo de motoristas baixado.');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.baixandoModeloCondutores = false;
+        this.toast.error(err?.message ?? 'Não foi possível baixar o modelo de motoristas.');
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   carregarCondutores(): void {

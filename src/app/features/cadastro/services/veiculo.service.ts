@@ -546,4 +546,77 @@ export class VeiculoService {
 
     return [];
   }
+
+  /**
+   * GET report /api/Veiculo/obterModeloImportacao
+   * Baixa o Excel modelo padrão (Tipo=Frota).
+   */
+  downloadModeloImportacao(): Observable<Blob> {
+    const url = `${environment.REPORT_BASE_URL}/Veiculo/obterModeloImportacao`;
+    return this.http.get(url, { responseType: 'blob' }).pipe(timeout(60000));
+  }
+
+  /**
+   * POST /api/Veiculo/ImportarDados — multipart Excel + transportadoraId.
+   */
+  importarDadosExcel(
+    transportadoraId: number,
+    file: File
+  ): Observable<{
+    ok: boolean;
+    message?: string;
+    totalLinhas?: number;
+    sucesso?: number;
+    falha?: number;
+    ignorado?: number;
+  }> {
+    const form = new FormData();
+    form.append('transportadoraId', String(transportadoraId));
+    form.append('arquivo', file, file.name);
+    return this.http.post<unknown>(`${VEICULO}/ImportarDados`, form).pipe(
+      timeout(120000),
+      map((body) => this.normalizeImportacaoResult(body)),
+      catchError((err) => of(this.normalizeImportacaoError(err)))
+    );
+  }
+
+  private normalizeImportacaoResult(body: unknown): {
+    ok: boolean;
+    message?: string;
+    totalLinhas?: number;
+    sucesso?: number;
+    falha?: number;
+    ignorado?: number;
+  } {
+    const o = (body ?? {}) as Record<string, unknown>;
+    const success = o['success'] === true || o['Success'] === true || o['sucesso'] === true;
+    const msg = String(o['message'] ?? o['Message'] ?? o['mensagem'] ?? '');
+    const raw = (o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'] ?? o) as Record<string, unknown>;
+    return {
+      ok: success,
+      message: msg || (success ? 'Importação concluída.' : 'Falha na importação.'),
+      totalLinhas: Number(raw['totalLinhas'] ?? raw['TotalLinhas'] ?? 0) || 0,
+      sucesso: Number(raw['sucesso'] ?? raw['Sucesso'] ?? 0) || 0,
+      falha: Number(raw['falha'] ?? raw['Falha'] ?? 0) || 0,
+      ignorado: Number(raw['ignorado'] ?? raw['Ignorado'] ?? 0) || 0
+    };
+  }
+
+  private normalizeImportacaoError(err: unknown): {
+    ok: boolean;
+    message?: string;
+  } {
+    const e = err as {
+      error?: { message?: string; mensagem?: string; notifications?: unknown[]; Notifications?: unknown[] };
+      message?: string;
+    };
+    const msg =
+      e?.error?.message ??
+      e?.error?.mensagem ??
+      (Array.isArray(e?.error?.notifications) ? e.error.notifications[0] : null) ??
+      (Array.isArray(e?.error?.Notifications) ? e.error.Notifications[0] : null) ??
+      e?.message ??
+      'Falha ao importar planilha.';
+    return { ok: false, message: String(msg) };
+  }
 }

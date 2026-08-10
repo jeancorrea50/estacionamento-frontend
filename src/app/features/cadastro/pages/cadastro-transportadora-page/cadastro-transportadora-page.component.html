@@ -1169,12 +1169,16 @@
           <button type="button" class="modal__close" (click)="fecharImportarFrota()" aria-label="Fechar">&times;</button>
         </div>
         <div class="modal__body">
-          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Placa</strong>, <strong>Marca/Modelo</strong>, Cor, Ano Fab/Mod, Tipo de veículo, Centro de custo, Status. A primeira linha deve conter o cabeçalho.</p>
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx) com as colunas: <strong>Placa</strong>, Modelo, Marca, AnoFabricacao, Cor, TipoCarga, AnoModelo, QuantidadeEixos, Ativo. A frota será vinculada à transportadora aberta. A primeira linha deve conter o cabeçalho.</p>
           <div class="importacao-actions">
-            <input type="file" #fileFrotaInput accept=".xlsx,.xls,.csv" (change)="onFileFrotaChange($event)" style="display: none;" />
-            <button type="button" class="btn btn-secondary" (click)="fileFrotaInput.click()">Selecionar arquivo</button>
-            <button type="button" class="btn btn-primary" (click)="importarFrota()" [disabled]="!fileFrota">Importar</button>
-            <button type="button" class="btn btn-secondary" (click)="downloadModeloFrota()">Baixar modelo</button>
+            <input type="file" #fileFrotaInput accept=".xlsx,.xls" (change)="onFileFrotaChange($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileFrotaInput.click()" [disabled]="importandoFrota">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarFrota()" [disabled]="!fileFrota || importandoFrota">
+              {{ importandoFrota ? 'Importando…' : 'Importar' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloFrota()" [disabled]="baixandoModeloFrota">
+              {{ baixandoModeloFrota ? 'Baixando…' : 'Baixar modelo' }}
+            </button>
           </div>
           @if (fileFrota) {
             <p class="file-name">Arquivo: {{ fileFrota.name }}</p>
@@ -1192,12 +1196,16 @@
           <button type="button" class="modal__close" (click)="fecharImportarCondutores()" aria-label="Fechar">&times;</button>
         </div>
         <div class="modal__body">
-          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Nome</strong>, <strong>CPF</strong>, E-mail, CNH, Venc. CNH, Ativo. A primeira linha deve conter o cabeçalho.</p>
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx) com as colunas: <strong>NomeCompleto</strong>, <strong>Cpf</strong>, Email, Celular, Cnh, VencimentoCnh, Ativo. Os motoristas serão vinculados à transportadora aberta. A primeira linha deve conter o cabeçalho.</p>
           <div class="importacao-actions">
-            <input type="file" #fileCondutoresInput accept=".xlsx,.xls,.csv" (change)="onFileCondutores($event)" style="display: none;" />
-            <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()">Selecionar arquivo</button>
-            <button type="button" class="btn btn-primary" (click)="importarCondutores()" [disabled]="!fileCondutores">Importar</button>
-            <button type="button" class="btn btn-secondary" (click)="downloadModeloCondutores()">Baixar modelo</button>
+            <input type="file" #fileCondutoresInput accept=".xlsx,.xls" (change)="onFileCondutores($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()" [disabled]="importandoCondutores">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarCondutores()" [disabled]="!fileCondutores || importandoCondutores">
+              {{ importandoCondutores ? 'Importando…' : 'Importar' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloCondutores()" [disabled]="baixandoModeloCondutores">
+              {{ baixandoModeloCondutores ? 'Baixando…' : 'Baixar modelo' }}
+            </button>
           </div>
           @if (fileCondutores) {
             <p class="file-name">Arquivo: {{ fileCondutores.name }}</p>

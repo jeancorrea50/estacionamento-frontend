@@ -359,7 +359,7 @@ html.theme-dark {
   --surface: #1c2642;
   --surface-2: #1e2a45;
   --text: rgba(255, 255, 255, 0.95);
-  --muted: rgba(255, 255, 255, 0.6);
+  --muted: rgba(197, 205, 220, 0.92);
   --border: rgba(255, 255, 255, 0.12);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --primary: #1d4ed8;
@@ -1108,14 +1108,41 @@ html.theme-dark {
   --sidebar-border: rgba(80, 120, 255, 0.18);
   --border: rgba(80, 120, 255, 0.18);
   --border-subtle: rgba(80, 120, 255, 0.14);
+  /* Texto claro explícito — evita herdar azul escuro do tema light/Material */
   --text: #f8fafc;
-  --muted: #a7b0c3;
+  --muted: #c5cddc;
+  --text-primary: #f8fafc;
+  --text-secondary: #c5cddc;
+  --text-muted: #aeb8cc;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #c5cddc;
+  --color-text-muted: #aeb8cc;
+  --color-text: #f8fafc;
+  --input-text: #f8fafc;
+  --input-placeholder: #9aa6bd;
   --primary: #1d4ed8;
   --focus: #1d4ed8;
   --neon: #00d4ff;
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
+}
+
+html.theme-dark .page-title,
+html.theme-dark .dk-page-title,
+html.theme-dark .card__title,
+html.theme-dark .section-title,
+html.theme-dark .form-section__title {
+  color: var(--text);
+}
+
+html.theme-dark .page-subtitle,
+html.theme-dark .dk-page-subtitle {
+  color: var(--muted);
+}
+
+html.theme-dark .field span {
+  color: var(--muted);
 }
 
 html.theme-dark body {

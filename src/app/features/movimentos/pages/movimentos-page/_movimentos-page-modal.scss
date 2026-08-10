@@ -12,8 +12,17 @@
 .modal-content {
   width: min(820px, 92vw);
   background: #fff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 1rem;
+}
+
+/* Modais operacionais (saída/suspender/recibo) ficam claros: textos internos são light-only */
+.modal-content:not(.modal-content--selecionar-motorista) {
+  background: #fff !important;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 
 .modal-content--saida {
@@ -419,7 +428,9 @@
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  background: #fff;
+  background: #fff !important;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 
 .recibo-preview-modal__header {
@@ -463,8 +474,9 @@
   width: min(420px, 92vw);
   padding: 1.25rem 1.35rem;
   text-align: center;
-  background: #fff;
+  background: #fff !important;
   color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 
 .recibo-confirm-dialog h3 {
@@ -490,6 +502,10 @@
 .modal-content--selecionar-motorista {
   width: min(760px, 96vw);
   padding: 1.15rem 1.25rem 1rem;
+  background: var(--surface, #fff) !important;
+  color: var(--text, #0f172a);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  box-shadow: 0 18px 48px rgba(2, 8, 22, 0.45);
 }
 
 .selecionar-motorista__header {
@@ -503,22 +519,22 @@
 .selecionar-motorista__title {
   margin: 0;
   font-size: 1.125rem;
-  color: #0f172a;
+  color: var(--text, #0f172a);
 }
 
 .selecionar-motorista__hint {
   margin: 0 0 0.85rem;
   font-size: 0.9rem;
   line-height: 1.4;
-  color: #475569;
+  color: var(--muted, #475569);
 }
 
 .selecionar-motorista__grid-wrap {
   max-height: min(420px, 55vh);
   overflow: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-subtle, #e2e8f0);
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--surface-2, #f8fafc);
 }
 
 .selecionar-motorista__grid {
@@ -531,8 +547,8 @@
 .selecionar-motorista__grid td {
   padding: 0.7rem 0.85rem;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-  color: #0f172a;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  color: var(--text, #0f172a);
   vertical-align: middle;
 }
 
@@ -540,12 +556,12 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #eef2ff;
+  background: color-mix(in srgb, var(--primary, #2563eb) 14%, var(--surface-2, #eef2ff));
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: #334155;
+  color: var(--muted, #334155);
 }
 
 .selecionar-motorista__grid tbody tr:last-child td {
@@ -553,16 +569,17 @@
 }
 
 .selecionar-motorista__grid tbody tr:hover {
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--primary, #2563eb) 10%, transparent);
 }
 
 .selecionar-motorista__row--principal {
-  background: #eff6ff;
+  background: color-mix(in srgb, var(--primary, #2563eb) 12%, transparent);
 }
 
 .selecionar-motorista__nome {
   font-weight: 600;
   font-size: 0.9rem;
+  color: var(--text, #0f172a);
 }
 
 .selecionar-motorista__badge {
@@ -572,12 +589,100 @@
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #1d4ed8;
-  background: #dbeafe;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.28);
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
 }
 
 .modal-content--selecionar-motorista .modal-actions {
   margin-top: 0.9rem;
+}
+
+.modal-content--selecionar-motorista .modal-close {
+  color: var(--text, #0f172a);
+  opacity: 0.85;
+}
+
+.modal-content--selecionar-motorista .modal-close:hover {
+  opacity: 1;
+}
+
+:host-context(html.theme-light) {
+  .selecionar-motorista__badge {
+    color: #1d4ed8;
+    background: #dbeafe;
+  }
+}
+
+:host-context(html.theme-dark) {
+  .modal-content--selecionar-motorista {
+    background: linear-gradient(180deg, rgba(20, 33, 61, 0.98), rgba(17, 28, 51, 0.98)) !important;
+    color: #f8fafc;
+    border-color: rgba(80, 120, 255, 0.22);
+  }
+
+  .selecionar-motorista__title,
+  .selecionar-motorista__nome,
+  .selecionar-motorista__grid td {
+    color: #f8fafc;
+  }
+
+  .selecionar-motorista__hint,
+  .selecionar-motorista__grid th {
+    color: #c5cddc;
+  }
+
+  .selecionar-motorista__grid-wrap {
+    background: rgba(8, 16, 32, 0.55);
+    border-color: rgba(80, 120, 255, 0.22);
+  }
+
+  .selecionar-motorista__grid th,
+  .selecionar-motorista__grid td {
+    border-bottom-color: rgba(80, 120, 255, 0.16);
+  }
+
+  .selecionar-motorista__grid th {
+    background: rgba(37, 99, 235, 0.22);
+  }
+
+  .selecionar-motorista__row--principal {
+    background: rgba(37, 99, 235, 0.16);
+  }
+
+  .selecionar-motorista__grid tbody tr:hover {
+    background: rgba(37, 99, 235, 0.12);
+  }
+
+  .modal-content--selecionar-motorista .modal-close {
+    background: rgba(30, 42, 69, 0.95);
+    color: #f8fafc;
+  }
+
+  .modal-content--selecionar-motorista .btn-secondary {
+    color: #f8fafc;
+    background: rgba(30, 42, 69, 0.95);
+    border-color: rgba(80, 120, 255, 0.28);
+  }
+
+  /* Inputs dentro de modais claros (saída/suspender) não herdam o dark dos forms da página */
+  .modal-content:not(.modal-content--selecionar-motorista) .input-control,
+  .modal-content:not(.modal-content--selecionar-motorista) .input-control--select,
+  .modal-content:not(.modal-content--selecionar-motorista) .modal-money__input {
+    color: #0f172a !important;
+    background: #fff !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .modal-content:not(.modal-content--selecionar-motorista) .modal-hint,
+  .modal-content:not(.modal-content--selecionar-motorista) .modal-field-label,
+  .modal-content:not(.modal-content--selecionar-motorista) .modal-meta {
+    color: #475569;
+  }
+
+  .modal-content:not(.modal-content--selecionar-motorista) .modal-close {
+    background: #e2e8f0;
+    color: #334155;
+  }
 }

@@ -126,6 +126,18 @@
   color: var(--muted);
 }
 
+:host-context(html.theme-dark) {
+  .page-title,
+  .dk-page-title {
+    color: #f8fafc;
+  }
+
+  .page-subtitle,
+  .dk-page-subtitle {
+    color: #c5cddc;
+  }
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;

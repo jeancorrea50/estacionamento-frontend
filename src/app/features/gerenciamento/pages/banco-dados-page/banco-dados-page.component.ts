@@ -705,12 +705,13 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
     const qtd = item.quantidadeEstacionamentos ?? item.estacionamentos?.length ?? 0;
     const avisoTenants =
       qtd > 0
-        ? `\n\nAtenção: ${qtd} estacionamento(s) vinculado(s) serão desvinculados e desativados.`
+        ? `\n\nAtenção: ${qtd} estacionamento(s) vinculado(s) serão desvinculados e desativados no GtCentral.`
         : '';
 
     const ok = window.confirm(
       `Excluir permanentemente o banco "${item.nomeBanco}" em ${item.host} (${ambiente})?\n\n` +
-        `Isso executa DROP DATABASE no servidor e desativa o perfil.${avisoTenants}\n\n` +
+        `Isso executa DROP DATABASE no servidor, remove o perfil BancoDadosConexao do GtCentral ` +
+        `e limpa vínculos (tenants, catálogo central, transferências e migrations).${avisoTenants}\n\n` +
         `Esta ação não pode ser desfeita.`
     );
     if (!ok) return;

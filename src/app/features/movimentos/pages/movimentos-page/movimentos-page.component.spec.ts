@@ -37,8 +37,9 @@ describe('MovimentosPageComponent', () => {
         configuracaoCobrancaId: null,
         valor: null,
         origem: 'Indisponivel',
-        valorUnitarioDiario: null,
-        quantidadeDias: null,
+        valorUnitario: null,
+        quantidadeUnidades: null,
+        tipoTarifa: null,
         tipoCobranca: 'Avulso'
       })
     )
@@ -121,9 +122,10 @@ describe('MovimentosPageComponent', () => {
         transportadoraId: 12,
         configuracaoCobrancaId: 5,
         valor: 75,
-        origem: 'Calculado',
-        valorUnitarioDiario: 25,
-        quantidadeDias: 3,
+        origem: 'ConfiguracaoCobranca',
+        valorUnitario: 25,
+        quantidadeUnidades: 3,
+        tipoTarifa: 2,
         tipoCobranca: 'Faturado'
       })
     );
@@ -151,11 +153,65 @@ describe('MovimentosPageComponent', () => {
     expect(component.saidaValorDiaria()).toBe(25);
     expect(component.saidaValorDiariaTexto()).toBe('25,00');
     expect(component.saidaValorBloqueado()).toBe(true);
+    expect(component.saidaTipoTarifa()).toBe(2);
+    expect(component.saidaLabelValorUnitario()).toBe('Valor da diária');
+    expect(component.saidaLabelQuantidade()).toBe('Quantidade de diárias');
     expect(component.permanenciaOpen()).toBe(true);
 
     component.onPermanenciaDataHoraChange('2026-08-03T12:00');
     expect(component.saidaQuantidadeDiarias()).toBe(3);
     expect(component.saidaValor()).toBe(75);
+  });
+
+  it('ao abrir Registrar saída com tarifa por hora deve rotular campos em horas', () => {
+    entradaSaidaServiceMock.getById.mockReturnValue(
+      of({
+        id: 5038,
+        finalizado: false,
+        transportadoraId: 0,
+        dataHoraEntrada: '2026-08-09T15:25:00'
+      })
+    );
+    entradaSaidaServiceMock.obterValorEstacionamento.mockReturnValue(
+      of({
+        entradaSaidaId: 5038,
+        estacionamentoId: 1,
+        transportadoraId: null,
+        configuracaoCobrancaId: null,
+        valor: 22,
+        origem: 'EstacionamentoConfiguracao',
+        valorUnitario: 11,
+        quantidadeUnidades: 2,
+        tipoTarifa: 1,
+        tipoCobranca: 'Avulso'
+      })
+    );
+
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+    component.abrirPermanencia(
+      {
+        id: 5038,
+        descricao: '',
+        motoristaId: 0,
+        nomeMotorista: '',
+        transportadoraId: 0,
+        nomeTransportadora: '',
+        veiculoId: 0,
+        placaVeiculo: 'IAA7771',
+        dataHoraEntrada: '2026-08-09T15:25:00',
+        dataHoraSaida: null,
+        avulso: true
+      },
+      'finalizar'
+    );
+
+    expect(component.saidaTipoTarifa()).toBe(1);
+    expect(component.saidaValorDiaria()).toBe(11);
+    expect(component.saidaQuantidadeDiarias()).toBe(2);
+    expect(component.saidaValor()).toBe(22);
+    expect(component.saidaLabelValorUnitario()).toBe('Valor da hora');
+    expect(component.saidaLabelQuantidade()).toBe('Quantidade de horas');
   });
 
   it('quando valor-estacionamento retorna 404 deve deixar a diária editável', () => {

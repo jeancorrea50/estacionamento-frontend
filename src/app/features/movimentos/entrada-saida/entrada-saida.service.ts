@@ -12,6 +12,7 @@ import {
   EntradaSaidaSearchOutput,
   ModoRecibo,
   parseEntradaSaidaStatus,
+  TipoTarifaEstacionamento,
   ValorEstacionamentoResponse
 } from '../models/entrada-saida.models';
 
@@ -116,12 +117,21 @@ export class EntradaSaidaService {
           ),
           valor: this.pickNumberOrNull(raw, 'valor', 'Valor'),
           origem: this.pickString(raw, 'origem', 'Origem') || 'Indisponivel',
-          valorUnitarioDiario: this.pickNumberOrNull(
+          valorUnitario: this.pickNumberOrNull(
             raw,
+            'valorUnitario',
+            'ValorUnitario',
             'valorUnitarioDiario',
             'ValorUnitarioDiario'
           ),
-          quantidadeDias: this.pickNumberOrNull(raw, 'quantidadeDias', 'QuantidadeDias'),
+          quantidadeUnidades: this.pickNumberOrNull(
+            raw,
+            'quantidadeUnidades',
+            'QuantidadeUnidades',
+            'quantidadeDias',
+            'QuantidadeDias'
+          ),
+          tipoTarifa: this.pickTipoTarifa(raw['tipoTarifa'] ?? raw['TipoTarifa']),
           tipoCobranca: this.pickString(raw, 'tipoCobranca', 'TipoCobranca') || 'Avulso'
         };
       })
@@ -453,6 +463,16 @@ export class EntradaSaidaService {
       if (key in row) return Boolean(row[key]);
     }
     return false;
+  }
+
+  private pickTipoTarifa(raw: unknown): TipoTarifaEstacionamento | null {
+    if (raw == null || raw === '') return null;
+    if (typeof raw === 'number' && (raw === 1 || raw === 2)) return raw;
+    const text = String(raw).trim().toLowerCase();
+    if (text === '1' || text === 'hora') return 1;
+    if (text === '2' || text === 'diaria' || text === 'diária') return 2;
+    const n = Number(text);
+    return n === 1 || n === 2 ? n : null;
   }
 
   private unwrap(body: unknown): unknown {

@@ -13,7 +13,8 @@ import {
   EntradaSaidaStatus,
   entradaSaidaStatusLabel,
   ModoRecibo,
-  parseEntradaSaidaStatus
+  parseEntradaSaidaStatus,
+  TipoTarifaEstacionamento
 } from '../../models/entrada-saida.models';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
@@ -46,7 +47,7 @@ import {
   parseBrl
 } from '../../../financeiro/pages/faturamento-page/config-cobranca/config-cobranca-moeda.util';
 import {
-  calcularQuantidadeDiarias,
+  calcularQuantidadeUnidades,
   calcularTotalDiarias
 } from '../../utils/calcular-diarias';
 
@@ -140,19 +141,44 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   permanenciaAcao: PermanenciaAcao = 'suspender';
   registroSelecionado = signal<EntradaSaidaOutput | null>(null);
   permanenciaDataHora = '';
-  /** Valor unitário da diária (config ou digitado). */
+  /** Valor unitário (hora ou diária — config ou digitado). */
   saidaValorDiaria = signal<number | null>(null);
-  /** Valor da diária formatado pt-BR. */
+  /** Valor unitário formatado pt-BR. */
   saidaValorDiariaTexto = signal('');
-  /** Quantidade de diárias (entrada → saída). */
+  /** Quantidade de unidades cobradas (horas ou diárias). */
   saidaQuantidadeDiarias = signal(1);
-  /** Total do recibo = diária × quantidade. */
+  /** Tipo de tarifa da cobrança: 1=Hora, 2=Diaria. */
+  saidaTipoTarifa = signal<TipoTarifaEstacionamento | null>(null);
+  /** Tipo de cobrança exibido (Avulso | Faturado). */
+  saidaTipoCobranca = signal('Avulso');
+  /** Total do recibo = unitário × quantidade. */
   saidaValor = signal<number | null>(null);
   saidaValorBloqueado = signal(false);
   saidaValorLoading = signal(false);
   saidaProcessando = signal(false);
   /** Quando true, total veio de FaturaItem e não deve ser recalculado pela data. */
   private saidaValorFixoDaFatura = false;
+
+  readonly saidaLabelValorUnitario = computed(() =>
+    this.saidaTipoTarifa() === 1 ? 'Valor da hora' : 'Valor da diária'
+  );
+  readonly saidaLabelQuantidade = computed(() =>
+    this.saidaTipoTarifa() === 1 ? 'Quantidade de horas' : 'Quantidade de diárias'
+  );
+  readonly saidaLabelTipoTarifa = computed(() => {
+    const tipo = this.saidaTipoTarifa();
+    if (tipo === 1) return 'Por hora';
+    if (tipo === 2) return 'Por diária';
+    return null;
+  });
+  readonly saidaHintCobranca = computed(() => {
+    const unidade = this.saidaTipoTarifa() === 1 ? 'hora' : 'diária';
+    const plural = this.saidaTipoTarifa() === 1 ? 'horas' : 'dias';
+    if (this.saidaValorBloqueado()) {
+      return `Tarifa por ${unidade} definida pela configuração. O total é ${unidade} × ${plural} desde a entrada.`;
+    }
+    return `Informe o valor da ${unidade}. O total (${unidade} × ${plural}) será enviado no recibo.`;
+  });
   /** Pré-visualização do recibo PDF (object URL sanitizado). */
   readonly reciboPreviewOpen = signal(false);
   readonly reciboPreviewUrl = signal<SafeResourceUrl | null>(null);
@@ -912,7 +938,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     }
     const valor = this.saidaValor();
     if (valor == null || !Number.isFinite(valor) || valor < 0) {
-      this.toast.error('Informe o valor da diária para calcular o total do recibo.');
+      this.toast.error(
+        this.saidaTipoTarifa() === 1
+          ? 'Informe o valor da hora para calcular o total do recibo.'
+          : 'Informe o valor da diária para calcular o total do recibo.'
+      );
       return;
     }
     if (this.saidaProcessando()) return;
@@ -970,8 +1000,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         configuracaoCobrancaId: null,
         valor: null as number | null,
         origem: 'Indisponivel',
-        valorUnitarioDiario: null as number | null,
-        quantidadeDias: null as number | null,
+        valorUnitario: null as number | null,
+        quantidadeUnidades: null as number | null,
+        tipoTarifa: null as TipoTarifaEstacionamento | null,
         tipoCobranca: 'Avulso'
       });
     }
@@ -980,41 +1011,49 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   private aplicarRespostaValorEstacionamento(res: {
     valor: number | null;
-    valorUnitarioDiario: number | null;
-    quantidadeDias: number | null;
+    valorUnitario: number | null;
+    quantidadeUnidades: number | null;
+    tipoTarifa: TipoTarifaEstacionamento | null;
+    tipoCobranca?: string;
     origem: string;
   }): void {
     this.saidaValorFixoDaFatura = false;
+    this.saidaTipoTarifa.set(res.tipoTarifa === 1 || res.tipoTarifa === 2 ? res.tipoTarifa : 2);
+    this.saidaTipoCobranca.set(res.tipoCobranca?.trim() || 'Avulso');
+
     const valorTotal =
       res.valor != null && Number.isFinite(Number(res.valor))
         ? Math.round(Number(res.valor) * 100) / 100
         : null;
-    const diaria =
-      res.valorUnitarioDiario != null && Number.isFinite(Number(res.valorUnitarioDiario))
-        ? Math.round(Number(res.valorUnitarioDiario) * 100) / 100
+    const unitario =
+      res.valorUnitario != null && Number.isFinite(Number(res.valorUnitario))
+        ? Math.round(Number(res.valorUnitario) * 100) / 100
         : null;
     const qtdApi =
-      res.quantidadeDias != null && Number.isFinite(Number(res.quantidadeDias)) && Number(res.quantidadeDias) > 0
-        ? Math.trunc(Number(res.quantidadeDias))
+      res.quantidadeUnidades != null &&
+      Number.isFinite(Number(res.quantidadeUnidades)) &&
+      Number(res.quantidadeUnidades) >= 0
+        ? Math.trunc(Number(res.quantidadeUnidades))
         : null;
     const origemFaturaItem = String(res.origem ?? '').toLowerCase() === 'faturaitem';
 
-    if (diaria != null) {
-      this.aplicarValorEstacionamento(diaria, true);
+    if (unitario != null) {
+      this.aplicarValorEstacionamento(unitario, true);
       if (qtdApi != null) {
         this.saidaQuantidadeDiarias.set(qtdApi);
-        this.saidaValor.set(valorTotal ?? calcularTotalDiarias(diaria, qtdApi));
+        this.saidaValor.set(valorTotal ?? calcularTotalDiarias(unitario, qtdApi));
       }
       return;
     }
 
     if (valorTotal != null) {
       const qtd = qtdApi ?? Math.max(this.saidaQuantidadeDiarias() || 1, 1);
-      const unitario = Math.round((valorTotal / qtd) * 100) / 100;
+      const unitarioDerivado =
+        qtd > 0 ? Math.round((valorTotal / qtd) * 100) / 100 : valorTotal;
       this.saidaValorFixoDaFatura = origemFaturaItem;
       this.saidaQuantidadeDiarias.set(qtd);
-      this.saidaValorDiaria.set(unitario);
-      this.saidaValorDiariaTexto.set(formatarBrl(unitario));
+      this.saidaValorDiaria.set(unitarioDerivado);
+      this.saidaValorDiariaTexto.set(formatarBrl(unitarioDerivado));
       this.saidaValorBloqueado.set(true);
       this.saidaValor.set(valorTotal);
       return;
@@ -1023,9 +1062,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.aplicarValorEstacionamento(null, false);
   }
 
-  private aplicarValorEstacionamento(valorDiaria: number | null, bloqueado: boolean): void {
-    this.saidaValorDiaria.set(valorDiaria);
-    this.saidaValorDiariaTexto.set(valorDiaria != null ? formatarBrl(valorDiaria) : '');
+  private aplicarValorEstacionamento(valorUnitario: number | null, bloqueado: boolean): void {
+    this.saidaValorDiaria.set(valorUnitario);
+    this.saidaValorDiariaTexto.set(valorUnitario != null ? formatarBrl(valorUnitario) : '');
     this.saidaValorBloqueado.set(bloqueado);
     this.recalcularCobrancaSaida();
   }
@@ -1033,7 +1072,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private recalcularCobrancaSaida(): void {
     if (this.saidaValorFixoDaFatura) return;
     const entrada = this.registroSelecionado()?.dataHoraEntrada;
-    const qtd = calcularQuantidadeDiarias(entrada, this.permanenciaDataHora);
+    const qtd = calcularQuantidadeUnidades(
+      entrada,
+      this.permanenciaDataHora,
+      this.saidaTipoTarifa()
+    );
     this.saidaQuantidadeDiarias.set(qtd);
     this.saidaValor.set(calcularTotalDiarias(this.saidaValorDiaria(), qtd));
   }
@@ -1044,6 +1087,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.saidaValorDiaria.set(null);
     this.saidaValorDiariaTexto.set('');
     this.saidaQuantidadeDiarias.set(1);
+    this.saidaTipoTarifa.set(null);
+    this.saidaTipoCobranca.set('Avulso');
     this.saidaValor.set(null);
     this.saidaValorBloqueado.set(false);
     this.saidaValorLoading.set(false);

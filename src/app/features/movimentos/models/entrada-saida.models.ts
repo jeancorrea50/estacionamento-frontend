@@ -204,18 +204,30 @@ export interface EntradaSaidaPagedResult<T> {
  * GET `/api/EntradaSaida/valor-estacionamento?entradaSaidaId=`
  * Espelha `ValorEstacionamentoOutput` do backend.
  */
-export type ValorEstacionamentoOrigem = 'FaturaItem' | 'Calculado' | 'Indisponivel';
+export type ValorEstacionamentoOrigem =
+  | 'FaturaItem'
+  | 'ConfiguracaoCobranca'
+  | 'EstacionamentoConfiguracao'
+  | 'Indisponivel'
+  | string;
+
+/** Backend `TipoTarifaEstacionamento`: Hora=1, Diaria=2. */
+export type TipoTarifaEstacionamento = 1 | 2;
 
 export interface ValorEstacionamentoResponse {
   entradaSaidaId: number;
   estacionamentoId: number;
   transportadoraId: number | null;
   configuracaoCobrancaId: number | null;
-  /** Valor final (FaturaItem.ValorTotal ou diária × dias). */
+  /** Valor final (unitário × unidades, ou FaturaItem). */
   valor: number | null;
-  origem: ValorEstacionamentoOrigem | string;
-  valorUnitarioDiario: number | null;
-  quantidadeDias: number | null;
+  origem: ValorEstacionamentoOrigem;
+  /** Valor unitário (hora ou diária). */
+  valorUnitario: number | null;
+  /** Quantidade cobrada (horas ou dias). */
+  quantidadeUnidades: number | null;
+  /** Hora=1 | Diaria=2 (quando aplicável). */
+  tipoTarifa: TipoTarifaEstacionamento | null;
   /** Avulso | Faturado */
   tipoCobranca: string;
 }

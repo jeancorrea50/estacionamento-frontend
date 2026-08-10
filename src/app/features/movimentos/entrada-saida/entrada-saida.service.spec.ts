@@ -138,9 +138,10 @@ describe('EntradaSaidaService', () => {
     service.obterValorEstacionamento(4038).subscribe((res) => {
       valor = res.valor;
       expect(res.entradaSaidaId).toBe(4038);
-      expect(res.origem).toBe('Calculado');
-      expect(res.valorUnitarioDiario).toBe(25);
-      expect(res.quantidadeDias).toBe(3);
+      expect(res.origem).toBe('EstacionamentoConfiguracao');
+      expect(res.valorUnitario).toBe(11);
+      expect(res.quantidadeUnidades).toBe(2);
+      expect(res.tipoTarifa).toBe(2);
     });
 
     const req = httpMock.expectOne(
@@ -154,15 +155,16 @@ describe('EntradaSaidaService', () => {
         EntradaSaidaId: 4038,
         EstacionamentoId: 2,
         TransportadoraId: 12,
-        ConfiguracaoCobrancaId: 5,
-        Valor: 75,
-        Origem: 'Calculado',
-        ValorUnitarioDiario: 25,
-        QuantidadeDias: 3,
-        TipoCobranca: 'Faturado'
+        ConfiguracaoCobrancaId: null,
+        Valor: 22,
+        Origem: 'EstacionamentoConfiguracao',
+        ValorUnitario: 11,
+        QuantidadeUnidades: 2,
+        TipoTarifa: 2,
+        TipoCobranca: 'Avulso'
       }
     });
-    expect(valor).toBe(75);
+    expect(valor).toBe(22);
   });
 
   it('deve baixar recibo PDF com modo e valor na saída', () => {

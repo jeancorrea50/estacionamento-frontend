@@ -542,16 +542,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
   }
 
-    if (result.status !== 'incomplete') {
-      this.cnpjError = result.message;
-      return;
-    }
-
-    if (this.transportadoraForm.get('pessoa.cnpj')?.touched) {
-      this.cnpjError = result.message;
-    }
-  }
-
   /** Listagem via GET /api/Transportadora?... */
   carregarLista(): void {
     this.jaBuscou = true;

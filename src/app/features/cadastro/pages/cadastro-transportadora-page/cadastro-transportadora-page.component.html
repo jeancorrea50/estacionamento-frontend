@@ -314,6 +314,41 @@
                                 <input id="inscricaoEstadual" class="field__input est-field__control" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
                               </div>
                             </div>
+                            @if (importacaoRedeLoading) {
+                              <p class="field__hint importacao-rede-hint">Verificando cadastro na rede GTS…</p>
+                            }
+                            @if (importacaoRede?.podeImportar) {
+                              <div class="importacao-rede-banner" role="status">
+                                <div class="importacao-rede-banner__text">
+                                  <strong>Encontrada na rede</strong>
+                                  <span>
+                                    {{ importacaoRede?.nomeRazaoSocial || 'Transportadora' }}
+                                    @if (importacaoRede?.bancoOrigemNome) {
+                                      · origem {{ importacaoRede?.bancoOrigemNome }}
+                                    }
+                                    · ~{{ importacaoRede?.estimativaMotoristas || 0 }} motoristas,
+                                    ~{{ importacaoRede?.estimativaVeiculos || 0 }} veículos
+                                  </span>
+                                  <span class="importacao-rede-banner__msg">{{ importacaoRede?.mensagem }}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  class="btn btn--primary"
+                                  [disabled]="importacaoEnfileirando"
+                                  (click)="importarDaRede()"
+                                >
+                                  @if (importacaoEnfileirando) {
+                                    Enfileirando…
+                                  } @else {
+                                    Importar da rede
+                                  }
+                                </button>
+                              </div>
+                            } @else if (importacaoRede?.existeNoTenantAtual) {
+                              <p class="field__hint importacao-rede-hint">{{ importacaoRede?.mensagem }}</p>
+                            } @else if (importacaoRede?.existeNoCentral && !importacaoRede?.podeImportar) {
+                              <p class="field__hint importacao-rede-hint">{{ importacaoRede?.mensagem }}</p>
+                            }
                             <div class="est-field est-field--status-row">
                               <span class="est-field__label">Status</span>
                               <label class="est-switch">

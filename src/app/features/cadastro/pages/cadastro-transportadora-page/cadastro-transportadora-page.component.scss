@@ -505,6 +505,37 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   color: var(--success, #22c55e);
 }
 
+.importacao-rede-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}
+
+.importacao-rede-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--est-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--est-accent, #4f8cff) 12%, transparent);
+}
+
+.importacao-rede-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 12rem;
+  font-size: 0.875rem;
+}
+
+.importacao-rede-banner__msg {
+  opacity: 0.85;
+}
+
 .required {
   color: var(--danger, #dc3545);
 }

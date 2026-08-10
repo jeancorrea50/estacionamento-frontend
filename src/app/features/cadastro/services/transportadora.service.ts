@@ -10,6 +10,10 @@ import {
   TransportadoraObterPorIdResultDTO,
   TransportadoraContatoComplementarDTO
 } from '../models/transportadora.dto';
+import {
+  ImportacaoTransportadoraConsulta,
+  ImportacaoTransportadoraStatus
+} from '../models/importacao-transportadora.models';
 import { parseObservacaoContato, TRSPC1_PREFIX } from '../mappers/transportadora-contato.mapper';
 
 /** Base da API. Contrato: GET/POST/PUT em `/api/Transportadora`, GET/DELETE em `/api/Transportadora/{id}`. */
@@ -95,6 +99,105 @@ export class TransportadoraService {
       }),
       catchError(() => of(null))
     );
+  }
+
+  /**
+   * GET /api/Transportadora/importacao/consultar/{cnpj}
+   * Valida tenant local e, se ausente, consulta o cadastro central da rede.
+   */
+  consultarImportacaoRede(cnpj: string): Observable<ImportacaoTransportadoraConsulta | null> {
+    const cnpjDigits = String(cnpj ?? '').replace(/\D/g, '');
+    if (cnpjDigits.length !== 14) return of(null);
+    return this.http.get<unknown>(`${TRANSPORTADORA}/importacao/consultar/${cnpjDigits}`).pipe(
+      timeout(20000),
+      map((body) => this.peelImportacaoConsulta(body)),
+      catchError(() => of(null))
+    );
+  }
+
+  /**
+   * POST /api/Transportadora/importacao/{cnpj}
+   * Enfileira importação Transportadora + frota + motoristas via workers.
+   */
+  enfileirarImportacaoRede(cnpj: string): Observable<{ ok: boolean; data?: ImportacaoTransportadoraStatus; message?: string }> {
+    const cnpjDigits = String(cnpj ?? '').replace(/\D/g, '');
+    if (cnpjDigits.length !== 14) {
+      return of({ ok: false, message: 'CNPJ inválido.' });
+    }
+    return this.http.post<unknown>(`${TRANSPORTADORA}/importacao/${cnpjDigits}`, {}).pipe(
+      timeout(30000),
+      map((body) => {
+        const o = body as Record<string, unknown>;
+        const success = o['success'] === true || o['sucesso'] === true || o['Success'] === true;
+        const msg = String(o['message'] ?? o['mensagem'] ?? o['Message'] ?? '');
+        const raw = (o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'] ?? null) as Record<string, unknown> | null;
+        return {
+          ok: success,
+          message: msg || (success ? 'Importação enfileirada.' : 'Falha ao enfileirar.'),
+          data: raw ? this.mapImportacaoStatus(raw) : undefined
+        };
+      }),
+      catchError((err) => {
+        const msg =
+          err?.error?.message ??
+          err?.error?.mensagem ??
+          (Array.isArray(err?.error?.errors) ? err.error.errors[0] : null) ??
+          err?.message ??
+          'Falha ao enfileirar importação.';
+        return of({ ok: false, message: String(msg) });
+      })
+    );
+  }
+
+  obterStatusImportacao(id: number): Observable<ImportacaoTransportadoraStatus | null> {
+    if (!id || id <= 0) return of(null);
+    return this.http.get<unknown>(`${TRANSPORTADORA}/importacao/status/${id}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const o = body as Record<string, unknown>;
+        const raw = (o['result'] ?? o['Result'] ?? o['data'] ?? body) as Record<string, unknown>;
+        return this.mapImportacaoStatus(raw);
+      }),
+      catchError(() => of(null))
+    );
+  }
+
+  private peelImportacaoConsulta(body: unknown): ImportacaoTransportadoraConsulta | null {
+    if (!body || typeof body !== 'object') return null;
+    const o = body as Record<string, unknown>;
+    const raw = (o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'] ?? body) as Record<string, unknown>;
+    if (!raw || typeof raw !== 'object') return null;
+    const g = (k: string) => raw[k] ?? raw[k.charAt(0).toUpperCase() + k.slice(1)];
+    return {
+      origem: String(g('origem') ?? ''),
+      existeNoTenantAtual: g('existeNoTenantAtual') === true,
+      existeNoCentral: g('existeNoCentral') === true,
+      podeImportar: g('podeImportar') === true,
+      mensagem: String(g('mensagem') ?? ''),
+      cnpj: String(g('cnpj') ?? ''),
+      codExportacao: g('codExportacao') != null ? String(g('codExportacao')) : undefined,
+      nomeRazaoSocial: g('nomeRazaoSocial') != null ? String(g('nomeRazaoSocial')) : undefined,
+      fantasia: g('fantasia') != null ? String(g('fantasia')) : undefined,
+      bancoDadosConexaoOrigemId: g('bancoDadosConexaoOrigemId') != null ? Number(g('bancoDadosConexaoOrigemId')) : null,
+      bancoOrigemNome: g('bancoOrigemNome') != null ? String(g('bancoOrigemNome')) : undefined,
+      transportadoraIdLocal: g('transportadoraIdLocal') != null ? Number(g('transportadoraIdLocal')) : null,
+      estimativaMotoristas: Number(g('estimativaMotoristas') ?? 0) || 0,
+      estimativaVeiculos: Number(g('estimativaVeiculos') ?? 0) || 0
+    };
+  }
+
+  private mapImportacaoStatus(raw: Record<string, unknown>): ImportacaoTransportadoraStatus {
+    const g = (k: string) => raw[k] ?? raw[k.charAt(0).toUpperCase() + k.slice(1)];
+    return {
+      id: Number(g('id') ?? 0) || 0,
+      cnpj: String(g('cnpj') ?? ''),
+      status: Number(g('status') ?? 0) || 0,
+      etapaAtual: g('etapaAtual') != null ? String(g('etapaAtual')) : undefined,
+      mensagemErro: g('mensagemErro') != null ? String(g('mensagemErro')) : undefined,
+      quantidadeMotoristas: Number(g('quantidadeMotoristas') ?? 0) || 0,
+      quantidadeVeiculos: Number(g('quantidadeVeiculos') ?? 0) || 0,
+      quantidadeVinculos: Number(g('quantidadeVinculos') ?? 0) || 0
+    };
   }
 
   /** @deprecated Use `obterTransportadoraPorId`. */

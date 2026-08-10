@@ -12,6 +12,7 @@ import { CnpjLookupResult, CnpjService } from '../../services/cnpj.service';
 import { TransportadoraListItemDTO } from '../../models/transportadora.dto';
 import { VeiculoDTO, VeiculoListItemDTO, VeiculoMotoristaVinculoDTO } from '../../models/veiculo.dto';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
+import { ImportacaoTransportadoraConsulta } from '../../models/importacao-transportadora.models';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
@@ -101,6 +102,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   cnpjError: string | null = null;
   cnpjSuccess: string | null = null;
   private ultimoCnpjConsultado = '';
+  /** Oferta de importação da rede (Central) após consulta local→central. */
+  importacaoRede: ImportacaoTransportadoraConsulta | null = null;
+  importacaoRedeLoading = false;
+  importacaoEnfileirando = false;
+  importacaoJobId: number | null = null;
   /** ID da transportadora em edição (usado na Frota e Motoristas). */
   transportadoraId: number | null = null;
 
@@ -447,8 +453,94 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     if (result.status === 'success' && result.data) {
       this.applyCnpjToForm(result.data);
       this.cnpjSuccess = result.message;
+      this.consultarImportacaoRede(result.normalizedCnpj);
       return;
     }
+
+    if (result.normalizedCnpj?.length === 14) {
+      this.consultarImportacaoRede(result.normalizedCnpj);
+    } else {
+      this.importacaoRede = null;
+    }
+
+    if (result.status === 'incomplete') {
+      if (this.transportadoraForm.get('pessoa.cnpj')?.touched) {
+        this.cnpjError = result.message;
+      }
+      return;
+    }
+
+    this.cnpjError = result.message;
+  }
+
+  /** Após BrasilAPI (ou CNPJ válido), verifica se já existe no tenant ou na rede central. */
+  private consultarImportacaoRede(cnpjDigits: string): void {
+    if (this.transportadoraId != null && this.transportadoraId > 0) {
+      this.importacaoRede = null;
+      return;
+    }
+    if (!cnpjDigits || cnpjDigits.length !== 14) {
+      this.importacaoRede = null;
+      return;
+    }
+
+    this.importacaoRedeLoading = true;
+    this.cdr.markForCheck();
+    this.transportadoraService.consultarImportacaoRede(cnpjDigits).subscribe({
+      next: (consulta) => {
+        this.importacaoRedeLoading = false;
+        this.importacaoRede = consulta;
+        if (consulta?.podeImportar && consulta.nomeRazaoSocial) {
+          const pessoa = this.transportadoraForm.get('pessoa');
+          const isEmpty = (v: unknown) => v == null || String(v).trim() === '';
+          if (isEmpty(pessoa?.get('razaoSocial')?.value)) {
+            pessoa?.get('razaoSocial')?.setValue(consulta.nomeRazaoSocial, { emitEvent: false });
+          }
+          if (consulta.fantasia && isEmpty(pessoa?.get('nomeFantasia')?.value)) {
+            pessoa?.get('nomeFantasia')?.setValue(consulta.fantasia, { emitEvent: false });
+          }
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.importacaoRedeLoading = false;
+        this.importacaoRede = null;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /** Enfileira importação assíncrona (workers + notificação ao usuário). */
+  importarDaRede(): void {
+    const cnpj = String(this.transportadoraForm.get('pessoa.cnpj')?.value ?? '').replace(/\D/g, '');
+    if (!this.importacaoRede?.podeImportar || cnpj.length !== 14 || this.importacaoEnfileirando) return;
+
+    this.importacaoEnfileirando = true;
+    this.cdr.markForCheck();
+    this.transportadoraService.enfileirarImportacaoRede(cnpj).subscribe({
+      next: (res) => {
+        this.importacaoEnfileirando = false;
+        if (res.ok) {
+          this.importacaoJobId = res.data?.id ?? null;
+          this.toast.success(
+            res.message ||
+              'Importação enfileirada. Você será avisado no sino quando cadastro, frota e motoristas forem copiados.'
+          );
+          this.importacaoRede = this.importacaoRede
+            ? { ...this.importacaoRede, podeImportar: false, mensagem: 'Importação em andamento…' }
+            : null;
+        } else {
+          this.toast.error(res.message || 'Não foi possível enfileirar a importação.');
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.importacaoEnfileirando = false;
+        this.toast.error('Não foi possível enfileirar a importação.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
 
     if (result.status !== 'incomplete') {
       this.cnpjError = result.message;

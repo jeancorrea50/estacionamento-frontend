@@ -131,6 +131,13 @@ function isSugerirNomeBancoGet(req: HttpRequest<unknown>): boolean {
   return req.url.toLowerCase().includes('/bancodadosconexao/sugerir-nome');
 }
 
+/** Escrita de Motorista: toast fica na tela (notifications). Evita sobrescrever com genérico. */
+function isMotoristaWriteRequest(req: HttpRequest<unknown>): boolean {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return false;
+  const u = req.url.toLowerCase().split('?')[0];
+  return u.endsWith('/motorista') || /\/motorista\/\d+$/.test(u);
+}
+
 /**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
@@ -151,6 +158,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         isPasswordResetPublicRequest(req) ||
         isUsuarioRegisterRequest(req) ||
         isSugerirNomeBancoGet(req) ||
+        isMotoristaWriteRequest(req) ||
         (isEstacionamentoConfiguracaoAtualGet(req) && apiError.status === 404) ||
         (isMovimentosLookupSilencioso(req) && (apiError.status === 404 || apiError.status === 204)) ||
         (isValorEstacionamentoGet(req) && (apiError.status === 404 || apiError.status === 204));

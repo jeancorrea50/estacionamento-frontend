@@ -29,6 +29,7 @@ import {
   TransportadoraFormRawValue
 } from '../../mappers/transportadora-payload.mapper';
 import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/components/modal-busca-motorista/modal-busca-motorista.component';
+import { CadastroConfirmDialogComponent } from '../../components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
@@ -1885,11 +1886,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       },
       error: (err: unknown) => {
         this.salvandoMotorista = false;
-        // Interceptor já exibe toast em erros HTTP; evita sobrescrever notifications com genérico.
-        // Em falha lógica (success:false), o toast ainda não saiu — exibe a mensagem da API.
-        if (!this.foiErroHttpJaNotificado(err)) {
-          this.toast.error(this.mensagemErroApi(err, 'Erro ao salvar motorista.'));
-        }
+        this.toast.error(this.mensagemErroApi(err, 'Erro ao salvar motorista.'));
         this.cdr.markForCheck();
       }
     });
@@ -2043,38 +2040,61 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   excluirCondutor(condutor: MotoristaListItemDTO): void {
-    if (!confirm('Excluir este motorista?')) return;
     if (condutor.id <= 0) return;
-    this.motoristaService.excluir(condutor.id).subscribe({
-      next: () => this.carregarCondutores(),
-      error: (err: unknown) => {
-        if (!this.foiErroHttpJaNotificado(err)) {
-          this.toast.error(this.mensagemErroApi(err, 'Erro ao excluir motorista.'));
-        }
+
+    const nome = (condutor.nomeCompleto || '').trim() || 'este motorista';
+    const ref = this.dialog.open(CadastroConfirmDialogComponent, {
+      width: '420px',
+      autoFocus: 'dialog',
+      data: {
+        titulo: 'Excluir motorista',
+        mensagem: `Confirma a exclusão de "${nome}"? Esta ação não pode ser desfeita.`,
+        confirmLabel: 'Excluir',
+        confirmColor: 'warn'
       }
     });
-  }
 
-  /** Erro HTTP já tostado pelo interceptor (inclui `notifications` da API). */
-  private foiErroHttpJaNotificado(err: unknown): boolean {
-    return !!(err && typeof err === 'object' && (err as ApiError).toastShown === true);
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+      this.motoristaService.excluir(condutor.id).subscribe({
+        next: () => {
+          this.carregarCondutores();
+          this.toast.success('Motorista excluído com sucesso.');
+          this.cdr.markForCheck();
+        },
+        error: (err: unknown) => {
+          this.toast.error(this.mensagemErroApi(err, 'Erro ao excluir motorista.'));
+          this.cdr.markForCheck();
+        }
+      });
+    });
   }
 
   /** Preferência: message do ApiError (já com notifications) → fallback. */
   private mensagemErroApi(err: unknown, fallback: string): string {
     if (err && typeof err === 'object') {
       const api = err as ApiError & {
-        error?: { notifications?: unknown; Notifications?: unknown; message?: string };
+        error?: {
+          notifications?: unknown;
+          Notifications?: unknown;
+          message?: string;
+          Message?: string;
+        };
+        notifications?: unknown;
+        Notifications?: unknown;
       };
-      if (typeof api.message === 'string' && api.message.trim()) return api.message.trim();
-      const notes = api.error?.notifications ?? api.error?.Notifications;
+      const notes =
+        api.notifications ??
+        api.Notifications ??
+        api.error?.notifications ??
+        api.error?.Notifications;
       if (Array.isArray(notes) && notes.length) {
         const text = notes.filter((n): n is string => typeof n === 'string').join(' ').trim();
         if (text) return text;
       }
-      if (typeof api.error?.message === 'string' && api.error.message.trim()) {
-        return api.error.message.trim();
-      }
+      if (typeof api.message === 'string' && api.message.trim()) return api.message.trim();
+      const nestedMsg = api.error?.message ?? api.error?.Message;
+      if (typeof nestedMsg === 'string' && nestedMsg.trim()) return nestedMsg.trim();
     }
     if (err instanceof Error && err.message.trim()) return err.message.trim();
     return fallback;

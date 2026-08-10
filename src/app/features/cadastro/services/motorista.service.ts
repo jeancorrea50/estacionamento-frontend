@@ -94,8 +94,11 @@ export class MotoristaService {
   }
 
   excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${MOTORISTA}/${id}`).pipe(
+    return this.http.delete<unknown>(`${MOTORISTA}/${id}`).pipe(
       timeout(15000),
+      map((res) => {
+        throwIfServiceFailure(res);
+      }),
       catchError((err) => throwError(() => err))
     );
   }

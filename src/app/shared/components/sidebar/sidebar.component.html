@@ -31,7 +31,9 @@
               (click)="toggleMenu(item.route)"
               [attr.aria-expanded]="isMenuExpanded(item.route)"
             >
-              <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+              <span class="menu-item__icon" aria-hidden="true">
+                <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+              </span>
               <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
               <span class="material-symbols-outlined icon chevron" [class.hidden]="isCollapsed()">
                 {{ isMenuExpanded(item.route) ? 'expand_less' : 'expand_more' }}
@@ -89,7 +91,9 @@
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: false }"
           >
-            <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+            <span class="menu-item__icon" aria-hidden="true">
+              <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+            </span>
             <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
           </a>
         }
@@ -100,14 +104,19 @@
 
   @if (!isCollapsed()) {
     <section class="sidebar-security-card" aria-label="Segurança">
-      <p class="sidebar-security-card__title">Segurança</p>
-      <p class="sidebar-security-card__desc">Suas informações estão protegidas.</p>
+      <span class="sidebar-security-card__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">verified_user</span>
+      </span>
+      <div class="sidebar-security-card__copy">
+        <p class="sidebar-security-card__title">Segurança</p>
+        <p class="sidebar-security-card__desc">Suas informações estão protegidas.</p>
+      </div>
     </section>
   }
 
   <div class="sidebar-footer">
     <p class="version" [class.hidden]="isCollapsed()">v1.0.0</p>
-    <button class="logout-btn" (click)="logout()" [title]="isCollapsed() ? 'Logout' : ''">
+    <button type="button" class="logout-btn" (click)="logout()" [title]="isCollapsed() ? 'Sair' : ''">
       <span class="material-symbols-outlined icon">logout</span>
       <span class="label" [class.hidden]="isCollapsed()">Sair</span>
     </button>

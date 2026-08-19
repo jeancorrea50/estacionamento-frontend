@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 import { SERVICO_KEYS, SERVICO_VALOR_LABELS } from '../faturamento-config-cobranca.helpers';
+import { resumoVagasAcordo, tipoCobrancaExcedenteLabel } from '../config-cobranca-acordo.util';
 import type { ConfigCobrancaListaItem } from '../faturamento-config-cobranca.types';
 
 export interface ConfigCobrancaViewRuleDialogData {
@@ -28,8 +29,15 @@ export interface ConfigCobrancaViewRuleDialogData {
         @if (data.row.dataCobranca) {
           <div><dt>Data da cobrança</dt><dd>{{ formatarData(data.row.dataCobranca) }}</dd></div>
         }
-        <div><dt>Regra de fechamento</dt><dd>{{ data.row.fechamento }}</dd></div>
-        <div><dt>Prazo de vencimento</dt><dd>{{ data.row.prazoVencimento }}</dd></div>
+        @if (data.row.modalidade === 'Acordo') {
+          <div><dt>Vagas do acordo</dt><dd>{{ resumoVagas() }}</dd></div>
+          <div><dt>Custo do excedente</dt><dd>{{ formatarValorEstacionamento(data.row.acordo.custoExcedente) }}</dd></div>
+          <div><dt>Tipo do excedente</dt><dd>{{ tipoExcedente() }}</dd></div>
+        }
+        @if (data.row.modalidade !== 'Diária') {
+          <div><dt>Regra de fechamento</dt><dd>{{ data.row.fechamento }}</dd></div>
+          <div><dt>Prazo de vencimento</dt><dd>{{ data.row.prazoVencimento }}</dd></div>
+        }
         <div><dt>Valor do estacionamento</dt><dd>{{ formatarValorEstacionamento(data.row.valorEstacionamento) }}</dd></div>
         <div>
           <dt>Envio automático</dt>
@@ -93,6 +101,14 @@ export class ConfigCobrancaViewRuleDialogComponent {
     if (!iso) return '—';
     const [ano, mes, dia] = iso.split('-');
     return ano && mes && dia ? `${dia}/${mes}/${ano}` : iso;
+  }
+
+  resumoVagas(): string {
+    return resumoVagasAcordo(this.data.row.acordo.vagas);
+  }
+
+  tipoExcedente(): string {
+    return tipoCobrancaExcedenteLabel(this.data.row.acordo.tipoCobrancaExcedente);
   }
 
   servicosHabilitados(): { label: string; valor: number | null }[] {

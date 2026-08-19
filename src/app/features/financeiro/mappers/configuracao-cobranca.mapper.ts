@@ -1,20 +1,24 @@
 import {
+  ConfiguracaoCobrancaAcordo,
   ConfiguracaoCobrancaOutput,
   ConfiguracaoCobrancaPostInput,
   ConfiguracaoCobrancaSearchOutput,
   ModalidadeCobranca,
   RegraFechamento,
-  StatusConfiguracaoCobranca
+  StatusConfiguracaoCobranca,
+  TipoCobrancaExcedente
 } from '../models/configuracao-cobranca.models';
 
 export { ModalidadeCobranca, RegraFechamento, StatusConfiguracaoCobranca };
 import type {
+  ConfigCobrancaAcordo,
   ConfigCobrancaListaItem,
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
   ConfigCobrancaServicos,
   ConfigCobrancaStatus
 } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
+import { acordoVazio, MESES_ACORDO } from '../pages/faturamento-page/config-cobranca/config-cobranca-acordo.util';
 
 /** Rótulo de cada serviço adicional, usado no resumo textual e nas telas de visualização. */
 export const SERVICO_LABELS: Record<ConfigCobrancaServicoKey, string> = {
@@ -50,6 +54,8 @@ export function modalidadeLabel(value: ModalidadeCobranca | number): ConfigCobra
       return 'Quinzenal';
     case ModalidadeCobranca.Personalizado:
       return 'Personalizada';
+    case ModalidadeCobranca.Acordo:
+      return 'Acordo';
     case ModalidadeCobranca.Mensal:
     default:
       return 'Mensal';
@@ -66,6 +72,8 @@ export function modalidadeFromLabel(label: ConfigCobrancaModalidade | string): M
       return ModalidadeCobranca.Quinzenal;
     case 'Personalizada':
       return ModalidadeCobranca.Personalizado;
+    case 'Acordo':
+      return ModalidadeCobranca.Acordo;
     case 'Mensal':
     default:
       return ModalidadeCobranca.Mensal;
@@ -110,6 +118,9 @@ export function fechamentoResumoLabel(
   regra: RegraFechamento | number,
   diaFechamento: number | null | undefined
 ): string {
+  if (Number(modalidade) === ModalidadeCobranca.Diaria) {
+    return '—';
+  }
   if (Number(modalidade) === ModalidadeCobranca.Semanal) {
     const nome = diaFechamento != null ? DIA_SEMANA_NOMES[diaFechamento] : undefined;
     return nome ? `Toda ${nome}` : 'Semanal';
@@ -125,6 +136,11 @@ export function modalidadeBadgeLabel(modalidade: ConfigCobrancaModalidade | stri
 export function prazoVencimentoLabel(dias: number): string {
   if (!dias || dias <= 0) return '—';
   return dias === 1 ? '1 dia após fechamento' : `${dias} dias após fechamento`;
+}
+
+function prazoVencimentoResumoLabel(modalidade: ModalidadeCobranca | number, dias: number): string {
+  if (Number(modalidade) === ModalidadeCobranca.Diaria) return '—';
+  return prazoVencimentoLabel(dias);
 }
 
 /** Normaliza o `DateTime` do backend para `yyyy-MM-dd`, formato aceito por `input[type=date]`. */
@@ -145,6 +161,37 @@ function numeroOuNull(value: unknown): number | null {
   if (value == null || value === '') return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function acordoFromDto(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaAcordo {
+  const acordo = acordoVazio();
+  for (const mes of MESES_ACORDO) {
+    acordo.vagas[mes.mes] = numeroOuNull(dto[mes.api as keyof ConfiguracaoCobrancaOutput]);
+  }
+  acordo.custoExcedente = numeroOuNull(dto.custoExcedente);
+  acordo.tipoCobrancaExcedente = Number(dto.tipoCobrancaExcedente) || TipoCobrancaExcedente.PorVaga;
+  return acordo;
+}
+
+function acordoToPayload(item: ConfigCobrancaListaItem, isAcordo: boolean): ConfiguracaoCobrancaAcordo {
+  const vazio = acordoVazio();
+  const origem = isAcordo ? (item.acordo ?? vazio) : vazio;
+  return {
+    vagasJaneiro: origem.vagas[1] ?? null,
+    vagasFevereiro: origem.vagas[2] ?? null,
+    vagasMarco: origem.vagas[3] ?? null,
+    vagasAbril: origem.vagas[4] ?? null,
+    vagasMaio: origem.vagas[5] ?? null,
+    vagasJunho: origem.vagas[6] ?? null,
+    vagasJulho: origem.vagas[7] ?? null,
+    vagasAgosto: origem.vagas[8] ?? null,
+    vagasSetembro: origem.vagas[9] ?? null,
+    vagasOutubro: origem.vagas[10] ?? null,
+    vagasNovembro: origem.vagas[11] ?? null,
+    vagasDezembro: origem.vagas[12] ?? null,
+    custoExcedente: isAcordo ? origem.custoExcedente : null,
+    tipoCobrancaExcedente: isAcordo ? origem.tipoCobrancaExcedente : null
+  };
 }
 
 export function servicosFromOutput(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaServicos {
@@ -172,7 +219,7 @@ export function mapSearchToListaItem(dto: ConfiguracaoCobrancaSearchOutput): Con
     regraFechamento: dto.regraFechamento,
     fechamento: fechamentoResumoLabel(dto.modalidadeCobranca, dto.regraFechamento, dto.diaFechamento),
     prazoVencimentoDias: dto.prazoVencimentoDias,
-    prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
+    prazoVencimento: prazoVencimentoResumoLabel(dto.modalidadeCobranca, dto.prazoVencimentoDias),
     dataCobranca: null,
     envioAutomatico: dto.envioAutomaticoEmail,
     gerarFaturaAutomaticamente: dto.gerarFaturaAutomaticamente,
@@ -190,7 +237,8 @@ export function mapSearchToListaItem(dto: ConfiguracaoCobrancaSearchOutput): Con
     pagamentoParcial: false,
     servicos: servicosVazios(),
     servicosCobrados: '—',
-    parcial: true
+    parcial: true,
+    acordo: acordoVazio()
   };
 }
 
@@ -208,7 +256,7 @@ export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCob
     regraFechamento: dto.regraFechamento,
     fechamento: fechamentoResumoLabel(dto.modalidadeCobranca, dto.regraFechamento, dto.diaFechamento),
     prazoVencimentoDias: dto.prazoVencimentoDias,
-    prazoVencimento: prazoVencimentoLabel(dto.prazoVencimentoDias),
+    prazoVencimento: prazoVencimentoResumoLabel(dto.modalidadeCobranca, dto.prazoVencimentoDias),
     dataCobranca: toIsoDate(dto.dataCobranca),
     envioAutomatico: !!dto.envioAutomaticoEmail,
     gerarFaturaAutomaticamente: !!dto.gerarFaturaAutomaticamente,
@@ -226,17 +274,22 @@ export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCob
     pagamentoParcial: !!dto.permitirPagamentoParcial,
     servicos,
     servicosCobrados: servicosCobradosLabel(servicos),
-    parcial: false
+    parcial: false,
+    acordo: acordoFromDto(dto)
   };
 }
 
 export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): ConfiguracaoCobrancaPostInput {
   const modalidadeCobranca = item.modalidadeCobranca || modalidadeFromLabel(item.modalidade);
-  const dia =
-    item.regraFechamento === RegraFechamento.DiaFixo && item.diaFechamento && item.diaFechamento > 0
+  const isAcordo = modalidadeCobranca === ModalidadeCobranca.Acordo;
+  const isDiaria = modalidadeCobranca === ModalidadeCobranca.Diaria;
+  const dia = isDiaria
+    ? null
+    : item.regraFechamento === RegraFechamento.DiaFixo && item.diaFechamento && item.diaFechamento > 0
       ? item.diaFechamento
       : null;
   const servicos = item.servicos ?? servicosVazios();
+  const acordo = acordoToPayload(item, isAcordo);
 
   return {
     id: item.id > 0 ? item.id : 0,
@@ -244,7 +297,9 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
     status: statusFromLabel(item.status),
     modalidadeCobranca,
     diaFechamento: dia,
-    regraFechamento: item.regraFechamento || RegraFechamento.UltimoDiaDoMes,
+    regraFechamento: isDiaria
+      ? RegraFechamento.UltimoDiaDoMes
+      : item.regraFechamento || RegraFechamento.UltimoDiaDoMes,
     prazoVencimentoDias: item.prazoVencimentoDias,
     emailFinanceiro: (item.emailFinanceiro ?? '').trim(),
     envioAutomaticoEmail: !!item.envioAutomatico,
@@ -260,6 +315,7 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
     valorAcrescimoFixo: item.aplicarAcrescimoFixo ? Number(item.valorAcrescimoFixo) || 0 : 0,
     valorEstacionamento: item.valorEstacionamento,
     dataCobranca: modalidadeCobranca === ModalidadeCobranca.Personalizado ? item.dataCobranca : null,
+    ...acordo,
     cobrarLavagem: servicos.lavagem.habilitado,
     valorLavagem: servicos.lavagem.habilitado ? servicos.lavagem.valor : null,
     cobrarPernoite: servicos.pernoite.habilitado,
@@ -421,6 +477,22 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     ),
     agruparPorPlaca: pickBool(row, 'agruparPorPlaca', 'AgruparPorPlaca'),
     agruparPorPeriodo: pickBool(row, 'agruparPorPeriodo', 'AgruparPorPeriodo'),
-    agruparPorTransportadora: pickBool(row, 'agruparPorTransportadora', 'AgruparPorTransportadora')
+    agruparPorTransportadora: pickBool(row, 'agruparPorTransportadora', 'AgruparPorTransportadora'),
+    vagasJaneiro: pickNumberOrNull(row, 'vagasJaneiro', 'VagasJaneiro'),
+    vagasFevereiro: pickNumberOrNull(row, 'vagasFevereiro', 'VagasFevereiro'),
+    vagasMarco: pickNumberOrNull(row, 'vagasMarco', 'VagasMarco'),
+    vagasAbril: pickNumberOrNull(row, 'vagasAbril', 'VagasAbril'),
+    vagasMaio: pickNumberOrNull(row, 'vagasMaio', 'VagasMaio'),
+    vagasJunho: pickNumberOrNull(row, 'vagasJunho', 'VagasJunho'),
+    vagasJulho: pickNumberOrNull(row, 'vagasJulho', 'VagasJulho'),
+    vagasAgosto: pickNumberOrNull(row, 'vagasAgosto', 'VagasAgosto'),
+    vagasSetembro: pickNumberOrNull(row, 'vagasSetembro', 'VagasSetembro'),
+    vagasOutubro: pickNumberOrNull(row, 'vagasOutubro', 'VagasOutubro'),
+    vagasNovembro: pickNumberOrNull(row, 'vagasNovembro', 'VagasNovembro'),
+    vagasDezembro: pickNumberOrNull(row, 'vagasDezembro', 'VagasDezembro'),
+    custoExcedente: pickNumberOrNull(row, 'custoExcedente', 'CustoExcedente'),
+    tipoCobrancaExcedente: pickNumberOrNull(row, 'tipoCobrancaExcedente', 'TipoCobrancaExcedente') as
+      | TipoCobrancaExcedente
+      | null
   };
 }

@@ -1,12 +1,16 @@
-FROM node:22-alpine AS build
+FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
+
+ENV NG_CLI_ANALYTICS=false
+ENV CI=true
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build -- --configuration production
+RUN npx ng build --configuration=production
 
 FROM nginx:1.27-alpine
 

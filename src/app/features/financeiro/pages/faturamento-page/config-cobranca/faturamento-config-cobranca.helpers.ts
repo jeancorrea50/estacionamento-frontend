@@ -1,4 +1,6 @@
+import { acordoVazio, isQuantidadeVagasValida, MESES_ACORDO } from './config-cobranca-acordo.util';
 import type {
+  ConfigCobrancaAcordo,
   ConfigCobrancaListaItem,
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
@@ -30,10 +32,18 @@ export const MODALIDADE_OPCOES: { value: ConfigCobrancaModalidade; label: string
   { value: 'Semanal', label: 'Cobrança semanal', icon: 'date_range' },
   { value: 'Mensal', label: 'Cobrança mensal', icon: 'calendar_month' },
   { value: 'Quinzenal', label: 'Cobrança quinzenal', icon: 'calendar_view_week' },
-  { value: 'Personalizada', label: 'Cobrança em data personalizada', icon: 'event' }
+  { value: 'Personalizada', label: 'Cobrança em data personalizada', icon: 'event' },
+  { value: 'Acordo', label: 'Acordo', icon: 'handshake' }
 ];
 
 const MODALIDADES_OFERTADAS: ConfigCobrancaModalidade[] = MODALIDADE_OPCOES.map((o) => o.value);
+
+/** Cobrança diária não usa fechamento nem prazo de vencimento da fatura. */
+export function modalidadeExigeVencimentoFatura(
+  modalidade: ConfigCobrancaModalidade | '' | null | undefined
+): boolean {
+  return modalidade !== 'Diária';
+}
 
 /** Dia da semana persistido em `diaFechamento` quando a modalidade é Semanal. */
 export type DiaSemanaCobranca = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -66,7 +76,8 @@ const VALOR_COBRANCA_LABELS: Partial<Record<ConfigCobrancaModalidade, string>> =
   Semanal: 'Valor da semana',
   Mensal: 'Valor Estadia',
   Quinzenal: 'Valor da quinzena',
-  Personalizada: 'Valor da cobrança'
+  Personalizada: 'Valor da cobrança',
+  Acordo: 'Valor da cobrança'
 };
 
 export function valorCobrancaLabel(modalidade: ConfigCobrancaModalidade | ''): string {
@@ -119,6 +130,7 @@ export function validarFormularioConfig(input: {
   acresValor: number;
   valorEstacionamento: number | null;
   servicos: ConfigCobrancaServicos;
+  acordo?: ConfigCobrancaAcordo;
 }): { ok: true } | { ok: false; mensagens: string[] } {
   const m: string[] = [];
   const regraAtiva = input.gerarFaturaAutomaticamente !== false;
@@ -133,6 +145,20 @@ export function validarFormularioConfig(input: {
       m.push('Informe a data da cobrança para a cobrança em data personalizada.');
     }
 
+    if (input.modalidade === 'Acordo') {
+      const acordo = input.acordo ?? acordoVazio();
+      const mesInvalido = MESES_ACORDO.find((mes) => !isQuantidadeVagasValida(acordo.vagas[mes.mes]));
+      if (mesInvalido) {
+        m.push('Informe a quantidade de vagas de cada mês do acordo (zero ou mais).');
+      }
+      if (!valorInformado(acordo.custoExcedente)) {
+        m.push('Informe o custo do excedente maior que zero.');
+      }
+      if (!acordo.tipoCobrancaExcedente) {
+        m.push('Selecione o tipo de cobrança do excedente.');
+      }
+    }
+
     if (input.modalidade === 'Mensal' && !isDiaMensalValido(input.diaFechamento)) {
       m.push('Informe o dia da cobrança mensal (1 a 31).');
     }
@@ -141,17 +167,19 @@ export function validarFormularioConfig(input: {
       m.push('Selecione o dia da semana da cobrança.');
     }
 
-    if (!input.regraFechamento) m.push('Informe a regra de fechamento.');
-    if (
-      input.modalidade !== 'Mensal' &&
-      input.modalidade !== 'Semanal' &&
-      input.regraFechamento === RegraFechamento.DiaFixo &&
-      !isDiaMensalValido(input.diaFechamento)
-    ) {
-      m.push('Informe o dia de fechamento entre 1 e 31.');
-    }
-    if (!input.prazoVencimentoDias || input.prazoVencimentoDias <= 0) {
-      m.push('Informe o prazo de vencimento em dias (maior que zero).');
+    if (modalidadeExigeVencimentoFatura(input.modalidade)) {
+      if (!input.regraFechamento) m.push('Informe a regra de fechamento.');
+      if (
+        input.modalidade !== 'Mensal' &&
+        input.modalidade !== 'Semanal' &&
+        input.regraFechamento === RegraFechamento.DiaFixo &&
+        !isDiaMensalValido(input.diaFechamento)
+      ) {
+        m.push('Informe o dia de fechamento entre 1 e 31.');
+      }
+      if (!input.prazoVencimentoDias || input.prazoVencimentoDias <= 0) {
+        m.push('Informe o prazo de vencimento em dias (maior que zero).');
+      }
     }
   }
 
@@ -210,6 +238,7 @@ export function montarRegistroDoFormulario(campos: {
   acresValor: number;
   valorEstacionamento: number | null;
   servicos: ConfigCobrancaServicos;
+  acordo?: ConfigCobrancaAcordo;
 }): ConfigCobrancaListaItem {
   const emailNorm = campos.email?.trim() || null;
   let status: ConfigCobrancaStatus = campos.status === 'Inativa' ? 'Inativa' : 'Ativa';
@@ -218,9 +247,13 @@ export function montarRegistroDoFormulario(campos: {
   const modalidadeCobranca = modalidadeFromLabel(campos.modalidade);
 
   // Mensal/Semanal usam diaFechamento com regra Dia fixo (contrato atual sem campo dedicado).
+  // Diária não fecha ciclo: campos de vencimento são neutralizados no payload.
   let regraFechamento = campos.regraFechamento || RegraFechamento.UltimoDiaDoMes;
   let dia: number | null = null;
-  if (campos.modalidade === 'Mensal') {
+  if (campos.modalidade === 'Diária') {
+    regraFechamento = RegraFechamento.UltimoDiaDoMes;
+    dia = null;
+  } else if (campos.modalidade === 'Mensal') {
     regraFechamento = RegraFechamento.DiaFixo;
     dia = isDiaMensalValido(campos.diaFechamento) ? Number(campos.diaFechamento) : null;
   } else if (campos.modalidade === 'Semanal') {
@@ -234,9 +267,11 @@ export function montarRegistroDoFormulario(campos: {
   }
 
   const fechamento =
-    campos.modalidade === 'Semanal'
-      ? `Toda ${diaSemanaLabel(dia).toLowerCase()}`
-      : regraFechamentoLabel(regraFechamento, dia);
+    campos.modalidade === 'Diária'
+      ? '—'
+      : campos.modalidade === 'Semanal'
+        ? `Toda ${diaSemanaLabel(dia).toLowerCase()}`
+        : regraFechamentoLabel(regraFechamento, dia);
 
   // Serviço desligado não leva valor adiante, evitando resíduo no payload.
   const servicos = servicosVazios();
@@ -258,7 +293,8 @@ export function montarRegistroDoFormulario(campos: {
     regraFechamento,
     fechamento,
     prazoVencimentoDias: Number(campos.prazoVencimentoDias) || 0,
-    prazoVencimento: prazoVencimentoLabel(Number(campos.prazoVencimentoDias) || 0),
+    prazoVencimento:
+      campos.modalidade === 'Diária' ? '—' : prazoVencimentoLabel(Number(campos.prazoVencimentoDias) || 0),
     dataCobranca: modalidadeCobranca === ModalidadeCobranca.Personalizado ? campos.dataCobranca || null : null,
     envioAutomatico: campos.envioAuto,
     gerarFaturaAutomaticamente: campos.gerarAuto,
@@ -275,7 +311,8 @@ export function montarRegistroDoFormulario(campos: {
     valorEstacionamento: campos.valorEstacionamento,
     pagamentoParcial: false,
     servicos,
-    servicosCobrados: servicosCobradosLabel(servicos)
+    servicosCobrados: servicosCobradosLabel(servicos),
+    acordo: campos.modalidade === 'Acordo' ? (campos.acordo ?? acordoVazio()) : acordoVazio()
   };
 }
 

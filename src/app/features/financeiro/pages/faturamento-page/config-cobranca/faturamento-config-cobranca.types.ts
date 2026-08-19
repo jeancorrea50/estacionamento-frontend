@@ -2,7 +2,13 @@
  * Modalidades do contrato de configuração de cobrança.
  * Semanal e Mensal exigem `diaFechamento` (1–7 = dia da semana; 1–31 = dia do mês).
  */
-export type ConfigCobrancaModalidade = 'Diária' | 'Semanal' | 'Quinzenal' | 'Mensal' | 'Personalizada';
+export type ConfigCobrancaModalidade =
+  | 'Diária'
+  | 'Semanal'
+  | 'Quinzenal'
+  | 'Mensal'
+  | 'Personalizada'
+  | 'Acordo';
 
 export type ConfigCobrancaStatus = 'Ativa' | 'Inativa' | 'Pendente de dados' | 'Sem e-mail financeiro';
 
@@ -18,6 +24,16 @@ export interface ConfigCobrancaServicoEstado {
 }
 
 export type ConfigCobrancaServicos = Record<ConfigCobrancaServicoKey, ConfigCobrancaServicoEstado>;
+
+export type ConfigCobrancaMesAcordo = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
+export type ConfigCobrancaVagasAcordo = Record<ConfigCobrancaMesAcordo, number | null>;
+
+export interface ConfigCobrancaAcordo {
+  vagas: ConfigCobrancaVagasAcordo;
+  custoExcedente: number | null;
+  tipoCobrancaExcedente: number;
+}
 
 export interface ConfigCobrancaListaItem {
   id: number;
@@ -53,9 +69,11 @@ export interface ConfigCobrancaListaItem {
   servicosCobrados: string;
   /** true quando veio só da listagem (sem detalhe completo). */
   parcial?: boolean;
+  acordo: ConfigCobrancaAcordo;
 }
 
 export interface ConfigCobrancaLookupOption {
   id: number;
   label: string;
+  cnpj?: string;
 }

@@ -37,6 +37,17 @@
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+          <mat-label>CNPJ</mat-label>
+          <input
+            matInput
+            name="transportadoraCnpj"
+            [value]="cnpjTransportadoraFormatado"
+            readonly
+            tabindex="-1"
+            aria-readonly="true"
+          />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
           <mat-label>Status da configuração</mat-label>
           <mat-select name="status" [(ngModel)]="status">
             @for (s of data.statusOpcoes; track s) {
@@ -131,10 +142,77 @@
             </div>
           </div>
         }
+
+        @if (exigeAcordo) {
+          <div class="cfg-acordo">
+            <div class="cfg-acordo__head">
+              <h4 class="cfg-acordo__title">Configuração do acordo</h4>
+              <p class="cfg-acordo__desc">Defina a quantidade de vagas de acordo para cada mês do ano.</p>
+            </div>
+            <div class="cfg-acordo-meses" role="group" aria-label="Vagas contratadas por mês">
+              @for (m of mesesAcordo; track m.mes) {
+                <label class="cfg-acordo-mes" [attr.for]="'vaga-mes-' + m.mes">
+                  <span class="cfg-acordo-mes__label">{{ m.label }}</span>
+                  <input
+                    class="cfg-acordo-mes__input"
+                    [id]="'vaga-mes-' + m.mes"
+                    type="number"
+                    name="vagaMes{{ m.mes }}"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                    [(ngModel)]="acordo.vagas[m.mes]"
+                    [disabled]="!gerarAuto"
+                    [attr.aria-label]="'Vagas de ' + m.label"
+                  />
+                </label>
+              }
+            </div>
+            <h4 class="cfg-acordo__excedente-title">Excedente</h4>
+            <div class="cfg-block__grid">
+              <div class="cfg-money-field">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic" class="cfg-field">
+                  <mat-label>Custo do excedente</mat-label>
+                  <span matTextPrefix class="cfg-money-field__prefix">R$&nbsp;</span>
+                  <input
+                    matInput
+                    type="text"
+                    name="custoExcedente"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    placeholder="0,00"
+                    [(ngModel)]="custoExcedenteTexto"
+                    [disabled]="!gerarAuto"
+                    (blur)="onCustoExcedenteBlur()"
+                    required
+                  />
+                </mat-form-field>
+              </div>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                <mat-label>Tipo de cobrança do excedente</mat-label>
+                <mat-select
+                  name="tipoCobrancaExcedente"
+                  [(ngModel)]="acordo.tipoCobrancaExcedente"
+                  [disabled]="!gerarAuto"
+                  required
+                >
+                  @for (t of tipoExcedenteOpcoes; track t.value) {
+                    <mat-option [value]="t.value">{{ t.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <p class="cfg-acordo__hint">
+              <span class="material-symbols-outlined" aria-hidden="true">info</span>
+              Cobrado quando ultrapassar a quantidade de vagas do acordo.
+            </p>
+          </div>
+        }
       </div>
     </section>
 
-    <!-- Bloco 3 — Vencimento da fatura -->
+    <!-- Bloco 3 — Vencimento da fatura (não se aplica à cobrança diária) -->
+    @if (exigeVencimentoFatura) {
     <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
       <div class="cfg-block__head">
         <span class="cfg-block__num">3</span>
@@ -180,6 +258,7 @@
         </mat-form-field>
       </div>
     </section>
+    }
 
     <!-- Bloco 4 — Envio e automações -->
     <section class="cfg-block" [class.cfg-block--locked]="!envioAuto">

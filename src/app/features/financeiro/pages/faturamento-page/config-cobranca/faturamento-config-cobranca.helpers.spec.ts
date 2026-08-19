@@ -4,6 +4,7 @@ import {
   servicosVazios,
   validarFormularioConfig
 } from './faturamento-config-cobranca.helpers';
+import { acordoVazio, MESES_ACORDO } from './config-cobranca-acordo.util';
 import type { ConfigCobrancaServicos } from './faturamento-config-cobranca.types';
 
 type EntradaValidacao = Parameters<typeof validarFormularioConfig>[0];
@@ -188,15 +189,50 @@ describe('validarFormularioConfig', () => {
     expect(validarFormularioConfig(entradaValida({ servicos: comServico('lavagem', false, null) })).ok).toBe(true);
   });
 
+  it('não exige vencimento da fatura na cobrança diária', () => {
+    expect(
+      validarFormularioConfig(
+        entradaValida({
+          modalidade: 'Diária',
+          regraFechamento: 0,
+          diaFechamento: null,
+          prazoVencimentoDias: 0
+        })
+      ).ok
+    ).toBe(true);
+  });
+
   it('exige dia de fechamento quando a regra é dia fixo', () => {
     const semDia = entradaValida({
-      modalidade: 'Diária',
+      modalidade: 'Quinzenal',
       regraFechamento: RegraFechamento.DiaFixo,
       diaFechamento: null
     });
     expect(validarFormularioConfig(semDia).ok).toBe(false);
     expect(validarFormularioConfig({ ...semDia, diaFechamento: 40 }).ok).toBe(false);
     expect(validarFormularioConfig({ ...semDia, diaFechamento: 15 }).ok).toBe(true);
+  });
+
+  it('exige vagas mensais e custo do excedente na modalidade acordo', () => {
+    const acordo = acordoVazio();
+    MESES_ACORDO.forEach((mes) => {
+      acordo.vagas[mes.mes] = 15;
+    });
+    acordo.custoExcedente = 100;
+    acordo.tipoCobrancaExcedente = 1;
+
+    const semVagas = validarFormularioConfig(entradaValida({ modalidade: 'Acordo', acordo: acordoVazio() }));
+    expect(semVagas.ok).toBe(false);
+    expect(semVagas.ok === false && semVagas.mensagens).toContain(
+      'Informe a quantidade de vagas de cada mês do acordo (zero ou mais).'
+    );
+
+    const semCusto = validarFormularioConfig(
+      entradaValida({ modalidade: 'Acordo', acordo: { ...acordo, custoExcedente: null } })
+    );
+    expect(semCusto.ok).toBe(false);
+
+    expect(validarFormularioConfig(entradaValida({ modalidade: 'Acordo', acordo })).ok).toBe(true);
   });
 });
 
@@ -252,6 +288,20 @@ describe('montarRegistroDoFormulario', () => {
     expect(registro.regraFechamento).toBe(RegraFechamento.DiaFixo);
     expect(registro.diaFechamento).toBe(15);
     expect(registro.fechamento).toBe('Todo dia 15');
+  });
+
+  it('neutraliza fechamento e prazo na cobrança diária', () => {
+    const registro = montarRegistroDoFormulario({
+      ...campos,
+      modalidade: 'Diária',
+      regraFechamento: RegraFechamento.DiaFixo,
+      diaFechamento: 15,
+      prazoVencimentoDias: 10
+    });
+    expect(registro.regraFechamento).toBe(RegraFechamento.UltimoDiaDoMes);
+    expect(registro.diaFechamento).toBeNull();
+    expect(registro.fechamento).toBe('—');
+    expect(registro.prazoVencimento).toBe('—');
   });
 
   it('descarta o valor de serviço desabilitado e resume os habilitados', () => {

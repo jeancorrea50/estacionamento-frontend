@@ -5,6 +5,7 @@ import {
   mapRawInadimplentesOutput,
   mapRawRecebimentosOutput,
   mapRawSearchItem,
+  mapRawVisaoGeral,
   mapRecebimentoItemToLista,
   mapSearchToListaItem,
   statusFaturaFromLabel,
@@ -198,5 +199,30 @@ describe('fatura.mapper', () => {
     expect(item.situacao).toBe('Pronto para faturar');
     expect(item.periodoApurado).toBe('01/08/2026 - 31/08/2026');
     expect(item.movimentacoes).toBe(12);
+  });
+
+  it('mapeia visão geral PascalCase do dashboard', () => {
+    const dto = mapRawVisaoGeral({
+      Result: {
+        TotalAReceber: 186420.5,
+        Recebido: 124800,
+        EmAberto: 48320.75,
+        Vencido: 9450,
+        AVencer: 13849.75,
+        FaturasEmitidas: 56,
+        FaturasVencidas: 7,
+        TransportadorasFaturadas: 14,
+        CobrancasPendentes: 11,
+        FaturasPorStatus: [{ Status: StatusFatura.Pago, Quantidade: 28, Valor: 100 }],
+        RecebimentosPorModalidade: [{ Modalidade: ModalidadeRecebimento.Pix, Quantidade: 10, Valor: 52100 }],
+        EvolucaoFaturamento: [{ Ano: 2026, Mes: 5, Valor: 88000 }]
+      }
+    });
+    expect(dto.totalAReceber).toBe(186420.5);
+    expect(dto.faturasEmitidas).toBe(56);
+    expect(dto.transportadorasFaturadas).toBe(14);
+    expect(dto.faturasPorStatus[0].quantidade).toBe(28);
+    expect(dto.recebimentosPorModalidade[0].valor).toBe(52100);
+    expect(dto.evolucaoFaturamento[0].mes).toBe(5);
   });
 });

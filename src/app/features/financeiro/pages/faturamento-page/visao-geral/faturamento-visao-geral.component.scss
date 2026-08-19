@@ -29,6 +29,14 @@
   margin-top: 2px !important;
 }
 
+.visao-chart-empty {
+  margin: 0;
+  padding: 1.5rem 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted, #64748b);
+}
+
 .visao-geral {
   display: flex;
   flex-direction: column;

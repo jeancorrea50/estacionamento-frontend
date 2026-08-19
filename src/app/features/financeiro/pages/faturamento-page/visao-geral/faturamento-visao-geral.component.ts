@@ -1,12 +1,15 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
+import { finalize } from 'rxjs/operators';
 import type {
   ApexAxisChartSeries,
   ApexChart,
@@ -21,16 +24,28 @@ import type {
   ApexYAxis
 } from 'ng-apexcharts';
 
+import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
+import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
+import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
+import { ModalidadeRecebimento } from '../../../models/fatura.models';
+import { emptyVisaoGeral, statusFaturaFromLabel } from '../../../mappers/fatura.mapper';
+import { FaturaService } from '../../../services/fatura.service';
 import { FaturamentoNavService } from '../../../services/faturamento-nav.service';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
 import {
-  PROXIMOS_VENCIMENTOS,
   VISAO_ALERTAS,
-  filtrosPorStatusFatura,
   type AlertaResumo,
   type ProximoVencimento
 } from './faturamento-visao-alertas';
+import {
+  mapVisaoAlertas,
+  mapVisaoCards,
+  mapVisaoEvolucao,
+  mapVisaoIndicadores,
+  mapVisaoPorModalidade,
+  mapVisaoPorStatus
+} from './faturamento-visao-geral.mapper';
 
 type VisaoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
 
@@ -41,21 +56,35 @@ interface VisaoCalendarioCelula {
   date: Date;
 }
 
-interface BarraMes { mes: string; valor: number; }
-interface StatusContagem { status: FaturaStatusVisao; quantidade: number; }
-interface ModalidadeValor { modalidade: string; valor: number; }
+interface LookupFiltro {
+  id: number;
+  label: string;
+}
 
 @Component({
   selector: 'app-faturamento-visao-geral',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatFormFieldModule, MatSelectModule, NgApexchartsModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatSnackBarModule,
+    NgApexchartsModule,
+    RouterLink
+  ],
   templateUrl: './faturamento-visao-geral.component.html',
   styleUrls: ['./faturamento-visao-geral.component.scss']
 })
-export class FaturamentoVisaoGeralComponent {
+export class FaturamentoVisaoGeralComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly nav = inject(FaturamentoNavService);
+  private readonly api = inject(FaturaService);
+  private readonly snack = inject(MatSnackBar);
+  private readonly transportadoraLookup = inject(TransportadoraLookupService);
+  private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
@@ -68,22 +97,17 @@ export class FaturamentoVisaoGeralComponent {
   });
 
   /* ── Filtros ──────────────────────────────────────────────────────── */
-  readonly transportadoraFiltro = signal<string>('all');
-  readonly estacionamentoFiltro = signal<string>('all');
+  readonly transportadoraFiltro = signal<number | 'all'>('all');
+  readonly estacionamentoFiltro = signal<number | 'all'>('all');
   readonly modalidadeFiltro = signal<string>('all');
   readonly statusFiltro = signal<string>('all');
   readonly panelFiltrosAberto = signal(false);
+  readonly loading = signal(false);
 
-  readonly transportadorasOpcoes = [
-    'Transp. Horizonte Ltda', 'Logística Sul ME', 'Cargo Prime Transportes',
-    'Rota Azul Logística', 'Expresso Centro Oeste'
-  ];
+  readonly transportadorasOpcoes = signal<LookupFiltro[]>([]);
+  readonly estacionamentosOpcoes = signal<LookupFiltro[]>([]);
 
-  readonly estacionamentosOpcoes = [
-    'Estac. Central', 'Estac. Norte', 'Estac. Sul', 'Estac. Leste', 'Estac. Oeste', 'Estac. Aeroporto'
-  ];
-
-  readonly modalidadesOpcoes = ['Diária', 'Semanal', 'Quinzenal', 'Mensal', 'Por data personalizada'];
+  readonly modalidadesOpcoes = ['PIX', 'Boleto', 'Transferência', 'Cartão'];
 
   readonly statusOpcoes: FaturaStatusVisao[] = ['Pago', 'Em aberto', 'Vencido', 'Parcial', 'Aguardando envio', 'Cancelada'];
 
@@ -101,6 +125,16 @@ export class FaturamentoVisaoGeralComponent {
     this.estacionamentoFiltro.set('all');
     this.modalidadeFiltro.set('all');
     this.statusFiltro.set('all');
+    this.carregarDashboard();
+  }
+
+  onFiltroChange(): void {
+    this.carregarDashboard();
+  }
+
+  ngOnInit(): void {
+    this.carregarLookups();
+    this.carregarDashboard();
   }
 
   /* ── Data picker ──────────────────────────────────────────────────── */
@@ -135,60 +169,27 @@ export class FaturamentoVisaoGeralComponent {
     return Array.from({ length: 12 }, (_, i) => centro - 5 + i);
   });
 
-  /* ── Mock data ────────────────────────────────────────────────────── */
-  readonly visaoCards = {
-    totalReceber: 186_420.5,
-    recebido: 124_800.0,
-    emAberto: 48_320.75,
-    vencido: 9_450.0,
-    aVencer: 13_849.75
-  };
+  /** Só envia DataInicial/DataFinal depois que o usuário escolhe um período. */
+  private readonly periodoFiltroAtivo = signal(false);
 
-  readonly visaoIndicadores = {
-    faturasEmitidas: 56,
-    faturasVencidas: 7,
-    transportadorasFaturadas: 14,
-    cobrancasPendentes: 11
-  };
-
-  readonly visaoEvolucaoMensal: BarraMes[] = [
-    { mes: 'Dez', valor: 38_000 },
-    { mes: 'Jan', valor: 45_000 },
-    { mes: 'Fev', valor: 62_000 },
-    { mes: 'Mar', valor: 55_000 },
-    { mes: 'Abr', valor: 74_000 },
-    { mes: 'Mai', valor: 88_000 }
-  ];
-
-  readonly visaoPorStatus: StatusContagem[] = [
-    { status: 'Pago', quantidade: 28 },
-    { status: 'Em aberto', quantidade: 12 },
-    { status: 'Vencido', quantidade: 5 },
-    { status: 'Parcial', quantidade: 4 },
-    { status: 'Aguardando envio', quantidade: 3 },
-    { status: 'Cancelada', quantidade: 1 }
-  ];
-
-  readonly visaoPorModalidade: ModalidadeValor[] = [
-    { modalidade: 'PIX', valor: 52_100 },
-    { modalidade: 'Boleto', valor: 48_200 },
-    { modalidade: 'Transferência', valor: 18_500 },
-    { modalidade: 'Cartão', valor: 6_000 }
-  ];
+  /* ── Dados da API ─────────────────────────────────────────────────── */
+  private loadSeq = 0;
+  readonly dashboard = signal(emptyVisaoGeral());
+  readonly visaoCards = computed(() => mapVisaoCards(this.dashboard()));
+  readonly visaoIndicadores = computed(() => mapVisaoIndicadores(this.dashboard()));
+  readonly visaoEvolucaoMensal = computed(() => mapVisaoEvolucao(this.dashboard()));
+  readonly visaoPorStatus = computed(() => mapVisaoPorStatus(this.dashboard()));
+  readonly visaoPorModalidade = computed(() => mapVisaoPorModalidade(this.dashboard()));
 
   /** Alertas com a rota da aba conforme cadastro em Gerenciamento > Menu. */
   readonly visaoAlertas = computed<AlertaResumo[]>(() =>
-    VISAO_ALERTAS.map((a) => ({ ...a, route: this.nav.resolveTabRoute(a.tab) }))
+    mapVisaoAlertas(this.dashboard(), VISAO_ALERTAS).map((a) => ({
+      ...a,
+      route: this.nav.resolveTabRoute(a.tab)
+    }))
   );
 
-  readonly proximosVencimentos = computed<ProximoVencimento[]>(() => {
-    const route = this.nav.resolveTabRoute('faturas');
-    return PROXIMOS_VENCIMENTOS.map((row) => ({
-      ...row,
-      route,
-      queryParams: filtrosPorStatusFatura(row)
-    }));
-  });
+  readonly proximosVencimentos = computed<ProximoVencimento[]>(() => []);
 
   readonly faturasRoute = computed(() => this.nav.resolveTabRoute('faturas'));
 
@@ -214,9 +215,11 @@ export class FaturamentoVisaoGeralComponent {
     offsetX: 0,
     offsetY: 0
   }));
-  readonly evolutionSeries: ApexAxisChartSeries = [{ name: 'Faturamento', data: this.visaoEvolucaoMensal.map((b) => b.valor) }];
+  readonly evolutionSeries = computed<ApexAxisChartSeries>(() => [
+    { name: 'Faturamento', data: this.visaoEvolucaoMensal().map((b) => b.valor) }
+  ]);
   readonly evolutionXaxis = computed<ApexXAxis>(() => ({
-    categories: this.visaoEvolucaoMensal.map((b) => b.mes),
+    categories: this.visaoEvolucaoMensal().map((b) => b.mes),
     labels: {
       style: { colors: this.chartAxisColor(), fontSize: '10px', fontWeight: 600 },
       rotate: -38,
@@ -260,7 +263,7 @@ export class FaturamentoVisaoGeralComponent {
     theme: this.isDarkTheme() ? 'dark' : 'light',
     custom: (opts: { dataPointIndex?: number }) => {
       const idx = opts.dataPointIndex ?? -1;
-      const row = idx >= 0 ? this.visaoEvolucaoMensal[idx] : undefined;
+      const row = idx >= 0 ? this.visaoEvolucaoMensal()[idx] : undefined;
       if (!row) return '<div class="visao-evolucao-tooltip"></div>';
       return (
         '<div class="visao-evolucao-tooltip"><div class="visao-evolucao-tooltip__mes">' +
@@ -283,14 +286,16 @@ export class FaturamentoVisaoGeralComponent {
     parentHeightOffset: 0,
     redrawOnParentResize: true
   }));
-  readonly statusSeries: ApexAxisChartSeries = [{ name: 'Quantidade', data: this.visaoPorStatus.map((s) => s.quantidade) }];
+  readonly statusSeries = computed<ApexAxisChartSeries>(() => [
+    { name: 'Quantidade', data: this.visaoPorStatus().map((s) => s.quantidade) }
+  ]);
   readonly statusPlotOptions: ApexPlotOptions = {
     bar: { horizontal: true, borderRadius: 4, barHeight: '68%', distributed: false, dataLabels: { position: 'center' } }
   };
   readonly statusXaxis = computed<ApexXAxis>(() => ({
-    categories: this.visaoPorStatus.map((s) => s.status),
+    categories: this.visaoPorStatus().map((s) => s.status),
     min: 0,
-    max: Math.ceil(Math.max(...this.visaoPorStatus.map((s) => s.quantidade), 1) * 1.15),
+    max: Math.ceil(Math.max(...this.visaoPorStatus().map((s) => s.quantidade), 1) * 1.15),
     tickAmount: 4,
     decimalsInFloat: 0,
     labels: {
@@ -307,7 +312,7 @@ export class FaturamentoVisaoGeralComponent {
     enabled: true,
     formatter: (val: number, opts: { dataPointIndex?: number }) => {
       const idx = opts?.dataPointIndex ?? 0;
-      const q = this.visaoPorStatus[idx]?.quantidade ?? Number(val);
+      const q = this.visaoPorStatus()[idx]?.quantidade ?? Number(val);
       return `${q} (${this.pctStatus(q)}%)`;
     },
     offsetX: 0,
@@ -330,14 +335,16 @@ export class FaturamentoVisaoGeralComponent {
     parentHeightOffset: 0,
     redrawOnParentResize: true
   }));
-  readonly modalSeries: ApexAxisChartSeries = [{ name: 'Valor', data: this.visaoPorModalidade.map((m) => m.valor) }];
+  readonly modalSeries = computed<ApexAxisChartSeries>(() => [
+    { name: 'Valor', data: this.visaoPorModalidade().map((m) => m.valor) }
+  ]);
   readonly modalPlotOptions: ApexPlotOptions = {
     bar: { horizontal: true, borderRadius: 4, barHeight: '70%', dataLabels: { position: 'center' } }
   };
   readonly modalXaxis = computed<ApexXAxis>(() => ({
-    categories: this.visaoPorModalidade.map((m) => m.modalidade),
+    categories: this.visaoPorModalidade().map((m) => m.modalidade),
     min: 0,
-    max: Math.ceil(Math.max(...this.visaoPorModalidade.map((m) => m.valor), 1) * 1.12 / 1000) * 1000,
+    max: Math.ceil(Math.max(...this.visaoPorModalidade().map((m) => m.valor), 1) * 1.12 / 1000) * 1000,
     tickAmount: 4,
     decimalsInFloat: 0,
     labels: {
@@ -400,8 +407,13 @@ export class FaturamentoVisaoGeralComponent {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    const estavaArrastando = this.arrastandoPeriodo();
     this.arrastandoPeriodo.set(false);
     this.arrasteAnchor.set(null);
+    if (estavaArrastando) {
+      this.periodoFiltroAtivo.set(true);
+      this.carregarDashboard();
+    }
   }
 
   /* ── Data picker methods ──────────────────────────────────────────── */
@@ -461,12 +473,23 @@ export class FaturamentoVisaoGeralComponent {
 
   selecionarMesCalendario(mesIndex: number): void {
     this.calendarioMes.set(mesIndex);
-    this.periodoGranularidade.set('dia');
+    const ano = this.calendarioAno();
+    const inicio = new Date(ano, mesIndex, 1);
+    const fim = new Date(ano, mesIndex + 1, 0);
+    this.periodoGranularidade.set('mes');
+    this.definirIntervaloDias(inicio, fim);
+    this.periodoFiltroAtivo.set(true);
+    this.carregarDashboard();
   }
 
   selecionarAnoCalendario(ano: number): void {
     this.calendarioAno.set(ano);
-    this.periodoGranularidade.set('mes');
+    const inicio = new Date(ano, 0, 1);
+    const fim = new Date(ano, 11, 31);
+    this.periodoGranularidade.set('ano');
+    this.definirIntervaloDias(inicio, fim);
+    this.periodoFiltroAtivo.set(true);
+    this.carregarDashboard();
   }
 
   diaCalendarioModificadores(cell: VisaoCalendarioCelula): Record<string, boolean> {
@@ -521,8 +544,81 @@ export class FaturamentoVisaoGeralComponent {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  carregarDashboard(): void {
+    const seq = ++this.loadSeq;
+    this.loading.set(true);
+    const transp = this.transportadoraFiltro();
+    const estac = this.estacionamentoFiltro();
+    const status = this.statusFiltro();
+    const modalidade = this.modalidadeFiltro();
+
+    this.api
+      .obterVisaoGeral({
+        transportadoraId: typeof transp === 'number' ? transp : undefined,
+        estacionamentoId: typeof estac === 'number' ? estac : undefined,
+        status: status === 'all' ? undefined : statusFaturaFromLabel(status),
+        modalidadeRecebimento: this.modalidadeCodigoFromFiltro(modalidade),
+        dataInicial: this.periodoFiltroAtivo() ? this.toIsoDate(this.periodoDataInicio()) : undefined,
+        dataFinal: this.periodoFiltroAtivo() ? this.toIsoDate(this.periodoDataFim()) : undefined
+      })
+      .pipe(finalize(() => {
+        if (seq === this.loadSeq) this.loading.set(false);
+      }))
+      .subscribe({
+        next: (dto) => {
+          if (seq !== this.loadSeq) return;
+          this.dashboard.set(dto);
+        },
+        error: (err) => {
+          if (seq !== this.loadSeq) return;
+          this.dashboard.set(emptyVisaoGeral());
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar a visão geral.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
+  }
+
+  private carregarLookups(): void {
+    this.transportadoraLookup.list().subscribe({
+      next: (rows) => this.transportadorasOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label }))),
+      error: () => this.transportadorasOpcoes.set([])
+    });
+    this.estacionamentoLookup.list().subscribe({
+      next: (rows) => this.estacionamentosOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label }))),
+      error: () => this.estacionamentosOpcoes.set([])
+    });
+  }
+
+  private modalidadeCodigoFromFiltro(label: string): ModalidadeRecebimento | undefined {
+    switch (label) {
+      case 'PIX':
+      case 'Pix':
+        return ModalidadeRecebimento.Pix;
+      case 'Boleto':
+        return ModalidadeRecebimento.Boleto;
+      case 'Transferência':
+        return ModalidadeRecebimento.Transferencia;
+      case 'Cartão':
+        return ModalidadeRecebimento.Cartao;
+      default:
+        return undefined;
+    }
+  }
+
+  private mensagemErro(err: unknown, fallback: string): string {
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error as ApiError | { message?: string; mensagem?: string } | null;
+      const msg = body && typeof body === 'object'
+        ? String((body as ApiError).message ?? (body as { mensagem?: string }).mensagem ?? '')
+        : '';
+      if (msg) return msg;
+    }
+    return fallback;
+  }
+
   totalQuantidadeStatus(): number {
-    return this.visaoPorStatus.reduce((a, s) => a + s.quantidade, 0) || 1;
+    return this.visaoPorStatus().reduce((a, s) => a + s.quantidade, 0) || 1;
   }
 
   pctStatus(q: number): number {

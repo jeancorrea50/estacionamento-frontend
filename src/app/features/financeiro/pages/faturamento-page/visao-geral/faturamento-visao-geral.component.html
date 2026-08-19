@@ -1,4 +1,4 @@
-<div class="visao-geral">
+<div class="visao-geral" [attr.aria-busy]="loading()">
 
   <div class="visao-geral__hero-row">
     <div class="visao-geral__titles">
@@ -39,10 +39,10 @@
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
               <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">local_shipping</span>
               <mat-label>Transportadora</mat-label>
-              <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value)">
+              <mat-select [value]="transportadoraFiltro()" (selectionChange)="transportadoraFiltro.set($event.value); onFiltroChange()">
                 <mat-option value="all">Todas</mat-option>
-                @for (t of transportadorasOpcoes; track t) {
-                  <mat-option [value]="t">{{ t }}</mat-option>
+                @for (t of transportadorasOpcoes(); track t.id) {
+                  <mat-option [value]="t.id">{{ t.label }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -50,10 +50,10 @@
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
               <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">location_on</span>
               <mat-label>Estacionamento</mat-label>
-              <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value)">
+              <mat-select [value]="estacionamentoFiltro()" (selectionChange)="estacionamentoFiltro.set($event.value); onFiltroChange()">
                 <mat-option value="all">Todos</mat-option>
-                @for (e of estacionamentosOpcoes; track e) {
-                  <mat-option [value]="e">{{ e }}</mat-option>
+                @for (e of estacionamentosOpcoes(); track e.id) {
+                  <mat-option [value]="e.id">{{ e.label }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
@@ -61,7 +61,7 @@
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
               <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">category</span>
               <mat-label>Modalidade</mat-label>
-              <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value)">
+              <mat-select [value]="modalidadeFiltro()" (selectionChange)="modalidadeFiltro.set($event.value); onFiltroChange()">
                 <mat-option value="all">Todas</mat-option>
                 @for (m of modalidadesOpcoes; track m) {
                   <mat-option [value]="m">{{ m }}</mat-option>
@@ -72,7 +72,7 @@
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-filters__field">
               <span class="material-symbols-outlined" matIconPrefix aria-hidden="true">flag</span>
               <mat-label>Status</mat-label>
-              <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value)">
+              <mat-select [value]="statusFiltro()" (selectionChange)="statusFiltro.set($event.value); onFiltroChange()">
                 <mat-option value="all">Todos</mat-option>
                 @for (s of statusOpcoes; track s) {
                   <mat-option [value]="s">{{ s }}</mat-option>
@@ -210,7 +210,7 @@
           >
           <span class="visao-metric__label">Total a receber</span>
         </div>
-        <p class="visao-metric__value">{{ formatCurrency(visaoCards.totalReceber) }}</p>
+        <p class="visao-metric__value">{{ formatCurrency(visaoCards().totalReceber) }}</p>
       </mat-card-content>
     </mat-card>
 
@@ -220,7 +220,7 @@
           <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--ok" aria-hidden="true">payments</span>
           <span class="visao-metric__label">Recebido</span>
         </div>
-        <p class="visao-metric__value visao-metric__value--ok">{{ formatCurrency(visaoCards.recebido) }}</p>
+        <p class="visao-metric__value visao-metric__value--ok">{{ formatCurrency(visaoCards().recebido) }}</p>
       </mat-card-content>
     </mat-card>
 
@@ -232,7 +232,7 @@
           >
           <span class="visao-metric__label">Em aberto</span>
         </div>
-        <p class="visao-metric__value">{{ formatCurrency(visaoCards.emAberto) }}</p>
+        <p class="visao-metric__value">{{ formatCurrency(visaoCards().emAberto) }}</p>
       </mat-card-content>
     </mat-card>
 
@@ -242,7 +242,7 @@
           <span class="material-symbols-outlined visao-metric__ico visao-metric__ico--danger" aria-hidden="true">warning</span>
           <span class="visao-metric__label">Vencido</span>
         </div>
-        <p class="visao-metric__value visao-metric__value--danger">{{ formatCurrency(visaoCards.vencido) }}</p>
+        <p class="visao-metric__value visao-metric__value--danger">{{ formatCurrency(visaoCards().vencido) }}</p>
       </mat-card-content>
     </mat-card>
 
@@ -254,7 +254,7 @@
           >
           <span class="visao-metric__label">A vencer</span>
         </div>
-        <p class="visao-metric__value visao-metric__value--muted">{{ formatCurrency(visaoCards.aVencer) }}</p>
+        <p class="visao-metric__value visao-metric__value--muted">{{ formatCurrency(visaoCards().aVencer) }}</p>
       </mat-card-content>
     </mat-card>
   </div>
@@ -266,7 +266,7 @@
         <div class="visao-kpi__row">
           <span class="material-symbols-outlined visao-kpi__ico" aria-hidden="true">receipt_long</span>
           <div>
-            <p class="visao-kpi__value">{{ visaoIndicadores.faturasEmitidas }}</p>
+            <p class="visao-kpi__value">{{ visaoIndicadores().faturasEmitidas }}</p>
             <p class="visao-kpi__label">Faturas emitidas</p>
           </div>
         </div>
@@ -277,7 +277,7 @@
         <div class="visao-kpi__row">
           <span class="material-symbols-outlined visao-kpi__ico visao-kpi__ico--danger" aria-hidden="true">warning_amber</span>
           <div>
-            <p class="visao-kpi__value visao-kpi__value--danger">{{ visaoIndicadores.faturasVencidas }}</p>
+            <p class="visao-kpi__value visao-kpi__value--danger">{{ visaoIndicadores().faturasVencidas }}</p>
             <p class="visao-kpi__label">Faturas vencidas</p>
           </div>
         </div>
@@ -288,7 +288,7 @@
         <div class="visao-kpi__row">
           <span class="material-symbols-outlined visao-kpi__ico" aria-hidden="true">local_shipping</span>
           <div>
-            <p class="visao-kpi__value">{{ visaoIndicadores.transportadorasFaturadas }}</p>
+            <p class="visao-kpi__value">{{ visaoIndicadores().transportadorasFaturadas }}</p>
             <p class="visao-kpi__label">Transportadoras faturadas</p>
           </div>
         </div>
@@ -299,7 +299,7 @@
         <div class="visao-kpi__row">
           <span class="material-symbols-outlined visao-kpi__ico" aria-hidden="true">notifications</span>
           <div>
-            <p class="visao-kpi__value">{{ visaoIndicadores.cobrancasPendentes }}</p>
+            <p class="visao-kpi__value">{{ visaoIndicadores().cobrancasPendentes }}</p>
             <p class="visao-kpi__label">Cobranças pendentes</p>
           </div>
         </div>
@@ -312,11 +312,14 @@
     <mat-card class="visao-chart-card visao-chart-card--evolucao" appearance="outlined">
       <mat-card-header class="visao-card-head">
         <mat-card-title>Evolução do faturamento</mat-card-title>
-        <mat-card-subtitle>Mensal (mock)</mat-card-subtitle>
+        <mat-card-subtitle>Mensal</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content class="visao-chart-card__body">
+        @if (visaoEvolucaoMensal().length === 0) {
+          <p class="visao-chart-empty">Sem dados de evolução no período.</p>
+        } @else {
         <apx-chart
-          [series]="evolutionSeries"
+          [series]="evolutionSeries()"
           [chart]="evolutionChart()"
           [xaxis]="evolutionXaxis()"
           [yaxis]="evolutionYaxis()"
@@ -328,6 +331,7 @@
           [dataLabels]="evolutionDataLabels"
           [theme]="chartTheme()"
         ></apx-chart>
+        }
       </mat-card-content>
     </mat-card>
 
@@ -336,8 +340,11 @@
         <mat-card-title>Faturas por status</mat-card-title>
       </mat-card-header>
       <mat-card-content class="visao-chart-card__body">
+        @if (visaoPorStatus().length === 0) {
+          <p class="visao-chart-empty">Sem faturas no período.</p>
+        } @else {
         <apx-chart
-          [series]="statusSeries"
+          [series]="statusSeries()"
           [chart]="statusChart()"
           [plotOptions]="statusPlotOptions"
           [xaxis]="statusXaxis()"
@@ -347,6 +354,7 @@
           [theme]="chartTheme()"
           [tooltip]="statusTooltip()"
         ></apx-chart>
+        }
       </mat-card-content>
     </mat-card>
 
@@ -355,8 +363,11 @@
         <mat-card-title>Recebimentos por modalidade</mat-card-title>
       </mat-card-header>
       <mat-card-content class="visao-chart-card__body">
+        @if (visaoPorModalidade().length === 0) {
+          <p class="visao-chart-empty">Sem recebimentos no período.</p>
+        } @else {
         <apx-chart
-          [series]="modalSeries"
+          [series]="modalSeries()"
           [chart]="modalChart()"
           [plotOptions]="modalPlotOptions"
           [xaxis]="modalXaxis()"
@@ -366,6 +377,7 @@
           [theme]="chartTheme()"
           [tooltip]="modalTooltip()"
         ></apx-chart>
+        }
       </mat-card-content>
     </mat-card>
   </div>
@@ -407,6 +419,11 @@
       </mat-card-header>
       <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--table">
         <ul class="visao-alert-list" aria-label="Próximos vencimentos">
+          @if (proximosVencimentos().length === 0) {
+            <li class="visao-alert-list__item visao-alert-list__item--empty">
+              <p class="visao-chart-empty">Nenhum vencimento próximo para exibir.</p>
+            </li>
+          }
           @for (row of proximosVencimentos(); track row.vencimento + row.transportadora) {
             <li class="visao-alert-list__item">
               <a

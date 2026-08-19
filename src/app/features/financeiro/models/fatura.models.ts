@@ -122,6 +122,40 @@ export interface FaturaPagedResult {
   tamanhoPagina: number;
 }
 
+/** GET `/api/financeiro/Fatura/visao-geral` — dashboard da aba Visão Geral. */
+export interface FaturaVisaoGeralOutput {
+  totalAReceber: number;
+  recebido: number;
+  emAberto: number;
+  vencido: number;
+  aVencer: number;
+  faturasEmitidas: number;
+  faturasVencidas: number;
+  transportadorasFaturadas: number;
+  cobrancasPendentes: number;
+  faturasPorStatus: FaturaStatusResumoOutput[];
+  recebimentosPorModalidade: FaturaModalidadeResumoOutput[];
+  evolucaoFaturamento: FaturaEvolucaoMensalOutput[];
+}
+
+export interface FaturaStatusResumoOutput {
+  status: StatusFatura;
+  quantidade: number;
+  valor: number;
+}
+
+export interface FaturaModalidadeResumoOutput {
+  modalidade: ModalidadeRecebimento;
+  quantidade: number;
+  valor: number;
+}
+
+export interface FaturaEvolucaoMensalOutput {
+  ano: number;
+  mes: number;
+  valor: number;
+}
+
 /** GET `/api/financeiro/Fatura/inadimplentes` — query. */
 export interface FaturaInadimplentesFilter {
   transportadoraId?: number;

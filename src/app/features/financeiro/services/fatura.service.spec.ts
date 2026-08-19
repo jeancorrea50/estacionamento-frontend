@@ -279,6 +279,39 @@ describe('FaturaService', () => {
     expect(itemsLen).toBe(1);
   });
 
+  it('deve obter visão geral do dashboard', () => {
+    let emitidas = 0;
+    service.obterVisaoGeral({ dataInicial: '2026-05-01', dataFinal: '2026-05-31' }).subscribe((dto) => {
+      emitidas = dto.faturasEmitidas;
+      expect(dto.totalAReceber).toBe(186420.5);
+      expect(dto.faturasVencidas).toBe(7);
+      expect(dto.transportadorasFaturadas).toBe(14);
+      expect(dto.faturasPorStatus[0].quantidade).toBe(28);
+    });
+
+    const req = httpMock.expectOne((r) => r.url === `${base}/visao-geral`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('DataInicial')).toBe('2026-05-01');
+    expect(req.request.params.get('DataFinal')).toBe('2026-05-31');
+    req.flush({
+      Result: {
+        TotalAReceber: 186420.5,
+        Recebido: 124800,
+        EmAberto: 48320.75,
+        Vencido: 9450,
+        AVencer: 13849.75,
+        FaturasEmitidas: 56,
+        FaturasVencidas: 7,
+        TransportadorasFaturadas: 14,
+        CobrancasPendentes: 11,
+        FaturasPorStatus: [{ Status: StatusFatura.Pago, Quantidade: 28, Valor: 100 }],
+        RecebimentosPorModalidade: [],
+        EvolucaoFaturamento: []
+      }
+    });
+    expect(emitidas).toBe(56);
+  });
+
   it('deve excluir por id', () => {
     service.excluir(4).subscribe();
     const req = httpMock.expectOne(`${base}/4`);

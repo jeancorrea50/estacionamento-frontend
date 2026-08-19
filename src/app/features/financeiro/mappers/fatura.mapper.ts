@@ -11,6 +11,10 @@ import {
   type FaturaRecebimentoItemOutput,
   type FaturaRecebimentosOutput,
   type FaturaSearchOutput,
+  type FaturaStatusResumoOutput,
+  type FaturaEvolucaoMensalOutput,
+  type FaturaModalidadeResumoOutput,
+  type FaturaVisaoGeralOutput,
   type ResumoFechamentosOutput,
   type ResumoInadimplentesOutput,
   type ResumoRecebimentosOutput,
@@ -755,4 +759,73 @@ export function mapRawFechamentosOutput(
         ) || tamanhoPagina
     }
   };
+}
+
+export function emptyVisaoGeral(): FaturaVisaoGeralOutput {
+  return {
+    totalAReceber: 0,
+    recebido: 0,
+    emAberto: 0,
+    vencido: 0,
+    aVencer: 0,
+    faturasEmitidas: 0,
+    faturasVencidas: 0,
+    transportadorasFaturadas: 0,
+    cobrancasPendentes: 0,
+    faturasPorStatus: [],
+    recebimentosPorModalidade: [],
+    evolucaoFaturamento: []
+  };
+}
+
+export function mapRawVisaoGeral(body: unknown): FaturaVisaoGeralOutput {
+  const source = unwrapResult(body);
+  const root = source && typeof source === 'object' ? (source as Record<string, unknown>) : {};
+  if (!root || Object.keys(root).length === 0) return emptyVisaoGeral();
+
+  return {
+    totalAReceber: pickNumber(root, 'totalAReceber', 'TotalAReceber'),
+    recebido: pickNumber(root, 'recebido', 'Recebido'),
+    emAberto: pickNumber(root, 'emAberto', 'EmAberto'),
+    vencido: pickNumber(root, 'vencido', 'Vencido'),
+    aVencer: pickNumber(root, 'aVencer', 'AVencer'),
+    faturasEmitidas: pickNumber(root, 'faturasEmitidas', 'FaturasEmitidas'),
+    faturasVencidas: pickNumber(root, 'faturasVencidas', 'FaturasVencidas'),
+    transportadorasFaturadas: pickNumber(root, 'transportadorasFaturadas', 'TransportadorasFaturadas'),
+    cobrancasPendentes: pickNumber(root, 'cobrancasPendentes', 'CobrancasPendentes'),
+    faturasPorStatus: mapRawStatusResumoList(root['faturasPorStatus'] ?? root['FaturasPorStatus']),
+    recebimentosPorModalidade: mapRawModalidadeResumoList(
+      root['recebimentosPorModalidade'] ?? root['RecebimentosPorModalidade']
+    ),
+    evolucaoFaturamento: mapRawEvolucaoList(root['evolucaoFaturamento'] ?? root['EvolucaoFaturamento'])
+  };
+}
+
+function asRecordList(raw: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((row): row is Record<string, unknown> => row != null && typeof row === 'object');
+}
+
+function mapRawStatusResumoList(raw: unknown): FaturaStatusResumoOutput[] {
+  return asRecordList(raw).map((row) => ({
+    status: pickNumber(row, 'status', 'Status') as StatusFatura,
+    quantidade: pickNumber(row, 'quantidade', 'Quantidade'),
+    valor: pickNumber(row, 'valor', 'Valor')
+  }));
+}
+
+function mapRawModalidadeResumoList(raw: unknown): FaturaModalidadeResumoOutput[] {
+  return asRecordList(raw).map((row) => ({
+    modalidade: pickNumber(row, 'modalidade', 'Modalidade') as ModalidadeRecebimento,
+    quantidade: pickNumber(row, 'quantidade', 'Quantidade'),
+    valor: pickNumber(row, 'valor', 'Valor')
+  }));
+}
+
+function mapRawEvolucaoList(raw: unknown): FaturaEvolucaoMensalOutput[] {
+  return asRecordList(raw).map((row) => ({
+    ano: pickNumber(row, 'ano', 'Ano'),
+    mes: pickNumber(row, 'mes', 'Mes'),
+    valor: pickNumber(row, 'valor', 'Valor')
+  }));
 }

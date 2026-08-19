@@ -11,6 +11,7 @@ import {
   mapRawOutput,
   mapRawRecebimentosOutput,
   mapRawSearchItem,
+  mapRawVisaoGeral,
   mapRecebimentoItemToLista,
   mapSearchToListaItem,
   pickNumber,
@@ -28,7 +29,8 @@ import type {
   FaturaPutInput,
   FaturaRecebimentosFilter,
   FaturaRecebimentosOutput,
-  FaturaSearchOutput
+  FaturaSearchOutput,
+  FaturaVisaoGeralOutput
 } from '../models/fatura.models';
 import type { FaturaListaItem } from '../pages/faturamento-page/faturas/faturamento-faturas.types';
 import type {
@@ -109,6 +111,15 @@ export class FaturaService {
   /** GET `/api/financeiro/Fatura/{id}/excel` — planilha Excel blob. */
   baixarExcel(id: number): Observable<Blob> {
     return this.http.get(`${API}/${id}/excel`, { responseType: 'blob' });
+  }
+
+  /** GET `/api/financeiro/Fatura/visao-geral` — cards e gráficos da Visão Geral. */
+  obterVisaoGeral(filtro: Omit<FaturaFilter, 'numeroPagina' | 'tamanhoPagina'> = {}): Observable<FaturaVisaoGeralOutput> {
+    return this.http
+      .get<unknown>(`${API}/visao-geral`, {
+        params: this.buildBuscarParams({ ...filtro, numeroPagina: 1, tamanhoPagina: 1 })
+      })
+      .pipe(map((body) => mapRawVisaoGeral(body)));
   }
 
   /** GET `/api/financeiro/Fatura/inadimplentes` — lista + resumo do dashboard. */

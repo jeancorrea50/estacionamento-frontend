@@ -11,8 +11,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
+import { formatCnpj } from '../../../../../cadastro/directives/cnpj-format.directive';
+import { acordoVazio, MESES_ACORDO, TIPO_COBRANCA_EXCEDENTE_OPCOES } from '../config-cobranca-acordo.util';
 import { formatarBrl, parseBrl } from '../config-cobranca-moeda.util';
 import type {
+  ConfigCobrancaAcordo,
   ConfigCobrancaListaItem,
   ConfigCobrancaLookupOption,
   ConfigCobrancaModalidade,
@@ -26,6 +29,7 @@ import {
   SERVICO_VALOR_LABELS,
   diaSemanaLabel,
   isDiaSemanaValido,
+  modalidadeExigeVencimentoFatura,
   montarRegistroDoFormulario,
   servicosFromItem,
   servicosVazios,
@@ -138,6 +142,10 @@ export class ConfigCobrancaFormDialogComponent {
   valorEstacionamentoTocado = false;
   status: ConfigCobrancaStatus = 'Ativa';
   servicos: ConfigCobrancaServicos = servicosVazios();
+  acordo: ConfigCobrancaAcordo = acordoVazio();
+  custoExcedenteTexto = '';
+  readonly mesesAcordo = MESES_ACORDO;
+  readonly tipoExcedenteOpcoes = TIPO_COBRANCA_EXCEDENTE_OPCOES;
 
   readonly valorCobrancaMatcher = new ValorCobrancaErrorStateMatcher(
     () => this.valorEstacionamentoTocado && this.valorCobrancaInvalido
@@ -151,6 +159,14 @@ export class ConfigCobrancaFormDialogComponent {
     return 'Defina como a transportadora será faturada.';
   }
 
+  get cnpjTransportadoraFormatado(): string {
+    const selecionada = this.data.transportadoras.find((t) => t.id === this.transportadoraId);
+    const digits = String(selecionada?.cnpj ?? '').replace(/\D/g, '');
+    if (!this.transportadoraId) return '';
+    if (digits.length === 14) return formatCnpj(digits);
+    return selecionada?.cnpj?.trim() || '—';
+  }
+
   get exigeDataCobranca(): boolean {
     return this.modalidade === 'Personalizada';
   }
@@ -161,6 +177,14 @@ export class ConfigCobrancaFormDialogComponent {
 
   get exigeDiaSemanal(): boolean {
     return this.modalidade === 'Semanal';
+  }
+
+  get exigeAcordo(): boolean {
+    return this.modalidade === 'Acordo';
+  }
+
+  get exigeVencimentoFatura(): boolean {
+    return modalidadeExigeVencimentoFatura(this.modalidade);
   }
 
   get diaSemanaSelecionadoLabel(): string {
@@ -202,6 +226,8 @@ export class ConfigCobrancaFormDialogComponent {
       this.valorEstacionamentoTexto = formatarBrl(r.valorEstacionamento);
       this.status = r.status === 'Inativa' ? 'Inativa' : 'Ativa';
       this.servicos = servicosFromItem(r);
+      this.acordo = r.acordo ? { ...r.acordo, vagas: { ...r.acordo.vagas } } : acordoVazio();
+      this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
     } else {
       this.modalidade = 'Mensal';
       this.regraFechamento = RegraFechamento.DiaFixo;
@@ -209,6 +235,8 @@ export class ConfigCobrancaFormDialogComponent {
       this.prazoVencimentoDias = 10;
       this.gerarAuto = true;
       this.status = 'Ativa';
+      this.acordo = acordoVazio();
+      this.custoExcedenteTexto = '';
     }
     this.jurosMultaAberto = this.multa || this.juros || this.descFixo || this.acresFixo;
   }
@@ -289,6 +317,7 @@ export class ConfigCobrancaFormDialogComponent {
 
   visualizarRegra(): void {
     this.sincronizarValorEstacionamentoDoTexto();
+    this.sincronizarCustoExcedenteDoTexto();
     this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
       width: '480px',
       maxWidth: '96vw',
@@ -299,6 +328,7 @@ export class ConfigCobrancaFormDialogComponent {
   salvar(): void {
     this.valorEstacionamentoTocado = true;
     this.sincronizarValorEstacionamentoDoTexto();
+    this.sincronizarCustoExcedenteDoTexto();
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
       modalidade: this.modalidade,
@@ -318,7 +348,8 @@ export class ConfigCobrancaFormDialogComponent {
       acresFixo: this.acresFixo,
       acresValor: this.acresValor,
       valorEstacionamento: this.valorEstacionamento,
-      servicos: this.servicos
+      servicos: this.servicos,
+      acordo: this.acordo
     });
     if (!v.ok) {
       this.errosVisiveis = v.mensagens;
@@ -327,6 +358,7 @@ export class ConfigCobrancaFormDialogComponent {
     }
     this.errosVisiveis = [];
     this.valorEstacionamentoTexto = formatarBrl(this.valorEstacionamento);
+    this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
     const id = this.data.mode === 'edit' ? this.data.item?.id ?? 0 : 0;
     this.ref.close({ record: this.montarRegistro(id) });
   }
@@ -343,8 +375,17 @@ export class ConfigCobrancaFormDialogComponent {
     this.valorEstacionamentoTexto = formatarBrl(this.valorEstacionamento);
   }
 
+  onCustoExcedenteBlur(): void {
+    this.sincronizarCustoExcedenteDoTexto();
+    if (this.acordo.custoExcedente != null) this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
+  }
+
   private sincronizarValorEstacionamentoDoTexto(): void {
     this.valorEstacionamento = parseBrl(this.valorEstacionamentoTexto);
+  }
+
+  private sincronizarCustoExcedenteDoTexto(): void {
+    this.acordo.custoExcedente = parseBrl(this.custoExcedenteTexto);
   }
 
   private montarRegistro(id: number): ConfigCobrancaListaItem {
@@ -371,7 +412,8 @@ export class ConfigCobrancaFormDialogComponent {
       acresFixo: this.acresFixo,
       acresValor: this.acresValor,
       valorEstacionamento: this.valorEstacionamento,
-      servicos: this.servicos
+      servicos: this.servicos,
+      acordo: this.acordo
     });
   }
 }

@@ -163,7 +163,11 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
       .pipe(catchError(() => of([])))
       .subscribe((transportadoras) => {
         this.transportadorasLookup.set(
-          transportadoras.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
+          transportadoras.map((t) => ({
+            id: t.id,
+            label: t.label.split(' — ')[0] || t.label,
+            cnpj: t.cnpj
+          }))
         );
       });
   }
@@ -195,7 +199,8 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
       Semanal: 'cfg-chip cfg-chip--mod-semanal',
       Quinzenal: 'cfg-chip cfg-chip--mod-quinzenal',
       Mensal: 'cfg-chip cfg-chip--mod-mensal',
-      Personalizada: 'cfg-chip cfg-chip--mod-personal'
+      Personalizada: 'cfg-chip cfg-chip--mod-personal',
+      Acordo: 'cfg-chip cfg-chip--mod-acordo'
     };
     return map[m] ?? 'cfg-chip';
   }

@@ -10,12 +10,35 @@ export enum ModalidadeCobranca {
   Semanal = 2,
   Quinzenal = 3,
   Mensal = 4,
-  Personalizado = 5
+  Personalizado = 5,
+  Acordo = 6
+}
+
+export enum TipoCobrancaExcedente {
+  PorVaga = 1
 }
 
 export enum RegraFechamento {
   UltimoDiaDoMes = 1,
   DiaFixo = 2
+}
+
+/** Vagas contratadas por mês e regra de excedente quando a modalidade é Acordo. */
+export interface ConfiguracaoCobrancaAcordo {
+  vagasJaneiro: number | null;
+  vagasFevereiro: number | null;
+  vagasMarco: number | null;
+  vagasAbril: number | null;
+  vagasMaio: number | null;
+  vagasJunho: number | null;
+  vagasJulho: number | null;
+  vagasAgosto: number | null;
+  vagasSetembro: number | null;
+  vagasOutubro: number | null;
+  vagasNovembro: number | null;
+  vagasDezembro: number | null;
+  custoExcedente: number | null;
+  tipoCobrancaExcedente: TipoCobrancaExcedente | null;
 }
 
 /** Serviços adicionais: cada flag habilita o respectivo valor, obrigatório quando ativa. */
@@ -59,7 +82,7 @@ export interface ConfiguracaoCobrancaSearchOutput {
   dataCriacao: string;
 }
 
-export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicosAdicionais {
+export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicosAdicionais, ConfiguracaoCobrancaAcordo {
   id: number;
   dataCriacao?: string;
   dataAtualizacao?: string | null;
@@ -92,7 +115,7 @@ export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicos
   agruparPorTransportadora: boolean;
 }
 
-export interface ConfiguracaoCobrancaPostInput extends ConfiguracaoCobrancaServicosAdicionais {
+export interface ConfiguracaoCobrancaPostInput extends ConfiguracaoCobrancaServicosAdicionais, ConfiguracaoCobrancaAcordo {
   id?: number;
   transportadoraId: number;
   status: StatusConfiguracaoCobranca;

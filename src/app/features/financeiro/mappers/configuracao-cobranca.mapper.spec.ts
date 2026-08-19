@@ -112,6 +112,32 @@ describe('configuracao-cobranca.mapper', () => {
     expect(payload.aplicarMulta).toBe(true);
   });
 
+  it('não exibe vencimento da fatura na cobrança diária', () => {
+    const item = mapSearchToListaItem({
+      id: 1,
+      transportadoraId: 2,
+      transportadoraNome: 'Transp',
+      estacionamentoId: 3,
+      estacionamentoNome: 'Patio',
+      status: StatusConfiguracaoCobranca.Ativa,
+      modalidadeCobranca: ModalidadeCobranca.Diaria,
+      diaFechamento: 5,
+      regraFechamento: RegraFechamento.DiaFixo,
+      prazoVencimentoDias: 10,
+      valorEstacionamento: 20,
+      emailFinanceiro: 'a@b.com',
+      envioAutomaticoEmail: false,
+      gerarFaturaAutomaticamente: true,
+      dataCriacao: '2026-01-01'
+    });
+    expect(item.fechamento).toBe('—');
+    expect(item.prazoVencimento).toBe('—');
+
+    const payload = mapListaItemToPostInput(item);
+    expect(payload.diaFechamento).toBeNull();
+    expect(payload.regraFechamento).toBe(RegraFechamento.UltimoDiaDoMes);
+  });
+
   it('deve trazer serviços adicionais habilitados com seus valores', () => {
     const lista = mapOutputToListaItem(
       mapRawOutput(
@@ -157,6 +183,35 @@ describe('configuracao-cobranca.mapper', () => {
 
     const mensal = { ...personalizada, modalidade: 'Mensal' as const, modalidadeCobranca: ModalidadeCobranca.Mensal };
     expect(mapListaItemToPostInput(mensal).dataCobranca).toBeNull();
+  });
+
+  it('deve mapear acordo e enviar vagas/excedente só nessa modalidade', () => {
+    expect(modalidadeLabel(ModalidadeCobranca.Acordo)).toBe('Acordo');
+    const acordo = mapOutputToListaItem(
+      mapRawOutput(
+        rawOutputBase({
+          modalidadeCobranca: ModalidadeCobranca.Acordo,
+          vagasJaneiro: 5,
+          vagasFevereiro: 10,
+          custoExcedente: 100,
+          tipoCobrancaExcedente: 1
+        })
+      )
+    );
+    expect(acordo.modalidade).toBe('Acordo');
+    expect(acordo.acordo.vagas[1]).toBe(5);
+    expect(acordo.acordo.vagas[2]).toBe(10);
+    expect(acordo.acordo.custoExcedente).toBe(100);
+
+    const payload = mapListaItemToPostInput(acordo);
+    expect(payload.modalidadeCobranca).toBe(ModalidadeCobranca.Acordo);
+    expect(payload.vagasJaneiro).toBe(5);
+    expect(payload.custoExcedente).toBe(100);
+    expect(payload.tipoCobrancaExcedente).toBe(1);
+
+    const mensal = mapListaItemToPostInput(mapOutputToListaItem(mapRawOutput(rawOutputBase())));
+    expect(mensal.vagasJaneiro).toBeNull();
+    expect(mensal.custoExcedente).toBeNull();
   });
 
   it('não deve enviar estacionamentoId no POST/PUT', () => {

@@ -3,8 +3,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 import { SERVICO_KEYS, SERVICO_VALOR_LABELS } from '../faturamento-config-cobranca.helpers';
-import { resumoVagasAcordo, tipoCobrancaExcedenteLabel } from '../config-cobranca-acordo.util';
-import type { ConfigCobrancaListaItem } from '../faturamento-config-cobranca.types';
+import { formatarPeriodoAcordo, resumoListagemAcordo, tipoCobrancaExcedenteLabel } from '../config-cobranca-acordo.util';
+import type { ConfigCobrancaAcordoListagem, ConfigCobrancaListaItem } from '../faturamento-config-cobranca.types';
 
 export interface ConfigCobrancaViewRuleDialogData {
   row: ConfigCobrancaListaItem;
@@ -30,7 +30,10 @@ export interface ConfigCobrancaViewRuleDialogData {
           <div><dt>Data da cobrança</dt><dd>{{ formatarData(data.row.dataCobranca) }}</dd></div>
         }
         @if (data.row.modalidade === 'Acordo') {
-          <div><dt>Vagas do acordo</dt><dd>{{ resumoVagas() }}</dd></div>
+          <div><dt>Período do acordo</dt><dd>{{ periodoAcordo() }}</dd></div>
+          @for (l of data.row.acordo.listagens; track l.id) {
+            <div><dt>Listagem de vagas</dt><dd>{{ resumoListagem(l) }}</dd></div>
+          }
           <div><dt>Custo do excedente</dt><dd>{{ formatarValorEstacionamento(data.row.acordo.custoExcedente) }}</dd></div>
           <div><dt>Tipo do excedente</dt><dd>{{ tipoExcedente() }}</dd></div>
         }
@@ -103,8 +106,12 @@ export class ConfigCobrancaViewRuleDialogComponent {
     return ano && mes && dia ? `${dia}/${mes}/${ano}` : iso;
   }
 
-  resumoVagas(): string {
-    return resumoVagasAcordo(this.data.row.acordo.vagas);
+  periodoAcordo(): string {
+    return formatarPeriodoAcordo(this.data.row.acordo.dataInicio, this.data.row.acordo.dataFim);
+  }
+
+  resumoListagem(listagem: ConfigCobrancaAcordoListagem): string {
+    return resumoListagemAcordo(listagem);
   }
 
   tipoExcedente(): string {

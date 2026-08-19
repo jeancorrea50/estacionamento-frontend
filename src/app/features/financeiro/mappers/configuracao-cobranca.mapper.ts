@@ -18,7 +18,7 @@ import type {
   ConfigCobrancaServicos,
   ConfigCobrancaStatus
 } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
-import { acordoVazio, MESES_ACORDO } from '../pages/faturamento-page/config-cobranca/config-cobranca-acordo.util';
+import { acordoVazio, listagensAPartirDasVagas, MESES_ACORDO, vagasFromListagens } from '../pages/faturamento-page/config-cobranca/config-cobranca-acordo.util';
 
 /** Rótulo de cada serviço adicional, usado no resumo textual e nas telas de visualização. */
 export const SERVICO_LABELS: Record<ConfigCobrancaServicoKey, string> = {
@@ -170,27 +170,37 @@ function acordoFromDto(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaAcordo {
   }
   acordo.custoExcedente = numeroOuNull(dto.custoExcedente);
   acordo.tipoCobrancaExcedente = Number(dto.tipoCobrancaExcedente) || TipoCobrancaExcedente.PorVaga;
+  acordo.dataInicio = toIsoDate(dto.dataInicioAcordo);
+  acordo.dataFim = toIsoDate(dto.dataFimAcordo);
+  acordo.listagens = listagensAPartirDasVagas(acordo.vagas);
   return acordo;
 }
 
 function acordoToPayload(item: ConfigCobrancaListaItem, isAcordo: boolean): ConfiguracaoCobrancaAcordo {
   const vazio = acordoVazio();
   const origem = isAcordo ? (item.acordo ?? vazio) : vazio;
+  const vagas = isAcordo
+    ? origem.listagens?.length
+      ? vagasFromListagens(origem.listagens)
+      : origem.vagas
+    : vazio.vagas;
   return {
-    vagasJaneiro: origem.vagas[1] ?? null,
-    vagasFevereiro: origem.vagas[2] ?? null,
-    vagasMarco: origem.vagas[3] ?? null,
-    vagasAbril: origem.vagas[4] ?? null,
-    vagasMaio: origem.vagas[5] ?? null,
-    vagasJunho: origem.vagas[6] ?? null,
-    vagasJulho: origem.vagas[7] ?? null,
-    vagasAgosto: origem.vagas[8] ?? null,
-    vagasSetembro: origem.vagas[9] ?? null,
-    vagasOutubro: origem.vagas[10] ?? null,
-    vagasNovembro: origem.vagas[11] ?? null,
-    vagasDezembro: origem.vagas[12] ?? null,
+    vagasJaneiro: vagas[1] ?? null,
+    vagasFevereiro: vagas[2] ?? null,
+    vagasMarco: vagas[3] ?? null,
+    vagasAbril: vagas[4] ?? null,
+    vagasMaio: vagas[5] ?? null,
+    vagasJunho: vagas[6] ?? null,
+    vagasJulho: vagas[7] ?? null,
+    vagasAgosto: vagas[8] ?? null,
+    vagasSetembro: vagas[9] ?? null,
+    vagasOutubro: vagas[10] ?? null,
+    vagasNovembro: vagas[11] ?? null,
+    vagasDezembro: vagas[12] ?? null,
     custoExcedente: isAcordo ? origem.custoExcedente : null,
-    tipoCobrancaExcedente: isAcordo ? origem.tipoCobrancaExcedente : null
+    tipoCobrancaExcedente: isAcordo ? origem.tipoCobrancaExcedente : null,
+    dataInicioAcordo: isAcordo ? origem.dataInicio || null : null,
+    dataFimAcordo: isAcordo ? origem.dataFim || null : null
   };
 }
 
@@ -493,6 +503,8 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     custoExcedente: pickNumberOrNull(row, 'custoExcedente', 'CustoExcedente'),
     tipoCobrancaExcedente: pickNumberOrNull(row, 'tipoCobrancaExcedente', 'TipoCobrancaExcedente') as
       | TipoCobrancaExcedente
-      | null
+      | null,
+    dataInicioAcordo: toIsoDate(pickStringOrNull(row, 'dataInicioAcordo', 'DataInicioAcordo')),
+    dataFimAcordo: toIsoDate(pickStringOrNull(row, 'dataFimAcordo', 'DataFimAcordo'))
   };
 }

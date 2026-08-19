@@ -53,6 +53,8 @@ function postInput(overrides: Partial<ConfiguracaoCobrancaPostInput> = {}): Conf
     vagasDezembro: null,
     custoExcedente: null,
     tipoCobrancaExcedente: null,
+    dataInicioAcordo: null,
+    dataFimAcordo: null,
     agruparPorPlaca: false,
     agruparPorPeriodo: false,
     agruparPorTransportadora: false,

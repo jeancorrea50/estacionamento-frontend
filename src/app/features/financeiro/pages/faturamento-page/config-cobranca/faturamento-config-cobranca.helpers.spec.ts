@@ -4,7 +4,7 @@ import {
   servicosVazios,
   validarFormularioConfig
 } from './faturamento-config-cobranca.helpers';
-import { acordoVazio, MESES_ACORDO } from './config-cobranca-acordo.util';
+import { acordoVazio, MESES_ACORDO, novaListagemAcordo, sincronizarVagasDoAcordo } from './config-cobranca-acordo.util';
 import type { ConfigCobrancaServicos } from './faturamento-config-cobranca.types';
 
 type EntradaValidacao = Parameters<typeof validarFormularioConfig>[0];
@@ -213,18 +213,19 @@ describe('validarFormularioConfig', () => {
     expect(validarFormularioConfig({ ...semDia, diaFechamento: 15 }).ok).toBe(true);
   });
 
-  it('exige vagas mensais e custo do excedente na modalidade acordo', () => {
+  it('exige período, listagem de vagas e custo do excedente na modalidade acordo', () => {
     const acordo = acordoVazio();
-    MESES_ACORDO.forEach((mes) => {
-      acordo.vagas[mes.mes] = 15;
-    });
+    acordo.dataInicio = '2026-01-01';
+    acordo.dataFim = '2026-12-31';
+    acordo.listagens = [novaListagemAcordo(MESES_ACORDO.map((mes) => mes.mes), 15)];
+    sincronizarVagasDoAcordo(acordo);
     acordo.custoExcedente = 100;
     acordo.tipoCobrancaExcedente = 1;
 
     const semVagas = validarFormularioConfig(entradaValida({ modalidade: 'Acordo', acordo: acordoVazio() }));
     expect(semVagas.ok).toBe(false);
     expect(semVagas.ok === false && semVagas.mensagens).toContain(
-      'Informe a quantidade de vagas de cada mês do acordo (zero ou mais).'
+      'Informe a data de início e a data de fim do acordo.'
     );
 
     const semCusto = validarFormularioConfig(

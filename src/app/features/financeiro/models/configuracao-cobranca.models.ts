@@ -15,7 +15,10 @@ export enum ModalidadeCobranca {
 }
 
 export enum TipoCobrancaExcedente {
-  PorVaga = 1
+  PorVaga = 1,
+  PorHora = 2,
+  PorPernoite = 3,
+  PorDiaria = 4
 }
 
 export enum RegraFechamento {
@@ -39,6 +42,9 @@ export interface ConfiguracaoCobrancaAcordo {
   vagasDezembro: number | null;
   custoExcedente: number | null;
   tipoCobrancaExcedente: TipoCobrancaExcedente | null;
+  /** Vigência do acordo; enviada somente na modalidade Acordo. */
+  dataInicioAcordo: string | null;
+  dataFimAcordo: string | null;
 }
 
 /** Serviços adicionais: cada flag habilita o respectivo valor, obrigatório quando ativa. */

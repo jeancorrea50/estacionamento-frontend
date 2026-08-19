@@ -12,12 +12,28 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { formatCnpj } from '../../../../../cadastro/directives/cnpj-format.directive';
-import { acordoVazio, MESES_ACORDO, TIPO_COBRANCA_EXCEDENTE_OPCOES } from '../config-cobranca-acordo.util';
+import {
+  acordoTemConteudo,
+  acordoVazio,
+  cloneAcordo,
+  formatarPeriodoAcordo,
+  MESES_ACORDO,
+  mensagensValidacaoAcordo,
+  mesesOcupados,
+  normalizarAcordo,
+  novaListagemAcordo,
+  resumoListagemAcordo,
+  sincronizarVagasDoAcordo,
+  TIPO_COBRANCA_EXCEDENTE_OPCOES,
+  tipoCobrancaExcedenteLabel
+} from '../config-cobranca-acordo.util';
 import { formatarBrl, parseBrl } from '../config-cobranca-moeda.util';
 import type {
   ConfigCobrancaAcordo,
+  ConfigCobrancaAcordoListagem,
   ConfigCobrancaListaItem,
   ConfigCobrancaLookupOption,
+  ConfigCobrancaMesAcordo,
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
   ConfigCobrancaServicos,
@@ -144,6 +160,9 @@ export class ConfigCobrancaFormDialogComponent {
   servicos: ConfigCobrancaServicos = servicosVazios();
   acordo: ConfigCobrancaAcordo = acordoVazio();
   custoExcedenteTexto = '';
+  acordoEditorAberto = false;
+  errosAcordoEditor: string[] = [];
+  private acordoSnapshot: ConfigCobrancaAcordo | null = null;
   readonly mesesAcordo = MESES_ACORDO;
   readonly tipoExcedenteOpcoes = TIPO_COBRANCA_EXCEDENTE_OPCOES;
 
@@ -181,6 +200,21 @@ export class ConfigCobrancaFormDialogComponent {
 
   get exigeAcordo(): boolean {
     return this.modalidade === 'Acordo';
+  }
+
+  get acordoCriado(): boolean {
+    return acordoTemConteudo(this.acordo);
+  }
+
+  get periodoAcordoLabel(): string {
+    return formatarPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim);
+  }
+
+  get excedenteAcordoLabel(): string {
+    const tipo = tipoCobrancaExcedenteLabel(this.acordo.tipoCobrancaExcedente);
+    const valor = this.acordo.custoExcedente;
+    if (valor == null) return tipo;
+    return `${formatarBrl(valor)} · ${tipo}`;
   }
 
   get exigeVencimentoFatura(): boolean {
@@ -226,8 +260,9 @@ export class ConfigCobrancaFormDialogComponent {
       this.valorEstacionamentoTexto = formatarBrl(r.valorEstacionamento);
       this.status = r.status === 'Inativa' ? 'Inativa' : 'Ativa';
       this.servicos = servicosFromItem(r);
-      this.acordo = r.acordo ? { ...r.acordo, vagas: { ...r.acordo.vagas } } : acordoVazio();
+      this.acordo = normalizarAcordo(r.acordo);
       this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
+      this.acordoEditorAberto = false;
     } else {
       this.modalidade = 'Mensal';
       this.regraFechamento = RegraFechamento.DiaFixo;
@@ -237,6 +272,7 @@ export class ConfigCobrancaFormDialogComponent {
       this.status = 'Ativa';
       this.acordo = acordoVazio();
       this.custoExcedenteTexto = '';
+      this.acordoEditorAberto = false;
     }
     this.jurosMultaAberto = this.multa || this.juros || this.descFixo || this.acresFixo;
   }
@@ -272,6 +308,68 @@ export class ConfigCobrancaFormDialogComponent {
       this.abrirModalDiaSemana();
       return;
     }
+
+    if (value === 'Acordo') {
+      this.acordoEditorAberto = false;
+      if (!acordoTemConteudo(this.acordo)) this.acordo = acordoVazio();
+    }
+  }
+
+  abrirEditorAcordo(): void {
+    if (!this.gerarAuto) return;
+    this.acordoSnapshot = cloneAcordo(this.acordo);
+    const rascunho = cloneAcordo(this.acordo);
+    if (!rascunho.listagens.length) rascunho.listagens = [novaListagemAcordo()];
+    this.acordo = rascunho;
+    this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
+    this.errosAcordoEditor = [];
+    this.acordoEditorAberto = true;
+  }
+
+  adicionarListagemAcordo(): void {
+    this.acordo.listagens = [...this.acordo.listagens, novaListagemAcordo()];
+  }
+
+  removerListagemAcordo(id: string): void {
+    if (this.acordo.listagens.length <= 1) return;
+    this.acordo.listagens = this.acordo.listagens.filter((l) => l.id !== id);
+  }
+
+  mesListagemOcupado(listagem: ConfigCobrancaAcordoListagem, mes: ConfigCobrancaMesAcordo): boolean {
+    return mesesOcupados(this.acordo, listagem.id).has(mes);
+  }
+
+  onMesesListagemChange(listagem: ConfigCobrancaAcordoListagem, meses: ConfigCobrancaMesAcordo[]): void {
+    const ocupados = mesesOcupados(this.acordo, listagem.id);
+    listagem.meses = (meses ?? []).filter((mes) => !ocupados.has(mes)).sort((a, b) => a - b);
+  }
+
+  resumoListagem(listagem: ConfigCobrancaAcordoListagem): string {
+    return resumoListagemAcordo(listagem);
+  }
+
+  concluirAcordo(): void {
+    this.sincronizarCustoExcedenteDoTexto();
+    this.acordo.listagens = this.acordo.listagens.filter((l) => l.meses.length > 0);
+    sincronizarVagasDoAcordo(this.acordo);
+    const erros = mensagensValidacaoAcordo(this.acordo);
+    if (erros.length) {
+      this.errosAcordoEditor = erros;
+      this.snack.open(erros[0], 'Fechar', { duration: 4500 });
+      if (!this.acordo.listagens.length) this.acordo.listagens = [novaListagemAcordo()];
+      return;
+    }
+    this.errosAcordoEditor = [];
+    this.acordoSnapshot = null;
+    this.acordoEditorAberto = false;
+  }
+
+  cancelarEditorAcordo(): void {
+    this.acordo = this.acordoSnapshot ? cloneAcordo(this.acordoSnapshot) : acordoVazio();
+    this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
+    this.errosAcordoEditor = [];
+    this.acordoSnapshot = null;
+    this.acordoEditorAberto = false;
   }
 
   abrirModalDiaSemana(): void {
@@ -329,6 +427,7 @@ export class ConfigCobrancaFormDialogComponent {
     this.valorEstacionamentoTocado = true;
     this.sincronizarValorEstacionamentoDoTexto();
     this.sincronizarCustoExcedenteDoTexto();
+    sincronizarVagasDoAcordo(this.acordo);
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
       modalidade: this.modalidade,

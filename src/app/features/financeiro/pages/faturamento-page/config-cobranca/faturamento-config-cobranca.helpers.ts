@@ -1,4 +1,4 @@
-import { acordoVazio, isQuantidadeVagasValida, MESES_ACORDO } from './config-cobranca-acordo.util';
+import { acordoVazio, mensagensValidacaoAcordo, normalizarAcordo } from './config-cobranca-acordo.util';
 import type {
   ConfigCobrancaAcordo,
   ConfigCobrancaListaItem,
@@ -146,17 +146,7 @@ export function validarFormularioConfig(input: {
     }
 
     if (input.modalidade === 'Acordo') {
-      const acordo = input.acordo ?? acordoVazio();
-      const mesInvalido = MESES_ACORDO.find((mes) => !isQuantidadeVagasValida(acordo.vagas[mes.mes]));
-      if (mesInvalido) {
-        m.push('Informe a quantidade de vagas de cada mês do acordo (zero ou mais).');
-      }
-      if (!valorInformado(acordo.custoExcedente)) {
-        m.push('Informe o custo do excedente maior que zero.');
-      }
-      if (!acordo.tipoCobrancaExcedente) {
-        m.push('Selecione o tipo de cobrança do excedente.');
-      }
+      m.push(...mensagensValidacaoAcordo(input.acordo ?? acordoVazio()));
     }
 
     if (input.modalidade === 'Mensal' && !isDiaMensalValido(input.diaFechamento)) {
@@ -312,7 +302,7 @@ export function montarRegistroDoFormulario(campos: {
     pagamentoParcial: false,
     servicos,
     servicosCobrados: servicosCobradosLabel(servicos),
-    acordo: campos.modalidade === 'Acordo' ? (campos.acordo ?? acordoVazio()) : acordoVazio()
+    acordo: campos.modalidade === 'Acordo' ? normalizarAcordo(campos.acordo) : acordoVazio()
   };
 }
 

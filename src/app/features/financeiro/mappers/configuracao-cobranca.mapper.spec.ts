@@ -194,7 +194,9 @@ describe('configuracao-cobranca.mapper', () => {
           vagasJaneiro: 5,
           vagasFevereiro: 10,
           custoExcedente: 100,
-          tipoCobrancaExcedente: 1
+          tipoCobrancaExcedente: 1,
+          dataInicioAcordo: '2026-01-01',
+          dataFimAcordo: '2026-12-31'
         })
       )
     );
@@ -202,12 +204,16 @@ describe('configuracao-cobranca.mapper', () => {
     expect(acordo.acordo.vagas[1]).toBe(5);
     expect(acordo.acordo.vagas[2]).toBe(10);
     expect(acordo.acordo.custoExcedente).toBe(100);
+    expect(acordo.acordo.dataInicio).toBe('2026-01-01');
+    expect(acordo.acordo.listagens.length).toBeGreaterThan(0);
 
     const payload = mapListaItemToPostInput(acordo);
     expect(payload.modalidadeCobranca).toBe(ModalidadeCobranca.Acordo);
     expect(payload.vagasJaneiro).toBe(5);
     expect(payload.custoExcedente).toBe(100);
     expect(payload.tipoCobrancaExcedente).toBe(1);
+    expect(payload.dataInicioAcordo).toBe('2026-01-01');
+    expect(payload.dataFimAcordo).toBe('2026-12-31');
 
     const mensal = mapListaItemToPostInput(mapOutputToListaItem(mapRawOutput(rawOutputBase())));
     expect(mensal.vagasJaneiro).toBeNull();

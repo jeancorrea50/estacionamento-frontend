@@ -330,9 +330,84 @@
   color: var(--cfg-muted);
 }
 
-.cfg-acordo-meses {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+.cfg-acordo-empty,
+.cfg-acordo-lista,
+.cfg-acordo-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cfg-acordo-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--cfg-input-border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--cfg-input-bg);
+}
+
+.cfg-acordo-card__title {
+  margin: 0 0 4px;
+  font-size: var(--font-body, 14px);
+  color: var(--cfg-text);
+}
+
+.cfg-acordo-card__meta,
+.cfg-acordo-card__items {
+  margin: 0;
+  font-size: 12px;
+  color: var(--cfg-muted);
+}
+
+.cfg-acordo-card__items {
+  padding-left: 16px;
+  margin: 6px 0;
+}
+
+.cfg-acordo-listagem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--cfg-input-border);
+  border-radius: var(--radius-sm, 8px);
+}
+
+.cfg-acordo-listagem__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cfg-acordo-listagem__title {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cfg-text);
+}
+
+.cfg-acordo-listagem__remove {
+  border: 0;
+  background: transparent;
+  color: var(--cfg-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cfg-acordo-editor__erros {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--cfg-danger, #f87171);
+}
+
+.cfg-acordo-editor__actions {
+  display: flex;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -389,10 +464,8 @@
   margin-top: 1px;
 }
 
-@media (max-width: 640px) {
-  .cfg-acordo-meses {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+::ng-deep .cfg-acordo-meses-panel.mat-mdc-select-panel {
+  max-height: 240px;
 }
 
 .cfg-money-field {

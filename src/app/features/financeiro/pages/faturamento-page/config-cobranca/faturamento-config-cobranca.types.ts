@@ -29,7 +29,19 @@ export type ConfigCobrancaMesAcordo = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 1
 
 export type ConfigCobrancaVagasAcordo = Record<ConfigCobrancaMesAcordo, number | null>;
 
+/** Grupo de meses com a mesma quantidade de vagas dentro do acordo. */
+export interface ConfigCobrancaAcordoListagem {
+  id: string;
+  meses: ConfigCobrancaMesAcordo[];
+  quantidade: number | null;
+}
+
 export interface ConfigCobrancaAcordo {
+  /** ISO `yyyy-MM-dd`. */
+  dataInicio: string | null;
+  /** ISO `yyyy-MM-dd`. */
+  dataFim: string | null;
+  listagens: ConfigCobrancaAcordoListagem[];
   vagas: ConfigCobrancaVagasAcordo;
   custoExcedente: number | null;
   tipoCobrancaExcedente: number;

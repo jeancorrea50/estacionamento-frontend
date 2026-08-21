@@ -95,7 +95,7 @@
 .saida-modal__header {
   margin-bottom: 1rem;
   padding-bottom: 0.9rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
   text-align: center;
 }
 
@@ -105,7 +105,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-align: center;
-  color: #0f172a;
+  color: var(--text, #0f172a);
 }
 
 .saida-modal__identidade {
@@ -130,7 +130,7 @@
   font-size: 0.8125rem;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: var(--muted, #64748b);
 }
 
 .saida-modal__placa-valor {
@@ -138,7 +138,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
-  color: #0f172a;
+  color: var(--text, #0f172a);
 }
 
 .saida-modal__status {
@@ -192,14 +192,14 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--muted, #64748b);
 }
 
 .saida-modal__tempo-valor {
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: #0f172a;
+  color: var(--text, #0f172a);
   font-variant-numeric: tabular-nums;
 }
 
@@ -210,8 +210,8 @@
 .saida-modal__valores {
   padding: 0.9rem 1rem;
   border-radius: 12px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-2, #f1f5f9);
+  border: 1px solid var(--border-subtle, #e2e8f0);
 }
 
 .saida-modal__cupom {
@@ -234,13 +234,13 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #1e3a8a;
-  background: #dbeafe;
+  color: var(--primary, #1e3a8a);
+  background: color-mix(in srgb, var(--primary, #2563eb) 18%, transparent);
 }
 
 .saida-modal__meta-pill--muted {
-  color: #334155;
-  background: #e2e8f0;
+  color: var(--muted, #334155);
+  background: color-mix(in srgb, var(--muted, #64748b) 18%, transparent);
 }
 
 .saida-modal__cupom-linha {
@@ -266,20 +266,20 @@
 }
 
 .saida-modal__money .modal-money__input {
-  background: #fff;
+  background: var(--input-bg, #fff);
 }
 
 .saida-modal__cupom-valor {
   font-size: 1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #0f172a;
+  color: var(--text, #0f172a);
 }
 
 .saida-modal__cupom-linha--total {
   margin-top: 0.15rem;
   padding-top: 0.75rem;
-  border-top: 1px dashed #cbd5e1;
+  border-top: 1px dashed var(--border-subtle, #cbd5e1);
   align-items: baseline;
 }
 
@@ -287,7 +287,7 @@
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #334155;
+  color: var(--muted, #334155);
 }
 
 .saida-modal__total {
@@ -295,7 +295,7 @@
   font-weight: 800;
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;
-  color: #0f766e;
+  color: var(--success, #0f766e);
   line-height: 1.1;
 }
 
@@ -704,6 +704,51 @@
   .modal-content .saida-modal__total,
   .recibo-confirm-dialog h3 {
     color: var(--text, #f8fafc) !important;
+  }
+
+  .modal-content .saida-modal__tempo-valor,
+  .modal-content .saida-modal__cupom-valor {
+    color: var(--text, #f8fafc) !important;
+  }
+
+  .modal-content .saida-modal__valores {
+    background: rgba(28, 38, 66, 0.92) !important;
+    border-color: rgba(80, 120, 255, 0.22) !important;
+  }
+
+  .modal-content .saida-modal__meta-pill {
+    color: #bfdbfe !important;
+    background: rgba(37, 99, 235, 0.28) !important;
+  }
+
+  .modal-content .saida-modal__meta-pill--muted {
+    color: rgba(248, 250, 252, 0.78) !important;
+    background: rgba(148, 163, 184, 0.2) !important;
+  }
+
+  .modal-content .saida-modal__cupom-linha--total {
+    border-top-color: rgba(148, 163, 184, 0.35) !important;
+  }
+
+  .modal-content .saida-modal__cupom-linha--total > span {
+    color: rgba(248, 250, 252, 0.78) !important;
+  }
+
+  .modal-content .saida-modal__total {
+    color: #5eead4 !important;
+  }
+
+  .modal-content .saida-modal__money .modal-money__input,
+  .modal-content .modal-money__prefix {
+    color: var(--input-text, #f8fafc) !important;
+  }
+
+  .modal-content .saida-modal__money .modal-money__input {
+    background-color: var(--input-bg, #1c2642) !important;
+  }
+
+  .modal-content .saida-modal__header {
+    border-bottom-color: rgba(80, 120, 255, 0.18) !important;
   }
 
   .modal-content .modal-close {

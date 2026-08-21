@@ -179,7 +179,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   motoristaJaCadastradoEncontrado = false;
   /** CPF encontrado já vinculado à transportadora em edição. */
   motoristaJaVinculadoNesta = false;
-  /** CPF encontrado vinculado a outra transportadora (API não permite transferir). */
+  /** CPF encontrado vinculado a outra transportadora (transferência permitida ao confirmar). */
   motoristaVinculoOutraTransportadora = false;
   motoristaAceitouVinculo = false;
   private motoristaEncontradoCache: MotoristaListItemDTO | null = null;
@@ -1858,7 +1858,18 @@ export class CadastroTransportadoraPageComponent implements OnInit {
                 )
               );
             }),
-            catchError(() => {
+            catchError((err: unknown) => {
+              const status =
+                err && typeof err === 'object' && 'status' in err
+                  ? Number((err as { status?: unknown }).status)
+                  : 0;
+              // 404 já vira null no service; se ainda chegar aqui, não assusta o usuário.
+              if (status === 404 || status === 204) {
+                return of({
+                  cpfDigits,
+                  dto: null as MotoristaListItemDTO | null
+                });
+              }
               this.toast.error('Não foi possível consultar o CPF do motorista.');
               return of({
                 cpfDigits,
@@ -1999,7 +2010,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.transportadoraId != null &&
       dto.transportadoraId !== this.transportadoraId;
 
-    // Hidrata sempre (consulta/edição). Sem exibir nome/CNPJ da outra transportadora.
+    // Hidrata sempre. Sem exibir nome/CNPJ da outra transportadora.
     this.aplicarMotoristaEncontrado(dto, jaNesta);
 
     if (jaNesta) {
@@ -2012,17 +2023,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     }
 
     this.motoristaJaVinculadoNesta = false;
+    this.motoristaVinculoOutraTransportadora = vinculadoEmOutra;
 
-    // Contrato da API: não permite transferir motorista já vinculado a outra transportadora.
-    if (vinculadoEmOutra) {
-      this.motoristaVinculoOutraTransportadora = true;
-      this.motoristaAceitouVinculo = false;
-      this.condutorEditId = null;
-      this.cdr.markForCheck();
-      return;
-    }
-
-    this.motoristaVinculoOutraTransportadora = false;
+    const mensagem = vinculadoEmOutra
+      ? 'Encontramos este CPF no banco (já vinculado a outra transportadora) e carregamos os dados.\n\nDeseja vincular à transportadora em edição? Ao salvar, o vínculo anterior será desfeito.'
+      : 'Encontramos este CPF no banco e carregamos os dados do cadastro.\n\nDeseja vincular este motorista à transportadora em edição?';
 
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       width: '460px',
@@ -2030,8 +2035,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       panelClass: 'cfg-form-dialog-panel',
       data: {
         titulo: 'Motorista já cadastrado',
-        mensagem:
-          'Encontramos este CPF no banco e carregamos os dados do cadastro.\n\nDeseja vincular este motorista à transportadora em edição?',
+        mensagem,
         cancelLabel: 'Não',
         confirmLabel: 'Sim, vincular',
         confirmColor: 'primary'
@@ -2042,14 +2046,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       if (!ok) {
         this.motoristaAceitouVinculo = false;
         this.motoristaJaVinculadoNesta = false;
-        this.motoristaVinculoOutraTransportadora = false;
         this.toast.warning('Vínculo não confirmado. Confirme o vínculo para salvar ou altere o CPF.');
         this.cdr.markForCheck();
         return;
       }
       this.motoristaAceitouVinculo = true;
       this.motoristaJaVinculadoNesta = false;
-      this.motoristaVinculoOutraTransportadora = false;
       this.condutorEditId = dto.id > 0 ? dto.id : null;
       this.cdr.markForCheck();
     });
@@ -2094,12 +2096,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.toast.error('Salve primeiro o cadastro da transportadora para vincular motoristas.');
       return;
     }
-    if (this.motoristaVinculoOutraTransportadora) {
-      this.toast.error(
-        'Motorista já cadastrado em outra transportadora. Não é permitido vincular a esta.'
-      );
-      return;
-    }
     if (this.motoristaEncontradoCache && !this.motoristaAceitouVinculo) {
       this.toast.error('Confirme o vínculo do motorista encontrado ou altere o CPF.');
       return;
@@ -2120,10 +2116,15 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.condutorEditId != null && this.condutorEditId > 0
         ? this.condutores.find((x) => x.id === this.condutorEditId) ?? this.motoristaEncontradoCache ?? undefined
         : this.motoristaEncontradoCache ?? undefined;
+    const transferindoVinculo =
+      this.motoristaAceitouVinculo &&
+      this.motoristaVinculoOutraTransportadora &&
+      this.condutorEditId != null &&
+      this.condutorEditId > 0;
 
     const dto: MotoristaDTO = {
       id: this.condutorEditId != null && this.condutorEditId > 0 ? this.condutorEditId : undefined,
-      // Novo transportadoraId no PUT desfaz o vínculo anterior e aplica o atual.
+      // PUT com novo transportadoraId desfaz o vínculo anterior e aplica o atual.
       transportadoraId: tid,
       nomeCompleto: v.nomeCompleto,
       cpf: cpfDigits,
@@ -2148,7 +2149,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         this.limparEstadoLookupMotorista();
         this.carregarCondutores();
         this.toast.success(
-          dto.id ? 'Motorista atualizado com sucesso.' : 'Motorista cadastrado com sucesso.'
+          transferindoVinculo
+            ? 'Motorista vinculado com sucesso. O vínculo anterior foi desfeito.'
+            : dto.id
+              ? 'Motorista atualizado com sucesso.'
+              : 'Motorista cadastrado com sucesso.'
         );
         this.cdr.markForCheck();
       },

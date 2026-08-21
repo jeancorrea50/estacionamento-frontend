@@ -60,12 +60,22 @@ export class MotoristaService {
         return this.mapMotorista(result as Record<string, unknown>);
       }),
       catchError((err: unknown) => {
-        const status = err instanceof HttpErrorResponse ? err.status : 0;
-        // 404 = CPF ainda não cadastrado (cenário esperado).
-        if (status === 404) return of(null);
+        // O interceptor reescreve HttpErrorResponse em ApiError — ler status dos dois formatos.
+        const status = this.httpErrorStatus(err);
+        // 404/204 = CPF ainda não cadastrado (cenário esperado, sem toast).
+        if (status === 404 || status === 204) return of(null);
         return throwError(() => err);
       })
     );
+  }
+
+  private httpErrorStatus(err: unknown): number {
+    if (err instanceof HttpErrorResponse) return err.status;
+    if (err && typeof err === 'object' && 'status' in err) {
+      const s = Number((err as { status?: unknown }).status);
+      return Number.isFinite(s) ? s : 0;
+    }
+    return 0;
   }
 
   gravar(dto: MotoristaDTO): Observable<MotoristaDTO> {

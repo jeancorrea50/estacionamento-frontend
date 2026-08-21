@@ -84,7 +84,18 @@ export function toggleMenuSelection(
 ): TreeMenuNode[] {
   return tree.map((menu) => {
     if (menu.menuId !== menuId) return menu;
-    return { ...menu, selecionado };
+    return {
+      ...menu,
+      selecionado,
+      subMenus: menu.subMenus.map((subMenu) => ({
+        ...subMenu,
+        selecionado,
+        permissoes: subMenu.permissoes.map((permission) => ({
+          ...permission,
+          selecionado,
+        })),
+      })),
+    };
   });
 }
 
@@ -98,30 +109,23 @@ export function toggleSubMenuSelection(
     if (menu.menuId !== menuId) return menu;
     const subMenus = menu.subMenus.map((subMenu) => {
       if (subMenu.subMenuId !== subMenuId) return subMenu;
-      if (!selecionado) {
-        return { ...subMenu, selecionado };
-      }
-
-      const hasVisualizarSelecionado = subMenu.permissoes.some(
-        (permission) => isVisualizarPermission(permission) && permission.selecionado
-      );
-      if (hasVisualizarSelecionado) {
-        return { ...subMenu, selecionado };
-      }
-
-      const visualizarIndex = subMenu.permissoes.findIndex((permission) =>
-        isVisualizarPermission(permission)
-      );
-      if (visualizarIndex < 0) {
-        return { ...subMenu, selecionado };
-      }
-
-      const permissoes = subMenu.permissoes.map((permission, idx) =>
-        idx === visualizarIndex ? { ...permission, selecionado: true } : permission
-      );
-      return { ...subMenu, selecionado, permissoes };
+      return {
+        ...subMenu,
+        selecionado,
+        permissoes: subMenu.permissoes.map((permission) => ({
+          ...permission,
+          selecionado,
+        })),
+      };
     });
-    return { ...menu, subMenus };
+    const anyChildSelected = subMenus.some(
+      (sub) => sub.selecionado || sub.permissoes.some((p) => p.selecionado)
+    );
+    return {
+      ...menu,
+      selecionado: selecionado ? true : anyChildSelected,
+      subMenus,
+    };
   });
 }
 
@@ -141,25 +145,44 @@ export function togglePermissaoSelection(
           ? { ...permission, selecionado }
           : permission
       );
-      return { ...subMenu, permissoes };
+      const anyPermSelected = permissoes.some((p) => p.selecionado);
+      return {
+        ...subMenu,
+        // Marca o submenu quando há permissão marcada; limpa se nenhuma restar.
+        selecionado: anyPermSelected,
+        permissoes,
+      };
     });
-    return { ...menu, subMenus };
+    const anyChildSelected = subMenus.some(
+      (sub) => sub.selecionado || sub.permissoes.some((p) => p.selecionado)
+    );
+    return {
+      ...menu,
+      selecionado: anyChildSelected,
+      subMenus,
+    };
   });
 }
 
 export function mapTreeToPerfilMenusPayload(tree: TreeMenuNode[]): PerfilModuloInput[] {
-  return tree.map((menu) => ({
-    menuId: menu.menuId,
-    selecionado: menu.selecionado,
-    subMenus: menu.subMenus.map((subMenu) => ({
-      subMenuId: subMenu.subMenuId,
-      selecionado: subMenu.selecionado,
-      permissoes: subMenu.permissoes.map((permission) => ({
-        permissaoId: permission.permissaoId,
-        selecionado: permission.selecionado,
-      })),
-    })),
-  }));
+  return tree
+    .filter((menu) => menu.menuId > 0)
+    .map((menu) => ({
+      menuId: menu.menuId,
+      selecionado: menu.selecionado,
+      subMenus: menu.subMenus
+        .filter((subMenu) => subMenu.subMenuId > 0)
+        .map((subMenu) => ({
+          subMenuId: subMenu.subMenuId,
+          selecionado: subMenu.selecionado,
+          permissoes: subMenu.permissoes
+            .filter((permission) => permission.permissaoId > 0)
+            .map((permission) => ({
+              permissaoId: permission.permissaoId,
+              selecionado: permission.selecionado,
+            })),
+        })),
+    }));
 }
 
 export function getSelectedPermissionKeys(tree: TreeMenuNode[]): string[] {
@@ -270,10 +293,4 @@ function toOptionalNumber(value: unknown): number | undefined {
     if (Number.isFinite(parsed)) return parsed;
   }
   return undefined;
-}
-
-function isVisualizarPermission(permission: TreePermissaoNode): boolean {
-  const key = (permission.key ?? '').trim().toLowerCase();
-  const nome = (permission.nome ?? '').trim().toLowerCase();
-  return key.endsWith('.visualizar') || key === 'visualizar' || nome.includes('visualizar');
 }

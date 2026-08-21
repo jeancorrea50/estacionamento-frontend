@@ -8,6 +8,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import {
   AcessosPerfisService,
   ApplicationRole,
@@ -15,6 +17,10 @@ import {
 } from '../../services/acessos-perfis.service';
 import { ProfilePermissionsStoreService } from '../../services/profile-permissions-store.service';
 import type { MenuAdmin } from '../../../gerenciamento/models/menu-admin.model';
+import { MenuApiService } from '../../../gerenciamento/services/menu-api.service';
+import {
+  mapBuscarResponseToMenuAdmins,
+} from '../../../gerenciamento/services/menu-api.mapper';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -46,6 +52,7 @@ const AVISO_SEM_ENDPOINT =
 })
 export class AcessosPerfisPageComponent implements OnInit {
   private perfisService = inject(AcessosPerfisService);
+  private menuApi = inject(MenuApiService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
   private sessionAccess = inject(SessionAccessService);
@@ -98,17 +105,26 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.loading = true;
     this.erro = null;
     this.cdr.markForCheck();
-    this.perfisService.buscar().subscribe({
-      next: (body) => {
-        const rawList = this.extractRawProfileList(body);
+    forkJoin({
+      perfis: this.perfisService.buscar(),
+      // Catálogo oficial de menus/permissões (ids corretos para o PUT/POST de Perfil).
+      menus: this.menuApi.buscar().pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: ({ perfis, menus }) => {
+        const rawList = this.extractRawProfileList(perfis);
         this.loading = false;
         this.erro = null;
         this.itens = rawList.map((item) => this.normalizeRoleItem(item));
         this.searchDraft = '';
         this.searchTerm = '';
-        const menus = this.buildMenuCatalogFromProfiles(rawList);
-        this.backendMenuCatalog.set(menus);
-        this.permissionTree.set(buildPermissionTreeState(menus, null, []));
+        const fromMenuApi =
+          menus != null ? this.sanitizeMenuCatalog(mapBuscarResponseToMenuAdmins(menus)) : [];
+        const catalog =
+          fromMenuApi.length > 0
+            ? fromMenuApi
+            : this.sanitizeMenuCatalog(this.buildMenuCatalogFromProfiles(rawList));
+        this.backendMenuCatalog.set(catalog);
+        this.permissionTree.set(buildPermissionTreeState(catalog, null, []));
         this.syncProfilePermissionsStore();
         this.cdr.markForCheck();
       },
@@ -119,6 +135,22 @@ export class AcessosPerfisPageComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /** Mantém apenas ids válidos do servidor (evita FK inválida no save do perfil). */
+  private sanitizeMenuCatalog(menus: MenuAdmin[]): MenuAdmin[] {
+    return menus
+      .filter((menu) => menu.id > 0)
+      .map((menu) => ({
+        ...menu,
+        subMenus: (menu.subMenus ?? [])
+          .filter((sub) => sub.id > 0)
+          .map((sub) => ({
+            ...sub,
+            permissions: (sub.permissions ?? []).filter((p) => p.id > 0),
+          })),
+      }))
+      .sort((a, b) => a.ordem - b.ordem);
   }
 
   retry(): void {
@@ -707,13 +739,16 @@ export class AcessosPerfisPageComponent implements OnInit {
 
   private toUpsertPayload(editingItem: ApplicationRole | null): PerfilUpsertInput {
     const nome = this.form.name.trim() || null;
-    return {
-      id: this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId),
-      perfilId: this.toOptionalNumber(editingItem?.perfilId),
+    // Contrato Swagger: PerfilCreateInput / PerfilUpdateInput → { id?, nome, menus }
+    const dto: PerfilUpsertInput = {
       nome,
-      name: nome,
       menus: mapTreeToPerfilMenusPayload(this.permissionTree()),
     };
+    const id = this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId);
+    if (id != null && id > 0) {
+      dto.id = id;
+    }
+    return dto;
   }
 
   private getPermissionIdToKeyMap(): Map<number, string> {
@@ -803,10 +838,21 @@ export class AcessosPerfisPageComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.saveError.set(err?.message ?? 'Erro ao salvar.');
+        this.saveError.set(this.mensagemErroSalvarPerfil(err));
         this.cdr.markForCheck();
       },
     });
+  }
+
+  private mensagemErroSalvarPerfil(err: unknown): string {
+    const raw =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message?: unknown }).message ?? '').trim()
+        : '';
+    if (/entity changes|inner exception|dbupdate|foreign key|fk_/i.test(raw)) {
+      return 'Não foi possível salvar o perfil. Verifique as permissões selecionadas (ids inválidos ou vínculo inconsistente no servidor).';
+    }
+    return raw || 'Erro ao salvar.';
   }
 
   confirmarExclusao(): void {

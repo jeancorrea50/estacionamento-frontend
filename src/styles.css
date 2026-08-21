@@ -2487,6 +2487,57 @@ html.theme-dark .modal-content textarea.input-control {
   border-color: var(--input-border, rgba(80, 120, 255, 0.28)) !important;
 }
 
+/* Modal Registrar Saída: bloco de valores não fica branco no dark */
+html.theme-dark .saida-modal__valores {
+  background: var(--surface-2, #1e2a45) !important;
+  border-color: var(--border-subtle, rgba(80, 120, 255, 0.22)) !important;
+}
+
+html.theme-dark .saida-modal__title,
+html.theme-dark .saida-modal__placa-valor,
+html.theme-dark .saida-modal__tempo-valor,
+html.theme-dark .saida-modal__cupom-valor {
+  color: var(--text, #f8fafc) !important;
+}
+
+html.theme-dark .saida-modal__label,
+html.theme-dark .saida-modal__placa-label,
+html.theme-dark .saida-modal__cupom-linha--total > span,
+html.theme-dark .saida-modal__valores .modal-hint {
+  color: var(--muted, rgba(248, 250, 252, 0.72)) !important;
+}
+
+html.theme-dark .saida-modal__meta-pill {
+  color: #bfdbfe !important;
+  background: rgba(37, 99, 235, 0.28) !important;
+}
+
+html.theme-dark .saida-modal__meta-pill--muted {
+  color: rgba(248, 250, 252, 0.78) !important;
+  background: rgba(148, 163, 184, 0.2) !important;
+}
+
+html.theme-dark .saida-modal__cupom-linha--total {
+  border-top-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+html.theme-dark .saida-modal__total {
+  color: #5eead4 !important;
+}
+
+html.theme-dark .saida-modal__money .modal-money__input {
+  background-color: var(--input-bg, #1c2642) !important;
+  color: var(--input-text, #f8fafc) !important;
+}
+
+html.theme-dark .saida-modal__money .modal-money__prefix {
+  color: var(--text, #f8fafc) !important;
+}
+
+html.theme-dark .saida-modal__header {
+  border-bottom-color: var(--border-subtle, rgba(80, 120, 255, 0.18)) !important;
+}
+
 html.theme-light .modal-content,
 html.theme-light .modal-dark,
 html.theme-light .dk-modal-content {

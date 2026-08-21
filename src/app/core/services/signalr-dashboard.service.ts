@@ -36,6 +36,8 @@ export class SignalrDashboardService {
 
   private hubConnection: HubConnection | null = null;
   private connectPromise: Promise<void> | null = null;
+  /** Evita renegotiate em loop quando o hub está offline (500). */
+  private connectFailed = false;
 
   /** Snapshot atual do dashboard (KPIs). */
   readonly dashboardAtualizado = this.dashboardSignal.asReadonly();
@@ -69,6 +71,10 @@ export class SignalrDashboardService {
       return this.connectPromise;
     }
 
+    if (this.connectFailed) {
+      return;
+    }
+
     if (!this.hubConnection) {
       this.hubConnection = this.buildConnection();
       this.registerLifecycleHandlers(this.hubConnection);
@@ -79,12 +85,14 @@ export class SignalrDashboardService {
     this.connectPromise = this.hubConnection
       .start()
       .then(() => {
+        this.connectFailed = false;
         this.log('SignalR conectado com sucesso.');
       })
       .catch((error: unknown) => {
-        this.logError('Falha ao conectar no SignalR.', error);
+        this.connectFailed = true;
         this.connectPromise = null;
-        throw error;
+        // Hub offline/500 é esperado em ambientes parciais — não rethrow (evita ERROR no console Angular).
+        this.logWarn('Falha ao conectar no SignalR (hub indisponível).', error);
       });
 
     try {
@@ -107,8 +115,7 @@ export class SignalrDashboardService {
       await this.hubConnection.stop();
       this.log('SignalR desconectado.');
     } catch (error: unknown) {
-      this.logError('Falha ao desconectar SignalR.', error);
-      throw error;
+      this.logWarn('Falha ao desconectar SignalR.', error);
     }
   }
 
@@ -121,21 +128,22 @@ export class SignalrDashboardService {
     return new HubConnectionBuilder()
       .withUrl(this.hubUrl, options)
       .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(LogLevel.Information)
+      .configureLogging(LogLevel.Warning)
       .build();
   }
 
   private registerLifecycleHandlers(connection: HubConnection): void {
     connection.onreconnecting((error) => {
-      this.logError('SignalR reconectando...', error ?? 'sem erro detalhado');
+      this.logWarn('SignalR reconectando...', error ?? 'sem erro detalhado');
     });
 
     connection.onreconnected((connectionId) => {
+      this.connectFailed = false;
       this.log(`SignalR reconectado. ConnectionId: ${connectionId ?? 'indisponivel'}`);
     });
 
     connection.onclose((error) => {
-      this.logError('SignalR desconectado.', error ?? 'sem erro detalhado');
+      this.logWarn('SignalR desconectado.', error ?? 'sem erro detalhado');
     });
   }
 
@@ -271,10 +279,14 @@ export class SignalrDashboardService {
   }
 
   private log(message: string): void {
-    console.info(`[SignalR Dashboard] ${message}`);
+    if (!environment.production) {
+      console.info(`[SignalR Dashboard] ${message}`);
+    }
   }
 
-  private logError(message: string, error: unknown): void {
-    console.error(`[SignalR Dashboard] ${message}`, error);
+  private logWarn(message: string, error: unknown): void {
+    if (!environment.production) {
+      console.warn(`[SignalR Dashboard] ${message}`, error);
+    }
   }
 }

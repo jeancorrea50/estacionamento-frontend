@@ -35,12 +35,15 @@ export class SignalrNotificationService {
   private readonly panelOpenSignal = signal(false);
   private hubConnection: HubConnection | null = null;
   private connectPromise: Promise<void> | null = null;
+  private listaFalhouOnce = false;
+  private hubFalhouOnce = false;
 
   readonly itens = this.itensSignal.asReadonly();
   readonly panelOpen = this.panelOpenSignal.asReadonly();
   readonly naoLidas = computed(() => this.itensSignal().filter((n) => !n.lida).length);
 
   async connect(): Promise<void> {
+    if (!this.auth.isAdmin()) return;
     if (this.isConnected()) return;
     if (this.connectPromise) return this.connectPromise;
 
@@ -59,7 +62,8 @@ export class SignalrNotificationService {
         }
       })
       .catch((err) => {
-        if (!environment.production) {
+        if (!environment.production && !this.hubFalhouOnce) {
+          this.hubFalhouOnce = true;
           console.warn('[NotificationHub] falha ao conectar:', err);
         }
         this.connectPromise = null;
@@ -91,7 +95,10 @@ export class SignalrNotificationService {
       this.itensSignal.set(this.peelLista(body));
     } catch (err) {
       // API offline / 401 sem Admin — hub ainda pode empurrar eventos
-      console.warn('[NotificationApi] falha ao listar:', this.apiUrl + '/notificacoes', err);
+      if (!environment.production && !this.listaFalhouOnce) {
+        this.listaFalhouOnce = true;
+        console.warn('[NotificationApi] falha ao listar:', this.apiUrl + '/notificacoes', err);
+      }
     }
   }
 
@@ -132,7 +139,7 @@ export class SignalrNotificationService {
         withCredentials: false,
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(environment.production ? LogLevel.Warning : LogLevel.Information)
+      .configureLogging(LogLevel.Warning)
       .build();
   }
 

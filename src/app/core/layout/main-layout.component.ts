@@ -82,7 +82,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.loadSidebarCollapsed();
     this.checkMobile();
     this.updateFullWidthContent(this.router.url);
-    void this.notificationHub.connect();
+    if (this.authService.isAdmin()) {
+      void this.notificationHub.connect();
+    }
     this.routerSub = this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
     ).subscribe((e) => {

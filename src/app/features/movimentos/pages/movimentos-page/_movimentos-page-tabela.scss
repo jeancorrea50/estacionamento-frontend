@@ -1,8 +1,10 @@
 .historico-table {
   border-collapse: collapse;
   table-layout: fixed;
-  width: 100%;
-  min-width: 760px;
+  /* Largura mínima força scroll horizontal no .table-wrap quando a tela for estreita */
+  width: 960px;
+  min-width: 960px;
+  max-width: none;
 }
 
 .historico-table th,
@@ -12,12 +14,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 /* Placa */
 .historico-table th:nth-child(1),
 .historico-table td:nth-child(1) {
-  width: 9%;
+  width: 88px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -25,13 +28,13 @@
 /* Motorista */
 .historico-table th:nth-child(2),
 .historico-table td:nth-child(2) {
-  width: 16%;
+  width: 140px;
 }
 
 /* Transportadora */
 .historico-table th:nth-child(3),
 .historico-table td:nth-child(3) {
-  width: 18%;
+  width: 160px;
 }
 
 /* Entrada / Saída */
@@ -39,7 +42,7 @@
 .historico-table td:nth-child(4),
 .historico-table th:nth-child(5),
 .historico-table td:nth-child(5) {
-  width: 12%;
+  width: 108px;
   font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
 }
@@ -47,13 +50,22 @@
 /* Status */
 .historico-table th:nth-child(6),
 .historico-table td:nth-child(6) {
-  width: 10%;
+  width: 88px;
 }
 
-/* Ações */
+/* Acordo */
 .historico-table th:nth-child(7),
 .historico-table td:nth-child(7) {
-  width: 22%;
+  width: 96px;
+}
+
+/* Ações — espaço fixo para os 3 botões */
+.historico-table th:nth-child(8),
+.historico-table td:nth-child(8),
+.historico-table th.col-acoes,
+.historico-table td.acoes-cell {
+  width: 220px;
+  min-width: 220px;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
@@ -260,8 +272,20 @@
   min-width: 0;
 }
 
-.operacao-card--full .table-wrap,
-.historico-card .table-wrap {
+.historico-card .table-wrap.historico-table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  border-radius: 0 0 18px 18px;
+}
+
+.operacao-card--full .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 0 0 18px 18px;
@@ -270,9 +294,14 @@
 
 .operacao-card--full .data-table,
 .historico-card .data-table {
-  width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
+}
+
+.historico-card .data-table.historico-table {
+  width: 960px;
+  min-width: 960px;
+  max-width: none;
 }
 
 /* Operação e Histórico: mesmo espaçamento e tamanho de fonte nos registros */
@@ -423,23 +452,28 @@
 }
 
 @media (max-width: 1024px) {
-  .historico-table {
-    min-width: 680px;
+  .historico-table,
+  .historico-card .data-table.historico-table {
+    width: 900px;
+    min-width: 900px;
   }
 
   .historico-table th:nth-child(2),
   .historico-table td:nth-child(2) {
-    width: 14%;
+    width: 128px;
   }
 
   .historico-table th:nth-child(3),
   .historico-table td:nth-child(3) {
-    width: 16%;
+    width: 144px;
   }
 
-  .historico-table th:nth-child(7),
-  .historico-table td:nth-child(7) {
-    width: 24%;
+  .historico-table th:nth-child(8),
+  .historico-table td:nth-child(8),
+  .historico-table th.col-acoes,
+  .historico-table td.acoes-cell {
+    width: 210px;
+    min-width: 210px;
   }
 }
 
@@ -453,8 +487,10 @@
     padding: 0 4px;
   }
 
-  .historico-table {
-    min-width: 640px;
+  .historico-table,
+  .historico-card .data-table.historico-table {
+    width: 860px;
+    min-width: 860px;
     font-size: 0.75rem;
   }
 

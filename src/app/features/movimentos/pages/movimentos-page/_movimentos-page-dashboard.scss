@@ -243,7 +243,8 @@
   position: relative;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  /* Não clipa o scroll horizontal interno do .table-wrap */
+  overflow: visible;
 }
 
 .historico-card__header {

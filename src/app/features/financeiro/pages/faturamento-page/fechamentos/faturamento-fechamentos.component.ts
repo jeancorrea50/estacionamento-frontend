@@ -19,6 +19,7 @@ import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
+import { AuthService } from '../../../../../core/services/auth.service';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { FaturaService } from '../../../services/fatura.service';
 import type {
@@ -69,6 +70,7 @@ interface FechCalendarioCelula {
 export class FaturamentoFechamentosComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly api = inject(FaturaService);
+  private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -539,8 +541,8 @@ export class FaturamentoFechamentosComponent implements OnInit {
   }
 
   /**
-   * POST `/api/financeiro/Fatura` com `transportadoraId` da linha.
-   * `estacionamentoId` omitido: backend usa EmpresaId do token.
+   * POST `/api/financeiro/Fatura` com `transportadoraId` + `estacionamentoId`.
+   * `estacionamentoId` vem da linha ou da claim JWT `EmpresaId`.
    */
   gerarFatura(row: FechamentoListaItem): void {
     if (this.bloquearGeracao(row.situacao)) return;
@@ -550,9 +552,23 @@ export class FaturamentoFechamentosComponent implements OnInit {
       return;
     }
 
+    const estacionamentoId =
+      row.estacionamentoId && row.estacionamentoId > 0
+        ? row.estacionamentoId
+        : this.auth.resolveEstacionamentoId();
+
+    if (!estacionamentoId || estacionamentoId <= 0) {
+      this.snack.open(
+        'Estacionamento não identificado na sessão (EmpresaId). Faça login novamente ou selecione o vínculo.',
+        'Fechar',
+        { duration: 5500 }
+      );
+      return;
+    }
+
     this.gerandoFaturaId.set(row.transportadoraId);
     this.api
-      .gravar({ transportadoraId: row.transportadoraId })
+      .gravar({ transportadoraId: row.transportadoraId, estacionamentoId })
       .pipe(finalize(() => this.gerandoFaturaId.set(null)))
       .subscribe({
         next: (fatura) => {

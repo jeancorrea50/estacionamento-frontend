@@ -20,6 +20,11 @@ export interface LoggedUser {
   email?: string;
   /** Claim `nameid` (id do usuário no servidor). */
   nameId?: string;
+  /**
+   * Claim `EmpresaId` do JWT (= EstacionamentoId do vínculo, quando aplicável).
+   * Usado em POST de fatura e filtros multi-tenant.
+   */
+  empresaId?: number;
   permissoes: {
     acessoConfiguracoes: boolean;
     verHome: boolean;

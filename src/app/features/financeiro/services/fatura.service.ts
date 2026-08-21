@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   mapFechamentoItemToLista,
   mapInadimplenteItemToLista,
@@ -51,6 +52,7 @@ const API = `${environment.API_BASE_URL}/financeiro/Fatura`;
 @Injectable({ providedIn: 'root' })
 export class FaturaService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
   /** GET `/api/financeiro/Fatura` */
   buscar(filtro: FaturaFilter): Observable<FaturaPagedResult> {
@@ -187,13 +189,16 @@ export class FaturaService {
     tamanhoPagina: number;
   }> {
     return this.buscarFechamentos(filtro).pipe(
-      map((page) => ({
-        resumo: page.resumo,
-        items: page.itens.items.map((dto) => mapFechamentoItemToLista(dto)),
-        totalCount: page.itens.totalCount,
-        numeroPagina: page.itens.numeroPagina,
-        tamanhoPagina: page.itens.tamanhoPagina
-      }))
+      map((page) => {
+        const estacionamentoId = this.auth.resolveEstacionamentoId();
+        return {
+          resumo: page.resumo,
+          items: page.itens.items.map((dto) => mapFechamentoItemToLista(dto, estacionamentoId)),
+          totalCount: page.itens.totalCount,
+          numeroPagina: page.itens.numeroPagina,
+          tamanhoPagina: page.itens.tamanhoPagina
+        };
+      })
     );
   }
 

@@ -84,7 +84,7 @@ export interface FaturaOutput {
   observacao: string | null;
 }
 
-/** POST `/api/financeiro/Fatura` — estacionamentoId nulo usa EmpresaId do token. */
+/** POST `/api/financeiro/Fatura` — `estacionamentoId` obrigatório na prática (claim EmpresaId). */
 export interface FaturaPostInput {
   transportadoraId: number;
   estacionamentoId?: number | null;

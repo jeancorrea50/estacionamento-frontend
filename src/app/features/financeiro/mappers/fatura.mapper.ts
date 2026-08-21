@@ -679,10 +679,15 @@ export function mapRawFechamentoItem(row: Record<string, unknown>): FaturaFecham
   };
 }
 
-export function mapFechamentoItemToLista(dto: FaturaFechamentoItemOutput): FechamentoListaItem {
+export function mapFechamentoItemToLista(
+  dto: FaturaFechamentoItemOutput,
+  estacionamentoId: number | null = null
+): FechamentoListaItem {
   return {
     id: String(dto.transportadoraId),
     transportadoraId: dto.transportadoraId,
+    estacionamentoId:
+      typeof estacionamentoId === 'number' && estacionamentoId > 0 ? estacionamentoId : null,
     configuracaoCobrancaId: dto.configuracaoCobrancaId,
     transportadora: dto.transportadoraNome?.trim() || '\u2014',
     estacionamento: '\u2014',

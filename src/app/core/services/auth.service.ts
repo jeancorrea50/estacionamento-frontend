@@ -224,6 +224,10 @@ export class AuthService {
     }
 
     const loggedUser = buildLoggedUserFromJwtClaims(username, payload, permissionKeys);
+    const empresaFromBody = readEstacionamentoIdFromLoginBody(res);
+    if ((!loggedUser.empresaId || loggedUser.empresaId <= 0) && empresaFromBody) {
+      loggedUser.empresaId = empresaFromBody;
+    }
 
     localStorage.setItem(this.TOKEN_KEY, normalized);
     localStorage.setItem('isLoggedIn', 'true');
@@ -274,6 +278,23 @@ export class AuthService {
   isAdmin(): boolean {
     const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
     return perfil === 'admin' || perfil === 'administrator' || perfil === 'adm';
+  }
+
+  /**
+   * Estacionamento da sessão: claim JWT `EmpresaId` (mesmo valor que o backend usa no POST Fatura).
+   * Fallback: `loggedUser.empresaId` gravado no login.
+   */
+  resolveEstacionamentoId(): number | null {
+    const fromUser = this.getLoggedUser()?.empresaId;
+    if (typeof fromUser === 'number' && Number.isFinite(fromUser) && fromUser > 0) {
+      return Math.trunc(fromUser);
+    }
+
+    const token = this.getAccessToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return null;
+    return readEmpresaIdClaim(payload);
   }
 
   /**
@@ -372,6 +393,7 @@ function buildLoggedUserFromJwtClaims(
   const email = getJwtStringClaim(payload, 'email', 'Email');
   const nameId = getJwtStringClaim(payload, 'nameid', 'nameId', 'sub');
   const role = resolveJwtRole(payload);
+  const empresaId = readEmpresaIdClaim(payload);
 
   const displayName = uniqueName ?? fallbackUsername;
   const perfil = role ?? 'Operador';
@@ -386,11 +408,49 @@ function buildLoggedUserFromJwtClaims(
     permissionKeys,
     email: email ?? undefined,
     nameId: nameId ?? undefined,
+    empresaId: empresaId ?? undefined,
     permissoes: {
       acessoConfiguracoes: isAdmin || hasConfigInPermissions,
       verHome: true,
     },
   };
+}
+
+/** Claim `EmpresaId` do JWT (= EstacionamentoId do vínculo do usuário). */
+function readEmpresaIdClaim(payload: Record<string, unknown>): number | null {
+  const raw =
+    payload['EmpresaId'] ??
+    payload['empresaId'] ??
+    payload['EstacionamentoId'] ??
+    payload['estacionamentoId'];
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n);
+  }
+  return null;
+}
+
+/** `EstacionamentoId` / `estacionamentoId` no body do login (UsuarioAcessOutput). */
+function readEstacionamentoIdFromLoginBody(res: LoginResponse): number | null {
+  const root = res as Record<string, unknown>;
+  const raw =
+    root['estacionamentoId'] ??
+    root['EstacionamentoId'] ??
+    (root['result'] && typeof root['result'] === 'object'
+      ? (root['result'] as Record<string, unknown>)['estacionamentoId'] ??
+        (root['result'] as Record<string, unknown>)['EstacionamentoId']
+      : null);
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n);
+  }
+  return null;
 }
 
 function resolveJwtRole(payload: Record<string, unknown>): string | null {

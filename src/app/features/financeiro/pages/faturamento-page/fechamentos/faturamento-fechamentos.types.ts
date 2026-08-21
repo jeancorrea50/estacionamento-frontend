@@ -25,6 +25,8 @@ export type FechamentoFiltroRapidoId =
 export interface FechamentoListaItem {
   id: string;
   transportadoraId: number;
+  /** Estacionamento do escopo (claim EmpresaId / sessão). */
+  estacionamentoId: number | null;
   configuracaoCobrancaId: number | null;
   transportadora: string;
   estacionamento: string;

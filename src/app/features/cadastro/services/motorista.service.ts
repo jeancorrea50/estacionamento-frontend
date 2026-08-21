@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
+import { Observable, catchError, map, of, switchMap, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { throwIfServiceFailure } from '../../../core/api/utils/service-result.util';
 import { stripUndefinedDeep } from '../pages/estacionamento-form/estacionamento-form.mapper';
@@ -105,6 +105,29 @@ export class MotoristaService {
         return dto;
       }),
       catchError((err) => throwError(() => err))
+    );
+  }
+
+  /**
+   * Transferência de vínculo: a API rejeita trocar `transportadoraId` direto
+   * quando já existe vínculo. Fluxo: desvincula (null/0) e depois vincula a nova.
+   */
+  transferirVinculo(dto: MotoristaDTO): Observable<MotoristaDTO> {
+    const motoristaId = dto.id != null && dto.id > 0 ? dto.id : 0;
+    const novaTransportadoraId =
+      dto.transportadoraId != null && Number.isFinite(dto.transportadoraId) && dto.transportadoraId > 0
+        ? dto.transportadoraId
+        : null;
+    if (motoristaId <= 0 || novaTransportadoraId == null) {
+      return throwError(() => new Error('Dados insuficientes para transferir o vínculo do motorista.'));
+    }
+
+    const base: MotoristaDTO = { ...dto, id: motoristaId };
+    const vinculado: MotoristaDTO = { ...base, transportadoraId: novaTransportadoraId };
+
+    return this.alterar({ ...base, transportadoraId: null }).pipe(
+      catchError(() => this.alterar({ ...base, transportadoraId: 0 })),
+      switchMap(() => this.alterar(vinculado))
     );
   }
 
@@ -280,10 +303,13 @@ export class MotoristaService {
     const endId = dto.primeiroEnderecoId != null && dto.primeiroEnderecoId > 0 ? dto.primeiroEnderecoId : 0;
     const ctId = dto.primeiroContatoId != null && dto.primeiroContatoId > 0 ? dto.primeiroContatoId : 0;
     const pessoaIdNested = pessoaIdRoot > 0 ? pessoaIdRoot : 0;
+    // `null`/`0` desvincula; número > 0 vincula; omitir quando undefined.
     const transportadoraId =
-      dto.transportadoraId != null && Number.isFinite(dto.transportadoraId) && dto.transportadoraId > 0
+      dto.transportadoraId === null || dto.transportadoraId === 0
         ? dto.transportadoraId
-        : undefined;
+        : dto.transportadoraId != null && Number.isFinite(dto.transportadoraId) && dto.transportadoraId > 0
+          ? dto.transportadoraId
+          : undefined;
 
     const validadeCNH = this.toIsoDateTimeUtc(dto.vencimentoCnh);
     const celularDigits = String(dto.celular ?? '').replace(/\D/g, '').slice(0, 11);
@@ -323,11 +349,13 @@ export class MotoristaService {
 
     const payload: Record<string, unknown> = {
       id: motoristaId,
-      transportadoraId,
       cnh,
       pessoaId: pessoaIdRoot,
       pessoaFisica
     };
+    if (transportadoraId !== undefined) {
+      payload['transportadoraId'] = transportadoraId;
+    }
     if (validadeCNH != null) {
       payload['validadeCNH'] = validadeCNH;
     }

@@ -1968,9 +1968,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     detalhe: MotoristaDTO | null
   ): MotoristaListItemDTO {
     const src = detalhe ?? base;
+    const tidVinculo = src.transportadoraId ?? base.transportadoraId;
     return {
       id: Number(src.id ?? base.id) || 0,
-      transportadoraId: src.transportadoraId ?? base.transportadoraId,
+      transportadoraId: tidVinculo != null && tidVinculo > 0 ? tidVinculo : undefined,
       transportadoraNome: src.transportadoraNome ?? base.transportadoraNome,
       nomeCompleto: (src.nomeCompleto || base.nomeCompleto || '').trim(),
       cpf: src.cpf || base.cpf || '',
@@ -2122,7 +2123,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.condutorEditId != null &&
       this.condutorEditId > 0;
 
-    const dto: MotoristaDTO = {
+    const dtoBase: MotoristaDTO = {
       id: this.condutorEditId != null && this.condutorEditId > 0 ? this.condutorEditId : undefined,
       // PUT com novo transportadoraId desfaz o vínculo anterior e aplica o atual.
       transportadoraId: tid,
@@ -2140,29 +2141,60 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     };
 
     this.salvandoMotorista = true;
-    const request$ = dto.id ? this.motoristaService.alterar(dto) : this.motoristaService.gravar(dto);
-    request$.subscribe({
-      next: () => {
-        this.salvandoMotorista = false;
-        this.showCondutorForm = false;
-        this.condutorEditId = null;
-        this.limparEstadoLookupMotorista();
-        this.carregarCondutores();
-        this.toast.success(
-          transferindoVinculo
-            ? 'Motorista vinculado com sucesso. O vínculo anterior foi desfeito.'
-            : dto.id
-              ? 'Motorista atualizado com sucesso.'
-              : 'Motorista cadastrado com sucesso.'
-        );
-        this.cdr.markForCheck();
-      },
-      error: (err: unknown) => {
-        this.salvandoMotorista = false;
-        this.toast.error(this.mensagemErroApi(err, 'Erro ao salvar motorista.'));
-        this.cdr.markForCheck();
-      }
-    });
+
+    // Garante ids de pessoa no body (sem isso a API pode tratar como novo CPF e bloquear).
+    const preparar$ =
+      dtoBase.id != null &&
+      dtoBase.id > 0 &&
+      (dtoBase.pessoaId == null || dtoBase.pessoaId <= 0 || dtoBase.pessoaFisicaId == null || dtoBase.pessoaFisicaId <= 0)
+        ? this.motoristaService.obterPorId(dtoBase.id).pipe(
+            map((full) =>
+              full
+                ? {
+                    ...dtoBase,
+                    pessoaId: full.pessoaId ?? dtoBase.pessoaId,
+                    pessoaFisicaId: full.pessoaFisicaId ?? dtoBase.pessoaFisicaId,
+                    primeiroEnderecoId: full.primeiroEnderecoId ?? dtoBase.primeiroEnderecoId,
+                    primeiroContatoId: full.primeiroContatoId ?? dtoBase.primeiroContatoId,
+                    transportadoraNome: full.transportadoraNome ?? dtoBase.transportadoraNome
+                  }
+                : dtoBase
+            ),
+            catchError(() => of(dtoBase))
+          )
+        : of(dtoBase);
+
+    preparar$
+      .pipe(
+        switchMap((dto) => {
+          if (transferindoVinculo) {
+            return this.motoristaService.transferirVinculo(dto);
+          }
+          return dto.id ? this.motoristaService.alterar(dto) : this.motoristaService.gravar(dto);
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.salvandoMotorista = false;
+          this.showCondutorForm = false;
+          this.condutorEditId = null;
+          this.limparEstadoLookupMotorista();
+          this.carregarCondutores();
+          this.toast.success(
+            transferindoVinculo
+              ? 'Motorista vinculado com sucesso. O vínculo anterior foi desfeito.'
+              : dtoBase.id
+                ? 'Motorista atualizado com sucesso.'
+                : 'Motorista cadastrado com sucesso.'
+          );
+          this.cdr.markForCheck();
+        },
+        error: (err: unknown) => {
+          this.salvandoMotorista = false;
+          this.toast.error(this.mensagemErroApi(err, 'Erro ao salvar motorista.'));
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   editarCondutor(c: MotoristaListItemDTO): void {
@@ -2388,7 +2420,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const text = String(message ?? '').trim();
     if (!text) return text;
     if (/já cadastrado.*transportadora|não é permitido vincular/i.test(text)) {
-      return 'Motorista já cadastrado em outra transportadora. Não é permitido vincular a esta.';
+      return 'Não foi possível transferir o vínculo deste motorista. Tente salvar novamente.';
     }
     return text
       .replace(/\bCNPJ\s*[:\-]?\s*\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/gi, '')

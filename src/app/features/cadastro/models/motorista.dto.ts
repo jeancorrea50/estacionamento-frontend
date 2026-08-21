@@ -1,6 +1,10 @@
 export interface MotoristaDTO {
   id?: number;
-  transportadoraId?: number;
+  /**
+   * Transportadora vinculada.
+   * `null` = desvincular explicitamente no PUT (transferência de vínculo).
+   */
+  transportadoraId?: number | null;
   /** Nome da transportadora atualmente vinculada (quando a API informar). */
   transportadoraNome?: string;
   nomeCompleto: string;

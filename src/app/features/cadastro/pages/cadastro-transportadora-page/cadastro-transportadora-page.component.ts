@@ -177,6 +177,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   /** Lookup por CPF no modal de novo motorista. */
   motoristaCpfBuscando = false;
   motoristaJaCadastradoEncontrado = false;
+  /** CPF encontrado já vinculado à transportadora em edição. */
+  motoristaJaVinculadoNesta = false;
   motoristaAceitouVinculo = false;
   private motoristaEncontradoCache: MotoristaListItemDTO | null = null;
   private ultimoCpfMotoristaConsultado = '';
@@ -1819,6 +1821,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
             this.ultimoCpfMotoristaConsultado = '';
             this.motoristaEncontradoCache = null;
             this.motoristaJaCadastradoEncontrado = false;
+            this.motoristaJaVinculadoNesta = false;
             this.motoristaAceitouVinculo = false;
             this.cdr.markForCheck();
           }
@@ -1879,6 +1882,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         if (!resultado.dto) {
           this.motoristaEncontradoCache = null;
           this.motoristaJaCadastradoEncontrado = false;
+          this.motoristaJaVinculadoNesta = false;
           this.motoristaAceitouVinculo = false;
           this.cdr.markForCheck();
           return;
@@ -1929,6 +1933,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private limparEstadoLookupMotorista(): void {
     this.motoristaCpfBuscando = false;
     this.motoristaJaCadastradoEncontrado = false;
+    this.motoristaJaVinculadoNesta = false;
     this.motoristaAceitouVinculo = false;
     this.motoristaEncontradoCache = null;
     this.ultimoCpfMotoristaConsultado = '';
@@ -1978,20 +1983,23 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private perguntarVinculoMotoristaExistente(dto: MotoristaListItemDTO): void {
     if (!this.showCondutorForm) return;
 
-    // Sempre hidrata o formulário com todos os dados disponíveis do cadastro.
-    this.aplicarMotoristaEncontrado(dto, false);
-
     const jaNesta =
       this.transportadoraId != null &&
       dto.transportadoraId != null &&
       dto.transportadoraId === this.transportadoraId;
 
+    // Hidrata o formulário e abre em modo edição (mesmo id) para permitir ajustes.
+    this.aplicarMotoristaEncontrado(dto, jaNesta);
+
     if (jaNesta) {
+      this.motoristaJaVinculadoNesta = true;
       this.motoristaAceitouVinculo = true;
-      this.toast.success('Motorista já cadastrado e vinculado a esta transportadora. Dados carregados.');
+      this.condutorEditId = dto.id > 0 ? dto.id : null;
       this.cdr.markForCheck();
       return;
     }
+
+    this.motoristaJaVinculadoNesta = false;
 
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       width: '460px',
@@ -2010,11 +2018,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     ref.afterClosed().subscribe((ok) => {
       if (!ok) {
         this.motoristaAceitouVinculo = false;
+        this.motoristaJaVinculadoNesta = false;
         this.toast.warning('Vínculo não confirmado. Confirme o vínculo para salvar ou altere o CPF.');
         this.cdr.markForCheck();
         return;
       }
       this.motoristaAceitouVinculo = true;
+      this.motoristaJaVinculadoNesta = false;
       this.condutorEditId = dto.id > 0 ? dto.id : null;
       this.cdr.markForCheck();
     });

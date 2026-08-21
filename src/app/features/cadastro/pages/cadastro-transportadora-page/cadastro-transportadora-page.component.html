@@ -1083,10 +1083,12 @@
             </div>
             @if (motoristaJaCadastradoEncontrado) {
               <p class="modal-frota-hint" role="status">
-                Motorista já cadastrado.
-                @if (motoristaAceitouVinculo) {
-                  Ao salvar, o vínculo anterior será desfeito e esta transportadora passará a ser a vinculada. A transportadora anterior será notificada.
+                @if (motoristaJaVinculadoNesta) {
+                  Motorista já cadastrado e vinculado a esta transportadora. Os dados foram carregados — você pode editar e salvar.
+                } @else if (motoristaAceitouVinculo) {
+                  Motorista já cadastrado. Ao salvar, o vínculo anterior será desfeito e esta transportadora passará a ser a vinculada. A transportadora anterior será notificada.
                 } @else {
+                  Motorista já cadastrado.
                   <button type="button" class="link-action" (click)="reperguntarVinculoMotorista()">
                     Confirmar vínculo
                   </button>

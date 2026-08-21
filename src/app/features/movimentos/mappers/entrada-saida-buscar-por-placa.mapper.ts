@@ -212,6 +212,13 @@ export function mapBuscarPorPlacaParaRegistroRapido(
   const existeEntradaEmAberto =
     Boolean(root['existeEntradaEmAberto'] ?? root['ExisteEntradaEmAberto']) === true;
 
+  const acordo = asRecord(root['acordo'] ?? root['Acordo']);
+  const geraExcedente = Boolean(
+    acordo?.['entradaGeraExcedente'] ?? acordo?.['EntradaGeraExcedente']
+  );
+  const vagasOcupadas = Number(acordo?.['vagasOcupadas'] ?? acordo?.['VagasOcupadas']);
+  const vagasContratadas = Number(acordo?.['vagasContratadas'] ?? acordo?.['VagasContratadas']);
+
   return {
     placa,
     motoristaNome,
@@ -223,6 +230,10 @@ export function mapBuscarPorPlacaParaRegistroRapido(
     transportadoraResponsavelTelefone: transportadoraResponsavelTelefone
       ? formatTelefone(transportadoraResponsavelTelefone)
       : '',
-    existeEntradaEmAberto
+    existeEntradaEmAberto,
+    acordoMensagem: pickStr([acordo], 'mensagem'),
+    acordoEntradaGeraExcedente: geraExcedente,
+    acordoVagasOcupadas: Number.isFinite(vagasOcupadas) ? vagasOcupadas : null,
+    acordoVagasContratadas: Number.isFinite(vagasContratadas) ? vagasContratadas : null
   };
 }

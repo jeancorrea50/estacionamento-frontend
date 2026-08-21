@@ -315,8 +315,8 @@
                   mat-icon-button
                   class="rec-ico"
                   matTooltip="Gerar fatura"
-                  [disabled]="bloquearGeracao(row.situacao)"
-                  (click)="acaoMock('gerar', row)"
+                  [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() !== null"
+                  (click)="gerarFatura(row)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
                 </button>
@@ -413,8 +413,8 @@
           <button
             type="button"
             class="btn btn-secondary fat-mat-btn"
-            [disabled]="bloquearGeracao(row.situacao)"
-            (click)="acaoMock('gerar', row)"
+            [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() === row.transportadoraId"
+            (click)="gerarFatura(row)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
             Gerar fatura
@@ -422,8 +422,8 @@
           <button
             type="button"
             class="btn btn-primary fat-mat-btn"
-            [disabled]="bloquearGeracao(row.situacao)"
-            (click)="acaoMock('gerar-enviar', row)"
+            [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() === row.transportadoraId"
+            (click)="gerarFatura(row)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">send</span>
             Gerar e enviar

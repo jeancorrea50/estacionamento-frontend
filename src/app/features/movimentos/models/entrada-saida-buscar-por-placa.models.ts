@@ -102,4 +102,8 @@ export interface RegistroRapidoPorPlacaCampos {
   transportadoraResponsavelNome: string;
   transportadoraResponsavelTelefone: string;
   existeEntradaEmAberto: boolean;
+  acordoMensagem: string;
+  acordoEntradaGeraExcedente: boolean;
+  acordoVagasOcupadas: number | null;
+  acordoVagasContratadas: number | null;
 }

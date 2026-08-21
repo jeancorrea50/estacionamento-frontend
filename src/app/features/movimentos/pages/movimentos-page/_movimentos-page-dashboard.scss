@@ -150,6 +150,19 @@
   flex-wrap: wrap;
 }
 
+.registro-acordo-alerta {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.registro-acordo-alerta--excedente {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
 .monitor-table {
   width: 100%;
   border-collapse: collapse;

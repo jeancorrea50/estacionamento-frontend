@@ -188,6 +188,11 @@
             </div>
           </section>
         </div>
+        @if (alertaAcordoRegistroRapido) {
+          <p class="registro-acordo-alerta" [class.registro-acordo-alerta--excedente]="alertaAcordoExcedente">
+            {{ alertaAcordoRegistroRapido }}
+          </p>
+        }
         <div class="registro-actions">
           <button class="btn btn-success" type="button" [disabled]="!canGravar || processandoRegistroRapido() || existeEntradaEmAbertoPorPlaca" (click)="abrirRegistroEntradaRapida()">
             Registrar Entrada

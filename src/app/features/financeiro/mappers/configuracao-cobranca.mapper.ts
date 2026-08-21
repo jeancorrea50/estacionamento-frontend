@@ -121,6 +121,9 @@ export function fechamentoResumoLabel(
   if (Number(modalidade) === ModalidadeCobranca.Diaria) {
     return '—';
   }
+  if (Number(modalidade) === ModalidadeCobranca.Acordo) {
+    return 'Acordo de vagas';
+  }
   if (Number(modalidade) === ModalidadeCobranca.Semanal) {
     const nome = diaFechamento != null ? DIA_SEMANA_NOMES[diaFechamento] : undefined;
     return nome ? `Toda ${nome}` : 'Semanal';

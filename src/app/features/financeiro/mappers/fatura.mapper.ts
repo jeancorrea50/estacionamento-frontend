@@ -640,6 +640,8 @@ export function mapFechamentoModalidade(
       return 'Mensal';
     case ModalidadeCobranca.Personalizado:
       return 'Por data personalizada';
+    case ModalidadeCobranca.Acordo:
+      return 'Acordo';
     default:
       return '\u2014';
   }

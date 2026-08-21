@@ -82,6 +82,8 @@ export class FaturamentoFechamentosComponent implements OnInit {
   });
   readonly loading = signal(false);
   readonly totalCountApi = signal(0);
+  /** ID da linha em geração (transportadoraId) — evita cliques duplicados. */
+  readonly gerandoFaturaId = signal<number | null>(null);
 
   private readonly filtrosRapidosValidos = new Set<FechamentoFiltroRapidoId>([
     'todos',
@@ -536,6 +538,40 @@ export class FaturamentoFechamentosComponent implements OnInit {
     return s === 'Com divergência' || s === 'Cancelado' || s === 'Faturado';
   }
 
+  /**
+   * POST `/api/financeiro/Fatura` com `transportadoraId` da linha.
+   * `estacionamentoId` omitido: backend usa EmpresaId do token.
+   */
+  gerarFatura(row: FechamentoListaItem): void {
+    if (this.bloquearGeracao(row.situacao)) return;
+    if (this.gerandoFaturaId() !== null) return;
+    if (!Number.isFinite(row.transportadoraId) || row.transportadoraId <= 0) {
+      this.snack.open('Transportadora inválida para gerar fatura.', 'Fechar', { duration: 4500 });
+      return;
+    }
+
+    this.gerandoFaturaId.set(row.transportadoraId);
+    this.api
+      .gravar({ transportadoraId: row.transportadoraId })
+      .pipe(finalize(() => this.gerandoFaturaId.set(null)))
+      .subscribe({
+        next: (fatura) => {
+          const numero = fatura?.numero?.trim();
+          this.snack.open(
+            numero ? `Fatura ${numero} gerada com sucesso.` : 'Fatura gerada com sucesso.',
+            'Fechar',
+            { duration: 3500 }
+          );
+          this.carregarLista();
+        },
+        error: (err) => {
+          this.snack.open(this.mensagemErro(err, 'Falha ao gerar fatura.'), 'Fechar', {
+            duration: 5500
+          });
+        }
+      });
+  }
+
   onMasterToggle(ev: MatCheckboxChange): void {
     if (ev.checked) {
       for (const r of this.linhasFiltradas()) this.selection.select(r);
@@ -560,6 +596,10 @@ export class FaturamentoFechamentosComponent implements OnInit {
   }
 
   acaoMock(acao: string, row?: FechamentoListaItem): void {
+    if ((acao === 'gerar' || acao === 'gerar-enviar') && row) {
+      this.gerarFatura(row);
+      return;
+    }
     void acao;
     void row;
   }

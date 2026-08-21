@@ -199,6 +199,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
   existeEntradaEmAbertoPorPlaca = false;
+  alertaAcordoRegistroRapido = '';
+  alertaAcordoExcedente = false;
   buscandoMotoristaPorCpf = false;
   motoristaAutoPreenchidoPorCpf = false;
   buscandoTransportadoraPorCnpj = false;
@@ -499,6 +501,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.toast.error(erroObrigatorios);
       return;
     }
+    if (this.alertaAcordoExcedente && this.alertaAcordoRegistroRapido) {
+      const detalhe = this.alertaAcordoRegistroRapido;
+      if (!confirm(`${detalhe}\n\nDeseja registrar a entrada mesmo assim?`)) return;
+    }
     this.processandoRegistroRapido.set(true);
     this.postEntradaSaidaAposValidacao();
   }
@@ -641,9 +647,19 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.ultimaPlacaConsultadaRegistroRapido = '';
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.alertaAcordoRegistroRapido = '';
+    this.alertaAcordoExcedente = false;
     this.registroRapidoEntradaId = 0;
     this.registroRapidoTransportadoraId = 0;
     this.fecharSelecionarMotoristaPlaca();
+  }
+
+  private aplicarAlertaAcordoRegistroRapido(campos: {
+    acordoMensagem: string;
+    acordoEntradaGeraExcedente: boolean;
+  }): void {
+    this.alertaAcordoRegistroRapido = campos.acordoMensagem?.trim() || '';
+    this.alertaAcordoExcedente = !!campos.acordoEntradaGeraExcedente;
   }
 
   formatarMinutos(minutos?: number | null): string {
@@ -1311,6 +1327,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.consultaCnpjSequencia++;
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.alertaAcordoRegistroRapido = '';
+    this.alertaAcordoExcedente = false;
     this.registroRapidoEntradaId = 0;
     this.registroRapidoTransportadoraId = 0;
     this.fecharSelecionarMotoristaPlaca();
@@ -1364,6 +1382,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.tipoCarga = campos.tipoCargaLabel;
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.aplicarAlertaAcordoRegistroRapido(campos);
     this.camposBloqueadosPorPlaca = true;
     this.registroRapidoEntradaId =
       campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;
@@ -1415,6 +1434,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.tipoCarga = campos.tipoCargaLabel;
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.aplicarAlertaAcordoRegistroRapido(campos);
     this.camposBloqueadosPorPlaca = true;
     this.registroRapidoEntradaId =
       campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;

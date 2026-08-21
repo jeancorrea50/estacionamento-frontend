@@ -229,7 +229,9 @@ export class EntradaSaidaService {
       ),
       faturado: this.pickBool(row, 'faturado', 'Faturado'),
       dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
-      avulso: this.pickBool(row, 'avulso', 'Avulso')
+      avulso: this.pickBool(row, 'avulso', 'Avulso'),
+      ehExcedente: this.pickBool(row, 'ehExcedente', 'EhExcedente'),
+      acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId')
     };
   }
 
@@ -284,6 +286,10 @@ export class EntradaSaidaService {
         row['existeEntradaEmAberto'] != null || row['ExisteEntradaEmAberto'] != null
           ? Boolean(row['existeEntradaEmAberto'] ?? row['ExisteEntradaEmAberto'])
           : undefined,
+      faturado: this.pickBool(row, 'faturado', 'Faturado'),
+      dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
+      ehExcedente: this.pickBool(row, 'ehExcedente', 'EhExcedente'),
+      acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId'),
       suspensoes: Array.isArray(suspensoesRaw)
         ? (suspensoesRaw as EntradaSaidaOutput['suspensoes'])
         : [],

@@ -57,4 +57,24 @@ export interface FaturaListaItem {
   valorMulta: number;
   /** true = veio só da listagem (sem detalhes completos). */
   parcial: boolean;
+  itens?: FaturaItemLista[];
+  valorTotalExcedente?: number;
+}
+
+export interface FaturaItemLista {
+  id: number;
+  entradaSaidaId: number;
+  placa: string;
+  dataHoraEntrada: string;
+  dataHoraSaida: string;
+  tempoPermanenciaMinutos: number;
+  valorEstacionamento: number;
+  valorLavagem: number;
+  valorPernoite: number;
+  valorServicosExtras: number;
+  valorExcedente: number;
+  valorBeneficioAbastecimento: number;
+  valorTotal: number;
+  descricao: string;
+  ehExcedente: boolean;
 }

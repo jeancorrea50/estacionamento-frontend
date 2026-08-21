@@ -79,6 +79,20 @@
   white-space: nowrap;
 }
 
+.historico-table .status-pill--excedente {
+  background: rgba(194, 65, 12, 0.18);
+  color: #c2410c;
+}
+
+.historico-table .status-pill--acordo {
+  background: rgba(37, 99, 235, 0.14);
+  color: #2563eb;
+}
+
+.historico-row--excedente {
+  background: rgba(194, 65, 12, 0.06);
+}
+
 .historico-row {
   transition: background 0.15s ease;
 }

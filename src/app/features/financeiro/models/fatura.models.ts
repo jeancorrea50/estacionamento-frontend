@@ -82,6 +82,26 @@ export interface FaturaOutput {
   periodoFim: string;
   emailEnvio: string | null;
   observacao: string | null;
+  itens?: FaturaItemOutput[];
+  valorTotalExcedente?: number;
+}
+
+export interface FaturaItemOutput {
+  id: number;
+  entradaSaidaId: number;
+  placa: string;
+  dataHoraEntrada: string;
+  dataHoraSaida: string;
+  tempoPermanenciaMinutos: number;
+  valorEstacionamento: number;
+  valorLavagem: number;
+  valorPernoite: number;
+  valorServicosExtras: number;
+  valorExcedente: number;
+  valorBeneficioAbastecimento: number;
+  valorTotal: number;
+  descricao: string | null;
+  ehExcedente: boolean;
 }
 
 /** POST `/api/financeiro/Fatura` — `estacionamentoId` obrigatório na prática (claim EmpresaId). */

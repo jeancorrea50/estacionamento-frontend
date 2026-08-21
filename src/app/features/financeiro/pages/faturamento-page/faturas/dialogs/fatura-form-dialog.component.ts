@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -8,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import type {
+  FaturaItemLista,
   FaturaListaItem,
   FaturaLookupOption,
   FaturaStatusLabel,
@@ -33,6 +35,8 @@ export interface FaturaFormDialogResult {
   selector: 'app-fatura-form-dialog',
   standalone: true,
   imports: [
+    DatePipe,
+    DecimalPipe,
     FormsModule,
     MatButtonModule,
     MatDialogModule,
@@ -90,6 +94,16 @@ export class FaturaFormDialogComponent {
   periodoFim = this.data.item?.periodoFim ?? '';
   emailEnvio = this.data.item?.emailEnvio ?? '';
   observacao = this.data.item?.observacao ?? '';
+  readonly itens: FaturaItemLista[] = this.data.item?.itens ?? [];
+  readonly valorTotalExcedente = Number(this.data.item?.valorTotalExcedente) || 0;
+
+  get itensNormais(): FaturaItemLista[] {
+    return this.itens.filter((i) => !i.ehExcedente);
+  }
+
+  get itensExcedentes(): FaturaItemLista[] {
+    return this.itens.filter((i) => i.ehExcedente);
+  }
 
   get titulo(): string {
     if (this.isCreate) return 'Nova fatura';

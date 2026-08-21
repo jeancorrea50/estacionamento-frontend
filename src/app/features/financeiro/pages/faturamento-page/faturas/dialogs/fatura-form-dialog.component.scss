@@ -18,6 +18,54 @@
   grid-column: 1 / -1;
 }
 
+.fat-itens {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.fat-itens__title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.fat-itens__subtitle {
+  margin: 10px 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.fat-itens__table-wrap {
+  overflow-x: auto;
+}
+
+.fat-itens__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.fat-itens__table th,
+.fat-itens__table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.fat-itens__table th {
+  background: #f7fafc;
+  font-weight: 600;
+}
+
+.fat-itens__total-excedente {
+  margin: 10px 0 0;
+  text-align: right;
+  font-weight: 600;
+  color: #9a3412;
+}
+
 @media (max-width: 640px) {
   .fat-form__grid {
     grid-template-columns: 1fr;

@@ -111,6 +111,9 @@ export interface EntradaSaidaSearchOutput {
    * `false` = já tem fatura paga vinculada.
    */
   avulso?: boolean;
+  /** True quando a entrada foi marcada como excedente do acordo. */
+  ehExcedente?: boolean;
+  acordoCobrancaId?: number | null;
 }
 
 export interface EntradaSaidaSuspensaoOutput {
@@ -143,6 +146,10 @@ export interface EntradaSaidaOutput {
   usuarioFinalizacaoId?: number | null;
   usuarioFinalizacaoNome?: string | null;
   existeEntradaEmAberto?: boolean;
+  faturado?: boolean;
+  dataFaturado?: string | null;
+  ehExcedente?: boolean;
+  acordoCobrancaId?: number | null;
   suspensoes: EntradaSaidaSuspensaoOutput[];
   /** Objetos aninhados do GET buscar-por-placa / detalhe (contrato Registro Rápido). */
   motorista?:

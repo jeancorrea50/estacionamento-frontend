@@ -26,6 +26,7 @@ import type {
   InadimplenciaStatusCobranca
 } from '../pages/faturamento-page/inadimplencia/faturamento-inadimplencia.types';
 import type {
+  FaturaItemLista,
   FaturaListaItem,
   FaturaStatusLabel,
   ModalidadeRecebimentoLabel,
@@ -194,7 +195,46 @@ export function mapOutputToListaItem(dto: FaturaOutput): FaturaListaItem {
     valorAcrescimo: Number(dto.valorAcrescimo) || 0,
     valorJuros: Number(dto.valorJuros) || 0,
     valorMulta: Number(dto.valorMulta) || 0,
-    parcial: false
+    parcial: false,
+    itens: (dto.itens ?? []).map(mapItemOutputToLista),
+    valorTotalExcedente: Number(dto.valorTotalExcedente) || 0
+  };
+}
+
+export function mapItemOutputToLista(dto: {
+  id: number;
+  entradaSaidaId: number;
+  placa: string;
+  dataHoraEntrada: string;
+  dataHoraSaida: string;
+  tempoPermanenciaMinutos: number;
+  valorEstacionamento: number;
+  valorLavagem: number;
+  valorPernoite: number;
+  valorServicosExtras: number;
+  valorExcedente: number;
+  valorBeneficioAbastecimento: number;
+  valorTotal: number;
+  descricao: string | null;
+  ehExcedente: boolean;
+}): FaturaItemLista {
+  const valorExcedente = Number(dto.valorExcedente) || 0;
+  return {
+    id: dto.id,
+    entradaSaidaId: dto.entradaSaidaId,
+    placa: dto.placa || '—',
+    dataHoraEntrada: dto.dataHoraEntrada,
+    dataHoraSaida: dto.dataHoraSaida,
+    tempoPermanenciaMinutos: Number(dto.tempoPermanenciaMinutos) || 0,
+    valorEstacionamento: Number(dto.valorEstacionamento) || 0,
+    valorLavagem: Number(dto.valorLavagem) || 0,
+    valorPernoite: Number(dto.valorPernoite) || 0,
+    valorServicosExtras: Number(dto.valorServicosExtras) || 0,
+    valorExcedente,
+    valorBeneficioAbastecimento: Number(dto.valorBeneficioAbastecimento) || 0,
+    valorTotal: Number(dto.valorTotal) || 0,
+    descricao: dto.descricao?.trim() || '',
+    ehExcedente: !!dto.ehExcedente || valorExcedente > 0
   };
 }
 
@@ -301,8 +341,40 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Fatu
     periodoInicio: pickString(row, 'periodoInicio', 'PeriodoInicio'),
     periodoFim: pickString(row, 'periodoFim', 'PeriodoFim'),
     emailEnvio: pickStringOrNull(row, 'emailEnvio', 'EmailEnvio'),
-    observacao: pickStringOrNull(row, 'observacao', 'Observacao')
+    observacao: pickStringOrNull(row, 'observacao', 'Observacao'),
+    itens: mapRawItens(row['itens'] ?? row['Itens']),
+    valorTotalExcedente: pickNumber(row, 'valorTotalExcedente', 'ValorTotalExcedente')
   };
+}
+
+function mapRawItens(raw: unknown): FaturaOutput['itens'] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    const row = (item ?? {}) as Record<string, unknown>;
+    const valorExcedente = pickNumber(row, 'valorExcedente', 'ValorExcedente');
+    return {
+      id: pickNumber(row, 'id', 'Id'),
+      entradaSaidaId: pickNumber(row, 'entradaSaidaId', 'EntradaSaidaId'),
+      placa: pickString(row, 'placa', 'Placa'),
+      dataHoraEntrada: pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),
+      dataHoraSaida: pickString(row, 'dataHoraSaida', 'DataHoraSaida'),
+      tempoPermanenciaMinutos: pickNumber(row, 'tempoPermanenciaMinutos', 'TempoPermanenciaMinutos'),
+      valorEstacionamento: pickNumber(row, 'valorEstacionamento', 'ValorEstacionamento'),
+      valorLavagem: pickNumber(row, 'valorLavagem', 'ValorLavagem'),
+      valorPernoite: pickNumber(row, 'valorPernoite', 'ValorPernoite'),
+      valorServicosExtras: pickNumber(row, 'valorServicosExtras', 'ValorServicosExtras'),
+      valorExcedente,
+      valorBeneficioAbastecimento: pickNumber(
+        row,
+        'valorBeneficioAbastecimento',
+        'ValorBeneficioAbastecimento'
+      ),
+      valorTotal: pickNumber(row, 'valorTotal', 'ValorTotal'),
+      descricao: pickStringOrNull(row, 'descricao', 'Descricao'),
+      ehExcedente:
+        Boolean(row['ehExcedente'] ?? row['EhExcedente']) || valorExcedente > 0
+    };
+  });
 }
 
 const STATUS_COBRANCA_VALIDOS: readonly InadimplenciaStatusCobranca[] = [

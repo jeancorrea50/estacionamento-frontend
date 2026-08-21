@@ -298,12 +298,13 @@
               <th>Entrada</th>
               <th>Saída</th>
               <th>Status</th>
+              <th>Acordo</th>
               <th class="col-acoes">Ações</th>
             </tr>
           </thead>
           <tbody>
             @for (item of registros(); track item.id) {
-              <tr class="historico-row">
+              <tr class="historico-row" [class.historico-row--excedente]="item.ehExcedente">
                 <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
                 <td>
                   <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
@@ -319,6 +320,17 @@
                   <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
                     {{ statusLabel(item) }}
                   </span>
+                </td>
+                <td>
+                  @if (item.ehExcedente) {
+                    <span class="status-pill status-pill--excedente" title="Entrada acima das vagas do acordo">
+                      Excedente
+                    </span>
+                  } @else if (item.acordoCobrancaId) {
+                    <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
+                  } @else {
+                    —
+                  }
                 </td>
                 <td class="acoes-cell">
                   <button

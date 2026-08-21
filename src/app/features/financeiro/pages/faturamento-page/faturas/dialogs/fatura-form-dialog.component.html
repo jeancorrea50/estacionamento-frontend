@@ -114,6 +114,71 @@
       </mat-form-field>
     }
   </div>
+
+  @if (isView && itens.length) {
+    <section class="fat-itens">
+      <h3 class="fat-itens__title">Movimentos</h3>
+      @if (itensNormais.length) {
+        <p class="fat-itens__subtitle">Normais</p>
+        <div class="fat-itens__table-wrap">
+          <table class="fat-itens__table">
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Entrada</th>
+                <th>Saída</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of itensNormais; track item.id) {
+                <tr>
+                  <td>{{ item.placa }}</td>
+                  <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
+                  <td>{{ item.dataHoraSaida | date: 'dd/MM/yy HH:mm' }}</td>
+                  <td>{{ item.valorTotal | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (itensExcedentes.length) {
+        <p class="fat-itens__subtitle">Excedentes (acordo)</p>
+        <div class="fat-itens__table-wrap">
+          <table class="fat-itens__table">
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Entrada</th>
+                <th>Saída</th>
+                <th>Excedente</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of itensExcedentes; track item.id) {
+                <tr>
+                  <td>{{ item.placa }}</td>
+                  <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
+                  <td>{{ item.dataHoraSaida | date: 'dd/MM/yy HH:mm' }}</td>
+                  <td>{{ item.valorExcedente | number: '1.2-2' }}</td>
+                  <td>{{ item.valorTotal | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (valorTotalExcedente > 0) {
+        <p class="fat-itens__total-excedente">
+          Total excedente: {{ valorTotalExcedente | number: '1.2-2' }}
+        </p>
+      }
+    </section>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

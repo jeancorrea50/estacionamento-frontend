@@ -100,12 +100,17 @@ export class MenuApiService {
     const menusSorted = [...snap.menus].sort((a, b) => a.ordem - b.ordem);
     const menus: OrganizarMenusInput['menus'] = [];
     for (const m of menusSorted) {
-      if (m.id <= 0) continue;
+      // Só menus realmente persistidos no backend (evita entity null no Find/Update).
+      if (m.id <= 0 || m.existeNoServidor === false) continue;
       const subMenus = [...m.subMenus]
         .filter((s) => s.id > 0)
         .sort((a, b) => a.ordem - b.ordem)
-        .map((s) => ({ id: s.id, ordem: s.ordem }));
-      menus.push({ id: m.id, ordem: m.ordem, subMenus });
+        .map((s, idx) => ({ id: s.id, ordem: Number.isFinite(s.ordem) ? s.ordem : idx }));
+      menus.push({
+        id: m.id,
+        ordem: Number.isFinite(m.ordem) ? m.ordem : menus.length,
+        subMenus,
+      });
     }
     return { menus };
   }
@@ -126,7 +131,7 @@ export class MenuApiService {
 
   private getMenusWithServerSubMenusOnly(menus: MenuAdmin[]): MenuAdmin[] {
     return menus
-      .filter((menu) => menu.id > 0)
+      .filter((menu) => menu.id > 0 && menu.existeNoServidor !== false)
       .map((menu) => ({
         ...menu,
         subMenus: menu.subMenus

@@ -1085,8 +1085,10 @@
               <p class="modal-frota-hint" role="status">
                 @if (motoristaJaVinculadoNesta) {
                   Motorista já cadastrado e vinculado a esta transportadora. Os dados foram carregados — você pode editar e salvar.
+                } @else if (motoristaVinculoOutraTransportadora) {
+                  Motorista já cadastrado em outra transportadora. Não é permitido vincular a esta. Os dados foram carregados só para consulta — altere o CPF para cadastrar outro motorista.
                 } @else if (motoristaAceitouVinculo) {
-                  Motorista já cadastrado. Ao salvar, o vínculo anterior será desfeito e esta transportadora passará a ser a vinculada. A transportadora anterior será notificada.
+                  Motorista já cadastrado sem vínculo ativo. Ao salvar, será vinculado a esta transportadora.
                 } @else {
                   Motorista já cadastrado.
                   <button type="button" class="link-action" (click)="reperguntarVinculoMotorista()">
@@ -1140,7 +1142,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
+            <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista || motoristaVinculoOutraTransportadora">
               {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
             </button>
           </div>

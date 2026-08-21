@@ -179,6 +179,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   motoristaJaCadastradoEncontrado = false;
   /** CPF encontrado já vinculado à transportadora em edição. */
   motoristaJaVinculadoNesta = false;
+  /** CPF encontrado vinculado a outra transportadora (API não permite transferir). */
+  motoristaVinculoOutraTransportadora = false;
   motoristaAceitouVinculo = false;
   private motoristaEncontradoCache: MotoristaListItemDTO | null = null;
   private ultimoCpfMotoristaConsultado = '';
@@ -1822,6 +1824,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
             this.motoristaEncontradoCache = null;
             this.motoristaJaCadastradoEncontrado = false;
             this.motoristaJaVinculadoNesta = false;
+            this.motoristaVinculoOutraTransportadora = false;
             this.motoristaAceitouVinculo = false;
             this.cdr.markForCheck();
           }
@@ -1883,6 +1886,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
           this.motoristaEncontradoCache = null;
           this.motoristaJaCadastradoEncontrado = false;
           this.motoristaJaVinculadoNesta = false;
+          this.motoristaVinculoOutraTransportadora = false;
           this.motoristaAceitouVinculo = false;
           this.cdr.markForCheck();
           return;
@@ -1934,6 +1938,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.motoristaCpfBuscando = false;
     this.motoristaJaCadastradoEncontrado = false;
     this.motoristaJaVinculadoNesta = false;
+    this.motoristaVinculoOutraTransportadora = false;
     this.motoristaAceitouVinculo = false;
     this.motoristaEncontradoCache = null;
     this.ultimoCpfMotoristaConsultado = '';
@@ -1988,11 +1993,18 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       dto.transportadoraId != null &&
       dto.transportadoraId === this.transportadoraId;
 
-    // Hidrata o formulário e abre em modo edição (mesmo id) para permitir ajustes.
+    const vinculadoEmOutra =
+      dto.transportadoraId != null &&
+      dto.transportadoraId > 0 &&
+      this.transportadoraId != null &&
+      dto.transportadoraId !== this.transportadoraId;
+
+    // Hidrata sempre (consulta/edição). Sem exibir nome/CNPJ da outra transportadora.
     this.aplicarMotoristaEncontrado(dto, jaNesta);
 
     if (jaNesta) {
       this.motoristaJaVinculadoNesta = true;
+      this.motoristaVinculoOutraTransportadora = false;
       this.motoristaAceitouVinculo = true;
       this.condutorEditId = dto.id > 0 ? dto.id : null;
       this.cdr.markForCheck();
@@ -2001,6 +2013,17 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
     this.motoristaJaVinculadoNesta = false;
 
+    // Contrato da API: não permite transferir motorista já vinculado a outra transportadora.
+    if (vinculadoEmOutra) {
+      this.motoristaVinculoOutraTransportadora = true;
+      this.motoristaAceitouVinculo = false;
+      this.condutorEditId = null;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.motoristaVinculoOutraTransportadora = false;
+
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       width: '460px',
       autoFocus: 'dialog',
@@ -2008,7 +2031,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       data: {
         titulo: 'Motorista já cadastrado',
         mensagem:
-          'Encontramos este CPF no banco e carregamos os dados do cadastro.\n\nDeseja vincular este motorista à transportadora em edição? Ao confirmar e salvar, o vínculo anterior será desfeito e a transportadora anterior será notificada.',
+          'Encontramos este CPF no banco e carregamos os dados do cadastro.\n\nDeseja vincular este motorista à transportadora em edição?',
         cancelLabel: 'Não',
         confirmLabel: 'Sim, vincular',
         confirmColor: 'primary'
@@ -2019,12 +2042,14 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       if (!ok) {
         this.motoristaAceitouVinculo = false;
         this.motoristaJaVinculadoNesta = false;
+        this.motoristaVinculoOutraTransportadora = false;
         this.toast.warning('Vínculo não confirmado. Confirme o vínculo para salvar ou altere o CPF.');
         this.cdr.markForCheck();
         return;
       }
       this.motoristaAceitouVinculo = true;
       this.motoristaJaVinculadoNesta = false;
+      this.motoristaVinculoOutraTransportadora = false;
       this.condutorEditId = dto.id > 0 ? dto.id : null;
       this.cdr.markForCheck();
     });
@@ -2069,6 +2094,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.toast.error('Salve primeiro o cadastro da transportadora para vincular motoristas.');
       return;
     }
+    if (this.motoristaVinculoOutraTransportadora) {
+      this.toast.error(
+        'Motorista já cadastrado em outra transportadora. Não é permitido vincular a esta.'
+      );
+      return;
+    }
     if (this.motoristaEncontradoCache && !this.motoristaAceitouVinculo) {
       this.toast.error('Confirme o vínculo do motorista encontrado ou altere o CPF.');
       return;
@@ -2089,13 +2120,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.condutorEditId != null && this.condutorEditId > 0
         ? this.condutores.find((x) => x.id === this.condutorEditId) ?? this.motoristaEncontradoCache ?? undefined
         : this.motoristaEncontradoCache ?? undefined;
-    const transportadoraAnteriorId = this.motoristaEncontradoCache?.transportadoraId;
-    const transferindoVinculo =
-      !!this.motoristaEncontradoCache &&
-      this.motoristaAceitouVinculo &&
-      transportadoraAnteriorId != null &&
-      transportadoraAnteriorId > 0 &&
-      transportadoraAnteriorId !== tid;
 
     const dto: MotoristaDTO = {
       id: this.condutorEditId != null && this.condutorEditId > 0 ? this.condutorEditId : undefined,
@@ -2124,11 +2148,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         this.limparEstadoLookupMotorista();
         this.carregarCondutores();
         this.toast.success(
-          transferindoVinculo
-            ? 'Motorista vinculado com sucesso. A transportadora anterior será notificada.'
-            : dto.id
-              ? 'Motorista atualizado com sucesso.'
-              : 'Motorista cadastrado com sucesso.'
+          dto.id ? 'Motorista atualizado com sucesso.' : 'Motorista cadastrado com sucesso.'
         );
         this.cdr.markForCheck();
       },
@@ -2324,8 +2344,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
   }
 
-  /** Preferência: message do ApiError (já com notifications) → fallback. */
+  /** Preferência: message do ApiError (já com notifications) → fallback. Sem nome/CNPJ de transportadora. */
   private mensagemErroApi(err: unknown, fallback: string): string {
+    let raw = '';
     if (err && typeof err === 'object') {
       const api = err as ApiError & {
         error?: {
@@ -2344,14 +2365,33 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         api.error?.Notifications;
       if (Array.isArray(notes) && notes.length) {
         const text = notes.filter((n): n is string => typeof n === 'string').join(' ').trim();
-        if (text) return text;
+        if (text) raw = text;
       }
-      if (typeof api.message === 'string' && api.message.trim()) return api.message.trim();
-      const nestedMsg = api.error?.message ?? api.error?.Message;
-      if (typeof nestedMsg === 'string' && nestedMsg.trim()) return nestedMsg.trim();
+      if (!raw && typeof api.message === 'string' && api.message.trim()) raw = api.message.trim();
+      if (!raw) {
+        const nestedMsg = api.error?.message ?? api.error?.Message;
+        if (typeof nestedMsg === 'string' && nestedMsg.trim()) raw = nestedMsg.trim();
+      }
     }
-    if (err instanceof Error && err.message.trim()) return err.message.trim();
-    return fallback;
+    if (!raw && err instanceof Error && err.message.trim()) raw = err.message.trim();
+    if (!raw) return fallback;
+    return this.sanitizarMensagemMotoristaSemTransportadora(raw) || fallback;
+  }
+
+  /** Remove CNPJ/nome de transportadora de mensagens da API (privacidade na UI). */
+  private sanitizarMensagemMotoristaSemTransportadora(message: string): string {
+    const text = String(message ?? '').trim();
+    if (!text) return text;
+    if (/já cadastrado.*transportadora|não é permitido vincular/i.test(text)) {
+      return 'Motorista já cadastrado em outra transportadora. Não é permitido vincular a esta.';
+    }
+    return text
+      .replace(/\bCNPJ\s*[:\-]?\s*\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/gi, '')
+      .replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, '')
+      .replace(/\bna transportadora\b[^.]*/gi, 'em outra transportadora')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+\./g, '.')
+      .trim();
   }
 
 }

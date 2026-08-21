@@ -104,8 +104,11 @@ function promoteEstacionamentoOutOfGerenciamento(menus: MenuAdmin[], nextId: num
     const first = extracted[0];
     const gerIdx = result.findIndex((m) => isGerenciamentoMenuNode(m.nome, m.rota));
     const insertAt = gerIdx >= 0 ? gerIdx + 1 : result.length;
+    // Id negativo = só UI local; OrganizarMenus/Alterar ignoram (id <= 0).
+    // Id positivo sintético (nextId) quebrava o PUT: backend não acha Module → entity null.
+    const localSyntheticId = -(id++);
     result.splice(insertAt, 0, {
-      id: id++,
+      id: localSyntheticId,
       nome: 'Estacionamento',
       ordem: insertAt,
       icone: 'local_parking',
@@ -262,7 +265,11 @@ export class MenuAdminService {
     const promoted = promoteEstacionamentoOutOfGerenciamento(menus, nextId);
     this.state.update((s) => {
       const next = cloneState(s);
-      next.menus = promoted.menus.map((m) => ({ ...m, existeNoServidor: true }));
+      // Não forçar true: menus sintéticos (Estacionamento promovido) ficam fora do OrganizarMenus.
+      next.menus = promoted.menus.map((m) => ({
+        ...m,
+        existeNoServidor: m.existeNoServidor !== false,
+      }));
       next.nextId = promoted.nextId;
       return next;
     });

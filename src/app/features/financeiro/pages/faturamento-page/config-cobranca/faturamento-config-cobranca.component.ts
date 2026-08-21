@@ -232,6 +232,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
       const ref = this.dialog.open(ConfigCobrancaViewRuleDialogComponent, {
         width: '480px',
         maxWidth: '96vw',
+        panelClass: 'cfg-form-dialog-panel',
         data: { row: full }
       });
       ref.afterClosed().subscribe((v) => {
@@ -245,6 +246,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
     const ref = this.dialog.open(ConfigCobrancaConfirmDialogComponent, {
       width: '420px',
       maxWidth: '96vw',
+      panelClass: 'cfg-form-dialog-panel',
       data: {
         titulo: 'Remover configuração?',
         mensagem: 'Essa ação removerá a configuração de cobrança selecionada.'

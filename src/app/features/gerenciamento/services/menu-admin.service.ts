@@ -26,9 +26,110 @@ import {
 } from '../../../core/services/session-access.service';
 
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
+const ESTACIONAMENTO_SIDEBAR_ROUTE = '/app/cadastro/estacionamento';
 
 function cloneState(s: MenuAdminState): MenuAdminState {
   return JSON.parse(JSON.stringify(s)) as MenuAdminState;
+}
+
+function normMenuLabel(value: string | null | undefined): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function isEstacionamentoNavRoute(route: string | null | undefined): boolean {
+  const n = String(route ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\/+$/, '');
+  return (
+    n === ESTACIONAMENTO_SIDEBAR_ROUTE ||
+    n.startsWith(`${ESTACIONAMENTO_SIDEBAR_ROUTE}/`) ||
+    n === '/app/gerenciamento/estacionamento' ||
+    n.startsWith('/app/gerenciamento/estacionamento/')
+  );
+}
+
+function isEstacionamentoMenuNode(nome: string | null | undefined, rota?: string | null): boolean {
+  return normMenuLabel(nome) === 'estacionamento' || isEstacionamentoNavRoute(rota);
+}
+
+function isGerenciamentoMenuNode(nome: string | null | undefined, rota?: string | null): boolean {
+  if (isEstacionamentoMenuNode(nome, rota)) return false;
+  if (normMenuLabel(nome) === 'gerenciamento') return true;
+  const n = String(rota ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\/+$/, '');
+  return n === '/app/gerenciamento' || n.startsWith('/app/gerenciamento/');
+}
+
+/**
+ * Remove Estacionamento de Gerenciamento e promove a menu de topo (como Transportadora).
+ */
+function promoteEstacionamentoOutOfGerenciamento(menus: MenuAdmin[], nextId: number): {
+  menus: MenuAdmin[];
+  nextId: number;
+} {
+  let id = nextId;
+  const hasTopLevel = menus.some((m) => isEstacionamentoMenuNode(m.nome, m.rota));
+  const result: MenuAdmin[] = [];
+  let extracted: SubMenuAdmin[] = [];
+
+  for (const menu of menus) {
+    if (!isGerenciamentoMenuNode(menu.nome, menu.rota)) {
+      result.push(menu);
+      continue;
+    }
+
+    const kept: SubMenuAdmin[] = [];
+    for (const sub of menu.subMenus ?? []) {
+      if (isEstacionamentoMenuNode(sub.nome, sub.rota)) {
+        extracted.push({
+          ...sub,
+          nome: 'Estacionamento',
+          rota: ESTACIONAMENTO_SIDEBAR_ROUTE,
+        });
+      } else {
+        kept.push(sub);
+      }
+    }
+    result.push({ ...menu, subMenus: kept });
+  }
+
+  if (!hasTopLevel && extracted.length) {
+    const first = extracted[0];
+    const gerIdx = result.findIndex((m) => isGerenciamentoMenuNode(m.nome, m.rota));
+    const insertAt = gerIdx >= 0 ? gerIdx + 1 : result.length;
+    result.splice(insertAt, 0, {
+      id: id++,
+      nome: 'Estacionamento',
+      ordem: insertAt,
+      icone: 'local_parking',
+      rota: ESTACIONAMENTO_SIDEBAR_ROUTE,
+      ativo: true,
+      exibirNoSidebar: true,
+      subMenus: [
+        {
+          ...first,
+          nome: 'Estacionamento',
+          rota: ESTACIONAMENTO_SIDEBAR_ROUTE,
+          ordem: 0,
+          ativo: first.ativo !== false,
+          exibirNoSidebar: true,
+        },
+      ],
+      existeNoServidor: false,
+    });
+  }
+
+  return {
+    menus: result.map((m, i) => ({ ...m, ordem: i })),
+    nextId: id,
+  };
 }
 
 /**
@@ -121,6 +222,10 @@ export class MenuAdminService {
         const parsed = JSON.parse(raw) as MenuAdminState;
         if (parsed?.menus?.length) {
           migrateMenuServidorFlagsFromStorage(parsed.menus);
+          const promoted = promoteEstacionamentoOutOfGerenciamento(parsed.menus, parsed.nextId ?? 1);
+          parsed.menus = promoted.menus;
+          parsed.nextId = promoted.nextId;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           return parsed;
         }
       }
@@ -154,14 +259,15 @@ export class MenuAdminService {
    * Após salvar no servidor e nova Buscar: substitui menus e nextId; mantém roles.
    */
   replaceMenusHidratar(menus: MenuAdmin[], nextId: number): void {
+    const promoted = promoteEstacionamentoOutOfGerenciamento(menus, nextId);
     this.state.update((s) => {
       const next = cloneState(s);
-      next.menus = menus.map((m) => ({ ...m, existeNoServidor: true }));
-      next.nextId = nextId;
+      next.menus = promoted.menus.map((m) => ({ ...m, existeNoServidor: true }));
+      next.nextId = promoted.nextId;
       return next;
     });
     this.persist();
-    this.syncSessionMenusWithCurrentTree(menus);
+    this.syncSessionMenusWithCurrentTree(promoted.menus);
   }
 
   /**
@@ -500,7 +606,7 @@ export class MenuAdminService {
   }
 
   /**
-   * Itens para sidebar. Gerenciamento: só link único `/app/gerenciamento` (Estacionamento só dentro da área Gerenciamento).
+   * Itens para sidebar. Gerenciamento: link único. Estacionamento: item de topo (como Transportadora).
    */
   getSidebarMenuItems(): {
     label: string;
@@ -508,25 +614,78 @@ export class MenuAdminService {
     icon: string;
     children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
   }[] {
+    type NavItem = {
+      label: string;
+      route: string;
+      icon: string;
+      children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
+    };
+
     const source = this.sessionAccess.hasSessionMenus()
       ? this.buildNavItemsFromSessionMenus()
       : this.buildNavItemsFromState();
 
-    return source
-      .map((item) => {
-        const baseItem = {
-          ...item,
-          children: (item.children ?? []).length > 0 ? item.children : undefined,
-        };
-        if (!this.isGerenciamentoNavItem(baseItem)) return baseItem;
+    const promoted: NavItem[] = [];
+    let hasEstacionamentoTop = false;
+
+    const stripped = source.map((item) => {
+      const baseItem: NavItem = {
+        ...item,
+        children: (item.children ?? []).length > 0 ? [...item.children!] : undefined,
+      };
+
+      if (isEstacionamentoMenuNode(baseItem.label, baseItem.route)) {
+        hasEstacionamentoTop = true;
         return {
-          label: item.label,
-          route: '/app/gerenciamento',
-          icon: item.icon,
+          label: 'Estacionamento',
+          route: ESTACIONAMENTO_SIDEBAR_ROUTE,
+          icon: resolveMaterialSymbolIconFromModule('Estacionamento', item.icon),
         };
-      })
-      .map((item) => this.sanitizeCadastroSidebarNavItem(item))
-      .map((item) => this.applyDisplayLabelsToNavItem(item));
+      }
+
+      const children = baseItem.children ?? [];
+      if (!children.length) return baseItem;
+
+      const kept: NonNullable<NavItem['children']> = [];
+      for (const child of children) {
+        if (isEstacionamentoMenuNode(child.label, child.route)) {
+          if (!hasEstacionamentoTop) {
+            hasEstacionamentoTop = true;
+            promoted.push({
+              label: 'Estacionamento',
+              route: ESTACIONAMENTO_SIDEBAR_ROUTE,
+              icon: resolveMaterialSymbolIconFromModule('Estacionamento', 'local_parking'),
+            });
+          }
+          continue;
+        }
+        kept.push(child);
+      }
+
+      return {
+        ...baseItem,
+        children: kept.length ? kept : undefined,
+      };
+    });
+
+    const flattened = stripped.map((item) => {
+      if (!this.isGerenciamentoNavItem(item)) return item;
+      return {
+        label: item.label,
+        route: '/app/gerenciamento',
+        icon: item.icon,
+      };
+    });
+
+    const withCadastro = flattened.map((item) => this.sanitizeCadastroSidebarNavItem(item));
+
+    if (promoted.length) {
+      const gerIdx = withCadastro.findIndex((i) => this.isGerenciamentoNavItem(i));
+      const insertAt = gerIdx >= 0 ? gerIdx + 1 : withCadastro.length;
+      withCadastro.splice(insertAt, 0, ...promoted);
+    }
+
+    return withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
   }
 
   /** Padroniza rótulos legados da API (ex.: Movimento → Entrada e Saída). */
@@ -560,8 +719,7 @@ export class MenuAdminService {
   }
 
   /**
-   * Cadastro na sidebar: remove itens que não devem aparecer (Estacionamento, motorista, veículo) e
-   * padroniza rótulos quando aplicável (ex.: Transportadora).
+   * Cadastro na sidebar: remove motorista/veículo e padroniza rótulos (ex.: Transportadora).
    */
   private sanitizeCadastroSidebarNavItem<
     T extends {
@@ -601,12 +759,9 @@ export class MenuAdminService {
     } as T;
   }
 
-  /** Estacionamento: só na área Gerenciamento. Motorista/veículo: fora da sidebar em Cadastro. */
+  /** Motorista/veículo ficam fora da sidebar em Cadastro. */
   private isHiddenCadastroSidebarRoute(route: string): boolean {
     const n = route.replace(/\/+$/, '').toLowerCase();
-    if (n === '/app/cadastro/estacionamento' || n.startsWith('/app/cadastro/estacionamento/')) {
-      return true;
-    }
     if (n === '/app/cadastro/motorista') return true;
     return /\/app\/cadastro\/veicul/i.test(n);
   }
@@ -614,6 +769,7 @@ export class MenuAdminService {
   private formatCadastroSubmenuSidebarLabel(route: string, label: string): string {
     const path = route.replace(/\/+$/, '').toLowerCase();
     if (/(?:^|\/)cadastro\/transportadora(?:\/|$)/.test(path)) return 'Transportadora';
+    if (/(?:^|\/)cadastro\/estacionamento(?:\/|$)/.test(path)) return 'Estacionamento';
     return label;
   }
 
@@ -757,16 +913,19 @@ export class MenuAdminService {
 
   /** Sidebar: Gerenciamento é sempre um único link (sem filhos). */
   private isGerenciamentoNavItem(item: {
+    label?: string;
     route: string;
     children?: { route: string; children?: { route: string }[] }[];
   }): boolean {
-    if (item.route.startsWith('/app/gerenciamento')) {
+    if (isEstacionamentoMenuNode(item.label, item.route)) return false;
+    if (item.route.startsWith('/app/gerenciamento') && !isEstacionamentoNavRoute(item.route)) {
       return true;
     }
     return (
       item.children?.some((c) => {
+        if (isEstacionamentoNavRoute(c.route)) return false;
         if (c.route.startsWith('/app/gerenciamento')) return true;
-        return c.children?.some((n) => n.route.startsWith('/app/gerenciamento')) ?? false;
+        return c.children?.some((n) => n.route.startsWith('/app/gerenciamento') && !isEstacionamentoNavRoute(n.route)) ?? false;
       }) ?? false
     );
   }

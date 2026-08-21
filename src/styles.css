@@ -415,46 +415,59 @@ html.theme-dark {
   --layout-right-inset: inset 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
-/* ========== Tema: WHITE MODE — canvas neutro; cartões e blocos com contraste suave ========== */
+/* ========== Tema: WHITE MODE — paleta alinhada ao modal Config. Cobrança ========== */
 html.theme-light {
+  /* Canvas / superfícies */
   --color-bg-main: #f3f4f6;
   --color-bg-page: #f3f4f6;
 
   --color-bg-card: #ffffff;
-  --color-bg-card-secondary: #f1f5f9;
-  --color-bg-section: #e8ecf2;
+  --color-bg-card-secondary: #f9fafb;
+  --color-bg-section: #f3f4f6;
 
   --color-bg-input: #ffffff;
-  --color-border: #9fc3eb;
-  --color-border-light: #b9d4f2;
+  --color-border: #e5e7eb;
+  --color-border-light: #e2e8f0;
 
-  --color-text-primary: #0a3890;
-  --color-text-secondary: #315f95;
-  --color-text-muted: #4870a0;
+  /* Tipografia neutra (slate), não azul */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
 
-  --color-primary: #5088d0;
-  --color-primary-hover: #3080d0;
-  --color-primary-dark: #0a3890;
+  /* Azul vibrante de seleção / ação */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-dark: #1e40af;
+  --color-primary-soft: #eff6ff;
 
-  --color-sidebar-bg: linear-gradient(180deg, #c4daf8 0%, #a8caf4 100%);
-  --color-sidebar-hover: rgba(80, 136, 208, 0.22);
-  --color-sidebar-active: #5088d0;
-  --color-sidebar-border: #9fc3eb;
+  /* Sidebar permanece azul profundo (identidade) */
+  --color-sidebar-bg: #0a3890;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.12);
+  --color-sidebar-active: #3d78e0;
+  --color-sidebar-border: rgba(255, 255, 255, 0.16);
 
   --color-topbar-bg: #ffffff;
-  --color-topbar-border: #9fc3eb;
+  --color-topbar-border: #e5e7eb;
 
-  --color-btn-primary: #3080d0;
-  --color-btn-secondary-border: #7aa7dc;
-  --color-btn-success: #30a070;
-  --color-btn-success-text: #1f7a55;
-  --color-btn-danger: #ef4444;
-  --color-btn-danger-text: #dc2626;
-  --color-btn-outline: #a8c8f0;
+  --color-btn-primary: #2563eb;
+  --color-btn-secondary-border: #e5e7eb;
+  --color-btn-success: #16a34a;
+  --color-btn-success-text: #15803d;
+  --color-btn-danger: #dc2626;
+  --color-btn-danger-text: #b91c1c;
+  --color-btn-outline: #e5e7eb;
 
-  --color-content-white: #f8fbff;
-  --color-avatar-bg: #5088d0;
-  --color-avatar-text: #0a3890;
+  --color-content-white: #ffffff;
+  --color-avatar-bg: #2563eb;
+  --color-avatar-text: #ffffff;
+
+  /* Seleção (tiles, tabs, chips ativos) */
+  --selection-bg: #2563eb;
+  --selection-bg-hover: #1d4ed8;
+  --selection-text: #ffffff;
+  --selection-soft: #eff6ff;
+  --selection-border: #bfdbfe;
+  --selection-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
 
   --app-bg: var(--color-bg-main);
   --app-bg-simple: var(--color-bg-main);
@@ -466,14 +479,14 @@ html.theme-light {
   --sidebar-border: var(--color-sidebar-border);
   --sidebar-item-hover: var(--color-sidebar-hover);
   --sidebar-active-bg: var(--color-sidebar-active);
-  --sidebar-scrollbar-thumb: rgba(48, 96, 168, 0.42);
-  --sidebar-scrollbar-thumb-hover: rgba(48, 96, 168, 0.58);
+  --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.28);
+  --sidebar-scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
 
   --topbar-bg: var(--color-topbar-bg);
   --topbar-border: var(--color-topbar-border);
   --topbar-text: var(--color-text-primary);
-  --topbar-btn-hover: rgba(80, 136, 208, 0.12);
-  --topbar-shadow: 0 1px 3px rgba(10, 56, 120, 0.08);
+  --topbar-btn-hover: rgba(37, 99, 235, 0.08);
+  --topbar-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 
   --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
@@ -484,7 +497,7 @@ html.theme-light {
 
   --table-header-bg: var(--color-bg-section);
   --table-header-text: var(--color-text-primary);
-  --table-row-hover: rgba(80, 136, 208, 0.18);
+  --table-row-hover: rgba(37, 99, 235, 0.06);
   --table-row-stripe: var(--color-bg-card-secondary);
 
   --surface: var(--color-bg-card);
@@ -498,63 +511,74 @@ html.theme-light {
   --border-subtle: var(--color-border-light);
 
   --primary: var(--color-primary);
-  --shadow: 0 1px 4px rgba(10, 56, 120, 0.07);
-  --shadow-sm: 0 1px 2px rgba(10, 56, 120, 0.06);
-  --shadow-md: 0 4px 14px rgba(10, 56, 120, 0.1);
-  --shadow-lg: 0 10px 28px rgba(10, 56, 120, 0.12);
-  --card-shadow: 0 2px 14px rgba(39, 94, 168, 0.12);
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   --border-card: 1px solid var(--color-border);
 
   --input-bg: var(--color-bg-input);
-  --input-border: var(--color-border);
+  --input-border: #cbd5e1;
   --input-text: var(--color-text-primary);
   --input-placeholder: var(--color-text-muted);
   --placeholder-color: var(--color-text-muted);
 
   --focus: var(--color-primary);
-  --focus-ring: 0 0 0 3px rgba(80, 136, 208, 0.28);
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
 
   --danger: var(--color-btn-danger);
-  --warning: #d97706;
+  --warning: #ea580c;
   --success: var(--color-btn-success);
 
   --link-color: var(--color-primary);
   --link-hover: var(--color-primary-dark);
 
-  /* Botões: preenchimento sólido (referência dashboard — sem vidro/neon) */
-  --btn-radius: 6px;
+  /* Botões: primary sólido azul; secundário branco + borda cinza */
+  --btn-radius: 10px;
   --btn-height: 40px;
   --btn-primary-bg: #2563eb;
   --btn-primary-bg-hover: #1d4ed8;
   --btn-primary-text: #ffffff;
-  --btn-primary-border: #1e40af;
-  --btn-secondary-bg: #e2e8f0;
-  --btn-secondary-bg-hover: #cbd5e1;
-  --btn-secondary-text: #334155;
-  --btn-secondary-border: #cbd5e1;
+  --btn-primary-border: #2563eb;
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-bg-hover: #f8fafc;
+  --btn-secondary-text: #111827;
+  --btn-secondary-border: #e5e7eb;
   --btn-success-bg: #16a34a;
   --btn-success-bg-hover: #15803d;
   --btn-success-text: #ffffff;
-  --btn-success-border: #166534;
+  --btn-success-border: #16a34a;
   --btn-danger-bg: #dc2626;
   --btn-danger-bg-hover: #b91c1c;
   --btn-danger-text: #ffffff;
-  --btn-danger-border: #991b1b;
+  --btn-danger-border: #dc2626;
   --btn-warning-bg: #ea580c;
   --btn-warning-bg-hover: #c2410c;
   --btn-warning-text: #ffffff;
-  --btn-warning-border: #9a3412;
-  --btn-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --btn-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.12);
+  --btn-warning-border: #ea580c;
+  --btn-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --btn-shadow-hover: 0 2px 6px rgba(15, 23, 42, 0.1);
 
   --color-text: var(--color-text-primary);
-  --color-text-muted: var(--color-text-muted);
   --color-bg: var(--color-bg-card);
   --color-error: var(--danger);
 
   --topbar-glass: var(--color-topbar-bg);
-  --layout-right-border: rgba(120, 168, 220, 0.55);
+  --layout-right-border: rgba(15, 23, 42, 0.08);
   --layout-right-inset: inset 1px 0 0 var(--color-border-light);
+
+  /* Tokens de formulário / modal (compartilhados com Config. Cobrança) */
+  --cfg-form-surface: #ffffff;
+  --cfg-form-text: #111827;
+  --cfg-form-input-bg: #ffffff;
+  --cfg-form-input-border: #cbd5e1;
+  --cfg-form-input-text: #111827;
+  --cfg-form-input-placeholder: #9ca3af;
+  --cfg-form-focus: #2563eb;
+  --cfg-form-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
+  --cfg-form-border: #e5e7eb;
+  --cfg-form-shadow: 0 24px 64px rgba(15, 23, 42, 0.16);
 }
 
 html.theme-light body {
@@ -903,7 +927,7 @@ label {
   padding: 0 var(--space-md, 12px);
   border: 1px solid var(--input-border);
   border-radius: var(--radius-sm, 8px);
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   color: var(--input-text);
   font-size: var(--font-body, 14px);
   font-family: var(--font-family-base, inherit);
@@ -1358,7 +1382,7 @@ html.theme-dark textarea.input-control {
   min-height: 44px;
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
-  background: rgba(10, 20, 38, 0.82);
+  background-color: rgba(10, 20, 38, 0.82);
 }
 
 html.theme-dark .data-table th {
@@ -1581,12 +1605,29 @@ html.theme-light .btn-secondary.btn--outline {
   background: var(--btn-secondary-bg) !important;
   border: 1px solid var(--btn-secondary-border) !important;
   color: var(--btn-secondary-text) !important;
-  box-shadow: var(--btn-shadow) !important;
+  box-shadow: none !important;
 }
 
 html.theme-light .btn-secondary.btn--outline:hover:not(:disabled) {
   background: var(--btn-secondary-bg-hover) !important;
-  box-shadow: var(--btn-shadow-hover) !important;
+  box-shadow: var(--btn-shadow) !important;
+}
+
+html.theme-light .btn--outline,
+html.theme-light button.btn--outline,
+html.theme-light a.btn--outline {
+  background: #ffffff !important;
+  border: 1px solid var(--btn-secondary-border) !important;
+  color: var(--btn-secondary-text) !important;
+  box-shadow: none !important;
+}
+
+html.theme-light .btn--outline:hover:not(:disabled),
+html.theme-light button.btn--outline:hover:not(:disabled),
+html.theme-light a.btn--outline:hover:not(:disabled) {
+  background: var(--btn-secondary-bg-hover) !important;
+  border-color: #cbd5e1 !important;
+  color: var(--color-text-primary) !important;
 }
 
 html.theme-light .btn-warning {
@@ -1605,17 +1646,105 @@ html.theme-light .btn-warning:hover:not(:disabled) {
 }
 
 html.theme-light .btn--ghost {
-  background: var(--btn-secondary-bg) !important;
+  background: #ffffff !important;
   border: 1px solid var(--btn-secondary-border) !important;
   color: var(--btn-secondary-text) !important;
-  box-shadow: var(--btn-shadow) !important;
+  box-shadow: none !important;
 }
 
 html.theme-light .btn--ghost:hover:not(:disabled) {
   background: var(--btn-secondary-bg-hover) !important;
-  border-color: var(--btn-secondary-border) !important;
+  border-color: #cbd5e1 !important;
   color: var(--btn-secondary-text) !important;
-  box-shadow: var(--btn-shadow-hover) !important;
+  box-shadow: var(--btn-shadow) !important;
+}
+
+/* Seleção / abas / tiles ativos (padrão Config. Cobrança) */
+html.theme-light .tab.tab--active,
+html.theme-light .tabs .tab.tab--active,
+html.theme-light a.tab.tab--active {
+  color: var(--selection-bg) !important;
+  border-bottom-color: var(--selection-bg) !important;
+  font-weight: 600;
+}
+
+html.theme-light .cfg-option--active,
+html.theme-light .dk-option--active,
+html.theme-light [class*='option--active'],
+html.theme-light .chip--active,
+html.theme-light .status-chip--active {
+  background: var(--selection-bg) !important;
+  color: var(--selection-text) !important;
+  border-color: var(--selection-bg) !important;
+  box-shadow: var(--selection-shadow);
+}
+
+html.theme-light .cfg-option--active .material-symbols-outlined,
+html.theme-light .cfg-option--active .cfg-option__ico,
+html.theme-light .cfg-option--active .cfg-option__label {
+  color: var(--selection-text) !important;
+}
+
+html.theme-light .badge-status--ok,
+html.theme-light .badge-status--ativa,
+html.theme-light .status-pill--ativa {
+  background: color-mix(in srgb, var(--success) 12%, #ffffff);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--color-btn-success-text, #15803d);
+}
+
+/* Inputs / Material outline — preenchimento branco, borda cinza */
+html.theme-light .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background: var(--input-bg) !important;
+}
+
+html.theme-light .mat-mdc-form-field .mdc-notched-outline__leading,
+html.theme-light .mat-mdc-form-field .mdc-notched-outline__notch,
+html.theme-light .mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: var(--input-border) !important;
+}
+
+html.theme-light .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+html.theme-light .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+html.theme-light .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--focus) !important;
+}
+
+html.theme-light .mat-mdc-form-field input.mat-mdc-input-element,
+html.theme-light .mat-mdc-form-field .mat-mdc-select-value-text,
+html.theme-light .mat-mdc-form-field .mat-mdc-select-min-line {
+  color: var(--input-text) !important;
+}
+
+html.theme-light .mat-mdc-form-field .mdc-floating-label,
+html.theme-light .mat-mdc-form-field .mat-mdc-select-placeholder,
+html.theme-light .mat-mdc-form-field .mat-mdc-input-element::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+/* Toggle ativo = azul primary */
+html.theme-light .mat-mdc-slide-toggle.mat-mdc-slide-toggle-checked:not(.mat-disabled) .mdc-switch__track::after,
+html.theme-light .mat-mdc-slide-toggle.mat-mdc-slide-toggle-checked .mdc-switch .mdc-switch__track::after {
+  background: var(--selection-bg) !important;
+}
+
+html.theme-light .mat-mdc-slide-toggle.mat-mdc-slide-toggle-checked:not(.mat-disabled) .mdc-switch__handle-track .mdc-switch__handle::after,
+html.theme-light .mat-mdc-slide-toggle.mat-mdc-slide-toggle-checked .mdc-switch__handle::after {
+  background: #ffffff !important;
+}
+
+html.theme-light .mat-mdc-slide-toggle .mdc-switch--selected .mdc-switch__track {
+  background: var(--selection-bg) !important;
+  opacity: 1 !important;
+}
+
+html.theme-light .mat-mdc-slide-toggle .mdc-switch--selected .mdc-switch__handle {
+  background: #ffffff !important;
+}
+
+html.theme-light .mat-mdc-slide-toggle .mdc-switch--unselected .mdc-switch__track {
+  background: #e5e7eb !important;
+  opacity: 1 !important;
 }
 
 html.theme-light .menu-admin__btn--solid {
@@ -1665,7 +1794,7 @@ html.theme-light textarea.input-control {
   min-height: 44px;
   border-radius: 12px;
   border: 1px solid var(--input-border);
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   color: var(--input-text);
 }
 
@@ -1730,8 +1859,8 @@ html.theme-light .badge-status {
   font-size: 12px;
   font-weight: 700;
   border: 1px solid var(--color-border);
-  background: rgba(80, 136, 208, 0.12);
-  color: var(--color-text-primary);
+  background: var(--selection-soft);
+  color: var(--color-primary-dark);
 }
 
 html.theme-light .modal-dark,
@@ -1739,7 +1868,7 @@ html.theme-light .dk-modal-content,
 html.theme-light .modal-content {
   border-radius: 16px;
   border: 1px solid var(--color-border);
-  background: var(--color-bg-card-secondary);
+  background: var(--color-bg-card);
   box-shadow: var(--shadow-lg);
   max-width: min(960px, 100%);
   box-sizing: border-box;
@@ -1764,7 +1893,7 @@ html.theme-light .data-card {
   overflow-x: hidden;
   border-radius: 16px;
   border: 1px solid var(--border-subtle);
-  background: var(--color-bg-card-secondary);
+  background: var(--color-bg-card);
   box-shadow: var(--card-shadow);
 }
 
@@ -1954,14 +2083,32 @@ select.field__input {
   line-height: 1.25;
   cursor: pointer;
   box-sizing: border-box;
+  /* Longhands: nunca usar `background` shorthand em selects (repete o chevron). */
   background-image: var(--ds-select-chevron);
   background-repeat: no-repeat;
   background-position: right 12px center;
-  background-size: 20px;
+  background-size: 20px 20px;
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
     background-color 0.18s ease;
+}
+
+/* Garante seta única mesmo após overrides de tema/modal com `background`. */
+html.theme-light select:not([multiple]):not([size]):not(.user-access-panel__select),
+html.theme-dark select:not([multiple]):not([size]):not(.user-access-panel__select),
+html.theme-light select.input-control,
+html.theme-dark select.input-control,
+html.theme-light .modal-content select.input-control,
+html.theme-dark .modal-content select.input-control,
+html.theme-light select.input-control--select,
+html.theme-dark select.input-control--select,
+.modal-content select.input-control,
+.modal-content select.input-control--select {
+  background-image: var(--ds-select-chevron) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 20px 20px !important;
 }
 
 select:not([multiple]):not([size]):hover {
@@ -2189,16 +2336,29 @@ html.theme-dark .layout:not(.app-layout--movimentos) .dk-table-wrap {
 
 /* Modal financeiro: overlay do Angular Material precisa de estilo global (Prioridade B: theme-aware). */
 .cfg-form-dialog-panel {
-  --cfg-form-surface: var(--surface, #ffffff);
-  --cfg-form-text: var(--text);
-  --cfg-form-input-bg: var(--input-bg, var(--surface));
-  --cfg-form-input-border: var(--input-border, var(--border));
-  --cfg-form-input-text: var(--input-text, var(--text));
-  --cfg-form-input-placeholder: var(--input-placeholder, var(--muted));
-  --cfg-form-focus: var(--focus, var(--primary));
-  --cfg-form-focus-ring: var(--focus-ring, 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent));
-  --cfg-form-border: var(--border-subtle, var(--border));
-  --cfg-form-shadow: var(--shadow-lg);
+  --cfg-form-surface: #ffffff;
+  --cfg-form-text: #111827;
+  --cfg-form-input-bg: #ffffff;
+  --cfg-form-input-border: #cbd5e1;
+  --cfg-form-input-text: #111827;
+  --cfg-form-input-placeholder: #9ca3af;
+  --cfg-form-focus: #2563eb;
+  --cfg-form-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
+  --cfg-form-border: #e5e7eb;
+  --cfg-form-shadow: 0 24px 64px rgba(15, 23, 42, 0.16);
+}
+
+html.theme-light .cfg-form-dialog-panel {
+  --cfg-form-surface: var(--color-bg-card, #ffffff);
+  --cfg-form-text: var(--color-text-primary, #111827);
+  --cfg-form-input-bg: var(--color-bg-input, #ffffff);
+  --cfg-form-input-border: var(--input-border, #cbd5e1);
+  --cfg-form-input-text: var(--input-text, #111827);
+  --cfg-form-input-placeholder: var(--input-placeholder, #9ca3af);
+  --cfg-form-focus: var(--color-primary, #2563eb);
+  --cfg-form-focus-ring: var(--focus-ring, 0 0 0 3px rgba(37, 99, 235, 0.22));
+  --cfg-form-border: var(--color-border, #e5e7eb);
+  --cfg-form-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.16));
 }
 
 html.theme-dark .cfg-form-dialog-panel {
@@ -2228,12 +2388,16 @@ html.theme-dark .cfg-form-dialog-panel {
 }
 
 .cfg-form-dialog-panel .mat-mdc-dialog-component-host,
-.cfg-form-dialog-panel app-config-cobranca-form-dialog {
+.cfg-form-dialog-panel app-config-cobranca-form-dialog,
+.cfg-form-dialog-panel app-config-cobranca-weekday-dialog,
+.cfg-form-dialog-panel app-config-cobranca-acordo-dialog {
   display: flex;
   flex-direction: column;
   min-height: 0;
   max-height: inherit;
   flex: 1 1 auto;
+  background: var(--cfg-form-surface) !important;
+  color: var(--cfg-form-text) !important;
 }
 
 .cfg-form-dialog-panel .mat-mdc-dialog-title,
@@ -2279,4 +2443,76 @@ html.theme-dark .cfg-form-dialog-panel {
 
 .cfg-form-dialog-panel .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
   box-shadow: var(--cfg-form-focus-ring);
+}
+
+/* ========== Modais de feature: coerência dark/white (tabelas, inputs, botões) ========== */
+html.theme-dark .modal-content,
+html.theme-dark .modal-dark,
+html.theme-dark .dk-modal-content {
+  background: var(--surface, #141c2e);
+  color: var(--text, #f8fafc);
+  border-color: var(--border-subtle, rgba(80, 120, 255, 0.18));
+}
+
+html.theme-dark .modal-content table,
+html.theme-dark .modal-content .data-table,
+html.theme-dark .modal-content .lista,
+html.theme-dark .modal-content .table-wrap {
+  background: var(--surface, #141c2e) !important;
+  color: var(--text, #f8fafc) !important;
+  border-color: var(--border-subtle, rgba(80, 120, 255, 0.18)) !important;
+}
+
+html.theme-dark .modal-content table th,
+html.theme-dark .modal-content .data-table th,
+html.theme-dark .modal-content .lista-head {
+  background: var(--surface-2, #1e2a45) !important;
+  color: var(--muted, rgba(248, 250, 252, 0.75)) !important;
+}
+
+html.theme-dark .modal-content table td,
+html.theme-dark .modal-content .data-table td,
+html.theme-dark .modal-content .linha,
+html.theme-dark .modal-content .linha__col {
+  background: transparent !important;
+  color: var(--text, #f8fafc) !important;
+  border-color: var(--border-subtle, rgba(80, 120, 255, 0.12)) !important;
+}
+
+html.theme-dark .modal-content .input-control,
+html.theme-dark .modal-content select.input-control,
+html.theme-dark .modal-content textarea.input-control {
+  background-color: var(--input-bg, #1c2642) !important;
+  color: var(--input-text, #f8fafc) !important;
+  border-color: var(--input-border, rgba(80, 120, 255, 0.28)) !important;
+}
+
+html.theme-light .modal-content,
+html.theme-light .modal-dark,
+html.theme-light .dk-modal-content {
+  background: var(--color-bg-card, #ffffff);
+  color: var(--color-text-primary, #111827);
+  border-color: var(--color-border, #e5e7eb);
+}
+
+html.theme-light .modal-content .input-control,
+html.theme-light .modal-content select.input-control,
+html.theme-light .modal-content textarea.input-control {
+  background-color: var(--input-bg, #ffffff);
+  color: var(--input-text, #111827);
+  border-color: var(--input-border, #cbd5e1);
+}
+
+html.theme-light .modal-content .btn-secondary,
+html.theme-light .modal-content .btn--outline {
+  background: #ffffff !important;
+  color: var(--btn-secondary-text, #111827) !important;
+  border: 1px solid var(--btn-secondary-border, #e5e7eb) !important;
+}
+
+html.theme-light .modal-content .btn-primary,
+html.theme-light .modal-content .btn--primary {
+  background: var(--btn-primary-bg, #2563eb) !important;
+  color: #ffffff !important;
+  border-color: var(--btn-primary-border, #2563eb) !important;
 }

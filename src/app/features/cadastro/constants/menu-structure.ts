@@ -29,7 +29,7 @@ const FINANCEIRO_SUBMENUS: MenuSubItem[] = [
   })),
 ];
 
-/** Estrutura completa do menu (seed admin / permissões). A sidebar omite Estacionamento — acesso via `/app/gerenciamento`. */
+/** Estrutura completa do menu (seed admin / permissões). Estacionamento é item de topo na sidebar. */
 export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
   { id: 'menu-movimentos', label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida', icon: 'swap_horiz' },
@@ -60,15 +60,20 @@ export const MENU_STRUCTURE: MenuNode[] = [
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
       { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
       { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
-      { id: 'sub-estacionamento-ger', label: 'Estacionamento', route: '/app/gerenciamento/estacionamento' },
     ],
   },
   {
     id: 'menu-cadastro',
     label: 'Cadastro',
     route: '/app/cadastro',
-    icon: 'playlist_add',
+    icon: 'local_shipping',
     children: [{ id: 'sub-transportadora', label: 'Transportadora', route: '/app/cadastro/transportadora' }],
+  },
+  {
+    id: 'menu-estacionamento',
+    label: 'Estacionamento',
+    route: '/app/cadastro/estacionamento',
+    icon: 'local_parking',
   },
 ];
 

@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 export interface CadastroConfirmDialogData {
   titulo: string;
   mensagem: string;
+  cancelLabel?: string;
   confirmLabel?: string;
   /** warn = exclusão/destrutivo; primary = ação padrão */
   confirmColor?: 'warn' | 'primary';
@@ -20,7 +21,9 @@ export interface CadastroConfirmDialogData {
       <p>{{ data.mensagem }}</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button type="button" mat-button (click)="ref.close(false)">Cancelar</button>
+      <button type="button" mat-button (click)="ref.close(false)">
+        {{ data.cancelLabel || 'Cancelar' }}
+      </button>
       <button
         type="button"
         mat-flat-button
@@ -38,7 +41,8 @@ export interface CadastroConfirmDialogData {
         padding-top: 4px !important;
         font-size: 14px;
         line-height: 1.45;
-        color: var(--text, #1e293b);
+        white-space: pre-line;
+        color: var(--text, var(--color-text-primary, #111827));
       }
     `
   ]

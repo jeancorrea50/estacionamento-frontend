@@ -184,14 +184,14 @@
 }
 
 .btn-secondary {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border-subtle);
+  background: var(--btn-secondary-bg, transparent);
+  color: var(--btn-secondary-text, var(--text));
+  border: 1px solid var(--btn-secondary-border, var(--border-subtle));
 }
 
 .btn-secondary:hover {
-  background: var(--table-row-hover, rgba(255, 255, 255, 0.04));
-  border-color: var(--border);
+  background: var(--btn-secondary-bg-hover, var(--table-row-hover, rgba(255, 255, 255, 0.04)));
+  border-color: var(--btn-secondary-border, var(--border));
 }
 
 .btn--sm {
@@ -1341,5 +1341,60 @@
   .usuarios-btn-buscar {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* Tema white: modal Novo usuário / vínculo alinhado à paleta do sistema */
+:host-context(html.theme-light) {
+  .modal-content {
+    background: var(--color-bg-card, #ffffff);
+    border-color: var(--color-border, #e5e7eb);
+  }
+
+  .modal-header,
+  .modal-footer {
+    border-color: var(--color-border, #e5e7eb);
+  }
+
+  .modal-info-banner {
+    background: var(--selection-soft, #eff6ff);
+    border-color: var(--selection-border, #bfdbfe);
+    color: var(--color-text-secondary, #6b7280);
+  }
+
+  .input-control {
+    background: var(--input-bg, #ffffff);
+    border-color: var(--input-border, #cbd5e1);
+    color: var(--input-text, #111827);
+  }
+
+  .vinculo-toggle {
+    background: var(--color-bg-card-secondary, #f9fafb);
+    border-color: var(--color-border, #e5e7eb);
+  }
+
+  .vinculo-toggle__btn--active {
+    background: var(--selection-soft, #eff6ff);
+    border-color: var(--color-primary, #2563eb);
+    color: var(--color-text-primary, #111827);
+  }
+}
+
+:host-context(html.theme-dark) {
+  .modal-content {
+    background: var(--card-bg, #141c2e);
+    border-color: var(--border-subtle, rgba(80, 120, 255, 0.18));
+  }
+
+  .input-control {
+    background: var(--input-bg, #1c2642);
+    border-color: var(--input-border, rgba(80, 120, 255, 0.28));
+    color: var(--input-text, #f8fafc);
+  }
+
+  .vinculo-toggle__btn--active {
+    background: color-mix(in srgb, var(--primary, #3b82f6) 30%, transparent);
+    border-color: color-mix(in srgb, var(--primary, #3b82f6) 62%, transparent);
+    color: var(--text, #f8fafc);
   }
 }

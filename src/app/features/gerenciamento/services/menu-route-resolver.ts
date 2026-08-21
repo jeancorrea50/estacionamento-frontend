@@ -178,8 +178,18 @@ for (const node of MENU_STRUCTURE) {
 // Aliases legados da API (singular/plural)
 LABEL_TO_MATERIAL_ICON.set('movimento', 'swap_horiz');
 LABEL_TO_MATERIAL_ICON.set('movimentos', 'swap_horiz');
+LABEL_TO_MATERIAL_ICON.set('transportadora', 'local_shipping');
+LABEL_TO_MATERIAL_ICON.set('cadastro', 'local_shipping');
+LABEL_TO_MATERIAL_ICON.set('estacionamento', 'local_parking');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimentos', 'swap_horiz');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimento', 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set('/app/cadastro/transportadora', 'local_shipping');
+ROUTE_TO_MATERIAL_ICON.set('/app/cadastro', 'local_shipping');
+ROUTE_TO_MATERIAL_ICON.set('/app/cadastro/estacionamento', 'local_parking');
+ROUTE_TO_MATERIAL_ICON.set('/app/gerenciamento/estacionamento', 'local_parking');
+
+/** Ícones legados de lista que devem virar caminhão em Transportadora/Cadastro. */
+const LEGACY_LIST_ICONS = new Set(['playlist_add', 'list', 'format_list_bulleted', 'playlist_add_check']);
 
 /**
  * Ícone Material Symbols para a sidebar (`<span class="material-symbols-outlined">`).
@@ -190,12 +200,25 @@ export function resolveMaterialSymbolIconFromModule(
   nomeModulo: string,
   iconeApi?: string | null
 ): string {
+  const key = norm(nomeModulo);
   const t = (iconeApi ?? '').trim();
+
+  if (key === 'estacionamento') {
+    if (!t || t === 'menu' || LEGACY_LIST_ICONS.has(t) || t === 'admin_panel_settings') {
+      return 'local_parking';
+    }
+  }
+
+  if (key === 'transportadora' || key === 'cadastro') {
+    if (!t || t === 'menu' || LEGACY_LIST_ICONS.has(t)) {
+      return 'local_shipping';
+    }
+  }
+
   if (t && t !== 'menu') {
     return t;
   }
 
-  const key = norm(nomeModulo);
   const byLabel = LABEL_TO_MATERIAL_ICON.get(key);
   if (byLabel) return byLabel;
 

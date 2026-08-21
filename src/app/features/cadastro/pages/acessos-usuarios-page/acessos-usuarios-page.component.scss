@@ -54,17 +54,17 @@
 }
 
 .btn-secondary {
-  background: var(--btn-secondary-bg, #e2e8f0);
-  color: var(--btn-secondary-text, #334155);
-  border: 1px solid var(--btn-secondary-border, #cbd5e1);
-  border-radius: var(--btn-radius, 6px);
-  box-shadow: var(--btn-shadow, 0 1px 2px rgba(0, 0, 0, 0.08));
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--btn-radius, 10px);
+  box-shadow: var(--btn-shadow, none);
   transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--btn-secondary-bg-hover, #cbd5e1);
-  box-shadow: var(--btn-shadow-hover, 0 2px 4px rgba(0, 0, 0, 0.1));
+  background: var(--btn-secondary-bg-hover);
+  box-shadow: var(--btn-shadow-hover, none);
 }
 
 .btn-link {
@@ -548,5 +548,63 @@
 
   .permission-groups {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Tema white: modal Novo usuário alinhado à paleta do sistema */
+:host-context(html.theme-light) {
+  .modal-content {
+    background: var(--color-bg-card, #ffffff);
+    border-color: var(--color-border, #e5e7eb);
+  }
+
+  .modal-header,
+  .modal-footer,
+  .form-section--permissions {
+    border-color: var(--color-border, #e5e7eb);
+  }
+
+  .modal-footer {
+    background: var(--color-bg-card, #ffffff);
+  }
+
+  .form-group label {
+    color: var(--color-text-secondary, #6b7280);
+  }
+
+  .input-control {
+    background: var(--input-bg, #ffffff);
+    border-color: var(--input-border, #cbd5e1);
+    color: var(--input-text, #111827);
+  }
+
+  .input-control:focus {
+    border-color: var(--focus, #2563eb);
+    box-shadow: var(--focus-ring);
+  }
+
+  .modal-info,
+  .info-banner,
+  .usuarios-info {
+    background: var(--selection-soft, #eff6ff);
+    border-color: var(--selection-border, #bfdbfe);
+    color: var(--color-text-secondary, #6b7280);
+  }
+}
+
+:host-context(html.theme-dark) {
+  .modal-content {
+    background: var(--card-bg, #1a1b26);
+    border-color: var(--border-subtle, rgba(80, 120, 255, 0.18));
+  }
+
+  .modal-footer {
+    background: var(--surface-2, #1e2a45);
+  }
+
+  .input-control {
+    background: var(--input-bg, #252631);
+    border-color: var(--border-subtle, rgba(80, 120, 255, 0.22));
+    color: var(--text, #f8fafc);
   }
 }

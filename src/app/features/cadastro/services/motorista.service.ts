@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { throwIfServiceFailure } from '../../../core/api/utils/service-result.util';
@@ -59,7 +59,12 @@ export class MotoristaService {
         if (!result || typeof result !== 'object') return null;
         return this.mapMotorista(result as Record<string, unknown>);
       }),
-      catchError(() => of(null))
+      catchError((err: unknown) => {
+        const status = err instanceof HttpErrorResponse ? err.status : 0;
+        // 404 = CPF ainda não cadastrado (cenário esperado).
+        if (status === 404) return of(null);
+        return throwError(() => err);
+      })
     );
   }
 
@@ -148,6 +153,25 @@ export class MotoristaService {
         ''
     );
     const transportadoraId = Number(get('transportadoraId') ?? getPessoa('transportadoraId'));
+    const transpRaw = get('transportadora') ?? get('Transportadora');
+    const transpObj =
+      transpRaw != null && typeof transpRaw === 'object' ? (transpRaw as Record<string, unknown>) : null;
+    const transportadoraNome = String(
+      get('transportadoraNome') ??
+        get('TransportadoraNome') ??
+        get('nomeTransportadora') ??
+        get('NomeTransportadora') ??
+        (transpObj
+          ? (transpObj['nomeFantasia'] ??
+            transpObj['NomeFantasia'] ??
+            transpObj['razaoSocial'] ??
+            transpObj['RazaoSocial'] ??
+            transpObj['nome'] ??
+            transpObj['Nome'] ??
+            '')
+          : '') ??
+        ''
+    ).trim();
     const validadeCnhRaw = get('validadeCNH') ?? get('validadeCnh');
     const nomeCompleto = String(
       getPessoa('nome') ??
@@ -192,6 +216,7 @@ export class MotoristaService {
     return {
       id: Number(get('id')) || 0,
       transportadoraId: Number.isFinite(transportadoraId) && transportadoraId > 0 ? transportadoraId : undefined,
+      transportadoraNome: transportadoraNome || undefined,
       nomeCompleto,
       cpf: cpfValor,
       email: email || undefined,

@@ -28,11 +28,11 @@ export { ModalidadeCobranca, RegraFechamento, servicosVazios, statusFromLabel };
  * `diaFechamento` (1–7) = dia da semana na modalidade Semanal (1=Domingo … 7=Sábado).
  */
 export const MODALIDADE_OPCOES: { value: ConfigCobrancaModalidade; label: string; icon: string }[] = [
-  { value: 'Diária', label: 'Cobrança diária', icon: 'today' },
-  { value: 'Semanal', label: 'Cobrança semanal', icon: 'date_range' },
-  { value: 'Mensal', label: 'Cobrança mensal', icon: 'calendar_month' },
-  { value: 'Quinzenal', label: 'Cobrança quinzenal', icon: 'calendar_view_week' },
-  { value: 'Personalizada', label: 'Cobrança em data personalizada', icon: 'event' },
+  { value: 'Diária', label: 'Diária', icon: 'today' },
+  { value: 'Semanal', label: 'Semanal', icon: 'date_range' },
+  { value: 'Mensal', label: 'Mensal', icon: 'calendar_month' },
+  { value: 'Quinzenal', label: 'Quinzenal', icon: 'calendar_view_week' },
+  { value: 'Personalizada', label: 'Data personalizada', icon: 'event' },
   { value: 'Acordo', label: 'Acordo', icon: 'handshake' }
 ];
 

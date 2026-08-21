@@ -11,18 +11,18 @@
 
 .modal-content {
   width: min(820px, 92vw);
-  background: #fff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
+  background: var(--surface, var(--color-bg-card, #ffffff));
+  color: var(--text, var(--color-text-primary, #111827));
+  border: 1px solid var(--border-subtle, var(--color-border, #e5e7eb));
   border-radius: 12px;
   padding: 1rem;
 }
 
-/* Modais operacionais (saída/suspender/recibo) ficam claros: textos internos são light-only */
+/* Modais operacionais: tokens do tema (não forçar branco no dark) */
 .modal-content:not(.modal-content--selecionar-motorista) {
-  background: #fff !important;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
+  background: var(--surface, var(--color-bg-card, #ffffff));
+  color: var(--text, var(--color-text-primary, #111827));
+  border: 1px solid var(--border-subtle, var(--color-border, #e5e7eb));
 }
 
 .modal-content--saida {
@@ -666,23 +666,54 @@
     border-color: rgba(80, 120, 255, 0.28);
   }
 
-  /* Inputs dentro de modais claros (saída/suspender) não herdam o dark dos forms da página */
-  .modal-content:not(.modal-content--selecionar-motorista) .input-control,
-  .modal-content:not(.modal-content--selecionar-motorista) .input-control--select,
-  .modal-content:not(.modal-content--selecionar-motorista) .modal-money__input {
-    color: #0f172a !important;
-    background: #fff !important;
-    border-color: #cbd5e1 !important;
+  /* Todos os modais de movimentos seguem o dark (sem inputs brancos) */
+  .modal-content,
+  .modal-content:not(.modal-content--selecionar-motorista) {
+    background: var(--surface, #141c2e) !important;
+    color: var(--text, #f8fafc) !important;
+    border-color: var(--border-subtle, rgba(80, 120, 255, 0.22)) !important;
   }
 
-  .modal-content:not(.modal-content--selecionar-motorista) .modal-hint,
-  .modal-content:not(.modal-content--selecionar-motorista) .modal-field-label,
-  .modal-content:not(.modal-content--selecionar-motorista) .modal-meta {
-    color: #475569;
+  .modal-content .input-control,
+  .modal-content .input-control--select,
+  .modal-content .modal-money__input {
+    color: var(--input-text, #f8fafc) !important;
+    background-color: var(--input-bg, #1c2642) !important;
+    border-color: var(--input-border, rgba(80, 120, 255, 0.28)) !important;
   }
 
-  .modal-content:not(.modal-content--selecionar-motorista) .modal-close {
-    background: #e2e8f0;
-    color: #334155;
+  .modal-content select.input-control,
+  .modal-content select.input-control--select {
+    background-image: var(--ds-select-chevron) !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 20px 20px !important;
+  }
+
+  .modal-content .modal-hint,
+  .modal-content .modal-field-label,
+  .modal-content .modal-meta,
+  .modal-content .saida-modal__label,
+  .modal-content .saida-modal__status,
+  .recibo-confirm-dialog p {
+    color: var(--muted, rgba(248, 250, 252, 0.72)) !important;
+  }
+
+  .modal-content .saida-modal__title,
+  .modal-content .saida-modal__placa-valor,
+  .modal-content .saida-modal__total,
+  .recibo-confirm-dialog h3 {
+    color: var(--text, #f8fafc) !important;
+  }
+
+  .modal-content .modal-close {
+    background: rgba(30, 42, 69, 0.95);
+    color: #f8fafc;
+  }
+
+  .modal-content .btn-secondary {
+    color: #f8fafc;
+    background: rgba(30, 42, 69, 0.95);
+    border-color: rgba(80, 120, 255, 0.28);
   }
 }

@@ -1,52 +1,79 @@
 @use '../../faturamento-shared-form-list';
 
-/* Modal Config. Cobrança — tokens theme-aware (light e dark). */
+/* Modal Config. Cobrança — visual limpo (referência mock claro) + suporte dark. */
 
 :host {
-  --cfg-surface: var(--surface, #ffffff);
-  --cfg-card-bg: var(--surface-2, #f1f5f9);
-  --cfg-border: var(--border-subtle, var(--border));
-  --cfg-border-strong: color-mix(in srgb, var(--primary, #5088d0) 45%, var(--border-subtle));
-  --cfg-input-bg: var(--input-bg, var(--surface));
-  --cfg-input-border: var(--input-border, var(--border));
-  --cfg-text: var(--text);
-  --cfg-muted: var(--muted);
-  --cfg-primary: var(--primary, #3d6cff);
-  --cfg-primary-hover: color-mix(in srgb, var(--primary, #3d6cff) 88%, #000);
-  --cfg-option-bg: color-mix(in srgb, var(--cfg-card-bg) 70%, var(--cfg-surface));
-  --cfg-option-hover: color-mix(in srgb, var(--cfg-primary) 10%, var(--cfg-card-bg));
-  --cfg-option-active: color-mix(in srgb, var(--cfg-primary) 14%, var(--cfg-surface));
-  --cfg-footer-bg: color-mix(in srgb, var(--cfg-surface) 92%, var(--cfg-card-bg));
-  --cfg-danger-border: color-mix(in srgb, #ef4444 40%, transparent);
-  --cfg-danger-bg: color-mix(in srgb, #ef4444 10%, transparent);
+  --cfg-surface: #ffffff;
+  --cfg-card-bg: #ffffff;
+  --cfg-border: #e5e7eb;
+  --cfg-border-strong: #bfdbfe;
+  --cfg-input-bg: #ffffff;
+  --cfg-input-border: #cbd5e1;
+  --cfg-text: #111827;
+  --cfg-muted: #6b7280;
+  --cfg-primary: #2563eb;
+  --cfg-primary-hover: #1d4ed8;
+  --cfg-primary-soft: #eff6ff;
+  --cfg-option-bg: #ffffff;
+  --cfg-option-hover: #f8fafc;
+  --cfg-option-active: #eff6ff;
+  --cfg-footer-bg: #ffffff;
+  --cfg-obs-bg: #eff6ff;
+  --cfg-obs-border: #bfdbfe;
+  --cfg-obs-text: #1e40af;
+  --cfg-danger-border: color-mix(in srgb, #ef4444 35%, transparent);
+  --cfg-danger-bg: color-mix(in srgb, #ef4444 8%, transparent);
   --cfg-danger-text: #b91c1c;
+  --cfg-radius: 14px;
+  --cfg-radius-sm: 10px;
+
+  display: block;
+  color: var(--cfg-text);
+  background: transparent;
+}
+
+:host-context(html.theme-light) {
+  --cfg-surface: var(--color-bg-card, #ffffff);
+  --cfg-card-bg: var(--color-bg-card, #ffffff);
+  --cfg-border: var(--color-border, #e5e7eb);
+  --cfg-border-strong: var(--selection-border, #bfdbfe);
+  --cfg-input-bg: var(--input-bg, #ffffff);
+  --cfg-input-border: var(--input-border, #cbd5e1);
+  --cfg-text: var(--color-text-primary, #111827);
+  --cfg-muted: var(--color-text-secondary, #6b7280);
+  --cfg-primary: var(--color-primary, #2563eb);
+  --cfg-primary-hover: var(--color-primary-hover, #1d4ed8);
+  --cfg-primary-soft: var(--color-primary-soft, #eff6ff);
+  --cfg-option-bg: #ffffff;
+  --cfg-option-hover: #f8fafc;
+  --cfg-footer-bg: var(--color-bg-card, #ffffff);
+  --cfg-obs-bg: var(--selection-soft, #eff6ff);
+  --cfg-obs-border: var(--selection-border, #bfdbfe);
+  --cfg-obs-text: var(--color-primary-dark, #1e40af);
 }
 
 :host-context(html.theme-dark) {
   --cfg-surface: #0f1a30;
   --cfg-card-bg: #14213c;
-  --cfg-border: rgba(96, 130, 190, 0.32);
-  --cfg-border-strong: rgba(67, 118, 230, 0.7);
+  --cfg-border: rgba(96, 130, 190, 0.28);
+  --cfg-border-strong: rgba(67, 118, 230, 0.55);
   --cfg-input-bg: #1a2746;
   --cfg-input-border: rgba(73, 104, 173, 0.5);
   --cfg-text: var(--text, #eaf1ff);
   --cfg-muted: #8ea0b8;
   --cfg-primary: #3d6cff;
   --cfg-primary-hover: #2f5be0;
+  --cfg-primary-soft: rgba(61, 108, 255, 0.14);
   --cfg-option-bg: rgba(26, 39, 70, 0.45);
   --cfg-option-hover: rgba(36, 56, 100, 0.55);
   --cfg-option-active: rgba(61, 108, 255, 0.16);
-  --cfg-footer-bg: rgba(13, 22, 42, 0.6);
+  --cfg-footer-bg: rgba(13, 22, 42, 0.75);
+  --cfg-obs-bg: rgba(61, 108, 255, 0.12);
+  --cfg-obs-border: rgba(61, 108, 255, 0.35);
+  --cfg-obs-text: #93c5fd;
   --cfg-danger-border: rgba(248, 113, 113, 0.4);
   --cfg-danger-bg: rgba(248, 113, 113, 0.1);
   --cfg-danger-text: #fecaca;
-}
-
-/* Superfície do painel (global styles.css define --cfg-form-*; aqui alinhamos host + body). */
-:host {
-  display: block;
-  color: var(--cfg-text);
-  background: transparent;
 }
 
 .cfg-modal {
@@ -65,7 +92,7 @@
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  padding: 20px 22px 14px;
+  padding: 22px 24px 16px;
   border-bottom: 1px solid var(--cfg-border);
   background: var(--cfg-surface);
 }
@@ -79,11 +106,11 @@
 .cfg-modal__title {
   margin: 0;
   padding: 0;
-  font-size: 18px;
-  font-weight: var(--font-weight-section, 600);
+  font-size: 1.25rem;
+  font-weight: 700;
   line-height: 1.25;
   color: var(--cfg-text);
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 .cfg-modal__title::before {
@@ -91,10 +118,56 @@
 }
 
 .cfg-modal__subtitle {
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 6px 0 0;
+  font-size: 0.875rem;
   line-height: 1.45;
   color: var(--cfg-muted);
+}
+
+/* ── Topbar (abas) ─────────────────────────────────────────────────── */
+.cfg-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  padding: 10px 24px 0;
+  border-bottom: 1px solid var(--cfg-border);
+  background: var(--cfg-surface);
+}
+
+.cfg-topbar__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 14px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: var(--cfg-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.cfg-topbar__tab .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.cfg-topbar__tab:hover {
+  color: var(--cfg-text);
+  background: color-mix(in srgb, var(--cfg-text) 4%, transparent);
+}
+
+.cfg-topbar__tab--active {
+  color: var(--cfg-primary);
+  border-bottom-color: var(--cfg-primary);
+}
+
+.cfg-topbar__tab--active:hover {
+  color: var(--cfg-primary);
 }
 
 .cfg-modal__close {
@@ -102,35 +175,35 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   border: 1px solid var(--cfg-border);
-  background: var(--cfg-card-bg);
+  background: var(--cfg-surface);
   color: var(--cfg-muted);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .cfg-modal__close:hover {
-  background: color-mix(in srgb, var(--cfg-primary) 14%, var(--cfg-card-bg));
+  background: var(--cfg-primary-soft);
   border-color: var(--cfg-border-strong);
-  color: var(--cfg-text);
+  color: var(--cfg-primary);
 }
 
 .cfg-modal__close .material-symbols-outlined {
-  font-size: var(--icon-size, 20px);
+  font-size: 20px;
 }
 
 /* ── Erros ─────────────────────────────────────────────────────────── */
 .cfg-modal__erros {
   flex: 0 0 auto;
-  margin: 12px 22px 0;
+  margin: 12px 24px 0;
   display: flex;
   align-items: flex-start;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--cfg-radius-sm);
   border: 1px solid var(--cfg-danger-border);
   background: var(--cfg-danger-bg);
   color: var(--cfg-danger-text);
@@ -138,7 +211,7 @@
 }
 
 .cfg-modal__erros .material-symbols-outlined {
-  font-size: var(--icon-size-sm, 18px);
+  font-size: 18px;
   margin-top: 1px;
 }
 
@@ -148,19 +221,19 @@
   gap: 3px;
 }
 
-/* ── Corpo rolável ─────────────────────────────────────────────────── */
+/* ── Corpo ─────────────────────────────────────────────────────────── */
 .cfg-modal__body.mat-mdc-dialog-content {
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 16px 22px 20px !important;
+  padding: 18px 24px 22px !important;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   color: inherit;
-  width: min(92vw, 880px);
+  width: min(94vw, 920px);
   box-sizing: border-box;
   background: var(--cfg-surface);
 }
@@ -168,16 +241,16 @@
 /* ── Blocos ────────────────────────────────────────────────────────── */
 .cfg-block {
   border: 1px solid var(--cfg-border);
-  border-radius: 12px;
+  border-radius: var(--cfg-radius);
   background: var(--cfg-card-bg);
-  padding: 14px;
+  padding: 16px 18px;
 }
 
 .cfg-block__head {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   width: 100%;
 }
 
@@ -221,21 +294,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--cfg-primary) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--cfg-primary) 40%, transparent);
-  color: var(--cfg-primary);
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--cfg-primary);
+  border: none;
+  color: #fff;
   font-size: 12px;
-  font-weight: var(--font-weight-section, 600);
+  font-weight: 700;
+  line-height: 1;
 }
 
 .cfg-block__title {
   margin: 0;
   flex: 1 1 auto;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 700;
   color: var(--cfg-text);
 }
 
@@ -249,11 +323,19 @@
   transform: rotate(180deg);
 }
 
-/* ── Grids de campos ───────────────────────────────────────────────── */
+/* ── Grids ─────────────────────────────────────────────────────────── */
 .cfg-block__grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.cfg-block__grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cfg-block__grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cfg-field {
@@ -265,9 +347,9 @@
 }
 
 .cfg-block__grid--inset {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--cfg-input-border);
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cfg-border);
 }
 
 .cfg-weekday-summary__card {
@@ -278,9 +360,9 @@
   flex-wrap: wrap;
   width: 100%;
   padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--cfg-input-border);
-  background: color-mix(in srgb, var(--cfg-surface) 70%, var(--cfg-card-bg));
+  border-radius: var(--cfg-radius-sm);
+  border: 1px solid var(--cfg-border);
+  background: var(--cfg-option-hover);
 }
 
 .cfg-weekday-summary__text {
@@ -298,13 +380,14 @@
 .cfg-weekday-summary__value {
   font-size: 0.9375rem;
   color: var(--cfg-text);
-  font-weight: var(--font-weight-section, 600);
+  font-weight: 600;
 }
 
+/* ── Acordo ────────────────────────────────────────────────────────── */
 .cfg-acordo {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--cfg-input-border);
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cfg-border);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -319,14 +402,14 @@
 .cfg-acordo__title,
 .cfg-acordo__excedente-title {
   margin: 0;
-  font-size: var(--font-body, 14px);
-  font-weight: var(--font-weight-section, 600);
+  font-size: 0.875rem;
+  font-weight: 700;
   color: var(--cfg-text);
 }
 
 .cfg-acordo__desc {
   margin: 0;
-  font-size: var(--font-caption, 12px);
+  font-size: 0.75rem;
   color: var(--cfg-muted);
 }
 
@@ -343,15 +426,15 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--cfg-input-border);
-  border-radius: var(--radius-sm, 8px);
-  background: var(--cfg-input-bg);
+  padding: 14px;
+  border: 1px solid var(--cfg-border);
+  border-radius: var(--cfg-radius-sm);
+  background: var(--cfg-option-hover);
 }
 
 .cfg-acordo-card__title {
   margin: 0 0 4px;
-  font-size: var(--font-body, 14px);
+  font-size: 0.875rem;
   color: var(--cfg-text);
 }
 
@@ -372,8 +455,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  border: 1px dashed var(--cfg-input-border);
-  border-radius: var(--radius-sm, 8px);
+  border: 1px dashed var(--cfg-border);
+  border-radius: var(--cfg-radius-sm);
+  background: var(--cfg-option-hover);
 }
 
 .cfg-acordo-listagem__head {
@@ -386,6 +470,7 @@
 .cfg-acordo-listagem__title {
   margin: 0;
   font-size: 13px;
+  font-weight: 600;
   color: var(--cfg-text);
 }
 
@@ -402,51 +487,13 @@
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: var(--cfg-danger, #f87171);
+  color: var(--cfg-danger-text);
 }
 
 .cfg-acordo-editor__actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.cfg-acordo-mes {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.cfg-acordo-mes__label {
-  font-size: 11px;
-  font-weight: var(--font-weight-section, 600);
-  color: var(--cfg-muted);
-  text-align: center;
-}
-
-.cfg-acordo-mes__input {
-  width: 100%;
-  min-height: 36px;
-  box-sizing: border-box;
-  border: 1px solid var(--cfg-input-border);
-  border-radius: var(--radius-sm, 8px);
-  background: var(--cfg-input-bg);
-  color: var(--cfg-text);
-  text-align: center;
-  font-size: var(--font-caption, 12px);
-  font-variant-numeric: tabular-nums;
-  padding: 6px 4px;
-}
-
-.cfg-acordo-mes__input:focus {
-  outline: 2px solid var(--cfg-primary);
-  outline-offset: 1px;
-}
-
-.cfg-acordo-mes__input:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .cfg-acordo__hint {
@@ -468,14 +515,22 @@
   max-height: 240px;
 }
 
+/* ── Valores + observação ──────────────────────────────────────────── */
+.cfg-valores {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(240px, 1.2fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
 .cfg-money-field {
   width: 100%;
-  max-width: 320px;
+  max-width: none;
 }
 
 .cfg-money-field__prefix {
   color: var(--cfg-text);
-  font-weight: var(--font-weight-section, 600);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -484,104 +539,121 @@
   letter-spacing: 0.01em;
 }
 
-/* ── Cards selecionáveis ───────────────────────────────────────────── */
+.cfg-obs {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--cfg-radius-sm);
+  border: 1px solid var(--cfg-obs-border);
+  background: var(--cfg-obs-bg);
+  color: var(--cfg-obs-text);
+}
+
+.cfg-obs__ico {
+  flex: 0 0 auto;
+  font-size: 20px;
+  margin-top: 1px;
+}
+
+.cfg-obs__body {
+  min-width: 0;
+}
+
+.cfg-obs__title {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.cfg-obs__text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+/* ── Cards selecionáveis (ativo = mesmo padrão da sidebar) ─────────── */
 .cfg-options {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cfg-option {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--cfg-input-border);
+  min-height: 44px;
+  padding: 8px 12px 8px 8px;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--cfg-border);
   background: var(--cfg-option-bg);
-  color: var(--cfg-text);
+  color: var(--cfg-muted);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.22s ease,
+    background 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
-.cfg-option:hover {
-  border-color: var(--cfg-border-strong);
+.cfg-option:hover:not(:disabled):not(.cfg-option--active) {
+  color: var(--cfg-text);
+  border-color: transparent;
   background: var(--cfg-option-hover);
 }
 
+.cfg-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .cfg-option--active {
-  border-color: var(--cfg-primary);
-  background: var(--cfg-option-active);
-  color: var(--cfg-text);
-}
-
-.cfg-option__check {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 1.5px solid var(--cfg-input-border);
-  background: transparent;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.cfg-option__check .material-symbols-outlined {
-  font-size: 16px;
-  color: #fff;
-  font-weight: var(--font-weight-section, 600);
-}
-
-.cfg-option--active .cfg-option__check {
-  background: var(--cfg-primary);
-  border-color: var(--cfg-primary);
+  border-color: transparent;
+  color: var(--selection-text, var(--btn-primary-text, #ffffff));
+  background: var(--selection-bg, var(--cfg-primary));
+  box-shadow: var(--selection-shadow, 0 6px 16px rgba(37, 99, 235, 0.28));
 }
 
 .cfg-option__ico {
   flex: 0 0 auto;
-  font-size: var(--font-page-title, 18px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 18px;
+  line-height: 1;
   color: var(--cfg-muted);
+  background: color-mix(in srgb, var(--cfg-text) 6%, transparent);
 }
 
 .cfg-option--active .cfg-option__ico {
-  color: var(--cfg-primary);
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--selection-text, #ffffff);
 }
 
 .cfg-option__label {
   flex: 1 1 auto;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
-.cfg-option__check--radio {
-  border-radius: 50%;
+.cfg-option--active .cfg-option__label {
+  font-weight: 600;
+  color: inherit;
 }
 
-.cfg-option--active .cfg-option__check--radio {
-  background: transparent;
-  border-color: var(--cfg-primary);
-}
-
-.cfg-option__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: transparent;
-  transition: background 0.15s ease;
-}
-
-.cfg-option--active .cfg-option__dot {
-  background: var(--cfg-primary);
-}
-
-/* ── Serviços / switches / taxas ───────────────────────────────────── */
+/* ── Serviços / taxas ──────────────────────────────────────────────── */
 .cfg-services {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .cfg-service {
@@ -595,26 +667,10 @@
   width: 100%;
 }
 
-.cfg-switches {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin-top: 12px;
-}
-
-.cfg-switch {
-  display: flex;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--cfg-input-border);
-  background: var(--cfg-option-bg);
-}
-
 .cfg-fees {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   margin-top: 12px;
 }
 
@@ -622,24 +678,24 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--cfg-input-border);
-  background: var(--cfg-option-bg);
+  padding: 12px;
+  border-radius: var(--cfg-radius-sm);
+  border: 1px solid var(--cfg-border);
+  background: var(--cfg-option-hover);
 }
 
 .cfg-fee-row .mat-mdc-form-field {
   width: 100%;
 }
 
-/* ── Rodapé fixo ───────────────────────────────────────────────────── */
+/* ── Rodapé ────────────────────────────────────────────────────────── */
 .cfg-modal__footer {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px 22px;
+  gap: 10px;
+  padding: 16px 24px;
   border-top: 1px solid var(--cfg-border);
   background: var(--cfg-footer-bg);
 }
@@ -652,9 +708,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 16px;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: var(--cfg-radius-sm);
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
@@ -663,7 +719,17 @@
 }
 
 .cfg-btn .material-symbols-outlined {
-  font-size: var(--icon-size-sm, 18px);
+  font-size: 18px;
+}
+
+.cfg-btn--sm {
+  padding: 8px 12px;
+  font-size: 0.75rem;
+}
+
+.cfg-btn--block {
+  width: 100%;
+  justify-content: center;
 }
 
 .cfg-btn--ghost {
@@ -671,18 +737,18 @@
   color: var(--cfg-muted);
 }
 
-.cfg-btn--ghost:hover {
+.cfg-btn--ghost:hover:not(:disabled) {
   color: var(--cfg-text);
-  background: color-mix(in srgb, var(--cfg-text) 6%, transparent);
+  background: color-mix(in srgb, var(--cfg-text) 5%, transparent);
 }
 
 .cfg-btn--outline {
-  background: var(--cfg-option-bg);
-  border-color: var(--cfg-input-border);
+  background: var(--cfg-surface);
+  border-color: var(--cfg-border);
   color: var(--cfg-text);
 }
 
-.cfg-btn--outline:hover {
+.cfg-btn--outline:hover:not(:disabled) {
   border-color: var(--cfg-border-strong);
   background: var(--cfg-option-hover);
 }
@@ -690,35 +756,27 @@
 .cfg-btn--primary {
   background: var(--cfg-primary);
   color: #fff;
+  border-color: var(--cfg-primary);
 }
 
-.cfg-btn--primary:hover {
+.cfg-btn--primary:hover:not(:disabled) {
   background: var(--cfg-primary-hover);
+  border-color: var(--cfg-primary-hover);
 }
 
-@media (max-width: 560px) {
-  .cfg-modal__footer {
-    justify-content: stretch;
-  }
-
-  .cfg-modal__footer-spacer {
-    display: none;
-  }
-
-  .cfg-btn {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
+.cfg-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-/* ── Material: herda tokens do host (não força dark) ───────────────── */
+/* ── Material ──────────────────────────────────────────────────────── */
 :host ::ng-deep .mat-mdc-form-field .mat-mdc-text-field-wrapper {
-  border-radius: 10px;
+  border-radius: var(--cfg-radius-sm);
   background: var(--cfg-input-bg) !important;
 }
 
 :host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-flex {
-  min-height: 44px;
+  min-height: 46px;
   align-items: center;
 }
 
@@ -749,13 +807,41 @@
 
 :host ::ng-deep .mat-mdc-slide-toggle .mdc-label {
   color: var(--cfg-text);
-  font-size: 13px;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
-:host ::ng-deep input[type='date'].mat-mdc-input-element {
-  color-scheme: light;
+:host ::ng-deep .mat-mdc-slide-toggle.mat-mdc-slide-toggle-checked:not(.mat-disabled) .mdc-switch__track::after {
+  background: var(--cfg-primary) !important;
 }
 
-:host-context(html.theme-dark) ::ng-deep input[type='date'].mat-mdc-input-element {
-  color-scheme: dark;
+@media (max-width: 760px) {
+  .cfg-block__grid--2,
+  .cfg-block__grid--3,
+  .cfg-valores,
+  .cfg-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .cfg-modal__header,
+  .cfg-modal__body.mat-mdc-dialog-content,
+  .cfg-modal__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .cfg-modal__footer {
+    justify-content: stretch;
+  }
+
+  .cfg-modal__footer-spacer {
+    display: none;
+  }
+
+  .cfg-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }

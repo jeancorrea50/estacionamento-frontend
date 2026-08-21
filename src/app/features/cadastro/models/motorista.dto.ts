@@ -1,6 +1,8 @@
 export interface MotoristaDTO {
   id?: number;
   transportadoraId?: number;
+  /** Nome da transportadora atualmente vinculada (quando a API informar). */
+  transportadoraNome?: string;
   nomeCompleto: string;
   cpf: string;
   email?: string;
@@ -19,6 +21,8 @@ export interface MotoristaDTO {
 export interface MotoristaListItemDTO {
   id: number;
   transportadoraId?: number;
+  /** Nome da transportadora atualmente vinculada (quando a API informar). */
+  transportadoraNome?: string;
   nomeCompleto: string;
   cpf: string;
   email?: string;

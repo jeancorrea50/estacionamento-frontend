@@ -182,7 +182,16 @@ export function formatarPeriodoAcordo(inicio: string | null | undefined, fim: st
   return `${formatarIsoBr(inicio)} até ${formatarIsoBr(fim)}`;
 }
 
-export function mensagensValidacaoAcordo(acordo: ConfigCobrancaAcordo): string[] {
+export interface ValidacaoAcordoOptions {
+  /** Quando false, ignora custo/tipo de excedente (preenchidos na aba Valores). Default: true. */
+  validarExcedente?: boolean;
+}
+
+export function mensagensValidacaoAcordo(
+  acordo: ConfigCobrancaAcordo,
+  options: ValidacaoAcordoOptions = {}
+): string[] {
+  const validarExcedente = options.validarExcedente !== false;
   const m: string[] = [];
   const inicio = acordo.dataInicio?.trim() || '';
   const fim = acordo.dataFim?.trim() || '';
@@ -209,10 +218,12 @@ export function mensagensValidacaoAcordo(acordo: ConfigCobrancaAcordo): string[]
     }
   }
 
-  if (acordo.custoExcedente == null || !Number.isFinite(Number(acordo.custoExcedente)) || Number(acordo.custoExcedente) <= 0) {
-    m.push('Informe o custo do excedente maior que zero.');
+  if (validarExcedente) {
+    if (acordo.custoExcedente == null || !Number.isFinite(Number(acordo.custoExcedente)) || Number(acordo.custoExcedente) <= 0) {
+      m.push('Informe o custo do excedente maior que zero.');
+    }
+    if (!acordo.tipoCobrancaExcedente) m.push('Selecione o tipo de cobrança do excedente.');
   }
-  if (!acordo.tipoCobrancaExcedente) m.push('Selecione o tipo de cobrança do excedente.');
   return m;
 }
 

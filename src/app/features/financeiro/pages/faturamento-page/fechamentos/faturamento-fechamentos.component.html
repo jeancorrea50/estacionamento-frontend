@@ -413,7 +413,7 @@
           <button
             type="button"
             class="btn btn-secondary fat-mat-btn"
-            [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() === row.transportadoraId"
+            [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() !== null"
             (click)="gerarFatura(row)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
@@ -422,7 +422,7 @@
           <button
             type="button"
             class="btn btn-primary fat-mat-btn"
-            [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() === row.transportadoraId"
+            [disabled]="bloquearGeracao(row.situacao) || gerandoFaturaId() !== null"
             (click)="gerarFatura(row)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">send</span>

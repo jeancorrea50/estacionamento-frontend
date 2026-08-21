@@ -26,6 +26,7 @@ import {
 } from '../../../cadastro/services/transportadora-lookup.service';
 import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import type { UsuarioDetalheOutput, RegistroResult } from '../../../../core/api/types/usuario-api.types';
 import { ApiError } from '../../../../core/api/models';
@@ -43,6 +44,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private transportadoraLookup = inject(TransportadoraLookupService);
   private profileStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
+  private auth = inject(AuthService);
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -51,6 +53,14 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   canGravar = this.permissionCache.has('usuario.gravar') || this.permissionCache.hasAny(['*']);
   canAlterar = this.permissionCache.has('usuario.alterar') || this.permissionCache.hasAny(['*']);
   canExcluir = this.permissionCache.has('usuario.excluir') || this.permissionCache.hasAny(['*']);
+
+  /**
+   * Não-Admin com role Estacionamento: vínculo fixo no EmpresaId da sessão.
+   * Admin continua podendo buscar/alterar o estacionamento.
+   */
+  get vinculoEstacionamentoBloqueado(): boolean {
+    return this.auth.isEstacionamentoRole() && !this.auth.isAdmin();
+  }
 
   filtros: GerenciamentoFiltros = { nomeOuEmail: '', perfilNome: '', statusFiltro: '' };
 
@@ -376,6 +386,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.vinculoDropdownOpen.set(false);
     this.perfilDropdownOpen.set(false);
     this.modalFormOpen.set(true);
+    this.aplicarVinculoEstacionamentoSessao();
     this.cdr.markForCheck();
   }
 
@@ -407,6 +418,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.gerenciamentoService.obterDetalhe(item.id).subscribe({
       next: (d) => {
         this.preencherFormDoDetalhe(d);
+        this.aplicarVinculoEstacionamentoSessao();
         this.carregandoDetalhe.set(false);
         this.cdr.markForCheck();
       },
@@ -553,6 +565,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   onVinculoTipoChange(tipo: 'estacionamento' | 'transportadora'): void {
+    if (this.vinculoEstacionamentoBloqueado) {
+      return;
+    }
     this.form.vinculoTipo = tipo;
     this.vinculoBuscaErro = null;
     this.vinculoDropdownOpen.set(false);
@@ -560,6 +575,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   limparBuscaEstacionamento(): void {
+    if (this.vinculoEstacionamentoBloqueado) {
+      return;
+    }
     this.estacionamentoBuscaTermo = '';
     this.form.EstacionamentoId = 0;
     this.form.EstacionamentoLabel = '';
@@ -599,6 +617,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   onVinculoBuscaInput(): void {
+    if (this.vinculoEstacionamentoBloqueado && this.form.vinculoTipo === 'estacionamento') {
+      return;
+    }
     this.vinculoBuscaErro = null;
     this.vinculoDropdownOpen.set(false);
     if (this.form.vinculoTipo === 'estacionamento') {
@@ -612,6 +633,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   selecionarEstacionamentoBusca(opt: EstacionamentoOption): void {
+    if (this.vinculoEstacionamentoBloqueado) {
+      return;
+    }
     this.form.EstacionamentoId = opt.id;
     this.form.EstacionamentoLabel = opt.label;
     this.estacionamentoBuscaTermo = opt.label;
@@ -679,12 +703,62 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   buscarVinculo(): void {
+    if (this.vinculoEstacionamentoBloqueado && this.form.vinculoTipo === 'estacionamento') {
+      return;
+    }
     this.vinculoBuscaErro = null;
     if (this.form.vinculoTipo === 'estacionamento') {
       this.buscarEstacionamentosPorTermo();
     } else {
       this.buscarTransportadorasPorTermo();
     }
+  }
+
+  /**
+   * Usuário Estacionamento (não Admin): força vínculo no EmpresaId da sessão e bloqueia edição.
+   */
+  private aplicarVinculoEstacionamentoSessao(): void {
+    if (!this.vinculoEstacionamentoBloqueado) {
+      return;
+    }
+
+    const id = this.auth.resolveEstacionamentoId();
+    if (!id || id <= 0) {
+      this.toast.error(
+        'Estacionamento da sessão não identificado (EmpresaId). Faça login novamente.'
+      );
+      return;
+    }
+
+    this.form.vinculoTipo = 'estacionamento';
+    this.form.EstacionamentoId = id;
+    this.form.transportadoraId = 0;
+    this.form.transportadoraLabel = '';
+    this.transportadoraBuscaTermo = '';
+    this.vinculoBuscaErro = null;
+    this.vinculoDropdownOpen.set(false);
+
+    const labelFallback = `Estacionamento #${id}`;
+    this.form.EstacionamentoLabel = labelFallback;
+    this.estacionamentoBuscaTermo = labelFallback;
+
+    this.EstacionamentoCarregando.set(true);
+    this.EstacionamentoLookup.list().subscribe({
+      next: (opts) => {
+        this.EstacionamentoCarregando.set(false);
+        const found = opts.find((o) => o.id === id);
+        const label = found?.label?.trim() || labelFallback;
+        this.form.EstacionamentoLabel = label;
+        this.estacionamentoBuscaTermo = label;
+        this.EstacionamentoOptions.set(found ? [found] : [{ id, label, cnpj: '' }]);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.EstacionamentoCarregando.set(false);
+        this.EstacionamentoOptions.set([{ id, label: labelFallback, cnpj: '' }]);
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   private buscarEstacionamentosPorTermo(): void {

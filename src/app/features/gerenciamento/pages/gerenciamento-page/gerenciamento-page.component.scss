@@ -589,6 +589,11 @@
   background: var(--table-row-hover, rgba(255, 255, 255, 0.06));
 }
 
+.vinculo-toggle__btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .vinculo-toggle__btn--active {
   background: color-mix(in srgb, var(--primary) 30%, transparent);
   border-color: color-mix(in srgb, var(--primary) 62%, var(--border-subtle));

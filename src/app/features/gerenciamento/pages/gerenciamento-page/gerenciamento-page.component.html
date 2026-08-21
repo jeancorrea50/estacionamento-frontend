@@ -326,6 +326,7 @@
                   type="button"
                   class="vinculo-toggle__btn"
                   [class.vinculo-toggle__btn--active]="form.vinculoTipo === 'estacionamento'"
+                  [disabled]="vinculoEstacionamentoBloqueado"
                   (click)="onVinculoTipoChange('estacionamento')"
                 >
                   Estacionamento
@@ -334,11 +335,15 @@
                   type="button"
                   class="vinculo-toggle__btn"
                   [class.vinculo-toggle__btn--active]="form.vinculoTipo === 'transportadora'"
+                  [disabled]="vinculoEstacionamentoBloqueado"
                   (click)="onVinculoTipoChange('transportadora')"
                 >
                   Transportadora
                 </button>
               </div>
+              @if (vinculoEstacionamentoBloqueado) {
+                <span class="form-hint">Vínculo fixo no estacionamento da sua sessão (somente Admin pode alterar).</span>
+              }
             </div>
 
             @if (form.vinculoTipo === 'estacionamento') {
@@ -353,11 +358,13 @@
                         class="input-control input-control--vinculo-search"
                         [(ngModel)]="estacionamentoBuscaTermo"
                         placeholder="Digite para buscar estacionamento"
+                        [readonly]="vinculoEstacionamentoBloqueado"
+                        [attr.aria-readonly]="vinculoEstacionamentoBloqueado"
                         (input)="onVinculoBuscaInput()"
                         (keydown)="onVinculoBuscaKeydown($event)"
                         (blur)="fecharVinculoDropdownComDelay()"
                       />
-                      @if (estacionamentoBuscaTermo) {
+                      @if (estacionamentoBuscaTermo && !vinculoEstacionamentoBloqueado) {
                         <button
                           type="button"
                           class="vinculo-clear-btn"
@@ -368,11 +375,16 @@
                         </button>
                       }
                     </div>
-                    <button type="button" class="btn btn-secondary vinculo-busca-btn" (click)="buscarVinculo()" [disabled]="EstacionamentoCarregando()">
+                    <button
+                      type="button"
+                      class="btn btn-secondary vinculo-busca-btn"
+                      (click)="buscarVinculo()"
+                      [disabled]="EstacionamentoCarregando() || vinculoEstacionamentoBloqueado"
+                    >
                       <span class="material-symbols-outlined" aria-hidden="true">search</span>
                     </button>
                   </div>
-                  @if (vinculoDropdownOpen()) {
+                  @if (vinculoDropdownOpen() && !vinculoEstacionamentoBloqueado) {
                     <ul class="autocomplete-dropdown vinculo-dropdown">
                       @for (o of EstacionamentoOptions(); track o.id) {
                         <li>
@@ -385,7 +397,11 @@
                 @if (EstacionamentoCarregando()) {
                   <span class="form-hint">Buscando estacionamentos...</span>
                 }
-                <span class="form-hint">A lista de seleção segue o tipo de vínculo escolhido.</span>
+                @if (vinculoEstacionamentoBloqueado) {
+                  <span class="form-hint">Preenchido automaticamente com o estacionamento do usuário logado.</span>
+                } @else {
+                  <span class="form-hint">A lista de seleção segue o tipo de vínculo escolhido.</span>
+                }
               </div>
             } @else {
               <div class="form-group" (focusin)="onTransportadoraFieldFocus()">

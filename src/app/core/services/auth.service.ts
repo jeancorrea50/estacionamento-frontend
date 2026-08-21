@@ -281,6 +281,16 @@ export class AuthService {
   }
 
   /**
+   * Usuário com role/perfil de Estacionamento (não Admin).
+   * Usa o nome da role no JWT (`LoggedUser.perfil`).
+   */
+  isEstacionamentoRole(): boolean {
+    if (this.isAdmin()) return false;
+    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
+    return perfil.includes('estacionamento');
+  }
+
+  /**
    * Estacionamento da sessão: claim JWT `EmpresaId` (mesmo valor que o backend usa no POST Fatura).
    * Fallback: `loggedUser.empresaId` gravado no login.
    */

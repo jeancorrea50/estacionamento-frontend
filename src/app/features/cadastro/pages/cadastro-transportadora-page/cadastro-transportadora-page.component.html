@@ -1081,12 +1081,11 @@
                 </span>
               }
             </div>
-            @if (motoristaVinculoAtualNome) {
+            @if (motoristaJaCadastradoEncontrado) {
               <p class="modal-frota-hint" role="status">
-                Motorista já cadastrado. Vínculo atual:
-                <strong>{{ motoristaVinculoAtualNome }}</strong>.
+                Motorista já cadastrado.
                 @if (motoristaAceitouVinculo) {
-                  Ao salvar, será vinculado a esta transportadora.
+                  Ao salvar, o vínculo anterior será desfeito e esta transportadora passará a ser a vinculada. A transportadora anterior será notificada.
                 } @else {
                   <button type="button" class="link-action" (click)="reperguntarVinculoMotorista()">
                     Confirmar vínculo

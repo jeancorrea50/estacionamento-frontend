@@ -27,7 +27,7 @@ import {
 import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import type { UsuarioDetalheOutput, RegistroResult } from '../../../../core/api/types/usuario-api.types';
+import type { UsuarioDetalheOutput, RegistroResult, UsuarioCadastroOpcoes, UsuarioPapelOpcao } from '../../../../core/api/types/usuario-api.types';
 import { ApiError } from '../../../../core/api/models';
 
 @Component({
@@ -51,6 +51,45 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   canGravar = this.permissionCache.has('usuario.gravar') || this.permissionCache.hasAny(['*']);
   canAlterar = this.permissionCache.has('usuario.alterar') || this.permissionCache.hasAny(['*']);
   canExcluir = this.permissionCache.has('usuario.excluir') || this.permissionCache.hasAny(['*']);
+
+  get podeCadastrarUsuario(): boolean {
+    return this.canGravar && this.opcoesCadastro?.podeCadastrar === true;
+  }
+
+  get papeisPermitidos(): UsuarioPapelOpcao[] {
+    return this.opcoesCadastro?.tiposPapel ?? [];
+  }
+
+  get tiposPessoaDoPapel(): { value: 1 | 2; label: string }[] {
+    const papel = this.papelSelecionado;
+    const nomes = new Map(
+      (this.opcoesCadastro?.tiposPessoa ?? []).map((t) => [t.value, t.label] as const)
+    );
+    if (!papel) {
+      return (this.opcoesCadastro?.tiposPessoa ?? []).map((t) => ({ value: t.value, label: t.label }));
+    }
+    return papel.tiposPessoaPermitidos.map((v) => ({
+      value: v,
+      label: nomes.get(v) ?? (v === 2 ? 'Jurídica' : 'Física')
+    }));
+  }
+
+  get papelSelecionado(): UsuarioPapelOpcao | undefined {
+    if (this.form.tipoPapel == null) return undefined;
+    return this.papeisPermitidos.find((p) => p.value === this.form.tipoPapel);
+  }
+
+  get documentoLabel(): string {
+    return this.form.tipoPessoa === 2 ? 'CNPJ' : 'CPF';
+  }
+
+  get documentoMaxLength(): number {
+    return this.form.tipoPessoa === 2 ? 18 : 14;
+  }
+
+  get documentoPlaceholder(): string {
+    return this.form.tipoPessoa === 2 ? '00.000.000/0000-00' : '000.000.000-00';
+  }
 
   filtros: GerenciamentoFiltros = { nomeOuEmail: '', perfilNome: '', statusFiltro: '' };
 
@@ -87,11 +126,13 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   vinculoBuscaErro: string | null = null;
   vinculoDropdownOpen = signal(false);
   perfilDropdownOpen = signal(false);
+  opcoesCadastro: UsuarioCadastroOpcoes | null = null;
   private subs = new Subscription();
   private buscaSub?: Subscription;
 
   ngOnInit(): void {
     this.carregarPerfis();
+    this.carregarOpcoesCadastro();
   }
 
   ngOnDestroy(): void {
@@ -188,7 +229,46 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   onCpfInput(value: string): void {
-    this.form.cpf = this.aplicarMascaraCpf(value);
+    this.form.cpf = this.aplicarMascaraDocumento(value);
+  }
+
+  onTipoPapelChange(raw: string | number): void {
+    const value = Number(raw);
+    this.form.tipoPapel = Number.isFinite(value) ? (value as 0 | 1 | 2 | 3 | 4) : null;
+    const papel = this.papelSelecionado;
+    if (papel) {
+      this.form.tipoPessoa = papel.tipoPessoaPadrao;
+      this.form.cpf = this.aplicarMascaraDocumento(this.form.cpf);
+    }
+    this.cdr.markForCheck();
+  }
+
+  onTipoPessoaChange(raw: string | number): void {
+    const value = Number(raw) === 2 ? 2 : 1;
+    this.form.tipoPessoa = value;
+    this.form.cpf = this.aplicarMascaraDocumento(this.form.cpf);
+    this.cdr.markForCheck();
+  }
+
+  private aplicarMascaraDocumento(value: string | null | undefined): string {
+    if (this.form.tipoPessoa === 2) {
+      return this.aplicarMascaraCnpj(value);
+    }
+    return this.aplicarMascaraCpf(value);
+  }
+
+  private aplicarMascaraCnpj(value: string | null | undefined): string {
+    const digits = String(value ?? '')
+      .replace(/\D/g, '')
+      .slice(0, 14);
+    if (!digits) return '';
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    }
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
   }
 
   private aplicarMascaraCpf(value: string | null | undefined): string {
@@ -269,9 +349,58 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       transportadoraLabel: '',
       cpf: '',
       tipoPessoa: 1,
+      tipoPapel: null,
       pessoaId: null,
       perfilId: '',
       ativo: true
+    };
+  }
+
+  private carregarOpcoesCadastro(): void {
+    this.gerenciamentoService.obterOpcoesCadastro().subscribe({
+      next: (op) => {
+        this.opcoesCadastro = this.normalizarOpcoesCadastro(op);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.opcoesCadastro = {
+          podeCadastrar: false,
+          mensagem: 'Não foi possível carregar as opções de cadastro.',
+          tiposPapel: [],
+          tiposPessoa: [
+            { value: 1, label: 'Física' },
+            { value: 2, label: 'Jurídica' }
+          ]
+        };
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private normalizarOpcoesCadastro(raw: UsuarioCadastroOpcoes | Record<string, unknown> | null): UsuarioCadastroOpcoes {
+    const r = (raw ?? {}) as Record<string, unknown>;
+    const papeisRaw = (r['tiposPapel'] ?? r['TiposPapel'] ?? []) as unknown[];
+    const pessoasRaw = (r['tiposPessoa'] ?? r['TiposPessoa'] ?? []) as unknown[];
+    return {
+      podeCadastrar: Boolean(r['podeCadastrar'] ?? r['PodeCadastrar']),
+      papelLogado: (r['papelLogado'] ?? r['PapelLogado']) as UsuarioCadastroOpcoes['papelLogado'],
+      papelLogadoLabel: String(r['papelLogadoLabel'] ?? r['PapelLogadoLabel'] ?? '') || null,
+      mensagem: String(r['mensagem'] ?? r['Mensagem'] ?? '') || null,
+      tiposPapel: (Array.isArray(papeisRaw) ? papeisRaw : []).map((item) => {
+        const p = item as Record<string, unknown>;
+        return {
+          value: Number(p['value'] ?? p['Value']) as UsuarioPapelOpcao['value'],
+          label: String(p['label'] ?? p['Label'] ?? ''),
+          tipoPessoaPadrao: (Number(p['tipoPessoaPadrao'] ?? p['TipoPessoaPadrao']) === 2 ? 2 : 1) as 1 | 2,
+          tiposPessoaPermitidos: ((p['tiposPessoaPermitidos'] ?? p['TiposPessoaPermitidos'] ?? []) as unknown[])
+            .map((v) => (Number(v) === 2 ? 2 : 1) as 1 | 2)
+        };
+      }),
+      tiposPessoa: (Array.isArray(pessoasRaw) ? pessoasRaw : []).map((item) => {
+        const t = item as Record<string, unknown>;
+        const value = Number(t['value'] ?? t['Value']) === 2 ? 2 : 1;
+        return { value, label: String(t['label'] ?? t['Label'] ?? (value === 2 ? 'Jurídica' : 'Física')) };
+      })
     };
   }
 
@@ -361,6 +490,10 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       this.toast.error('Você não possui permissão para cadastrar usuários (usuario.gravar).');
       return;
     }
+    if (this.opcoesCadastro?.podeCadastrar !== true) {
+      this.toast.error(this.opcoesCadastro?.mensagem || 'Seu tipo de papel não permite cadastrar usuários.');
+      return;
+    }
     this.saveError.set(null);
     this.form = this.getEmptyForm();
     this.isEdit.set(false);
@@ -438,6 +571,13 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     const estacionamentoNome = typeof d.estacionamento === 'string' ? d.estacionamento.trim() : '';
     const transportadoraId = typeof d.transportadoraId === 'number' ? d.transportadoraId : 0;
     const transportadoraNome = typeof d.transportadora === 'string' ? d.transportadora.trim() : '';
+    const tipoPessoaRaw =
+      typeof p?.tipoPessoa === 'number'
+        ? p.tipoPessoa
+        : typeof d.tipoPessoa === 'number'
+          ? d.tipoPessoa
+          : 1;
+    const tipoPapelRaw = typeof d.tipoPapel === 'number' ? d.tipoPapel : null;
     const perfNome = this.getPerfilDetalheNome(perf);
     const perfId = this.getPerfilDetalheId(perf);
     const matchPerfil = this.perfisList.find(
@@ -457,8 +597,11 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       vinculoTipo: estacionamentoId > 0 ? 'estacionamento' : 'transportadora',
       transportadoraId: transportadoraId,
       transportadoraLabel: transportadoraNome,
-      cpf: this.aplicarMascaraCpf(p?.cpf ?? d.cpf ?? ''),
-      tipoPessoa: 1,
+      cpf: this.aplicarMascaraDocumento(p?.cpf ?? d.cpf ?? ''),
+      tipoPessoa: tipoPessoaRaw === 2 ? 2 : 1,
+      tipoPapel: tipoPapelRaw != null && tipoPapelRaw >= 0 && tipoPapelRaw <= 4
+        ? (tipoPapelRaw as 0 | 1 | 2 | 3 | 4)
+        : null,
       pessoaId: pessoaIdDetalhe,
       perfilId: (matchPerfil?.id ?? matchPerfil?.name ?? perfId ?? perfNome ?? '') as string,
       ativo: this.form.ativo
@@ -777,8 +920,24 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    const cpfDigits = String(this.form.cpf ?? '').replace(/\D/g, '');
-    if (cpfDigits.length !== 11) {
+    if (this.form.tipoPapel == null) {
+      this.saveError.set('Selecione o tipo de papel do usuário.');
+      this.cdr.markForCheck();
+      return;
+    }
+    if (!this.form.tipoPessoa) {
+      this.saveError.set('Selecione o tipo de pessoa.');
+      this.cdr.markForCheck();
+      return;
+    }
+    const docDigits = String(this.form.cpf ?? '').replace(/[^0-9A-Za-z]/g, '');
+    if (this.form.tipoPessoa === 2) {
+      if (docDigits.length !== 14) {
+        this.saveError.set('Informe o CNPJ com 14 caracteres (obrigatório no cadastro).');
+        this.cdr.markForCheck();
+        return;
+      }
+    } else if (docDigits.replace(/\D/g, '').length !== 11) {
       this.saveError.set('Informe o CPF com 11 dígitos (obrigatório no cadastro).');
       this.cdr.markForCheck();
       return;
@@ -823,7 +982,8 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       senha: this.form.senha || undefined,
       confirmarSenha: this.form.confirmarSenha || undefined,
       cpf: this.form.cpf?.trim() || undefined,
-      tipoPessoa: 1,
+      tipoPessoa: this.form.tipoPessoa,
+      tipoPapel: this.form.tipoPapel,
       pessoaId,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,

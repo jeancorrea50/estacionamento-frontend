@@ -41,6 +41,7 @@ export interface UsuarioGerenciamentoForm {
   transportadoraLabel: string;
   cpf: string;
   tipoPessoa: 1 | 2;
+  tipoPapel: 0 | 1 | 2 | 3 | 4 | null;
   pessoaId: number | null;
   perfilId: string;
   ativo: boolean;

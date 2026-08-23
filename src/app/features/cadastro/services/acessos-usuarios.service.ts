@@ -4,6 +4,7 @@ import { UsuarioApiService } from '../../../core/api/services/usuario-api.servic
 import type {
   RegisterInputRegister,
   RegisterInputUpdate,
+  UsuarioCadastroOpcoes,
   UsuarioDetalheOutput,
   UsuarioOutput
 } from '../../../core/api/types/usuario-api.types';
@@ -53,6 +54,7 @@ export interface UsuarioCreateInput {
   EstacionamentoId?: number;
   transportadoraId?: number;
   tipoPessoa?: 1 | 2;
+  tipoPapel?: 0 | 1 | 2 | 3 | 4;
   pessoaId?: number;
 }
 
@@ -190,7 +192,21 @@ export class AcessosUsuariosService {
           estacionamentoId: estacionamentoIdNormalizado,
           estacionamento: estacionamentoNomeNormalizado,
           transportadoraId: transportadoraIdNormalizado,
-          transportadora: transportadoraNomeNormalizado
+          transportadora: transportadoraNomeNormalizado,
+          tipoPessoa:
+            typeof p?.tipoPessoa === 'number'
+              ? p.tipoPessoa
+              : typeof d.tipoPessoa === 'number'
+                ? d.tipoPessoa
+                : typeof raw['TipoPessoa'] === 'number'
+                  ? (raw['TipoPessoa'] as number)
+                  : undefined,
+          tipoPapel:
+            typeof d.tipoPapel === 'number'
+              ? d.tipoPapel
+              : typeof raw['TipoPapel'] === 'number'
+                ? (raw['TipoPapel'] as number)
+                : undefined
         } as UsuarioDetalheOutput & {
           id?: string;
           nome?: string;
@@ -205,6 +221,10 @@ export class AcessosUsuariosService {
         };
       })
     );
+  }
+
+  obterOpcoesCadastro(): Observable<UsuarioCadastroOpcoes> {
+    return this.api.obterOpcoesCadastro();
   }
 
   /** Registro: POST /api/auth/Usuario/Register */
@@ -271,15 +291,25 @@ export class AcessosUsuariosService {
     }
 
     const nomePessoa = String(input.nome ?? '').trim();
-    /** API valida CPF sem máscara; enviar só dígitos evita 400 por formato. */
-    const cpfDigits = String(input.cpf ?? '')
+    const tipoPessoa = this.inferTipoPessoa(input);
+    const docDigits = String(input.cpf ?? '')
       .trim()
-      .replace(/\D/g, '');
-    if (cpfDigits.length !== 11) {
+      .replace(/[^0-9A-Za-z]/g, '')
+      .toUpperCase();
+    if (tipoPessoa === 2) {
+      if (docDigits.length !== 14) {
+        throw new Error('Informe CNPJ válido com 14 caracteres.');
+      }
+    } else if (docDigits.replace(/\D/g, '').length !== 11) {
       throw new Error('Informe CPF válido com 11 dígitos.');
     }
     if (!nomePessoa) {
       throw new Error('Informe o nome (pessoa).');
+    }
+
+    const tipoPapel = input.tipoPapel;
+    if (tipoPapel == null || tipoPapel < 0 || tipoPapel > 4) {
+      throw new Error('Selecione o tipo de papel do usuário.');
     }
 
     const EstacionamentoId =
@@ -298,16 +328,16 @@ export class AcessosUsuariosService {
 
     const pessoaId =
       typeof input.pessoaId === 'number' && Number.isFinite(input.pessoaId) ? input.pessoaId : 0;
-    const tipoPessoa = this.inferTipoPessoa(input);
 
     const base: RegisterInputUpdate = {
       userName,
       EstacionamentoId,
       TransportadoraId,
+      tipoPapel,
       pessoa: {
         id: pessoaId,
         nome: nomePessoa,
-        cpf: cpfDigits,
+        cpf: docDigits,
         tipoPessoa
       },
       perfil: { name: perfilNome }

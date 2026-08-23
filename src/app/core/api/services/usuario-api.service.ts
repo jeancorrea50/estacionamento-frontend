@@ -12,6 +12,7 @@ import type {
   RegistroResult,
   RegisterInputRegister,
   RegisterInputUpdate,
+  UsuarioCadastroOpcoes,
   UsuarioDetalheOutput,
   UsuarioOutput
 } from '../types/usuario-api.types';
@@ -78,6 +79,14 @@ export class UsuarioApiService {
         const unwrapped = unwrapServiceResult<unknown>(body);
         return extrairArrayUsuario(unwrapped);
       })
+    );
+  }
+
+  /** GET api/auth/Usuario/opcoes-cadastro */
+  obterOpcoesCadastro(): Observable<UsuarioCadastroOpcoes> {
+    return this.http.get<unknown>(`${USUARIO_BASE}/opcoes-cadastro`).pipe(
+      timeout(HTTP_TIMEOUT_MS),
+      map((body) => unwrapServiceResult<UsuarioCadastroOpcoes>(body))
     );
   }
 

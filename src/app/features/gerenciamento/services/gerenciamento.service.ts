@@ -3,7 +3,7 @@ import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { AcessosUsuariosService, UsuarioListItem } from '../../cadastro/services/acessos-usuarios.service';
 import { AcessosPerfisService, ApplicationRole } from '../../cadastro/services/acessos-perfis.service';
 import { UsuarioGerenciamentoItem, GerenciamentoFiltros } from '../models/gerenciamento.types';
-import type { UsuarioDetalheOutput } from '../../../core/api/types/usuario-api.types';
+import type { UsuarioDetalheOutput, UsuarioCadastroOpcoes } from '../../../core/api/types/usuario-api.types';
 import { EstacionamentoLookupService, LookupOption } from '../../cadastro/services/estacionamento-lookup.service';
 
 /**
@@ -40,6 +40,10 @@ export class GerenciamentoService {
     return this.usuariosService.obterPorId(id) as Observable<
       UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }
     >;
+  }
+
+  obterOpcoesCadastro(): Observable<UsuarioCadastroOpcoes> {
+    return this.usuariosService.obterOpcoesCadastro();
   }
 
   gravar(dto: unknown): Observable<unknown> {

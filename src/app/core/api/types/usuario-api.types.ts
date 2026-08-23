@@ -21,6 +21,31 @@ export interface PessoaUsuarioOutput {
   tipoPessoa?: number;
 }
 
+export type TipoPapelUsuario = 0 | 1 | 2 | 3 | 4;
+export type TipoPessoaUsuario = 1 | 2;
+
+export interface UsuarioPapelOpcao {
+  value: TipoPapelUsuario;
+  label: string;
+  tipoPessoaPadrao: TipoPessoaUsuario;
+  tiposPessoaPermitidos: TipoPessoaUsuario[];
+}
+
+export interface UsuarioTipoPessoaOpcao {
+  value: TipoPessoaUsuario;
+  label: string;
+}
+
+/** GET api/auth/Usuario/opcoes-cadastro */
+export interface UsuarioCadastroOpcoes {
+  podeCadastrar: boolean;
+  papelLogado?: TipoPapelUsuario | null;
+  papelLogadoLabel?: string | null;
+  mensagem?: string | null;
+  tiposPapel: UsuarioPapelOpcao[];
+  tiposPessoa: UsuarioTipoPessoaOpcao[];
+}
+
 export interface PerfilRoleOutput {
   id?: string;
   name?: string | null;
@@ -45,6 +70,9 @@ export interface UsuarioDetalheOutput {
   estacionamento?: string | null;
   transportadoraId?: number | null;
   transportadora?: string | null;
+  /** 1 = Física, 2 = Jurídica. */
+  tipoPessoa?: number | null;
+  tipoPapel?: number | null;
   /** Alguns fluxos ainda usam `perfil` string diretamente. */
   perfil?: PerfilRoleOutput | string | null;
   EstacionamentoId?: number;
@@ -62,6 +90,7 @@ export interface RegisterInputUpdate {
   email?: string;
   EstacionamentoId?: number;
   TransportadoraId?: number;
+  tipoPapel?: number;
   pessoa: {
     id: number;
     nome: string;

@@ -50,7 +50,7 @@
           <span class="material-symbols-outlined" aria-hidden="true">filter_alt</span>
           Buscar
         </button>
-        @if (canGravar) {
+        @if (podeCadastrarUsuario) {
           <button type="button" class="btn btn-primary usuarios-btn-novo" (click)="abrirNovo()">
             <span class="material-symbols-outlined" aria-hidden="true">add</span>
             Novo usuário
@@ -303,7 +303,35 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="g-cpf">CPF <span class="required">*</span></label>
+              <label for="g-papel">Tipo de papel <span class="required">*</span></label>
+              <select
+                id="g-papel"
+                class="input-control"
+                [ngModel]="form.tipoPapel ?? ''"
+                (ngModelChange)="onTipoPapelChange($event)"
+              >
+                <option value="">Selecione</option>
+                @for (p of papeisPermitidos; track p.value) {
+                  <option [ngValue]="p.value">{{ p.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="g-tipo-pessoa">Tipo de pessoa <span class="required">*</span></label>
+              <select
+                id="g-tipo-pessoa"
+                class="input-control"
+                [ngModel]="form.tipoPessoa"
+                (ngModelChange)="onTipoPessoaChange($event)"
+                [disabled]="tiposPessoaDoPapel.length <= 1"
+              >
+                @for (t of tiposPessoaDoPapel; track t.value) {
+                  <option [ngValue]="t.value">{{ t.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="g-cpf">{{ documentoLabel }} <span class="required">*</span></label>
               <div class="input-with-icon">
                 <span class="material-symbols-outlined input-icon" aria-hidden="true">badge</span>
                 <input
@@ -312,9 +340,9 @@
                   class="input-control input-control--icon"
                   [(ngModel)]="form.cpf"
                   (ngModelChange)="onCpfInput($event)"
-                  placeholder="000.000.000-00"
+                  [placeholder]="documentoPlaceholder"
                   inputmode="numeric"
-                  maxlength="14"
+                  [attr.maxlength]="documentoMaxLength"
                 />
               </div>
             </div>

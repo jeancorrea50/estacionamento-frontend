@@ -32,17 +32,6 @@
       <span class="material-symbols-outlined" aria-hidden="true">payments</span>
       Valores
     </button>
-    <button
-      type="button"
-      role="tab"
-      class="cfg-topbar__tab"
-      [class.cfg-topbar__tab--active]="abaAtiva === 'acordo'"
-      [attr.aria-selected]="abaAtiva === 'acordo'"
-      (click)="selecionarAba('acordo')"
-    >
-      <span class="material-symbols-outlined" aria-hidden="true">handshake</span>
-      Acordo
-    </button>
   </nav>
 
   @if (errosVisiveis.length) {
@@ -178,10 +167,46 @@
           }
 
           @if (exigeAcordo) {
-            <p class="cfg-acordo__hint cfg-acordo__hint--inline">
-              <span class="material-symbols-outlined" aria-hidden="true">info</span>
-              Período, vagas e excedente ficam na aba <strong>Acordo</strong>.
-            </p>
+            <div class="cfg-acordo">
+              @if (!acordoCriado) {
+                <div class="cfg-acordo-empty">
+                  <p class="cfg-acordo__desc">
+                    Crie o acordo com período e vagas por mês. O excedente fica na aba Valores.
+                  </p>
+                  <button
+                    type="button"
+                    class="cfg-btn cfg-btn--primary cfg-btn--block"
+                    [disabled]="!gerarAuto"
+                    (click)="abrirEditorAcordo()"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                    Criar acordo
+                  </button>
+                </div>
+              } @else {
+                <div class="cfg-acordo-lista">
+                  <article class="cfg-acordo-card">
+                    <div class="cfg-acordo-card__body">
+                      <h4 class="cfg-acordo-card__title">Acordo criado</h4>
+                      <p class="cfg-acordo-card__meta">{{ periodoAcordoLabel }}</p>
+                      <ul class="cfg-acordo-card__items">
+                        @for (l of acordo.listagens; track l.id) {
+                          <li>{{ resumoListagem(l) }}</li>
+                        }
+                      </ul>
+                    </div>
+                    <button
+                      type="button"
+                      class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                      [disabled]="!gerarAuto"
+                      (click)="abrirEditorAcordo()"
+                    >
+                      Editar
+                    </button>
+                  </article>
+                </div>
+              }
+            </div>
           }
         </div>
       </section>
@@ -280,12 +305,51 @@
             <div class="cfg-obs__body">
               <strong class="cfg-obs__title">Observação</strong>
               <p class="cfg-obs__text">
-                Extras serão cobrados conforme as tarifas vigentes. O excedente do acordo fica na aba Acordo.
+                Extras e excedentes serão cobrados conforme as tarifas vigentes da configuração.
               </p>
             </div>
           </aside>
         </div>
       </section>
+
+      <!-- 2 — Excedente (somente Acordo) -->
+      @if (exigeAcordo) {
+        <section class="cfg-block">
+          <div class="cfg-block__head">
+            <span class="cfg-block__num">2</span>
+            <h3 class="cfg-block__title">Excedente</h3>
+          </div>
+          <div class="cfg-block__grid cfg-block__grid--2">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+              <mat-label>Custo do excedente</mat-label>
+              <span matTextPrefix class="cfg-money-field__prefix">R$&nbsp;</span>
+              <input
+                matInput
+                type="text"
+                name="custoExcedente"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0,00"
+                [(ngModel)]="custoExcedenteTexto"
+                (blur)="onCustoExcedenteBlur()"
+                required
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+              <mat-label>Tipo de cobrança do excedente</mat-label>
+              <mat-select name="tipoCobrancaExcedente" [(ngModel)]="acordo.tipoCobrancaExcedente" required>
+                @for (t of tipoExcedenteOpcoes; track t.value) {
+                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <p class="cfg-acordo__hint">
+            <span class="material-symbols-outlined" aria-hidden="true">info</span>
+            Cobrado quando ultrapassar a quantidade de vagas do acordo.
+          </p>
+        </section>
+      }
 
       <!-- Juros, multa e descontos -->
       <section class="cfg-block cfg-block--collapsible">
@@ -295,7 +359,7 @@
           [attr.aria-expanded]="jurosMultaAberto"
           (click)="toggleJurosMulta()"
         >
-          <span class="cfg-block__num">2</span>
+          <span class="cfg-block__num">{{ exigeAcordo ? 3 : 2 }}</span>
           <h3 class="cfg-block__title">Juros, multa e descontos</h3>
           <span
             class="material-symbols-outlined cfg-block__chevron"
@@ -350,7 +414,7 @@
       <!-- Serviços adicionais -->
       <section class="cfg-block">
         <div class="cfg-block__head">
-          <span class="cfg-block__num">3</span>
+          <span class="cfg-block__num">{{ exigeAcordo ? 4 : 3 }}</span>
           <h3 class="cfg-block__title">Serviços adicionais</h3>
         </div>
         <div class="cfg-services">
@@ -384,156 +448,6 @@
           }
         </div>
       </section>
-    }
-
-    @if (abaAtiva === 'acordo') {
-      <!-- 1 — Transportadora do acordo (lookup do backend) -->
-      <section class="cfg-block">
-        <div class="cfg-block__head">
-          <span class="cfg-block__num">1</span>
-          <h3 class="cfg-block__title">Transportadora</h3>
-        </div>
-        <div class="cfg-block__grid cfg-block__grid--3">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>Buscar por nome ou CNPJ</mat-label>
-            <input
-              matInput
-              name="filtroAcordoTransportadora"
-              [(ngModel)]="filtroAcordoTransportadora"
-              placeholder="Digite para filtrar..."
-              autocomplete="off"
-            />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>Transportadora</mat-label>
-            <mat-select name="transportadoraIdAcordo" [(ngModel)]="transportadoraId" required>
-              @for (t of transportadorasFiltradasAcordo; track t.id) {
-                <mat-option [value]="t.id">{{ t.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>CNPJ</mat-label>
-            <input
-              matInput
-              name="transportadoraCnpjAcordo"
-              [value]="cnpjTransportadoraFormatado"
-              placeholder="00.000.000/0000-00"
-              readonly
-              tabindex="-1"
-              aria-readonly="true"
-            />
-          </mat-form-field>
-        </div>
-        <p class="cfg-acordo__hint">
-          <span class="material-symbols-outlined" aria-hidden="true">info</span>
-          CNPJ vem do cadastro da transportadora no sistema (somente leitura).
-        </p>
-      </section>
-
-      @if (!exigeAcordo) {
-        <section class="cfg-block">
-          <div class="cfg-acordo-empty">
-            <p class="cfg-acordo__desc">
-              Selecione a modalidade <strong>Acordo</strong> na aba Regras para criar período, vagas e excedente.
-            </p>
-            <button type="button" class="cfg-btn cfg-btn--outline" (click)="selecionarAba('regras')">
-              Ir para Regras
-            </button>
-          </div>
-        </section>
-      } @else {
-        <!-- 2 — Período e vagas -->
-        <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
-          <div class="cfg-block__head">
-            <span class="cfg-block__num">2</span>
-            <h3 class="cfg-block__title">Período e vagas</h3>
-          </div>
-          <div class="cfg-acordo">
-            @if (!acordoCriado) {
-              <div class="cfg-acordo-empty">
-                <p class="cfg-acordo__desc">
-                  Crie o acordo com período e quantidade de vagas por mês. O excedente é definido abaixo.
-                </p>
-                <button
-                  type="button"
-                  class="cfg-btn cfg-btn--primary cfg-btn--block"
-                  [disabled]="!gerarAuto"
-                  (click)="abrirEditorAcordo()"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                  Criar acordo
-                </button>
-              </div>
-            } @else {
-              <div class="cfg-acordo-lista">
-                <article class="cfg-acordo-card">
-                  <div class="cfg-acordo-card__body">
-                    <h4 class="cfg-acordo-card__title">Acordo criado</h4>
-                    <p class="cfg-acordo-card__meta">{{ periodoAcordoLabel }}</p>
-                    <ul class="cfg-acordo-card__items">
-                      @for (l of acordo.listagens; track l.id) {
-                        <li>{{ resumoListagem(l) }}</li>
-                      }
-                    </ul>
-                  </div>
-                  <button
-                    type="button"
-                    class="cfg-btn cfg-btn--ghost cfg-btn--sm"
-                    [disabled]="!gerarAuto"
-                    (click)="abrirEditorAcordo()"
-                  >
-                    Editar
-                  </button>
-                </article>
-              </div>
-            }
-          </div>
-        </section>
-
-        <!-- 3 — Excedente -->
-        <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
-          <div class="cfg-block__head">
-            <span class="cfg-block__num">3</span>
-            <h3 class="cfg-block__title">Excedente</h3>
-          </div>
-          <div class="cfg-block__grid cfg-block__grid--2">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Custo do excedente</mat-label>
-              <span matTextPrefix class="cfg-money-field__prefix">R$&nbsp;</span>
-              <input
-                matInput
-                type="text"
-                name="custoExcedente"
-                inputmode="decimal"
-                autocomplete="off"
-                placeholder="0,00"
-                [(ngModel)]="custoExcedenteTexto"
-                [disabled]="!gerarAuto"
-                (blur)="onCustoExcedenteBlur()"
-                required
-              />
-            </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Tipo de cobrança do excedente</mat-label>
-              <mat-select
-                name="tipoCobrancaExcedente"
-                [(ngModel)]="acordo.tipoCobrancaExcedente"
-                [disabled]="!gerarAuto"
-                required
-              >
-                @for (t of tipoExcedenteOpcoes; track t.value) {
-                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <p class="cfg-acordo__hint">
-            <span class="material-symbols-outlined" aria-hidden="true">info</span>
-            Cobrado quando ultrapassar a quantidade de vagas do acordo.
-          </p>
-        </section>
-      }
     }
   </mat-dialog-content>
 

@@ -60,7 +60,7 @@ class ValorCobrancaErrorStateMatcher implements ErrorStateMatcher {
   }
 }
 
-export type ConfigCobrancaFormAba = 'regras' | 'valores' | 'acordo';
+export type ConfigCobrancaFormAba = 'regras' | 'valores';
 
 export type ConfigCobrancaFormMode = 'create' | 'edit' | 'duplicate';
 
@@ -111,8 +111,6 @@ export class ConfigCobrancaFormDialogComponent {
   errosVisiveis: string[] = [];
   jurosMultaAberto = false;
   abaAtiva: ConfigCobrancaFormAba = 'regras';
-  /** Filtro local da lista de transportadoras (nome/CNPJ já carregados do backend). */
-  filtroAcordoTransportadora = '';
 
   readonly modalidadeOpcoes = MODALIDADE_OPCOES;
   readonly tipoExcedenteOpcoes = TIPO_COBRANCA_EXCEDENTE_OPCOES;
@@ -222,28 +220,6 @@ export class ConfigCobrancaFormDialogComponent {
     return !valorInformado(parseBrl(this.valorEstacionamentoTexto));
   }
 
-  /** Transportadoras do lookup (backend), filtradas por nome/CNPJ na aba Acordo. */
-  get transportadorasFiltradasAcordo(): ConfigCobrancaLookupOption[] {
-    const q = this.filtroAcordoTransportadora.trim().toLowerCase();
-    const digits = this.filtroAcordoTransportadora.replace(/\D/g, '');
-    const todas = this.data.transportadoras;
-    const filtradas =
-      !q && !digits
-        ? [...todas]
-        : todas.filter((t) => {
-            const label = String(t.label ?? '').toLowerCase();
-            const cnpj = String(t.cnpj ?? '').replace(/\D/g, '');
-            const matchNome = q.length > 0 && label.includes(q);
-            const matchCnpj = digits.length > 0 && cnpj.includes(digits);
-            return matchNome || matchCnpj;
-          });
-    const selecionada = todas.find((t) => t.id === this.transportadoraId);
-    if (selecionada && !filtradas.some((t) => t.id === selecionada.id)) {
-      return [selecionada, ...filtradas];
-    }
-    return filtradas;
-  }
-
   constructor() {
     const r = this.data.item;
     if (r) {
@@ -273,7 +249,6 @@ export class ConfigCobrancaFormDialogComponent {
       this.servicos = servicosFromItem(r);
       this.acordo = normalizarAcordo(r.acordo);
       this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
-      if (r.modalidade === 'Acordo') this.abaAtiva = 'acordo';
     } else {
       this.modalidade = 'Mensal';
       this.regraFechamento = RegraFechamento.DiaFixo;
@@ -325,12 +300,11 @@ export class ConfigCobrancaFormDialogComponent {
 
     if (value === 'Acordo') {
       if (!acordoTemConteudo(this.acordo)) this.acordo = acordoVazio();
-      this.abaAtiva = 'acordo';
     }
   }
 
   abrirEditorAcordo(): void {
-    if (!this.gerarAuto || !this.exigeAcordo) return;
+    if (!this.gerarAuto) return;
     const ref = this.dialog.open(ConfigCobrancaAcordoDialogComponent, {
       width: '520px',
       maxWidth: '96vw',
@@ -342,7 +316,7 @@ export class ConfigCobrancaFormDialogComponent {
     });
     ref.afterClosed().subscribe((resultado) => {
       if (!resultado) return;
-      // Preserva excedente já preenchido na aba Acordo.
+      // Preserva excedente já preenchido na aba Valores.
       const custoExcedente = this.acordo.custoExcedente;
       const tipoCobrancaExcedente = this.acordo.tipoCobrancaExcedente;
       this.acordo = cloneAcordo(resultado);
@@ -477,15 +451,7 @@ export class ConfigCobrancaFormDialogComponent {
   private abaParaMensagemErro(mensagem: string): ConfigCobrancaFormAba {
     const texto = mensagem.toLowerCase();
     if (
-      texto.includes('acordo') ||
       texto.includes('excedente') ||
-      texto.includes('vaga') ||
-      texto.includes('período') ||
-      texto.includes('periodo')
-    ) {
-      return 'acordo';
-    }
-    if (
       texto.includes('valor') ||
       texto.includes('juros') ||
       texto.includes('multa') ||

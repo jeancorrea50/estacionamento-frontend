@@ -9,14 +9,15 @@ function isExternalApi(req: HttpRequest<unknown>): boolean {
   return req.url.includes('brasilapi.com.br') || req.url.includes('viacep.com.br');
 }
 
-/** Rotas públicas de auth/Usuario: não enviar Bearer mesmo se houver token antigo no storage. */
+/**
+ * Rotas públicas de auth/Usuario: não enviar Bearer.
+ * Register/PUT exigem JWT (`usuario.gravar`) — não entram nesta lista.
+ */
 function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
   const u = req.url.toLowerCase();
   return (
     u.includes('auth/usuario/confirmar-email') ||
     u.includes('auth/usuario/login') ||
-    u.includes('auth/usuario/register') ||
-    u.includes('auth/usuario/registrar') ||
     u.includes('auth/usuario/esqueci-senha') ||
     u.includes('auth/usuario/redefinir-senha')
   );

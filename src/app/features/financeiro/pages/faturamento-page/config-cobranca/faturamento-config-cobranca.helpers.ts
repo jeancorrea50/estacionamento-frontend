@@ -1,6 +1,7 @@
 import { acordoVazio, mensagensValidacaoAcordo, normalizarAcordo } from './config-cobranca-acordo.util';
 import type {
   ConfigCobrancaAcordo,
+  ConfigCobrancaDefinicaoValor,
   ConfigCobrancaListaItem,
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
@@ -80,7 +81,59 @@ const VALOR_COBRANCA_LABELS: Partial<Record<ConfigCobrancaModalidade, string>> =
   Acordo: 'Valor da cobrança'
 };
 
-export function valorCobrancaLabel(modalidade: ConfigCobrancaModalidade | ''): string {
+export const DEFINICAO_VALOR_OPCOES_BASE: {
+  value: ConfigCobrancaDefinicaoValor;
+  label: string;
+  hint: string;
+  icon: string;
+}[] = [
+  { value: 'hora', label: 'Hora', hint: 'Cobrança por hora', icon: 'schedule' },
+  { value: 'pernoite', label: 'Pernoite', hint: '12 horas', icon: 'bedtime' },
+  { value: 'diaria', label: 'Diária', hint: '24 horas', icon: 'today' }
+];
+
+export const DEFINICAO_VALOR_POR_VAGA: {
+  value: ConfigCobrancaDefinicaoValor;
+  label: string;
+  hint: string;
+  icon: string;
+} = {
+  value: 'porVaga',
+  label: 'Por vaga',
+  hint: 'Valor mensal',
+  icon: 'grid_view'
+};
+
+const DEFINICAO_VALOR_FIELD_LABELS: Record<ConfigCobrancaDefinicaoValor, string> = {
+  hora: 'Valor por hora',
+  pernoite: 'Valor da pernoite (12 horas)',
+  diaria: 'Valor da diária (24 horas)',
+  porVaga: 'Valor por vaga (mensal)'
+};
+
+export function definicaoValorOpcoes(modalidade: ConfigCobrancaModalidade | ''): {
+  value: ConfigCobrancaDefinicaoValor;
+  label: string;
+  hint: string;
+  icon: string;
+}[] {
+  if (modalidade === 'Acordo') {
+    return [...DEFINICAO_VALOR_OPCOES_BASE, DEFINICAO_VALOR_POR_VAGA];
+  }
+  return [...DEFINICAO_VALOR_OPCOES_BASE];
+}
+
+export function definicaoValorPadrao(modalidade: ConfigCobrancaModalidade | ''): ConfigCobrancaDefinicaoValor {
+  return modalidade === 'Acordo' ? 'porVaga' : 'diaria';
+}
+
+export function valorCobrancaLabel(
+  modalidade: ConfigCobrancaModalidade | '',
+  definicao?: ConfigCobrancaDefinicaoValor | null
+): string {
+  if (definicao && DEFINICAO_VALOR_FIELD_LABELS[definicao]) {
+    return DEFINICAO_VALOR_FIELD_LABELS[definicao];
+  }
   return modalidade ? VALOR_COBRANCA_LABELS[modalidade] ?? 'Valor da cobrança' : 'Valor da cobrança';
 }
 
@@ -131,6 +184,7 @@ export function validarFormularioConfig(input: {
   valorEstacionamento: number | null;
   servicos: ConfigCobrancaServicos;
   acordo?: ConfigCobrancaAcordo;
+  definicaoValor?: ConfigCobrancaDefinicaoValor | null;
 }): { ok: true } | { ok: false; mensagens: string[] } {
   const m: string[] = [];
   const regraAtiva = input.gerarFaturaAutomaticamente !== false;
@@ -183,7 +237,9 @@ export function validarFormularioConfig(input: {
   }
 
   if (!valorInformado(input.valorEstacionamento)) {
-    m.push(`Informe o ${valorCobrancaLabel(input.modalidade).toLowerCase()} maior que zero.`);
+    m.push(
+      `Informe o ${valorCobrancaLabel(input.modalidade, input.definicaoValor).toLowerCase()} maior que zero.`
+    );
   }
 
   if (input.multa && !valorInformado(input.multaPct)) m.push('Informe o percentual de multa maior que zero.');
@@ -229,6 +285,7 @@ export function montarRegistroDoFormulario(campos: {
   valorEstacionamento: number | null;
   servicos: ConfigCobrancaServicos;
   acordo?: ConfigCobrancaAcordo;
+  definicaoValor?: ConfigCobrancaDefinicaoValor;
 }): ConfigCobrancaListaItem {
   const emailNorm = campos.email?.trim() || null;
   let status: ConfigCobrancaStatus = campos.status === 'Inativa' ? 'Inativa' : 'Ativa';
@@ -299,6 +356,7 @@ export function montarRegistroDoFormulario(campos: {
     aplicarAcrescimoFixo: campos.acresFixo,
     valorAcrescimoFixo: campos.acresFixo ? Number(campos.acresValor) || 0 : 0,
     valorEstacionamento: campos.valorEstacionamento,
+    definicaoValor: campos.definicaoValor ?? definicaoValorPadrao(campos.modalidade),
     pagamentoParcial: false,
     servicos,
     servicosCobrados: servicosCobradosLabel(servicos),

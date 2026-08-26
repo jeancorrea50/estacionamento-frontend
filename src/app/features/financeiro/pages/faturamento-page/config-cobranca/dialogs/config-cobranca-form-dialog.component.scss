@@ -644,9 +644,34 @@
   line-height: 1.35;
 }
 
+.cfg-option__hint {
+  display: block;
+  width: 100%;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--cfg-muted);
+  line-height: 1.25;
+}
+
 .cfg-option--active .cfg-option__label {
   font-weight: 600;
   color: inherit;
+}
+
+.cfg-options--valores {
+  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
+.cfg-options--valores .cfg-option {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 74px;
+}
+
+.cfg-options--valores .cfg-option__label {
+  flex: 0 0 auto;
 }
 
 /* ── Serviços / taxas ──────────────────────────────────────────────── */

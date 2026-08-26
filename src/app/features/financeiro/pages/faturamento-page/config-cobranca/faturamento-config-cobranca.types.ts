@@ -17,6 +17,12 @@ export type ConfigCobrancaEnvioFiltroId = 'all' | 'ativo' | 'inativo';
 /** Chaves dos serviços adicionais, usadas para montar a seção de forma declarativa. */
 export type ConfigCobrancaServicoKey = 'lavagem' | 'pernoite' | 'extras' | 'beneficio';
 
+/**
+ * Unidade de definição do valor principal (`valorEstacionamento` na API).
+ * Em Acordo, inclui `porVaga` (valor mensal da vaga).
+ */
+export type ConfigCobrancaDefinicaoValor = 'hora' | 'pernoite' | 'diaria' | 'porVaga';
+
 /** Estado de um serviço adicional: habilitado e, quando habilitado, valor obrigatório. */
 export interface ConfigCobrancaServicoEstado {
   habilitado: boolean;
@@ -75,6 +81,11 @@ export interface ConfigCobrancaListaItem {
   aplicarAcrescimoFixo: boolean;
   valorAcrescimoFixo: number;
   valorEstacionamento: number | null;
+  /**
+   * Unidade de definição do valor na UI (não existe coluna dedicada na API;
+   * o valor continua em `valorEstacionamento`).
+   */
+  definicaoValor?: ConfigCobrancaDefinicaoValor;
   pagamentoParcial: boolean;
   servicos: ConfigCobrancaServicos;
   /** Resumo textual dos serviços adicionais habilitados. */

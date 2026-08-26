@@ -23,21 +23,13 @@ import {
   TIPO_COBRANCA_EXCEDENTE_OPCOES
 } from '../config-cobranca-acordo.util';
 import { formatarBrl, parseBrl } from '../config-cobranca-moeda.util';
-import type {
-  ConfigCobrancaAcordo,
-  ConfigCobrancaAcordoListagem,
-  ConfigCobrancaListaItem,
-  ConfigCobrancaLookupOption,
-  ConfigCobrancaModalidade,
-  ConfigCobrancaServicoKey,
-  ConfigCobrancaServicos,
-  ConfigCobrancaStatus
-} from '../faturamento-config-cobranca.types';
 import {
   MODALIDADE_OPCOES,
   RegraFechamento,
   SERVICO_VALOR_LABELS,
   diaSemanaLabel,
+  definicaoValorOpcoes,
+  definicaoValorPadrao,
   isDiaSemanaValido,
   modalidadeExigeVencimentoFatura,
   montarRegistroDoFormulario,
@@ -48,6 +40,17 @@ import {
   validarFormularioConfig,
   type DiaSemanaCobranca
 } from '../faturamento-config-cobranca.helpers';
+import type {
+  ConfigCobrancaAcordo,
+  ConfigCobrancaAcordoListagem,
+  ConfigCobrancaDefinicaoValor,
+  ConfigCobrancaListaItem,
+  ConfigCobrancaLookupOption,
+  ConfigCobrancaModalidade,
+  ConfigCobrancaServicoKey,
+  ConfigCobrancaServicos,
+  ConfigCobrancaStatus
+} from '../faturamento-config-cobranca.types';
 import { ConfigCobrancaAcordoDialogComponent } from './config-cobranca-acordo-dialog.component';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
 import { ConfigCobrancaWeekdayDialogComponent } from './config-cobranca-weekday-dialog.component';
@@ -159,6 +162,8 @@ export class ConfigCobrancaFormDialogComponent {
   servicos: ConfigCobrancaServicos = servicosVazios();
   acordo: ConfigCobrancaAcordo = acordoVazio();
   custoExcedenteTexto = '';
+  /** Unidade do valor principal (hora / pernoite / diária / por vaga). */
+  definicaoValor: ConfigCobrancaDefinicaoValor = 'diaria';
 
   readonly valorCobrancaMatcher = new ValorCobrancaErrorStateMatcher(
     () => this.valorEstacionamentoTocado && this.valorCobrancaInvalido
@@ -213,7 +218,11 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   get valorCobrancaLabel(): string {
-    return valorCobrancaLabel(this.modalidade);
+    return valorCobrancaLabel(this.modalidade, this.definicaoValor);
+  }
+
+  get definicaoValorOpcoesList() {
+    return definicaoValorOpcoes(this.modalidade);
   }
 
   get valorCobrancaInvalido(): boolean {
@@ -249,6 +258,10 @@ export class ConfigCobrancaFormDialogComponent {
       this.servicos = servicosFromItem(r);
       this.acordo = normalizarAcordo(r.acordo);
       this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
+      this.definicaoValor =
+        r.definicaoValor && !(r.modalidade !== 'Acordo' && r.definicaoValor === 'porVaga')
+          ? r.definicaoValor
+          : definicaoValorPadrao(r.modalidade);
     } else {
       this.modalidade = 'Mensal';
       this.regraFechamento = RegraFechamento.DiaFixo;
@@ -258,6 +271,7 @@ export class ConfigCobrancaFormDialogComponent {
       this.status = 'Ativa';
       this.acordo = acordoVazio();
       this.custoExcedenteTexto = '';
+      this.definicaoValor = definicaoValorPadrao('Mensal');
     }
     this.jurosMultaAberto = this.multa || this.juros || this.descFixo || this.acresFixo;
   }
@@ -300,7 +314,18 @@ export class ConfigCobrancaFormDialogComponent {
 
     if (value === 'Acordo') {
       if (!acordoTemConteudo(this.acordo)) this.acordo = acordoVazio();
+      this.definicaoValor = 'porVaga';
+      return;
     }
+
+    if (this.definicaoValor === 'porVaga') {
+      this.definicaoValor = 'diaria';
+    }
+  }
+
+  selecionarDefinicaoValor(value: ConfigCobrancaDefinicaoValor): void {
+    if (value === 'porVaga' && this.modalidade !== 'Acordo') return;
+    this.definicaoValor = value;
   }
 
   abrirEditorAcordo(): void {
@@ -408,7 +433,8 @@ export class ConfigCobrancaFormDialogComponent {
       acresValor: this.acresValor,
       valorEstacionamento: this.valorEstacionamento,
       servicos: this.servicos,
-      acordo: this.acordo
+      acordo: this.acordo,
+      definicaoValor: this.definicaoValor
     });
     if (!v.ok) {
       this.errosVisiveis = v.mensagens;
@@ -495,7 +521,8 @@ export class ConfigCobrancaFormDialogComponent {
       acresValor: this.acresValor,
       valorEstacionamento: this.valorEstacionamento,
       servicos: this.servicos,
-      acordo: this.acordo
+      acordo: this.acordo,
+      definicaoValor: this.definicaoValor
     });
   }
 }

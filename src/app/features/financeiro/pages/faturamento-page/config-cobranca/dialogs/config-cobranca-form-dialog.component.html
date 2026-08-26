@@ -278,6 +278,24 @@
           <span class="cfg-block__num">1</span>
           <h3 class="cfg-block__title">Valores</h3>
         </div>
+
+        <div class="cfg-options cfg-options--valores" role="radiogroup" aria-label="Definição do valor">
+          @for (o of definicaoValorOpcoesList; track o.value) {
+            <button
+              type="button"
+              role="radio"
+              class="cfg-option"
+              [class.cfg-option--active]="definicaoValor === o.value"
+              [attr.aria-checked]="definicaoValor === o.value"
+              (click)="selecionarDefinicaoValor(o.value)"
+            >
+              <span class="cfg-option__ico material-symbols-outlined" aria-hidden="true">{{ o.icon }}</span>
+              <span class="cfg-option__label">{{ o.label }}</span>
+              <span class="cfg-option__hint">{{ o.hint }}</span>
+            </button>
+          }
+        </div>
+
         <div class="cfg-valores">
           <div class="cfg-money-field">
             <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic" class="cfg-field">
@@ -305,7 +323,11 @@
             <div class="cfg-obs__body">
               <strong class="cfg-obs__title">Observação</strong>
               <p class="cfg-obs__text">
-                Extras e excedentes serão cobrados conforme as tarifas vigentes da configuração.
+                Escolha a unidade de cobrança (hora, pernoite de 12h ou diária de 24h).
+                @if (exigeAcordo) {
+                  Em acordo, use também <strong>por vaga</strong> para o valor mensal.
+                }
+                Extras e excedentes seguem as tarifas desta configuração.
               </p>
             </div>
           </aside>

@@ -49,7 +49,13 @@ function toApiError(res: HttpErrorResponse): ApiError {
     } else if (typeof nRaw === 'string' && nRaw.trim()) {
       message = nRaw.trim();
     } else {
-      const msg = b.message ?? b.title ?? (b as { Message?: string }).Message ?? (b as { Title?: string }).Title;
+      const msg =
+        b.message ??
+        b.title ??
+        (b as { erro?: string }).erro ??
+        (b as { Message?: string }).Message ??
+        (b as { Title?: string }).Title ??
+        (b as { Erro?: string }).Erro;
       if (typeof msg === 'string' && msg.trim()) message = msg.trim();
     }
     if (b.errors) fieldErrors = parseFieldErrors(b.errors as Record<string, string[]> | string[]);

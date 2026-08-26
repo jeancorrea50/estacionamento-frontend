@@ -274,8 +274,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
         mode,
         item,
         transportadoras: this.listaTransportadorasForm(),
-        statusOpcoes: ['Ativa', 'Inativa'] as ConfigCobrancaStatus[],
-        acordosExistentes: this.items().filter((r) => r.modalidade === 'Acordo')
+        statusOpcoes: ['Ativa', 'Inativa'] as ConfigCobrancaStatus[]
       }
     });
     ref.afterClosed().subscribe((res: ConfigCobrancaFormDialogResult | undefined) => {

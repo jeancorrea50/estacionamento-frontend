@@ -2,9 +2,7 @@
   <header class="cfg-acordo-dlg__header">
     <div class="cfg-acordo-dlg__titles">
       <h2 class="cfg-acordo-dlg__title" mat-dialog-title>{{ titulo }}</h2>
-      <p class="cfg-acordo-dlg__subtitle">
-        Selecione a transportadora, o período, as vagas por mês e o excedente. Um acordo por transportadora.
-      </p>
+      <p class="cfg-acordo-dlg__subtitle">Defina o período e as listagens de vagas por mês.</p>
     </div>
     <button type="button" class="cfg-acordo-dlg__close" aria-label="Fechar" (click)="cancelar()">
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -20,144 +18,69 @@
   }
 
   <mat-dialog-content class="cfg-acordo-dlg__body">
-    <section class="cfg-acordo-dlg__section" aria-label="Transportadora">
-      <h3 class="cfg-acordo-dlg__section-title">Transportadora</h3>
-      <div class="cfg-acordo-dlg__grid cfg-acordo-dlg__grid--3">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>Buscar por nome ou CNPJ</mat-label>
-          <input
-            matInput
-            name="filtroTransportadoraAcordo"
-            [(ngModel)]="filtroTransportadora"
-            placeholder="Digite para filtrar..."
-            autocomplete="off"
-          />
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>Transportadora</mat-label>
-          <mat-select name="transportadoraIdAcordoDlg" [(ngModel)]="transportadoraId" required>
-            @for (t of transportadorasDisponiveis; track t.id) {
-              <mat-option [value]="t.id">{{ t.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>CNPJ</mat-label>
-          <input
-            matInput
-            name="cnpjAcordoDlg"
-            [value]="cnpjFormatado"
-            placeholder="00.000.000/0000-00"
-            readonly
-            tabindex="-1"
-            aria-readonly="true"
-          />
-        </mat-form-field>
-      </div>
-      <p class="cfg-acordo-dlg__hint-text">
-        Lista e CNPJ vêm do cadastro de transportadoras do sistema. Transportadoras que já têm acordo não aparecem.
-      </p>
-    </section>
+    <div class="cfg-acordo-dlg__grid">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+        <mat-label>Data início</mat-label>
+        <input matInput type="date" name="acordoDataInicio" [(ngModel)]="acordo.dataInicio" required />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+        <mat-label>Data fim</mat-label>
+        <input matInput type="date" name="acordoDataFim" [(ngModel)]="acordo.dataFim" required />
+      </mat-form-field>
+    </div>
 
-    <section class="cfg-acordo-dlg__section" aria-label="Período">
-      <h3 class="cfg-acordo-dlg__section-title">Período</h3>
-      <div class="cfg-acordo-dlg__grid">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>Data início</mat-label>
-          <input matInput type="date" name="acordoDataInicio" [(ngModel)]="acordo.dataInicio" required />
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>Data fim</mat-label>
-          <input matInput type="date" name="acordoDataFim" [(ngModel)]="acordo.dataFim" required />
-        </mat-form-field>
-      </div>
-    </section>
-
-    <section class="cfg-acordo-dlg__section" aria-label="Vagas por mês">
-      <h3 class="cfg-acordo-dlg__section-title">Vagas por mês</h3>
-      @for (listagem of acordo.listagens; track listagem.id; let i = $index) {
-        <section class="cfg-acordo-dlg__listagem">
-          <div class="cfg-acordo-dlg__listagem-head">
-            <div class="cfg-acordo-dlg__listagem-titles">
-              <h4 class="cfg-acordo-dlg__listagem-title">Listagem {{ i + 1 }}</h4>
-              <p class="cfg-acordo-dlg__hint-text">Meses e quantidade de vagas.</p>
-            </div>
-            @if (acordo.listagens.length > 1) {
-              <button type="button" class="cfg-acordo-dlg__link" (click)="removerListagem(listagem.id)">
-                Remover
-              </button>
-            }
+    @for (listagem of acordo.listagens; track listagem.id; let i = $index) {
+      <section class="cfg-acordo-dlg__listagem">
+        <div class="cfg-acordo-dlg__listagem-head">
+          <div class="cfg-acordo-dlg__listagem-titles">
+            <h3 class="cfg-acordo-dlg__listagem-title">Listagem {{ i + 1 }}</h3>
+            <p class="cfg-acordo-dlg__hint-text">Meses e quantidade de vagas.</p>
           </div>
-          <div class="cfg-acordo-dlg__grid">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-              <mat-label>Meses</mat-label>
-              <mat-select
-                multiple
-                [name]="'mesesListagem' + listagem.id"
-                [(ngModel)]="listagem.meses"
-                panelClass="cfg-acordo-meses-panel"
-                (ngModelChange)="onMesesChange(listagem, $event)"
-                required
-              >
-                @for (m of mesesAcordo; track m.mes) {
-                  <mat-option [value]="m.mes" [disabled]="mesOcupado(listagem, m.mes)">
-                    {{ m.label }}
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-              <mat-label>Quantidade de vagas</mat-label>
-              <input
-                matInput
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                [(ngModel)]="listagem.quantidade"
-                [name]="'qtdListagem' + listagem.id"
-                required
-              />
-            </mat-form-field>
-          </div>
-        </section>
-      }
+          @if (acordo.listagens.length > 1) {
+            <button type="button" class="cfg-acordo-dlg__link" (click)="removerListagem(listagem.id)">
+              Remover
+            </button>
+          }
+        </div>
+        <div class="cfg-acordo-dlg__grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+            <mat-label>Meses</mat-label>
+            <mat-select
+              multiple
+              [name]="'mesesListagem' + listagem.id"
+              [(ngModel)]="listagem.meses"
+              panelClass="cfg-acordo-meses-panel"
+              (ngModelChange)="onMesesChange(listagem, $event)"
+              required
+            >
+              @for (m of mesesAcordo; track m.mes) {
+                <mat-option [value]="m.mes" [disabled]="mesOcupado(listagem, m.mes)">
+                  {{ m.label }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+            <mat-label>Quantidade de vagas</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [(ngModel)]="listagem.quantidade"
+              [name]="'qtdListagem' + listagem.id"
+              required
+            />
+          </mat-form-field>
+        </div>
+      </section>
+    }
 
-      <button type="button" class="cfg-acordo-dlg__btn cfg-acordo-dlg__btn--ghost" (click)="adicionarListagem()">
-        <span class="material-symbols-outlined" aria-hidden="true">add</span>
-        Adicionar listagem
-      </button>
-    </section>
-
-    <section class="cfg-acordo-dlg__section" aria-label="Excedente">
-      <h3 class="cfg-acordo-dlg__section-title">Excedente</h3>
-      <div class="cfg-acordo-dlg__grid">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>Custo do excedente</mat-label>
-          <span matTextPrefix class="cfg-acordo-dlg__prefix">R$&nbsp;</span>
-          <input
-            matInput
-            type="text"
-            name="custoExcedenteDlg"
-            inputmode="decimal"
-            autocomplete="off"
-            placeholder="0,00"
-            [(ngModel)]="custoExcedenteTexto"
-            (blur)="onCustoExcedenteBlur()"
-            required
-          />
-        </mat-form-field>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-          <mat-label>Tipo de cobrança do excedente</mat-label>
-          <mat-select name="tipoCobrancaExcedenteDlg" [(ngModel)]="acordo.tipoCobrancaExcedente" required>
-            @for (t of tipoExcedenteOpcoes; track t.value) {
-              <mat-option [value]="t.value">{{ t.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      </div>
-      <p class="cfg-acordo-dlg__hint-text">Cobrado quando ultrapassar a quantidade de vagas do acordo.</p>
-    </section>
+    <button type="button" class="cfg-acordo-dlg__btn cfg-acordo-dlg__btn--ghost" (click)="adicionarListagem()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Adicionar listagem
+    </button>
   </mat-dialog-content>
 
   <footer class="cfg-acordo-dlg__footer">

@@ -7,8 +7,8 @@
 .cfg-acordo-dlg {
   display: flex;
   flex-direction: column;
-  max-height: min(88vh, 760px);
-  min-width: min(94vw, 640px);
+  max-height: min(82vh, 640px);
+  min-width: min(92vw, 520px);
 }
 
 .cfg-acordo-dlg__header {
@@ -102,30 +102,6 @@
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.cfg-acordo-dlg__grid--3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.cfg-acordo-dlg__section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cfg-acordo-dlg__section-title {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--cfg-form-text, var(--text));
-}
-
-@media (max-width: 640px) {
-  .cfg-acordo-dlg__grid--3 {
-    grid-template-columns: 1fr;
-  }
 }
 
 .cfg-acordo-dlg__field {

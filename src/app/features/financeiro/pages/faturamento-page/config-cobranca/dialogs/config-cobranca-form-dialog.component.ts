@@ -20,11 +20,12 @@ import {
   normalizarAcordo,
   resumoListagemAcordo,
   sincronizarVagasDoAcordo,
-  tipoCobrancaExcedenteLabel
+  TIPO_COBRANCA_EXCEDENTE_OPCOES
 } from '../config-cobranca-acordo.util';
 import { formatarBrl, parseBrl } from '../config-cobranca-moeda.util';
 import type {
   ConfigCobrancaAcordo,
+  ConfigCobrancaAcordoListagem,
   ConfigCobrancaListaItem,
   ConfigCobrancaLookupOption,
   ConfigCobrancaModalidade,
@@ -68,8 +69,6 @@ export interface ConfigCobrancaFormDialogData {
   item?: ConfigCobrancaListaItem;
   transportadoras: ConfigCobrancaLookupOption[];
   statusOpcoes: ConfigCobrancaStatus[];
-  /** Configurações com modalidade Acordo já existentes (1 por transportadora). */
-  acordosExistentes?: ConfigCobrancaListaItem[];
 }
 
 export interface ConfigCobrancaFormDialogResult {
@@ -81,20 +80,6 @@ interface ServicoOpcao {
   label: string;
   valorLabel: string;
   icon: string;
-}
-
-/** Card exibido na aba Acordo (acordo atual + demais do sistema). */
-export interface ConfigCobrancaAcordoCardVm {
-  key: string;
-  configId: number | null;
-  transportadoraId: number;
-  transportadoraNome: string;
-  cnpj: string;
-  periodo: string;
-  listagens: string[];
-  excedenteTexto: string;
-  tipoExcedenteLabel: string;
-  editavel: boolean;
 }
 
 @Component({
@@ -130,6 +115,7 @@ export class ConfigCobrancaFormDialogComponent {
   filtroAcordoTransportadora = '';
 
   readonly modalidadeOpcoes = MODALIDADE_OPCOES;
+  readonly tipoExcedenteOpcoes = TIPO_COBRANCA_EXCEDENTE_OPCOES;
 
   readonly servicosOpcoes: ServicoOpcao[] = [
     { key: 'lavagem', label: 'Cobrar lavagem', valorLabel: SERVICO_VALOR_LABELS.lavagem, icon: 'local_car_wash' },
@@ -236,42 +222,26 @@ export class ConfigCobrancaFormDialogComponent {
     return !valorInformado(parseBrl(this.valorEstacionamentoTexto));
   }
 
-  /** IDs de transportadoras que já têm acordo salvo (exceto o registro em edição). */
-  get transportadoraIdsComAcordo(): number[] {
-    const atualId = this.data.item?.id ?? 0;
-    return (this.data.acordosExistentes ?? [])
-      .filter((c) => c.modalidade === 'Acordo' && c.id !== atualId && c.transportadoraId > 0)
-      .map((c) => c.transportadoraId);
-  }
-
-  get podeCriarNovoAcordo(): boolean {
-    return !this.acordoCriado;
-  }
-
-  /** Cards: acordo do formulário + demais acordos do sistema, filtrados por nome/CNPJ. */
-  get cardsAcordoFiltrados(): ConfigCobrancaAcordoCardVm[] {
-    const cards: ConfigCobrancaAcordoCardVm[] = [];
-    const atualId = this.data.item?.id ?? 0;
-
-    if (this.exigeAcordo && this.acordoCriado && this.transportadoraId) {
-      cards.push(this.montarCardAcordoAtual());
-    }
-
-    for (const cfg of this.data.acordosExistentes ?? []) {
-      if (cfg.modalidade !== 'Acordo' || cfg.transportadoraId <= 0) continue;
-      if (atualId > 0 && cfg.id === atualId) continue;
-      if (this.exigeAcordo && this.acordoCriado && cfg.transportadoraId === this.transportadoraId) continue;
-      cards.push(this.montarCardAcordoExistente(cfg));
-    }
-
+  /** Transportadoras do lookup (backend), filtradas por nome/CNPJ na aba Acordo. */
+  get transportadorasFiltradasAcordo(): ConfigCobrancaLookupOption[] {
     const q = this.filtroAcordoTransportadora.trim().toLowerCase();
     const digits = this.filtroAcordoTransportadora.replace(/\D/g, '');
-    if (!q && !digits) return cards;
-    return cards.filter((c) => {
-      const nome = c.transportadoraNome.toLowerCase();
-      const cnpj = c.cnpj.replace(/\D/g, '');
-      return (q.length > 0 && nome.includes(q)) || (digits.length > 0 && cnpj.includes(digits));
-    });
+    const todas = this.data.transportadoras;
+    const filtradas =
+      !q && !digits
+        ? [...todas]
+        : todas.filter((t) => {
+            const label = String(t.label ?? '').toLowerCase();
+            const cnpj = String(t.cnpj ?? '').replace(/\D/g, '');
+            const matchNome = q.length > 0 && label.includes(q);
+            const matchCnpj = digits.length > 0 && cnpj.includes(digits);
+            return matchNome || matchCnpj;
+          });
+    const selecionada = todas.find((t) => t.id === this.transportadoraId);
+    if (selecionada && !filtradas.some((t) => t.id === selecionada.id)) {
+      return [selecionada, ...filtradas];
+    }
+    return filtradas;
   }
 
   constructor() {
@@ -360,72 +330,30 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   abrirEditorAcordo(): void {
-    if (!this.gerarAuto) return;
-    if (!this.exigeAcordo) {
-      this.modalidade = 'Acordo';
-      if (!acordoTemConteudo(this.acordo)) this.acordo = acordoVazio();
-    }
+    if (!this.gerarAuto || !this.exigeAcordo) return;
     const ref = this.dialog.open(ConfigCobrancaAcordoDialogComponent, {
-      width: '640px',
+      width: '520px',
       maxWidth: '96vw',
       panelClass: 'cfg-form-dialog-panel',
       data: {
         acordo: cloneAcordo(this.acordo),
-        editando: acordoTemConteudo(this.acordo),
-        transportadoraId: this.transportadoraId,
-        transportadoras: this.data.transportadoras,
-        transportadoraIdsComAcordo: this.transportadoraIdsComAcordo
+        editando: acordoTemConteudo(this.acordo)
       }
     });
     ref.afterClosed().subscribe((resultado) => {
       if (!resultado) return;
-      this.modalidade = 'Acordo';
-      this.transportadoraId = resultado.transportadoraId;
-      this.acordo = cloneAcordo(resultado.acordo);
+      // Preserva excedente já preenchido na aba Acordo.
+      const custoExcedente = this.acordo.custoExcedente;
+      const tipoCobrancaExcedente = this.acordo.tipoCobrancaExcedente;
+      this.acordo = cloneAcordo(resultado);
+      this.acordo.custoExcedente = custoExcedente;
+      this.acordo.tipoCobrancaExcedente = tipoCobrancaExcedente;
       this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
-      this.abaAtiva = 'acordo';
     });
   }
 
-  removerAcordoAtual(): void {
-    this.acordo = acordoVazio();
-    this.custoExcedenteTexto = '';
-  }
-
-  private montarCardAcordoAtual(): ConfigCobrancaAcordoCardVm {
-    const t = this.data.transportadoras.find((x) => x.id === this.transportadoraId);
-    return {
-      key: `atual-${this.transportadoraId}`,
-      configId: this.data.item?.id ?? null,
-      transportadoraId: this.transportadoraId ?? 0,
-      transportadoraNome: t?.label ?? 'Transportadora',
-      cnpj: this.cnpjTransportadoraFormatado || '—',
-      periodo: this.periodoAcordoLabel,
-      listagens: (this.acordo.listagens ?? []).map((l) => resumoListagemAcordo(l)),
-      excedenteTexto: formatarBrl(this.acordo.custoExcedente) || '—',
-      tipoExcedenteLabel: tipoCobrancaExcedenteLabel(this.acordo.tipoCobrancaExcedente),
-      editavel: true
-    };
-  }
-
-  private montarCardAcordoExistente(cfg: ConfigCobrancaListaItem): ConfigCobrancaAcordoCardVm {
-    const t = this.data.transportadoras.find((x) => x.id === cfg.transportadoraId);
-    const digits = String(t?.cnpj ?? '').replace(/\D/g, '');
-    const cnpj =
-      digits.length === 14 ? formatCnpj(digits) : t?.cnpj?.trim() || '—';
-    const acordo = normalizarAcordo(cfg.acordo);
-    return {
-      key: `cfg-${cfg.id}`,
-      configId: cfg.id,
-      transportadoraId: cfg.transportadoraId,
-      transportadoraNome: cfg.transportadora || t?.label || 'Transportadora',
-      cnpj,
-      periodo: formatarPeriodoAcordo(acordo.dataInicio, acordo.dataFim),
-      listagens: (acordo.listagens ?? []).map((l) => resumoListagemAcordo(l)),
-      excedenteTexto: formatarBrl(acordo.custoExcedente) || '—',
-      tipoExcedenteLabel: tipoCobrancaExcedenteLabel(acordo.tipoCobrancaExcedente),
-      editavel: false
-    };
+  resumoListagem(listagem: ConfigCobrancaAcordoListagem): string {
+    return resumoListagemAcordo(listagem);
   }
 
   abrirModalDiaSemana(): void {
@@ -512,17 +440,6 @@ export class ConfigCobrancaFormDialogComponent {
       this.errosVisiveis = v.mensagens;
       this.abaAtiva = this.abaParaMensagemErro(v.mensagens[0] ?? '');
       this.snack.open(v.mensagens[0] ?? 'Revise os campos obrigatórios.', 'Fechar', { duration: 5000 });
-      return;
-    }
-    if (
-      this.modalidade === 'Acordo' &&
-      this.transportadoraId != null &&
-      this.transportadoraIdsComAcordo.includes(this.transportadoraId)
-    ) {
-      const msg = 'Já existe um acordo para esta transportadora. Só é permitido 1 por transportadora.';
-      this.errosVisiveis = [msg];
-      this.abaAtiva = 'acordo';
-      this.snack.open(msg, 'Fechar', { duration: 5500 });
       return;
     }
     this.errosVisiveis = [];

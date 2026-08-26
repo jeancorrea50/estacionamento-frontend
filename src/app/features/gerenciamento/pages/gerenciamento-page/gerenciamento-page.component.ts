@@ -27,7 +27,7 @@ import {
 import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import type { UsuarioDetalheOutput, RegistroResult, UsuarioCadastroOpcoes, UsuarioPapelOpcao } from '../../../../core/api/types/usuario-api.types';
+import type { UsuarioDetalheOutput, UsuarioCadastroOpcoes, UsuarioPapelOpcao } from '../../../../core/api/types/usuario-api.types';
 import { ApiError } from '../../../../core/api/models';
 
 @Component({
@@ -1002,23 +1002,13 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       ? this.gerenciamentoService.alterar(payload)
       : this.gerenciamentoService.gravar(payload);
     req.subscribe({
-      next: (res) => {
+      next: () => {
         this.saving.set(false);
-        if (!this.isEdit() && res && typeof res === 'object') {
-          const r = res as RegistroResult;
-          const msg =
-            r.mensagem ?? r.message ?? (r as { Message?: string }).Message ?? 'Usuário cadastrado.';
-          const emailOk = r.emailDeConfirmacaoEnviado ?? (r as { EmailDeConfirmacaoEnviado?: boolean }).EmailDeConfirmacaoEnviado;
-          if (emailOk === true) {
-            this.toast.success(
-              String(msg) + (r.linkConfirmacaoNoFrontend ? ' Use o link enviado ou o informado abaixo (' + r.linkConfirmacaoNoFrontend + ').' : '')
-            );
-          } else {
-            this.toast.success('Usuário criado. ' + String(msg));
-          }
-        } else {
-          this.toast.success(this.isEdit() ? 'Usuário atualizado.' : 'Usuário criado.');
-        }
+        this.toast.success(
+          this.isEdit()
+            ? 'Usuário atualizado.'
+            : 'Cadastro realizado. Enviamos um e-mail de confirmação para usuário.'
+        );
         this.fecharModalForm();
         this.buscar();
         this.cdr.markForCheck();

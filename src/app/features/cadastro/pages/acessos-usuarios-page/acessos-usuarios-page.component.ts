@@ -643,7 +643,9 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       next: () => {
         this.saving.set(false);
         this.toast.success(
-          this.isEdit() ? 'Usuário atualizado com sucesso.' : 'Usuário cadastrado no backend com sucesso.'
+          this.isEdit()
+            ? 'Usuário atualizado com sucesso.'
+            : 'Cadastro realizado. Enviamos um e-mail de confirmação para usuário.'
         );
         this.closeModal();
         this.cdr.markForCheck();

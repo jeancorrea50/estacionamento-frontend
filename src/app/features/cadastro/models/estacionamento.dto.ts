@@ -21,6 +21,8 @@ export interface EstacionamentoDTO {
 /** Item resumido para listagem (conforme retorno da API de listagem) */
 export interface EstacionamentoListItemDTO {
   id: number;
+  /** Chave global do tenant — necessária no GET por id quando o cadastro está em outro banco. */
+  codExportacao?: string | null;
   pessoaId?: number | null;
   descricao: string;
   tipoPessoa: TipoPessoa;

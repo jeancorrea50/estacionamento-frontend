@@ -190,6 +190,27 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     return this.id == null;
   }
 
+  /** Query da lista (ou valor já carregado no form) para o GET por id em outro banco. */
+  private resolverCodExportacaoConsulta(): string | undefined {
+    const query = this.route.snapshot.queryParamMap.get('codExportacao')?.trim();
+    if (query) return query;
+    const doForm = String(this.form?.get('codExportacao')?.value ?? '').trim();
+    return doForm || undefined;
+  }
+
+  private preservarCodExportacaoNaRota(cod: string | null | undefined): void {
+    const valor = String(cod ?? '').trim();
+    if (!valor || this.id == null) return;
+    const atual = this.route.snapshot.queryParamMap.get('codExportacao')?.trim();
+    if (atual === valor) return;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { codExportacao: valor },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
   get currentStep(): 1 | 2 | 3 {
     return this.stepService.currentStep();
   }
@@ -748,7 +769,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   /** GET por id — recarrega apenas campos exibidos em Dados Bancários após salvar. */
   carregarDadosBancarios(): void {
     if (this.id == null) return;
-    this.EstacionamentoService.obterPorId(this.id).subscribe({
+    this.EstacionamentoService.obterPorId(this.id, this.resolverCodExportacaoConsulta()).subscribe({
       next: (dto) => {
         this.ngZone.run(() => {
           if (dto) {
@@ -815,7 +836,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.errosCamposSalvar = [];
     this.EstacionamentoService.alterar(payload)
       .pipe(
-        switchMap(() => this.EstacionamentoService.obterPorIdDetalhado(this.id!)),
+        switchMap(() => this.EstacionamentoService.obterPorIdDetalhado(this.id!, this.resolverCodExportacaoConsulta())),
         finalize(() => {
           this.salvandoDadosBancarios = false;
           this.cdr.markForCheck();
@@ -908,7 +929,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     if (this.id == null) return;
     this.loading = true;
     this.erro = null;
-    this.EstacionamentoService.obterPorId(this.id).subscribe({
+    this.EstacionamentoService.obterPorId(this.id, this.resolverCodExportacaoConsulta()).subscribe({
       next: (dto) => {
         this.ngZone.run(() => {
           if (dto) {
@@ -944,6 +965,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               valorAvulso: dto.valorAvulso ?? null,
               minutosToleranciaPermanencia: dto.minutosToleranciaPermanencia ?? null,
             });
+            this.preservarCodExportacaoNaRota(dto.codExportacao);
             this.aplicarRegrasMultiTenantAdmin();
             this.fotoItems = [];
             this.carregarFotos();
@@ -1075,7 +1097,12 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
           if (criacaoComSucesso && res?.id != null) {
             this.id = res.id;
             this.form.patchValue({ id: res.id }, { emitEvent: false });
-            this.router.navigate(['/app/cadastro/estacionamento/editar', res.id], { replaceUrl: true });
+            this.router.navigate(['/app/cadastro/estacionamento/editar', res.id], {
+              replaceUrl: true,
+              queryParams: this.resolverCodExportacaoConsulta()
+                ? { codExportacao: this.resolverCodExportacaoConsulta() }
+                : {},
+            });
             this.carregarEstacionamentoPorId();
             this.toast.success('Cadastro salvo.');
           } else {
@@ -1084,7 +1111,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               this.toast.success('Alterações salvas.');
               return;
             }
-            this.EstacionamentoService.obterPorIdDetalhado(idAtual).subscribe({
+            this.EstacionamentoService.obterPorIdDetalhado(idAtual, this.resolverCodExportacaoConsulta()).subscribe({
               next: ({ dto: persisted }) => {
                 this.payloadMerge = persisted?.payloadMerge ?? null;
                 this.carregarEstacionamentoPorId();

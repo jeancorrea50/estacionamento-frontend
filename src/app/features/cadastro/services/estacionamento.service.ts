@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, catchError, map, of, timeout, throwError } from 'rxjs';
 import {
   EstacionamentoDTO,
@@ -302,6 +302,7 @@ export class EstacionamentoService {
     if (!row || typeof row !== 'object') {
       return {
         id: 0,
+        codExportacao: null,
         pessoaId: null,
         descricao: '',
         tipoPessoa: 2,
@@ -390,8 +391,12 @@ export class EstacionamentoService {
         gPessoa('descricao') ??
         ''
     ).trim();
+    const codExportacao = String(
+      firstOfKeys(['codExportacao', 'CodExportacao']) ?? ''
+    ).trim();
     return {
       id: Number(g('id')) || 0,
+      codExportacao: codExportacao || null,
       pessoaId: Number(g('pessoaId')) || Number(gPessoa('id')) || null,
       descricao,
       tipoPessoa: (tipoNum === 1 ? 1 : 2) as 1 | 2,
@@ -408,8 +413,10 @@ export class EstacionamentoService {
    * GET /api/Estacionamento/{id}
    * Retorna o valor já mapeado para o formulário de edição.
    */
-  obterPorId(id: number): Observable<EstacionamentoFormValue | null> {
-    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`).pipe(
+  obterPorId(id: number, codExportacao?: string | null): Observable<EstacionamentoFormValue | null> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`, {
+      params: this.paramsCodExportacao(codExportacao),
+    }).pipe(
       timeout(15000),
       map((body) => {
         const result = this.extractObterPorIdPayload(body);
@@ -425,11 +432,13 @@ export class EstacionamentoService {
   /**
    * GET /api/Estacionamento/{id} — retorna DTO do formulário e o objeto bruto (validar contaBancaria após PUT).
    */
-  obterPorIdDetalhado(id: number): Observable<{
+  obterPorIdDetalhado(id: number, codExportacao?: string | null): Observable<{
     dto: EstacionamentoFormValue | null;
     raw: EstacionamentoObterPorIdResultDTO | null;
   }> {
-    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`).pipe(
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`, {
+      params: this.paramsCodExportacao(codExportacao),
+    }).pipe(
       timeout(15000),
       map((body) => {
         const result = this.extractObterPorIdPayload(body);
@@ -440,6 +449,11 @@ export class EstacionamentoService {
       }),
       catchError((err: unknown) => throwError(() => err))
     );
+  }
+
+  private paramsCodExportacao(codExportacao?: string | null): HttpParams {
+    const cod = String(codExportacao ?? '').trim();
+    return cod ? new HttpParams().set('codExportacao', cod) : new HttpParams();
   }
 
   private extractObterPorIdPayload(body: unknown): EstacionamentoObterPorIdResultDTO | null {

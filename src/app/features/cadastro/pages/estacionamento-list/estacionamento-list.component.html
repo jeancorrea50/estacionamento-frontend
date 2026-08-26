@@ -82,7 +82,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (item of itens; track item.id) {
+            @for (item of itens; track trackEstacionamento(item)) {
               <tr class="trn-table__row">
                 <td>{{ item.id }}</td>
                 <td>{{ item.descricao }}</td>
@@ -98,6 +98,7 @@
                     <a
                       class="trn-act-btn"
                       [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                      [queryParams]="queryEditar(item)"
                       title="Visualizar"
                       aria-label="Visualizar estacionamento"
                     >
@@ -106,6 +107,7 @@
                     <a
                       class="trn-act-btn trn-act-btn--accent"
                       [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                      [queryParams]="queryEditar(item)"
                       title="Editar"
                       aria-label="Editar estacionamento"
                     >

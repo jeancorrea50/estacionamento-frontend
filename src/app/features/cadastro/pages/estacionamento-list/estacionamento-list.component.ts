@@ -246,6 +246,15 @@ export class EstacionamentoListComponent {
     return item.cnpj ?? '';
   }
 
+  trackEstacionamento(item: EstacionamentoListItemDTO): string {
+    return `${item.id}:${item.codExportacao ?? ''}`;
+  }
+
+  queryEditar(item: EstacionamentoListItemDTO): { codExportacao?: string } {
+    const cod = String(item.codExportacao ?? '').trim();
+    return cod ? { codExportacao: cod } : {};
+  }
+
   private shouldRetryDeleteWithPessoaId(err: unknown): boolean {
     const api = err as ApiError | null;
     const msg = String(api?.message ?? '').toLowerCase();

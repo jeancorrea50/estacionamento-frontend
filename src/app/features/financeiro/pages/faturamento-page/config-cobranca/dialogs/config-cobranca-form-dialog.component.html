@@ -387,153 +387,100 @@
     }
 
     @if (abaAtiva === 'acordo') {
-      <!-- 1 — Transportadora do acordo (lookup do backend) -->
       <section class="cfg-block">
-        <div class="cfg-block__head">
-          <span class="cfg-block__num">1</span>
-          <h3 class="cfg-block__title">Transportadora</h3>
+        <div class="cfg-block__head cfg-block__head--with-action">
+          <div class="cfg-block__head-main">
+            <span class="cfg-block__num">1</span>
+            <h3 class="cfg-block__title">Acordos por transportadora</h3>
+          </div>
+          @if (podeCriarNovoAcordo) {
+            <button
+              type="button"
+              class="cfg-btn cfg-btn--primary cfg-btn--sm"
+              [disabled]="!gerarAuto"
+              (click)="abrirEditorAcordo()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              Criar acordo
+            </button>
+          }
         </div>
-        <div class="cfg-block__grid cfg-block__grid--3">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>Buscar por nome ou CNPJ</mat-label>
-            <input
-              matInput
-              name="filtroAcordoTransportadora"
-              [(ngModel)]="filtroAcordoTransportadora"
-              placeholder="Digite para filtrar..."
-              autocomplete="off"
-            />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>Transportadora</mat-label>
-            <mat-select name="transportadoraIdAcordo" [(ngModel)]="transportadoraId" required>
-              @for (t of transportadorasFiltradasAcordo; track t.id) {
-                <mat-option [value]="t.id">{{ t.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>CNPJ</mat-label>
-            <input
-              matInput
-              name="transportadoraCnpjAcordo"
-              [value]="cnpjTransportadoraFormatado"
-              placeholder="00.000.000/0000-00"
-              readonly
-              tabindex="-1"
-              aria-readonly="true"
-            />
-          </mat-form-field>
-        </div>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field cfg-field--search">
+          <mat-label>Buscar por nome ou CNPJ</mat-label>
+          <input
+            matInput
+            name="filtroAcordoTransportadora"
+            [(ngModel)]="filtroAcordoTransportadora"
+            placeholder="Filtrar acordos..."
+            autocomplete="off"
+          />
+        </mat-form-field>
+
         <p class="cfg-acordo__hint">
           <span class="material-symbols-outlined" aria-hidden="true">info</span>
-          CNPJ vem do cadastro da transportadora no sistema (somente leitura).
+          Cada transportadora pode ter apenas 1 acordo. CNPJ e lista vêm do cadastro do sistema.
         </p>
-      </section>
 
-      @if (!exigeAcordo) {
-        <section class="cfg-block">
+        @if (!cardsAcordoFiltrados.length) {
           <div class="cfg-acordo-empty">
             <p class="cfg-acordo__desc">
-              Selecione a modalidade <strong>Acordo</strong> na aba Regras para criar período, vagas e excedente.
+              @if (filtroAcordoTransportadora.trim()) {
+                Nenhum acordo encontrado para o filtro informado.
+              } @else {
+                Nenhum acordo criado ainda. Use <strong>Criar acordo</strong> e selecione a transportadora.
+              }
             </p>
-            <button type="button" class="cfg-btn cfg-btn--outline" (click)="selecionarAba('regras')">
-              Ir para Regras
-            </button>
           </div>
-        </section>
-      } @else {
-        <!-- 2 — Período e vagas -->
-        <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
-          <div class="cfg-block__head">
-            <span class="cfg-block__num">2</span>
-            <h3 class="cfg-block__title">Período e vagas</h3>
-          </div>
-          <div class="cfg-acordo">
-            @if (!acordoCriado) {
-              <div class="cfg-acordo-empty">
-                <p class="cfg-acordo__desc">
-                  Crie o acordo com período e quantidade de vagas por mês. O excedente é definido abaixo.
-                </p>
-                <button
-                  type="button"
-                  class="cfg-btn cfg-btn--primary cfg-btn--block"
-                  [disabled]="!gerarAuto"
-                  (click)="abrirEditorAcordo()"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                  Criar acordo
-                </button>
-              </div>
-            } @else {
-              <div class="cfg-acordo-lista">
-                <article class="cfg-acordo-card">
-                  <div class="cfg-acordo-card__body">
-                    <h4 class="cfg-acordo-card__title">Acordo criado</h4>
-                    <p class="cfg-acordo-card__meta">{{ periodoAcordoLabel }}</p>
-                    <ul class="cfg-acordo-card__items">
-                      @for (l of acordo.listagens; track l.id) {
-                        <li>{{ resumoListagem(l) }}</li>
-                      }
-                    </ul>
+        } @else {
+          <div class="cfg-acordo-lista">
+            @for (card of cardsAcordoFiltrados; track card.key) {
+              <article class="cfg-acordo-card" [class.cfg-acordo-card--readonly]="!card.editavel">
+                <div class="cfg-acordo-card__body">
+                  <div class="cfg-acordo-card__top">
+                    <h4 class="cfg-acordo-card__title">{{ card.transportadoraNome }}</h4>
+                    @if (card.editavel) {
+                      <span class="cfg-acordo-card__badge">Em edição</span>
+                    } @else {
+                      <span class="cfg-acordo-card__badge cfg-acordo-card__badge--muted">Já cadastrado</span>
+                    }
                   </div>
-                  <button
-                    type="button"
-                    class="cfg-btn cfg-btn--ghost cfg-btn--sm"
-                    [disabled]="!gerarAuto"
-                    (click)="abrirEditorAcordo()"
-                  >
-                    Editar
-                  </button>
-                </article>
-              </div>
+                  <p class="cfg-acordo-card__meta">CNPJ: {{ card.cnpj }}</p>
+                  <p class="cfg-acordo-card__meta">Período: {{ card.periodo }}</p>
+                  <p class="cfg-acordo-card__meta">
+                    Excedente: R$ {{ card.excedenteTexto }} · {{ card.tipoExcedenteLabel }}
+                  </p>
+                  <ul class="cfg-acordo-card__items">
+                    @for (linha of card.listagens; track linha) {
+                      <li>{{ linha }}</li>
+                    }
+                  </ul>
+                </div>
+                @if (card.editavel) {
+                  <div class="cfg-acordo-card__actions">
+                    <button
+                      type="button"
+                      class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                      [disabled]="!gerarAuto"
+                      (click)="abrirEditorAcordo()"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                      [disabled]="!gerarAuto"
+                      (click)="removerAcordoAtual()"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                }
+              </article>
             }
           </div>
-        </section>
-
-        <!-- 3 — Excedente -->
-        <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
-          <div class="cfg-block__head">
-            <span class="cfg-block__num">3</span>
-            <h3 class="cfg-block__title">Excedente</h3>
-          </div>
-          <div class="cfg-block__grid cfg-block__grid--2">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Custo do excedente</mat-label>
-              <span matTextPrefix class="cfg-money-field__prefix">R$&nbsp;</span>
-              <input
-                matInput
-                type="text"
-                name="custoExcedente"
-                inputmode="decimal"
-                autocomplete="off"
-                placeholder="0,00"
-                [(ngModel)]="custoExcedenteTexto"
-                [disabled]="!gerarAuto"
-                (blur)="onCustoExcedenteBlur()"
-                required
-              />
-            </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-              <mat-label>Tipo de cobrança do excedente</mat-label>
-              <mat-select
-                name="tipoCobrancaExcedente"
-                [(ngModel)]="acordo.tipoCobrancaExcedente"
-                [disabled]="!gerarAuto"
-                required
-              >
-                @for (t of tipoExcedenteOpcoes; track t.value) {
-                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-          <p class="cfg-acordo__hint">
-            <span class="material-symbols-outlined" aria-hidden="true">info</span>
-            Cobrado quando ultrapassar a quantidade de vagas do acordo.
-          </p>
-        </section>
-      }
+        }
+      </section>
     }
   </mat-dialog-content>
 

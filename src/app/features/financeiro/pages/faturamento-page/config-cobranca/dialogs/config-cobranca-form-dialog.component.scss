@@ -432,10 +432,44 @@
   background: var(--cfg-option-hover);
 }
 
+.cfg-acordo-card--readonly {
+  opacity: 0.92;
+}
+
+.cfg-acordo-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cfg-acordo-card__top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .cfg-acordo-card__title {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 0.875rem;
   color: var(--cfg-text);
+}
+
+.cfg-acordo-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1d4ed8;
+  background: color-mix(in srgb, #2563eb 16%, transparent);
+}
+
+.cfg-acordo-card__badge--muted {
+  color: var(--cfg-muted);
+  background: color-mix(in srgb, var(--cfg-muted) 16%, transparent);
 }
 
 .cfg-acordo-card__meta,
@@ -448,6 +482,18 @@
 .cfg-acordo-card__items {
   padding-left: 16px;
   margin: 6px 0;
+}
+
+.cfg-acordo-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cfg-field--search {
+  width: 100%;
+  max-width: 420px;
 }
 
 .cfg-acordo-listagem {

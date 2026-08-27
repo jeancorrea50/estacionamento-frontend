@@ -714,11 +714,6 @@ export class MenuAdminPageComponent implements OnInit {
       return;
     }
 
-    const payloadAlterar = menuAdminToUpdateInput(atualizado, {
-      includePermissions: false,
-      permissionSubMenuId: sid,
-    });
-
     const nextPermissions =
       atualizado.subMenus.find((s) => s.id === sid)?.permissions ?? [];
     const addedPermissions = nextPermissions.filter((p) => p.id <= 0);
@@ -735,8 +730,10 @@ export class MenuAdminPageComponent implements OnInit {
       subOriginal.rota !== rota ||
       subOriginal.ativo !== this.subFormAtivo ||
       subOriginal.exibirNoSidebar !== this.subFormExibirNoSidebar;
+    const includePermissionsInAlterar =
+      addedPermissions.length > 0 || updatedExistingPermissions;
     const hasPermissionChanges =
-      addedPermissions.length > 0 || removedPermissionIds.length > 0 || updatedExistingPermissions;
+      includePermissionsInAlterar || removedPermissionIds.length > 0;
 
     if (!hasMetaChanges && !hasPermissionChanges) {
       this.subModalOpen.set(false);
@@ -746,23 +743,19 @@ export class MenuAdminPageComponent implements OnInit {
 
     rememberSidebarVisibility('sub', sid, this.subFormExibirNoSidebar);
 
+    // Edição de submenu existente: sempre PUT Alterar (nunca POST Gravar).
     this.salvandoSubModal.set(true);
     this.deleteRemovedPermissions(removedPermissionIds)
       .then(() =>
-        hasMetaChanges || updatedExistingPermissions
+        hasMetaChanges || includePermissionsInAlterar
           ? firstValueFrom(
               this.menuApi.alterar(
                 menuAdminToUpdateInput(atualizado, {
-                  includePermissions: updatedExistingPermissions,
+                  includePermissions: includePermissionsInAlterar,
                   permissionSubMenuId: sid,
                 })
               )
             )
-          : Promise.resolve()
-      )
-      .then(() =>
-        addedPermissions.length > 0
-          ? firstValueFrom(this.menuApi.gravar(this.buildGravarPayloadFromMenu(atualizado)))
           : Promise.resolve()
       )
       .then(() => {

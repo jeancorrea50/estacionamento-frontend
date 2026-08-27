@@ -36,8 +36,10 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   recebimentos: `${FATURAMENTO_ROUTE}/recebimentos`,
   inadimplencia: `${FATURAMENTO_ROUTE}/inadimplencia`,
   faturas: `${FATURAMENTO_ROUTE}/faturas`,
-  'configuracoes de cobranca': `${FATURAMENTO_ROUTE}/config-cobranca`,
-  'config cobranca': `${FATURAMENTO_ROUTE}/config-cobranca`,
+  'configuracoes de cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
+  'config cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
+  'configuracao de cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
+  'configuracao cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
   configuracoes: '/app/configuracoes',
   configuracao: '/app/configuracoes',
   cadastros: '/app/cadastro',
@@ -69,6 +71,9 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/financeiro': FATURAMENTO_ROUTE,
   '/app/financeiro/faturamento': FATURAMENTO_ROUTE,
+  '/app/faturamento/config-cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
+  '/app/financeiro/faturamento/config-cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
+  '/app/financeiro/config-cobranca': `${FATURAMENTO_ROUTE}/configuracao-cobranca`,
   ...Object.fromEntries(
     FATURAMENTO_TABS.map((t) => [`/app/financeiro/faturamento/${t.path}`, t.route] as const)
   ),

@@ -48,11 +48,17 @@ export const FATURAMENTO_ROUTES: Routes = [
           )
       },
       {
-        path: 'config-cobranca',
+        path: 'configuracao-cobranca',
         loadComponent: () =>
           import('./pages/faturamento-page/config-cobranca/faturamento-config-cobranca.component').then(
             m => m.FaturamentoConfigCobrancaComponent
           )
+      },
+      // Legado: slug antigo `config-cobranca`
+      {
+        path: 'config-cobranca',
+        pathMatch: 'full',
+        redirectTo: 'configuracao-cobranca'
       }
     ]
   }

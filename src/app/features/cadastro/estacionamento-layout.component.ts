@@ -12,6 +12,7 @@ import {
   EstacionamentoFormStep,
   Estacionamento_STEP_LABELS
 } from './services/estacionamento-form-step.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-estacionamento-layout',

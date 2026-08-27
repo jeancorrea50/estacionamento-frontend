@@ -2,6 +2,8 @@
  * Fonte única das abas de Faturamento (rota, path e rótulo).
  * Usada pelas abas da página, pelo seed de Gerenciamento > Menu e pelos links da Visão Geral,
  * evitando divergência entre menu cadastrado e navegação da aplicação.
+ *
+ * Canônico (Gerenciamento > Menu): `/app/faturamento/{aba}` — sem `financeiro`.
  */
 import type { FaturamentoTabId } from './pages/faturamento-page/faturamento-visao.types';
 
@@ -11,6 +13,9 @@ export const FATURAMENTO_ROUTE = '/app/faturamento';
 /** Prefixo legado (menu/API antigos). */
 const LEGACY_FINANCEIRO_PREFIX = '/app/financeiro';
 const LEGACY_FINANCEIRO_FATURAMENTO = `${LEGACY_FINANCEIRO_PREFIX}/faturamento`;
+/** Slug antigo da aba de configuração de cobrança. */
+const LEGACY_CONFIG_COBRANCA_SLUG = 'config-cobranca';
+const CONFIG_COBRANCA_SLUG = 'configuracao-cobranca';
 
 export interface FaturamentoTabDef {
   id: FaturamentoTabId;
@@ -31,7 +36,7 @@ export const FATURAMENTO_TABS: readonly FaturamentoTabDef[] = [
   tab('recebimentos', 'Recebimentos'),
   tab('inadimplencia', 'Inadimplência'),
   tab('faturas', 'Faturas'),
-  tab('config-cobranca', 'Configurações de Cobrança')
+  tab('configuracao-cobranca', 'Configurações de Cobrança')
 ];
 
 export function faturamentoTabRoute(id: FaturamentoTabId): string {
@@ -43,8 +48,8 @@ export function faturamentoTabLabel(id: FaturamentoTabId): string {
 }
 
 /**
- * Converte rotas legadas `/app/financeiro(/faturamento)?/...` para `/app/faturamento/...`.
- * Mantém o valor original quando não for rota financeira/faturamento.
+ * Converte rotas legadas `/app/financeiro(/faturamento)?/...` e `config-cobranca`
+ * para o canônico `/app/faturamento/...`.
  */
 export function normalizeFaturamentoAppRoute(raw: string | null | undefined): string | null {
   if (raw == null) return null;
@@ -62,11 +67,15 @@ export function normalizeFaturamentoAppRoute(raw: string | null | undefined): st
     return FATURAMENTO_ROUTE;
   }
   if (lower.startsWith(`${LEGACY_FINANCEIRO_FATURAMENTO}/`)) {
-    return `${FATURAMENTO_ROUTE}${path.slice(LEGACY_FINANCEIRO_FATURAMENTO.length)}`;
-  }
-  if (lower.startsWith(`${LEGACY_FINANCEIRO_PREFIX}/`)) {
+    path = `${FATURAMENTO_ROUTE}${path.slice(LEGACY_FINANCEIRO_FATURAMENTO.length)}`;
+  } else if (lower.startsWith(`${LEGACY_FINANCEIRO_PREFIX}/`)) {
     const rest = path.slice(LEGACY_FINANCEIRO_PREFIX.length);
-    return `${FATURAMENTO_ROUTE}${rest}`;
+    path = `${FATURAMENTO_ROUTE}${rest}`;
+  }
+
+  const afterNorm = path.toLowerCase();
+  if (afterNorm.endsWith(`/${LEGACY_CONFIG_COBRANCA_SLUG}`)) {
+    return `${FATURAMENTO_ROUTE}/${CONFIG_COBRANCA_SLUG}`;
   }
 
   return path === '/app' ? null : path;

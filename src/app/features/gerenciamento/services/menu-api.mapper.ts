@@ -126,10 +126,10 @@ export function computeNextIdFromMenus(menus: MenuAdmin[]): number {
 
 function toPermissionInput(p: MenuPermissionRow): PermissionInput {
   return {
-    id: p.id,
+    id: p.id > 0 ? p.id : 0,
     ordem: p.ordem,
-    subModuleId: p.subModuleId,
-    descricao: p.acao,
+    subModuleId: p.subModuleId > 0 ? p.subModuleId : 0,
+    descricao: String(p.acao ?? '').trim().toLowerCase(),
   };
 }
 

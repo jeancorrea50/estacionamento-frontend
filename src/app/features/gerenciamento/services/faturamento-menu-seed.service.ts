@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
-import { FATURAMENTO_ROUTE, FATURAMENTO_TABS } from '../../financeiro/faturamento-rotas';
+import { FATURAMENTO_ROUTE, FATURAMENTO_TABS, normalizeFaturamentoAppRoute } from '../../financeiro/faturamento-rotas';
 import type { MenuAdmin, SubMenuAdmin } from '../models/menu-admin.model';
 import { MenuAdminService } from './menu-admin.service';
 import { MenuApiService } from './menu-api.service';
@@ -120,19 +120,22 @@ export class FaturamentoMenuSeedService {
   }
 
   private buildGravarPayload(menu: MenuAdmin): MenuCreateInput {
+    const menuRota =
+      normalizeFaturamentoAppRoute(menu.rota) ??
+      (menu.rota?.trim() ? menu.rota.trim() : FATURAMENTO_ROUTE);
     return {
       id: menu.id > 0 ? menu.id : 0,
       nome: menu.nome,
       descricao: menu.nome,
       ordem: menu.ordem,
-      rota: menu.rota?.trim() ? menu.rota.trim() : FATURAMENTO_ROUTE,
+      rota: menuRota,
       ativo: menu.ativo,
       subMenus: menu.subMenus.map((s) => ({
         id: s.id > 0 ? s.id : 0,
         nome: s.nome,
         descricao: s.nome,
         ordem: s.ordem,
-        rota: s.rota,
+        rota: normalizeFaturamentoAppRoute(s.rota) ?? s.rota,
         ativo: s.ativo,
         isAtivo: s.ativo,
         isActive: s.ativo,

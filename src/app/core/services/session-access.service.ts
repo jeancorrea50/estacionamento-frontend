@@ -1,5 +1,9 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { resolveAppRouteFromNome } from '../../features/gerenciamento/services/menu-route-resolver';
+import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
+import {
+  formatAppMenuDisplayLabel,
+  resolveAppRouteFromNome,
+} from '../../features/gerenciamento/services/menu-route-resolver';
 
 const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v1';
 
@@ -135,7 +139,14 @@ export class SessionAccessService {
       if (!raw) return [];
       const parsed = JSON.parse(raw) as SessionMenuAccess[];
       if (!Array.isArray(parsed)) return [];
-      return normalizeMenus(parsed);
+      const normalized = normalizeMenus(parsed);
+      // Regrava sessão com rotas canônicas (ex.: financeiro → faturamento) após deploy.
+      try {
+        localStorage.setItem(SESSION_MENUS_STORAGE_KEY, JSON.stringify(normalized));
+      } catch {
+        /* ignore */
+      }
+      return normalized;
     } catch {
       return [];
     }
@@ -166,24 +177,29 @@ export class SessionAccessService {
 }
 
 function normalizeMenus(menus: SessionMenuAccess[]): SessionMenuAccess[] {
-  return menus.map((menu) => ({
-    ...menu,
-    descricao: safeText(menu.descricao),
-    rota: normalizeOptionalRoute(menu.rota),
-    selecionado: normalizeBoolean(menu.selecionado),
-    subMenus: (menu.subMenus ?? []).map((sub) => ({
-      ...sub,
-      descricao: safeText(sub.descricao),
-      rota: normalizeOptionalRoute(sub.rota),
-      selecionado: normalizeBoolean(sub.selecionado),
-    })),
-  }));
+  return menus.map((menu) => {
+    const rota = normalizeOptionalRoute(menu.rota);
+    const descricaoRaw = safeText(menu.descricao);
+    return {
+      ...menu,
+      descricao: formatAppMenuDisplayLabel(descricaoRaw, rota) || descricaoRaw,
+      rota,
+      selecionado: normalizeBoolean(menu.selecionado),
+      subMenus: (menu.subMenus ?? []).map((sub) => ({
+        ...sub,
+        descricao: safeText(sub.descricao),
+        rota: normalizeOptionalRoute(sub.rota),
+        selecionado: normalizeBoolean(sub.selecionado),
+      })),
+    };
+  });
 }
 
 function normalizeOptionalRoute(route: string | null | undefined): string | null {
   if (typeof route !== 'string') return null;
   const value = route.trim();
-  return value || null;
+  if (!value) return null;
+  return normalizeFaturamentoAppRoute(value) ?? value;
 }
 
 function normalizeBoolean(value: boolean | null | undefined): boolean | null {

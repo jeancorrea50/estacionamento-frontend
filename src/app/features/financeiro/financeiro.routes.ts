@@ -1,14 +1,10 @@
 import { Routes } from '@angular/router';
 import { FaturamentoPageComponent } from './pages/faturamento-page/faturamento-page.component';
 
-export const FINANCEIRO_ROUTES: Routes = [
+/** Rotas do módulo Faturamento em `/app/faturamento/{aba}`. */
+export const FATURAMENTO_ROUTES: Routes = [
   {
     path: '',
-    pathMatch: 'full',
-    redirectTo: 'faturamento'
-  },
-  {
-    path: 'faturamento',
     component: FaturamentoPageComponent,
     children: [
       {
@@ -52,13 +48,6 @@ export const FINANCEIRO_ROUTES: Routes = [
           )
       },
       {
-        path: 'faturas',
-        loadComponent: () =>
-          import('./pages/faturamento-page/faturas/faturamento-faturas.component').then(
-            m => m.FaturamentoFaturasComponent
-          )
-      },
-      {
         path: 'config-cobranca',
         loadComponent: () =>
           import('./pages/faturamento-page/config-cobranca/faturamento-config-cobranca.component').then(
@@ -68,3 +57,6 @@ export const FINANCEIRO_ROUTES: Routes = [
     ]
   }
 ];
+
+/** @deprecated Use {@link FATURAMENTO_ROUTES}. */
+export const FINANCEIRO_ROUTES = FATURAMENTO_ROUTES;

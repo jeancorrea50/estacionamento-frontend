@@ -28,7 +28,7 @@ function normLabel(value: string | null | undefined): string {
 }
 
 /**
- * Publica no backend (idempotente) os submenus de Faturamento no menu Financeiro,
+ * Publica no backend (idempotente) os submenus de Faturamento,
  * com as mesmas rotas usadas pelas abas do SPA e pelos links da Visão Geral.
  */
 @Injectable({ providedIn: 'root' })
@@ -37,23 +37,23 @@ export class FaturamentoMenuSeedService {
   private readonly menuAdmin = inject(MenuAdminService);
 
   /**
-   * Garante os 6 submenus no menu Financeiro. Se algum faltar, grava via POST Gravar
-   * e recarrega a lista. Sem alteração quando já existem.
+   * Garante os submenus no menu Faturamento (ou Financeiro legado). Se algum faltar,
+   * grava via POST Gravar e recarrega a lista. Sem alteração quando já existem.
    */
   ensureFinanceiroFaturamentoSubMenus(
     menus: MenuAdmin[] = this.menuAdmin.getSnapshot().menus
   ): Observable<{ created: number; labels: string[] }> {
-    const financeiro = this.findFinanceiroMenu(menus);
-    if (!financeiro || financeiro.id <= 0) {
+    const faturamento = this.findFaturamentoMenu(menus);
+    if (!faturamento || faturamento.id <= 0) {
       return of({ created: 0, labels: [] });
     }
 
-    const missing = this.listMissingSubMenus(financeiro);
+    const missing = this.listMissingSubMenus(faturamento);
     if (missing.length === 0) {
       return of({ created: 0, labels: [] });
     }
 
-    const startOrdem = financeiro.subMenus.length;
+    const startOrdem = faturamento.subMenus.length;
     const novos: SubMenuAdmin[] = missing.map((tab, i) => ({
       id: 0,
       nome: tab.label,
@@ -65,8 +65,8 @@ export class FaturamentoMenuSeedService {
     }));
 
     const menuComNovos: MenuAdmin = {
-      ...financeiro,
-      subMenus: [...financeiro.subMenus, ...novos],
+      ...faturamento,
+      subMenus: [...faturamento.subMenus, ...novos],
     };
 
     const payload = this.buildGravarPayload(menuComNovos);
@@ -83,16 +83,21 @@ export class FaturamentoMenuSeedService {
     );
   }
 
-  private findFinanceiroMenu(menus: MenuAdmin[]): MenuAdmin | undefined {
+  private findFaturamentoMenu(menus: MenuAdmin[]): MenuAdmin | undefined {
     const byRoute = menus.find((m) => {
       const r = normRoute(m.rota);
-      return r === '/app/financeiro' || r.startsWith('/app/financeiro/');
+      return (
+        r === normRoute(FATURAMENTO_ROUTE) ||
+        r.startsWith(`${normRoute(FATURAMENTO_ROUTE)}/`) ||
+        r === '/app/financeiro' ||
+        r.startsWith('/app/financeiro/')
+      );
     });
     if (byRoute) return byRoute;
 
     return menus.find((m) => {
       const n = normLabel(m.nome);
-      return n === 'financeiro' || n.includes('financeiro');
+      return n === 'faturamento' || n === 'financeiro' || n.includes('faturamento') || n.includes('financeiro');
     });
   }
 
@@ -120,7 +125,7 @@ export class FaturamentoMenuSeedService {
       nome: menu.nome,
       descricao: menu.nome,
       ordem: menu.ordem,
-      rota: menu.rota?.trim() ? menu.rota.trim() : FATURAMENTO_ROUTE.replace(/\/faturamento$/, ''),
+      rota: menu.rota?.trim() ? menu.rota.trim() : FATURAMENTO_ROUTE,
       ativo: menu.ativo,
       subMenus: menu.subMenus.map((s) => ({
         id: s.id > 0 ? s.id : 0,

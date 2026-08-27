@@ -5,7 +5,8 @@ import { GERENCIAMENTO_ROUTES } from './features/gerenciamento/gerenciamento.rou
 import { DASHBOARD_ROUTES } from './features/dashboard/dashboard.routes';
 import { MOVIMENTOS_ROUTES } from './features/movimentos/movimentos.routes';
 import { RELATORIOS_ROUTES } from './features/relatorios/relatorios.routes';
-import { FINANCEIRO_ROUTES } from './features/financeiro/financeiro.routes';
+import { FATURAMENTO_ROUTES } from './features/financeiro/financeiro.routes';
+import { FATURAMENTO_TABS } from './features/financeiro/faturamento-rotas';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { authGuard } from './core/guards/auth.guard';
@@ -60,11 +61,32 @@ export const routes: Routes = [
 				path: 'relatorios',
 				children: RELATORIOS_ROUTES
 			},
-			// 5. FINANCEIRO
+			// 5. FATURAMENTO (`/app/faturamento/{aba}`)
+			{
+				path: 'faturamento',
+				children: FATURAMENTO_ROUTES
+			},
+			// Legado: /app/financeiro → /app/faturamento
 			{
 				path: 'financeiro',
-				children: FINANCEIRO_ROUTES
+				pathMatch: 'full',
+				redirectTo: 'faturamento',
 			},
+			{
+				path: 'financeiro/faturamento',
+				pathMatch: 'full',
+				redirectTo: 'faturamento',
+			},
+			...FATURAMENTO_TABS.map((t) => ({
+				path: `financeiro/faturamento/${t.path}`,
+				pathMatch: 'full' as const,
+				redirectTo: `faturamento/${t.path}`,
+			})),
+			...FATURAMENTO_TABS.map((t) => ({
+				path: `financeiro/${t.path}`,
+				pathMatch: 'full' as const,
+				redirectTo: `faturamento/${t.path}`,
+			})),
 			// 6. CONFIGURAÇÕES
 			{
 				path: 'configuracoes',

@@ -17,6 +17,8 @@ import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
 import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/service-result.util';
 import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
+import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
+import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
 
 export interface LoginRequest {
   userName: string;
@@ -494,16 +496,18 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
       .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
       .map((menu) => {
         const id = toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']) ?? 0;
-        const rota = toStringValue(menu['rota']) ?? toStringValue(menu['route']);
+        const rotaRaw = toStringValue(menu['rota']) ?? toStringValue(menu['route']);
+        const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;
+        const descricaoRaw =
+          toStringValue(menu['descricao']) ??
+          toStringValue(menu['nome']) ??
+          toStringValue(menu['menuDescricao']);
         const fromApi = toBoolean(
           menu['exibirNoSidebar'] ?? menu['mostrarSidebar'] ?? menu['exibeSidebar'] ?? menu['sidebar']
         );
         return {
           id,
-          descricao:
-            toStringValue(menu['descricao']) ??
-            toStringValue(menu['nome']) ??
-            toStringValue(menu['menuDescricao']),
+          descricao: formatAppMenuDisplayLabel(descricaoRaw ?? '', rota),
           icone: toStringValue(menu['icone']),
           rota,
           ativo: toBoolean(menu['ativo'] ?? menu['isActive']),
@@ -535,7 +539,8 @@ function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
     .map((sub) => {
       const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
-      const rota = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
+      const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
+      const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;
       const fromApi = toBoolean(
         sub['exibirNoSidebar'] ?? sub['mostrarSidebar'] ?? sub['exibeSidebar'] ?? sub['sidebar']
       );

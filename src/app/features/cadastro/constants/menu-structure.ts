@@ -19,15 +19,12 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
-/** Submenus do Financeiro: container Faturamento + uma entrada por aba (mesmas rotas do SPA). */
-const FINANCEIRO_SUBMENUS: MenuSubItem[] = [
-  { id: 'sub-faturamento', label: 'Faturamento', route: FATURAMENTO_ROUTE },
-  ...FATURAMENTO_TABS.map((t) => ({
-    id: `sub-faturamento-${t.id}`,
-    label: t.label,
-    route: t.route,
-  })),
-];
+/** Submenus do Faturamento: uma entrada por aba (mesmas rotas do SPA). */
+const FATURAMENTO_SUBMENUS: MenuSubItem[] = FATURAMENTO_TABS.map((t) => ({
+  id: `sub-faturamento-${t.id}`,
+  label: t.label,
+  route: t.route,
+}));
 
 /** Estrutura completa do menu (seed admin / permissões). Estacionamento é item de topo na sidebar. */
 export const MENU_STRUCTURE: MenuNode[] = [
@@ -35,11 +32,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-movimentos', label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida', icon: 'swap_horiz' },
   { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
   {
-    id: 'menu-financeiro',
-    label: 'Financeiro',
-    route: '/app/financeiro',
+    id: 'menu-faturamento',
+    label: 'Faturamento',
+    route: FATURAMENTO_ROUTE,
     icon: 'payments',
-    children: FINANCEIRO_SUBMENUS,
+    children: FATURAMENTO_SUBMENUS,
   },
   {
     id: 'menu-configuracoes',

@@ -1,4 +1,9 @@
 import { MENU_STRUCTURE, type MenuSubItem } from '../../cadastro/constants/menu-structure';
+import {
+  FATURAMENTO_ROUTE,
+  FATURAMENTO_TABS,
+  normalizeFaturamentoAppRoute,
+} from '../../financeiro/faturamento-rotas';
 
 function norm(s: string): string {
   return s
@@ -23,16 +28,16 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   movimento: '/app/movimentos/entrada-saida',
   relatorio: '/app/relatorios',
   relatorios: '/app/relatorios',
-  financeiro: '/app/financeiro/faturamento',
-  faturamento: '/app/financeiro/faturamento',
+  financeiro: FATURAMENTO_ROUTE,
+  faturamento: FATURAMENTO_ROUTE,
   /** Abas de Faturamento (API pode mandar apenas a descrição do submenu). */
-  'visao geral': '/app/financeiro/faturamento/visao-geral',
-  fechamentos: '/app/financeiro/faturamento/fechamentos',
-  recebimentos: '/app/financeiro/faturamento/recebimentos',
-  inadimplencia: '/app/financeiro/faturamento/inadimplencia',
-  faturas: '/app/financeiro/faturamento/faturas',
-  'configuracoes de cobranca': '/app/financeiro/faturamento/config-cobranca',
-  'config cobranca': '/app/financeiro/faturamento/config-cobranca',
+  'visao geral': `${FATURAMENTO_ROUTE}/visao-geral`,
+  fechamentos: `${FATURAMENTO_ROUTE}/fechamentos`,
+  recebimentos: `${FATURAMENTO_ROUTE}/recebimentos`,
+  inadimplencia: `${FATURAMENTO_ROUTE}/inadimplencia`,
+  faturas: `${FATURAMENTO_ROUTE}/faturas`,
+  'configuracoes de cobranca': `${FATURAMENTO_ROUTE}/config-cobranca`,
+  'config cobranca': `${FATURAMENTO_ROUTE}/config-cobranca`,
   configuracoes: '/app/configuracoes',
   configuracao: '/app/configuracoes',
   cadastros: '/app/cadastro',
@@ -62,7 +67,12 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/movimentos/operacao': '/app/movimentos/entrada-saida',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
-  '/app/financeiro': '/app/financeiro/faturamento',
+  '/app/financeiro': FATURAMENTO_ROUTE,
+  '/app/financeiro/faturamento': FATURAMENTO_ROUTE,
+  ...Object.fromEntries(
+    FATURAMENTO_TABS.map((t) => [`/app/financeiro/faturamento/${t.path}`, t.route] as const)
+  ),
+  ...Object.fromEntries(FATURAMENTO_TABS.map((t) => [`/app/financeiro/${t.path}`, t.route] as const)),
 };
 
 function matchSubItems(nomeNorm: string, subs: MenuSubItem[] | undefined): string | null {
@@ -106,12 +116,14 @@ function normalizeApiRota(raw: string | null | undefined): string | null {
   if (tl === '/app') return null;
 
   if (tl.startsWith('/app/')) {
-    return ALIAS_PATH_PARA_ROTA[tl] ?? t;
+    const aliased = ALIAS_PATH_PARA_ROTA[tl] ?? t;
+    return normalizeFaturamentoAppRoute(aliased) ?? aliased;
   }
 
   const route = `/app${t}`.replace(/\/{2,}/g, '/');
   const routeL = route.toLowerCase();
-  return ALIAS_PATH_PARA_ROTA[routeL] ?? route;
+  const aliased = ALIAS_PATH_PARA_ROTA[routeL] ?? route;
+  return normalizeFaturamentoAppRoute(aliased) ?? aliased;
 }
 
 /**
@@ -122,6 +134,9 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
   const key = norm(raw);
   if (key === 'movimento' || key === 'movimentos') {
     return 'Entrada e Saída';
+  }
+  if (key === 'financeiro') {
+    return 'Faturamento';
   }
 
   const path = (route ?? '').replace(/\/+$/, '').toLowerCase();
@@ -134,6 +149,16 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     // Rótulo de menu de topo associado à feature (não reescreve subrótulos técnicos).
     if (!raw || key === 'movimento' || key === 'movimentos' || key === 'entrada e saida') {
       return 'Entrada e Saída';
+    }
+  }
+  if (
+    path === '/app/financeiro' ||
+    path.startsWith('/app/financeiro/') ||
+    path === FATURAMENTO_ROUTE.toLowerCase() ||
+    path.startsWith(`${FATURAMENTO_ROUTE.toLowerCase()}/`)
+  ) {
+    if (!raw || key === 'financeiro' || key === 'faturamento') {
+      return 'Faturamento';
     }
   }
 

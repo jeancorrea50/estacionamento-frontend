@@ -11,6 +11,7 @@ import {
   mapBuscarResponseToMenuAdmins,
 } from './menu-api.mapper';
 import type { MenuCreateInput } from './menu-api.types';
+import { buildFullAcaoPermissao } from './menu-permission-acao';
 
 function normRoute(route: string | null | undefined): string {
   return String(route ?? '')
@@ -61,7 +62,14 @@ export class FaturamentoMenuSeedService {
       rota: tab.route,
       ativo: true,
       exibirNoSidebar: false,
-      permissions: [],
+      permissions: [
+        {
+          id: 0,
+          ordem: 0,
+          subModuleId: 0,
+          acao: buildFullAcaoPermissao(tab.label, 'visualizar'),
+        },
+      ],
     }));
 
     const menuComNovos: MenuAdmin = {

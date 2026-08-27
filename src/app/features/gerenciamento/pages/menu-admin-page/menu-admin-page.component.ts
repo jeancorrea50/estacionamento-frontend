@@ -203,7 +203,7 @@ export class MenuAdminPageComponent implements OnInit {
         ativo: true,
         exibirNoSidebar: this.menuFormExibirNoSidebar,
         mostrarSidebar: this.menuFormExibirNoSidebar,
-        subMenus: null,
+        subMenus: [],
       };
       this.salvandoMenuModal.set(true);
       this.menuApi
@@ -311,7 +311,7 @@ export class MenuAdminPageComponent implements OnInit {
     this.subFormAtivo = true;
     this.subFormExibirNoSidebar = defaultExibirNoSidebar(this.subFormRota);
     this.subFormRotaManualOverride = false;
-    this.subFormPermissoesSelecionadas = [];
+    this.subFormPermissoesSelecionadas = ['visualizar'];
     this.subFormPermissoesCustomizadas = [];
     this.novaPermissaoCustom = '';
     this.subPermissoesOriginais = [];
@@ -570,47 +570,16 @@ export class MenuAdminPageComponent implements OnInit {
     return `/app/${route}`.replace(/\/{2,}/g, '/');
   }
 
-  /**
-   * Criação de submenu em menu já existente:
-   * backend atualizado passou a aceitar melhor via POST Gravar.
-   */
-  private buildGravarPayloadFromMenu(menu: MenuAdmin): MenuCreateInput {
-    return {
-      id: menu.id > 0 ? menu.id : 0,
-      nome: menu.nome,
-      descricao: menu.nome,
-      ordem: menu.ordem,
-      rota: menu.rota?.trim() ? menu.rota.trim() : undefined,
-      ativo: menu.ativo,
-      exibirNoSidebar: menu.exibirNoSidebar !== false,
-      mostrarSidebar: menu.exibirNoSidebar !== false,
-      subMenus: menu.subMenus.map((s) => ({
-        id: s.id > 0 ? s.id : 0,
-        nome: s.nome,
-        descricao: s.nome,
-        ordem: s.ordem,
-        rota: s.rota,
-        ativo: s.ativo,
-        isAtivo: s.ativo,
-        isActive: s.ativo,
-        exibirNoSidebar: s.exibirNoSidebar !== false,
-        mostrarSidebar: s.exibirNoSidebar !== false,
-        permissions: (s.permissions ?? []).map((p, i) => ({
-          ordem: p.ordem ?? i,
-          id: p.id > 0 ? p.id : 0,
-          subModuleId: s.id > 0 ? s.id : 0,
-          descricao: p.acao,
-        })),
-      })),
-    };
-  }
-
   protected salvarSub(): void {
     if (this.salvandoSubModal()) return;
     const menuId = this.subModalMenuId();
     if (menuId == null) return;
     const nome = this.subFormNome.trim();
     if (!nome) return;
+    if (!this.subFormPermissoesSelecionadas.includes('visualizar')) {
+      this.toast.error('O submenu precisa ter a permissão de visualizar.');
+      return;
+    }
     const rota = this.normalizeSubRoute(this.subFormRota, menuId, nome);
     const sid = this.subEditId();
     if (sid == null) {
@@ -635,10 +604,14 @@ export class MenuAdminPageComponent implements OnInit {
           ),
         };
         const menuComNovoSub: MenuAdmin = { ...menu, subMenus: [...menu.subMenus, novoSub] };
-        const payload = this.buildGravarPayloadFromMenu(menuComNovoSub);
         this.salvandoSubModal.set(true);
         this.menuApi
-          .gravar(payload)
+          .alterar(
+            menuAdminToUpdateInput(menuComNovoSub, {
+              includePermissions: true,
+              permissionSubMenuId: 0,
+            })
+          )
           .pipe(finalize(() => this.salvandoSubModal.set(false)))
           .subscribe({
             next: () => {

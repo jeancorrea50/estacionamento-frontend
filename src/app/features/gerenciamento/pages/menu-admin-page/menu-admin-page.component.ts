@@ -5,7 +5,6 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { finalize, firstValueFrom } from 'rxjs';
 import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { FaturamentoMenuSeedService } from '../../services/faturamento-menu-seed.service';
 import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
@@ -41,7 +40,6 @@ import {
 export class MenuAdminPageComponent implements OnInit {
   protected readonly admin = inject(MenuAdminService);
   private readonly menuApi = inject(MenuApiService);
-  private readonly faturamentoSeed = inject(FaturamentoMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -84,36 +82,16 @@ export class MenuAdminPageComponent implements OnInit {
       });
   }
 
-  private applyBuscarPayload(raw: unknown, options?: { seedFaturamento?: boolean }): void {
+  private applyBuscarPayload(raw: unknown): void {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
-
-    if (options?.seedFaturamento === false) return;
-
-    // Publica (idempotente) Visão Geral, Fechamentos, Recebimentos, Inadimplência,
-    // Faturas e Configurações de Cobrança no menu Financeiro, se ainda não existirem.
-    this.faturamentoSeed.ensureFinanceiroFaturamentoSubMenus(menus).subscribe({
-      next: (result) => {
-        if (result.created <= 0) return;
-        const financeId = this.admin
-          .menus()
-          .find((m) => m.nome.toLowerCase().includes('financeiro'))?.id;
-        if (financeId != null) {
-          this.expandedMenuIds.update((set) => new Set(set).add(financeId));
-        }
-        this.toast.success(
-          `Submenus de Faturamento criados: ${result.labels.join(', ')}.`
-        );
-      },
-      // Erro: toast do errorInterceptor.
-    });
   }
 
   /** Atualiza lista após Gravar/Alterar sem bloquear a tela com o spinner inicial. */
   private refreshMenusAfterMutation(): void {
     this.menuApi.buscar().subscribe({
-      next: (raw) => this.applyBuscarPayload(raw, { seedFaturamento: false }),
+      next: (raw) => this.applyBuscarPayload(raw),
       // Falha no Buscar: toast já exibido pelo errorInterceptor.
     });
   }

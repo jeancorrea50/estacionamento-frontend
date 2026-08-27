@@ -87,6 +87,21 @@ export const routes: Routes = [
 				pathMatch: 'full' as const,
 				redirectTo: `faturamento/${t.path}`,
 			})),
+			{
+				path: 'financeiro/faturamento/config-cobranca',
+				pathMatch: 'full',
+				redirectTo: 'faturamento/configuracao-cobranca',
+			},
+			{
+				path: 'financeiro/config-cobranca',
+				pathMatch: 'full',
+				redirectTo: 'faturamento/configuracao-cobranca',
+			},
+			{
+				path: 'faturamento/config-cobranca',
+				pathMatch: 'full',
+				redirectTo: 'faturamento/configuracao-cobranca',
+			},
 			// 6. CONFIGURAÇÕES
 			{
 				path: 'configuracoes',

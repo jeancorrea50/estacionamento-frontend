@@ -1,8 +1,9 @@
 import { HttpErrorResponse, HttpHandlerFn, HttpRequest } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { Injector, inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { ApiError, ApiErrorResponseBody } from '../models';
 import { ToastService } from '../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 
 /**
  * Status 0 no Angular costuma ser: offline, CORS bloqueando leitura da resposta,
@@ -150,6 +151,7 @@ function isMotoristaWriteRequest(req: HttpRequest<unknown>): boolean {
  */
 export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
   const toast = inject(ToastService);
+  const injector = inject(Injector);
   return next(req).pipe(
     catchError((err: unknown) => {
       const apiError = err instanceof HttpErrorResponse ? toApiError(err) : {
@@ -157,6 +159,22 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         status: undefined,
         fieldErrors: undefined
       };
+
+      const isUnauthorized =
+        apiError.status === 401 &&
+        !isLoginRequest(req) &&
+        !isConfirmarEmailRequest(req) &&
+        !isPasswordResetPublicRequest(req);
+
+      if (isUnauthorized) {
+        // Injector evita dependência circular AuthService ↔ HttpClient.
+        injector.get(AuthService).logoutDueToExpiry(
+          apiError.message?.trim() || 'Sessão expirada. Faça login novamente.'
+        );
+        apiError.toastShown = true;
+        return throwError(() => apiError);
+      }
+
       const skipToast =
         isLoginRequest(req) ||
         isBrasilApiCnpjRequest(req) ||

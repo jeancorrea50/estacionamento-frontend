@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, catchError, map, of } from 'rxjs';
@@ -19,6 +19,7 @@ import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/
 import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
 import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
 import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
+import { ToastService } from '../api/services/toast.service';
 
 export interface LoginRequest {
   userName: string;
@@ -49,13 +50,25 @@ export type LoginResult = { success: true } | { success: false; message: string 
 export class AuthService {
   private readonly LOGGED_USER_KEY = 'loggedUser';
   private readonly TOKEN_KEY = AUTH_TOKEN_STORAGE_KEY;
+  private sessionExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Evita logout/navigate/toast duplicados em rajada de 401. */
+  private endingSession = false;
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private permissionCache: PermissionCacheService,
-    private sessionAccess: SessionAccessService
-  ) {}
+    private sessionAccess: SessionAccessService,
+    private injector: Injector
+  ) {
+    if (this.isLoggedIn()) {
+      if (!this.hasValidSession()) {
+        this.clearLocalSession();
+      } else {
+        this.scheduleSessionExpiryWatch();
+      }
+    }
+  }
 
   /**
    * Faz login via API (POST).
@@ -116,6 +129,7 @@ export class AuthService {
     sessionStorage.setItem('welcomeSeen', 'false');
     this.permissionCache.setKeys(permissionKeys);
     this.sessionAccess.clear();
+    this.scheduleSessionExpiryWatch();
 
     return true;
   }
@@ -235,21 +249,101 @@ export class AuthService {
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(loggedUser));
     sessionStorage.setItem('welcomeSeen', 'false');
+    this.scheduleSessionExpiryWatch();
 
     return { success: true };
+  }
+
+  /**
+   * Sessão com flag de login + JWT presente e ainda não expirado (`exp`).
+   */
+  hasValidSession(): boolean {
+    if (!this.isLoggedIn()) return false;
+    const token = this.getAccessToken();
+    if (!token) return false;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return false;
+    return validateJwtPayload(payload).valid;
+  }
+
+  /**
+   * Encerra a sessão por token inválido/expirado ou 401 da API e volta ao login.
+   */
+  logoutDueToExpiry(message = 'Sessão expirada. Faça login novamente.'): void {
+    if (this.endingSession) return;
+    this.endingSession = true;
+    try {
+      if (this.isLoggedIn() || this.getAccessToken()) {
+        try {
+          this.injector.get(ToastService).error(message);
+        } catch {
+          /* Toast opcional se DI ainda não estiver pronto */
+        }
+      }
+      this.logout();
+    } finally {
+      this.endingSession = false;
+    }
   }
 
   /**
    * Faz logout
    */
   logout(): void {
+    this.clearSessionExpiryWatch();
+    this.clearLocalSession();
+    void this.router.navigate(['/']);
+  }
+
+  private clearLocalSession(): void {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem(this.LOGGED_USER_KEY);
     localStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem('welcomeSeen');
     this.permissionCache.clear();
     this.sessionAccess.clear();
-    this.router.navigate(['/']);
+  }
+
+  /** Limpa sessão sem toast (ex.: rota de login com token já expirado). */
+  clearLocalSessionForLogin(): void {
+    this.clearSessionExpiryWatch();
+    this.clearLocalSession();
+  }
+
+  private scheduleSessionExpiryWatch(): void {
+    this.clearSessionExpiryWatch();
+    const token = this.getAccessToken();
+    if (!token) return;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return;
+
+    const expRaw = payload['exp'];
+    const exp = typeof expRaw === 'number' ? expRaw : Number(expRaw);
+    if (!Number.isFinite(exp)) return;
+
+    const msUntilExpiry = exp * 1000 - Date.now();
+    if (msUntilExpiry <= 0) {
+      this.logoutDueToExpiry();
+      return;
+    }
+
+    // setTimeout estoura ~24,8 dias; para tokens longos reagendamos.
+    const maxDelay = 2_147_483_647;
+    const delay = Math.min(msUntilExpiry, maxDelay);
+    this.sessionExpiryTimer = setTimeout(() => {
+      if (delay < msUntilExpiry) {
+        this.scheduleSessionExpiryWatch();
+        return;
+      }
+      this.logoutDueToExpiry();
+    }, delay);
+  }
+
+  private clearSessionExpiryWatch(): void {
+    if (this.sessionExpiryTimer != null) {
+      clearTimeout(this.sessionExpiryTimer);
+      this.sessionExpiryTimer = null;
+    }
   }
 
   /**

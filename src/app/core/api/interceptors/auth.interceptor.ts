@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { AUTH_TOKEN_STORAGE_KEY, normalizeBearerValue } from '../../auth/auth-token.storage';
+import { decodeJwtPayload, getJwtStringClaim } from '../../auth/jwt.util';
 
 /** Requisições para APIs externas (ex.: BrasilAPI) não devem receber o token do backend. */
 function isExternalApi(req: HttpRequest<unknown>): boolean {
@@ -43,11 +44,19 @@ export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) 
   const token = raw?.trim() ? normalizeBearerValue(raw) : null;
 
   if (token) {
-    req = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const payload = decodeJwtPayload(token);
+    const codExportacao = payload
+      ? getJwtStringClaim(payload, 'CodExportacao', 'codExportacao')
+      : null;
+    const empresaId = payload
+      ? getJwtStringClaim(payload, 'EmpresaId', 'empresaId')
+      : null;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+    if (codExportacao) headers['X-Cod-Exportacao'] = codExportacao;
+    if (empresaId) headers['X-Empresa-Id'] = empresaId;
+    req = req.clone({ setHeaders: headers });
   }
 
   return next(req);

@@ -190,10 +190,12 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     return this.id == null;
   }
 
-  /** Query da lista (ou valor já carregado no form) para o GET por id em outro banco. */
+  /** Query da lista, JWT da sessão ou valor já carregado no form. */
   private resolverCodExportacaoConsulta(): string | undefined {
     const query = this.route.snapshot.queryParamMap.get('codExportacao')?.trim();
     if (query) return query;
+    const doJwt = this.auth.resolveCodExportacao()?.trim();
+    if (doJwt) return doJwt;
     const doForm = String(this.form?.get('codExportacao')?.value ?? '').trim();
     return doForm || undefined;
   }

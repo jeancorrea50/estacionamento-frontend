@@ -3,6 +3,26 @@ import { GerenciamentoLayoutComponent } from './gerenciamento-layout/gerenciamen
 import { adminRoleGuard } from '../../core/guards/admin-role.guard';
 
 export const GERENCIAMENTO_ROUTES: Routes = [
+  /**
+   * Fora do adminRoleGuard: o perfil Estacionamento tem este item no menu de login.
+   * Novo/Editar continuam em `/app/cadastro/estacionamento/...`.
+   */
+  {
+    path: 'estacionamento',
+    loadComponent: () =>
+      import('../cadastro/estacionamento-layout.component').then(
+        (m) => m.EstacionamentoLayoutComponent
+      ),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('../cadastro/pages/estacionamento-list/estacionamento-list.component').then(
+            (m) => m.EstacionamentoListComponent
+          ),
+      },
+    ],
+  },
   {
     path: '',
     component: GerenciamentoLayoutComponent,
@@ -41,26 +61,6 @@ export const GERENCIAMENTO_ROUTES: Routes = [
         path: 'banco-dados',
         redirectTo: 'bancoDados',
         pathMatch: 'full',
-      },
-      /**
-       * Lista + toolbar iguais a `/app/cadastro/estacionamento` (layout compartilhado).
-       * Novo/Editar continuam nas rotas canônicas em `/app/cadastro/estacionamento/...`.
-       */
-      {
-        path: 'estacionamento',
-        loadComponent: () =>
-          import('../cadastro/estacionamento-layout.component').then(
-            (m) => m.EstacionamentoLayoutComponent
-          ),
-        children: [
-          {
-            path: '',
-            loadComponent: () =>
-              import('../cadastro/pages/estacionamento-list/estacionamento-list.component').then(
-                (m) => m.EstacionamentoListComponent
-              ),
-          },
-        ],
       },
     ],
   },

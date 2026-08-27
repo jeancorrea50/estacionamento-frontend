@@ -76,6 +76,10 @@ export function getJwtStringClaim(
     if (typeof v === 'string' && v.trim()) {
       return v.trim();
     }
+    if (Array.isArray(v)) {
+      const first = v.find((x): x is string => typeof x === 'string' && x.trim().length > 0);
+      if (first) return first.trim();
+    }
   }
   return null;
 }

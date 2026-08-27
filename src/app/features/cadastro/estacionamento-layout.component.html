@@ -76,10 +76,12 @@
         <span class="material-symbols-outlined" aria-hidden="true">search</span>
         Buscar
       </button>
-      <a class="est-dash-btn est-dash-btn--primary" routerLink="/app/cadastro/estacionamento/novo">
-        <span class="material-symbols-outlined" aria-hidden="true">add</span>
-        Novo
-      </a>
+      @if (isAdmin) {
+        <a class="est-dash-btn est-dash-btn--primary" routerLink="/app/cadastro/estacionamento/novo">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo
+        </a>
+      }
     </section>
   }
 

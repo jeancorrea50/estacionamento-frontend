@@ -12,6 +12,7 @@ import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 
@@ -45,6 +46,8 @@ export class EstacionamentoListComponent {
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+  readonly canExcluir = this.auth.isAdmin();
 
   itens: EstacionamentoListItemDTO[] = [];
   /** Só vira true durante GET Buscar; antes do primeiro clique em "Buscar" não há requisição. */
@@ -64,8 +67,8 @@ export class EstacionamentoListComponent {
   constructor() {
     effect(() => {
       const t = this.toolbar.trigger();
-      // Gatilho 0 = ainda não clicou em "Buscar" no layout; não chama a API.
-      if (t === 0) {
+      // Admin: espera o clique em Buscar. Perfil Estacionamento: carrega o pátio da sessão.
+      if (t === 0 && this.auth.isAdmin()) {
         this.ngZone.run(() => {
           this.loading = false;
           this.itens = [];

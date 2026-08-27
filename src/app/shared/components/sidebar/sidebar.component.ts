@@ -120,6 +120,12 @@ export class SidebarComponent implements OnInit {
   /** Espelha backend `SystemRoles.Admin` — item só para Admin. */
   private isGerenciamentoMenuItem(item: MenuItem): boolean {
     const route = this.normalizeRoute(item.route).toLowerCase();
+    if (
+      route === '/app/cadastro/estacionamento' ||
+      route.startsWith('/app/cadastro/estacionamento/')
+    ) {
+      return false;
+    }
     if (route === '/app/gerenciamento' || route.startsWith('/app/gerenciamento/')) {
       return true;
     }

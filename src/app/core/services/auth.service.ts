@@ -393,6 +393,20 @@ export class AuthService {
     return readEmpresaIdClaim(payload);
   }
 
+  /** GUID global do pátio (claim `CodExportacao`). */
+  resolveCodExportacao(): string | null {
+    const token = this.getAccessToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return null;
+    return getJwtStringClaim(payload, 'CodExportacao', 'codExportacao');
+  }
+
+  isEstacionamentoRole(): boolean {
+    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
+    return perfil === 'estacionamento';
+  }
+
   /**
    * Verifica se a tela de boas-vindas já foi vista
    */

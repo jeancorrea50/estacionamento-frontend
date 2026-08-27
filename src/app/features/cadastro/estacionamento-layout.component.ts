@@ -24,6 +24,7 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   readonly stepService = inject(EstacionamentoFormStepService);
   readonly toolbar = inject(EstacionamentoToolbarService);
+  readonly isAdmin = inject(AuthService).isAdmin();
 
   /** True quando a rota é novo ou editar (formulário com stepper). */
   showStepper = signal(false);

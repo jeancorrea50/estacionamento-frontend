@@ -113,16 +113,18 @@
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                     </a>
-                    <button
-                      type="button"
-                      class="trn-act-btn trn-act-btn--danger"
-                      [disabled]="excluindoId === item.id"
-                      [title]="excluindoId === item.id ? 'Excluindo…' : 'Excluir'"
-                      [attr.aria-label]="'Excluir estacionamento'"
-                      (click)="excluir(item)"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                    </button>
+                    @if (canExcluir) {
+                      <button
+                        type="button"
+                        class="trn-act-btn trn-act-btn--danger"
+                        [disabled]="excluindoId === item.id"
+                        [title]="excluindoId === item.id ? 'Excluindo…' : 'Excluir'"
+                        [attr.aria-label]="'Excluir estacionamento'"
+                        (click)="excluir(item)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>

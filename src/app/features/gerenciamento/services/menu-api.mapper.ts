@@ -239,15 +239,15 @@ export function menuAdminToUpdateInput(
 }
 
 /**
- * PUT Alterar enviando **somente** o submenu alvo (criação ou edição).
- * Evita reenviar todos os submenus do menu e dados incompletos de itens existentes.
+ * PUT Alterar enviando o menu pai completo + **somente** o submenu alvo (criação ou edição).
+ * Preserva nome/rota/ordem do módulo no backend e evita duplicar submenus existentes.
  */
 export function menuAdminToAlterarSubMenuOnlyInput(
-  menuId: number,
+  menu: MenuAdmin,
   sub: SubMenuAdmin,
   options?: { includePermissions?: boolean }
 ): MenuUpdateInput {
-  if (menuId <= 0) {
+  if (menu.id <= 0) {
     throw new Error('menuId inválido para Alterar submenu.');
   }
 
@@ -257,9 +257,14 @@ export function menuAdminToAlterarSubMenuOnlyInput(
     ? toSubMenuInputForInsert(sub)
     : toSubMenuInputForUpdate(sub, { includePermissions });
 
-  // Payload mínimo: apenas o menu pai (id) + o submenu alvo — evita duplicar itens existentes.
   return {
-    id: menuId,
+    id: menu.id,
+    nome: menu.nome,
+    descricao: menu.nome,
+    ordem: menu.ordem,
+    rota: menu.rota?.trim() ? menu.rota.trim() : undefined,
+    ativo: menu.ativo !== false,
+    ...sidebarPayload(menu.exibirNoSidebar !== false),
     subMenus: [subInput],
   };
 }

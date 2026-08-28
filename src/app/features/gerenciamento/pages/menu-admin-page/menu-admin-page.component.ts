@@ -636,7 +636,7 @@ export class MenuAdminPageComponent implements OnInit {
         }
         this.salvandoSubModal.set(true);
         this.menuApi
-          .alterar(menuAdminToAlterarSubMenuOnlyInput(menuId, novoSub, { includePermissions: true }))
+          .alterar(menuAdminToAlterarSubMenuOnlyInput(menu, novoSub, { includePermissions: true }))
           .pipe(finalize(() => this.salvandoSubModal.set(false)))
           .subscribe({
             next: () => {
@@ -750,7 +750,7 @@ export class MenuAdminPageComponent implements OnInit {
         hasMetaChanges || includePermissionsInAlterar
           ? firstValueFrom(
               this.menuApi.alterar(
-                menuAdminToAlterarSubMenuOnlyInput(menuId, updatedSub, {
+                menuAdminToAlterarSubMenuOnlyInput(menu, updatedSub, {
                   includePermissions: includePermissionsInAlterar,
                 })
               )

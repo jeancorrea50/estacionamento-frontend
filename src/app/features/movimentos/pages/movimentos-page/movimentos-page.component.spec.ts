@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
@@ -48,13 +48,8 @@ describe('MovimentosPageComponent', () => {
     success: vi.fn(),
     error: vi.fn()
   };
-  const permissionCacheMock = {
-    has: (key: string) =>
-      key === 'entradasaida.visualizar' ||
-      key === 'entradasaida.gravar' ||
-      key === 'entradasaida.alterar' ||
-      key === 'entradasaida.excluir',
-    hasAny: () => false
+  const sessionAccessMock = {
+    canAccessRoute: () => true,
   };
 
   const routerMock = { navigate: vi.fn().mockResolvedValue(true) };
@@ -74,7 +69,7 @@ describe('MovimentosPageComponent', () => {
       providers: [
         { provide: EntradaSaidaService, useValue: entradaSaidaServiceMock },
         { provide: ToastService, useValue: toastServiceMock },
-        { provide: PermissionCacheService, useValue: permissionCacheMock },
+        { provide: SessionAccessService, useValue: sessionAccessMock },
         { provide: Router, useValue: routerMock },
         { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: SignalrDashboardService, useValue: signalrDashboardServiceMock },

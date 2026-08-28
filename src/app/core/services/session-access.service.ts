@@ -62,6 +62,10 @@ export class SessionAccessService {
     }
   }
 
+  /**
+   * Verifica se a URL atual está entre as rotas liberadas no payload `menus` do login.
+   * Sem menus na sessão (legado/dev), libera o acesso.
+   */
   canAccessRoute(url: string): boolean {
     if (!this.hasSessionMenus()) {
       return true;

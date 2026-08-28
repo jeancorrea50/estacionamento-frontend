@@ -9,7 +9,8 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../../../core/api/services/toast.service';
-import { PermissionCacheService } from '../../../core/services/permission-cache.service';
+import { SessionAccessService } from '../../../core/services/session-access.service';
+import { PATIO_ENTRADA_SAIDA_ROUTE } from '../../patio/patio-rotas';
 import { ApiError } from '../../../core/api/models';
 import { PaginatedSearchItem } from '../../../shared/models/paginated-search.models';
 import { VeiculoService } from '../../cadastro/services/veiculo.service';
@@ -62,15 +63,20 @@ export class EntradaSaidaFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly permissionCache = inject(PermissionCacheService);
+  private readonly sessionAccess = inject(SessionAccessService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly motoristaInputRef = viewChild<ElementRef<HTMLInputElement>>('motoristaInput');
   private readonly placaInputRef = viewChild<ElementRef<HTMLInputElement>>('placaInput');
   private readonly blurBuscaPlaca$ = new Subject<void>();
 
-  readonly canGravar = this.permissionCache.has('entradasaida.gravar') || this.permissionCache.hasAny(['*']);
-  readonly canAlterar = this.permissionCache.has('entradasaida.alterar') || this.permissionCache.hasAny(['*']);
+  get canGravar(): boolean {
+    return this.sessionAccess.canAccessRoute(PATIO_ENTRADA_SAIDA_ROUTE);
+  }
+
+  get canAlterar(): boolean {
+    return this.canGravar;
+  }
 
   carregandoRegistro = false;
   salvando = false;

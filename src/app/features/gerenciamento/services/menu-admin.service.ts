@@ -643,38 +643,17 @@ export class MenuAdminService {
 
     const withCadastro = flattened.map((item) => this.sanitizeCadastroSidebarNavItem(item));
     const labeled = withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
-    return this.ensureMovimentosListaNavItem(labeled);
+    return labeled;
   }
 
   /**
-   * Garante item "Movimentos" na sidebar logo após "Entrada e Saída"
-   * quando a sessão/API ainda não expõe `/app/patio/movimentacoes`.
+   * @deprecated Itens da sidebar vêm exclusivamente do payload `menus` do login.
+   * Mantido apenas para compatibilidade de chamadas internas.
    */
   private ensureMovimentosListaNavItem<
     T extends { label: string; route: string; icon: string; children?: unknown[] },
   >(items: T[]): T[] {
-    const listaRoute = '/app/patio/movimentacoes';
-    const entradaRoute = '/app/patio/entrada-saida';
-
-    const hasLista = items.some((item) => this.normalizeSidebarRoute(item.route) === listaRoute);
-    if (hasLista) return items;
-
-    const entradaIdx = items.findIndex(
-      (item) =>
-        this.normalizeSidebarRoute(item.route) === entradaRoute ||
-        item.route.startsWith(`${entradaRoute}/`)
-    );
-    if (entradaIdx < 0) return items;
-
-    const movimentosItem = {
-      ...items[entradaIdx],
-      label: 'Movimentações',
-      route: listaRoute,
-      icon: resolveMaterialSymbolIconFromModule('Movimentações', 'format_list_bulleted'),
-      children: undefined,
-    } as T;
-
-    return [...items.slice(0, entradaIdx + 1), movimentosItem, ...items.slice(entradaIdx + 1)];
+    return items;
   }
 
   private normalizeSidebarRoute(route: string): string {

@@ -1,4 +1,5 @@
 import type { SessionMenuAccess } from '../services/session-access.service';
+import { isRegisteredSpaRoute } from './spa-route-registry';
 
 /**
  * Rotas enviadas no login devem seguir o padrão do SPA:
@@ -45,6 +46,10 @@ function validateSubMenuLevel(
       errors.push(
         `${level} "${subLabel}" (menu "${menuLabel}"): rota "${subRota}" inválida. Esperado /app/{menu}/{submenu} ou até 3 níveis.`
       );
+    } else if (subRota && !isRegisteredSpaRoute(subRota)) {
+      errors.push(
+        `Submenu "${subLabel}" (menu "${menuLabel}"): rota "${subRota}" não está configurada no frontend.`
+      );
     }
     const nested = (sub as { subMenus?: SessionMenuAccess['subMenus'] }).subMenus ?? [];
     if (nested.length) {
@@ -68,6 +73,8 @@ export function getLoginMenusAppRouteValidationMessage(menus: SessionMenuAccess[
       errors.push(
         `Menu "${label}": rota "${rota}" inválida. Esperado /app/{menu} ou até 3 níveis (/app/{menu}/{submenu}/{submenu2}).`
       );
+    } else if (rota && !isRegisteredSpaRoute(rota)) {
+      errors.push(`Menu "${label}": rota "${rota}" não está configurada no frontend.`);
     }
 
     validateSubMenuLevel(menu.subMenus ?? [], label, errors);

@@ -18,7 +18,7 @@ import {
   TipoTarifaEstacionamento
 } from '../../models/entrada-saida.models';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ApiError } from '../../../../core/api/models';
 import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
 import {
@@ -111,15 +111,27 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly motoristaService = inject(MotoristaService);
   private readonly toast = inject(ToastService);
-  private readonly permissionCache = inject(PermissionCacheService);
+  private readonly sessionAccess = inject(SessionAccessService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
 
-  readonly canVisualizar = this.permissionCache.has('entradasaida.visualizar') || this.permissionCache.hasAny(['*']);
-  readonly canGravar = this.permissionCache.has('entradasaida.gravar') || this.permissionCache.hasAny(['*']);
-  readonly canAlterar = this.permissionCache.has('entradasaida.alterar') || this.permissionCache.hasAny(['*']);
-  readonly canExcluir = this.permissionCache.has('entradasaida.excluir') || this.permissionCache.hasAny(['*']);
+  /** Acesso derivado do payload `menus` do login (não do claim JWT `permission`). */
+  get canVisualizar(): boolean {
+    return this.sessionAccess.canAccessRoute(this.router.url);
+  }
+
+  get canGravar(): boolean {
+    return this.canVisualizar;
+  }
+
+  get canAlterar(): boolean {
+    return this.canVisualizar;
+  }
+
+  get canExcluir(): boolean {
+    return this.canVisualizar;
+  }
 
   private readonly viewMode = signal<MovimentosViewMode>('portaria');
   readonly isOperacaoView = computed(() => this.viewMode() === 'operacao');

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { vi } from 'vitest';
 import { ToastService } from '../../../core/api/services/toast.service';
-import { PermissionCacheService } from '../../../core/services/permission-cache.service';
+import { SessionAccessService } from '../../../core/services/session-access.service';
 import { EntradaSaidaService } from './entrada-saida.service';
 import { EntradaSaidaFormComponent } from './entrada-saida-form.component';
 import { VeiculoService } from '../../cadastro/services/veiculo.service';
@@ -26,9 +26,8 @@ describe('EntradaSaidaFormComponent', () => {
   };
 
   const toastMock = { success: vi.fn(), error: vi.fn() };
-  const permissionMock = {
-    has: (k: string) => k === 'entradasaida.gravar' || k === 'entradasaida.alterar',
-    hasAny: () => false
+  const sessionAccessMock = {
+    canAccessRoute: () => true,
   };
 
   beforeEach(async () => {
@@ -38,7 +37,7 @@ describe('EntradaSaidaFormComponent', () => {
         { provide: EntradaSaidaService, useValue: entradaSaidaServiceMock },
         { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: ToastService, useValue: toastMock },
-        { provide: PermissionCacheService, useValue: permissionMock },
+        { provide: SessionAccessService, useValue: sessionAccessMock },
         { provide: Router, useValue: routerMock },
         { provide: ActivatedRoute, useValue: routeCreateMock }
       ]

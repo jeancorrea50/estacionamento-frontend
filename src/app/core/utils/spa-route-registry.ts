@@ -11,6 +11,13 @@ import {
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../features/patio/patio-rotas';
+import {
+  CADASTRO_ESTACIONAMENTO_ROUTE,
+  CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_ROUTE,
+  CADASTRO_VEICULOS_ROUTE,
+} from '../../features/cadastro/cadastro-rotas';
 
 const KNOWN_SPA_ROUTES = new Set<string>();
 
@@ -49,6 +56,14 @@ function collectPatioRoutes(): void {
   addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
 }
 
+function collectCadastroRoutes(): void {
+  addRoute(CADASTRO_ROUTE);
+  addRoute(CADASTRO_TRANSPORTADORAS_ROUTE);
+  addRoute(CADASTRO_VEICULOS_ROUTE);
+  addRoute(CADASTRO_MOTORISTAS_ROUTE);
+  addRoute(CADASTRO_ESTACIONAMENTO_ROUTE);
+}
+
 function collectStaticRoutes(): void {
   const extras = [
     '/app',
@@ -64,10 +79,9 @@ function collectStaticRoutes(): void {
     '/app/gerenciamento/menu',
     '/app/gerenciamento/perfil',
     '/app/gerenciamento/bancodados',
-    '/app/cadastro',
     '/app/cadastro/transportadora',
-    '/app/cadastro/estacionamento',
     '/app/cadastro/motorista',
+    '/app/cadastro/veiculo',
   ];
   for (const route of extras) {
     addRoute(route);
@@ -77,6 +91,7 @@ function collectStaticRoutes(): void {
 collectMenuStructure();
 collectFaturamentoRoutes();
 collectPatioRoutes();
+collectCadastroRoutes();
 collectStaticRoutes();
 
 function normalizePath(path: string): string {

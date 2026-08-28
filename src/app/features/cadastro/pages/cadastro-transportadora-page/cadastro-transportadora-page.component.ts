@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap, of, catchError, finalize, Subject } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
@@ -76,6 +77,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dialog = inject(MatDialog);
+
+  protected readonly cadastroTransportadorasRoute = CADASTRO_TRANSPORTADORAS_ROUTE;
 
   activeTab: TransportadoraTab = 'cadastro';
 
@@ -215,6 +218,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const forceTab = this.route.snapshot.data['forceTab'];
     if (forceTab === 'motoristas') {
       this.setTab('motoristas');
+    } else if (forceTab === 'frota') {
+      this.setTab('frota');
     }
   }
 
@@ -812,7 +817,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   voltarLista(): void {
     this.listView = true;
     this.activeTab = 'cadastro';
-    void this.router.navigate(['/app/cadastro/transportadora']);
+    void this.router.navigate([CADASTRO_TRANSPORTADORAS_ROUTE]);
     this.carregarLista();
   }
 
@@ -993,7 +998,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
     ref.afterClosed().subscribe((result) => {
       if (result === 'edit') {
-        void this.router.navigate(['/app/cadastro/transportadora/editar', item.id]);
+        void this.router.navigate([`${CADASTRO_TRANSPORTADORAS_ROUTE}/editar`, item.id]);
       }
     });
   }

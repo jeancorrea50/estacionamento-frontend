@@ -32,8 +32,10 @@ import {
   walkSubMenus,
 } from './menu-tree.util';
 
+import { CADASTRO_ESTACIONAMENTO_ROUTE } from '../../cadastro/cadastro-rotas';
+
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
-const ESTACIONAMENTO_SIDEBAR_ROUTE = '/app/cadastro/estacionamento';
+const ESTACIONAMENTO_SIDEBAR_ROUTE = CADASTRO_ESTACIONAMENTO_ROUTE;
 
 function cloneState(s: MenuAdminState): MenuAdminState {
   return JSON.parse(JSON.stringify(s)) as MenuAdminState;
@@ -87,66 +89,27 @@ function isGerenciamentoMenuNode(nome: string | null | undefined, rota?: string 
 }
 
 /**
- * Remove Estacionamento de Gerenciamento e promove a menu de topo (como Transportadora).
+ * Remove Estacionamento de Gerenciamento e menus de topo duplicados.
+ * Estacionamento fica somente como submenu de Cadastro (seed/backend).
  */
-function promoteEstacionamentoOutOfGerenciamento(menus: MenuAdmin[], nextId: number): {
+function consolidateCadastroMenus(menus: MenuAdmin[], nextId: number): {
   menus: MenuAdmin[];
   nextId: number;
 } {
   let id = nextId;
-  const hasTopLevel = menus.some((m) => isEstacionamentoMenuNode(m.nome, m.rota));
-  const result: MenuAdmin[] = [];
-  let extracted: SubMenuAdmin[] = [];
+  const hasCadastro = menus.some((m) => normMenuLabel(m.nome) === 'cadastro');
 
-  for (const menu of menus) {
-    if (!isGerenciamentoMenuNode(menu.nome, menu.rota)) {
-      result.push(menu);
-      continue;
-    }
+  const withoutTopEstacionamento = menus.filter((menu) => {
+    if (!isEstacionamentoMenuNode(menu.nome, menu.rota)) return true;
+    // Remove menu de topo "Estacionamento" quando Cadastro existe.
+    return !hasCadastro;
+  });
 
-    const kept: SubMenuAdmin[] = [];
-    for (const sub of menu.subMenus ?? []) {
-      if (isEstacionamentoMenuNode(sub.nome, sub.rota)) {
-        extracted.push({
-          ...sub,
-          nome: 'Estacionamento',
-          rota: ESTACIONAMENTO_SIDEBAR_ROUTE,
-        });
-      } else {
-        kept.push(sub);
-      }
-    }
-    result.push({ ...menu, subMenus: kept });
-  }
-
-  if (!hasTopLevel && extracted.length) {
-    const first = extracted[0];
-    const gerIdx = result.findIndex((m) => isGerenciamentoMenuNode(m.nome, m.rota));
-    const insertAt = gerIdx >= 0 ? gerIdx + 1 : result.length;
-    // Id negativo = só UI local; OrganizarMenus/Alterar ignoram (id <= 0).
-    // Id positivo sintético (nextId) quebrava o PUT: backend não acha Module → entity null.
-    const localSyntheticId = -(id++);
-    result.splice(insertAt, 0, {
-      id: localSyntheticId,
-      nome: 'Estacionamento',
-      ordem: insertAt,
-      icone: 'local_parking',
-      rota: ESTACIONAMENTO_SIDEBAR_ROUTE,
-      ativo: true,
-      exibirNoSidebar: true,
-      subMenus: [
-        {
-          ...first,
-          nome: 'Estacionamento',
-          rota: ESTACIONAMENTO_SIDEBAR_ROUTE,
-          ordem: 0,
-          ativo: first.ativo !== false,
-          exibirNoSidebar: true,
-        },
-      ],
-      existeNoServidor: false,
-    });
-  }
+  const result = withoutTopEstacionamento.map((menu) => {
+    if (!isGerenciamentoMenuNode(menu.nome, menu.rota)) return menu;
+    const kept = (menu.subMenus ?? []).filter((sub) => !isEstacionamentoMenuNode(sub.nome, sub.rota));
+    return { ...menu, subMenus: kept };
+  });
 
   return {
     menus: result.map((m, i) => ({ ...m, ordem: i })),
@@ -259,7 +222,7 @@ export class MenuAdminService {
         const parsed = JSON.parse(raw) as MenuAdminState;
         if (parsed?.menus?.length) {
           migrateMenuServidorFlagsFromStorage(parsed.menus);
-          const promoted = promoteEstacionamentoOutOfGerenciamento(parsed.menus, parsed.nextId ?? 1);
+          const promoted = consolidateCadastroMenus(parsed.menus, parsed.nextId ?? 1);
           parsed.menus = promoted.menus;
           parsed.nextId = promoted.nextId;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -296,7 +259,7 @@ export class MenuAdminService {
    * Após salvar no servidor e nova Buscar: substitui menus e nextId; mantém roles.
    */
   replaceMenusHidratar(menus: MenuAdmin[], nextId: number): void {
-    const promoted = promoteEstacionamentoOutOfGerenciamento(menus, nextId);
+    const promoted = consolidateCadastroMenus(menus, nextId);
     this.state.update((s) => {
       const next = cloneState(s);
       // Não forçar true: menus sintéticos (Estacionamento promovido) ficam fora do OrganizarMenus.
@@ -651,7 +614,7 @@ export class MenuAdminService {
   }
 
   /**
-   * Itens para sidebar. Gerenciamento: link único. Estacionamento: item de topo (como Transportadora).
+   * Itens para sidebar. Gerenciamento: link único. Cadastro: submenus conforme API/seed.
    */
   getSidebarMenuItems(): {
     label: string;
@@ -670,48 +633,20 @@ export class MenuAdminService {
       ? this.buildNavItemsFromSessionMenus()
       : this.buildNavItemsFromState();
 
-    const promoted: NavItem[] = [];
-    let hasEstacionamentoTop = false;
+    const hasCadastroMenu = source.some(
+      (item) => item.route.replace(/\/+$/, '').toLowerCase() === '/app/cadastro'
+    );
 
-    const stripped = source.map((item) => {
-      const baseItem: NavItem = {
+    const stripped = source
+      .filter((item) => {
+        if (!hasCadastroMenu) return true;
+        const route = item.route.replace(/\/+$/, '').toLowerCase();
+        return !(normMenuLabel(item.label) === 'estacionamento' && route === ESTACIONAMENTO_SIDEBAR_ROUTE);
+      })
+      .map((item) => ({
         ...item,
         children: (item.children ?? []).length > 0 ? [...item.children!] : undefined,
-      };
-
-      if (isEstacionamentoMenuNode(baseItem.label, baseItem.route)) {
-        hasEstacionamentoTop = true;
-        return {
-          label: 'Estacionamento',
-          route: ESTACIONAMENTO_SIDEBAR_ROUTE,
-          icon: resolveMaterialSymbolIconFromModule('Estacionamento', item.icon),
-        };
-      }
-
-      const children = baseItem.children ?? [];
-      if (!children.length) return baseItem;
-
-      const kept: NonNullable<NavItem['children']> = [];
-      for (const child of children) {
-        if (isEstacionamentoMenuNode(child.label, child.route)) {
-          if (!hasEstacionamentoTop) {
-            hasEstacionamentoTop = true;
-            promoted.push({
-              label: 'Estacionamento',
-              route: ESTACIONAMENTO_SIDEBAR_ROUTE,
-              icon: resolveMaterialSymbolIconFromModule('Estacionamento', 'local_parking'),
-            });
-          }
-          continue;
-        }
-        kept.push(child);
-      }
-
-      return {
-        ...baseItem,
-        children: kept.length ? kept : undefined,
-      };
-    });
+      }));
 
     const flattened = stripped.map((item) => {
       if (!this.isGerenciamentoNavItem(item)) return item;
@@ -723,12 +658,6 @@ export class MenuAdminService {
     });
 
     const withCadastro = flattened.map((item) => this.sanitizeCadastroSidebarNavItem(item));
-
-    if (promoted.length) {
-      const gerIdx = withCadastro.findIndex((i) => this.isGerenciamentoNavItem(i));
-      const insertAt = gerIdx >= 0 ? gerIdx + 1 : withCadastro.length;
-      withCadastro.splice(insertAt, 0, ...promoted);
-    }
 
     const labeled = withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
     return this.ensureMovimentosListaNavItem(labeled);
@@ -801,7 +730,7 @@ export class MenuAdminService {
   }
 
   /**
-   * Cadastro na sidebar: remove motorista/veículo e padroniza rótulos (ex.: Transportadora).
+   * Cadastro na sidebar: padroniza rótulos dos submenus.
    */
   private sanitizeCadastroSidebarNavItem<
     T extends {
@@ -819,21 +748,10 @@ export class MenuAdminService {
     }
 
     const children = item.children
-      .filter((c) => !this.isHiddenCadastroSidebarRoute(c.route))
-      .map((c) => {
-        const mapped = {
-          ...c,
-          label: this.formatCadastroSubmenuSidebarLabel(c.route, c.label),
-        };
-        if (!c.children?.length) return mapped;
-        const nested = c.children
-          .filter((n) => !this.isHiddenCadastroSidebarRoute(n.route))
-          .map((n) => ({
-            ...n,
-            label: this.formatCadastroSubmenuSidebarLabel(n.route, n.label),
-          }));
-        return nested.length ? { ...mapped, children: nested } : { ...mapped, children: undefined };
-      });
+      .map((c) => ({
+        ...c,
+        label: this.formatCadastroSubmenuSidebarLabel(c.route, c.label),
+      }));
 
     return {
       ...item,
@@ -841,16 +759,11 @@ export class MenuAdminService {
     } as T;
   }
 
-  /** Motorista/veículo ficam fora da sidebar em Cadastro. */
-  private isHiddenCadastroSidebarRoute(route: string): boolean {
-    const n = route.replace(/\/+$/, '').toLowerCase();
-    if (n === '/app/cadastro/motorista') return true;
-    return /\/app\/cadastro\/veicul/i.test(n);
-  }
-
   private formatCadastroSubmenuSidebarLabel(route: string, label: string): string {
     const path = route.replace(/\/+$/, '').toLowerCase();
-    if (/(?:^|\/)cadastro\/transportadora(?:\/|$)/.test(path)) return 'Transportadora';
+    if (/(?:^|\/)cadastro\/transportadoras?(?:\/|$)/.test(path)) return 'Transportadoras';
+    if (/(?:^|\/)cadastro\/veiculos?(?:\/|$)/.test(path)) return 'Veículos';
+    if (/(?:^|\/)cadastro\/motoristas?(?:\/|$)/.test(path)) return 'Motoristas';
     if (/(?:^|\/)cadastro\/estacionamento(?:\/|$)/.test(path)) return 'Estacionamento';
     return label;
   }

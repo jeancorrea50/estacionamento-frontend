@@ -6,6 +6,8 @@ import {
   FINANCEIRO_ROUTE,
 } from '../../financeiro/faturamento-rotas';
 import { FINANCEIRO_MENU_TREE } from '../../financeiro/financeiro-menu-structure';
+import { CADASTRO_MENU_TREE } from '../cadastro-menu-structure';
+import { CADASTRO_ROUTE } from '../cadastro-rotas';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
@@ -72,15 +74,13 @@ export const MENU_STRUCTURE: MenuNode[] = [
   {
     id: 'menu-cadastro',
     label: 'Cadastro',
-    route: '/app/cadastro',
+    route: CADASTRO_ROUTE,
     icon: 'local_shipping',
-    children: [{ id: 'sub-transportadora', label: 'Transportadora', route: '/app/cadastro/transportadora' }],
-  },
-  {
-    id: 'menu-estacionamento',
-    label: 'Estacionamento',
-    route: '/app/cadastro/estacionamento',
-    icon: 'local_parking',
+    children: CADASTRO_MENU_TREE.map((item) => ({
+      id: item.id,
+      label: item.label,
+      route: item.route,
+    })),
   },
 ];
 

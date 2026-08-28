@@ -8,6 +8,13 @@ import {
   PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
 import {
+  CADASTRO_ESTACIONAMENTO_ROUTE,
+  CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_ROUTE,
+  CADASTRO_VEICULOS_ROUTE,
+} from '../../cadastro/cadastro-rotas';
+import {
   PATIO_ENTRADA_SAIDA_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
@@ -55,12 +62,16 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   configuracao: FATURAMENTO_CONFIG_ROUTE,
   'configuracoes de cobrança': FATURAMENTO_CONFIG_ROUTE,
   configuracoes: '/app/configuracoes',
-  cadastros: '/app/cadastro',
-  cadastro: '/app/cadastro',
+  cadastros: CADASTRO_ROUTE,
+  cadastro: CADASTRO_ROUTE,
   gerenciamento: '/app/gerenciamento',
-  transportadora: '/app/cadastro/transportadora',
-  estacionamento: '/app/cadastro/estacionamento',
-  motorista: '/app/cadastro/motorista',
+  transportadoras: CADASTRO_TRANSPORTADORAS_ROUTE,
+  transportadora: CADASTRO_TRANSPORTADORAS_ROUTE,
+  veiculos: CADASTRO_VEICULOS_ROUTE,
+  veiculo: CADASTRO_VEICULOS_ROUTE,
+  motoristas: CADASTRO_MOTORISTAS_ROUTE,
+  motorista: CADASTRO_MOTORISTAS_ROUTE,
+  estacionamento: CADASTRO_ESTACIONAMENTO_ROUTE,
   usuarios: '/app/configuracoes/usuarios',
   horario: '/app/configuracoes/horario',
   'fuso horario': '/app/configuracoes/horario',
@@ -99,6 +110,11 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/financeiro/faturamento/recebimentos': PAGAMENTOS_ROUTE,
   '/app/financeiro/recebimentos': PAGAMENTOS_ROUTE,
   '/app/financeiro/pagamento': PAGAMENTOS_ROUTE,
+  '/app/cadastro': CADASTRO_ROUTE,
+  '/app/cadastro/transportadora': CADASTRO_TRANSPORTADORAS_ROUTE,
+  '/app/cadastro/motorista': CADASTRO_MOTORISTAS_ROUTE,
+  '/app/cadastro/veiculo': CADASTRO_VEICULOS_ROUTE,
+  '/app/gerenciamento/estacionamento': CADASTRO_ESTACIONAMENTO_ROUTE,
   ...Object.fromEntries(
     FATURAMENTO_TABS.map((t) => [`/app/faturamento/${t.path}`, t.route] as const)
   ),
@@ -286,6 +302,11 @@ ROUTE_TO_MATERIAL_ICON.set('/app/movimentos/lista', 'format_list_bulleted');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimentos/entrada-saida', 'swap_horiz');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimentos', 'format_list_bulleted');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimento', 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set(CADASTRO_TRANSPORTADORAS_ROUTE, 'local_shipping');
+ROUTE_TO_MATERIAL_ICON.set(CADASTRO_VEICULOS_ROUTE, 'directions_car');
+ROUTE_TO_MATERIAL_ICON.set(CADASTRO_MOTORISTAS_ROUTE, 'badge');
+ROUTE_TO_MATERIAL_ICON.set(CADASTRO_ESTACIONAMENTO_ROUTE, 'local_parking');
+ROUTE_TO_MATERIAL_ICON.set(CADASTRO_ROUTE, 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro/transportadora', 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro', 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro/estacionamento', 'local_parking');

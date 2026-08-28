@@ -97,7 +97,11 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const movimentos = url.includes('/movimentos') || url.includes('/patio');
     this.isMovimentosRoute.set(movimentos);
     const estacionamento = url.includes('/cadastro/estacionamento');
-    const transportadora = url.includes('/cadastro/transportadora');
+    const transportadora =
+      url.includes('/cadastro/transportadora') ||
+      url.includes('/cadastro/transportadoras') ||
+      url.includes('/cadastro/veiculos') ||
+      url.includes('/cadastro/motoristas');
     const financeiro = url.includes('/financeiro') || url.includes('/faturamento');
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');

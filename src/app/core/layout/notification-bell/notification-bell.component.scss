@@ -30,6 +30,40 @@
   color: var(--primary);
 }
 
+/* Tema dark: flat, sem bordas azul neon */
+:host-context(html.theme-dark) {
+  .notif-bell__btn {
+    border: 1px solid var(--dark-border, #363642);
+    background: var(--dark-hover, #323240);
+    box-shadow: none;
+
+    &:hover {
+      background: var(--dark-hover-strong, #3a3a48);
+      border-color: var(--dark-border, #363642);
+      color: var(--text);
+    }
+  }
+
+  .notif-panel {
+    border: 1px solid var(--dark-border, #363642);
+    background: var(--dark-card-elevated, #2c2c37);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .notif-panel__header {
+    border-bottom-color: var(--dark-border, #363642);
+  }
+
+  .notif-list__item {
+    border-bottom-color: var(--dark-border, #363642);
+  }
+
+  .notif-list__item:hover,
+  .notif-list__item--unread {
+    background: var(--dark-hover, #323240);
+  }
+}
+
 /* Tema claro: borda amarelo franco + sombra no hover */
 :host-context(html.theme-light) {
   .notif-bell__btn {

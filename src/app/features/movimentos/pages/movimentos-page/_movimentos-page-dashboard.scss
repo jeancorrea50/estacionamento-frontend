@@ -306,14 +306,14 @@
   }
 }
 
-/* Contraste reforçado no tema escuro (labels/títulos ilegíveis com tokens fracos) */
+/* Contraste no tema escuro — tokens globais */
 :host-context(html.theme-dark) {
   .page-title,
   .dk-page-title,
   .dashboard-card__header h2,
   .kpi-card__valor,
   .alert-list__title {
-    color: #f8fafc;
+    color: var(--text, #f1f1f5);
   }
 
   .page-subtitle,
@@ -324,32 +324,32 @@
   .dashboard-card__header p,
   .alert-list__desc,
   .alert-list__time {
-    color: #c5cddc;
+    color: var(--muted, #92929f);
   }
 
   .registro-section {
-    background: rgba(20, 33, 61, 0.72);
-    border-color: rgba(80, 120, 255, 0.22);
+    background: var(--dark-card-elevated, #2c2c37);
+    border-color: var(--dark-border, #363642);
   }
 
   .dashboard-card,
   .kpi-card {
-    background: var(--surface, #111c33);
-    border-color: var(--border-subtle, rgba(80, 120, 255, 0.18));
+    background: var(--dark-card, #292934);
+    border-color: var(--dark-border, #363642);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   }
 
-  /* Escopo só no formulário da página — não invade modais claros */
   .dashboard-card .input-control,
   .dashboard-card .input-control--select,
   .registro-form-layout .input-control,
   .registro-form-layout .input-control--select {
-    color: #f8fafc;
-    background: rgba(8, 16, 32, 0.88);
-    border-color: rgba(80, 120, 255, 0.28);
+    color: var(--input-text, #f1f1f5);
+    background: var(--dark-input, #23232d);
+    border-color: var(--dark-border, #363642);
   }
 
   .dashboard-card .input-control::placeholder,
   .registro-form-layout .input-control::placeholder {
-    color: #9aa6bd;
+    color: var(--input-placeholder, #72727e);
   }
 }

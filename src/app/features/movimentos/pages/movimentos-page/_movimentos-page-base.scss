@@ -140,12 +140,12 @@
 :host-context(html.theme-dark) {
   .page-title,
   .dk-page-title {
-    color: #f8fafc;
+    color: var(--text, #f1f1f5);
   }
 
   .page-subtitle,
   .dk-page-subtitle {
-    color: #c5cddc;
+    color: var(--muted, #92929f);
   }
 }
 

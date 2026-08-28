@@ -1,4 +1,5 @@
 @import './app/shared/styles/design-kit.css';
+@import './app/shared/styles/dark-theme.css';
 
 /* Angular Material (tema pré-construído — ajuste ou troque por tema custom se necessário) */
 @import '@angular/material/prebuilt-themes/azure-blue.css';
@@ -327,93 +328,7 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-/* ========== Tema: Background Dark ========== */
-html.theme-dark body {
-  background: #151d32;
-  color: rgba(255, 255, 255, 0.95);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html.theme-dark {
-  --app-bg: linear-gradient(135deg, #151d32 0%, #1a2742 100%);
-  --app-bg-simple: #161e33;
-  --sidebar-bg: #141c2e;
-  --sidebar-border: #1e2a45;
-  --sidebar-item-hover: #1e2a45;
-  --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.2);
-  --sidebar-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
-  --topbar-btn-hover: #1e2a45;
-  --text-primary: rgba(255, 255, 255, 0.95);
-  --text-muted: rgba(255, 255, 255, 0.65);
-  --topbar-bg: #141c2e;
-  --topbar-border: rgba(255, 255, 255, 0.08);
-  --topbar-text: rgba(255, 255, 255, 0.9);
-  --topbar-shadow: 0 10px 24px rgba(3, 8, 20, 0.28);
-  --card-bg: #1a2338;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --table-row-hover: #1e2a45;
-
-  /* Tokens para formulários/cards — fundos sólidos, sem transparência */
-  --bg: #151d32;
-  --surface: #1c2642;
-  --surface-2: #1e2a45;
-  --text: rgba(255, 255, 255, 0.95);
-  --muted: rgba(197, 205, 220, 0.92);
-  --border: rgba(255, 255, 255, 0.12);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --primary: #1d4ed8;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  --border-card: 1px solid rgba(255, 255, 255, 0.08);
-
-  --input-bg: #1c2642;
-  --input-border: rgba(255, 255, 255, 0.15);
-  --input-text: rgba(255, 255, 255, 0.95);
-  --input-placeholder: rgba(255, 255, 255, 0.5);
-  --focus: #1d4ed8;
-  --focus-ring: 0 0 0 2px rgba(29, 78, 216, 0.4);
-  --danger: rgba(244, 67, 54, 0.95);
-  --warning: #d4a017;
-
-  /* Botões dark: sólidos */
-  --btn-radius: 6px;
-  --btn-height: 40px;
-  --btn-primary-bg: #2563eb;
-  --btn-primary-bg-hover: #3b82f6;
-  --btn-primary-text: #ffffff;
-  --btn-primary-border: #1d4ed8;
-  --btn-secondary-bg: #334155;
-  --btn-secondary-bg-hover: #475569;
-  --btn-secondary-text: #f8fafc;
-  --btn-secondary-border: #475569;
-  --btn-success-bg: #15803d;
-  --btn-success-bg-hover: #16a34a;
-  --btn-success-text: #ffffff;
-  --btn-success-border: #166534;
-  --btn-danger-bg: #b91c1c;
-  --btn-danger-bg-hover: #dc2626;
-  --btn-danger-text: #ffffff;
-  --btn-danger-border: #991b1b;
-  --btn-warning-bg: #c2410c;
-  --btn-warning-bg-hover: #ea580c;
-  --btn-warning-text: #ffffff;
-  --btn-warning-border: #9a3412;
-  --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
-  --btn-shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.28);
-
-  --color-text: var(--text);
-  --color-text-muted: var(--muted);
-  --color-bg: var(--surface);
-  --color-border: var(--border);
-  --color-error: var(--danger);
-  --topbar-glass: #141c2e;
-  --layout-right-border: rgba(80, 120, 255, 0.12);
-  --layout-right-inset: inset 1px 0 0 rgba(255, 255, 255, 0.04);
-}
+/* ========== Tema dark: tokens em dark-theme.css ========== */
 
 /* ========== Tema: WHITE MODE — paleta alinhada ao modal Config. Cobrança ========== */
 html.theme-light {
@@ -1119,38 +1034,8 @@ a.btn,
     filter 0.2s ease;
 }
 
-/* ========== Visual system padrão (referência Configurações) ========== */
-html.theme-dark {
-  --bg: #07111f;
-  --surface: #111c33;
-  --surface-2: #14213d;
-  --color-bg-main: var(--bg);
-  --color-bg-page: var(--bg);
-  --color-bg-card: var(--surface);
-  --color-bg-card-secondary: var(--surface-2);
-  --sidebar-bg: #081426;
-  --sidebar-border: rgba(80, 120, 255, 0.18);
-  --border: rgba(80, 120, 255, 0.18);
-  --border-subtle: rgba(80, 120, 255, 0.14);
-  /* Texto claro explícito — evita herdar azul escuro do tema light/Material */
-  --text: #f8fafc;
-  --muted: #c5cddc;
-  --text-primary: #f8fafc;
-  --text-secondary: #c5cddc;
-  --text-muted: #aeb8cc;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #c5cddc;
-  --color-text-muted: #aeb8cc;
-  --color-text: #f8fafc;
-  --input-text: #f8fafc;
-  --input-placeholder: #9aa6bd;
-  --primary: #1d4ed8;
-  --focus: #1d4ed8;
-  --neon: #00d4ff;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-}
+/* ========== Visual system — tema dark (tipografia + botões) ========== */
+/* Tokens e superfícies flat: src/app/shared/styles/dark-theme.css */
 
 html.theme-dark .page-title,
 html.theme-dark .dk-page-title,
@@ -1169,44 +1054,12 @@ html.theme-dark .field span {
   color: var(--muted);
 }
 
-html.theme-dark body {
-  background: var(--color-bg-main);
-}
-
-html.theme-dark .page-hero,
-html.theme-dark .page-header {
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  background: linear-gradient(160deg, rgba(20, 33, 61, 0.88), rgba(17, 28, 51, 0.82));
-  box-shadow: 0 12px 34px rgba(2, 8, 22, 0.35);
-  backdrop-filter: blur(6px);
-  padding: 18px 20px;
-  margin-bottom: 18px;
-}
-
 html.theme-dark .content-card,
 html.theme-dark .ui-panel {
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, rgba(20, 33, 61, 0.8), rgba(17, 28, 51, 0.78));
-  box-shadow: 0 10px 30px rgba(3, 8, 20, 0.28);
-}
-
-/* Tabelas: painel sólido plano, alinhado ao combobox (não o “card” com gradiente) */
-html.theme-dark .table-wrap,
-html.theme-dark .dk-table-wrap {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  border-radius: var(--ds-select-radius, var(--radius-md, 10px));
-  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
-  background: var(--surface-2, var(--surface));
-  box-shadow: none;
 }
 
 /* DARK MODE — botões preenchidos (opacos), sem glow neon */
@@ -1375,94 +1228,17 @@ html.theme-dark a.btn {
     filter 0.2s ease;
 }
 
-html.theme-dark .form-control,
-html.theme-dark .input-control,
-html.theme-dark select.input-control,
-html.theme-dark textarea.input-control {
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  background-color: rgba(10, 20, 38, 0.82);
-}
-
-html.theme-dark .data-table th {
-  color: var(--muted);
-  font-weight: 600;
-  background: rgba(8, 18, 33, 0.35);
-}
-
-html.theme-dark .data-table tbody tr:hover {
-  background: rgba(79, 107, 255, 0.08);
-}
-
-html.theme-dark .dk-table th {
-  color: var(--muted);
-  font-weight: 600;
-  background: rgba(8, 18, 33, 0.35);
-}
-
-html.theme-dark .badge-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid rgba(80, 120, 255, 0.2);
-  background: rgba(79, 107, 255, 0.16);
-  color: #dce6ff;
-}
-
-html.theme-dark .modal-dark,
-html.theme-dark .dk-modal-content,
-html.theme-dark .modal-content {
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, rgba(20, 33, 61, 0.94), rgba(17, 28, 51, 0.94));
-  box-shadow: 0 24px 45px rgba(2, 8, 22, 0.42);
-  max-width: min(960px, 100%);
-  box-sizing: border-box;
-}
-
-html.theme-dark .page-header-card {
-  width: 100%;
-  max-width: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(160deg, rgba(20, 33, 61, 0.88), rgba(17, 28, 51, 0.82));
-  box-shadow: 0 10px 28px rgba(2, 8, 22, 0.3);
-  padding: 18px 20px;
-}
-
-html.theme-dark .filter-card,
-html.theme-dark .data-card {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, rgba(20, 33, 61, 0.8), rgba(17, 28, 51, 0.78));
-  box-shadow: 0 10px 28px rgba(3, 8, 20, 0.26);
-}
-
 html.theme-dark .filter-card {
   padding: 14px 16px;
 }
 
 html.theme-dark .data-card {
   padding: 12px;
-}
-
-html.theme-dark .form-control-dark {
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(10, 20, 38, 0.82);
-  color: var(--text);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Visual system — tema claro (contraste e superfícies sólidas) */
@@ -2040,14 +1816,14 @@ html.theme-light {
 }
 
 html.theme-dark {
-  --ds-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  --ds-select-panel-bg: var(--surface, #1c2642);
-  --ds-select-panel-border: var(--border-subtle, rgba(255, 255, 255, 0.1));
-  --ds-select-panel-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --ds-select-item-hover-bg: var(--table-row-hover, rgba(255, 255, 255, 0.08));
-  --ds-select-item-active-bg: color-mix(in srgb, var(--primary, #3b82f6) 28%, var(--surface, #1c2642));
-  --ds-select-item-active-text: var(--text, #f8fafc);
-  --ds-select-scrollbar: rgba(255, 255, 255, 0.22);
+  --ds-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2392929F' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --ds-select-panel-bg: var(--dark-card-elevated, #2c2c37);
+  --ds-select-panel-border: var(--dark-border, #363642);
+  --ds-select-panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  --ds-select-item-hover-bg: var(--dark-hover, #323240);
+  --ds-select-item-active-bg: var(--dark-hover-strong, #3a3a48);
+  --ds-select-item-active-text: var(--dark-text, #f1f1f5);
+  --ds-select-scrollbar: #434350;
 }
 
 html:not(.theme-light):not(.theme-dark) {
@@ -2449,25 +2225,25 @@ html.theme-dark .cfg-form-dialog-panel {
 html.theme-dark .modal-content,
 html.theme-dark .modal-dark,
 html.theme-dark .dk-modal-content {
-  background: var(--surface, #141c2e);
-  color: var(--text, #f8fafc);
-  border-color: var(--border-subtle, rgba(80, 120, 255, 0.18));
+  background: var(--dark-card-elevated, #2c2c37);
+  color: var(--text);
+  border-color: var(--dark-border, #363642);
 }
 
 html.theme-dark .modal-content table,
 html.theme-dark .modal-content .data-table,
 html.theme-dark .modal-content .lista,
 html.theme-dark .modal-content .table-wrap {
-  background: var(--surface, #141c2e) !important;
-  color: var(--text, #f8fafc) !important;
-  border-color: var(--border-subtle, rgba(80, 120, 255, 0.18)) !important;
+  background: var(--dark-table, #252530) !important;
+  color: var(--text) !important;
+  border-color: var(--dark-border, #363642) !important;
 }
 
 html.theme-dark .modal-content table th,
 html.theme-dark .modal-content .data-table th,
 html.theme-dark .modal-content .lista-head {
-  background: var(--surface-2, #1e2a45) !important;
-  color: var(--muted, rgba(248, 250, 252, 0.75)) !important;
+  background: var(--dark-table-header, #30303c) !important;
+  color: var(--muted) !important;
 }
 
 html.theme-dark .modal-content table td,
@@ -2475,22 +2251,22 @@ html.theme-dark .modal-content .data-table td,
 html.theme-dark .modal-content .linha,
 html.theme-dark .modal-content .linha__col {
   background: transparent !important;
-  color: var(--text, #f8fafc) !important;
-  border-color: var(--border-subtle, rgba(80, 120, 255, 0.12)) !important;
+  color: var(--text) !important;
+  border-color: var(--dark-border, #363642) !important;
 }
 
 html.theme-dark .modal-content .input-control,
 html.theme-dark .modal-content select.input-control,
 html.theme-dark .modal-content textarea.input-control {
-  background-color: var(--input-bg, #1c2642) !important;
-  color: var(--input-text, #f8fafc) !important;
-  border-color: var(--input-border, rgba(80, 120, 255, 0.28)) !important;
+  background-color: var(--dark-input, #23232d) !important;
+  color: var(--input-text) !important;
+  border-color: var(--dark-border, #363642) !important;
 }
 
-/* Modal Registrar Saída: bloco de valores não fica branco no dark */
+/* Modal Registrar Saída: bloco de valores sólido no dark */
 html.theme-dark .saida-modal__valores {
-  background: var(--surface-2, #1e2a45) !important;
-  border-color: var(--border-subtle, rgba(80, 120, 255, 0.22)) !important;
+  background: var(--dark-hover, #323240) !important;
+  border-color: var(--dark-border, #363642) !important;
 }
 
 html.theme-dark .saida-modal__title,
@@ -2526,16 +2302,16 @@ html.theme-dark .saida-modal__total {
 }
 
 html.theme-dark .saida-modal__money .modal-money__input {
-  background-color: var(--input-bg, #1c2642) !important;
-  color: var(--input-text, #f8fafc) !important;
+  background-color: var(--dark-input, #23232d) !important;
+  color: var(--input-text) !important;
 }
 
 html.theme-dark .saida-modal__money .modal-money__prefix {
-  color: var(--text, #f8fafc) !important;
+  color: var(--text) !important;
 }
 
 html.theme-dark .saida-modal__header {
-  border-bottom-color: var(--border-subtle, rgba(80, 120, 255, 0.18)) !important;
+  border-bottom-color: var(--dark-border, #363642) !important;
 }
 
 html.theme-light .modal-content,

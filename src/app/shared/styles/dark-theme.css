@@ -1,0 +1,357 @@
+/**
+ * GTS — Tema dark premium (grafite + azul de destaque).
+ * Tokens globais + superfícies flat. Não altera html.theme-light.
+ */
+
+html.theme-dark {
+  /* ── Paleta base ─────────────────────────────────────────── */
+  --dark-bg-main: #181821;
+  --dark-bg-page: #1b1b24;
+  --dark-bg-content: #1d1d27;
+  --dark-sidebar: #292936;
+  --dark-card: #292934;
+  --dark-card-elevated: #2c2c37;
+  --dark-table: #252530;
+  --dark-table-header: #30303c;
+  --dark-border: #363642;
+  --dark-input: #23232d;
+  --dark-hover: #323240;
+  --dark-hover-strong: #3a3a48;
+
+  --dark-text: #f1f1f5;
+  --dark-text-muted: #92929f;
+  --dark-primary: #3d8bff;
+  --dark-primary-hover: #5a9dff;
+  --dark-success: #36c98f;
+  --dark-danger: #f06468;
+  --dark-warning: #e8a23a;
+
+  /* ── Tokens semânticos (consumidos pelo app) ─────────────── */
+  --app-bg: var(--dark-bg-main);
+  --app-bg-simple: var(--dark-bg-main);
+  --bg: var(--dark-bg-main);
+  --color-bg-main: var(--dark-bg-main);
+  --color-bg-page: var(--dark-bg-content);
+  --color-bg-card: var(--dark-card);
+  --color-bg-card-secondary: var(--dark-card-elevated);
+  --color-bg-section: var(--dark-table-header);
+
+  --surface: var(--dark-card);
+  --surface-2: var(--dark-card-elevated);
+  --card-bg: var(--dark-card);
+
+  --sidebar-bg: var(--dark-sidebar);
+  --sidebar-border: var(--dark-border);
+  --sidebar-item-hover: var(--dark-hover);
+  --sidebar-active-bg: var(--dark-hover);
+  --sidebar-scrollbar-thumb: #434350;
+  --sidebar-scrollbar-thumb-hover: #52525f;
+
+  --topbar-bg: var(--dark-bg-content);
+  --topbar-border: var(--dark-border);
+  --topbar-text: var(--dark-text);
+  --topbar-btn-hover: var(--dark-hover);
+  --topbar-shadow: none;
+  --topbar-glass: var(--dark-bg-content);
+
+  --text: var(--dark-text);
+  --text-primary: var(--dark-text);
+  --muted: var(--dark-text-muted);
+  --text-muted: var(--dark-text-muted);
+  --text-secondary: var(--dark-text-muted);
+  --color-text-primary: var(--dark-text);
+  --color-text-secondary: var(--dark-text-muted);
+  --color-text-muted: var(--dark-text-muted);
+  --color-text: var(--dark-text);
+
+  --border: var(--dark-border);
+  --border-subtle: var(--dark-border);
+  --card-border: var(--dark-border);
+  --border-card: 1px solid var(--dark-border);
+  --table-row-hover: var(--dark-hover);
+
+  --primary: var(--dark-primary);
+  --focus: var(--dark-primary);
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--dark-primary) 32%, transparent);
+  --success: var(--dark-success);
+  --danger: var(--dark-danger);
+  --warning: var(--dark-warning);
+  --neon: var(--dark-primary);
+
+  --table-header-bg: var(--dark-table-header);
+  --table-header-text: var(--dark-text-muted);
+  --table-row-stripe: var(--dark-table);
+
+  --input-bg: var(--dark-input);
+  --input-border: var(--dark-border);
+  --input-text: var(--dark-text);
+  --input-placeholder: #72727e;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --btn-radius: 8px;
+  --btn-height: 40px;
+
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.22);
+  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+
+  --btn-primary-bg: var(--dark-primary);
+  --btn-primary-bg-hover: var(--dark-primary-hover);
+  --btn-primary-text: #ffffff;
+  --btn-primary-border: var(--dark-primary);
+  --btn-secondary-bg: var(--dark-hover);
+  --btn-secondary-bg-hover: var(--dark-hover-strong);
+  --btn-secondary-text: var(--dark-text);
+  --btn-secondary-border: var(--dark-border);
+  --btn-success-bg: #2d8f67;
+  --btn-success-bg-hover: var(--dark-success);
+  --btn-success-text: #ffffff;
+  --btn-success-border: #2d8f67;
+  --btn-danger-bg: #d95559;
+  --btn-danger-bg-hover: var(--dark-danger);
+  --btn-danger-text: #ffffff;
+  --btn-danger-border: #d95559;
+  --btn-warning-bg: #c97a2a;
+  --btn-warning-bg-hover: var(--dark-warning);
+  --btn-warning-text: #ffffff;
+  --btn-warning-border: #c97a2a;
+  --btn-shadow: none;
+  --btn-shadow-hover: none;
+
+  --layout-right-border: var(--dark-border);
+  --layout-right-inset: none;
+
+  --ds-select-panel-border: var(--dark-border);
+  --ds-select-radius: 10px;
+}
+
+html.theme-dark body {
+  background: var(--dark-bg-main);
+  color: var(--dark-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Superfícies flat (sem gradiente / glass) ──────────────── */
+html.theme-dark .page-hero,
+html.theme-dark .page-header,
+html.theme-dark .page-header-card {
+  border: 1px solid var(--dark-border);
+  border-radius: 14px;
+  background: var(--dark-card);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: none;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+
+html.theme-dark .content-card,
+html.theme-dark .ui-panel,
+html.theme-dark .filter-card,
+html.theme-dark .data-card {
+  border: 1px solid var(--dark-border);
+  border-radius: 12px;
+  background: var(--dark-card);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: none;
+}
+
+html.theme-dark .table-wrap,
+html.theme-dark .dk-table-wrap {
+  border: 1px solid var(--dark-border);
+  border-radius: 10px;
+  background: var(--dark-table);
+  box-shadow: none;
+}
+
+html.theme-dark .form-control,
+html.theme-dark .input-control,
+html.theme-dark select.input-control,
+html.theme-dark textarea.input-control {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--dark-border);
+  background-color: var(--dark-input);
+  color: var(--dark-text);
+}
+
+html.theme-dark .form-control:focus,
+html.theme-dark .input-control:focus,
+html.theme-dark select.input-control:focus,
+html.theme-dark textarea.input-control:focus {
+  border-color: color-mix(in srgb, var(--dark-primary) 55%, var(--dark-border));
+  box-shadow: var(--focus-ring);
+}
+
+html.theme-dark .data-table th,
+html.theme-dark .dk-table th {
+  color: var(--dark-text-muted);
+  font-weight: 600;
+  background: var(--dark-table-header);
+  border-bottom: 1px solid var(--dark-border);
+}
+
+html.theme-dark .data-table td,
+html.theme-dark .dk-table td {
+  border-bottom: 1px solid color-mix(in srgb, var(--dark-border) 85%, transparent);
+}
+
+html.theme-dark .data-table tbody tr:hover td,
+html.theme-dark .dk-table tbody tr:hover td {
+  background: var(--dark-hover);
+}
+
+html.theme-dark .badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--dark-border);
+  background: var(--dark-hover);
+  color: var(--dark-text);
+}
+
+html.theme-dark .modal-dark,
+html.theme-dark .dk-modal-content,
+html.theme-dark .modal-content {
+  border-radius: 14px;
+  border: 1px solid var(--dark-border);
+  background: var(--dark-card-elevated);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: none;
+  max-width: min(960px, 100%);
+  box-sizing: border-box;
+}
+
+html.theme-dark .dk-modal-overlay {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+}
+
+html.theme-dark .form-control-dark {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--dark-border);
+  background: var(--dark-input);
+  color: var(--dark-text);
+}
+
+/* Área principal do layout */
+html.theme-dark .layout,
+html.theme-dark .page-content,
+html.theme-dark .page-container {
+  background: var(--dark-bg-content);
+}
+
+html.theme-dark .card:not(.historico-card) {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+  box-shadow: var(--shadow-md);
+}
+
+/* Design kit — overlay e page header */
+html.theme-dark .dk-page-header {
+  border: 1px solid var(--dark-border);
+  border-radius: 12px;
+  background: var(--dark-card);
+  box-shadow: var(--shadow-md);
+}
+
+html.theme-dark .dk-tabs__tab.active {
+  color: var(--dark-primary);
+  background: var(--dark-hover);
+  border-color: var(--dark-border);
+  box-shadow: none;
+}
+
+/* Status pills — sólidos, sem glow */
+html.theme-dark .status-pill {
+  color: var(--dark-success);
+  background: #2a4a3d;
+  border: 1px solid color-mix(in srgb, var(--dark-success) 40%, var(--dark-border));
+}
+
+html.theme-dark .status-pill--inactive,
+html.theme-dark .status-pill--inativa {
+  color: var(--dark-text-muted);
+  background: var(--dark-hover);
+  border-color: var(--dark-border);
+}
+
+html.theme-dark .badge-status--success,
+html.theme-dark .badge-status.is-success {
+  color: var(--dark-success);
+  background: #2a4a3d;
+  border-color: color-mix(in srgb, var(--dark-success) 35%, var(--dark-border));
+}
+
+html.theme-dark .badge-status--danger,
+html.theme-dark .badge-status.is-danger {
+  color: var(--dark-danger);
+  background: #4a2d30;
+  border-color: color-mix(in srgb, var(--dark-danger) 35%, var(--dark-border));
+}
+
+/* Paginação e controles de tabela */
+html.theme-dark .table-footer,
+html.theme-dark .pagination,
+html.theme-dark .usuarios-pagination {
+  color: var(--dark-text-muted);
+  border-color: var(--dark-border);
+}
+
+html.theme-dark .pagination button,
+html.theme-dark .usuarios-pagination__nav button,
+html.theme-dark .table-footer button {
+  border: 1px solid var(--dark-border);
+  background: var(--dark-hover);
+  color: var(--dark-text);
+  box-shadow: none;
+}
+
+html.theme-dark .pagination button:hover:not(:disabled),
+html.theme-dark .usuarios-pagination__nav button:hover:not(:disabled),
+html.theme-dark .table-footer button:hover:not(:disabled) {
+  background: var(--dark-hover-strong);
+  border-color: var(--dark-border);
+}
+
+html.theme-dark .pagination .active,
+html.theme-dark .usuarios-pagination__current {
+  background: var(--dark-primary);
+  border-color: var(--dark-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* Chips / filtros */
+html.theme-dark .chip,
+html.theme-dark .filter-chip {
+  background: var(--dark-hover);
+  border: 1px solid var(--dark-border);
+  color: var(--dark-text-muted);
+  box-shadow: none;
+}
+
+html.theme-dark .chip.active,
+html.theme-dark .filter-chip.active,
+html.theme-dark .chip--active {
+  background: var(--dark-hover-strong);
+  border-color: color-mix(in srgb, var(--dark-primary) 45%, var(--dark-border));
+  color: var(--dark-text);
+}
+
+/* Dropdowns nativos (panel simulation via option hover no OS) */
+html.theme-dark option {
+  background: var(--dark-card-elevated);
+  color: var(--dark-text);
+}

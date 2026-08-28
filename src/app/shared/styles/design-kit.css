@@ -359,6 +359,11 @@
 }
 
 /* ── Modal ───────────────────────────────────────────────────────── */
+html.theme-dark .dk-modal-overlay {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+}
+
 .dk-modal-overlay {
   position: fixed;
   inset: 0;

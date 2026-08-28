@@ -617,69 +617,69 @@
 
 :host-context(html.theme-dark) {
   .modal-content--selecionar-motorista {
-    background: linear-gradient(180deg, rgba(20, 33, 61, 0.98), rgba(17, 28, 51, 0.98)) !important;
-    color: #f8fafc;
-    border-color: rgba(80, 120, 255, 0.22);
+    background: var(--dark-card-elevated, #2c2c37) !important;
+    color: var(--text);
+    border-color: var(--dark-border, #363642);
   }
 
   .selecionar-motorista__title,
   .selecionar-motorista__nome,
   .selecionar-motorista__grid td {
-    color: #f8fafc;
+    color: var(--text);
   }
 
   .selecionar-motorista__hint,
   .selecionar-motorista__grid th {
-    color: #c5cddc;
+    color: var(--muted);
   }
 
   .selecionar-motorista__grid-wrap {
-    background: rgba(8, 16, 32, 0.55);
-    border-color: rgba(80, 120, 255, 0.22);
+    background: var(--dark-table, #252530);
+    border-color: var(--dark-border, #363642);
   }
 
   .selecionar-motorista__grid th,
   .selecionar-motorista__grid td {
-    border-bottom-color: rgba(80, 120, 255, 0.16);
+    border-bottom-color: var(--dark-border, #363642);
   }
 
   .selecionar-motorista__grid th {
-    background: rgba(37, 99, 235, 0.22);
+    background: var(--dark-table-header, #30303c);
   }
 
   .selecionar-motorista__row--principal {
-    background: rgba(37, 99, 235, 0.16);
+    background: var(--dark-hover, #323240);
   }
 
   .selecionar-motorista__grid tbody tr:hover {
-    background: rgba(37, 99, 235, 0.12);
+    background: var(--dark-hover-strong, #3a3a48);
   }
 
   .modal-content--selecionar-motorista .modal-close {
-    background: rgba(30, 42, 69, 0.95);
-    color: #f8fafc;
+    background: var(--dark-hover, #323240);
+    color: var(--text);
   }
 
   .modal-content--selecionar-motorista .btn-secondary {
-    color: #f8fafc;
-    background: rgba(30, 42, 69, 0.95);
-    border-color: rgba(80, 120, 255, 0.28);
+    color: var(--text);
+    background: var(--dark-hover, #323240);
+    border-color: var(--dark-border, #363642);
   }
 
   /* Todos os modais de movimentos seguem o dark (sem inputs brancos) */
   .modal-content,
   .modal-content:not(.modal-content--selecionar-motorista) {
-    background: var(--surface, #141c2e) !important;
-    color: var(--text, #f8fafc) !important;
-    border-color: var(--border-subtle, rgba(80, 120, 255, 0.22)) !important;
+    background: var(--dark-card-elevated, #2c2c37) !important;
+    color: var(--text) !important;
+    border-color: var(--dark-border, #363642) !important;
   }
 
   .modal-content .input-control,
   .modal-content .input-control--select,
   .modal-content .modal-money__input {
-    color: var(--input-text, #f8fafc) !important;
-    background-color: var(--input-bg, #1c2642) !important;
-    border-color: var(--input-border, rgba(80, 120, 255, 0.28)) !important;
+    color: var(--input-text) !important;
+    background-color: var(--dark-input, #23232d) !important;
+    border-color: var(--dark-border, #363642) !important;
   }
 
   .modal-content select.input-control,
@@ -696,69 +696,69 @@
   .modal-content .saida-modal__label,
   .modal-content .saida-modal__status,
   .recibo-confirm-dialog p {
-    color: var(--muted, rgba(248, 250, 252, 0.72)) !important;
+    color: var(--muted) !important;
   }
 
   .modal-content .saida-modal__title,
   .modal-content .saida-modal__placa-valor,
   .modal-content .saida-modal__total,
   .recibo-confirm-dialog h3 {
-    color: var(--text, #f8fafc) !important;
+    color: var(--text) !important;
   }
 
   .modal-content .saida-modal__tempo-valor,
   .modal-content .saida-modal__cupom-valor {
-    color: var(--text, #f8fafc) !important;
+    color: var(--text) !important;
   }
 
   .modal-content .saida-modal__valores {
-    background: rgba(28, 38, 66, 0.92) !important;
-    border-color: rgba(80, 120, 255, 0.22) !important;
+    background: var(--dark-hover, #323240) !important;
+    border-color: var(--dark-border, #363642) !important;
   }
 
   .modal-content .saida-modal__meta-pill {
-    color: #bfdbfe !important;
-    background: rgba(37, 99, 235, 0.28) !important;
+    color: var(--dark-primary, #3d8bff) !important;
+    background: var(--dark-hover-strong, #3a3a48) !important;
   }
 
   .modal-content .saida-modal__meta-pill--muted {
-    color: rgba(248, 250, 252, 0.78) !important;
-    background: rgba(148, 163, 184, 0.2) !important;
+    color: var(--muted) !important;
+    background: var(--dark-hover, #323240) !important;
   }
 
   .modal-content .saida-modal__cupom-linha--total {
-    border-top-color: rgba(148, 163, 184, 0.35) !important;
+    border-top-color: var(--dark-border, #363642) !important;
   }
 
   .modal-content .saida-modal__cupom-linha--total > span {
-    color: rgba(248, 250, 252, 0.78) !important;
+    color: var(--muted) !important;
   }
 
   .modal-content .saida-modal__total {
-    color: #5eead4 !important;
+    color: var(--dark-success, #36c98f) !important;
   }
 
   .modal-content .saida-modal__money .modal-money__input,
   .modal-content .modal-money__prefix {
-    color: var(--input-text, #f8fafc) !important;
+    color: var(--input-text) !important;
   }
 
   .modal-content .saida-modal__money .modal-money__input {
-    background-color: var(--input-bg, #1c2642) !important;
+    background-color: var(--dark-input, #23232d) !important;
   }
 
   .modal-content .saida-modal__header {
-    border-bottom-color: rgba(80, 120, 255, 0.18) !important;
+    border-bottom-color: var(--dark-border, #363642) !important;
   }
 
   .modal-content .modal-close {
-    background: rgba(30, 42, 69, 0.95);
-    color: #f8fafc;
+    background: var(--dark-hover, #323240);
+    color: var(--text);
   }
 
   .modal-content .btn-secondary {
-    color: #f8fafc;
-    background: rgba(30, 42, 69, 0.95);
-    border-color: rgba(80, 120, 255, 0.28);
+    color: var(--text);
+    background: var(--dark-hover, #323240);
+    border-color: var(--dark-border, #363642);
   }
 }

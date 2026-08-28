@@ -334,6 +334,67 @@
   }
 }
 
+/* Tema dark: topbar e painel de usuário flat */
+:host-context(html.theme-dark) {
+  .layout {
+    background: var(--dark-bg-main, #181821);
+  }
+
+  .layout-right {
+    border-left-color: var(--dark-border, #363642);
+    box-shadow: none;
+  }
+
+  .main-content {
+    background: var(--dark-bg-content, #1d1d27);
+  }
+
+  .user-access-panel {
+    border: 1px solid var(--dark-border, #363642);
+    background: var(--dark-card, #292934);
+    box-shadow: none;
+  }
+
+  .user-access-panel__select {
+    background: var(--dark-input, #23232d);
+    border-color: var(--dark-border, #363642);
+  }
+
+  .top-bar__menu-btn:hover {
+    background: var(--dark-hover, #323240);
+    color: var(--primary);
+  }
+
+  .top-bar__link {
+    border-color: var(--dark-border, #363642);
+    background: var(--dark-hover, #323240);
+
+    &:hover {
+      background: var(--dark-hover-strong, #3a3a48);
+      border-color: var(--dark-border, #363642);
+      color: var(--text);
+    }
+  }
+
+  .top-bar__link--active {
+    background: var(--dark-hover-strong, #3a3a48);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .theme-switcher__btn {
+    border: 1px solid var(--dark-border, #363642);
+    background: var(--dark-hover, #323240);
+    box-shadow: none;
+
+    &:hover {
+      background: var(--dark-hover-strong, #3a3a48);
+      border-color: var(--dark-border, #363642);
+      color: var(--text);
+    }
+  }
+}
+
 /* Tema claro (WHITE MODE): topbar clara; links alinhados ao secundário outline */
 :host-context(html.theme-light) {
   .layout {

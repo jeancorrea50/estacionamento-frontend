@@ -557,6 +557,98 @@
   }
 }
 
+:host-context(html.theme-dark) {
+  .sidebar {
+    box-shadow: none;
+    border-right-color: var(--dark-border, #363642);
+  }
+
+  .sidebar-header__logo-img {
+    filter: none;
+  }
+
+  .menu-item {
+    color: var(--muted);
+
+    .menu-item__icon {
+      background: var(--dark-hover, #323240);
+      color: var(--muted);
+    }
+
+    &:hover:not(.active) {
+      color: var(--text);
+      background: var(--sidebar-item-hover, var(--dark-hover, #323240));
+
+      .menu-item__icon {
+        background: var(--dark-hover-strong, #3a3a48);
+        color: var(--text);
+      }
+    }
+
+    &.active {
+      color: var(--text);
+      background: var(--sidebar-active-bg, var(--dark-hover, #323240));
+      box-shadow: none;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 0 2px 2px 0;
+        background: var(--primary, #3d8bff);
+      }
+
+      .menu-item__icon {
+        background: var(--dark-hover-strong, #3a3a48);
+        color: var(--primary);
+      }
+
+      .icon,
+      .chevron {
+        color: inherit;
+      }
+
+      .menu-item__icon .icon {
+        color: var(--primary);
+      }
+    }
+  }
+
+  .submenu-item.active {
+    color: var(--text);
+    background: var(--dark-hover, #323240);
+    box-shadow: none;
+  }
+
+  .sidebar-security-card {
+    border: 1px solid var(--dark-border, #363642);
+    background: var(--dark-card-elevated, #2c2c37);
+    box-shadow: none;
+    color: var(--text);
+  }
+
+  .sidebar-security-card__icon {
+    background: var(--dark-hover, #323240);
+    color: var(--primary);
+  }
+
+  .sidebar-security-card__desc {
+    color: var(--muted);
+  }
+
+  .logout-btn {
+    background: color-mix(in srgb, var(--danger) 12%, var(--dark-hover, #323240));
+    color: var(--danger);
+
+    &:hover {
+      background: color-mix(in srgb, var(--danger) 18%, var(--dark-hover-strong, #3a3a48));
+    }
+  }
+}
+
 :host-context(html.theme-light) {
   color: #ffffff;
 

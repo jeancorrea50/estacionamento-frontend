@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
+import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
 import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import {
   formatAppMenuDisplayLabel,
@@ -227,7 +227,7 @@ function normalizeOptionalRoute(route: string | null | undefined): string | null
   if (typeof route !== 'string') return null;
   const value = route.trim();
   if (!value) return null;
-  return normalizeFaturamentoAppRoute(value) ?? value;
+  return normalizeLegacyAppRoute(value) ?? value;
 }
 
 function normalizeBoolean(value: boolean | null | undefined): boolean | null {

@@ -4,6 +4,10 @@ import { CONFIGURACOES_ROUTES } from './features/configuracoes/configuracoes.rou
 import { GERENCIAMENTO_ROUTES } from './features/gerenciamento/gerenciamento.routes';
 import { DASHBOARD_ROUTES } from './features/dashboard/dashboard.routes';
 import { MOVIMENTOS_ROUTES } from './features/movimentos/movimentos.routes';
+import { PATIO_ROUTES } from './features/patio/patio.routes';
+import {
+	PATIO_ENTRADA_SAIDA_PATH,
+} from './features/patio/patio-rotas';
 import { RELATORIOS_ROUTES } from './features/relatorios/relatorios.routes';
 import { FINANCEIRO_APP_ROUTES } from './features/financeiro/financeiro.routes';
 import {
@@ -39,15 +43,15 @@ export const routes: Routes = [
 				path: 'dashboard',
 				children: DASHBOARD_ROUTES
 			},
-			// Nome singular / legado da API → rota real do SPA (módulo Entrada e Saída)
+			// Legado: aliases antigos → módulo Pátio
 			{
 				path: 'movimento',
-				redirectTo: 'movimentos',
+				redirectTo: `patio/${PATIO_ENTRADA_SAIDA_PATH}`,
 				pathMatch: 'full',
 			},
 			{
 				path: 'entrada-saida',
-				redirectTo: 'movimentos/entrada-saida',
+				redirectTo: `patio/${PATIO_ENTRADA_SAIDA_PATH}`,
 				pathMatch: 'full',
 			},
 			{
@@ -55,10 +59,15 @@ export const routes: Routes = [
 				redirectTo: 'relatorios',
 				pathMatch: 'full',
 			},
-			// 3. ENTRADA E SAÍDA (path técnico: movimentos/*)
+			// 3. PÁTIO (`/app/patio/movimentacoes` e `/app/patio/entrada-saida`)
+			{
+				path: 'patio',
+				children: PATIO_ROUTES,
+			},
+			// Legado: `/app/movimentos/*` → `/app/patio/*`
 			{
 				path: 'movimentos',
-				children: MOVIMENTOS_ROUTES
+				children: MOVIMENTOS_ROUTES,
 			},
 			// 4. RELATÓRIOS
 			{

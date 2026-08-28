@@ -32,7 +32,7 @@ export class AndamentosPageComponent {
     '/app                       → redirect /app/dashboard',
     '/app (MainLayout)',
     '├── /dashboard             → Dashboard',
-    '├── /movimentos            → Entrada e Saída',
+    '├── /patio                 → Pátio (Entrada e Saída / Movimentações)',
     '├── /relatorios            → Relatórios',
     '├── /faturamento           → Faturamento',
     '├── /configuracoes         → Configurações',
@@ -52,7 +52,8 @@ export class AndamentosPageComponent {
 
   readonly menuSidebar: MenuLink[] = [
     { label: 'Dashboard', route: '/app/dashboard' },
-    { label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida' },
+    { label: 'Entrada e Saída', route: '/app/patio/entrada-saida' },
+    { label: 'Movimentações', route: '/app/patio/movimentacoes' },
     { label: 'Relatórios', route: '/app/relatorios' },
     { label: 'Faturamento', route: '/app/financeiro/faturamento' },
     { label: 'Gerenciamento', route: '/app/gerenciamento' },
@@ -64,7 +65,8 @@ export class AndamentosPageComponent {
   readonly telas: TelaItem[] = [
     { rota: '/', tela: 'Login', descricao: 'Login (usuário/senha). Após sucesso → navega para /app/dashboard.' },
     { rota: '/app/dashboard', tela: 'Dashboard', descricao: 'Página inicial da área logada.' },
-    { rota: '/app/movimentos/entrada-saida', tela: 'Entrada e Saída', descricao: 'Operação de entrada e saída no pátio.' },
+    { rota: '/app/patio/entrada-saida', tela: 'Entrada e Saída', descricao: 'Operação de entrada e saída no pátio.' },
+    { rota: '/app/patio/movimentacoes', tela: 'Movimentações', descricao: 'Listagem e operação de movimentações no pátio.' },
     { rota: '/app/relatorios', tela: 'Relatórios', descricao: 'Página de relatórios.' },
     { rota: '/app/financeiro/faturamento', tela: 'Faturamento', descricao: 'Página de faturamento.' },
     { rota: '/app/configuracoes', tela: 'Configurações', descricao: 'Página de configurações.' },
@@ -93,7 +95,8 @@ export class AndamentosPageComponent {
     { arquivo: 'src/app/app.routes.ts', responsabilidade: 'Rotas raiz, layout /app, guard, redirects.' },
     { arquivo: 'src/app/features/login/login.routes.ts', responsabilidade: 'Rota pública / (login).' },
     { arquivo: 'src/app/features/dashboard/dashboard.routes.ts', responsabilidade: '/app/dashboard.' },
-    { arquivo: 'src/app/features/movimentos/movimentos.routes.ts', responsabilidade: '/app/movimentos.' },
+    { arquivo: 'src/app/features/patio/patio.routes.ts', responsabilidade: '/app/patio.' },
+    { arquivo: 'src/app/features/movimentos/movimentos.routes.ts', responsabilidade: 'Redirects legados /app/movimentos/*.' },
     { arquivo: 'src/app/features/relatorios/relatorios.routes.ts', responsabilidade: '/app/relatorios.' },
     { arquivo: 'src/app/features/financeiro/financeiro.routes.ts', responsabilidade: '/app/financeiro/faturamento.' },
     { arquivo: 'src/app/features/configuracoes/configuracoes.routes.ts', responsabilidade: '/app/configuracoes.' },

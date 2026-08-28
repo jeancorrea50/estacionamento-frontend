@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
+import { PATIO_ENTRADA_SAIDA_ROUTE } from '../../../patio/patio-rotas';
 import {
   EntradaSaidaFiltro,
   EntradaSaidaOutput,
@@ -337,7 +338,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   abrirNovo(): void {
     if (this.isOperacaoView()) {
-      void this.router.navigate(['/app/movimentos/entrada-saida']);
+      void this.router.navigate([PATIO_ENTRADA_SAIDA_ROUTE]);
       return;
     }
     this.toast.success('Use o bloco "Registro Rápido de Movimentação" nesta tela para novos registros.');

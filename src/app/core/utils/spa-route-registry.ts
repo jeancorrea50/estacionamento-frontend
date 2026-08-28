@@ -6,6 +6,11 @@ import {
   FINANCEIRO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from '../../features/financeiro/faturamento-rotas';
+import {
+  PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_ROUTE,
+  PATIO_ROUTE,
+} from '../../features/patio/patio-rotas';
 
 const KNOWN_SPA_ROUTES = new Set<string>();
 
@@ -38,6 +43,12 @@ function collectFaturamentoRoutes(): void {
   }
 }
 
+function collectPatioRoutes(): void {
+  addRoute(PATIO_ROUTE);
+  addRoute(PATIO_MOVIMENTACOES_ROUTE);
+  addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
+}
+
 function collectStaticRoutes(): void {
   const extras = [
     '/app',
@@ -65,6 +76,7 @@ function collectStaticRoutes(): void {
 
 collectMenuStructure();
 collectFaturamentoRoutes();
+collectPatioRoutes();
 collectStaticRoutes();
 
 function normalizePath(path: string): string {

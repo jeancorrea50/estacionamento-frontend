@@ -1,12 +1,17 @@
 import { MENU_STRUCTURE, type MenuSubItem } from '../../cadastro/constants/menu-structure';
+import { normalizeLegacyAppRoute } from '../../../core/utils/app-route-normalizer';
 import {
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
   PAGAMENTOS_ROUTE,
-  normalizeFaturamentoAppRoute,
 } from '../../financeiro/faturamento-rotas';
+import {
+  PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_ROUTE,
+  PATIO_ROUTE,
+} from '../../patio/patio-rotas';
 
 function norm(s: string): string {
   return s
@@ -23,12 +28,14 @@ function norm(s: string): string {
 const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   dashbord: '/app/dashboard',
   dashboard: '/app/dashboard',
-  movimentos: '/app/movimentos/lista',
-  'entrada e saida': '/app/movimentos/entrada-saida',
-  entradaesaida: '/app/movimentos/entrada-saida',
-  'entrada e saída': '/app/movimentos/entrada-saida',
+  patio: PATIO_ROUTE,
+  movimentacoes: PATIO_MOVIMENTACOES_ROUTE,
+  movimentos: PATIO_MOVIMENTACOES_ROUTE,
+  'entrada e saida': PATIO_ENTRADA_SAIDA_ROUTE,
+  entradaesaida: PATIO_ENTRADA_SAIDA_ROUTE,
+  'entrada e saída': PATIO_ENTRADA_SAIDA_ROUTE,
   /** API costuma mandar singular; rota de portaria */
-  movimento: '/app/movimentos/entrada-saida',
+  movimento: PATIO_ENTRADA_SAIDA_ROUTE,
   relatorio: '/app/relatorios',
   relatorios: '/app/relatorios',
   financeiro: FINANCEIRO_ROUTE,
@@ -69,9 +76,12 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
 };
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
-  '/app/movimento': '/app/movimentos/entrada-saida',
-  '/app/movimentos': '/app/movimentos/lista',
-  '/app/movimentos/operacao': '/app/movimentos/lista',
+  '/app/movimento': PATIO_ENTRADA_SAIDA_ROUTE,
+  '/app/movimentos': PATIO_MOVIMENTACOES_ROUTE,
+  '/app/movimentos/lista': PATIO_MOVIMENTACOES_ROUTE,
+  '/app/movimentos/operacao': PATIO_MOVIMENTACOES_ROUTE,
+  '/app/movimentos/entrada-saida': PATIO_ENTRADA_SAIDA_ROUTE,
+  '/app/patio': PATIO_ROUTE,
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/financeiro': FINANCEIRO_ROUTE,
@@ -138,13 +148,13 @@ function normalizeApiRota(raw: string | null | undefined): string | null {
 
   if (tl.startsWith('/app/')) {
     const aliased = ALIAS_PATH_PARA_ROTA[tl] ?? t;
-    return normalizeFaturamentoAppRoute(aliased) ?? aliased;
+    return normalizeLegacyAppRoute(aliased) ?? aliased;
   }
 
   const route = `/app${t}`.replace(/\/{2,}/g, '/');
   const routeL = route.toLowerCase();
   const aliased = ALIAS_PATH_PARA_ROTA[routeL] ?? route;
-  return normalizeFaturamentoAppRoute(aliased) ?? aliased;
+  return normalizeLegacyAppRoute(aliased) ?? aliased;
 }
 
 /**
@@ -155,13 +165,20 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
   const key = norm(raw);
   const path = (route ?? '').replace(/\/+$/, '').toLowerCase();
 
-  if (path === '/app/movimentos/lista' || path.startsWith('/app/movimentos/lista/')) {
-    if (!raw || key === 'movimentos' || key === 'lista' || key === 'operacao') {
-      return 'Movimentos';
+  if (
+    path === PATIO_MOVIMENTACOES_ROUTE.toLowerCase() ||
+    path.startsWith(`${PATIO_MOVIMENTACOES_ROUTE.toLowerCase()}/`) ||
+    path === '/app/movimentos/lista' ||
+    path.startsWith('/app/movimentos/lista/')
+  ) {
+    if (!raw || key === 'movimentos' || key === 'lista' || key === 'operacao' || key === 'movimentacoes') {
+      return 'Movimentações';
     }
   }
 
   if (
+    path === PATIO_ENTRADA_SAIDA_ROUTE.toLowerCase() ||
+    path.startsWith(`${PATIO_ENTRADA_SAIDA_ROUTE.toLowerCase()}/`) ||
     path === '/app/movimentos/entrada-saida' ||
     path.startsWith('/app/movimentos/entrada-saida/')
   ) {
@@ -173,8 +190,8 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
   if (key === 'movimento') {
     return 'Entrada e Saída';
   }
-  if (key === 'movimentos') {
-    return 'Movimentos';
+  if (key === 'movimentos' || key === 'movimentacoes') {
+    return 'Movimentações';
   }
   if (key === 'financeiro') {
     return 'Financeiro';
@@ -190,7 +207,9 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     path === '/app/movimento' ||
     path === '/app/movimentos' ||
     path.startsWith('/app/movimentos/') ||
-    path.startsWith('/app/movimento/')
+    path.startsWith('/app/movimento/') ||
+    path === PATIO_ROUTE.toLowerCase() ||
+    path.startsWith(`${PATIO_ROUTE.toLowerCase()}/`)
   ) {
     if (key === 'entrada e saida') {
       return 'Entrada e Saída';
@@ -258,6 +277,9 @@ LABEL_TO_MATERIAL_ICON.set('entrada e saida', 'swap_horiz');
 LABEL_TO_MATERIAL_ICON.set('transportadora', 'local_shipping');
 LABEL_TO_MATERIAL_ICON.set('cadastro', 'local_shipping');
 LABEL_TO_MATERIAL_ICON.set('estacionamento', 'local_parking');
+ROUTE_TO_MATERIAL_ICON.set(PATIO_MOVIMENTACOES_ROUTE, 'format_list_bulleted');
+ROUTE_TO_MATERIAL_ICON.set(PATIO_ENTRADA_SAIDA_ROUTE, 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set(PATIO_ROUTE, 'local_parking');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimentos/lista', 'format_list_bulleted');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimentos/entrada-saida', 'swap_horiz');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimentos', 'format_list_bulleted');

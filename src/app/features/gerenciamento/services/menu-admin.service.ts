@@ -720,13 +720,13 @@ export class MenuAdminService {
 
   /**
    * Garante item "Movimentos" na sidebar logo após "Entrada e Saída"
-   * quando a sessão/API ainda não expõe `/app/movimentos/lista`.
+   * quando a sessão/API ainda não expõe `/app/patio/movimentacoes`.
    */
   private ensureMovimentosListaNavItem<
     T extends { label: string; route: string; icon: string; children?: unknown[] },
   >(items: T[]): T[] {
-    const listaRoute = '/app/movimentos/lista';
-    const entradaRoute = '/app/movimentos/entrada-saida';
+    const listaRoute = '/app/patio/movimentacoes';
+    const entradaRoute = '/app/patio/entrada-saida';
 
     const hasLista = items.some((item) => this.normalizeSidebarRoute(item.route) === listaRoute);
     if (hasLista) return items;
@@ -740,9 +740,9 @@ export class MenuAdminService {
 
     const movimentosItem = {
       ...items[entradaIdx],
-      label: 'Movimentos',
+      label: 'Movimentações',
       route: listaRoute,
-      icon: resolveMaterialSymbolIconFromModule('Movimentos', 'format_list_bulleted'),
+      icon: resolveMaterialSymbolIconFromModule('Movimentações', 'format_list_bulleted'),
       children: undefined,
     } as T;
 

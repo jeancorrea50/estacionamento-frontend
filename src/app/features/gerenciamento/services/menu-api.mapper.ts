@@ -2,7 +2,7 @@ import type { MenuAdmin, MenuPermissionRow, SubMenuAdmin } from '../models/menu-
 import type { MenuCreateInput, MenuUpdateInput, PermissionInput, SubMenuCreateInput } from './menu-api.types';
 import { flattenSubMenus, nestSubMenusByRoute, walkSubMenus } from './menu-tree.util';
 import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
-import { normalizeFaturamentoAppRoute } from '../../financeiro/faturamento-rotas';
+import { normalizeLegacyAppRoute } from '../../../core/utils/app-route-normalizer';
 import { readBoolProp, resolveExibirNoSidebar } from './menu-sidebar-visibility';
 
 function getProp(row: Record<string, unknown>, k: string): unknown {
@@ -53,7 +53,7 @@ function mapSubMenuRow(row: Record<string, unknown>, fallbackOrdem: number): Sub
   const rotaApi = rawRota == null ? null : String(rawRota).trim();
   // Quando a API já devolve rota, preserva o cadastro do servidor (não reescreve pelo slug legado).
   const rota = rotaApi
-    ? normalizeFaturamentoAppRoute(rotaApi) ?? rotaApi
+    ? normalizeLegacyAppRoute(rotaApi) ?? rotaApi
     : resolveAppRouteFromNome(nome, null);
   const fromApi = readBoolProp(row as Record<string, unknown>, [
     'exibirNoSidebar',
@@ -89,7 +89,7 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
   const rawMenuRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
   const rotaApi = rawMenuRota == null ? null : String(rawMenuRota).trim();
   const rota = rotaApi
-    ? normalizeFaturamentoAppRoute(rotaApi) ?? rotaApi
+    ? normalizeLegacyAppRoute(rotaApi) ?? rotaApi
     : resolveAppRouteFromNome(nomeMenu, null);
   const fromApi = readBoolProp(row as Record<string, unknown>, [
     'exibirNoSidebar',

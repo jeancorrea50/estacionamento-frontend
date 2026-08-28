@@ -94,7 +94,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   private updateFullWidthContent(url: string): void {
-    const movimentos = url.includes('/movimentos');
+    const movimentos = url.includes('/movimentos') || url.includes('/patio');
     this.isMovimentosRoute.set(movimentos);
     const estacionamento = url.includes('/cadastro/estacionamento');
     const transportadora = url.includes('/cadastro/transportadora');

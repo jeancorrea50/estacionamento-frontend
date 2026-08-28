@@ -10,6 +10,11 @@ import {
   FINANCEIRO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
+import {
+  PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_ROUTE,
+  PATIO_ROUTE,
+} from '../../patio/patio-rotas';
 
 export interface MenuSubItem {
   id: string;
@@ -45,11 +50,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
   {
     id: 'menu-patio',
     label: 'Pátio',
-    route: '/app/movimentos',
+    route: PATIO_ROUTE,
     icon: 'local_parking',
     children: [
-      { id: 'sub-movimentacoes', label: 'Movimentações', route: '/app/movimentos/lista' },
-      { id: 'sub-entrada-saida', label: 'Entrada / Saída', route: '/app/movimentos/entrada-saida' },
+      { id: 'sub-movimentacoes', label: 'Movimentações', route: PATIO_MOVIMENTACOES_ROUTE },
+      { id: 'sub-entrada-saida', label: 'Entrada / Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
     ],
   },
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },

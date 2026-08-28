@@ -17,7 +17,7 @@ import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
 import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/service-result.util';
 import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
-import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
+import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
 import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
 import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import { ToastService } from '../api/services/toast.service';
@@ -606,7 +606,7 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
       .map((menu) => {
         const id = toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']) ?? 0;
         const rotaRaw = toStringValue(menu['rota']) ?? toStringValue(menu['route']);
-        const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;
+        const rota = normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw;
         const descricaoRaw =
           toStringValue(menu['descricao']) ??
           toStringValue(menu['nome']) ??
@@ -653,7 +653,7 @@ function mapSubMenus(value: unknown): SessionSubMenuAccess[] {
 function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
   const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
   const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
-  const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;
+  const rota = normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw;
   const fromApi = toBoolean(
     sub['exibirNoSidebar'] ?? sub['mostrarSidebar'] ?? sub['exibeSidebar'] ?? sub['sidebar']
   );

@@ -1,8 +1,10 @@
 <div class="page-container">
-  <header class="page-header dk-page-header">
-    <h1 class="page-title dk-page-title">Entrada e Saída</h1>
-    <p class="page-subtitle dk-page-subtitle">Controle operacional de entradas, saídas e permanência no pátio.</p>
-  </header>
+  @if (isPortariaView()) {
+    <header class="page-header dk-page-header">
+      <h1 class="page-title dk-page-title">Entrada e Saída</h1>
+      <p class="page-subtitle dk-page-subtitle">Controle operacional de entradas, saídas e permanência no pátio.</p>
+    </header>
+  }
 
   @if (!canVisualizar) {
     <p class="empty-msg">Sem permissão para visualizar Entrada/Saída.</p>
@@ -26,6 +28,7 @@
       </article>
     </section>
 
+    @if (isPortariaView()) {
     <section class="dashboard-grid">
       <article class="dashboard-card dashboard-card--registro">
         <header class="dashboard-card__header">
@@ -264,139 +267,581 @@
       </article>
 
     </section>
+    }
 
-    <section class="filtros card">
-      <div class="filtros-grid filtros-grid--single">
-        <input
-          class="input-control filtro-input"
-          placeholder="Buscar por placa"
-          [(ngModel)]="filtro.descricao"
-          (ngModelChange)="onFiltroPlacaInput($event)"
-          maxlength="8"
-        />
-        <div class="filtros-acoes">
-          <label class="check-open">
-            <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" />
-            Somente em aberto
-          </label>
-          <button class="btn btn-primary" type="button" (click)="buscar()">Buscar</button>
+    @if (isOperacaoView()) {
+      <section class="card operacao-toolbar operacao-toolbar--compact" aria-label="Filtros e busca">
+        <div class="operacao-actions">
+          <div class="operacao-actions__chips">
+            <div class="resumo-chips">
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--noPatio"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('noPatio')"
+                (click)="aplicarFiltroResumo('noPatio')"
+              >
+                <span class="resumo-chip__valor">{{ emAberto() }}</span>
+                <span class="resumo-chip__label">No pátio</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--suspensos"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('suspensos')"
+                (click)="aplicarFiltroResumo('suspensos')"
+              >
+                <span class="resumo-chip__valor">{{ suspensosVisiveis() }}</span>
+                <span class="resumo-chip__label">Suspensos</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--entradasHoje"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('entradasHoje')"
+                (click)="aplicarFiltroResumo('entradasHoje')"
+              >
+                <span class="resumo-chip__valor">{{ entradasHoje() }}</span>
+                <span class="resumo-chip__label">Entradas hoje</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--agendados"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('agendados')"
+                (click)="aplicarFiltroResumo('agendados')"
+              >
+                <span class="resumo-chip__valor">{{ agendadosVisiveis() }}</span>
+                <span class="resumo-chip__label">Agendados</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('todos')"
+                (click)="aplicarFiltroResumo('todos')"
+              >
+                <span class="resumo-chip__valor">{{ totalCount() }}</span>
+                <span class="resumo-chip__label">Todos</span>
+              </button>
+            </div>
+          </div>
+          <form class="operacao-actions__busca operacao-busca" (submit)="$event.preventDefault(); buscar()">
+            <input
+              class="operacao-busca__input"
+              type="search"
+              placeholder="Placa"
+              aria-label="Buscar por placa"
+              [(ngModel)]="filtro.descricao"
+              (ngModelChange)="onFiltroPlacaInput($event)"
+              maxlength="8"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <label class="operacao-busca__check">
+              <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" [ngModelOptions]="{ standalone: true }" />
+              <span>Em aberto</span>
+            </label>
+            <button class="btn btn-primary btn--sm operacao-busca__btn" type="submit">Buscar</button>
+          </form>
         </div>
-      </div>
-    </section>
+      </section>
+    }
 
-    <section class="card historico-card">
-      <header class="historico-card__header">
-        <h2>Histórico de entrada e saída</h2>
-      </header>
-      <div class="table-wrap historico-table-wrap" tabindex="0" aria-label="Histórico — role para o lado para ver todas as colunas">
-        <table class="data-table historico-table">
-          <thead>
-            <tr>
-              <th>Placa</th>
-              <th>Motorista</th>
-              <th>Transportadora</th>
-              <th>Entrada</th>
-              <th>Saída</th>
-              <th>Status</th>
-              <th>Acordo</th>
-              <th class="col-acoes">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of registros(); track item.id) {
-              <tr class="historico-row" [class.historico-row--excedente]="item.ehExcedente">
-                <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
-                <td>
-                  <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
-                </td>
-                <td>
-                  <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
-                    item.nomeTransportadora
-                  }}</span>
-                </td>
-                <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
-                <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
-                <td>
-                  <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
-                    {{ statusLabel(item) }}
-                  </span>
-                </td>
-                <td>
-                  @if (item.ehExcedente) {
-                    <span class="status-pill status-pill--excedente" title="Entrada acima das vagas do acordo">
-                      Excedente
-                    </span>
-                  } @else if (item.acordoCobrancaId) {
-                    <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
-                  } @else {
-                    —
-                  }
-                </td>
-                <td class="acoes-cell">
-                  <button
-                    class="btn btn-warning btn--sm"
-                    type="button"
-                    [disabled]="!!item.dataHoraSaida"
-                    (click)="abrirPermanencia(item, estaSuspenso(item) ? 'retornar' : 'suspender')"
-                  >
-                    {{ estaSuspenso(item) ? 'Retornar' : 'Suspender' }}
+    @if (isPortariaView()) {
+      <section class="card historico-card">
+        <header class="historico-card__header historico-card__header--with-busca">
+          <h2>Histórico de entrada e saída</h2>
+          <form class="historico-header-busca operacao-busca" (submit)="$event.preventDefault(); buscar()">
+            <input
+              class="operacao-busca__input"
+              type="search"
+              placeholder="Placa"
+              aria-label="Buscar por placa"
+              [(ngModel)]="filtro.descricao"
+              (ngModelChange)="onFiltroPlacaInput($event)"
+              maxlength="8"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <label class="operacao-busca__check">
+              <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" [ngModelOptions]="{ standalone: true }" />
+              <span>Em aberto</span>
+            </label>
+            <button class="btn btn-primary btn--sm operacao-busca__btn" type="submit">Buscar</button>
+          </form>
+        </header>
+        <div
+          class="table-wrap historico-table-wrap"
+          tabindex="0"
+          aria-label="Histórico — role para o lado para ver todas as colunas"
+        >
+          <table class="data-table historico-table">
+            <thead>
+              <tr>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('placa')">
+                    Placa
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('placa') }}</span>
                   </button>
-                  <button
-                    class="btn btn-danger btn--sm"
-                    type="button"
-                    [disabled]="!!item.dataHoraSaida"
-                    (click)="abrirPermanencia(item, 'finalizar')"
-                  >
+                </th>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('motorista')">
+                    Motorista
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('motorista') }}</span>
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('transportadora')">
+                    Transportadora
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('transportadora') }}</span>
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('entrada')">
+                    Entrada
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('entrada') }}</span>
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('saida')">
                     Saída
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('saida') }}</span>
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('status')">
+                    Status
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('status') }}</span>
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="data-table__sort-btn" (click)="ordenarPor('acordo')">
+                    Acordo
+                    <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('acordo') }}</span>
+                  </button>
+                </th>
+                <th scope="col" class="col-acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of registrosLista(); track item.id) {
+                <tr class="historico-row" [class.historico-row--excedente]="item.ehExcedente">
+                  <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                  <td>
+                    <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
+                  </td>
+                  <td>
+                    <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                      item.nomeTransportadora
+                    }}</span>
+                  </td>
+                  <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
+                  <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
+                  <td>
+                    <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
+                      {{ statusLabel(item) }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (item.ehExcedente) {
+                      <span class="status-pill status-pill--excedente" title="Entrada acima das vagas do acordo">
+                        Excedente
+                      </span>
+                    } @else if (item.acordoCobrancaId) {
+                      <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td class="acoes-cell">
+                    <button
+                      class="btn btn-warning btn--sm"
+                      type="button"
+                      [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
+                      (click)="executarSuspensaoOuRetorno(item)"
+                    >
+                      {{
+                        permanenciaProcessandoId() === item.id
+                          ? '...'
+                          : estaSuspenso(item)
+                            ? 'Retornar'
+                            : 'Suspender'
+                      }}
+                    </button>
+                    <button
+                      class="btn btn-danger btn--sm"
+                      type="button"
+                      [disabled]="!!item.dataHoraSaida"
+                      (click)="abrirPermanencia(item, 'finalizar')"
+                    >
+                      Saída
+                    </button>
+                    <button
+                      class="btn btn-secondary btn--sm"
+                      type="button"
+                      [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
+                      title="Visualizar recibo PDF"
+                      (click)="abrirReciboHistorico(item)"
+                    >
+                      {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
+                    </button>
+                  </td>
+                </tr>
+                @if (historicoSuspensoes(item.id).length) {
+                  <tr class="suspensao-detalhe">
+                    <td colspan="8">
+                      <div class="suspensao-historico suspensao-historico--inline">
+                        @for (suspensao of historicoSuspensoes(item.id); track suspensao.id) {
+                          <p class="suspensao-historico__linha">{{ formatarResumoSuspensao(suspensao) }}</p>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (loading()) {
+          <p class="loading-msg">Carregando...</p>
+        } @else if (registros().length === 0) {
+          <p class="empty-msg">Nenhum registro encontrado.</p>
+        }
+
+        @if (totalPaginas() > 1) {
+          <nav class="paginacao" aria-label="Paginação">
+            <span class="paginacao__info">
+              Página {{ numeroPagina() }} de {{ totalPaginas() }} ({{ totalCount() }} registro(s))
+            </span>
+            <div class="paginacao__btns">
+              <button
+                class="btn btn-secondary btn--sm"
+                type="button"
+                [disabled]="numeroPagina() <= 1"
+                (click)="irParaPagina(numeroPagina() - 1)"
+              >
+                Anterior
+              </button>
+              <button
+                class="btn btn-secondary btn--sm"
+                type="button"
+                [disabled]="numeroPagina() >= totalPaginas()"
+                (click)="irParaPagina(numeroPagina() + 1)"
+              >
+                Próxima
+              </button>
+            </div>
+          </nav>
+        }
+      </section>
+    }
+
+    @if (isOperacaoView()) {
+      <div class="operacao-layout">
+        <div class="operacao-layout__main">
+          <section class="card historico-card">
+            <header class="historico-card__header">
+              <h2>Movimentos de entrada e saída</h2>
+            </header>
+            <div
+              class="table-wrap historico-table-wrap"
+              tabindex="0"
+              aria-label="Movimentos — role para o lado para ver todas as colunas"
+            >
+              <table class="data-table historico-table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('placa')">
+                        Placa
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('placa') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('motorista')">
+                        Motorista
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('motorista') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('transportadora')">
+                        Transportadora
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('transportadora') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('entrada')">
+                        Entrada
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('entrada') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('saida')">
+                        Saída
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('saida') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('status')">
+                        Status
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('status') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('acordo')">
+                        Acordo
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('acordo') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" class="col-acoes">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of registrosExibidos(); track item.id) {
+                    <tr
+                      class="historico-row historico-row--clickable"
+                      [class.historico-row--excedente]="item.ehExcedente"
+                      [class.historico-row--selected]="isMovimentoSelecionado(item.id)"
+                      (click)="selecionarMovimento(item)"
+                    >
+                      <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
+                      </td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                          item.nomeTransportadora
+                        }}</span>
+                      </td>
+                      <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
+                      <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
+                      <td>
+                        <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
+                          {{ statusLabel(item) }}
+                        </span>
+                      </td>
+                      <td>
+                        @if (item.ehExcedente) {
+                          <span class="status-pill status-pill--excedente" title="Entrada acima das vagas do acordo">
+                            Excedente
+                          </span>
+                        } @else if (item.acordoCobrancaId) {
+                          <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td class="acoes-cell">
+                        <button
+                          class="btn btn-warning btn--sm"
+                          type="button"
+                          [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
+                          (click)="$event.stopPropagation(); executarSuspensaoOuRetorno(item)"
+                        >
+                          {{
+                            permanenciaProcessandoId() === item.id
+                              ? '...'
+                              : estaSuspenso(item)
+                                ? 'Retornar'
+                                : 'Suspender'
+                          }}
+                        </button>
+                        <button
+                          class="btn btn-danger btn--sm"
+                          type="button"
+                          [disabled]="!!item.dataHoraSaida"
+                          (click)="$event.stopPropagation(); abrirPermanencia(item, 'finalizar')"
+                        >
+                          Saída
+                        </button>
+                        <button
+                          class="btn btn-secondary btn--sm"
+                          type="button"
+                          [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
+                          title="Visualizar recibo PDF"
+                          (click)="$event.stopPropagation(); abrirReciboHistorico(item)"
+                        >
+                          {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
+                        </button>
+                      </td>
+                    </tr>
+                    @if (historicoSuspensoes(item.id).length) {
+                      <tr class="suspensao-detalhe">
+                        <td colspan="8">
+                          <div class="suspensao-historico suspensao-historico--inline">
+                            @for (suspensao of historicoSuspensoes(item.id); track suspensao.id) {
+                              <p class="suspensao-historico__linha">{{ formatarResumoSuspensao(suspensao) }}</p>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            @if (loading()) {
+              <p class="loading-msg">Carregando...</p>
+            } @else if (registrosExibidos().length === 0) {
+              <p class="empty-msg">Nenhum movimento encontrado.</p>
+            }
+
+            @if (totalPaginas() > 1) {
+              <nav class="paginacao" aria-label="Paginação">
+                <span class="paginacao__info">
+                  Página {{ numeroPagina() }} de {{ totalPaginas() }} ({{ totalCount() }} registro(s))
+                </span>
+                <div class="paginacao__btns">
+                  <button
+                    class="btn btn-secondary btn--sm"
+                    type="button"
+                    [disabled]="numeroPagina() <= 1"
+                    (click)="irParaPagina(numeroPagina() - 1)"
+                  >
+                    Anterior
                   </button>
                   <button
                     class="btn btn-secondary btn--sm"
                     type="button"
-                    [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
-                    title="Visualizar recibo PDF"
-                    (click)="abrirReciboHistorico(item)"
+                    [disabled]="numeroPagina() >= totalPaginas()"
+                    (click)="irParaPagina(numeroPagina() + 1)"
                   >
-                    {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
+                    Próxima
                   </button>
-                </td>
-              </tr>
+                </div>
+              </nav>
             }
-          </tbody>
-        </table>
+          </section>
+        </div>
+
+        <aside class="est-aside movimento-aside" aria-label="Resumo do movimento">
+          @if (resumoLoading()) {
+            <div class="est-aside-card">
+              <p class="movimento-aside__placeholder" role="status">Carregando resumo...</p>
+            </div>
+          } @else if (resumoDetalhe(); as detalhe) {
+            <div class="est-aside-card">
+              <div
+                class="est-aside__status movimento-aside__status"
+                [class.est-aside__status--inactive]="detalhe.finalizado"
+                [class.movimento-aside__status--suspenso]="detalhe.permanenciaSuspensa && !detalhe.finalizado"
+              >
+                <span
+                  class="material-symbols-outlined est-aside__status-icon"
+                  aria-hidden="true"
+                >{{ resumoStatusIcon(detalhe) }}</span>
+                <span>{{ resumoStatusTexto(detalhe) }}</span>
+              </div>
+
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Permanência no pátio</span>
+                  <span class="est-aside__progress-value">{{ formatarMinutos(detalhe.tempoPermanenciaMinutos) }}</span>
+                </div>
+                <div
+                  class="est-aside__progress-track"
+                  role="progressbar"
+                  [attr.aria-valuenow]="resumoPermanenciaPercent(detalhe)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <div
+                    class="est-aside__progress-fill"
+                    [style.width.%]="resumoPermanenciaPercent(detalhe)"
+                  ></div>
+                </div>
+                <p class="est-aside__progress-hint">{{ resumoPermanenciaHint(detalhe) }}</p>
+              </div>
+
+              <div class="est-aside__block">
+                <h3 class="est-aside__block-title">Informações principais</h3>
+                <ul class="est-aside__list">
+                  <li>
+                    <span class="est-aside__k">Placa</span>
+                    <span class="est-aside__v">{{ placaDetalhe(detalhe) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Motorista</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ nomeMotoristaDetalhe(detalhe) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Transportadora</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ nomeTransportadoraDetalhe(detalhe) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Entrada</span>
+                    <span class="est-aside__v">{{ formatarDataHora(detalhe.dataHoraEntrada) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Saída</span>
+                    <span class="est-aside__v">{{ formatarDataHora(detalhe.dataHoraSaida) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Suspensão total</span>
+                    <span class="est-aside__v">{{ formatarMinutos(detalhe.tempoTotalSuspensaoMinutos) }}</span>
+                  </li>
+                  @if (detalhe.observacao?.trim()) {
+                    <li>
+                      <span class="est-aside__k">Observação</span>
+                      <span class="est-aside__v est-aside__v--clamp">{{ detalhe.observacao }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              @if (detalhe.suspensoes.length) {
+                <div class="est-aside__block">
+                  <h3 class="est-aside__block-title">Histórico de suspensões</h3>
+                  <ul class="movimento-aside__suspensao-list">
+                    @for (suspensao of detalhe.suspensoes; track suspensao.id) {
+                      <li class="movimento-aside__suspensao-item">
+                        {{ formatarResumoSuspensao(suspensao) }}
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (resumoItemLista(); as itemLista) {
+                <div class="movimento-aside__actions">
+                  <button
+                    class="btn btn-warning btn--sm"
+                    type="button"
+                    [disabled]="!!itemLista.dataHoraSaida || permanenciaProcessandoId() === itemLista.id"
+                    (click)="executarSuspensaoOuRetorno(itemLista)"
+                  >
+                    {{
+                      permanenciaProcessandoId() === itemLista.id
+                        ? '...'
+                        : estaSuspenso(itemLista)
+                          ? 'Retornar'
+                          : 'Suspender'
+                    }}
+                  </button>
+                  <button
+                    class="btn btn-danger btn--sm"
+                    type="button"
+                    [disabled]="!!itemLista.dataHoraSaida"
+                    (click)="abrirPermanencia(itemLista, 'finalizar')"
+                  >
+                    Registrar saída
+                  </button>
+                </div>
+              }
+
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">lightbulb</span>
+                <div class="est-aside__tip-body">
+                  <p class="est-aside__tip-ok">{{ resumoTipTexto(detalhe) }}</p>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="est-aside-card">
+              <p class="movimento-aside__placeholder">
+                Selecione um movimento na lista para ver o resumo.
+              </p>
+            </div>
+          }
+        </aside>
       </div>
-
-      @if (loading()) {
-        <p class="loading-msg">Carregando...</p>
-      } @else if (registros().length === 0) {
-        <p class="empty-msg">Nenhum registro encontrado.</p>
-      }
-
-      @if (totalPaginas() > 1) {
-        <nav class="paginacao" aria-label="Paginação">
-          <span class="paginacao__info">
-            Página {{ numeroPagina() }} de {{ totalPaginas() }} ({{ totalCount() }} registro(s))
-          </span>
-          <div class="paginacao__btns">
-            <button
-              class="btn btn-secondary btn--sm"
-              type="button"
-              [disabled]="numeroPagina() <= 1"
-              (click)="irParaPagina(numeroPagina() - 1)"
-            >
-              Anterior
-            </button>
-            <button
-              class="btn btn-secondary btn--sm"
-              type="button"
-              [disabled]="numeroPagina() >= totalPaginas()"
-              (click)="irParaPagina(numeroPagina() + 1)"
-            >
-              Próxima
-            </button>
-          </div>
-        </nav>
-      }
-    </section>
+    }
   }
 
   @if (reciboConfirmOpen()) {
@@ -551,57 +996,6 @@
               class="btn btn-primary"
               type="button"
               [disabled]="saidaProcessando() || !podeFinalizar()"
-              (click)="confirmarPermanencia()"
-            >
-              {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}
-            </button>
-          </div>
-        } @else {
-          <h2>
-            @if (permanenciaAcao === 'suspender') {
-              Suspender permanência
-            }
-            @if (permanenciaAcao === 'retornar') {
-              Finalizar suspensão / retornar ao pátio
-            }
-          </h2>
-
-          <p class="modal-meta">
-            Placa: <strong>{{ formatarPlaca(placaSelecionada()) }}</strong>
-          </p>
-          <p class="modal-meta">
-            Status:
-            {{
-              registroModal.finalizado
-                ? 'Finalizado'
-                : registroModal.permanenciaSuspensa
-                  ? 'Suspenso'
-                  : 'Em aberto'
-            }}
-          </p>
-
-          <label class="modal-field-label" for="permanenciaDataHoraAlt">Data/hora</label>
-          <input
-            id="permanenciaDataHoraAlt"
-            class="input-control"
-            type="datetime-local"
-            [ngModel]="permanenciaDataHora"
-            (ngModelChange)="onPermanenciaDataHoraChange($event)"
-          />
-
-          <div class="modal-actions">
-            <button
-              class="btn btn-secondary"
-              type="button"
-              [disabled]="saidaProcessando()"
-              (click)="fecharPermanencia()"
-            >
-              Cancelar
-            </button>
-            <button
-              class="btn btn-primary"
-              type="button"
-              [disabled]="saidaProcessando() || !podeSuspenderOuRetornar()"
               (click)="confirmarPermanencia()"
             >
               {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}

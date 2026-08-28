@@ -243,12 +243,39 @@
   position: relative;
   min-width: 0;
   max-width: 100%;
-  /* Não clipa o scroll horizontal interno do .table-wrap */
-  overflow: visible;
+  width: 100%;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 15px;
+  padding: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+.card.operacao-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 15px;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
 .historico-card__header {
-  padding: 0 0 8px;
+  padding: 14px 16px 10px;
+}
+
+.historico-card__header--with-busca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px 12px;
+}
+
+.historico-header-busca {
+  flex-shrink: 0;
 }
 
 .historico-card__header h2 {

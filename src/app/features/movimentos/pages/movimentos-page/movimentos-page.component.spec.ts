@@ -83,7 +83,7 @@ describe('MovimentosPageComponent', () => {
     }).compileComponents();
   });
 
-  it('deve orientar uso do registro rápido ao abrirNovo', () => {
+  it('deve orientar uso do registro rápido ao abrirNovo na portaria', () => {
     const fixture = TestBed.createComponent(MovimentosPageComponent);
     const component = fixture.componentInstance;
     component.abrirNovo();

@@ -105,7 +105,18 @@
   height: 26px;
   padding: 0 8px;
   font-size: 0.6875rem;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 8px);
+}
+
+.btn-warning {
+  background: var(--btn-warning-bg, #ea580c);
+  color: var(--btn-warning-text, #fff);
+  border: 1px solid var(--btn-warning-border, #c2410c);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: var(--btn-warning-bg-hover, #c2410c);
+  filter: brightness(1.05);
 }
 
 .page-header__title-wrap {

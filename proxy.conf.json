@@ -1,32 +1,32 @@
 {
   "/estac/worker": {
-    "target": "http://localhost:8081",
+    "target": "http://108.174.145.123",
     "secure": false,
     "changeOrigin": true,
     "ws": true,
     "logLevel": "warn"
   },
   "/estac/notification": {
-    "target": "http://localhost:8083",
+    "target": "http://108.174.145.123",
     "secure": false,
     "changeOrigin": true,
     "ws": true,
     "logLevel": "warn"
   },
   "/estac/report": {
-    "target": "http://localhost:8082",
+    "target": "http://108.174.145.123",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "warn"
   },
   "/estac": {
-    "target": "https://localhost:44317",
+    "target": "http://108.174.145.123",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "warn"
   },
   "/api": {
-    "target": "https://localhost:44317",
+    "target": "http://108.174.145.123",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "warn",

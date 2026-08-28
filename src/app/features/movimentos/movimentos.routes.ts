@@ -10,6 +10,12 @@ export const MOVIMENTOS_ROUTES: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'lista',
+    component: MovimentosPageComponent,
+    title: 'Movimentos',
+    data: { movimentosView: 'operacao' }
+  },
+  {
     path: 'entrada-saida',
     component: EntradaSaidaShellComponent,
     title: 'Entrada e Saída',
@@ -17,7 +23,8 @@ export const MOVIMENTOS_ROUTES: Routes = [
       {
         path: '',
         component: MovimentosPageComponent,
-        title: 'Entrada e Saída'
+        title: 'Entrada e Saída',
+        data: { movimentosView: 'portaria' }
       },
       {
         path: ':id',
@@ -28,7 +35,7 @@ export const MOVIMENTOS_ROUTES: Routes = [
   },
   {
     path: 'operacao',
-    redirectTo: 'entrada-saida',
+    redirectTo: 'lista',
     pathMatch: 'full',
   },
   {

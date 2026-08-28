@@ -20,11 +20,11 @@ function norm(s: string): string {
 const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   dashbord: '/app/dashboard',
   dashboard: '/app/dashboard',
-  movimentos: '/app/movimentos/entrada-saida',
+  movimentos: '/app/movimentos/lista',
   'entrada e saida': '/app/movimentos/entrada-saida',
   entradaesaida: '/app/movimentos/entrada-saida',
   'entrada e saída': '/app/movimentos/entrada-saida',
-  /** API costuma mandar singular; rota real do SPA é plural */
+  /** API costuma mandar singular; rota de portaria */
   movimento: '/app/movimentos/entrada-saida',
   relatorio: '/app/relatorios',
   relatorios: '/app/relatorios',
@@ -65,8 +65,8 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/movimento': '/app/movimentos/entrada-saida',
-  '/app/movimentos': '/app/movimentos/entrada-saida',
-  '/app/movimentos/operacao': '/app/movimentos/entrada-saida',
+  '/app/movimentos': '/app/movimentos/lista',
+  '/app/movimentos/operacao': '/app/movimentos/lista',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/financeiro': FATURAMENTO_ROUTE,
@@ -137,22 +137,40 @@ function normalizeApiRota(raw: string | null | undefined): string | null {
 export function formatAppMenuDisplayLabel(label: string, route?: string | null): string {
   const raw = (label ?? '').trim();
   const key = norm(raw);
-  if (key === 'movimento' || key === 'movimentos') {
+  const path = (route ?? '').replace(/\/+$/, '').toLowerCase();
+
+  if (path === '/app/movimentos/lista' || path.startsWith('/app/movimentos/lista/')) {
+    if (!raw || key === 'movimentos' || key === 'lista' || key === 'operacao') {
+      return 'Movimentos';
+    }
+  }
+
+  if (
+    path === '/app/movimentos/entrada-saida' ||
+    path.startsWith('/app/movimentos/entrada-saida/')
+  ) {
+    if (!raw || key === 'movimento' || key === 'entrada e saida') {
+      return 'Entrada e Saída';
+    }
+  }
+
+  if (key === 'movimento') {
     return 'Entrada e Saída';
+  }
+  if (key === 'movimentos') {
+    return 'Movimentos';
   }
   if (key === 'financeiro') {
     return 'Faturamento';
   }
 
-  const path = (route ?? '').replace(/\/+$/, '').toLowerCase();
   if (
     path === '/app/movimento' ||
     path === '/app/movimentos' ||
     path.startsWith('/app/movimentos/') ||
     path.startsWith('/app/movimento/')
   ) {
-    // Rótulo de menu de topo associado à feature (não reescreve subrótulos técnicos).
-    if (!raw || key === 'movimento' || key === 'movimentos' || key === 'entrada e saida') {
+    if (key === 'entrada e saida') {
       return 'Entrada e Saída';
     }
   }
@@ -207,11 +225,14 @@ for (const node of MENU_STRUCTURE) {
 }
 // Aliases legados da API (singular/plural)
 LABEL_TO_MATERIAL_ICON.set('movimento', 'swap_horiz');
-LABEL_TO_MATERIAL_ICON.set('movimentos', 'swap_horiz');
+LABEL_TO_MATERIAL_ICON.set('movimentos', 'format_list_bulleted');
+LABEL_TO_MATERIAL_ICON.set('entrada e saida', 'swap_horiz');
 LABEL_TO_MATERIAL_ICON.set('transportadora', 'local_shipping');
 LABEL_TO_MATERIAL_ICON.set('cadastro', 'local_shipping');
 LABEL_TO_MATERIAL_ICON.set('estacionamento', 'local_parking');
-ROUTE_TO_MATERIAL_ICON.set('/app/movimentos', 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set('/app/movimentos/lista', 'format_list_bulleted');
+ROUTE_TO_MATERIAL_ICON.set('/app/movimentos/entrada-saida', 'swap_horiz');
+ROUTE_TO_MATERIAL_ICON.set('/app/movimentos', 'format_list_bulleted');
 ROUTE_TO_MATERIAL_ICON.set('/app/movimento', 'swap_horiz');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro/transportadora', 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro', 'local_shipping');

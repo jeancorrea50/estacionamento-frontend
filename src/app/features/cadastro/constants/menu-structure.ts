@@ -30,6 +30,12 @@ const FATURAMENTO_SUBMENUS: MenuSubItem[] = FATURAMENTO_TABS.map((t) => ({
 export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
   { id: 'menu-movimentos', label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida', icon: 'swap_horiz' },
+  {
+    id: 'menu-movimentos-lista',
+    label: 'Movimentos',
+    route: '/app/movimentos/lista',
+    icon: 'format_list_bulleted',
+  },
   { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
   {
     id: 'menu-faturamento',

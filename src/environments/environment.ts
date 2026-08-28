@@ -1,6 +1,6 @@
 /**
  * Desenvolvimento (`ng serve` :4200).
- * Usa paths /estac/* iguais à produção; o proxy.conf.json encaminha para as APIs locais/VPS.
+ * Paths /estac/* iguais à produção; `proxy.conf.json` encaminha à VPS (ou API local em 44317).
  */
 export const environment = {
   production: false,

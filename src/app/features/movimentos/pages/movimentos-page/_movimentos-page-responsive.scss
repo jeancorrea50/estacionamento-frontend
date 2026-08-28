@@ -42,6 +42,22 @@
   }
 }
 
+@media (max-width: 960px) {
+  .operacao-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .movimento-aside {
+    order: 2;
+    position: static;
+    top: auto;
+  }
+
+  .operacao-layout__main {
+    order: 1;
+  }
+}
+
 @media (max-width: 560px) {
   .page-content {
     padding: 12px 14px;

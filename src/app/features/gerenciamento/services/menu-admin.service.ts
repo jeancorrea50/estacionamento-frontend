@@ -692,7 +692,44 @@ export class MenuAdminService {
       withCadastro.splice(insertAt, 0, ...promoted);
     }
 
-    return withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
+    const labeled = withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
+    return this.ensureMovimentosListaNavItem(labeled);
+  }
+
+  /**
+   * Garante item "Movimentos" na sidebar logo após "Entrada e Saída"
+   * quando a sessão/API ainda não expõe `/app/movimentos/lista`.
+   */
+  private ensureMovimentosListaNavItem<
+    T extends { label: string; route: string; icon: string; children?: unknown[] },
+  >(items: T[]): T[] {
+    const listaRoute = '/app/movimentos/lista';
+    const entradaRoute = '/app/movimentos/entrada-saida';
+
+    const hasLista = items.some((item) => this.normalizeSidebarRoute(item.route) === listaRoute);
+    if (hasLista) return items;
+
+    const entradaIdx = items.findIndex(
+      (item) =>
+        this.normalizeSidebarRoute(item.route) === entradaRoute ||
+        item.route.startsWith(`${entradaRoute}/`)
+    );
+    if (entradaIdx < 0) return items;
+
+    const movimentosItem = {
+      ...items[entradaIdx],
+      label: 'Movimentos',
+      route: listaRoute,
+      icon: resolveMaterialSymbolIconFromModule('Movimentos', 'format_list_bulleted'),
+      children: undefined,
+    } as T;
+
+    return [...items.slice(0, entradaIdx + 1), movimentosItem, ...items.slice(entradaIdx + 1)];
+  }
+
+  private normalizeSidebarRoute(route: string): string {
+    const trimmed = route.trim().replace(/\/+$/, '');
+    return trimmed || '/app';
   }
 
   /** Padroniza rótulos legados da API (ex.: Movimento → Entrada e Saída). */

@@ -88,6 +88,10 @@ export interface EntradaSaidaFiltro {
   tamanhoPagina: number;
   page?: number;
   size?: number;
+  /** Coluna para ordenação no backend (`Propriedade`). */
+  propriedade?: string;
+  /** Direção da ordenação no backend (`Sort`: Asc | Desc). */
+  sort?: 'Asc' | 'Desc';
 }
 
 export interface EntradaSaidaSearchOutput {

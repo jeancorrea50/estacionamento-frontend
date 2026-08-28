@@ -230,36 +230,9 @@
 
                   <div class="permission-tree__submenu-list">
                     @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
-                      <div class="permission-tree__submenu">
-                        <label class="permission-tree__checkbox permission-tree__checkbox--submenu">
-                          <input
-                            type="checkbox"
-                            [checked]="subMenu.selecionado"
-                            (change)="onSubMenuToggle(menu.menuId, subMenu.subMenuId, $any($event.target).checked)"
-                          />
-                          <span>{{ subMenu.nome }}</span>
-                        </label>
-
-                        <div class="permission-tree__permissions">
-                          @for (permissao of subMenu.permissoes; track permissao.permissaoId) {
-                            <label class="permission-tree__checkbox permission-tree__checkbox--permission">
-                              <input
-                                type="checkbox"
-                                [checked]="permissao.selecionado"
-                                (change)="
-                                  onPermissaoToggle(
-                                    menu.menuId,
-                                    subMenu.subMenuId,
-                                    permissao.permissaoId,
-                                    $any($event.target).checked
-                                  )
-                                "
-                              />
-                              <span>{{ permissao.nome }}</span>
-                            </label>
-                          }
-                        </div>
-                      </div>
+                      <ng-container
+                        *ngTemplateOutlet="subMenuBranch; context: { subMenu: subMenu, menuId: menu.menuId, depth: 0 }"
+                      />
                     }
                   </div>
                 </div>
@@ -336,3 +309,41 @@
     </div>
   </div>
 }
+
+<ng-template #subMenuBranch let-subMenu="subMenu" let-menuId="menuId" let-depth="depth">
+  <div class="permission-tree__submenu" [class.permission-tree__submenu--nested]="depth > 0">
+    <label class="permission-tree__checkbox permission-tree__checkbox--submenu">
+      <input
+        type="checkbox"
+        [checked]="subMenu.selecionado"
+        (change)="onSubMenuToggle(menuId, subMenu.subMenuId, $any($event.target).checked)"
+      />
+      <span>{{ subMenu.nome }}</span>
+    </label>
+
+    <div class="permission-tree__permissions">
+      @for (permissao of subMenu.permissoes; track permissao.permissaoId) {
+        <label class="permission-tree__checkbox permission-tree__checkbox--permission">
+          <input
+            type="checkbox"
+            [checked]="permissao.selecionado"
+            (change)="
+              onPermissaoToggle(menuId, subMenu.subMenuId, permissao.permissaoId, $any($event.target).checked)
+            "
+          />
+          <span>{{ permissao.nome }}</span>
+        </label>
+      }
+    </div>
+
+    @if (subMenu.subMenus?.length) {
+      <div class="permission-tree__submenu-list permission-tree__submenu-list--nested">
+        @for (child of subMenu.subMenus; track child.subMenuId) {
+          <ng-container
+            *ngTemplateOutlet="subMenuBranch; context: { subMenu: child, menuId: menuId, depth: depth + 1 }"
+          />
+        }
+      </div>
+    }
+  </div>
+</ng-template>

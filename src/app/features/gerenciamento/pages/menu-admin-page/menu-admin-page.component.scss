@@ -545,6 +545,18 @@
   box-shadow: var(--shadow-md);
 }
 
+.sub-row--nested {
+  margin-left: 1.25rem;
+  border-style: dashed;
+}
+
+.sub-row__children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0 1.25rem;
+}
+
 .submenu-drop .cdk-drag-placeholder {
   min-height: 40px;
   border-radius: 10px;

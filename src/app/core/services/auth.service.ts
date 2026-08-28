@@ -19,6 +19,7 @@ import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/
 import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
 import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
 import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
+import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import { ToastService } from '../api/services/toast.service';
 
 export interface LoginRequest {
@@ -643,34 +644,45 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
 
 function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
   if (!Array.isArray(value)) return [];
-  return value
+  const mapped = value
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-    .map((sub) => {
-      const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
-      const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
-      const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;
-      const fromApi = toBoolean(
-        sub['exibirNoSidebar'] ?? sub['mostrarSidebar'] ?? sub['exibeSidebar'] ?? sub['sidebar']
-      );
-      return {
-        id,
-        descricao:
-          toStringValue(sub['descricao']) ??
-          toStringValue(sub['nome']) ??
-          toStringValue(sub['subDescricao']) ??
-          toStringValue(sub['subNome']),
-        rota,
-        ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
-        exibirNoSidebar: resolveExibirNoSidebar({
-          id,
-          kind: 'sub',
-          rota,
-          fromApi: fromApi === null ? undefined : fromApi,
-        }),
-        selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
-        ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
-      };
-    });
+    .map((sub) => mapSubMenuEntry(sub));
+  return nestSubMenusByRouteGeneric(mapped);
+}
+
+function mapSubMenuEntry(sub: Record<string, unknown>): NonNullable<SessionMenuAccess['subMenus']>[number] {
+  const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
+  const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
+  const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;
+  const fromApi = toBoolean(
+    sub['exibirNoSidebar'] ?? sub['mostrarSidebar'] ?? sub['exibeSidebar'] ?? sub['sidebar']
+  );
+  const nestedRaw =
+    sub['subMenus'] ??
+    sub['submenus'] ??
+    sub['subModules'] ??
+    sub['subModulesDto'] ??
+    sub['SubMenus'];
+  const nestedFlat = Array.isArray(nestedRaw) ? mapSubMenus(nestedRaw) : [];
+  return {
+    id,
+    descricao:
+      toStringValue(sub['descricao']) ??
+      toStringValue(sub['nome']) ??
+      toStringValue(sub['subDescricao']) ??
+      toStringValue(sub['subNome']),
+    rota,
+    ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
+    exibirNoSidebar: resolveExibirNoSidebar({
+      id,
+      kind: 'sub',
+      rota,
+      fromApi: fromApi === null ? undefined : fromApi,
+    }),
+    selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
+    ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
+    subMenus: nestedFlat.length ? nestedFlat : undefined,
+  };
 }
 
 function tryExtractProfileMenus(value: unknown, jwtRole?: string | null): unknown[] | null {

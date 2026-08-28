@@ -38,23 +38,33 @@ const FATURAMENTO_SUBMENUS: MenuSubItem[] = [
   },
 ];
 
-/** Estrutura completa do menu (seed admin / permissões). Estacionamento é item de topo na sidebar. */
+/** Estrutura completa do menu (seed admin / permissões / validação SPA). */
 export const MENU_STRUCTURE: MenuNode[] = [
-  { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
-  { id: 'menu-movimentos', label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida', icon: 'swap_horiz' },
   {
-    id: 'menu-movimentos-lista',
-    label: 'Movimentos',
-    route: '/app/movimentos/lista',
-    icon: 'format_list_bulleted',
+    id: 'menu-patio',
+    label: 'Pátio',
+    route: '/app/movimentos',
+    icon: 'local_parking',
+    children: [
+      { id: 'sub-movimentacoes', label: 'Movimentações', route: '/app/movimentos/lista' },
+      { id: 'sub-entrada-saida', label: 'Entrada / Saída', route: '/app/movimentos/entrada-saida' },
+    ],
   },
+  { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
   { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
   {
-    id: 'menu-faturamento',
-    label: 'Faturamento',
-    route: FATURAMENTO_ROUTE,
+    id: 'menu-financeiro',
+    label: 'Financeiro',
+    route: '/app/financeiro',
     icon: 'payments',
-    children: FATURAMENTO_SUBMENUS,
+    children: [
+      {
+        id: 'sub-faturamento',
+        label: 'Faturamento',
+        route: FATURAMENTO_ROUTE,
+        children: FATURAMENTO_SUBMENUS,
+      },
+    ],
   },
   {
     id: 'menu-configuracoes',
@@ -62,8 +72,9 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: '/app/configuracoes',
     icon: 'settings',
     children: [
+      { id: 'sub-cobranca', label: 'Cobrança', route: FATURAMENTO_CONFIG_ROUTE },
       { id: 'sub-usuarios', label: 'Usuários', route: '/app/configuracoes/usuarios' },
-      { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
+      { id: 'sub-horario', label: 'Parâmetros', route: '/app/configuracoes/horario' },
     ],
   },
   {

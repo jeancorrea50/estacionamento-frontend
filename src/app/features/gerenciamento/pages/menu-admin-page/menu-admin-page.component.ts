@@ -529,15 +529,21 @@ export class MenuAdminPageComponent implements OnInit {
       .replace(/^-+|-+$/g, '');
   }
 
-  private buildSubmenuRoute(menuId: number, nome: string): string {
-    const base = this.buildSubmenuBaseRoute(menuId).replace(/\/+$/, '');
+  private buildSubmenuRoute(menuId: number, nome: string, parentSubId: number | null = null): string {
+    const base = this.buildSubmenuBaseRoute(menuId, parentSubId).replace(/\/+$/, '');
     const subSeg = this.slugifyRouteSegment(nome) || 'submenu';
     return `${base}/${subSeg}`.replace(/\/{2,}/g, '/');
   }
 
-  private buildSubmenuBaseRoute(menuId: number): string {
+  private buildSubmenuBaseRoute(menuId: number, parentSubId: number | null = null): string {
     const snap = this.admin.getSnapshot();
     const menu = snap.menus.find((x) => x.id === menuId);
+    if (parentSubId != null && menu) {
+      const found = findSubMenuById(menu.subMenus, parentSubId);
+      if (found?.sub.rota?.trim()) {
+        return `${found.sub.rota.replace(/\/+$/, '')}/`;
+      }
+    }
     const menuRota = menu?.rota?.trim();
     const firstSubRoute = menu?.subMenus.find((s) => s.rota?.startsWith('/app/'))?.rota ?? '';
     let base = '/app';
@@ -559,9 +565,10 @@ export class MenuAdminPageComponent implements OnInit {
     if (menuId == null) return;
     if (this.subFormRotaManualOverride) return;
     const nome = value.trim();
+    const parentSubId = this.subModalParentSubId();
     this.subFormRota = nome
-      ? this.buildSubmenuRoute(menuId, nome)
-      : this.buildSubmenuBaseRoute(menuId);
+      ? this.buildSubmenuRoute(menuId, nome, parentSubId)
+      : this.buildSubmenuBaseRoute(menuId, parentSubId);
   }
 
   protected onSubmenuRotaChange(_value: string): void {
@@ -571,9 +578,14 @@ export class MenuAdminPageComponent implements OnInit {
     }
   }
 
-  private normalizeSubRoute(rawRoute: string, menuId: number, nome: string): string {
+  private normalizeSubRoute(
+    rawRoute: string,
+    menuId: number,
+    nome: string,
+    parentSubId: number | null = null
+  ): string {
     const route = rawRoute.trim();
-    if (!route) return this.buildSubmenuRoute(menuId, nome);
+    if (!route) return this.buildSubmenuRoute(menuId, nome, parentSubId);
     if (route.startsWith('/app/')) return route;
     if (route.startsWith('/')) return `/app${route}`.replace(/\/{2,}/g, '/');
     return `/app/${route}`.replace(/\/{2,}/g, '/');
@@ -589,7 +601,13 @@ export class MenuAdminPageComponent implements OnInit {
       this.toast.error('O submenu precisa ter a permissão de visualizar.');
       return;
     }
-    const rota = this.normalizeSubRoute(this.subFormRota, menuId, nome);
+    const parentSubId = this.subModalParentSubId();
+    const rota = this.normalizeSubRoute(this.subFormRota, menuId, nome, parentSubId);
+    const spaError = getSpaRouteValidationMessage(rota);
+    if (spaError) {
+      this.toast.error(spaError);
+      return;
+    }
     const sid = this.subEditId();
     if (sid == null) {
       const snap = this.admin.getSnapshot();
@@ -600,7 +618,7 @@ export class MenuAdminPageComponent implements OnInit {
         const novoSub: SubMenuAdmin = {
           id: 0,
           nome,
-          ordem: menu.subMenus.length,
+          ordem: 0,
           rota,
           ativo: this.subFormAtivo,
           exibirNoSidebar: this.subFormExibirNoSidebar,
@@ -612,7 +630,8 @@ export class MenuAdminPageComponent implements OnInit {
             []
           ),
         };
-        const menuComNovoSub: MenuAdmin = { ...menu, subMenus: [...menu.subMenus, novoSub] };
+        const nextSubs = appendSubMenuToTree(menu.subMenus, parentSubId, novoSub);
+        const menuComNovoSub: MenuAdmin = { ...menu, subMenus: nextSubs };
         this.salvandoSubModal.set(true);
         this.menuApi
           .alterar(
@@ -661,29 +680,28 @@ export class MenuAdminPageComponent implements OnInit {
     const snap = this.admin.getSnapshot();
     const menu = snap.menus.find((x) => x.id === menuId);
     if (!menu) return;
-    const subOriginal = menu.subMenus.find((s) => s.id === sid);
-    if (!subOriginal) return;
+    const found = findSubMenuById(menu.subMenus, sid);
+    if (!found) return;
+    const subOriginal = found.sub;
+
+    const updatedSub: SubMenuAdmin = {
+      ...subOriginal,
+      nome,
+      rota,
+      ativo: this.subFormAtivo,
+      exibirNoSidebar: this.subFormExibirNoSidebar,
+      permissions: this.buildPermissionRowsForSubmenu(
+        sid,
+        nome,
+        this.subFormPermissoesSelecionadas,
+        this.subFormPermissoesCustomizadas,
+        this.subPermissoesOriginais
+      ),
+    };
 
     const atualizado: MenuAdmin = {
       ...menu,
-      subMenus: menu.subMenus.map((s) =>
-        s.id === sid
-          ? {
-              ...s,
-              nome,
-              rota,
-              ativo: this.subFormAtivo,
-              exibirNoSidebar: this.subFormExibirNoSidebar,
-              permissions: this.buildPermissionRowsForSubmenu(
-                sid,
-                nome,
-                this.subFormPermissoesSelecionadas,
-                this.subFormPermissoesCustomizadas,
-                this.subPermissoesOriginais
-              ),
-            }
-          : s
-      ),
+      subMenus: updateSubMenuInTree(menu.subMenus, sid, updatedSub),
     };
 
     if (menuId <= 0 || sid <= 0) {
@@ -697,8 +715,7 @@ export class MenuAdminPageComponent implements OnInit {
       return;
     }
 
-    const nextPermissions =
-      atualizado.subMenus.find((s) => s.id === sid)?.permissions ?? [];
+    const nextPermissions = findSubMenuById(atualizado.subMenus, sid)?.sub.permissions ?? [];
     const addedPermissions = nextPermissions.filter((p) => p.id <= 0);
     const removedPermissionIds = this.collectRemovedPermissionIds(
       this.subPermissoesOriginais,

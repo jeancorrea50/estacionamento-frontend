@@ -137,48 +137,9 @@
           >
             @if (isExpanded(menu.id)) {
               @for (sub of menu.subMenus; track sub.id) {
-                <div class="sub-row" cdkDrag [cdkDragData]="sub">
-                  <span class="drag-handle material-symbols-outlined" cdkDragHandle>drag_indicator</span>
-                  <div class="sub-row__main">
-                    <div class="sub-row__line">
-                      <strong class="sub-row__name">{{ sub.nome }}</strong>
-                      <code class="sub-row__route">{{ sub.rota }}</code>
-                      <span class="status-chip status-chip--sm" [class.status-chip--on]="sub.ativo" [class.status-chip--off]="!sub.ativo">
-                        <span class="status-chip__dot" aria-hidden="true"></span>
-                        {{ sub.ativo ? 'Ativo' : 'Inativo' }}
-                      </span>
-                      <span
-                        class="status-chip status-chip--sm status-chip--icon-only"
-                        [class.status-chip--on]="sub.exibirNoSidebar !== false"
-                        [class.status-chip--off]="sub.exibirNoSidebar === false"
-                        [title]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
-                        [attr.aria-label]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
-                      >
-                        <span class="material-symbols-outlined status-chip__icon" aria-hidden="true">
-                          {{ sub.exibirNoSidebar !== false ? 'visibility' : 'visibility_off' }}
-                        </span>
-                      </span>
-                    </div>
-                    <div class="sub-row__perm-list">
-                      <span class="sub-row__perm-label">Permissões:</span>
-                      <span class="sub-row__perm-values">{{ formatPermissoesResumo(sub) }}</span>
-                    </div>
-                  </div>
-                  <div class="sub-row__actions">
-                    <button type="button" class="btn btn--icon" (click)="openEditSub(menu.id, sub)" title="Editar submenu">
-                      <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn--icon btn--danger"
-                      [disabled]="isExcluindoSub(sub.id)"
-                      (click)="excluirSub(menu.id, sub)"
-                      title="Excluir submenu"
-                    >
-                      <span class="material-symbols-outlined">delete</span>
-                    </button>
-                  </div>
-                </div>
+                <ng-container
+                  *ngTemplateOutlet="subRowTpl; context: { $implicit: sub, menuId: menu.id, depth: 0 }"
+                />
               }
             }
           </div>
@@ -298,6 +259,7 @@
           Exibir no sidebar
         </label>
         <span class="form-hint">Desmarque para ocultar este item no menu lateral (a rota e as permissões continuam válidas).</span>
+        <span class="form-hint">A rota deve existir no SPA (rotas Angular). Ao digitar o nome, a URL é sugerida automaticamente.</span>
         <div class="form-section form-section--permissions">
           <div class="form-section__header">
             <h3 class="form-section__title">Permissões do submenu</h3>
@@ -374,3 +336,62 @@
     </div>
   </div>
 }
+
+<ng-template #subRowTpl let-sub let-menuId="menuId" let-depth="depth">
+  <div class="sub-row" [class.sub-row--nested]="depth > 0" cdkDrag [cdkDragDisabled]="depth > 0" [cdkDragData]="sub">
+    @if (depth === 0) {
+      <span class="drag-handle material-symbols-outlined" cdkDragHandle>drag_indicator</span>
+    }
+    <div class="sub-row__main">
+      <div class="sub-row__line">
+        <strong class="sub-row__name">{{ sub.nome }}</strong>
+        <code class="sub-row__route">{{ sub.rota }}</code>
+        <span class="status-chip status-chip--sm" [class.status-chip--on]="sub.ativo" [class.status-chip--off]="!sub.ativo">
+          <span class="status-chip__dot" aria-hidden="true"></span>
+          {{ sub.ativo ? 'Ativo' : 'Inativo' }}
+        </span>
+        <span
+          class="status-chip status-chip--sm status-chip--icon-only"
+          [class.status-chip--on]="sub.exibirNoSidebar !== false"
+          [class.status-chip--off]="sub.exibirNoSidebar === false"
+          [title]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+          [attr.aria-label]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+        >
+          <span class="material-symbols-outlined status-chip__icon" aria-hidden="true">
+            {{ sub.exibirNoSidebar !== false ? 'visibility' : 'visibility_off' }}
+          </span>
+        </span>
+      </div>
+      <div class="sub-row__perm-list">
+        <span class="sub-row__perm-label">Permissões:</span>
+        <span class="sub-row__perm-values">{{ formatPermissoesResumo(sub) }}</span>
+      </div>
+    </div>
+    <div class="sub-row__actions">
+      <button type="button" class="btn btn--icon btn--sm" (click)="openNovoSubmenu(menuId, sub.id)" title="Novo submenu filho">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+      <button type="button" class="btn btn--icon" (click)="openEditSub(menuId, sub)" title="Editar submenu">
+        <span class="material-symbols-outlined">edit</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn--icon btn--danger"
+        [disabled]="isExcluindoSub(sub.id)"
+        (click)="excluirSub(menuId, sub)"
+        title="Excluir submenu"
+      >
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </div>
+  </div>
+  @if (sub.subMenus?.length) {
+    <div class="sub-row__children">
+      @for (child of sub.subMenus; track child.id) {
+        <ng-container
+          *ngTemplateOutlet="subRowTpl; context: { $implicit: child, menuId: menuId, depth: depth + 1 }"
+        />
+      }
+    </div>
+  }
+</ng-template>

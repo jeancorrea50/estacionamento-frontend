@@ -22,6 +22,8 @@ export interface SubMenuAdmin {
    */
   exibirNoSidebar: boolean;
   permissions: MenuPermissionRow[];
+  /** Submenu de 2º nível (agrupado por prefixo de rota). */
+  subMenus?: SubMenuAdmin[];
 }
 
 export interface MenuAdmin {

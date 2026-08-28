@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
+import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import {
   formatAppMenuDisplayLabel,
   resolveAppRouteFromNome,
@@ -16,6 +17,8 @@ export interface SessionSubMenuAccess {
   exibirNoSidebar?: boolean | null;
   selecionado?: boolean | null;
   ordem?: number | null;
+  /** Submenu de 2º nível (menu → submenu → submenu²). */
+  subMenus?: SessionSubMenuAccess[] | null;
 }
 
 export interface SessionMenuAccess {
@@ -167,13 +170,43 @@ export class SessionAccessService {
       }
 
       for (const sub of activeSubs) {
-        const route = resolveAppRouteFromNome(safeText(sub.descricao), sub.rota ?? null);
-        addRouteWithAncestors(routeSet, route);
+        collectSessionSubRoutes(sub, routeSet, safeText(menu.descricao));
       }
     }
 
     return [...routeSet];
   }
+}
+
+function collectSessionSubRoutes(
+  sub: SessionSubMenuAccess,
+  routeSet: Set<string>,
+  menuLabel: string
+): void {
+  if (sub.ativo === false || sub.selecionado === false) return;
+  const route = resolveAppRouteFromNome(safeText(sub.descricao), sub.rota ?? null);
+  addRouteWithAncestors(routeSet, route);
+  for (const nested of sub.subMenus ?? []) {
+    collectSessionSubRoutes(nested, routeSet, menuLabel);
+  }
+}
+
+function normalizeSessionSubMenus(subs: SessionSubMenuAccess[]): SessionSubMenuAccess[] {
+  const mapped = subs.map((sub) => normalizeSessionSubMenu(sub));
+  return nestSubMenusByRouteGeneric(mapped);
+}
+
+function normalizeSessionSubMenu(sub: SessionSubMenuAccess): SessionSubMenuAccess {
+  const rota = normalizeOptionalRoute(sub.rota);
+  const nestedRaw = sub.subMenus ?? [];
+  const nested = nestedRaw.length ? normalizeSessionSubMenus(nestedRaw) : [];
+  return {
+    ...sub,
+    descricao: safeText(sub.descricao),
+    rota,
+    selecionado: normalizeBoolean(sub.selecionado),
+    subMenus: nested.length ? nested : undefined,
+  };
 }
 
 function normalizeMenus(menus: SessionMenuAccess[]): SessionMenuAccess[] {
@@ -185,12 +218,7 @@ function normalizeMenus(menus: SessionMenuAccess[]): SessionMenuAccess[] {
       descricao: formatAppMenuDisplayLabel(descricaoRaw, rota) || descricaoRaw,
       rota,
       selecionado: normalizeBoolean(menu.selecionado),
-      subMenus: (menu.subMenus ?? []).map((sub) => ({
-        ...sub,
-        descricao: safeText(sub.descricao),
-        rota: normalizeOptionalRoute(sub.rota),
-        selecionado: normalizeBoolean(sub.selecionado),
-      })),
+      subMenus: normalizeSessionSubMenus(menu.subMenus ?? []),
     };
   });
 }

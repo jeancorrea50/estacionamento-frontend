@@ -24,12 +24,30 @@ import {
   type SessionMenuAccess,
   type SessionSubMenuAccess,
 } from '../../../core/services/session-access.service';
+import {
+  findSubMenuById,
+  removeSubMenuFromTree,
+  updateSubMenuInTree,
+  walkSubMenus,
+} from './menu-tree.util';
 
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
 const ESTACIONAMENTO_SIDEBAR_ROUTE = '/app/cadastro/estacionamento';
 
 function cloneState(s: MenuAdminState): MenuAdminState {
   return JSON.parse(JSON.stringify(s)) as MenuAdminState;
+}
+
+function collectSelectedSubMenuIds(
+  subs: SessionSubMenuAccess[],
+  selectedSubMenuIds: Set<number>
+): void {
+  for (const sub of subs) {
+    if (sub.id != null && sub.selecionado !== false) {
+      selectedSubMenuIds.add(sub.id);
+    }
+    collectSelectedSubMenuIds(sub.subMenus ?? [], selectedSubMenuIds);
+  }
 }
 
 function normMenuLabel(value: string | null | undefined): string {
@@ -292,12 +310,19 @@ export class MenuAdminService {
       if (menu.id != null && menu.selecionado !== false) {
         selectedMenuIds.add(menu.id);
       }
-      for (const sub of menu.subMenus ?? []) {
-        if (sub.id != null && sub.selecionado !== false) {
-          selectedSubMenuIds.add(sub.id);
-        }
-      }
+      collectSelectedSubMenuIds(menu.subMenus ?? [], selectedSubMenuIds);
     }
+
+    const mapAdminSubToSession = (sub: SubMenuAdmin): SessionSubMenuAccess => ({
+      id: sub.id,
+      descricao: sub.nome,
+      rota: sub.rota,
+      ativo: sub.ativo,
+      exibirNoSidebar: sub.exibirNoSidebar !== false,
+      selecionado: selectedSubMenuIds.has(sub.id),
+      ordem: sub.ordem,
+      subMenus: (sub.subMenus ?? []).map(mapAdminSubToSession),
+    });
 
     const nextSessionMenus: SessionMenuAccess[] = latestMenus
       .filter((menu) => menu.ativo !== false)
@@ -306,15 +331,7 @@ export class MenuAdminService {
         const subMenus: SessionSubMenuAccess[] = (menu.subMenus ?? [])
           .filter((sub) => sub.ativo !== false)
           .sort((a, b) => a.ordem - b.ordem)
-          .map((sub) => ({
-            id: sub.id,
-            descricao: sub.nome,
-            rota: sub.rota,
-            ativo: sub.ativo,
-            exibirNoSidebar: sub.exibirNoSidebar !== false,
-            selecionado: selectedSubMenuIds.has(sub.id),
-            ordem: sub.ordem,
-          }));
+          .map(mapAdminSubToSession);
 
         const menuSelecionado =
           selectedMenuIds.has(menu.id) || subMenus.some((sub) => sub.selecionado !== false);
@@ -446,9 +463,10 @@ export class MenuAdminService {
   ): void {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
-      const sub = menu?.subMenus.find((x) => x.id === subId);
-      if (!sub) return;
-      Object.assign(sub, patch);
+      if (!menu) return;
+      const found = findSubMenuById(menu.subMenus, subId);
+      if (!found) return;
+      menu.subMenus = updateSubMenuInTree(menu.subMenus, subId, patch);
       if (patch.exibirNoSidebar !== undefined) {
         rememberSidebarVisibility('sub', subId, patch.exibirNoSidebar);
       }
@@ -460,9 +478,7 @@ export class MenuAdminService {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
       if (!menu) return;
-      menu.subMenus = menu.subMenus
-        .filter((x) => x.id !== subId)
-        .map((x, i) => ({ ...x, ordem: i }));
+      menu.subMenus = removeSubMenuFromTree(menu.subMenus, subId);
     });
   }
 
@@ -519,39 +535,45 @@ export class MenuAdminService {
   togglePermissaoAcao(menuId: number, subId: number, acao: string, enabled: boolean): void {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
-      const sub = menu?.subMenus.find((x) => x.id === subId);
-      if (!sub) return;
+      const found = menu ? findSubMenuById(menu.subMenus, subId) : null;
+      if (!menu || !found) return;
+      const sub = found.sub;
+      let permissions = [...sub.permissions];
       if (enabled) {
-        if (hasMatchingPermissionAcao(sub.permissions, sub.nome, acao)) return;
+        if (hasMatchingPermissionAcao(permissions, sub.nome, acao)) return;
         const id = s.nextId++;
-        sub.permissions.push({
+        permissions.push({
           id,
-          ordem: sub.permissions.length,
+          ordem: permissions.length,
           subModuleId: subId,
           acao: buildFullAcaoPermissao(sub.nome, acao),
         });
       } else {
-        sub.permissions = removePermissionRowsForUi(sub.permissions, sub.nome, acao);
+        permissions = removePermissionRowsForUi(permissions, sub.nome, acao);
       }
+      menu.subMenus = updateSubMenuInTree(menu.subMenus, subId, { permissions });
     });
   }
 
   selecionarTodasAcoes(menuId: number, subId: number): void {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
-      const sub = menu?.subMenus.find((x) => x.id === subId);
-      if (!sub) return;
+      const found = menu ? findSubMenuById(menu.subMenus, subId) : null;
+      if (!menu || !found) return;
+      const sub = found.sub;
+      const permissions = [...sub.permissions];
       for (const acao of PERMISSOES_ACOES) {
-        if (!hasMatchingPermissionAcao(sub.permissions, sub.nome, acao)) {
+        if (!hasMatchingPermissionAcao(permissions, sub.nome, acao)) {
           const id = s.nextId++;
-          sub.permissions.push({
+          permissions.push({
             id,
-            ordem: sub.permissions.length,
+            ordem: permissions.length,
             subModuleId: subId,
             acao: buildFullAcaoPermissao(sub.nome, acao),
           });
         }
       }
+      menu.subMenus = updateSubMenuInTree(menu.subMenus, subId, { permissions });
     });
   }
 
@@ -559,22 +581,22 @@ export class MenuAdminService {
   setSubMenuPermissions(menuId: number, subId: number, permissions: MenuPermissionRow[]): void {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
-      const sub = menu?.subMenus.find((x) => x.id === subId);
-      if (!sub) return;
-      sub.permissions = permissions.map((p, i) => ({
-        ...p,
-        ordem: i,
-        subModuleId: subId,
-      }));
+      if (!menu) return;
+      menu.subMenus = updateSubMenuInTree(menu.subMenus, subId, {
+        permissions: permissions.map((p, i) => ({
+          ...p,
+          ordem: i,
+          subModuleId: subId,
+        })),
+      });
     });
   }
 
   limparAcoes(menuId: number, subId: number): void {
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
-      const sub = menu?.subMenus.find((x) => x.id === subId);
-      if (!sub) return;
-      sub.permissions = [];
+      if (!menu) return;
+      menu.subMenus = updateSubMenuInTree(menu.subMenus, subId, { permissions: [] });
     });
   }
 
@@ -844,10 +866,19 @@ export class MenuAdminService {
 
         if (activeSubs.length === 1) {
           const sub = activeSubs[0];
-          const subLabel = sub.descricao?.trim() || menuLabel;
+          const mapped = this.mapSessionSubToNavChild(sub, menuLabel);
+          if (mapped.children?.length) {
+            const base = mapped.route.replace(/\/[^/]*$/, '') || mapped.route;
+            return {
+              label: menuLabel,
+              route: base,
+              icon,
+              children: [mapped],
+            };
+          }
           return {
             label: menuLabel,
-            route: resolveAppRouteFromNome(subLabel, sub.rota),
+            route: mapped.route,
             icon,
           };
         }
@@ -863,12 +894,40 @@ export class MenuAdminService {
           label: menuLabel,
           route: base,
           icon,
-          children: activeSubs.map((s) => ({
-            label: s.descricao?.trim() || 'submenu',
-            route: resolveAppRouteFromNome(s.descricao?.trim() || menuLabel, s.rota),
-          })),
+          children: activeSubs.map((s) => this.mapSessionSubToNavChild(s, menuLabel)),
         };
       });
+  }
+
+  private mapSessionSubToNavChild(
+    sub: SessionSubMenuAccess,
+    menuLabel: string
+  ): { label: string; route: string; children?: { label: string; route: string }[] } {
+    const label = sub.descricao?.trim() || 'submenu';
+    const route = resolveAppRouteFromNome(label, sub.rota ?? null);
+    const nested = (sub.subMenus ?? [])
+      .filter((s) => s.ativo !== false && this.resolveShowInSidebar(s, 'sub'))
+      .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+      .map((s) => this.mapSessionSubToNavChild(s, menuLabel));
+    if (nested.length) {
+      return { label, route, children: nested };
+    }
+    return { label, route };
+  }
+
+  private mapAdminSubToNavChild(
+    sub: SubMenuAdmin,
+    menuLabel: string
+  ): { label: string; route: string; children?: { label: string; route: string }[] } {
+    const route = resolveAppRouteFromNome(sub.nome, sub.rota);
+    const nested = (sub.subMenus ?? [])
+      .filter((s) => s.ativo && s.exibirNoSidebar !== false)
+      .sort((a, b) => a.ordem - b.ordem)
+      .map((s) => this.mapAdminSubToNavChild(s, menuLabel));
+    if (nested.length) {
+      return { label: sub.nome, route, children: nested };
+    }
+    return { label: sub.nome, route };
   }
 
   private buildNavItemsFromState(): {
@@ -900,9 +959,19 @@ export class MenuAdminService {
           };
         }
         if (subs.length === 1) {
+          const mapped = this.mapAdminSubToNavChild(subs[0], m.nome);
+          if (mapped.children?.length) {
+            const base = mapped.route.replace(/\/[^/]*$/, '') || mapped.route;
+            return {
+              label: m.nome,
+              route: base,
+              icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
+              children: [mapped],
+            };
+          }
           return {
             label: m.nome,
-            route: resolveAppRouteFromNome(subs[0].nome, subs[0].rota),
+            route: mapped.route,
             icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
           };
         }
@@ -916,10 +985,7 @@ export class MenuAdminService {
           label: m.nome,
           route: base,
           icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
-          children: subs.map((s) => ({
-            label: s.nome,
-            route: resolveAppRouteFromNome(s.nome, s.rota),
-          })),
+          children: subs.map((s) => this.mapAdminSubToNavChild(s, m.nome)),
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -946,8 +1012,14 @@ export class MenuAdminService {
         if (menu) return menu.exibirNoSidebar !== false;
       } else {
         for (const menu of this.state().menus) {
-          const sub = menu.subMenus.find((s) => s.id === item.id);
-          if (sub) return sub.exibirNoSidebar !== false;
+          let found = false;
+          walkSubMenus(menu.subMenus, (sub) => {
+            if (sub.id === item.id) found = true;
+          });
+          if (found) {
+            const match = findSubMenuById(menu.subMenus, item.id!);
+            if (match) return match.sub.exibirNoSidebar !== false;
+          }
         }
       }
     }

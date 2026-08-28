@@ -6,7 +6,7 @@ import { DASHBOARD_ROUTES } from './features/dashboard/dashboard.routes';
 import { MOVIMENTOS_ROUTES } from './features/movimentos/movimentos.routes';
 import { RELATORIOS_ROUTES } from './features/relatorios/relatorios.routes';
 import { FATURAMENTO_ROUTES } from './features/financeiro/financeiro.routes';
-import { FATURAMENTO_TABS } from './features/financeiro/faturamento-rotas';
+import { FATURAMENTO_CONFIG_PATH, FATURAMENTO_TABS } from './features/financeiro/faturamento-rotas';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { authGuard } from './core/guards/auth.guard';
@@ -90,17 +90,27 @@ export const routes: Routes = [
 			{
 				path: 'financeiro/faturamento/config-cobranca',
 				pathMatch: 'full',
-				redirectTo: 'faturamento/configuracao-cobranca',
+				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
 			},
 			{
 				path: 'financeiro/config-cobranca',
 				pathMatch: 'full',
-				redirectTo: 'faturamento/configuracao-cobranca',
+				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
 			},
 			{
 				path: 'faturamento/config-cobranca',
 				pathMatch: 'full',
-				redirectTo: 'faturamento/configuracao-cobranca',
+				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
+			},
+			{
+				path: 'faturamento/configuracao-cobranca',
+				pathMatch: 'full',
+				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
+			},
+			{
+				path: 'financeiro/faturamento/configuracao-cobranca',
+				pathMatch: 'full',
+				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
 			},
 			// 6. CONFIGURAÇÕES
 			{

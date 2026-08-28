@@ -11,7 +11,7 @@ import {
 } from '../auth/jwt.util';
 import { LoggedUser } from './user.service';
 import { PermissionCacheService } from './permission-cache.service';
-import { SessionAccessService, SessionMenuAccess } from './session-access.service';
+import { SessionAccessService, SessionMenuAccess, SessionSubMenuAccess } from './session-access.service';
 import { resolveExibirNoSidebar } from '../../features/gerenciamento/services/menu-sidebar-visibility';
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
@@ -642,7 +642,7 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
   return [];
 }
 
-function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
+function mapSubMenus(value: unknown): SessionSubMenuAccess[] {
   if (!Array.isArray(value)) return [];
   const mapped = value
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
@@ -650,7 +650,7 @@ function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
   return nestSubMenusByRouteGeneric(mapped);
 }
 
-function mapSubMenuEntry(sub: Record<string, unknown>): NonNullable<SessionMenuAccess['subMenus']>[number] {
+function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
   const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
   const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
   const rota = normalizeFaturamentoAppRoute(rotaRaw) ?? rotaRaw;

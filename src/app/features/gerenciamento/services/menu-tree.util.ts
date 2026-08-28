@@ -110,7 +110,7 @@ export function findSubMenuById(
 export interface RouteNestableSubMenu {
   rota?: string | null;
   ordem?: number | null;
-  subMenus?: RouteNestableSubMenu[];
+  subMenus?: RouteNestableSubMenu[] | null;
 }
 
 /**

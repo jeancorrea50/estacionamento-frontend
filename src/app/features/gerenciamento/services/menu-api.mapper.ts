@@ -230,10 +230,64 @@ export function menuAdminToUpdateInput(
     rota: m.rota?.trim() ? m.rota.trim() : undefined,
     ativo: m.ativo !== false,
     ...sidebarPayload(m.exibirNoSidebar !== false),
-    subMenus: m.subMenus.map((s) =>
+    subMenus: flattenSubMenus(m.subMenus).map((s) =>
       toSubMenuInputForUpdate(s, {
         includePermissions: shouldIncludePermissions(s),
       })
     ),
   };
+}
+
+/**
+ * PUT Alterar enviando **somente** o submenu alvo (criação ou edição).
+ * Evita reenviar todos os submenus do menu e dados incompletos de itens existentes.
+ */
+export function menuAdminToAlterarSubMenuOnlyInput(
+  menuId: number,
+  sub: SubMenuAdmin,
+  options?: { includePermissions?: boolean }
+): MenuUpdateInput {
+  if (menuId <= 0) {
+    throw new Error('menuId inválido para Alterar submenu.');
+  }
+
+  const includePermissions = options?.includePermissions !== false;
+  const isNew = sub.id <= 0;
+  const subInput = isNew
+    ? toSubMenuInputForInsert(sub)
+    : toSubMenuInputForUpdate(sub, { includePermissions });
+
+  // Payload mínimo: apenas o menu pai (id) + o submenu alvo — evita duplicar itens existentes.
+  return {
+    id: menuId,
+    subMenus: [subInput],
+  };
+}
+
+/** Valida submenu antes de persistir no backend (contrato mínimo do Alterar). */
+export function validateSubMenuAlterarPayload(sub: SubMenuAdmin): string | null {
+  const nome = sub.nome?.trim();
+  if (!nome) return 'Nome do submenu é obrigatório.';
+
+  const rota = sub.rota?.trim();
+  if (!rota || !rota.startsWith('/app/')) {
+    return 'Rota inválida. Use o padrão /app/...';
+  }
+
+  const permissions = (sub.permissions ?? [])
+    .map((p) => String(p.acao ?? '').trim())
+    .filter(Boolean);
+  if (permissions.length === 0) {
+    return 'O submenu precisa de ao menos uma permissão.';
+  }
+
+  const hasVisualizar = permissions.some((acao) => {
+    const normalized = acao.toLowerCase();
+    return normalized.endsWith('.visualizar') || normalized === 'visualizar';
+  });
+  if (!hasVisualizar) {
+    return 'A permissão de visualizar é obrigatória.';
+  }
+
+  return null;
 }

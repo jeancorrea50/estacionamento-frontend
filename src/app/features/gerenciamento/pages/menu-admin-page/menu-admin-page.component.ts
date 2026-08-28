@@ -11,7 +11,9 @@ import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
   mapBuscarResponseToMenuAdmins,
+  menuAdminToAlterarSubMenuOnlyInput,
   menuAdminToUpdateInput,
+  validateSubMenuAlterarPayload,
 } from '../../services/menu-api.mapper';
 import {
   MenuAdmin,
@@ -30,11 +32,7 @@ import {
   rememberSidebarVisibility,
 } from '../../services/menu-sidebar-visibility';
 import { getSpaRouteValidationMessage } from '../../../../core/utils/spa-route-registry';
-import {
-  appendSubMenuToTree,
-  findSubMenuById,
-  updateSubMenuInTree,
-} from '../../services/menu-tree.util';
+import { findSubMenuById } from '../../services/menu-tree.util';
 
 @Component({
   selector: 'app-menu-admin-page',
@@ -615,10 +613,11 @@ export class MenuAdminPageComponent implements OnInit {
       if (!menu) return;
 
       if (menuId > 0) {
+        const ordem = this.computeNextSubOrdem(menu, parentSubId);
         const novoSub: SubMenuAdmin = {
           id: 0,
           nome,
-          ordem: 0,
+          ordem,
           rota,
           ativo: this.subFormAtivo,
           exibirNoSidebar: this.subFormExibirNoSidebar,
@@ -630,17 +629,14 @@ export class MenuAdminPageComponent implements OnInit {
             []
           ),
         };
-        const nextSubs = appendSubMenuToTree(menu.subMenus, parentSubId, novoSub);
-        const menuComNovoSub: MenuAdmin = { ...menu, subMenus: nextSubs };
+        const validationError = validateSubMenuAlterarPayload(novoSub);
+        if (validationError) {
+          this.toast.error(validationError);
+          return;
+        }
         this.salvandoSubModal.set(true);
         this.menuApi
-          .alterar(
-            menuAdminToUpdateInput(menuComNovoSub, {
-              includePermissions: true,
-              permissionSubMenuId: 0,
-              permissionSubMenuNome: nome,
-            })
-          )
+          .alterar(menuAdminToAlterarSubMenuOnlyInput(menuId, novoSub, { includePermissions: true }))
           .pipe(finalize(() => this.salvandoSubModal.set(false)))
           .subscribe({
             next: () => {
@@ -699,10 +695,11 @@ export class MenuAdminPageComponent implements OnInit {
       ),
     };
 
-    const atualizado: MenuAdmin = {
-      ...menu,
-      subMenus: updateSubMenuInTree(menu.subMenus, sid, updatedSub),
-    };
+    const validationError = validateSubMenuAlterarPayload(updatedSub);
+    if (validationError) {
+      this.toast.error(validationError);
+      return;
+    }
 
     if (menuId <= 0 || sid <= 0) {
       this.admin.updateSubMenu(menuId, sid, {
@@ -715,7 +712,7 @@ export class MenuAdminPageComponent implements OnInit {
       return;
     }
 
-    const nextPermissions = findSubMenuById(atualizado.subMenus, sid)?.sub.permissions ?? [];
+    const nextPermissions = updatedSub.permissions ?? [];
     const addedPermissions = nextPermissions.filter((p) => p.id <= 0);
     const removedPermissionIds = this.collectRemovedPermissionIds(
       this.subPermissoesOriginais,
@@ -753,9 +750,8 @@ export class MenuAdminPageComponent implements OnInit {
         hasMetaChanges || includePermissionsInAlterar
           ? firstValueFrom(
               this.menuApi.alterar(
-                menuAdminToUpdateInput(atualizado, {
+                menuAdminToAlterarSubMenuOnlyInput(menuId, updatedSub, {
                   includePermissions: includePermissionsInAlterar,
-                  permissionSubMenuId: sid,
                 })
               )
             )
@@ -770,6 +766,14 @@ export class MenuAdminPageComponent implements OnInit {
         // Erro: toast do errorInterceptor.
       })
       .finally(() => this.salvandoSubModal.set(false));
+  }
+
+  private computeNextSubOrdem(menu: MenuAdmin, parentSubId: number | null): number {
+    if (parentSubId != null) {
+      const found = findSubMenuById(menu.subMenus, parentSubId);
+      return found?.sub.subMenus?.length ?? 0;
+    }
+    return menu.subMenus.length;
   }
 
   protected excluirSub(menuId: number, s: SubMenuAdmin): void {

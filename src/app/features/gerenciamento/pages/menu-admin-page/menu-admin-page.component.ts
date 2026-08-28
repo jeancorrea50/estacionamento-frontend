@@ -29,6 +29,12 @@ import {
   defaultExibirNoSidebar,
   rememberSidebarVisibility,
 } from '../../services/menu-sidebar-visibility';
+import { getSpaRouteValidationMessage } from '../../../../core/utils/spa-route-registry';
+import {
+  appendSubMenuToTree,
+  findSubMenuById,
+  updateSubMenuInTree,
+} from '../../services/menu-tree.util';
 
 @Component({
   selector: 'app-menu-admin-page',
@@ -128,6 +134,7 @@ export class MenuAdminPageComponent implements OnInit {
   /** Modal submenu */
   protected readonly subModalOpen = signal(false);
   protected readonly subModalMenuId = signal<number | null>(null);
+  protected readonly subModalParentSubId = signal<number | null>(null);
   protected readonly subEditId = signal<number | null>(null);
   protected subFormNome = '';
   protected subFormRota = '';
@@ -303,11 +310,12 @@ export class MenuAdminPageComponent implements OnInit {
   }
 
   // ——— Submenu modal ———
-  protected openNovoSubmenu(menuId: number): void {
+  protected openNovoSubmenu(menuId: number, parentSubId: number | null = null): void {
     this.subModalMenuId.set(menuId);
+    this.subModalParentSubId.set(parentSubId);
     this.subEditId.set(null);
     this.subFormNome = '';
-    this.subFormRota = this.buildSubmenuBaseRoute(menuId);
+    this.subFormRota = this.buildSubmenuBaseRoute(menuId, parentSubId);
     this.subFormAtivo = true;
     this.subFormExibirNoSidebar = defaultExibirNoSidebar(this.subFormRota);
     this.subFormRotaManualOverride = false;
@@ -320,6 +328,7 @@ export class MenuAdminPageComponent implements OnInit {
 
   protected openEditSub(menuId: number, s: SubMenuAdmin): void {
     this.subModalMenuId.set(menuId);
+    this.subModalParentSubId.set(null);
     this.subEditId.set(s.id);
     this.subFormNome = s.nome;
     this.subFormRota = s.rota;
@@ -704,8 +713,11 @@ export class MenuAdminPageComponent implements OnInit {
       subOriginal.rota !== rota ||
       subOriginal.ativo !== this.subFormAtivo ||
       subOriginal.exibirNoSidebar !== this.subFormExibirNoSidebar;
+    const nomeMudou = subOriginal.nome.trim() !== nome.trim();
     const includePermissionsInAlterar =
-      addedPermissions.length > 0 || updatedExistingPermissions;
+      addedPermissions.length > 0 ||
+      updatedExistingPermissions ||
+      (nomeMudou && nextPermissions.length > 0);
     const hasPermissionChanges =
       includePermissionsInAlterar || removedPermissionIds.length > 0;
 

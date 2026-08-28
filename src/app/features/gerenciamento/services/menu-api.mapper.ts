@@ -1,6 +1,8 @@
 import type { MenuAdmin, MenuPermissionRow, SubMenuAdmin } from '../models/menu-admin.model';
 import type { MenuCreateInput, MenuUpdateInput, PermissionInput, SubMenuCreateInput } from './menu-api.types';
+import { flattenSubMenus, nestSubMenusByRoute, walkSubMenus } from './menu-tree.util';
 import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
+import { normalizeFaturamentoAppRoute } from '../../financeiro/faturamento-rotas';
 import { readBoolProp, resolveExibirNoSidebar } from './menu-sidebar-visibility';
 
 function getProp(row: Record<string, unknown>, k: string): unknown {
@@ -48,8 +50,11 @@ function mapSubMenuRow(row: Record<string, unknown>, fallbackOrdem: number): Sub
   const Ativo = getProp(row, 'Ativo');
   const nome = nomeOuDescricao(row);
   const rawRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
-  const rotaApi = rawRota == null ? null : String(rawRota);
-  const rota = resolveAppRouteFromNome(nome, rotaApi);
+  const rotaApi = rawRota == null ? null : String(rawRota).trim();
+  // Quando a API já devolve rota, preserva o cadastro do servidor (não reescreve pelo slug legado).
+  const rota = rotaApi
+    ? normalizeFaturamentoAppRoute(rotaApi) ?? rotaApi
+    : resolveAppRouteFromNome(nome, null);
   const fromApi = readBoolProp(row as Record<string, unknown>, [
     'exibirNoSidebar',
     'mostrarSidebar',
@@ -82,8 +87,10 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
   const nomeMenu = nomeOuDescricao(row);
   const rawIcone = getProp(row, 'icone') ?? getProp(row, 'Icone');
   const rawMenuRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
-  const rotaApi = rawMenuRota == null ? null : String(rawMenuRota);
-  const rota = resolveAppRouteFromNome(nomeMenu, rotaApi);
+  const rotaApi = rawMenuRota == null ? null : String(rawMenuRota).trim();
+  const rota = rotaApi
+    ? normalizeFaturamentoAppRoute(rotaApi) ?? rotaApi
+    : resolveAppRouteFromNome(nomeMenu, null);
   const fromApi = readBoolProp(row as Record<string, unknown>, [
     'exibirNoSidebar',
     'mostrarSidebar',
@@ -101,7 +108,7 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
     rota,
     ativo: ativo !== false && Ativo !== false,
     exibirNoSidebar: resolveExibirNoSidebar({ id, kind: 'menu', rota, fromApi }),
-    subMenus: subs,
+    subMenus: nestSubMenusByRoute(subs),
     existeNoServidor: true,
   };
 }
@@ -116,10 +123,10 @@ export function computeNextIdFromMenus(menus: MenuAdmin[]): number {
   let max = 0;
   for (const m of menus) {
     max = Math.max(max, m.id);
-    for (const s of m.subMenus) {
+    walkSubMenus(m.subMenus ?? [], (s) => {
       max = Math.max(max, s.id);
       for (const p of s.permissions) max = Math.max(max, p.id);
-    }
+    });
   }
   return max + 1;
 }
@@ -148,7 +155,7 @@ function toSubMenuInputForUpdate(
     nome: s.nome,
     descricao: s.nome,
     ordem: s.ordem,
-    rota: s.rota,
+    rota: s.rota?.trim() || resolveAppRouteFromNome(s.nome, null),
     ativo: s.ativo !== false,
     ...sidebarPayload(s.exibirNoSidebar !== false),
   };
@@ -174,7 +181,7 @@ function toSubMenuInputForInsert(s: SubMenuAdmin): SubMenuCreateInput {
       subModuleId: 0,
       descricao: String(p.acao ?? '').trim().toLowerCase(),
     })),
-    rota: s.rota,
+    rota: s.rota?.trim() || resolveAppRouteFromNome(s.nome, null),
     ativo: s.ativo !== false,
     ...sidebarPayload(s.exibirNoSidebar !== false),
   };
@@ -190,7 +197,7 @@ export function menuAdminToCreateInput(m: MenuAdmin): MenuCreateInput {
     rota: m.rota?.trim() ? m.rota.trim() : undefined,
     ativo: m.ativo,
     ...sidebarPayload(m.exibirNoSidebar !== false),
-    subMenus: m.subMenus.map(toSubMenuInputForInsert),
+    subMenus: flattenSubMenus(m.subMenus).map(toSubMenuInputForInsert),
   };
 }
 

@@ -7,6 +7,7 @@ import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
+import { FinanceiroMenuSeedService } from '../../services/financeiro-menu-seed.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
@@ -44,6 +45,7 @@ import { findSubMenuById } from '../../services/menu-tree.util';
 export class MenuAdminPageComponent implements OnInit {
   protected readonly admin = inject(MenuAdminService);
   private readonly menuApi = inject(MenuApiService);
+  private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -90,6 +92,21 @@ export class MenuAdminPageComponent implements OnInit {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
+    this.financeiroMenuSeed.ensureFinanceiroMenuStructure(menus).subscribe({
+      next: (result) => {
+        if (result.created > 0 || result.updatedRoutes > 0) {
+          const parts: string[] = [];
+          if (result.created > 0) {
+            parts.push(`${result.created} submenu(s) criado(s)`);
+          }
+          if (result.updatedRoutes > 0) {
+            parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
+          }
+          this.toast.success(`Financeiro: ${parts.join('; ')}.`);
+          this.refreshMenusAfterMutation();
+        }
+      },
+    });
   }
 
   /** Atualiza lista após Gravar/Alterar sem bloquear a tela com o spinner inicial. */

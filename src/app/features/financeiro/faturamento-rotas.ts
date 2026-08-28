@@ -73,7 +73,8 @@ function mapLegacyRecebimentosToPagamentos(path: string): string {
   if (
     lower === `${LEGACY_FATURAMENTO_PREFIX}/recebimentos` ||
     lower === `${FATURAMENTO_ROUTE}/recebimentos` ||
-    lower === `${FINANCEIRO_ROUTE}/recebimentos`
+    lower === `${FINANCEIRO_ROUTE}/recebimentos` ||
+    lower === `${FINANCEIRO_ROUTE}/pagamento`
   ) {
     return PAGAMENTOS_ROUTE;
   }

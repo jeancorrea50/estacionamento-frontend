@@ -41,6 +41,7 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   financeiro: FINANCEIRO_ROUTE,
   faturamento: FATURAMENTO_ROUTE,
   pagamentos: PAGAMENTOS_ROUTE,
+  pagamento: PAGAMENTOS_ROUTE,
   /** Abas de Faturamento (API pode mandar apenas a descrição do submenu). */
   'visao geral': `${FATURAMENTO_ROUTE}/visao-geral`,
   fechamentos: `${FATURAMENTO_ROUTE}/fechamentos`,
@@ -97,6 +98,7 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/financeiro/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/recebimentos': PAGAMENTOS_ROUTE,
   '/app/financeiro/recebimentos': PAGAMENTOS_ROUTE,
+  '/app/financeiro/pagamento': PAGAMENTOS_ROUTE,
   ...Object.fromEntries(
     FATURAMENTO_TABS.map((t) => [`/app/faturamento/${t.path}`, t.route] as const)
   ),
@@ -199,7 +201,7 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
   if (key === 'faturamento') {
     return 'Faturamento';
   }
-  if (key === 'pagamentos' || key === 'recebimentos') {
+  if (key === 'pagamentos' || key === 'pagamento' || key === 'recebimentos') {
     return 'Pagamentos';
   }
 

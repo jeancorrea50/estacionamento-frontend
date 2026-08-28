@@ -120,6 +120,11 @@ export const routes: Routes = [
 				pathMatch: 'full',
 				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
 			},
+			{
+				path: 'financeiro/pagamento',
+				pathMatch: 'full',
+				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
+			},
 			// 6. CONFIGURAÇÕES
 			{
 				path: 'configuracoes',

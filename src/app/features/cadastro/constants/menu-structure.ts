@@ -3,13 +3,9 @@
  * Usada na tela de Permissões para exibir e vincular permissões por item.
  */
 import {
-  FATURAMENTO_CONFIG_LABEL,
-  FATURAMENTO_CONFIG_ROUTE,
-  FATURAMENTO_ROUTE,
-  FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
-  PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
+import { FINANCEIRO_MENU_TREE } from '../../financeiro/financeiro-menu-structure';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
@@ -31,20 +27,6 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
-/** Submenus do Faturamento: abas internas + Configuração (rota própria). */
-const FATURAMENTO_SUBMENUS: MenuSubItem[] = [
-  ...FATURAMENTO_TABS.map((t) => ({
-    id: `sub-faturamento-${t.id}`,
-    label: t.label,
-    route: t.route,
-  })),
-  {
-    id: 'sub-faturamento-configuracao',
-    label: FATURAMENTO_CONFIG_LABEL,
-    route: FATURAMENTO_CONFIG_ROUTE,
-  },
-];
-
 /** Estrutura completa do menu (seed admin / permissões / validação SPA). */
 export const MENU_STRUCTURE: MenuNode[] = [
   {
@@ -64,19 +46,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     label: 'Financeiro',
     route: FINANCEIRO_ROUTE,
     icon: 'payments',
-    children: [
-      {
-        id: 'sub-faturamento',
-        label: 'Faturamento',
-        route: FATURAMENTO_ROUTE,
-        children: FATURAMENTO_SUBMENUS,
-      },
-      {
-        id: 'sub-pagamentos',
-        label: 'Pagamentos',
-        route: PAGAMENTOS_ROUTE,
-      },
-    ],
+    children: FINANCEIRO_MENU_TREE,
   },
   {
     id: 'menu-configuracoes',

@@ -88,6 +88,11 @@ export const FINANCEIRO_APP_ROUTES: Routes = [
         (m) => m.FaturamentoRecebimentosComponent
       ),
   },
+  {
+    path: 'pagamento',
+    pathMatch: 'full',
+    redirectTo: PAGAMENTOS_PATH,
+  },
 ];
 
 /** @deprecated Use {@link FATURAMENTO_ROUTES}. */

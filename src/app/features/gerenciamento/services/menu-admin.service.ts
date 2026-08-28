@@ -13,7 +13,7 @@ import {
   hasMatchingPermissionAcao,
   removePermissionRowsForUi,
 } from './menu-permission-acao';
-import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
+import { MENU_STRUCTURE, type MenuSubItem } from '../../cadastro/constants/menu-structure';
 import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule, formatAppMenuDisplayLabel } from './menu-route-resolver';
 import {
   defaultExibirNoSidebar,
@@ -26,6 +26,7 @@ import {
 } from '../../../core/services/session-access.service';
 import {
   findSubMenuById,
+  nestSubMenusByRoute,
   removeSubMenuFromTree,
   updateSubMenuInTree,
   walkSubMenus,
@@ -172,36 +173,51 @@ function migrateMenuServidorFlagsFromStorage(menus: MenuAdmin[]): void {
   }
 }
 
-/** Estado inicial derivado do MENU_STRUCTURE (fallback). */
-function buildSeedState(): MenuAdminState {
-  let nid = 1;
-  const menus: MenuAdmin[] = MENU_STRUCTURE.map((node, mi) => {
-    const menuId = nid++;
-    const subs: SubMenuAdmin[] = [];
-    if (node.children?.length) {
-      let ordem = 0;
-      for (const c of node.children) {
-        subs.push({
-          id: nid++,
-          nome: c.label,
-          ordem: ordem++,
-          rota: c.route,
-          ativo: true,
-          exibirNoSidebar: defaultExibirNoSidebar(c.route),
-          permissions: [],
-        });
-      }
-    } else {
-      subs.push({
-        id: nid++,
+/** Converte árvore de submenus do seed em lista plana para persistência/API. */
+function flattenMenuSubItemsForSeed(items: MenuSubItem[], allocId: () => number): SubMenuAdmin[] {
+  const flat: SubMenuAdmin[] = [];
+  let ordem = 0;
+
+  const walk = (nodes: MenuSubItem[]) => {
+    for (const node of nodes) {
+      flat.push({
+        id: allocId(),
         nome: node.label,
-        ordem: 0,
+        ordem: ordem++,
         rota: node.route,
         ativo: true,
         exibirNoSidebar: defaultExibirNoSidebar(node.route),
         permissions: [],
       });
+      if (node.children?.length) {
+        walk(node.children);
+      }
     }
+  };
+
+  walk(items);
+  return flat;
+}
+
+/** Estado inicial derivado do MENU_STRUCTURE (fallback). */
+function buildSeedState(): MenuAdminState {
+  let nid = 1;
+  const nextId = () => nid++;
+  const menus: MenuAdmin[] = MENU_STRUCTURE.map((node, mi) => {
+    const menuId = nextId();
+    const flatSubs = node.children?.length
+      ? flattenMenuSubItemsForSeed(node.children, nextId)
+      : [
+          {
+            id: nextId(),
+            nome: node.label,
+            ordem: 0,
+            rota: node.route,
+            ativo: true,
+            exibirNoSidebar: defaultExibirNoSidebar(node.route),
+            permissions: [],
+          },
+        ];
     return {
       id: menuId,
       nome: node.label,
@@ -210,7 +226,7 @@ function buildSeedState(): MenuAdminState {
       rota: node.route,
       ativo: true,
       exibirNoSidebar: defaultExibirNoSidebar(node.route),
-      subMenus: subs,
+      subMenus: nestSubMenusByRoute(flatSubs),
       existeNoServidor: false,
     };
   });

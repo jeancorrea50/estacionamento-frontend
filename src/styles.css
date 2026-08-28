@@ -2138,16 +2138,16 @@ html.theme-light .cfg-form-dialog-panel {
 }
 
 html.theme-dark .cfg-form-dialog-panel {
-  --cfg-form-surface: #101a2e;
-  --cfg-form-text: var(--text, #f8fafc);
-  --cfg-form-input-bg: #1a2746;
-  --cfg-form-input-border: rgba(73, 104, 173, 0.58);
-  --cfg-form-input-text: rgba(243, 247, 255, 0.96);
-  --cfg-form-input-placeholder: rgba(185, 199, 226, 0.54);
-  --cfg-form-focus: #3d6cff;
-  --cfg-form-focus-ring: 0 0 0 3px rgba(61, 108, 255, 0.22);
-  --cfg-form-border: rgba(67, 100, 168, 0.42);
-  --cfg-form-shadow: 0 20px 48px rgba(0, 0, 0, 0.46);
+  --cfg-form-surface: #252530;
+  --cfg-form-text: #f1f1f5;
+  --cfg-form-input-bg: #24242e;
+  --cfg-form-input-border: #363642;
+  --cfg-form-input-text: #f1f1f5;
+  --cfg-form-input-placeholder: #72727e;
+  --cfg-form-focus: #3d8bff;
+  --cfg-form-focus-ring: 0 0 0 2px color-mix(in srgb, #3d8bff 32%, transparent);
+  --cfg-form-border: #363642;
+  --cfg-form-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
 }
 
 .cfg-form-dialog-panel .mat-mdc-dialog-surface,
@@ -2155,7 +2155,7 @@ html.theme-dark .cfg-form-dialog-panel {
   background: var(--cfg-form-surface) !important;
   color: var(--cfg-form-text) !important;
   border: 1px solid var(--cfg-form-border);
-  border-radius: 20px !important;
+  border-radius: 12px !important;
   box-shadow: var(--cfg-form-shadow);
   overflow: hidden;
   display: flex;

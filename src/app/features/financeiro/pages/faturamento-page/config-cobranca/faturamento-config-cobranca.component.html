@@ -1,15 +1,16 @@
 <div class="cfg-page-shell">
-  <div class="page-container">
-    <header class="page-header page-header-card cfg-page-header">
-      <div class="cfg-page-header__titles">
-        <h1 class="page-title">Configuração</h1>
-        <p class="page-subtitle">Regras de cobrança por transportadora</p>
+  <div class="page-container cfg-page">
+    <header class="cfg-page-head">
+      <div class="cfg-page-head__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">receipt_long</span>
+      </div>
+      <div class="cfg-page-head__text">
+        <h1 class="cfg-page-head__title">Configuração</h1>
+        <p class="cfg-page-head__sub">Regras de cobrança por transportadora</p>
       </div>
     </header>
 
-    <div class="cfg-page-body rec-page">
-
-  <section class="cfg-search-bar" aria-label="Busca de configurações de cobrança">
+    <section class="cfg-search-bar" aria-label="Busca de configurações de cobrança">
     <div class="cfg-search-bar__select-wrap">
       <label class="cfg-search-bar__sr-only" for="cfg-campo-busca">Tipo de busca</label>
       <select
@@ -59,7 +60,7 @@
   </section>
 
   @if (!jaBuscou() && !loading()) {
-    <div class="empty-state empty-state--compact cfg-before-search">
+    <div class="cfg-before-search empty-state empty-state--compact">
       <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
       <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as configurações de cobrança.</p>
     </div>
@@ -69,9 +70,15 @@
     }
 
     @if (!loading()) {
-      <div class="trn-list-table-card cfg-list-table-card">
-        <div class="trn-list-table-scroll">
-          <table class="data-table trn-table cfg-table">
+      <section class="cfg-data-card" aria-label="Lista de configurações">
+        @if (linhasFiltradas().length === 0) {
+          <div class="empty-state empty-state--compact empty-state--table cfg-data-card__empty">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            <p class="empty-msg">Nenhuma configuração encontrada.</p>
+          </div>
+        } @else {
+          <div class="cfg-table-scroll">
+            <table class="data-table cfg-table">
             <thead>
               <tr>
                 <th scope="col">Transportadora</th>
@@ -136,83 +143,75 @@
                 </tr>
               }
             </tbody>
-          </table>
-        </div>
-        @if (linhasFiltradas().length === 0) {
-          <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
-            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-            <p class="empty-msg">Nenhuma configuração encontrada.</p>
+            </table>
           </div>
+          <footer class="cfg-list-footer">
+            <p class="cfg-list-footer__info">
+              Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+              <strong>{{ linhasFiltradas().length }}</strong>
+              {{ linhasFiltradas().length === 1 ? 'configuração' : 'configurações' }}
+            </p>
+            <div class="cfg-list-footer__right">
+              <label class="cfg-page-size" for="cfg-itens-por-pagina">
+                <span class="cfg-page-size__label">Linhas por página</span>
+                <select
+                  id="cfg-itens-por-pagina"
+                  name="itensPorPagina"
+                  class="cfg-page-size__select input-control"
+                  [ngModel]="itensPorPagina()"
+                  (ngModelChange)="onTamanhoPaginaChange($event)"
+                >
+                  @for (n of pageSizeOpcoes; track n) {
+                    <option [ngValue]="n">{{ n }}</option>
+                  }
+                </select>
+              </label>
+              <div class="cfg-footer-pager" aria-label="Paginação">
+                <button
+                  type="button"
+                  class="cfg-foot-page"
+                  [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
+                  (click)="irParaPagina(0)"
+                  aria-label="Primeira página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+                </button>
+                <button
+                  type="button"
+                  class="cfg-foot-page"
+                  [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
+                  (click)="irParaPagina(paginaAtual() - 1)"
+                  aria-label="Página anterior"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="cfg-foot-current" aria-current="page">
+                  {{ linhasFiltradas().length === 0 ? 0 : paginaAtual() + 1 }}
+                </span>
+                <button
+                  type="button"
+                  class="cfg-foot-page"
+                  [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
+                  (click)="irParaPagina(paginaAtual() + 1)"
+                  aria-label="Próxima página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+                <button
+                  type="button"
+                  class="cfg-foot-page"
+                  [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
+                  (click)="irParaPagina(totalPaginas() - 1)"
+                  aria-label="Última página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+                </button>
+              </div>
+            </div>
+          </footer>
         }
-      </div>
-
-      <footer class="trn-list-footer">
-        <p class="trn-list-footer__info">
-          Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
-          <strong>{{ linhasFiltradas().length }}</strong>
-          {{ linhasFiltradas().length === 1 ? 'configuração' : 'configurações' }}
-        </p>
-        <div class="trn-list-footer__right">
-          <label class="trn-page-size" for="cfg-itens-por-pagina">
-            <span class="trn-page-size__label">Linhas por página</span>
-            <select
-              id="cfg-itens-por-pagina"
-              name="itensPorPagina"
-              class="trn-page-size__select input-control"
-              [ngModel]="itensPorPagina()"
-              (ngModelChange)="onTamanhoPaginaChange($event)"
-            >
-              @for (n of pageSizeOpcoes; track n) {
-                <option [ngValue]="n">{{ n }}</option>
-              }
-            </select>
-          </label>
-          <div class="trn-footer-pager" aria-label="Paginação">
-            <button
-              type="button"
-              class="trn-foot-page"
-              [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
-              (click)="irParaPagina(0)"
-              aria-label="Primeira página"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
-            </button>
-            <button
-              type="button"
-              class="trn-foot-page"
-              [disabled]="paginaAtual() <= 0 || linhasFiltradas().length === 0"
-              (click)="irParaPagina(paginaAtual() - 1)"
-              aria-label="Página anterior"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-            </button>
-            <span class="trn-foot-current" aria-current="page">
-              {{ linhasFiltradas().length === 0 ? 0 : paginaAtual() + 1 }}
-            </span>
-            <button
-              type="button"
-              class="trn-foot-page"
-              [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
-              (click)="irParaPagina(paginaAtual() + 1)"
-              aria-label="Próxima página"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-            </button>
-            <button
-              type="button"
-              class="trn-foot-page"
-              [disabled]="paginaAtual() >= totalPaginas() - 1 || linhasFiltradas().length === 0"
-              (click)="irParaPagina(totalPaginas() - 1)"
-              aria-label="Última página"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
-            </button>
-          </div>
-        </div>
-      </footer>
+      </section>
     }
   }
-
-    </div>
   </div>
 </div>

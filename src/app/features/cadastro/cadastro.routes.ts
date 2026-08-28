@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { EstacionamentoLayoutComponent } from './estacionamento-layout.component';
 import {
-  CADASTRO_ESTACIONAMENTO_PATH,
+  CADASTRO_ESTACIONAMENTOS_PATH,
   CADASTRO_MOTORISTAS_PATH,
   CADASTRO_TRANSPORTADORAS_PATH,
   CADASTRO_VEICULOS_PATH,
@@ -15,11 +15,11 @@ const transportadoraPage = () =>
 export const CADASTRO_ROUTES: Routes = [
   {
     path: '',
-    redirectTo: CADASTRO_ESTACIONAMENTO_PATH,
+    redirectTo: CADASTRO_ESTACIONAMENTOS_PATH,
     pathMatch: 'full',
   },
   {
-    path: CADASTRO_ESTACIONAMENTO_PATH,
+    path: CADASTRO_ESTACIONAMENTOS_PATH,
     component: EstacionamentoLayoutComponent,
     children: [
       {
@@ -82,6 +82,20 @@ export const CADASTRO_ROUTES: Routes = [
     path: 'veiculo',
     pathMatch: 'full',
     redirectTo: CADASTRO_VEICULOS_PATH,
+  },
+  {
+    path: 'estacionamento',
+    pathMatch: 'full',
+    redirectTo: CADASTRO_ESTACIONAMENTOS_PATH,
+  },
+  {
+    path: 'estacionamento/novo',
+    pathMatch: 'full',
+    redirectTo: `${CADASTRO_ESTACIONAMENTOS_PATH}/novo`,
+  },
+  {
+    path: 'estacionamento/editar/:id',
+    redirectTo: `${CADASTRO_ESTACIONAMENTOS_PATH}/editar/:id`,
   },
   { path: 'acessos', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
   { path: 'acessos/usuarios', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },

@@ -89,7 +89,7 @@ export const FINANCEIRO_APP_ROUTES: Routes = [
       ),
   },
   {
-    path: 'pagamento',
+    path: 'pagamentos',
     pathMatch: 'full',
     redirectTo: PAGAMENTOS_PATH,
   },

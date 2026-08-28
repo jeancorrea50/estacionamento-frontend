@@ -32,10 +32,12 @@ import {
   walkSubMenus,
 } from './menu-tree.util';
 
-import { CADASTRO_ESTACIONAMENTO_ROUTE } from '../../cadastro/cadastro-rotas';
-
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
-const ESTACIONAMENTO_SIDEBAR_ROUTE = CADASTRO_ESTACIONAMENTO_ROUTE;
+import {
+  CADASTRO_ESTACIONAMENTOS_ROUTE,
+} from '../../cadastro/cadastro-rotas';
+
+const ESTACIONAMENTO_SIDEBAR_ROUTE = CADASTRO_ESTACIONAMENTOS_ROUTE;
 
 function cloneState(s: MenuAdminState): MenuAdminState {
   return JSON.parse(JSON.stringify(s)) as MenuAdminState;
@@ -69,6 +71,8 @@ function isEstacionamentoNavRoute(route: string | null | undefined): boolean {
   return (
     n === ESTACIONAMENTO_SIDEBAR_ROUTE ||
     n.startsWith(`${ESTACIONAMENTO_SIDEBAR_ROUTE}/`) ||
+    n === '/app/cadastro/estacionamento' ||
+    n.startsWith('/app/cadastro/estacionamento/') ||
     n === '/app/gerenciamento/estacionamento' ||
     n.startsWith('/app/gerenciamento/estacionamento/')
   );
@@ -89,32 +93,27 @@ function isGerenciamentoMenuNode(nome: string | null | undefined, rota?: string 
 }
 
 /**
- * Remove Estacionamento de Gerenciamento e menus de topo duplicados.
- * Estacionamento fica somente como submenu de Cadastro (seed/backend).
+ * Remove Estacionamento de Gerenciamento (legado) — permanece sob Cadastro na API atual.
  */
-function consolidateCadastroMenus(menus: MenuAdmin[], nextId: number): {
+function promoteEstacionamentoOutOfGerenciamento(menus: MenuAdmin[], nextId: number): {
   menus: MenuAdmin[];
   nextId: number;
 } {
-  let id = nextId;
-  const hasCadastro = menus.some((m) => normMenuLabel(m.nome) === 'cadastro');
+  const result: MenuAdmin[] = [];
 
-  const withoutTopEstacionamento = menus.filter((menu) => {
-    if (!isEstacionamentoMenuNode(menu.nome, menu.rota)) return true;
-    // Remove menu de topo "Estacionamento" quando Cadastro existe.
-    return !hasCadastro;
-  });
+  for (const menu of menus) {
+    if (!isGerenciamentoMenuNode(menu.nome, menu.rota)) {
+      result.push(menu);
+      continue;
+    }
 
-  const result = withoutTopEstacionamento.map((menu) => {
-    if (!isGerenciamentoMenuNode(menu.nome, menu.rota)) return menu;
-    const kept = (menu.subMenus ?? []).filter((sub) => !isEstacionamentoMenuNode(sub.nome, sub.rota));
-    return { ...menu, subMenus: kept };
-  });
+    const kept = (menu.subMenus ?? []).filter(
+      (sub) => !isEstacionamentoMenuNode(sub.nome, sub.rota)
+    );
+    result.push({ ...menu, subMenus: kept });
+  }
 
-  return {
-    menus: result.map((m, i) => ({ ...m, ordem: i })),
-    nextId: id,
-  };
+  return { menus: result.map((m, i) => ({ ...m, ordem: i })), nextId };
 }
 
 /**
@@ -222,7 +221,7 @@ export class MenuAdminService {
         const parsed = JSON.parse(raw) as MenuAdminState;
         if (parsed?.menus?.length) {
           migrateMenuServidorFlagsFromStorage(parsed.menus);
-          const promoted = consolidateCadastroMenus(parsed.menus, parsed.nextId ?? 1);
+          const promoted = promoteEstacionamentoOutOfGerenciamento(parsed.menus, parsed.nextId ?? 1);
           parsed.menus = promoted.menus;
           parsed.nextId = promoted.nextId;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -259,7 +258,7 @@ export class MenuAdminService {
    * Após salvar no servidor e nova Buscar: substitui menus e nextId; mantém roles.
    */
   replaceMenusHidratar(menus: MenuAdmin[], nextId: number): void {
-    const promoted = consolidateCadastroMenus(menus, nextId);
+    const promoted = promoteEstacionamentoOutOfGerenciamento(menus, nextId);
     this.state.update((s) => {
       const next = cloneState(s);
       // Não forçar true: menus sintéticos (Estacionamento promovido) ficam fora do OrganizarMenus.
@@ -614,7 +613,7 @@ export class MenuAdminService {
   }
 
   /**
-   * Itens para sidebar. Gerenciamento: link único. Cadastro: submenus conforme API/seed.
+   * Itens para sidebar. Gerenciamento: link único. Cadastro: todos os submenus da API.
    */
   getSidebarMenuItems(): {
     label: string;
@@ -633,22 +632,7 @@ export class MenuAdminService {
       ? this.buildNavItemsFromSessionMenus()
       : this.buildNavItemsFromState();
 
-    const hasCadastroMenu = source.some(
-      (item) => item.route.replace(/\/+$/, '').toLowerCase() === '/app/cadastro'
-    );
-
-    const stripped = source
-      .filter((item) => {
-        if (!hasCadastroMenu) return true;
-        const route = item.route.replace(/\/+$/, '').toLowerCase();
-        return !(normMenuLabel(item.label) === 'estacionamento' && route === ESTACIONAMENTO_SIDEBAR_ROUTE);
-      })
-      .map((item) => ({
-        ...item,
-        children: (item.children ?? []).length > 0 ? [...item.children!] : undefined,
-      }));
-
-    const flattened = stripped.map((item) => {
+    const flattened = source.map((item) => {
       if (!this.isGerenciamentoNavItem(item)) return item;
       return {
         label: item.label,
@@ -658,7 +642,6 @@ export class MenuAdminService {
     });
 
     const withCadastro = flattened.map((item) => this.sanitizeCadastroSidebarNavItem(item));
-
     const labeled = withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
     return this.ensureMovimentosListaNavItem(labeled);
   }
@@ -747,11 +730,18 @@ export class MenuAdminService {
       return item;
     }
 
-    const children = item.children
-      .map((c) => ({
+    const children = item.children.map((c) => {
+      const mapped = {
         ...c,
         label: this.formatCadastroSubmenuSidebarLabel(c.route, c.label),
+      };
+      if (!c.children?.length) return mapped;
+      const nested = c.children.map((n) => ({
+        ...n,
+        label: this.formatCadastroSubmenuSidebarLabel(n.route, n.label),
       }));
+      return nested.length ? { ...mapped, children: nested } : { ...mapped, children: undefined };
+    });
 
     return {
       ...item,
@@ -761,10 +751,10 @@ export class MenuAdminService {
 
   private formatCadastroSubmenuSidebarLabel(route: string, label: string): string {
     const path = route.replace(/\/+$/, '').toLowerCase();
-    if (/(?:^|\/)cadastro\/transportadoras?(?:\/|$)/.test(path)) return 'Transportadoras';
-    if (/(?:^|\/)cadastro\/veiculos?(?:\/|$)/.test(path)) return 'Veículos';
-    if (/(?:^|\/)cadastro\/motoristas?(?:\/|$)/.test(path)) return 'Motoristas';
-    if (/(?:^|\/)cadastro\/estacionamento(?:\/|$)/.test(path)) return 'Estacionamento';
+    if (/(?:^|\/)cadastro\/transportadora(?:s)?(?:\/|$)/.test(path)) return 'Transportadoras';
+    if (/(?:^|\/)cadastro\/veiculo(?:s)?(?:\/|$)/.test(path)) return 'Veículos';
+    if (/(?:^|\/)cadastro\/motorista(?:s)?(?:\/|$)/.test(path)) return 'Motoristas';
+    if (/(?:^|\/)cadastro\/estacionamento(?:s)?(?:\/|$)/.test(path)) return 'Estacionamento';
     return label;
   }
 
@@ -777,6 +767,10 @@ export class MenuAdminService {
     return this.sessionAccess
       .menus()
       .filter((m) => m.ativo !== false && this.resolveShowInSidebar(m, 'menu'))
+      .filter((m) => {
+        if (normMenuLabel(m.descricao) === 'cadastro') return true;
+        return !isEstacionamentoMenuNode(m.descricao, m.rota);
+      })
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
       .map((m) => {
         const menuLabel = m.descricao?.trim() ?? 'menu';

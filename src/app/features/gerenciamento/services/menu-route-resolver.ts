@@ -1,4 +1,11 @@
 import { MENU_STRUCTURE, type MenuSubItem } from '../../cadastro/constants/menu-structure';
+import {
+  CADASTRO_ESTACIONAMENTOS_ROUTE,
+  CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_ROUTE,
+  CADASTRO_VEICULOS_ROUTE,
+} from '../../cadastro/cadastro-rotas';
 import { normalizeLegacyAppRoute } from '../../../core/utils/app-route-normalizer';
 import {
   FATURAMENTO_CONFIG_ROUTE,
@@ -7,13 +14,6 @@ import {
   FINANCEIRO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
-import {
-  CADASTRO_ESTACIONAMENTO_ROUTE,
-  CADASTRO_MOTORISTAS_ROUTE,
-  CADASTRO_ROUTE,
-  CADASTRO_TRANSPORTADORAS_ROUTE,
-  CADASTRO_VEICULOS_ROUTE,
-} from '../../cadastro/cadastro-rotas';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
@@ -62,16 +62,17 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   configuracao: FATURAMENTO_CONFIG_ROUTE,
   'configuracoes de cobrança': FATURAMENTO_CONFIG_ROUTE,
   configuracoes: '/app/configuracoes',
-  cadastros: CADASTRO_ROUTE,
-  cadastro: CADASTRO_ROUTE,
+  cadastros: '/app/cadastro',
+  cadastro: '/app/cadastro',
   gerenciamento: '/app/gerenciamento',
-  transportadoras: CADASTRO_TRANSPORTADORAS_ROUTE,
   transportadora: CADASTRO_TRANSPORTADORAS_ROUTE,
-  veiculos: CADASTRO_VEICULOS_ROUTE,
+  transportadoras: CADASTRO_TRANSPORTADORAS_ROUTE,
   veiculo: CADASTRO_VEICULOS_ROUTE,
-  motoristas: CADASTRO_MOTORISTAS_ROUTE,
+  veiculos: CADASTRO_VEICULOS_ROUTE,
   motorista: CADASTRO_MOTORISTAS_ROUTE,
-  estacionamento: CADASTRO_ESTACIONAMENTO_ROUTE,
+  motoristas: CADASTRO_MOTORISTAS_ROUTE,
+  estacionamento: CADASTRO_ESTACIONAMENTOS_ROUTE,
+  estacionamentos: CADASTRO_ESTACIONAMENTOS_ROUTE,
   usuarios: '/app/configuracoes/usuarios',
   horario: '/app/configuracoes/horario',
   'fuso horario': '/app/configuracoes/horario',
@@ -94,6 +95,12 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/movimentos/operacao': PATIO_MOVIMENTACOES_ROUTE,
   '/app/movimentos/entrada-saida': PATIO_ENTRADA_SAIDA_ROUTE,
   '/app/patio': PATIO_ROUTE,
+  '/app/cadastro': CADASTRO_ROUTE,
+  '/app/cadastro/transportadora': CADASTRO_TRANSPORTADORAS_ROUTE,
+  '/app/cadastro/motorista': CADASTRO_MOTORISTAS_ROUTE,
+  '/app/cadastro/veiculo': CADASTRO_VEICULOS_ROUTE,
+  '/app/cadastro/estacionamento': CADASTRO_ESTACIONAMENTOS_ROUTE,
+  '/app/gerencimento/menu': '/app/gerenciamento/menu',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/financeiro': FINANCEIRO_ROUTE,
@@ -110,11 +117,7 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/financeiro/faturamento/recebimentos': PAGAMENTOS_ROUTE,
   '/app/financeiro/recebimentos': PAGAMENTOS_ROUTE,
   '/app/financeiro/pagamento': PAGAMENTOS_ROUTE,
-  '/app/cadastro': CADASTRO_ROUTE,
-  '/app/cadastro/transportadora': CADASTRO_TRANSPORTADORAS_ROUTE,
-  '/app/cadastro/motorista': CADASTRO_MOTORISTAS_ROUTE,
-  '/app/cadastro/veiculo': CADASTRO_VEICULOS_ROUTE,
-  '/app/gerenciamento/estacionamento': CADASTRO_ESTACIONAMENTO_ROUTE,
+  '/app/financeiro/pagamentos': PAGAMENTOS_ROUTE,
   ...Object.fromEntries(
     FATURAMENTO_TABS.map((t) => [`/app/faturamento/${t.path}`, t.route] as const)
   ),
@@ -305,7 +308,7 @@ ROUTE_TO_MATERIAL_ICON.set('/app/movimento', 'swap_horiz');
 ROUTE_TO_MATERIAL_ICON.set(CADASTRO_TRANSPORTADORAS_ROUTE, 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set(CADASTRO_VEICULOS_ROUTE, 'directions_car');
 ROUTE_TO_MATERIAL_ICON.set(CADASTRO_MOTORISTAS_ROUTE, 'badge');
-ROUTE_TO_MATERIAL_ICON.set(CADASTRO_ESTACIONAMENTO_ROUTE, 'local_parking');
+ROUTE_TO_MATERIAL_ICON.set(CADASTRO_ESTACIONAMENTOS_ROUTE, 'local_parking');
 ROUTE_TO_MATERIAL_ICON.set(CADASTRO_ROUTE, 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro/transportadora', 'local_shipping');
 ROUTE_TO_MATERIAL_ICON.set('/app/cadastro', 'local_shipping');

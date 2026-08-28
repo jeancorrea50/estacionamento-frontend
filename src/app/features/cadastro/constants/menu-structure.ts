@@ -2,9 +2,7 @@
  * Estrutura do menu da aplicação (menu > módulos > submenus).
  * Usada na tela de Permissões para exibir e vincular permissões por item.
  */
-import {
-  FINANCEIRO_ROUTE,
-} from '../../financeiro/faturamento-rotas';
+import { FINANCEIRO_ROUTE } from '../../financeiro/faturamento-rotas';
 import { FINANCEIRO_MENU_TREE } from '../../financeiro/financeiro-menu-structure';
 import { CADASTRO_MENU_TREE } from '../cadastro-menu-structure';
 import { CADASTRO_ROUTE } from '../cadastro-rotas';

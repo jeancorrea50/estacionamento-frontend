@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
+import { CADASTRO_ESTACIONAMENTOS_ROUTE } from '../../features/cadastro/cadastro-rotas';
 import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import {
   formatAppMenuDisplayLabel,
@@ -80,7 +81,8 @@ export class SessionAccessService {
     if (current === '/app/gerenciamento/estacionamento') {
       return allowed.some((route) => {
         const r = normalizeRoute(route);
-        return r === '/app/cadastro/estacionamento' || r.startsWith('/app/cadastro/estacionamento/');
+        return r === CADASTRO_ESTACIONAMENTOS_ROUTE || r.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`)
+          || r === '/app/cadastro/estacionamento' || r.startsWith('/app/cadastro/estacionamento/');
       });
     }
     return false;

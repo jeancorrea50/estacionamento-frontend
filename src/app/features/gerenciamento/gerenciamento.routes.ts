@@ -1,27 +1,14 @@
 import { Routes } from '@angular/router';
 import { GerenciamentoLayoutComponent } from './gerenciamento-layout/gerenciamento-layout.component';
 import { adminRoleGuard } from '../../core/guards/admin-role.guard';
+import { CADASTRO_ESTACIONAMENTOS_PATH } from '../cadastro/cadastro-rotas';
 
 export const GERENCIAMENTO_ROUTES: Routes = [
-  /**
-   * Fora do adminRoleGuard: o perfil Estacionamento tem este item no menu de login.
-   * Novo/Editar continuam em `/app/cadastro/estacionamento/...`.
-   */
+  /** Legado: `/app/gerenciamento/estacionamento` → lista em Cadastro. */
   {
     path: 'estacionamento',
-    loadComponent: () =>
-      import('../cadastro/estacionamento-layout.component').then(
-        (m) => m.EstacionamentoLayoutComponent
-      ),
-    children: [
-      {
-        path: '',
-        loadComponent: () =>
-          import('../cadastro/pages/estacionamento-list/estacionamento-list.component').then(
-            (m) => m.EstacionamentoListComponent
-          ),
-      },
-    ],
+    pathMatch: 'full',
+    redirectTo: `/app/cadastro/${CADASTRO_ESTACIONAMENTOS_PATH}`,
   },
   {
     path: '',

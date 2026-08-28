@@ -1,5 +1,5 @@
 import {
-  CADASTRO_ESTACIONAMENTO_ROUTE,
+  CADASTRO_ESTACIONAMENTOS_ROUTE,
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
@@ -22,7 +22,7 @@ export const CADASTRO_MENU_TREE: CadastroMenuItemDef[] = [
   { id: 'sub-transportadoras', label: 'Transportadoras', route: CADASTRO_TRANSPORTADORAS_ROUTE },
   { id: 'sub-veiculos', label: 'Veículos', route: CADASTRO_VEICULOS_ROUTE },
   { id: 'sub-motoristas', label: 'Motoristas', route: CADASTRO_MOTORISTAS_ROUTE },
-  { id: 'sub-estacionamento', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTO_ROUTE },
+  { id: 'sub-estacionamentos', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
 ];
 
 export function flattenCadastroMenuTree(

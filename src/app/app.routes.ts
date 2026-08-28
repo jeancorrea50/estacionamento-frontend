@@ -121,7 +121,7 @@ export const routes: Routes = [
 				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
 			},
 			{
-				path: 'financeiro/pagamento',
+				path: 'financeiro/pagamentos',
 				pathMatch: 'full',
 				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
 			},

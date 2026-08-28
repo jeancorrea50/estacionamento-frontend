@@ -8,7 +8,6 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
 import { FinanceiroMenuSeedService } from '../../services/financeiro-menu-seed.service';
-import { CadastroMenuSeedService } from '../../services/cadastro-menu-seed.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
@@ -47,7 +46,6 @@ export class MenuAdminPageComponent implements OnInit {
   protected readonly admin = inject(MenuAdminService);
   private readonly menuApi = inject(MenuApiService);
   private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
-  private readonly cadastroMenuSeed = inject(CadastroMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -105,21 +103,6 @@ export class MenuAdminPageComponent implements OnInit {
             parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
           }
           this.toast.success(`Financeiro: ${parts.join('; ')}.`);
-          this.refreshMenusAfterMutation();
-        }
-      },
-    });
-    this.cadastroMenuSeed.ensureCadastroMenuStructure(menus).subscribe({
-      next: (result) => {
-        if (result.created > 0 || result.updatedRoutes > 0) {
-          const parts: string[] = [];
-          if (result.created > 0) {
-            parts.push(`${result.created} submenu(s) criado(s)`);
-          }
-          if (result.updatedRoutes > 0) {
-            parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
-          }
-          this.toast.success(`Cadastro: ${parts.join('; ')}.`);
           this.refreshMenusAfterMutation();
         }
       },

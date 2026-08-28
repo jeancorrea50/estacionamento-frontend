@@ -3,7 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap, of, catchError, finalize, Subject } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
@@ -19,6 +18,7 @@ import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefo
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 import { ApiError } from '../../../../core/api/models';
 import {
   MotoristaDTO,
@@ -65,6 +65,8 @@ type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasi
   styleUrls: ['./cadastro-transportadora-page.component.scss']
 })
 export class CadastroTransportadoraPageComponent implements OnInit {
+  protected readonly transportadorasRoute = CADASTRO_TRANSPORTADORAS_ROUTE;
+
   private transportadoraService = inject(TransportadoraService);
   private veiculoService = inject(VeiculoService);
   private viacep = inject(ViacepService);
@@ -77,8 +79,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dialog = inject(MatDialog);
-
-  protected readonly cadastroTransportadorasRoute = CADASTRO_TRANSPORTADORAS_ROUTE;
 
   activeTab: TransportadoraTab = 'cadastro';
 
@@ -218,8 +218,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const forceTab = this.route.snapshot.data['forceTab'];
     if (forceTab === 'motoristas') {
       this.setTab('motoristas');
-    } else if (forceTab === 'frota') {
-      this.setTab('frota');
     }
   }
 

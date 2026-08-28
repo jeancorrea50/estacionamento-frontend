@@ -12,9 +12,9 @@ export const FINANCEIRO_ROUTE = '/app/financeiro';
 /** Container das abas de Faturamento. */
 export const FATURAMENTO_ROUTE = '/app/financeiro/faturamento';
 
-/** Tela Pagamentos (antes Recebimentos) — rota própria, fora das abas internas. */
-export const PAGAMENTOS_ROUTE = '/app/financeiro/pagamentos';
-export const PAGAMENTOS_PATH = 'pagamentos';
+/** Tela Pagamentos — rota canônica da API/login. */
+export const PAGAMENTOS_ROUTE = '/app/financeiro/pagamento';
+export const PAGAMENTOS_PATH = 'pagamento';
 
 /** Submenu Configuração — rota própria, fora das abas internas. */
 export const FATURAMENTO_CONFIG_ROUTE = '/app/financeiro/faturamento/configuracao';
@@ -74,7 +74,7 @@ function mapLegacyRecebimentosToPagamentos(path: string): string {
     lower === `${LEGACY_FATURAMENTO_PREFIX}/recebimentos` ||
     lower === `${FATURAMENTO_ROUTE}/recebimentos` ||
     lower === `${FINANCEIRO_ROUTE}/recebimentos` ||
-    lower === `${FINANCEIRO_ROUTE}/pagamento`
+    lower === `${FINANCEIRO_ROUTE}/pagamentos`
   ) {
     return PAGAMENTOS_ROUTE;
   }

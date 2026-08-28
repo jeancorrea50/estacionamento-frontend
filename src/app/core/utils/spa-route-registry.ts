@@ -7,17 +7,17 @@ import {
   PAGAMENTOS_ROUTE,
 } from '../../features/financeiro/faturamento-rotas';
 import {
-  PATIO_ENTRADA_SAIDA_ROUTE,
-  PATIO_MOVIMENTACOES_ROUTE,
-  PATIO_ROUTE,
-} from '../../features/patio/patio-rotas';
-import {
-  CADASTRO_ESTACIONAMENTO_ROUTE,
+  CADASTRO_ESTACIONAMENTOS_ROUTE,
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
   CADASTRO_VEICULOS_ROUTE,
 } from '../../features/cadastro/cadastro-rotas';
+import {
+  PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_ROUTE,
+  PATIO_ROUTE,
+} from '../../features/patio/patio-rotas';
 
 const KNOWN_SPA_ROUTES = new Set<string>();
 
@@ -50,18 +50,18 @@ function collectFaturamentoRoutes(): void {
   }
 }
 
-function collectPatioRoutes(): void {
-  addRoute(PATIO_ROUTE);
-  addRoute(PATIO_MOVIMENTACOES_ROUTE);
-  addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
-}
-
 function collectCadastroRoutes(): void {
   addRoute(CADASTRO_ROUTE);
   addRoute(CADASTRO_TRANSPORTADORAS_ROUTE);
   addRoute(CADASTRO_VEICULOS_ROUTE);
   addRoute(CADASTRO_MOTORISTAS_ROUTE);
-  addRoute(CADASTRO_ESTACIONAMENTO_ROUTE);
+  addRoute(CADASTRO_ESTACIONAMENTOS_ROUTE);
+}
+
+function collectPatioRoutes(): void {
+  addRoute(PATIO_ROUTE);
+  addRoute(PATIO_MOVIMENTACOES_ROUTE);
+  addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
 }
 
 function collectStaticRoutes(): void {
@@ -79,9 +79,14 @@ function collectStaticRoutes(): void {
     '/app/gerenciamento/menu',
     '/app/gerenciamento/perfil',
     '/app/gerenciamento/bancodados',
+    '/app/cadastro',
+    '/app/cadastro/transportadoras',
+    '/app/cadastro/veiculos',
+    '/app/cadastro/motoristas',
+    '/app/cadastro/estacionamentos',
     '/app/cadastro/transportadora',
+    '/app/cadastro/estacionamento',
     '/app/cadastro/motorista',
-    '/app/cadastro/veiculo',
   ];
   for (const route of extras) {
     addRoute(route);
@@ -90,8 +95,8 @@ function collectStaticRoutes(): void {
 
 collectMenuStructure();
 collectFaturamentoRoutes();
-collectPatioRoutes();
 collectCadastroRoutes();
+collectPatioRoutes();
 collectStaticRoutes();
 
 function normalizePath(path: string): string {

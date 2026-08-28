@@ -143,17 +143,19 @@ function toSubMenuInputForUpdate(
   options?: { includePermissions?: boolean }
 ): SubMenuCreateInput {
   const includePermissions = options?.includePermissions === true;
-  return {
+  const base: SubMenuCreateInput = {
     id: s.id,
     nome: s.nome,
     descricao: s.nome,
     ordem: s.ordem,
-    permissions: includePermissions ? s.permissions.map(toPermissionInput) : undefined,
     rota: s.rota,
-    ativo: s.ativo,
-    isAtivo: s.ativo,
-    isActive: s.ativo,
+    ativo: s.ativo !== false,
     ...sidebarPayload(s.exibirNoSidebar !== false),
+  };
+  if (!includePermissions) return base;
+  return {
+    ...base,
+    permissions: (s.permissions ?? []).map(toPermissionInput),
   };
 }
 
@@ -166,16 +168,14 @@ function toSubMenuInputForInsert(s: SubMenuAdmin): SubMenuCreateInput {
     nome: s.nome,
     descricao: s.nome,
     ordem: s.ordem,
-    permissions: s.permissions.map((p, i) => ({
+    permissions: (s.permissions ?? []).map((p, i) => ({
       id: 0,
       ordem: p.ordem ?? i,
       subModuleId: 0,
-      descricao: p.acao,
+      descricao: String(p.acao ?? '').trim().toLowerCase(),
     })),
     rota: s.rota,
-    ativo: s.ativo,
-    isAtivo: s.ativo,
-    isActive: s.ativo,
+    ativo: s.ativo !== false,
     ...sidebarPayload(s.exibirNoSidebar !== false),
   };
 }
@@ -196,23 +196,36 @@ export function menuAdminToCreateInput(m: MenuAdmin): MenuCreateInput {
 
 export function menuAdminToUpdateInput(
   m: MenuAdmin,
-  options?: { includePermissions?: boolean; permissionSubMenuId?: number }
+  options?: { includePermissions?: boolean; permissionSubMenuId?: number; permissionSubMenuNome?: string }
 ): MenuUpdateInput {
   const includePermissions = options?.includePermissions === true;
   const permissionSubMenuId = options?.permissionSubMenuId;
+  const permissionSubMenuNome = options?.permissionSubMenuNome?.trim().toLowerCase() ?? '';
+
+  const shouldIncludePermissions = (sub: SubMenuAdmin): boolean => {
+    if (!includePermissions) return false;
+    if (permissionSubMenuId == null && !permissionSubMenuNome) return true;
+    if (permissionSubMenuId != null) {
+      if (permissionSubMenuId === sub.id) return true;
+      if (permissionSubMenuId === 0 && sub.id === 0 && permissionSubMenuNome) {
+        return sub.nome.trim().toLowerCase() === permissionSubMenuNome;
+      }
+      return false;
+    }
+    return sub.nome.trim().toLowerCase() === permissionSubMenuNome;
+  };
+
   return {
     id: m.id,
     nome: m.nome,
     descricao: m.nome,
     ordem: m.ordem,
     rota: m.rota?.trim() ? m.rota.trim() : undefined,
-    ativo: m.ativo,
+    ativo: m.ativo !== false,
     ...sidebarPayload(m.exibirNoSidebar !== false),
     subMenus: m.subMenus.map((s) =>
       toSubMenuInputForUpdate(s, {
-        includePermissions:
-          includePermissions &&
-          (permissionSubMenuId == null || permissionSubMenuId === s.id),
+        includePermissions: shouldIncludePermissions(s),
       })
     ),
   };

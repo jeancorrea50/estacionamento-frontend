@@ -988,6 +988,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const ref = this.dialog.open(TransportadoraViewDialogComponent, {
       width: '480px',
       maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
       data: { item }
     });
     ref.afterClosed().subscribe((result) => {

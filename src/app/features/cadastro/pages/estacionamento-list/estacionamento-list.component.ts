@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, NgZone, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { EstacionamentoService } from '../../services/estacionamento.service';
 import {
   EstacionamentoSearchField,
@@ -15,6 +16,7 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
+import { EstacionamentoViewDialogComponent } from '../../components/estacionamento-view-dialog/estacionamento-view-dialog.component';
 
 /** Colunas ordenáveis (mapeadas para `Propriedade` na API). */
 type EstacionamentoListaSortCol =
@@ -47,6 +49,8 @@ export class EstacionamentoListComponent {
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
+  private dialog = inject(MatDialog);
+  private router = inject(Router);
   readonly canExcluir = this.auth.isAdmin();
 
   itens: EstacionamentoListItemDTO[] = [];
@@ -256,6 +260,23 @@ export class EstacionamentoListComponent {
   queryEditar(item: EstacionamentoListItemDTO): { codExportacao?: string } {
     const cod = String(item.codExportacao ?? '').trim();
     return cod ? { codExportacao: cod } : {};
+  }
+
+  visualizarEstacionamento(item: EstacionamentoListItemDTO): void {
+    if (!item?.id) return;
+    const ref = this.dialog.open(EstacionamentoViewDialogComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
+      data: { item }
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') {
+        void this.router.navigate(['/app/cadastro/estacionamento/editar', item.id], {
+          queryParams: this.queryEditar(item)
+        });
+      }
+    });
   }
 
   private shouldRetryDeleteWithPessoaId(err: unknown): boolean {

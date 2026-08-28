@@ -2221,6 +2221,50 @@ html.theme-dark .cfg-form-dialog-panel {
   box-shadow: var(--cfg-form-focus-ring);
 }
 
+/* Modal Visualizar transportadora — tema dark premium */
+.trn-view-dialog-panel {
+  --trn-view-dialog-surface: #252530;
+  --trn-view-dialog-border: #363642;
+  --trn-view-dialog-text: #f1f1f5;
+  --trn-view-dialog-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+html.theme-light .trn-view-dialog-panel {
+  --trn-view-dialog-surface: var(--color-bg-card, #ffffff);
+  --trn-view-dialog-border: var(--color-border, #e5e7eb);
+  --trn-view-dialog-text: var(--color-text-primary, #111827);
+  --trn-view-dialog-shadow: var(--shadow-lg, 0 12px 32px rgba(15, 23, 42, 0.12));
+}
+
+html.theme-dark .trn-view-dialog-panel {
+  --trn-view-dialog-surface: #252530;
+  --trn-view-dialog-border: #363642;
+  --trn-view-dialog-text: #f1f1f5;
+  --trn-view-dialog-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.trn-view-dialog-panel .mat-mdc-dialog-surface,
+.trn-view-dialog-panel .mdc-dialog__surface {
+  background: var(--trn-view-dialog-surface) !important;
+  color: var(--trn-view-dialog-text) !important;
+  border: 1px solid var(--trn-view-dialog-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--trn-view-dialog-shadow) !important;
+  overflow: hidden;
+}
+
+.trn-view-dialog-panel .mat-mdc-dialog-component-host,
+.trn-view-dialog-panel app-transportadora-view-dialog,
+.trn-view-dialog-panel app-estacionamento-view-dialog {
+  display: block;
+  background: var(--trn-view-dialog-surface) !important;
+  color: var(--trn-view-dialog-text) !important;
+}
+
+html.theme-dark .cdk-overlay-backdrop.cdk-overlay-backdrop-showing {
+  background: rgba(0, 0, 0, 0.55);
+}
+
 /* ========== Modais de feature: coerência dark/white (tabelas, inputs, botões) ========== */
 html.theme-dark .modal-content,
 html.theme-dark .modal-dark,

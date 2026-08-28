@@ -2,21 +2,21 @@ import { Component, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 import { formatCnpj } from '../../directives/cnpj-format.directive';
-import { formatTelefone } from '../../directives/telefone-format.directive';
-import type { TransportadoraListItemDTO } from '../../models/transportadora.dto';
+import { formatCpf } from '../../directives/cpf-format.directive';
+import type { EstacionamentoListItemDTO } from '../../models/estacionamento.dto';
 
-export interface TransportadoraViewDialogData {
-  item: TransportadoraListItemDTO;
+export interface EstacionamentoViewDialogData {
+  item: EstacionamentoListItemDTO;
 }
 
 @Component({
-  selector: 'app-transportadora-view-dialog',
+  selector: 'app-estacionamento-view-dialog',
   standalone: true,
   imports: [MatDialogModule],
   template: `
     <div class="trn-view">
       <header class="trn-view__header">
-        <h2 class="trn-view__title" mat-dialog-title>Visualizar transportadora</h2>
+        <h2 class="trn-view__title" mat-dialog-title>Visualizar estacionamento</h2>
       </header>
 
       <mat-dialog-content class="trn-view__body">
@@ -26,36 +26,36 @@ export interface TransportadoraViewDialogData {
             <dd>{{ data.item.id }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>Razão social</dt>
-            <dd>{{ data.item.razaoSocial || '—' }}</dd>
-          </div>
-          <div class="trn-view__row">
             <dt>Nome fantasia</dt>
-            <dd>{{ data.item.nomeFantasia || '—' }}</dd>
+            <dd>{{ data.item.descricao || '—' }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>CNPJ</dt>
-            <dd>{{ formatCnpjValor(data.item.cnpj) }}</dd>
+            <dt>Nome / Razão social</dt>
+            <dd>{{ data.item.nomeRazaoSocial || '—' }}</dd>
+          </div>
+          <div class="trn-view__row">
+            <dt>CNPJ / CPF</dt>
+            <dd>{{ formatDocumento(data.item.cnpj) }}</dd>
           </div>
           <div class="trn-view__row">
             <dt>E-mail</dt>
             <dd>{{ emailExibicao }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>Telefone</dt>
-            <dd>{{ formatTelefoneValor(data.item.telefone) }}</dd>
+            <dt>Tipo de pessoa</dt>
+            <dd>{{ tipoPessoaLabel }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>Atualização</dt>
-            <dd>{{ formatDataAtualizacao(data.item.dataAtualizacao) }}</dd>
+            <dt>Capacidade</dt>
+            <dd>{{ capacidadeExibicao }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>Frota</dt>
-            <dd>{{ frotaExibicao }}</dd>
+            <dt>Tamanho</dt>
+            <dd>{{ tamanhoExibicao }}</dd>
           </div>
           <div class="trn-view__row">
             <dt>Status</dt>
-            <dd>{{ data.item.ativo ? 'Ativa' : 'Inativa' }}</dd>
+            <dd>{{ data.item.ativo ? 'Ativo' : 'Inativo' }}</dd>
           </div>
         </dl>
       </mat-dialog-content>
@@ -242,44 +242,35 @@ export interface TransportadoraViewDialogData {
     `
   ]
 })
-export class TransportadoraViewDialogComponent {
-  readonly ref = inject(MatDialogRef<TransportadoraViewDialogComponent, void | 'edit'>);
-  readonly data = inject<TransportadoraViewDialogData>(MAT_DIALOG_DATA);
+export class EstacionamentoViewDialogComponent {
+  readonly ref = inject(MatDialogRef<EstacionamentoViewDialogComponent, void | 'edit'>);
+  readonly data = inject<EstacionamentoViewDialogData>(MAT_DIALOG_DATA);
 
   get emailExibicao(): string {
     const email = String(this.data.item.email ?? '').trim();
     return email || '—';
   }
 
-  get frotaExibicao(): string {
-    const q = this.data.item.quantidadeVeiculos;
+  get tipoPessoaLabel(): string {
+    return this.data.item.tipoPessoa === 1 ? 'Pessoa Física' : 'Pessoa Jurídica';
+  }
+
+  get capacidadeExibicao(): string {
+    const q = this.data.item.capacidadeVeiculo;
     if (q == null || q < 0) return '—';
     return String(q);
   }
 
-  formatCnpjValor(doc: string | null | undefined): string {
-    const d = String(doc ?? '').replace(/\D/g, '');
-    if (d.length === 14) return formatCnpj(d);
+  get tamanhoExibicao(): string {
+    const t = String(this.data.item.tamanhoTerreno ?? '').trim();
+    return t || '—';
+  }
+
+  formatDocumento(doc: string | null | undefined): string {
+    const digits = String(doc ?? '').replace(/\D/g, '');
+    if (digits.length === 14) return formatCnpj(digits);
+    if (digits.length === 11) return formatCpf(digits);
     const raw = String(doc ?? '').trim();
     return raw || '—';
-  }
-
-  formatTelefoneValor(raw: string | null | undefined): string {
-    const digits = String(raw ?? '').replace(/\D/g, '');
-    if (!digits) return '—';
-    return formatTelefone(digits);
-  }
-
-  formatDataAtualizacao(raw: string | null | undefined): string {
-    if (raw == null || String(raw).trim() === '') return '—';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return String(raw);
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(d);
   }
 }

@@ -19,9 +19,9 @@ export interface CadastroMenuItemDef {
 
 /** Submenus canônicos do módulo Cadastro (nível 2). */
 export const CADASTRO_MENU_TREE: CadastroMenuItemDef[] = [
-  { id: 'sub-transportadoras', label: 'Transportadoras', route: CADASTRO_TRANSPORTADORAS_ROUTE },
-  { id: 'sub-veiculos', label: 'Veículos', route: CADASTRO_VEICULOS_ROUTE },
-  { id: 'sub-motoristas', label: 'Motoristas', route: CADASTRO_MOTORISTAS_ROUTE },
+  { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
+  { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
+  { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
   { id: 'sub-estacionamentos', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
 ];
 

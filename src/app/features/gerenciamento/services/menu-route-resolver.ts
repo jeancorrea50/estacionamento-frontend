@@ -253,6 +253,39 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     }
   }
 
+  if (
+    path === CADASTRO_TRANSPORTADORAS_ROUTE.toLowerCase() ||
+    path.startsWith(`${CADASTRO_TRANSPORTADORAS_ROUTE.toLowerCase()}/`) ||
+    key === 'transportadora' ||
+    key === 'transportadoras'
+  ) {
+    return 'Transportadora';
+  }
+  if (
+    path === CADASTRO_VEICULOS_ROUTE.toLowerCase() ||
+    path.startsWith(`${CADASTRO_VEICULOS_ROUTE.toLowerCase()}/`) ||
+    key === 'veiculo' ||
+    key === 'veiculos'
+  ) {
+    return 'Veículo';
+  }
+  if (
+    path === CADASTRO_MOTORISTAS_ROUTE.toLowerCase() ||
+    path.startsWith(`${CADASTRO_MOTORISTAS_ROUTE.toLowerCase()}/`) ||
+    key === 'motorista' ||
+    key === 'motoristas'
+  ) {
+    return 'Motorista';
+  }
+  if (
+    path === CADASTRO_ESTACIONAMENTOS_ROUTE.toLowerCase() ||
+    path.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE.toLowerCase()}/`) ||
+    key === 'estacionamento' ||
+    key === 'estacionamentos'
+  ) {
+    return 'Estacionamento';
+  }
+
   return raw || label;
 }
 

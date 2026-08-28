@@ -730,9 +730,9 @@ export class MenuAdminService {
 
   private formatCadastroSubmenuSidebarLabel(route: string, label: string): string {
     const path = route.replace(/\/+$/, '').toLowerCase();
-    if (/(?:^|\/)cadastro\/transportadora(?:s)?(?:\/|$)/.test(path)) return 'Transportadoras';
-    if (/(?:^|\/)cadastro\/veiculo(?:s)?(?:\/|$)/.test(path)) return 'Veículos';
-    if (/(?:^|\/)cadastro\/motorista(?:s)?(?:\/|$)/.test(path)) return 'Motoristas';
+    if (/(?:^|\/)cadastro\/transportadora(?:s)?(?:\/|$)/.test(path)) return 'Transportadora';
+    if (/(?:^|\/)cadastro\/veiculo(?:s)?(?:\/|$)/.test(path)) return 'Veículo';
+    if (/(?:^|\/)cadastro\/motorista(?:s)?(?:\/|$)/.test(path)) return 'Motorista';
     if (/(?:^|\/)cadastro\/estacionamento(?:s)?(?:\/|$)/.test(path)) return 'Estacionamento';
     return label;
   }

@@ -12,6 +12,16 @@ const transportadoraPage = () =>
     (m) => m.CadastroTransportadoraPageComponent
   );
 
+const veiculosPage = () =>
+  import('./pages/cadastro-veiculos-page/cadastro-veiculos-page.component').then(
+    (m) => m.CadastroVeiculosPageComponent
+  );
+
+const motoristasPage = () =>
+  import('./pages/cadastro-motoristas-page/cadastro-motoristas-page.component').then(
+    (m) => m.CadastroMotoristasPageComponent
+  );
+
 export const CADASTRO_ROUTES: Routes = [
   {
     path: '',
@@ -55,13 +65,11 @@ export const CADASTRO_ROUTES: Routes = [
   },
   {
     path: CADASTRO_VEICULOS_PATH,
-    loadComponent: transportadoraPage,
-    data: { forceTab: 'frota' },
+    loadComponent: veiculosPage,
   },
   {
     path: CADASTRO_MOTORISTAS_PATH,
-    loadComponent: transportadoraPage,
-    data: { forceTab: 'motoristas' },
+    loadComponent: motoristasPage,
   },
   // Legado: rotas singulares → canônico plural
   {

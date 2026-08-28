@@ -1,0 +1,340 @@
+<div class="cadastro-transportadora-shell">
+  <div class="page-container">
+    <div class="page-content trn-page-content--dashboard">
+      <header class="est-dash-hero trn-dash-hero" aria-labelledby="veic-dash-title">
+        <div class="est-dash-hero__icon trn-dash-hero__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">directions_car</span>
+        </div>
+        <div class="est-dash-hero__copy">
+          <h1 id="veic-dash-title" class="est-dash-hero__title">Cadastro de Veículos</h1>
+          <p class="est-dash-hero__subtitle">Consulte, cadastre e gerencie a frota vinculada às transportadoras.</p>
+        </div>
+      </header>
+
+      <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
+        <div class="est-dash-filter__select-wrap">
+          <select class="est-dash-filter__select input-control trn-dash-filter__select" [(ngModel)]="campoBusca" aria-label="Tipo de busca">
+            <option value="geral">Busca geral</option>
+            <option value="placa">Placa</option>
+          </select>
+        </div>
+        <label class="est-dash-filter__search">
+          <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
+          <input
+            type="text"
+            class="est-dash-filter__search-input"
+            [placeholder]="searchPlaceholder"
+            [(ngModel)]="termoBusca"
+            (keyup.enter)="onBuscar()"
+            autocomplete="off"
+            aria-label="Termo de busca"
+          />
+        </label>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          Buscar
+        </button>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="downloadModeloFrota()" [disabled]="baixandoModeloFrota">
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>
+          {{ baixandoModeloFrota ? 'Baixando…' : 'Download modelo' }}
+        </button>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirImportarFrota()">
+          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+          Importar frota
+        </button>
+        <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovoVeiculo()">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo
+        </button>
+      </section>
+
+      @if (erroList) {
+        <div class="trn-list-banner trn-list-banner--error" role="alert">
+          <p class="error-msg">{{ erroList }}</p>
+        </div>
+      }
+      @if (loadingList) {
+        <p class="loading-msg trn-loading">Carregando...</p>
+      }
+
+      @if (jaBuscou && !loadingList && !erroList) {
+        <div class="trn-list-metrics" aria-label="Resumo da consulta">
+          <app-est-summary-metric icon="directions_car" label="Total" [value]="totalCount" variant="neutral" />
+          <app-est-summary-metric icon="check_circle" label="Ativos" [value]="countAtivosPagina" variant="success" [hint]="resumoListaPaginaHint" />
+          <app-est-summary-metric icon="cancel" label="Inativos" [value]="countInativosPagina" variant="danger" [hint]="resumoListaPaginaHint" />
+        </div>
+
+        <div class="trn-list-table-card">
+          <div class="trn-list-table-scroll">
+            <table class="data-table trn-table">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Placa</th>
+                  <th scope="col">Marca / Modelo</th>
+                  <th scope="col">Cor</th>
+                  <th scope="col">Ano</th>
+                  <th scope="col">Tipo carga</th>
+                  <th scope="col">Transportadora</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="trn-table__th-acoes">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of veiculos; track item.id) {
+                  <tr class="trn-table__row">
+                    <td>{{ item.id }}</td>
+                    <td>{{ formatPlacaFrotaGrid(item.placa) }}</td>
+                    <td>{{ item.marcaModelo || '—' }}</td>
+                    <td>{{ item.cor || '—' }}</td>
+                    <td>{{ item.anoFabricacao ?? item.anoModelo ?? '—' }}</td>
+                    <td>{{ labelTipoCarga(item.tipoCarga) }}</td>
+                    <td>{{ transportadoraLabel(item.transportadoraId) }}</td>
+                    <td>
+                      <app-est-status-pill-estacionamento [ativo]="item.ativo" />
+                    </td>
+                    <td class="trn-table__acoes">
+                      <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para veículo ' + item.id">
+                        <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarVeiculo(item)">
+                          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                        </button>
+                        <button type="button" class="trn-act-btn trn-act-btn--danger" title="Excluir" (click)="excluirVeiculo(item)">
+                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (veiculos.length === 0) {
+            <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+              <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
+              <p class="empty-msg">Nenhum veículo encontrado.</p>
+            </div>
+          }
+        </div>
+
+        <footer class="trn-list-footer">
+          <p class="trn-list-footer__info">
+            Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+            <strong>{{ totalCount }}</strong>
+            {{ totalCount === 1 ? 'veículo' : 'veículos' }}
+          </p>
+          <div class="trn-list-footer__right">
+            <label class="trn-page-size">
+              <span class="trn-page-size__label">Linhas por página</span>
+              <select
+                class="trn-page-size__select input-control"
+                [ngModel]="tamanhoPaginaLista"
+                (ngModelChange)="onTamanhoPaginaListaChange($event)"
+                aria-label="Linhas por página"
+              >
+                @for (opt of opcoesTamanhoPaginaLista; track opt) {
+                  <option [ngValue]="opt">{{ opt }}</option>
+                }
+              </select>
+            </label>
+            <div class="trn-footer-pager" aria-label="Paginação">
+              <button type="button" class="trn-foot-page" [disabled]="numeroPagina <= 1 || totalCount === 0" (click)="irPrimeiraPaginaLista()" aria-label="Primeira página">
+                <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+              </button>
+              <button type="button" class="trn-foot-page" [disabled]="numeroPagina <= 1 || totalCount === 0" (click)="irParaPaginaLista(numeroPagina - 1)" aria-label="Página anterior">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+              </button>
+              <span class="trn-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
+              <button type="button" class="trn-foot-page" [disabled]="numeroPagina >= totalPaginasLista || totalCount === 0" (click)="irParaPaginaLista(numeroPagina + 1)" aria-label="Próxima página">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+              </button>
+              <button type="button" class="trn-foot-page" [disabled]="numeroPagina >= totalPaginasLista || totalCount === 0" (click)="irUltimaPaginaLista()" aria-label="Última página">
+                <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+              </button>
+            </div>
+          </div>
+        </footer>
+      }
+
+      @if (!jaBuscou && !loadingList && !erroList) {
+        <div class="empty-state empty-state--compact trn-before-search">
+          <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
+          <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar os veículos.</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (showVeiculoForm) {
+    <div class="modal-overlay modal-overlay--frota" (click)="onBackdropVeiculoClick($event)" role="presentation">
+      <div class="modal-content modal-content--frota" role="dialog" aria-modal="true" aria-labelledby="modal-frota-title" (click)="$event.stopPropagation()">
+        <div class="modal-header modal-header--frota">
+          <div class="modal-header__main">
+            <span class="modal-header__icon-wrap" aria-hidden="true">
+              <span class="material-symbols-outlined">directions_car</span>
+            </span>
+            <h2 id="modal-frota-title">{{ veiculoEditId ? 'Editar veículo' : 'Cadastrar veículo' }}</h2>
+          </div>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalFrota()">&times;</button>
+        </div>
+        <div class="frota-modal-topbar" role="tablist">
+          <button type="button" class="frota-modal-tab" [class.frota-modal-tab--active]="modalFrotaTabAtual === 'veiculo'" (click)="setModalFrotaTab('veiculo')">Veículo</button>
+          <button type="button" class="frota-modal-tab" [class.frota-modal-tab--active]="modalFrotaTabAtual === 'motoristasVinculados'" (click)="setModalFrotaTab('motoristasVinculados')">Motoristas vinculados</button>
+        </div>
+        <form [formGroup]="veiculoForm" novalidate>
+          <div class="modal-body modal-body--frota">
+            <div class="form-row">
+              <label for="veic-transp">Transportadora <span class="required">*</span></label>
+              <select id="veic-transp" class="input-control input-control--select" formControlName="transportadoraId">
+                <option [ngValue]="null">Selecione</option>
+                @for (t of transportadoras; track t.id) {
+                  <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial }}</option>
+                }
+              </select>
+            </div>
+            <div class="frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'veiculo'">
+              <div class="frota-modal-grid">
+                <div class="frota-modal-grid__col">
+                  <div class="form-row">
+                    <label for="frota-placa">Placa <span class="required">*</span></label>
+                    <input id="frota-placa" type="text" class="input-control" placeholder="Ex.: ABC-1D23" maxlength="8" formControlName="placa" appPlacaFormat (input)="formatarPlacaFrota($any($event.target).value)" (blur)="onPlacaBlur()" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-marca">Marca</label>
+                    <input id="frota-marca" type="text" class="input-control" formControlName="marca" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-cor">Cor</label>
+                    <input id="frota-cor" type="text" class="input-control" formControlName="cor" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-ano-mod">Ano modelo</label>
+                    <input id="frota-ano-mod" type="number" class="input-control" formControlName="anoModelo" min="1900" max="2100" />
+                  </div>
+                </div>
+                <div class="frota-modal-grid__col">
+                  <div class="form-row">
+                    <label for="frota-modelo">Modelo</label>
+                    <input id="frota-modelo" type="text" class="input-control" formControlName="modelo" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-ano-fab">Ano fabricação</label>
+                    <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" min="1900" max="2100" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-tipo-carga">Tipo de carga</label>
+                    <select id="frota-tipo-carga" class="input-control input-control--select" formControlName="tipoCarga">
+                      <option [ngValue]="null">Selecione</option>
+                      @for (o of tipoCargaOpcoes; track o.value) {
+                        <option [ngValue]="o.value">{{ o.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="form-row form-row--checkbox">
+                    <label>Status</label>
+                    <label class="field__label--checkbox-inline">
+                      <input type="checkbox" formControlName="ativo" />
+                      Ativo
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <section class="frota-vinculos frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'motoristasVinculados'">
+              <div class="frota-vinculos__toolbar">
+                <button type="button" class="btn btn-secondary" (click)="abrirBuscaMotoristaFrota()">
+                  <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                  Buscar motorista
+                </button>
+              </div>
+              @if (motoristasVinculadosFrota.length === 0) {
+                <p class="frota-vinculos__empty">Nenhum motorista vinculado.</p>
+              } @else {
+                <div class="table-wrap frota-vinculos-table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Motorista</th>
+                        <th>CNH</th>
+                        <th>Principal</th>
+                        <th class="table-cell--actions">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (m of motoristasVinculadosFrota; track m.id) {
+                        <tr>
+                          <td>
+                            <span class="frota-vinculo-grid__motorista">
+                              <span class="frota-vinculo-item__avatar" aria-hidden="true">{{ motoristaIniciais(m.nome) }}</span>
+                              <span>{{ m.nome }}</span>
+                            </span>
+                          </td>
+                          <td>{{ m.cnh || '—' }}</td>
+                          <td>
+                            @if (m.principal) {
+                              <span class="frota-vinculo-item__badge">Principal</span>
+                            } @else {
+                              <button type="button" class="btn btn-secondary btn--sm" (click)="definirVinculoPrincipal(m.id)">Definir principal</button>
+                            }
+                          </td>
+                          <td class="table-cell--actions">
+                            <button type="button" class="btn btn-secondary btn--sm btn--table-action-danger" (click)="removerVinculoMotorista(m.id)">Remover</button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </section>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
+            <button type="button" class="btn btn-primary" [disabled]="!placaFrotaValida || salvandoVeiculo || veiculoForm.invalid" (click)="salvarVeiculo()">
+              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showImportarFrota) {
+    <div class="modal-overlay" (click)="fecharImportarFrota()" role="dialog" aria-modal="true">
+      <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2 class="modal__title">Importar frota</h2>
+          <button type="button" class="modal__close" (click)="fecharImportarFrota()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal__body">
+          <div class="form-row">
+            <label for="import-transp">Transportadora</label>
+            <select id="import-transp" class="input-control input-control--select" [(ngModel)]="importTransportadoraId">
+              <option [ngValue]="null">Selecione</option>
+              @for (t of transportadoras; track t.id) {
+                <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial }}</option>
+              }
+            </select>
+          </div>
+          <div class="importacao-actions">
+            <input type="file" #fileFrotaInput accept=".xlsx,.xls" (change)="onFileFrotaChange($event)" hidden />
+            <button type="button" class="btn btn-secondary" (click)="fileFrotaInput.click()">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarFrota()" [disabled]="!fileFrota || importTransportadoraId == null || importandoFrota">
+              {{ importandoFrota ? 'Importando…' : 'Importar' }}
+            </button>
+          </div>
+          @if (fileFrota) {
+            <p class="file-name">Arquivo: {{ fileFrota.name }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <app-modal-busca-motorista
+    [aberto]="frotaMotoristaModalAberto"
+    [termoCampo]="''"
+    [transportadoraId]="transportadoraIdForm ?? undefined"
+    (fechar)="frotaMotoristaModalAberto = false"
+    (itemSelecionado)="onFrotaMotoristaSelecionado($event)"
+  />
+</div>

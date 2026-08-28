@@ -10,12 +10,15 @@ import type { FaturamentoTabId } from './pages/faturamento-page/faturamento-visa
 /** Rota base do módulo (container das abas). */
 export const FATURAMENTO_ROUTE = '/app/faturamento';
 
+/** Submenu Configuração — rota própria, fora das abas internas. */
+export const FATURAMENTO_CONFIG_ROUTE = '/app/faturamento/configuracao';
+export const FATURAMENTO_CONFIG_PATH = 'configuracao';
+export const FATURAMENTO_CONFIG_LABEL = 'Configuração';
+
 /** Prefixo legado (menu/API antigos). */
 const LEGACY_FINANCEIRO_PREFIX = '/app/financeiro';
 const LEGACY_FINANCEIRO_FATURAMENTO = `${LEGACY_FINANCEIRO_PREFIX}/faturamento`;
-/** Slug antigo da aba de configuração de cobrança. */
-const LEGACY_CONFIG_COBRANCA_SLUG = 'config-cobranca';
-const CONFIG_COBRANCA_SLUG = 'configuracao-cobranca';
+const LEGACY_CONFIG_SLUGS = ['config-cobranca', 'configuracao-cobranca'] as const;
 
 export interface FaturamentoTabDef {
   id: FaturamentoTabId;
@@ -30,13 +33,13 @@ function tab(id: FaturamentoTabId, label: string): FaturamentoTabDef {
   return { id, label, path: id, route: `${FATURAMENTO_ROUTE}/${id}` };
 }
 
+/** Abas internas da tela Faturamento (sem Configuração — submenu separado). */
 export const FATURAMENTO_TABS: readonly FaturamentoTabDef[] = [
   tab('visao-geral', 'Visão Geral'),
   tab('fechamentos', 'Fechamentos'),
   tab('recebimentos', 'Recebimentos'),
   tab('inadimplencia', 'Inadimplência'),
   tab('faturas', 'Faturas'),
-  tab('configuracao-cobranca', 'Configurações de Cobrança')
 ];
 
 export function faturamentoTabRoute(id: FaturamentoTabId): string {
@@ -47,8 +50,22 @@ export function faturamentoTabLabel(id: FaturamentoTabId): string {
   return FATURAMENTO_TABS.find((t) => t.id === id)?.label ?? 'Faturamento';
 }
 
+function rewriteLegacyConfigSlug(path: string): string {
+  const lower = path.toLowerCase();
+  for (const legacy of LEGACY_CONFIG_SLUGS) {
+    const suffix = `/${legacy}`;
+    if (lower === suffix.slice(1) || lower.endsWith(suffix)) {
+      return `${FATURAMENTO_ROUTE}/${FATURAMENTO_CONFIG_PATH}`;
+    }
+  }
+  if (lower === FATURAMENTO_CONFIG_ROUTE.toLowerCase()) {
+    return FATURAMENTO_CONFIG_ROUTE;
+  }
+  return path;
+}
+
 /**
- * Converte rotas legadas `/app/financeiro(/faturamento)?/...` e `config-cobranca`
+ * Converte rotas legadas `/app/financeiro(/faturamento)?/...` e slugs antigos de config
  * para o canônico `/app/faturamento/...`.
  */
 export function normalizeFaturamentoAppRoute(raw: string | null | undefined): string | null {
@@ -73,10 +90,6 @@ export function normalizeFaturamentoAppRoute(raw: string | null | undefined): st
     path = `${FATURAMENTO_ROUTE}${rest}`;
   }
 
-  const afterNorm = path.toLowerCase();
-  if (afterNorm.endsWith(`/${LEGACY_CONFIG_COBRANCA_SLUG}`)) {
-    return `${FATURAMENTO_ROUTE}/${CONFIG_COBRANCA_SLUG}`;
-  }
-
+  path = rewriteLegacyConfigSlug(path);
   return path === '/app' ? null : path;
 }

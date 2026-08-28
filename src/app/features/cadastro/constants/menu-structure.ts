@@ -2,7 +2,12 @@
  * Estrutura do menu da aplicação (menu > módulos > submenus).
  * Usada na tela de Permissões para exibir e vincular permissões por item.
  */
-import { FATURAMENTO_ROUTE, FATURAMENTO_TABS } from '../../financeiro/faturamento-rotas';
+import {
+  FATURAMENTO_CONFIG_LABEL,
+  FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_ROUTE,
+  FATURAMENTO_TABS,
+} from '../../financeiro/faturamento-rotas';
 
 export interface MenuSubItem {
   id: string;
@@ -19,12 +24,19 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
-/** Submenus do Faturamento: uma entrada por aba (mesmas rotas do SPA). */
-const FATURAMENTO_SUBMENUS: MenuSubItem[] = FATURAMENTO_TABS.map((t) => ({
-  id: `sub-faturamento-${t.id}`,
-  label: t.label,
-  route: t.route,
-}));
+/** Submenus do Faturamento: abas internas + Configuração (rota própria). */
+const FATURAMENTO_SUBMENUS: MenuSubItem[] = [
+  ...FATURAMENTO_TABS.map((t) => ({
+    id: `sub-faturamento-${t.id}`,
+    label: t.label,
+    route: t.route,
+  })),
+  {
+    id: 'sub-faturamento-configuracao',
+    label: FATURAMENTO_CONFIG_LABEL,
+    route: FATURAMENTO_CONFIG_ROUTE,
+  },
+];
 
 /** Estrutura completa do menu (seed admin / permissões). Estacionamento é item de topo na sidebar. */
 export const MENU_STRUCTURE: MenuNode[] = [

@@ -9,6 +9,24 @@
   min-width: 0;
 }
 
+.cfg-page-shell {
+  min-height: 0;
+}
+
+.cfg-page-header {
+  margin-bottom: 1rem;
+}
+
+.cfg-page-header__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cfg-page-body {
+  min-width: 0;
+}
+
 /* Pills alinhadas à paleta do cadastro (tokens --primary / --muted / --surface). */
 .cfg-chip {
   display: inline-flex;

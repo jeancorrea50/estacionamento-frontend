@@ -22,6 +22,7 @@ import { finalize } from 'rxjs/operators';
 import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { FaturaService } from '../../../services/fatura.service';
+import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoInadimplenciaAcordoDialogComponent } from './faturamento-inadimplencia-acordo-dialog.component';
 import type {
   InadimplenciaDiasFiltroId,
@@ -62,7 +63,8 @@ interface InadCalendarioCelula {
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FaturamentoDataPickerPanelDirective
   ],
   templateUrl: './faturamento-inadimplencia.component.html',
   styleUrls: ['./faturamento-inadimplencia.component.scss']

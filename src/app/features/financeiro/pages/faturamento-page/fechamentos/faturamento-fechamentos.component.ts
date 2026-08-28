@@ -22,6 +22,7 @@ import type { ApiError } from '../../../../../core/api/models';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { FaturaService } from '../../../services/fatura.service';
+import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import type {
   FechamentoDetalheResumo,
   FechamentoFiltroRapidoId,
@@ -62,7 +63,8 @@ interface FechCalendarioCelula {
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FaturamentoDataPickerPanelDirective
   ],
   templateUrl: './faturamento-fechamentos.component.html',
   styleUrls: ['./faturamento-fechamentos.component.scss']

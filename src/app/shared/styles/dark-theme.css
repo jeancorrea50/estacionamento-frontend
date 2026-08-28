@@ -430,3 +430,11 @@ html.theme-dark .faturamento-shell {
   --rec-cal-pill-hover-text: #3d8bff;
   --rec-cal-range-fg: #f1f1f5;
 }
+
+/* Calendário do Faturamento — card opaco (evita transparência no dropdown Data) */
+html.theme-dark .faturamento-shell .rec-cal {
+  background: var(--fat-card-bg) !important;
+  border: 1px solid var(--fat-card-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 1;
+}

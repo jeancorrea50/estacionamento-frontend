@@ -1275,9 +1275,15 @@ html.theme-dark .fat-status--cancelada {
   margin-top: 0;
 }
 
+.cfg-search-bar .rec-data-picker__panel {
+  right: auto;
+  left: auto;
+  top: auto;
+  z-index: 1300;
+}
+
 .fat-fin-tab-body {
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
   padding: 0 0 8px;
   min-width: 0;
 }

@@ -35,6 +35,9 @@
   border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
   background: color-mix(in srgb, var(--surface) 94%, #000);
   box-shadow: none;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
 }
 
 .cfg-search-bar__select-wrap {

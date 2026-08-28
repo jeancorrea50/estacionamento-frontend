@@ -31,6 +31,7 @@ import { TransportadoraLookupService } from '../../../../cadastro/services/trans
 import { ModalidadeRecebimento } from '../../../models/fatura.models';
 import { emptyVisaoGeral, statusFaturaFromLabel } from '../../../mappers/fatura.mapper';
 import { FaturaService } from '../../../services/fatura.service';
+import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoNavService } from '../../../services/faturamento-nav.service';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
 import {
@@ -72,7 +73,8 @@ interface LookupFiltro {
     MatSelectModule,
     MatSnackBarModule,
     NgApexchartsModule,
-    RouterLink
+    RouterLink,
+    FaturamentoDataPickerPanelDirective
   ],
   templateUrl: './faturamento-visao-geral.component.html',
   styleUrls: ['./faturamento-visao-geral.component.scss']

@@ -8,7 +8,8 @@
 :host {
   display: block;
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 /* ── Page container ────────────────────────────────────────────────── */
@@ -18,6 +19,7 @@
   gap: 16px;
   padding-bottom: 8px;
   min-width: 0;
+  overflow: visible;
 }
 
 /* ── Hero titles (fora do card) ────────────────────────────────────── */
@@ -1152,6 +1154,16 @@ html.theme-dark .rec-data-picker__trigger--ativo {
   background: var(--fat-fill-chip-hover, #2f2f3a);
 }
 
+html.theme-dark .rec-data-picker__panel {
+  background: transparent;
+}
+
+html.theme-dark .rec-data-picker__panel .rec-cal {
+  background: var(--fat-card-bg, #252530) !important;
+  border: 1px solid var(--fat-card-border, #363642);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
 html.theme-dark .rec-acoes-btn:hover,
 html.theme-dark .rec-acoes-btn.cdk-focused,
 html.theme-dark .rec-acoes-btn.cdk-program-focused {
@@ -1166,30 +1178,32 @@ html.theme-dark .rec-acoes-btn.cdk-program-focused .material-symbols-outlined {
 }
 
 .rec-cal.rec-cal--dark,
-:host-context(html.theme-dark) .rec-cal {
-  --rec-cal-bg: var(--rec-cal-bg, #252530);
-  --rec-cal-border: var(--rec-cal-border, #363642);
-  --rec-cal-shadow: var(--rec-cal-shadow, 0 8px 24px rgba(0, 0, 0, 0.35));
-  --rec-cal-accent: var(--rec-cal-accent, #3d8bff);
-  --rec-cal-text: var(--rec-cal-text, #f1f1f5);
-  --rec-cal-muted: var(--rec-cal-muted, #92929f);
-  --rec-cal-muted-light: var(--rec-cal-muted-light, #92929f);
-  --rec-cal-outside: var(--rec-cal-outside, #6b6b78);
-  --rec-cal-hover-bg: var(--rec-cal-hover-bg, #2f2f3a);
-  --rec-cal-mode-bg: var(--rec-cal-mode-bg, #24242e);
-  --rec-cal-mode-border: var(--rec-cal-mode-border, #363642);
-  --rec-cal-mode-text: var(--rec-cal-mode-text, #92929f);
-  --rec-cal-mode-hover: var(--rec-cal-mode-hover, #2f2f3a);
-  --rec-cal-pill-border: var(--rec-cal-pill-border, #363642);
-  --rec-cal-pill-bg: var(--rec-cal-pill-bg, #24242e);
-  --rec-cal-pill-text: var(--rec-cal-pill-text, #f1f1f5);
-  --rec-cal-pill-hover-bg: var(--rec-cal-pill-hover-bg, #2f2f3a);
-  --rec-cal-pill-hover-text: var(--rec-cal-pill-hover-text, #3d8bff);
-  --rec-cal-range-fg: var(--rec-cal-range-fg, #f1f1f5);
+:host-context(html.theme-dark) .rec-cal,
+html.theme-dark .rec-cal {
+  --rec-cal-bg: var(--fat-card-bg, #252530);
+  --rec-cal-border: var(--fat-card-border, #363642);
+  --rec-cal-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --rec-cal-accent: var(--fat-primary, #3d8bff);
+  --rec-cal-text: var(--fat-card-value, #f1f1f5);
+  --rec-cal-muted: var(--fat-card-muted, #92929f);
+  --rec-cal-muted-light: var(--fat-card-muted, #92929f);
+  --rec-cal-outside: #6b6b78;
+  --rec-cal-hover-bg: var(--fat-fill-chip-hover, #2f2f3a);
+  --rec-cal-mode-bg: var(--fat-fill-chip-bg, #24242e);
+  --rec-cal-mode-border: var(--fat-card-border, #363642);
+  --rec-cal-mode-text: var(--fat-card-muted, #92929f);
+  --rec-cal-mode-hover: var(--fat-fill-chip-hover, #2f2f3a);
+  --rec-cal-pill-border: var(--fat-card-border, #363642);
+  --rec-cal-pill-bg: var(--fat-fill-chip-bg, #24242e);
+  --rec-cal-pill-text: var(--fat-card-value, #f1f1f5);
+  --rec-cal-pill-hover-bg: var(--fat-fill-chip-hover, #2f2f3a);
+  --rec-cal-pill-hover-text: var(--fat-primary, #3d8bff);
+  --rec-cal-range-fg: #f1f1f5;
 
-  background: var(--rec-cal-bg);
-  border-color: var(--rec-cal-border);
+  background: var(--rec-cal-bg) !important;
+  border: 1px solid var(--rec-cal-border);
   box-shadow: var(--rec-cal-shadow);
+  opacity: 1;
 }
 
 .rec-cal.rec-cal--dark .rec-data-picker__mode--active,

@@ -21,6 +21,7 @@ import { finalize } from 'rxjs/operators';
 import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { FaturaService } from '../../../services/fatura.service';
+import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoRecebimentosPartialDialogComponent } from './faturamento-recebimentos-partial-dialog.component';
 import type {
   RecebimentoComprovanteEstado,
@@ -61,7 +62,8 @@ interface RecCalendarioCelula {
     MatSelectModule,
     MatSnackBarModule,
     MatTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FaturamentoDataPickerPanelDirective
   ],
   templateUrl: './faturamento-recebimentos.component.html',
   styleUrls: ['./faturamento-recebimentos.component.scss']

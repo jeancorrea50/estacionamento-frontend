@@ -231,16 +231,16 @@
 
 html.theme-dark .cfg-cta-card.mat-mdc-card,
 html.theme-dark .cfg-search-bar {
-  background: var(--fat-card-bg, #151f34);
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+  background: var(--fat-card-bg);
+  border-color: var(--fat-card-border);
 }
 
 html.theme-dark .cfg-search-bar__select,
 html.theme-dark .cfg-search-bar__search,
 html.theme-dark .cfg-search-bar__btn--neutral,
 html.theme-dark .cfg-search-bar .rec-data-picker__trigger {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, #000);
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+  background: var(--input-bg, #24242e);
+  border-color: var(--fat-card-border);
   color: var(--fat-card-value, var(--text));
 }
 
@@ -250,6 +250,6 @@ html.theme-dark .cfg-cta-card__title {
 
 html.theme-dark .rec-list-table.cfg-list-table-card,
 html.theme-dark .rec-list-table.trn-list-table-card {
-  background: var(--fat-list-surface, #0f1d39) !important;
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+  background: var(--fat-list-surface) !important;
+  border-color: var(--fat-card-border);
 }

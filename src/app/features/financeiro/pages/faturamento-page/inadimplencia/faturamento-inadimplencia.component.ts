@@ -442,6 +442,7 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
     this.dialog.open(FaturamentoInadimplenciaAcordoDialogComponent, {
       width: '520px',
       maxWidth: '96vw',
+      panelClass: 'cfg-form-dialog-panel',
       data: {
         faturaId: alvo?.id ?? '—',
         transportadora: alvo?.transportadora ?? '—',

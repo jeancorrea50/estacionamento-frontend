@@ -21,20 +21,21 @@
 .fat-itens {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--cfg-form-border, var(--border-subtle, #e2e8f0));
 }
 
 .fat-itens__title {
   margin: 0 0 8px;
   font-size: 0.95rem;
   font-weight: 600;
+  color: var(--cfg-form-text, var(--text));
 }
 
 .fat-itens__subtitle {
   margin: 10px 0 6px;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #4a5568;
+  color: var(--cfg-form-input-placeholder, var(--muted, #64748b));
 }
 
 .fat-itens__table-wrap {
@@ -50,20 +51,22 @@
 .fat-itens__table th,
 .fat-itens__table td {
   padding: 6px 8px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--fat-table-border, var(--cfg-form-border, #e2e8f0));
   text-align: left;
+  color: var(--cfg-form-text, var(--text));
 }
 
 .fat-itens__table th {
-  background: #f7fafc;
+  background: var(--fat-table-header-bg, var(--cfg-form-input-bg, #f7fafc));
   font-weight: 600;
+  color: var(--fat-table-header-text, var(--muted));
 }
 
 .fat-itens__total-excedente {
   margin: 10px 0 0;
   text-align: right;
   font-weight: 600;
-  color: #9a3412;
+  color: var(--fat-warning, #f2b84b);
 }
 
 @media (max-width: 640px) {

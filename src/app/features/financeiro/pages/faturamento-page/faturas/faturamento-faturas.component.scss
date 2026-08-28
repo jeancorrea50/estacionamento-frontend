@@ -377,8 +377,42 @@
 html.theme-dark .cfg-cta-card.mat-mdc-card,
 html.theme-dark .cfg-search-bar,
 html.theme-dark .cfg-before-search {
-  background: var(--fat-card-bg, #151f34);
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+  background: var(--fat-card-bg);
+  border-color: var(--fat-card-border);
+}
+
+html.theme-dark .cfg-search-bar__select,
+html.theme-dark .cfg-search-bar__search,
+html.theme-dark .cfg-search-bar__btn--neutral {
+  background: var(--input-bg, #24242e);
+  border-color: var(--fat-card-border);
+  color: var(--fat-card-value, var(--text));
+}
+
+html.theme-dark .fat-batch-bar {
+  background: var(--fat-card-bg-elevated);
+  border-color: var(--fat-card-border);
+}
+
+html.theme-dark .fat-faturas-chip--pago {
+  color: var(--fat-success, #36c98f);
+}
+
+html.theme-dark .fat-faturas-chip--aberto {
+  color: var(--fat-primary, #3d8bff);
+}
+
+html.theme-dark .fat-faturas-chip--vencido {
+  color: var(--fat-danger, #f06468);
+}
+
+html.theme-dark .fat-faturas-chip--parcial {
+  color: var(--fat-warning, #f2b84b);
+}
+
+html.theme-dark .fat-faturas-chip--aguardando,
+html.theme-dark .fat-faturas-chip--cancelada {
+  color: var(--muted);
 }
 
 html.theme-dark .cfg-cta-card__title,
@@ -387,42 +421,6 @@ html.theme-dark .fat-table__mono {
   color: var(--fat-card-value, var(--text));
 }
 
-html.theme-dark .cfg-search-bar__select,
-html.theme-dark .cfg-search-bar__search,
-html.theme-dark .cfg-search-bar__btn--neutral {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, #000);
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
-  color: var(--fat-card-value, var(--text));
-}
-
-/* .fat-quick-chip dark: _faturamento-shared-painel.scss */
-
-html.theme-dark .fat-batch-bar {
-  background: var(--fat-card-bg-elevated, #18243a);
-  border-color: var(--fat-card-border-accent, rgba(59, 130, 246, 0.35));
-}
-
-html.theme-dark .fat-faturas-chip--pago {
-  color: #86efac;
-}
-
-html.theme-dark .fat-faturas-chip--aberto {
-  color: #93c5fd;
-}
-
-html.theme-dark .fat-faturas-chip--vencido {
-  color: #fca5a5;
-}
-
-html.theme-dark .fat-faturas-chip--parcial {
-  color: #fdba74;
-}
-
-html.theme-dark .fat-faturas-chip--aguardando,
-html.theme-dark .fat-faturas-chip--cancelada {
-  color: var(--muted);
-}
-
 html.theme-dark .fat-menu-danger {
-  color: #fca5a5 !important;
+  color: var(--fat-danger, #f06468) !important;
 }

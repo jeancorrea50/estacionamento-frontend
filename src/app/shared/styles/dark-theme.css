@@ -266,7 +266,8 @@ html.theme-dark .dk-page-header {
   box-shadow: var(--shadow-md);
 }
 
-html.theme-dark .dk-tabs__tab.active {
+html.theme-dark .dk-tabs__tab.tab--active,
+html.theme-dark .dk-tabs__tab--active {
   color: var(--dark-primary);
   background: var(--dark-hover);
   border-color: var(--dark-border);
@@ -354,4 +355,78 @@ html.theme-dark .chip--active {
 html.theme-dark option {
   background: var(--dark-card-elevated);
   color: var(--dark-text);
+}
+
+/* ── Faturamento — tokens centralizados (paleta grafite premium) ───────── */
+html.theme-dark .faturamento-shell {
+  --fat-page-canvas: #1b1b24;
+  --fat-shell-surface: #1d1d27;
+  --fat-card-bg: #252530;
+  --fat-card-bg-elevated: #2a2a35;
+  --fat-card-border: #363642;
+  --fat-card-border-accent: color-mix(in srgb, #3d8bff 40%, #363642);
+  --fat-card-shadow: none;
+  --fat-card-shadow-soft: none;
+  --fat-card-shadow-hover: none;
+  --fat-card-title: #92929f;
+  --fat-card-value: #f1f1f5;
+  --fat-card-muted: #92929f;
+
+  --input-bg: #24242e;
+  --input-border: #363642;
+  --input-text: #f1f1f5;
+  --input-placeholder: #92929f;
+  --focus: #3d8bff;
+  --focus-ring: 0 0 0 2px color-mix(in srgb, #3d8bff 28%, transparent);
+
+  --fat-fill-surface: #252530;
+  --fat-fill-border: #363642;
+  --fat-fill-border-strong: color-mix(in srgb, #3d8bff 45%, #363642);
+  --fat-fill-label: #92929f;
+  --fat-fill-chip-bg: #24242e;
+  --fat-fill-chip-hover: #2f2f3a;
+  --fat-fill-chip-active: #2f2f3a;
+
+  --fat-list-surface: #252530;
+  --fat-table-header-bg: #2a2a35;
+  --fat-table-header-text: #92929f;
+  --fat-table-row-hover: #2f2f3a;
+  --fat-table-border: #363642;
+
+  --fat-chip-badge-bg: #24242e;
+  --fat-chip-badge-border: #363642;
+  --fat-chip-badge-text: #3d8bff;
+
+  --fat-success: #36c98f;
+  --fat-danger: #f06468;
+  --fat-warning: #f2b84b;
+  --fat-primary: #3d8bff;
+  --fat-primary-hover: #4a7dff;
+
+  --ds-select-panel-bg: #252530;
+  --ds-select-panel-border: #363642;
+  --ds-select-panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --ds-select-item-hover-bg: #2f2f3a;
+  --ds-select-item-active-bg: color-mix(in srgb, #3d8bff 14%, #2f2f3a);
+  --ds-select-item-active-text: #f1f1f5;
+
+  --rec-cal-bg: #252530;
+  --rec-cal-border: #363642;
+  --rec-cal-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --rec-cal-accent: #3d8bff;
+  --rec-cal-text: #f1f1f5;
+  --rec-cal-muted: #92929f;
+  --rec-cal-muted-light: #92929f;
+  --rec-cal-outside: #6b6b78;
+  --rec-cal-hover-bg: #2f2f3a;
+  --rec-cal-mode-bg: #24242e;
+  --rec-cal-mode-border: #363642;
+  --rec-cal-mode-text: #92929f;
+  --rec-cal-mode-hover: #2f2f3a;
+  --rec-cal-pill-border: #363642;
+  --rec-cal-pill-bg: #24242e;
+  --rec-cal-pill-text: #f1f1f5;
+  --rec-cal-pill-hover-bg: #2f2f3a;
+  --rec-cal-pill-hover-text: #3d8bff;
+  --rec-cal-range-fg: #f1f1f5;
 }

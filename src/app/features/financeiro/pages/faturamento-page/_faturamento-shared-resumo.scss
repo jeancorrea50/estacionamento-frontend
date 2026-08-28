@@ -154,9 +154,9 @@
 /* ── Dark mode ─────────────────────────────────────────────────────── */
 html.theme-dark .fat-fech__summary-card.mat-mdc-card,
 html.theme-dark .fat-fech__valid-card.mat-mdc-card {
-  background: var(--fat-card-bg, #151f34) !important;
-  border: 1px solid var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
-  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
+  background: var(--fat-card-bg) !important;
+  border: 1px solid var(--fat-card-border) !important;
+  box-shadow: none;
 }
 
 html.theme-dark .fat-fech__summary-head .mat-mdc-card-title,

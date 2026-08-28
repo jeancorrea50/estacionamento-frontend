@@ -63,35 +63,33 @@
 }
 
 html.theme-dark .fat-faturas__periodo {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, var(--fat-card-muted, var(--muted)) 18%);
-  border-color: rgba(148, 163, 184, 0.32);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: var(--fat-fill-chip-bg, #24242e);
+  border-color: var(--fat-card-border);
+  box-shadow: none;
 }
 
 html.theme-dark .fat-faturas__custom-dates {
-  border-top-color: var(--fat-card-border, rgba(96, 130, 190, 0.22));
+  border-top-color: var(--fat-card-border);
 }
 
 html.theme-dark .fat-faturas__periodo .btn.btn-secondary.fat-mat-btn {
-  color: var(--btn-secondary-text, var(--text)) !important;
-  border: 1px solid rgba(248, 250, 252, 0.45) !important;
-  background: rgba(30, 41, 59, 0.85) !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: var(--fat-card-value, var(--text)) !important;
+  border: 1px solid var(--fat-card-border) !important;
+  background: var(--fat-fill-chip-bg, #24242e) !important;
+  box-shadow: none;
 }
 
 html.theme-dark .fat-faturas__periodo .btn.btn-secondary.fat-mat-btn:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.65) !important;
-  background: rgba(51, 65, 85, 0.95) !important;
-  color: #ffffff !important;
+  border-color: var(--fat-fill-border-strong) !important;
+  background: var(--fat-fill-chip-hover, #2f2f3a) !important;
+  color: var(--fat-card-value, var(--text)) !important;
 }
 
 html.theme-dark .fat-faturas__periodo .btn.btn-primary.fat-mat-btn {
-  background: #3b82f6 !important;
-  border: 1px solid #93c5fd !important;
+  background: var(--fat-primary, #3d8bff) !important;
+  border: 1px solid var(--fat-primary, #3d8bff) !important;
   color: #ffffff !important;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 html.theme-dark .fat-faturas__periodo .btn.btn-primary.fat-mat-btn:hover:not(:disabled) {

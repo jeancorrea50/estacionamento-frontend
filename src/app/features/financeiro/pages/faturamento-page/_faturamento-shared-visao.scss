@@ -602,23 +602,17 @@ html.theme-dark .visao-geral__hero,
 html.theme-dark .visao-metric,
 html.theme-dark .visao-kpi,
 html.theme-dark .visao-chart-card {
-  background: var(--fat-card-bg, #151f34) !important;
-  border: 1px solid var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
-  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+  background: var(--fat-card-bg) !important;
+  border: 1px solid var(--fat-card-border) !important;
+  box-shadow: none;
+  border-radius: 10px;
 }
 
 html.theme-dark .visao-bottom-card {
-  background: var(--fat-card-bg-elevated, #18243a) !important;
-  border: 1px solid var(--fat-card-border-accent, rgba(59, 130, 246, 0.35)) !important;
-  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+  background: var(--fat-card-bg) !important;
+  border: 1px solid var(--fat-card-border) !important;
+  box-shadow: none;
+  border-radius: 10px;
 }
 
 html.theme-dark .visao-geral__hero:hover,
@@ -626,9 +620,8 @@ html.theme-dark .visao-metric:hover,
 html.theme-dark .visao-kpi:hover,
 html.theme-dark .visao-chart-card:hover,
 html.theme-dark .visao-bottom-card:hover {
-  border-color: rgba(96, 165, 250, 0.45) !important;
-  box-shadow: var(--fat-card-shadow-hover, 0 0 0 1px rgba(59, 130, 246, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2));
-  transform: translateY(-1px);
+  border-color: var(--fat-fill-border-strong) !important;
+  background: color-mix(in srgb, var(--fat-card-bg) 94%, var(--fat-fill-chip-hover)) !important;
 }
 
 html.theme-dark .visao-card-head .mat-mdc-card-title,
@@ -654,11 +647,11 @@ html.theme-dark .visao-metric__value {
 }
 
 html.theme-dark .visao-metric__value--ok {
-  color: #86efac;
+  color: var(--fat-success, #36c98f);
 }
 
 html.theme-dark .visao-metric__value--danger {
-  color: #fca5a5;
+  color: var(--fat-danger, #f06468);
 }
 
 html.theme-dark .visao-kpi__value {

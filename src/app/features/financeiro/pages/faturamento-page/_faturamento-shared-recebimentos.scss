@@ -23,7 +23,7 @@
 }
 
 html.theme-dark .rec-hero__periodo-shell {
-  border-top-color: rgba(148, 163, 184, 0.2);
+  border-top-color: var(--fat-card-border, #363642);
 }
 
 .rec-filters {

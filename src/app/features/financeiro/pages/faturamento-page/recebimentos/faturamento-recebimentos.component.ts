@@ -538,6 +538,7 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     this.dialog.open(FaturamentoRecebimentosPartialDialogComponent, {
       width: '520px',
       maxWidth: '96vw',
+      panelClass: 'cfg-form-dialog-panel',
       data
     });
   }

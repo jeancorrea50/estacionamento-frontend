@@ -1288,51 +1288,7 @@ html.theme-dark .fat-status--cancelada {
   }
 }
 
-/* -----------------------------------------------------------------------------
-   Dark mode premium — hierarquia fundo da página > shell > cards (só Faturamento)
-   Tokens herdados por Visão Geral / Faturas / abas com .fat-panel.
-   ----------------------------------------------------------------------------- */
-html.theme-dark :host .faturamento-shell {
-  --fat-page-canvas: #08111f;
-  --fat-shell-surface: #101a2e;
-  --fat-card-bg: #151f34;
-  --fat-card-bg-elevated: #18243a;
-  --fat-card-border: rgba(96, 130, 190, 0.32);
-  --fat-card-border-accent: rgba(59, 130, 246, 0.35);
-  --fat-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --fat-card-shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.14);
-  --fat-card-shadow-hover: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2);
-  --fat-card-title: #9caec8;
-  --fat-card-value: var(--text, #f8fafc);
-  --fat-card-muted: #8ea0b8;
-  --input-bg: #1a2746;
-  --input-border: rgba(73, 104, 173, 0.58);
-  --input-text: rgba(243, 247, 255, 0.96);
-  --input-placeholder: rgba(185, 199, 226, 0.54);
-  --focus: #3d6cff;
-  --focus-ring: 0 0 0 3px rgba(61, 108, 255, 0.22);
-  --fat-fill-surface: #132342;
-  --fat-fill-border: rgba(67, 100, 168, 0.5);
-  --fat-fill-border-strong: rgba(67, 118, 230, 0.76);
-  --fat-fill-label: #8ea0b8;
-  --fat-fill-chip-bg: rgba(15, 29, 57, 0.86);
-  --fat-fill-chip-hover: rgba(20, 40, 76, 0.98);
-  --fat-fill-chip-active: rgba(52, 103, 234, 0.28);
-  --fat-list-surface: #0f1d39;
-  --fat-table-header-bg: rgba(21, 38, 70, 0.96);
-  --fat-table-header-text: #8ea0b8;
-  --fat-table-row-hover: rgba(22, 41, 76, 0.82);
-  --fat-table-border: rgba(67, 100, 168, 0.22);
-  --fat-chip-badge-bg: rgba(22, 45, 86, 0.92);
-  --fat-chip-badge-border: rgba(96, 165, 250, 0.34);
-  --fat-chip-badge-text: #93c5fd;
-  --ds-select-panel-bg: #0f1d39;
-  --ds-select-panel-border: rgba(67, 118, 230, 0.62);
-  --ds-select-panel-shadow: 0 16px 36px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(74, 118, 214, 0.24);
-  --ds-select-item-hover-bg: rgba(24, 44, 82, 0.96);
-  --ds-select-item-active-bg: rgba(52, 103, 234, 0.28);
-  --ds-select-item-active-text: var(--text, #f8fbff);
-}
+/* Dark tokens: _faturamento-dark-theme.scss (importado acima) */
 
 html.theme-dark :host .fat-mat-page-wrap {
   background: transparent;
@@ -1348,17 +1304,13 @@ html.theme-dark :host .fat-mat-page.mat-mdc-card {
 html.theme-dark :host .fat-panel {
   background: var(--fat-card-bg);
   border: 1px solid var(--fat-card-border);
-  box-shadow: var(--fat-card-shadow-soft);
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+  box-shadow: none;
+  border-radius: 10px;
 }
 
 html.theme-dark :host .fat-panel:hover {
-  border-color: rgba(96, 165, 250, 0.45);
-  box-shadow: var(--fat-card-shadow-hover);
-  transform: translateY(-1px);
+  border-color: var(--fat-fill-border-strong);
+  background: color-mix(in srgb, var(--fat-card-bg) 92%, var(--fat-fill-chip-hover));
 }
 
 html.theme-dark :host .fat-panel__title {
@@ -1377,17 +1329,13 @@ html.theme-dark :host .fat-table-wrap {
 html.theme-dark :host .fat-config-row {
   background: var(--fat-card-bg-elevated);
   border: 1px solid var(--fat-card-border);
-  box-shadow: var(--fat-card-shadow-soft);
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+  box-shadow: none;
+  border-radius: 10px;
 }
 
 html.theme-dark :host .fat-config-row:hover {
-  border-color: rgba(96, 165, 250, 0.45);
-  box-shadow: var(--fat-card-shadow-hover);
-  transform: translateY(-1px);
+  border-color: var(--fat-fill-border-strong);
+  background: var(--fat-fill-chip-hover);
 }
 
 html.theme-dark :host .fat-config-row__name {

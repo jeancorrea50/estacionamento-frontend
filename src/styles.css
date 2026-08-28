@@ -2166,7 +2166,11 @@ html.theme-dark .cfg-form-dialog-panel {
 .cfg-form-dialog-panel .mat-mdc-dialog-component-host,
 .cfg-form-dialog-panel app-config-cobranca-form-dialog,
 .cfg-form-dialog-panel app-config-cobranca-weekday-dialog,
-.cfg-form-dialog-panel app-config-cobranca-acordo-dialog {
+.cfg-form-dialog-panel app-config-cobranca-acordo-dialog,
+.cfg-form-dialog-panel app-fatura-form-dialog,
+.cfg-form-dialog-panel app-fatura-confirm-dialog,
+.cfg-form-dialog-panel app-faturamento-recebimentos-partial-dialog,
+.cfg-form-dialog-panel app-faturamento-inadimplencia-acordo-dialog {
   display: flex;
   flex-direction: column;
   min-height: 0;

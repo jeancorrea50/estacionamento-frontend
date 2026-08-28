@@ -623,11 +623,9 @@
 
 /* Dark mode override para o dropdown */
 html.theme-dark .rec-filtros-dropdown {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 86%, #0b1325 14%);
-  border-color: rgba(96, 130, 190, 0.34);
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.26);
+  background: var(--fat-card-bg);
+  border-color: var(--fat-card-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* ── Ações rápidas ─────────────────────────────────────────────────── */
@@ -1125,9 +1123,9 @@ html.theme-dark .rec-filtros-dropdown {
 
 /* ── Dark mode ─────────────────────────────────────────────────────── */
 html.theme-dark .rec-painel-card {
-  background: var(--fat-card-bg, #151f34);
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+  background: var(--fat-card-bg);
+  border-color: var(--fat-card-border) !important;
+  box-shadow: none;
 }
 
 html.theme-dark .rec-painel-card__divider {
@@ -1143,51 +1141,51 @@ html.theme-dark .rec-painel-card__titulo {
 }
 
 html.theme-dark .rec-data-picker__trigger {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, var(--fat-card-muted, var(--muted)) 18%);
-  border-color: rgba(148, 163, 184, 0.32);
+  background: var(--input-bg, #24242e);
+  border-color: var(--input-border, #363642);
   color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .rec-data-picker__trigger:hover,
 html.theme-dark .rec-data-picker__trigger--ativo {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(59, 130, 246, 0.12);
+  border-color: var(--fat-primary, #3d8bff);
+  background: var(--fat-fill-chip-hover, #2f2f3a);
 }
 
 html.theme-dark .rec-acoes-btn:hover,
 html.theme-dark .rec-acoes-btn.cdk-focused,
 html.theme-dark .rec-acoes-btn.cdk-program-focused {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(59, 130, 246, 0.12);
+  border-color: var(--fat-primary, #3d8bff);
+  background: var(--fat-fill-chip-hover, #2f2f3a);
 }
 
 html.theme-dark .rec-acoes-btn:hover .material-symbols-outlined,
 html.theme-dark .rec-acoes-btn.cdk-focused .material-symbols-outlined,
 html.theme-dark .rec-acoes-btn.cdk-program-focused .material-symbols-outlined {
-  color: var(--primary, #4d7cfe);
+  color: var(--fat-primary, #3d8bff);
 }
 
 .rec-cal.rec-cal--dark,
 :host-context(html.theme-dark) .rec-cal {
-  --rec-cal-bg: #151f34;
-  --rec-cal-border: rgba(96, 130, 190, 0.38);
-  --rec-cal-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
-  --rec-cal-accent: #4d7cfe;
-  --rec-cal-text: #f8fafc;
-  --rec-cal-muted: #cbd5e1;
-  --rec-cal-muted-light: #8ea0b8;
-  --rec-cal-outside: #64748b;
-  --rec-cal-hover-bg: rgba(59, 130, 246, 0.18);
-  --rec-cal-mode-bg: rgba(9, 17, 35, 0.72);
-  --rec-cal-mode-border: rgba(96, 130, 190, 0.32);
-  --rec-cal-mode-text: #94a3b8;
-  --rec-cal-mode-hover: rgba(59, 130, 246, 0.22);
-  --rec-cal-pill-border: rgba(96, 130, 190, 0.38);
-  --rec-cal-pill-bg: rgba(21, 31, 52, 0.92);
-  --rec-cal-pill-text: #e2e8f0;
-  --rec-cal-pill-hover-bg: rgba(59, 130, 246, 0.2);
-  --rec-cal-pill-hover-text: #bfdbfe;
-  --rec-cal-range-fg: #ffffff;
+  --rec-cal-bg: var(--rec-cal-bg, #252530);
+  --rec-cal-border: var(--rec-cal-border, #363642);
+  --rec-cal-shadow: var(--rec-cal-shadow, 0 8px 24px rgba(0, 0, 0, 0.35));
+  --rec-cal-accent: var(--rec-cal-accent, #3d8bff);
+  --rec-cal-text: var(--rec-cal-text, #f1f1f5);
+  --rec-cal-muted: var(--rec-cal-muted, #92929f);
+  --rec-cal-muted-light: var(--rec-cal-muted-light, #92929f);
+  --rec-cal-outside: var(--rec-cal-outside, #6b6b78);
+  --rec-cal-hover-bg: var(--rec-cal-hover-bg, #2f2f3a);
+  --rec-cal-mode-bg: var(--rec-cal-mode-bg, #24242e);
+  --rec-cal-mode-border: var(--rec-cal-mode-border, #363642);
+  --rec-cal-mode-text: var(--rec-cal-mode-text, #92929f);
+  --rec-cal-mode-hover: var(--rec-cal-mode-hover, #2f2f3a);
+  --rec-cal-pill-border: var(--rec-cal-pill-border, #363642);
+  --rec-cal-pill-bg: var(--rec-cal-pill-bg, #24242e);
+  --rec-cal-pill-text: var(--rec-cal-pill-text, #f1f1f5);
+  --rec-cal-pill-hover-bg: var(--rec-cal-pill-hover-bg, #2f2f3a);
+  --rec-cal-pill-hover-text: var(--rec-cal-pill-hover-text, #3d8bff);
+  --rec-cal-range-fg: var(--rec-cal-range-fg, #f1f1f5);
 
   background: var(--rec-cal-bg);
   border-color: var(--rec-cal-border);
@@ -1210,40 +1208,39 @@ html.theme-dark .rec-hero-titles__subtitle {
 /* Filtros rápidos (chips/pills) — dark */
 html.theme-dark .rec-status-tabs__tab,
 html.theme-dark .fat-quick-chip {
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 82%, #000);
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32));
+  background: var(--fat-fill-chip-bg);
+  border-color: var(--fat-fill-border);
   color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .rec-status-tabs__tab:hover,
 html.theme-dark .fat-quick-chip:hover {
-  border-color: color-mix(in srgb, var(--primary, #3b82f6) 45%, var(--fat-card-border, rgba(96, 130, 190, 0.32)));
-  background: color-mix(in srgb, var(--fat-card-bg, #151f34) 70%, #000);
+  border-color: var(--fat-fill-border-strong);
+  background: var(--fat-fill-chip-hover);
   color: var(--fat-card-value, var(--text));
 }
 
 html.theme-dark .rec-status-tabs__tab--active,
 html.theme-dark .fat-quick-chip--active {
-  background: #3b82f6;
-  border-color: #93c5fd;
-  color: #fff;
+  background: var(--fat-fill-chip-active);
+  border-color: var(--fat-fill-border-strong);
+  color: var(--fat-primary, #3d8bff);
 }
 
 html.theme-dark .rec-status-tabs__tab--active .rec-status-tabs__count,
 html.theme-dark .fat-quick-chip--active .fat-quick-chip__count {
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--fat-card-muted, #92929f);
 }
 
 html.theme-dark .rec-kpi-card.mat-mdc-card {
-  background: var(--fat-card-bg, #151f34) !important;
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
-  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
+  background: var(--fat-card-bg) !important;
+  border-color: var(--fat-card-border) !important;
+  box-shadow: none;
 }
 
 html.theme-dark .rec-kpi-card.mat-mdc-card:hover {
-  border-color: rgba(96, 165, 250, 0.45) !important;
-  box-shadow: var(--fat-card-shadow-hover, 0 0 0 1px rgba(59, 130, 246, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2));
-  transform: translateY(-1px);
+  border-color: var(--fat-fill-border-strong) !important;
+  background: color-mix(in srgb, var(--fat-card-bg) 94%, var(--fat-fill-chip-hover)) !important;
 }
 
 html.theme-dark .rec-kpi-card__label {
@@ -1254,19 +1251,19 @@ html.theme-dark .rec-kpi-card__more .material-symbols-outlined {
   color: var(--fat-card-muted, var(--muted));
 }
 
-html.theme-dark .rec-kpi-card__value--green { color: #34d399; }
-html.theme-dark .rec-kpi-card__value--orange { color: #fbbf24; }
-html.theme-dark .rec-kpi-card__value--blue { color: #60a5fa; }
-html.theme-dark .rec-kpi-card__sub--up { color: #34d399; }
+html.theme-dark .rec-kpi-card__value--green { color: var(--fat-success, #36c98f); }
+html.theme-dark .rec-kpi-card__value--orange { color: var(--fat-warning, #f2b84b); }
+html.theme-dark .rec-kpi-card__value--blue { color: var(--fat-primary, #3d8bff); }
+html.theme-dark .rec-kpi-card__sub--up { color: var(--fat-success, #36c98f); }
 
-html.theme-dark .rec-kpi-card__ico-wrap--green { background: rgba(52, 211, 153, 0.12); color: #34d399; }
-html.theme-dark .rec-kpi-card__ico-wrap--orange { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
-html.theme-dark .rec-kpi-card__ico-wrap--blue { background: rgba(96, 165, 250, 0.12); color: #60a5fa; }
+html.theme-dark .rec-kpi-card__ico-wrap--green { background: color-mix(in srgb, var(--fat-success, #36c98f) 12%, transparent); color: var(--fat-success, #36c98f); }
+html.theme-dark .rec-kpi-card__ico-wrap--orange { background: color-mix(in srgb, var(--fat-warning, #f2b84b) 12%, transparent); color: var(--fat-warning, #f2b84b); }
+html.theme-dark .rec-kpi-card__ico-wrap--blue { background: color-mix(in srgb, var(--fat-primary, #3d8bff) 12%, transparent); color: var(--fat-primary, #3d8bff); }
 
 html.theme-dark .rec-table-card.mat-mdc-card {
-  background: var(--fat-card-bg, #151f34) !important;
-  border-color: var(--fat-card-border, rgba(96, 130, 190, 0.32)) !important;
-  box-shadow: var(--fat-card-shadow, 0 8px 24px rgba(0, 0, 0, 0.18));
+  background: var(--fat-card-bg) !important;
+  border-color: var(--fat-card-border) !important;
+  box-shadow: none;
 }
 
 html.theme-dark .rec-table-card__title {

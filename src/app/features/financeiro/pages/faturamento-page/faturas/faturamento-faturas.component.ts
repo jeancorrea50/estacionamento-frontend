@@ -256,6 +256,7 @@ export class FaturamentoFaturasComponent implements OnInit {
     const ref = this.dialog.open(FaturaFormDialogComponent, {
       width: '640px',
       maxWidth: '95vw',
+      panelClass: 'cfg-form-dialog-panel',
       data: {
         mode: 'create',
         transportadoras: this.transportadorasLookup(),
@@ -298,6 +299,7 @@ export class FaturamentoFaturasComponent implements OnInit {
           this.dialog.open(FaturaFormDialogComponent, {
             width: '720px',
             maxWidth: '95vw',
+            panelClass: 'cfg-form-dialog-panel',
             data: {
               mode: 'view',
               item,
@@ -317,6 +319,7 @@ export class FaturamentoFaturasComponent implements OnInit {
   excluir(row: FaturaListaItem): void {
     const ref = this.dialog.open(FaturaConfirmDialogComponent, {
       width: '420px',
+      panelClass: 'cfg-form-dialog-panel',
       data: {
         titulo: 'Excluir fatura',
         mensagem: `Deseja excluir a fatura ${row.numero || row.id}?`,

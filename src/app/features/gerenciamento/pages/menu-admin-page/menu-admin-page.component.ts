@@ -610,6 +610,7 @@ export class MenuAdminPageComponent implements OnInit {
             menuAdminToUpdateInput(menuComNovoSub, {
               includePermissions: true,
               permissionSubMenuId: 0,
+              permissionSubMenuNome: nome,
             })
           )
           .pipe(finalize(() => this.salvandoSubModal.set(false)))

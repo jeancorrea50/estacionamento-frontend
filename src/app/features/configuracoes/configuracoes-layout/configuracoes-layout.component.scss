@@ -90,6 +90,21 @@
   padding: var(--space-lg, 16px) var(--space-lg, 16px) var(--space-xl, 20px);
 }
 
+.page-content--flat {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding-top: var(--space-md, 12px);
+}
+
+.page-content--flat {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
 @media (max-width: 768px) {
   .page-content {
     padding: var(--space-md, 12px);

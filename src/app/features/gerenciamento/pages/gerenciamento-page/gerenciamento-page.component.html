@@ -9,20 +9,28 @@
       <button type="button" class="btn btn-secondary" (click)="buscar()">Tentar novamente</button>
     </section>
   } @else {
-    <section class="usuarios-shell">
-      <header class="usuarios-section-head">
-        <div class="usuarios-section-head__icon" aria-hidden="true">
-          <span class="material-symbols-outlined">group</span>
-        </div>
-        <div class="usuarios-section-head__text">
-          <h2 class="usuarios-section-head__title">Usuários</h2>
-          <p class="usuarios-section-head__sub">
-            Gestão de usuários (API <code>api/auth/Usuario</code>).
-          </p>
-        </div>
-      </header>
+    <div class="usuarios-layout">
+      <div class="usuarios-top">
+        <header class="usuarios-page-head">
+          <div class="usuarios-page-head__icon" aria-hidden="true">
+            <span class="material-symbols-outlined">group</span>
+          </div>
+          <div class="usuarios-page-head__text">
+            <h2 class="usuarios-page-head__title">Usuários</h2>
+            <p class="usuarios-page-head__sub">
+              Gestão de usuários (API <code>api/auth/Usuario</code>).
+            </p>
+          </div>
+        </header>
+        @if (podeCadastrarUsuario) {
+          <button type="button" class="btn btn-primary usuarios-btn-novo" (click)="abrirNovo()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo usuário
+          </button>
+        }
+      </div>
 
-      <div class="usuarios-toolbar" role="toolbar" aria-label="Filtros e ações">
+      <div class="usuarios-toolbar" role="toolbar" aria-label="Filtros">
         <label class="usuarios-search">
           <span class="material-symbols-outlined usuarios-search__icon" aria-hidden="true">search</span>
           <input
@@ -50,114 +58,108 @@
           <span class="material-symbols-outlined" aria-hidden="true">filter_alt</span>
           Buscar
         </button>
-        @if (podeCadastrarUsuario) {
-          <button type="button" class="btn btn-primary usuarios-btn-novo" (click)="abrirNovo()">
-            <span class="material-symbols-outlined" aria-hidden="true">add</span>
-            Novo usuário
-          </button>
-        }
       </div>
 
-      <div class="usuarios-table-wrap">
+      <section class="usuarios-data-card" aria-label="Lista de usuários">
         @if (buscaRealizada) {
           @if (itens.length === 0) {
-            <div class="empty-state empty-state--compact empty-state--table">
+            <div class="empty-state empty-state--compact empty-state--table usuarios-data-card__empty">
               <span class="material-symbols-outlined" aria-hidden="true">person_off</span>
               <p class="empty-msg">Nenhum registro encontrado.</p>
             </div>
           } @else {
-          <div class="table-wrap usuarios-table-inner">
-            <table class="data-table usuarios-table">
-              <thead>
-                <tr>
-                  <th scope="col">Nome</th>
-                  <th scope="col">CPF</th>
-                  <th scope="col">E-mail</th>
-                  <th scope="col">Login</th>
-                  <th scope="col">Perfil</th>
-                  <th scope="col">Vínculo</th>
-                  <th scope="col" class="usuarios-col-acoes">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of itensPagina; track item.id ?? $index) {
-                  <tr class="usuarios-row">
-                    <td class="usuarios-col-nome">
-                      <span class="usuarios-nome-text">{{ item.nome ?? '—' }}</span>
-                    </td>
-                    <td>{{ item.cpf ?? '—' }}</td>
-                    <td class="usuarios-col-email">{{ item.email ?? '—' }}</td>
-                    <td>{{ item.userName ?? '—' }}</td>
-                    <td>
-                      @if (item.perfil) {
-                        <span class="usuarios-perfil-chip" [ngClass]="perfilChipClass(item.perfil)">{{
-                          item.perfil
-                        }}</span>
-                      } @else {
-                        —
-                      }
-                    </td>
-                    <td class="usuarios-col-vinculo">
-                      @if (!temVinculoEstacionamento(item) && !temVinculoTransportadora(item)) {
-                        <span class="usuarios-vinculo-empty">—</span>
-                      } @else {
-                        <div class="usuarios-vinculo-stack">
-                          @if (temVinculoEstacionamento(item)) {
-                            <span class="usuarios-vinculo-line">
-                              <span class="material-symbols-outlined usuarios-vinculo-ico" aria-hidden="true"
-                                >apartment</span
-                              >
-                              <span class="usuarios-vinculo-txt">{{ textoVinculoEstacionamento(item) }}</span>
-                            </span>
-                          }
-                          @if (temVinculoTransportadora(item)) {
-                            <span class="usuarios-vinculo-line">
-                              <span class="material-symbols-outlined usuarios-vinculo-ico" aria-hidden="true"
-                                >local_shipping</span
-                              >
-                              <span class="usuarios-vinculo-txt">{{ textoVinculoTransportadora(item) }}</span>
-                            </span>
-                          }
-                        </div>
-                      }
-                    </td>
-                    <td class="acoes-cell usuarios-acoes">
-                      <button
-                        type="button"
-                        class="usuarios-icon-btn"
-                        (click)="abrirVisualizar(item)"
-                        [disabled]="!canVisualizar"
-                        title="Visualizar"
-                        aria-label="Visualizar usuário"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="usuarios-icon-btn"
-                        (click)="abrirEditar(item)"
-                        [disabled]="!canAlterar"
-                        title="Editar"
-                        aria-label="Editar usuário"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="usuarios-icon-btn usuarios-icon-btn--danger"
-                        (click)="excluir(item)"
-                        [disabled]="!canExcluir"
-                        title="Excluir"
-                        aria-label="Excluir usuário"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                      </button>
-                    </td>
+            <div class="usuarios-table-scroll">
+              <table class="data-table usuarios-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">CPF</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Login</th>
+                    <th scope="col">Perfil</th>
+                    <th scope="col">Vínculo</th>
+                    <th scope="col" class="usuarios-col-acoes">Ações</th>
                   </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  @for (item of itensPagina; track item.id ?? $index) {
+                    <tr class="usuarios-row">
+                      <td class="usuarios-col-nome">
+                        <span class="usuarios-nome-text">{{ item.nome ?? '—' }}</span>
+                      </td>
+                      <td>{{ item.cpf ?? '—' }}</td>
+                      <td class="usuarios-col-email">{{ item.email ?? '—' }}</td>
+                      <td>{{ item.userName ?? '—' }}</td>
+                      <td>
+                        @if (item.perfil) {
+                          <span class="usuarios-perfil-chip" [ngClass]="perfilChipClass(item.perfil)">{{
+                            item.perfil
+                          }}</span>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td class="usuarios-col-vinculo">
+                        @if (!temVinculoEstacionamento(item) && !temVinculoTransportadora(item)) {
+                          <span class="usuarios-vinculo-empty">—</span>
+                        } @else {
+                          <div class="usuarios-vinculo-stack">
+                            @if (temVinculoEstacionamento(item)) {
+                              <span class="usuarios-vinculo-line">
+                                <span class="material-symbols-outlined usuarios-vinculo-ico" aria-hidden="true"
+                                  >apartment</span
+                                >
+                                <span class="usuarios-vinculo-txt">{{ textoVinculoEstacionamento(item) }}</span>
+                              </span>
+                            }
+                            @if (temVinculoTransportadora(item)) {
+                              <span class="usuarios-vinculo-line">
+                                <span class="material-symbols-outlined usuarios-vinculo-ico" aria-hidden="true"
+                                  >local_shipping</span
+                                >
+                                <span class="usuarios-vinculo-txt">{{ textoVinculoTransportadora(item) }}</span>
+                              </span>
+                            }
+                          </div>
+                        }
+                      </td>
+                      <td class="acoes-cell usuarios-acoes">
+                        <button
+                          type="button"
+                          class="usuarios-icon-btn"
+                          (click)="abrirVisualizar(item)"
+                          [disabled]="!canVisualizar"
+                          title="Visualizar"
+                          aria-label="Visualizar usuário"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="usuarios-icon-btn"
+                          (click)="abrirEditar(item)"
+                          [disabled]="!canAlterar"
+                          title="Editar"
+                          aria-label="Editar usuário"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="usuarios-icon-btn usuarios-icon-btn--danger"
+                          (click)="excluir(item)"
+                          [disabled]="!canExcluir"
+                          title="Excluir"
+                          aria-label="Excluir usuário"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
             <footer class="usuarios-pagination" aria-label="Paginação da lista">
               <p class="usuarios-pagination__info">
                 Mostrando <strong>{{ intervaloExibicao.de }}</strong> a <strong>{{ intervaloExibicao.ate }}</strong> de
@@ -185,13 +187,13 @@
             </footer>
           }
         } @else {
-          <div class="empty-state empty-state--compact empty-state--table usuarios-hint">
+          <div class="empty-state empty-state--compact empty-state--table usuarios-data-card__empty usuarios-hint">
             <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
             <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários.</p>
           </div>
         }
-      </div>
-    </section>
+      </section>
+    </div>
   }
 </div>
 

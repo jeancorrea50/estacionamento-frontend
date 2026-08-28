@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
-import { FATURAMENTO_ROUTE, FATURAMENTO_TABS, normalizeFaturamentoAppRoute } from '../../financeiro/faturamento-rotas';
+import { FATURAMENTO_ROUTE, FATURAMENTO_TABS, FINANCEIRO_ROUTE, normalizeFaturamentoAppRoute } from '../../financeiro/faturamento-rotas';
 import type { MenuAdmin, SubMenuAdmin } from '../models/menu-admin.model';
 import { MenuAdminService } from './menu-admin.service';
 import { MenuApiService } from './menu-api.service';
@@ -95,10 +95,12 @@ export class FaturamentoMenuSeedService {
     const byRoute = menus.find((m) => {
       const r = normRoute(m.rota);
       return (
+        r === normRoute(FINANCEIRO_ROUTE) ||
         r === normRoute(FATURAMENTO_ROUTE) ||
         r.startsWith(`${normRoute(FATURAMENTO_ROUTE)}/`) ||
-        r === '/app/financeiro' ||
-        r.startsWith('/app/financeiro/')
+        r.startsWith(`${normRoute(FINANCEIRO_ROUTE)}/`) ||
+        r === '/app/faturamento' ||
+        r.startsWith('/app/faturamento/')
       );
     });
     if (byRoute) return byRoute;

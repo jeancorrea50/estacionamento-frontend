@@ -1,4 +1,4 @@
-import { FATURAMENTO_ROUTE, FATURAMENTO_TABS } from '../../financeiro/faturamento-rotas';
+import { FATURAMENTO_ROUTE, FATURAMENTO_TABS, FINANCEIRO_ROUTE } from '../../financeiro/faturamento-rotas';
 
 /** Prefixo de chave no localStorage de preferências de sidebar. */
 export const SIDEBAR_VISIBILITY_STORAGE_KEY = 'gts-menu-sidebar-visibility-v1';
@@ -18,7 +18,7 @@ function normRoute(route: string | null | undefined): string {
 export function defaultExibirNoSidebar(rota: string | null | undefined): boolean {
   const r = normRoute(rota);
   if (!r) return true;
-  if (r === normRoute(FATURAMENTO_ROUTE)) return true;
+  if (r === normRoute(FINANCEIRO_ROUTE) || r === normRoute(FATURAMENTO_ROUTE)) return true;
   return !FATURAMENTO_TABS.some((t) => r === normRoute(t.route) || r.endsWith(`/${t.path}`));
 }
 

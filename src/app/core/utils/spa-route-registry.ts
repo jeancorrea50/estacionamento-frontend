@@ -3,6 +3,8 @@ import {
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
+  FINANCEIRO_ROUTE,
+  PAGAMENTOS_ROUTE,
 } from '../../features/financeiro/faturamento-rotas';
 
 const KNOWN_SPA_ROUTES = new Set<string>();
@@ -27,7 +29,9 @@ function collectMenuStructure(): void {
 }
 
 function collectFaturamentoRoutes(): void {
+  addRoute(FINANCEIRO_ROUTE);
   addRoute(FATURAMENTO_ROUTE);
+  addRoute(PAGAMENTOS_ROUTE);
   addRoute(FATURAMENTO_CONFIG_ROUTE);
   for (const tab of FATURAMENTO_TABS) {
     addRoute(tab.route);

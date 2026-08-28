@@ -3,6 +3,8 @@ import {
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
+  FINANCEIRO_ROUTE,
+  PAGAMENTOS_ROUTE,
   normalizeFaturamentoAppRoute,
 } from '../../financeiro/faturamento-rotas';
 
@@ -29,12 +31,13 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   movimento: '/app/movimentos/entrada-saida',
   relatorio: '/app/relatorios',
   relatorios: '/app/relatorios',
-  financeiro: FATURAMENTO_ROUTE,
+  financeiro: FINANCEIRO_ROUTE,
   faturamento: FATURAMENTO_ROUTE,
+  pagamentos: PAGAMENTOS_ROUTE,
   /** Abas de Faturamento (API pode mandar apenas a descrição do submenu). */
   'visao geral': `${FATURAMENTO_ROUTE}/visao-geral`,
   fechamentos: `${FATURAMENTO_ROUTE}/fechamentos`,
-  recebimentos: `${FATURAMENTO_ROUTE}/recebimentos`,
+  recebimentos: PAGAMENTOS_ROUTE,
   inadimplencia: `${FATURAMENTO_ROUTE}/inadimplencia`,
   faturas: `${FATURAMENTO_ROUTE}/faturas`,
   'configuracoes de cobranca': FATURAMENTO_CONFIG_ROUTE,
@@ -71,14 +74,22 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/movimentos/operacao': '/app/movimentos/lista',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
-  '/app/financeiro': FATURAMENTO_ROUTE,
+  '/app/financeiro': FINANCEIRO_ROUTE,
   '/app/financeiro/faturamento': FATURAMENTO_ROUTE,
+  '/app/faturamento': FATURAMENTO_ROUTE,
+  '/app/faturamento/recebimentos': PAGAMENTOS_ROUTE,
   '/app/faturamento/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/faturamento/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
+  '/app/faturamento/configuracao': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
+  '/app/financeiro/faturamento/recebimentos': PAGAMENTOS_ROUTE,
+  '/app/financeiro/recebimentos': PAGAMENTOS_ROUTE,
+  ...Object.fromEntries(
+    FATURAMENTO_TABS.map((t) => [`/app/faturamento/${t.path}`, t.route] as const)
+  ),
   ...Object.fromEntries(
     FATURAMENTO_TABS.map((t) => [`/app/financeiro/faturamento/${t.path}`, t.route] as const)
   ),
@@ -166,7 +177,13 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     return 'Movimentos';
   }
   if (key === 'financeiro') {
+    return 'Financeiro';
+  }
+  if (key === 'faturamento') {
     return 'Faturamento';
+  }
+  if (key === 'pagamentos' || key === 'recebimentos') {
+    return 'Pagamentos';
   }
 
   if (
@@ -179,13 +196,19 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
       return 'Entrada e Saída';
     }
   }
+
   if (
     path === '/app/financeiro' ||
     path.startsWith('/app/financeiro/') ||
     path === FATURAMENTO_ROUTE.toLowerCase() ||
-    path.startsWith(`${FATURAMENTO_ROUTE.toLowerCase()}/`)
+    path.startsWith(`${FATURAMENTO_ROUTE.toLowerCase()}/`) ||
+    path === '/app/faturamento' ||
+    path.startsWith('/app/faturamento/')
   ) {
-    if (!raw || key === 'financeiro' || key === 'faturamento') {
+    if (!raw || key === 'financeiro') {
+      return 'Financeiro';
+    }
+    if (!raw || key === 'faturamento') {
       return 'Faturamento';
     }
   }

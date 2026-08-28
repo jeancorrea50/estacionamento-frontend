@@ -1,8 +1,11 @@
 import { Routes } from '@angular/router';
 import { FaturamentoPageComponent } from './pages/faturamento-page/faturamento-page.component';
-import { FATURAMENTO_CONFIG_PATH } from './faturamento-rotas';
+import {
+  FATURAMENTO_CONFIG_PATH,
+  PAGAMENTOS_PATH,
+} from './faturamento-rotas';
 
-/** Rotas do módulo Faturamento em `/app/faturamento/{aba}`. */
+/** Abas e configuração em `/app/financeiro/faturamento/...`. */
 export const FATURAMENTO_ROUTES: Routes = [
   {
     path: FATURAMENTO_CONFIG_PATH,
@@ -20,6 +23,11 @@ export const FATURAMENTO_ROUTES: Routes = [
     path: 'config-cobranca',
     pathMatch: 'full',
     redirectTo: FATURAMENTO_CONFIG_PATH,
+  },
+  {
+    path: 'recebimentos',
+    pathMatch: 'full',
+    redirectTo: `/app/financeiro/${PAGAMENTOS_PATH}`,
   },
   {
     path: '',
@@ -52,13 +60,6 @@ export const FATURAMENTO_ROUTES: Routes = [
           ),
       },
       {
-        path: 'recebimentos',
-        loadComponent: () =>
-          import('./pages/faturamento-page/recebimentos/faturamento-recebimentos.component').then(
-            (m) => m.FaturamentoRecebimentosComponent
-          ),
-      },
-      {
         path: 'inadimplencia',
         loadComponent: () =>
           import('./pages/faturamento-page/inadimplencia/faturamento-inadimplencia.component').then(
@@ -66,6 +67,26 @@ export const FATURAMENTO_ROUTES: Routes = [
           ),
       },
     ],
+  },
+];
+
+/** Rotas do módulo Financeiro em `/app/financeiro/...`. */
+export const FINANCEIRO_APP_ROUTES: Routes = [
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'faturamento',
+  },
+  {
+    path: 'faturamento',
+    children: FATURAMENTO_ROUTES,
+  },
+  {
+    path: PAGAMENTOS_PATH,
+    loadComponent: () =>
+      import('./pages/faturamento-page/recebimentos/faturamento-recebimentos.component').then(
+        (m) => m.FaturamentoRecebimentosComponent
+      ),
   },
 ];
 

@@ -7,6 +7,8 @@ import {
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
+  FINANCEIRO_ROUTE,
+  PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
 
 export interface MenuSubItem {
@@ -55,7 +57,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
   {
     id: 'menu-financeiro',
     label: 'Financeiro',
-    route: '/app/financeiro',
+    route: FINANCEIRO_ROUTE,
     icon: 'payments',
     children: [
       {
@@ -63,6 +65,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
         label: 'Faturamento',
         route: FATURAMENTO_ROUTE,
         children: FATURAMENTO_SUBMENUS,
+      },
+      {
+        id: 'sub-pagamentos',
+        label: 'Pagamentos',
+        route: PAGAMENTOS_ROUTE,
       },
     ],
   },
@@ -72,7 +79,6 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: '/app/configuracoes',
     icon: 'settings',
     children: [
-      { id: 'sub-cobranca', label: 'Cobrança', route: FATURAMENTO_CONFIG_ROUTE },
       { id: 'sub-usuarios', label: 'Usuários', route: '/app/configuracoes/usuarios' },
       { id: 'sub-horario', label: 'Parâmetros', route: '/app/configuracoes/horario' },
     ],

@@ -5,8 +5,12 @@ import { GERENCIAMENTO_ROUTES } from './features/gerenciamento/gerenciamento.rou
 import { DASHBOARD_ROUTES } from './features/dashboard/dashboard.routes';
 import { MOVIMENTOS_ROUTES } from './features/movimentos/movimentos.routes';
 import { RELATORIOS_ROUTES } from './features/relatorios/relatorios.routes';
-import { FATURAMENTO_ROUTES } from './features/financeiro/financeiro.routes';
-import { FATURAMENTO_CONFIG_PATH, FATURAMENTO_TABS } from './features/financeiro/faturamento-rotas';
+import { FINANCEIRO_APP_ROUTES } from './features/financeiro/financeiro.routes';
+import {
+	FATURAMENTO_CONFIG_PATH,
+	FATURAMENTO_TABS,
+	PAGAMENTOS_PATH,
+} from './features/financeiro/faturamento-rotas';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { authGuard } from './core/guards/auth.guard';
@@ -61,56 +65,51 @@ export const routes: Routes = [
 				path: 'relatorios',
 				children: RELATORIOS_ROUTES
 			},
-			// 5. FATURAMENTO (`/app/faturamento/{aba}`)
-			{
-				path: 'faturamento',
-				children: FATURAMENTO_ROUTES
-			},
-			// Legado: /app/financeiro → /app/faturamento
+			// 5. FINANCEIRO (`/app/financeiro/faturamento/{aba}` e `/app/financeiro/pagamentos`)
 			{
 				path: 'financeiro',
-				pathMatch: 'full',
-				redirectTo: 'faturamento',
+				children: FINANCEIRO_APP_ROUTES
 			},
+			// Legado: /app/faturamento → /app/financeiro/faturamento
 			{
-				path: 'financeiro/faturamento',
+				path: 'faturamento',
 				pathMatch: 'full',
-				redirectTo: 'faturamento',
+				redirectTo: 'financeiro/faturamento',
 			},
 			...FATURAMENTO_TABS.map((t) => ({
-				path: `financeiro/faturamento/${t.path}`,
+				path: `faturamento/${t.path}`,
 				pathMatch: 'full' as const,
-				redirectTo: `faturamento/${t.path}`,
-			})),
-			...FATURAMENTO_TABS.map((t) => ({
-				path: `financeiro/${t.path}`,
-				pathMatch: 'full' as const,
-				redirectTo: `faturamento/${t.path}`,
+				redirectTo: `financeiro/faturamento/${t.path}`,
 			})),
 			{
-				path: 'financeiro/faturamento/config-cobranca',
+				path: 'faturamento/recebimentos',
 				pathMatch: 'full',
-				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
-			},
-			{
-				path: 'financeiro/config-cobranca',
-				pathMatch: 'full',
-				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
+				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
 			},
 			{
 				path: 'faturamento/config-cobranca',
 				pathMatch: 'full',
-				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
+				redirectTo: `financeiro/faturamento/${FATURAMENTO_CONFIG_PATH}`,
 			},
 			{
 				path: 'faturamento/configuracao-cobranca',
 				pathMatch: 'full',
-				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
+				redirectTo: `financeiro/faturamento/${FATURAMENTO_CONFIG_PATH}`,
 			},
 			{
-				path: 'financeiro/faturamento/configuracao-cobranca',
+				path: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
 				pathMatch: 'full',
-				redirectTo: `faturamento/${FATURAMENTO_CONFIG_PATH}`,
+				redirectTo: `financeiro/faturamento/${FATURAMENTO_CONFIG_PATH}`,
+			},
+			{
+				path: 'financeiro/faturamento/recebimentos',
+				pathMatch: 'full',
+				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
+			},
+			{
+				path: 'financeiro/recebimentos',
+				pathMatch: 'full',
+				redirectTo: `financeiro/${PAGAMENTOS_PATH}`,
 			},
 			// 6. CONFIGURAÇÕES
 			{

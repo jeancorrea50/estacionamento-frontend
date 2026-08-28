@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { SessionAccessService } from '../../../core/services/session-access.service';
-import { FATURAMENTO_ROUTE, faturamentoTabRoute } from '../faturamento-rotas';
+import { FATURAMENTO_ROUTE, FINANCEIRO_ROUTE, faturamentoTabRoute } from '../faturamento-rotas';
 import type { FaturamentoTabId } from '../pages/faturamento-page/faturamento-visao.types';
 
 function norm(value: string | null | undefined): string {
@@ -40,7 +40,7 @@ export class FaturamentoNavService {
 
     for (const rota of this.rotasCadastradas()) {
       const atual = norm(rota);
-      if (!atual.startsWith(norm(FATURAMENTO_ROUTE))) continue;
+      if (!atual.startsWith(norm(FATURAMENTO_ROUTE)) && !atual.startsWith(norm(FINANCEIRO_ROUTE))) continue;
       if (atual === alvo || atual.endsWith(sufixo)) {
         return rota.replace(/\/+$/, '');
       }

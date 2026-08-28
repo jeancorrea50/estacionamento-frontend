@@ -1,23 +1,28 @@
 /**
- * Fonte única das abas de Faturamento (rota, path e rótulo).
- * Usada pelas abas da página, pelo seed de Gerenciamento > Menu e pelos links da Visão Geral,
- * evitando divergência entre menu cadastrado e navegação da aplicação.
+ * Fonte única das rotas do módulo Financeiro (rota, path e rótulo).
+ * Usada pelas abas da página, pelo seed de Gerenciamento > Menu e pelos links da Visão Geral.
  *
- * Canônico (Gerenciamento > Menu): `/app/faturamento/{aba}` — sem `financeiro`.
+ * Canônico: `/app/financeiro/faturamento/{aba}` e `/app/financeiro/pagamentos`.
  */
 import type { FaturamentoTabId } from './pages/faturamento-page/faturamento-visao.types';
 
-/** Rota base do módulo (container das abas). */
-export const FATURAMENTO_ROUTE = '/app/faturamento';
+/** Módulo Financeiro (agrupador na sidebar). */
+export const FINANCEIRO_ROUTE = '/app/financeiro';
+
+/** Container das abas de Faturamento. */
+export const FATURAMENTO_ROUTE = '/app/financeiro/faturamento';
+
+/** Tela Pagamentos (antes Recebimentos) — rota própria, fora das abas internas. */
+export const PAGAMENTOS_ROUTE = '/app/financeiro/pagamentos';
+export const PAGAMENTOS_PATH = 'pagamentos';
 
 /** Submenu Configuração — rota própria, fora das abas internas. */
-export const FATURAMENTO_CONFIG_ROUTE = '/app/faturamento/configuracao';
+export const FATURAMENTO_CONFIG_ROUTE = '/app/financeiro/faturamento/configuracao';
 export const FATURAMENTO_CONFIG_PATH = 'configuracao';
 export const FATURAMENTO_CONFIG_LABEL = 'Configuração';
 
 /** Prefixo legado (menu/API antigos). */
-const LEGACY_FINANCEIRO_PREFIX = '/app/financeiro';
-const LEGACY_FINANCEIRO_FATURAMENTO = `${LEGACY_FINANCEIRO_PREFIX}/faturamento`;
+const LEGACY_FATURAMENTO_PREFIX = '/app/faturamento';
 const LEGACY_CONFIG_SLUGS = ['config-cobranca', 'configuracao-cobranca'] as const;
 
 export interface FaturamentoTabDef {
@@ -33,11 +38,10 @@ function tab(id: FaturamentoTabId, label: string): FaturamentoTabDef {
   return { id, label, path: id, route: `${FATURAMENTO_ROUTE}/${id}` };
 }
 
-/** Abas internas da tela Faturamento (sem Configuração — submenu separado). */
+/** Abas internas da tela Faturamento (sem Pagamentos — submenu separado). */
 export const FATURAMENTO_TABS: readonly FaturamentoTabDef[] = [
   tab('visao-geral', 'Visão Geral'),
   tab('fechamentos', 'Fechamentos'),
-  tab('recebimentos', 'Recebimentos'),
   tab('inadimplencia', 'Inadimplência'),
   tab('faturas', 'Faturas'),
 ];
@@ -55,7 +59,7 @@ function rewriteLegacyConfigSlug(path: string): string {
   for (const legacy of LEGACY_CONFIG_SLUGS) {
     const suffix = `/${legacy}`;
     if (lower === suffix.slice(1) || lower.endsWith(suffix)) {
-      return `${FATURAMENTO_ROUTE}/${FATURAMENTO_CONFIG_PATH}`;
+      return FATURAMENTO_CONFIG_ROUTE;
     }
   }
   if (lower === FATURAMENTO_CONFIG_ROUTE.toLowerCase()) {
@@ -64,9 +68,21 @@ function rewriteLegacyConfigSlug(path: string): string {
   return path;
 }
 
+function mapLegacyRecebimentosToPagamentos(path: string): string {
+  const lower = path.toLowerCase();
+  if (
+    lower === `${LEGACY_FATURAMENTO_PREFIX}/recebimentos` ||
+    lower === `${FATURAMENTO_ROUTE}/recebimentos` ||
+    lower === `${FINANCEIRO_ROUTE}/recebimentos`
+  ) {
+    return PAGAMENTOS_ROUTE;
+  }
+  return path;
+}
+
 /**
- * Converte rotas legadas `/app/financeiro(/faturamento)?/...` e slugs antigos de config
- * para o canônico `/app/faturamento/...`.
+ * Converte rotas legadas `/app/faturamento/...` e aliases antigos
+ * para o canônico `/app/financeiro/...`.
  */
 export function normalizeFaturamentoAppRoute(raw: string | null | undefined): string | null {
   if (raw == null) return null;
@@ -80,16 +96,16 @@ export function normalizeFaturamentoAppRoute(raw: string | null | undefined): st
   path = path.replace(/\/+$/, '') || '/app';
   const lower = path.toLowerCase();
 
-  if (lower === LEGACY_FINANCEIRO_PREFIX || lower === LEGACY_FINANCEIRO_FATURAMENTO) {
+  if (lower === LEGACY_FATURAMENTO_PREFIX) {
     return FATURAMENTO_ROUTE;
   }
-  if (lower.startsWith(`${LEGACY_FINANCEIRO_FATURAMENTO}/`)) {
-    path = `${FATURAMENTO_ROUTE}${path.slice(LEGACY_FINANCEIRO_FATURAMENTO.length)}`;
-  } else if (lower.startsWith(`${LEGACY_FINANCEIRO_PREFIX}/`)) {
-    const rest = path.slice(LEGACY_FINANCEIRO_PREFIX.length);
-    path = `${FATURAMENTO_ROUTE}${rest}`;
+  if (lower.startsWith(`${LEGACY_FATURAMENTO_PREFIX}/`)) {
+    path = `${FATURAMENTO_ROUTE}${path.slice(LEGACY_FATURAMENTO_PREFIX.length)}`;
+  } else if (lower === FINANCEIRO_ROUTE) {
+    return FINANCEIRO_ROUTE;
   }
 
+  path = mapLegacyRecebimentosToPagamentos(path);
   path = rewriteLegacyConfigSlug(path);
   return path === '/app' ? null : path;
 }

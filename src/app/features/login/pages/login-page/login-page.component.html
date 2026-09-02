@@ -1,73 +1,115 @@
 <div class="login-page">
-  <div class="login-page__toolbar">
-    <button
-      type="button"
-      class="theme-switcher__btn"
-      (click)="toggleTheme()"
-      [attr.aria-pressed]="currentMode() === 'light'"
-      [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
-    >
-      @if (currentMode() === 'dark') {
-        <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">light_mode</span>
-        <span class="theme-switcher__label">Claro</span>
-      } @else {
-        <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">dark_mode</span>
-        <span class="theme-switcher__label">Escuro</span>
-      }
-    </button>
-  </div>
+  <aside class="login-page__hero" aria-hidden="true">
+    <img
+      class="login-page__hero-img"
+      src="/login-hero.jpg"
+      alt=""
+      width="1024"
+      height="576"
+      decoding="async"
+      fetchpriority="high"
+      draggable="false"
+    />
+  </aside>
 
-  <div class="login-page__stack">
-    <img class="login-page__logo" src="/logo-gts-transparent.png" alt="" aria-hidden="true" decoding="async" />
-
-    <div class="card" role="main" aria-labelledby="login-title">
-      <div class="login-header">
-        <h1 class="title" id="login-title">Entrar</h1>
-        <p class="login-card__lead">Informe seu usuário e senha para continuar</p>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="form">
-        <div class="field">
-          <label for="username">Usuário</label>
-          <input
-            id="username"
-            type="text"
-            formControlName="username"
-            autocomplete="username"
-            placeholder="Usuário"
-            aria-describedby="username-error"
-          />
-          <div id="username-error" class="error" *ngIf="username?.touched && username?.invalid">
-            <small *ngIf="username?.errors?.['required']">Usuário é obrigatório.</small>
-            <small *ngIf="username?.errors?.['minlength']">Mínimo de 3 caracteres.</small>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="password">Senha</label>
-          <input
-            id="password"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-            placeholder="Mínimo 5 caracteres"
-            aria-describedby="password-error"
-          />
-
-          <div class="forgot">
-            <a routerLink="/auth/esqueci-senha">Esqueceu a senha?</a>
-          </div>
-
-          <div id="password-error" class="error" *ngIf="password?.touched && password?.invalid">
-            <small *ngIf="password?.errors?.['required']">Senha é obrigatória.</small>
-            <small *ngIf="password?.errors?.['minlength']">Mínimo de 5 caracteres.</small>
-          </div>
-        </div>
-
-        <button class="btn" type="submit" [disabled]="form.invalid || loading">
-          {{ loading ? 'Entrando...' : 'Entrar' }}
-        </button>
-      </form>
+  <section class="login-page__panel" aria-label="Área de autenticação">
+    <div class="login-page__watermark" aria-hidden="true">
+      <span class="login-page__wm-dots login-page__wm-dots--tl"></span>
+      <span class="login-page__wm-dots login-page__wm-dots--tr"></span>
+      <span class="login-page__wm-circuit login-page__wm-circuit--tr"></span>
+      <span class="login-page__wm-circuit login-page__wm-circuit--bl"></span>
+      <span class="login-page__wm-logo"></span>
     </div>
-  </div>
+
+    <div class="login-page__content">
+      <div class="login-page__stack">
+        <header class="login-page__brand">
+          <img
+            class="login-page__logo"
+            src="/logo-gts-transparent.png"
+            alt="GTS — Gestão, Tecnologia e Sistemas"
+            width="220"
+            height="146"
+            decoding="async"
+          />
+          <p class="login-page__brand-tagline">Gestão, Tecnologia e Sistemas</p>
+        </header>
+
+        <div class="login-form" role="main" aria-labelledby="login-title">
+          <div class="login-form__header">
+            <h1 class="login-form__title" id="login-title">Bem-vindo!</h1>
+            <p class="login-form__lead">Faça login para acessar o sistema</p>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="login-form__body">
+            <div class="login-field">
+              <label class="login-field__label" for="username">Usuário</label>
+              <div class="login-field__control" [class.login-field__control--invalid]="username?.touched && username?.invalid">
+                <span class="material-symbols-outlined login-field__icon" aria-hidden="true">person</span>
+                <input
+                  id="username"
+                  class="login-field__input"
+                  type="text"
+                  formControlName="username"
+                  autocomplete="username"
+                  placeholder="Digite seu usuário"
+                  aria-describedby="username-error"
+                  [attr.aria-invalid]="username?.touched && username?.invalid ? true : null"
+                />
+              </div>
+              <div id="username-error" class="login-field__error" *ngIf="username?.touched && username?.invalid" role="alert">
+                <small *ngIf="username?.errors?.['required']">Usuário é obrigatório.</small>
+                <small *ngIf="username?.errors?.['minlength']">Mínimo de 3 caracteres.</small>
+              </div>
+            </div>
+
+            <div class="login-field">
+              <label class="login-field__label" for="password">Senha</label>
+              <div class="login-field__control" [class.login-field__control--invalid]="password?.touched && password?.invalid">
+                <span class="material-symbols-outlined login-field__icon" aria-hidden="true">lock</span>
+                <input
+                  id="password"
+                  class="login-field__input login-field__input--password"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  formControlName="password"
+                  autocomplete="current-password"
+                  placeholder="Digite sua senha"
+                  aria-describedby="password-error"
+                  [attr.aria-invalid]="password?.touched && password?.invalid ? true : null"
+                />
+                <button
+                  type="button"
+                  class="login-field__toggle"
+                  (click)="togglePasswordVisibility()"
+                  [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+                  [attr.aria-pressed]="showPassword()"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">
+                    {{ showPassword() ? 'visibility_off' : 'visibility' }}
+                  </span>
+                </button>
+              </div>
+              <div id="password-error" class="login-field__error" *ngIf="password?.touched && password?.invalid" role="alert">
+                <small *ngIf="password?.errors?.['required']">Senha é obrigatória.</small>
+                <small *ngIf="password?.errors?.['minlength']">Mínimo de 5 caracteres.</small>
+              </div>
+            </div>
+
+            <div class="login-form__options">
+              <label class="login-checkbox">
+                <input type="checkbox" formControlName="rememberMe" />
+                <span class="login-checkbox__box" aria-hidden="true"></span>
+                <span class="login-checkbox__label">Lembrar de mim</span>
+              </label>
+              <a class="login-form__forgot" routerLink="/auth/esqueci-senha">Esqueci minha senha</a>
+            </div>
+
+            <button class="login-btn login-btn--primary" type="submit" [disabled]="loading" [attr.aria-busy]="loading">
+              {{ loading ? 'Entrando...' : 'Entrar' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>

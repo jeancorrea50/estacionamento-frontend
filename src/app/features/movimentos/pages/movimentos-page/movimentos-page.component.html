@@ -474,7 +474,7 @@
                       class="btn btn-secondary btn--sm"
                       type="button"
                       [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
-                      title="Visualizar recibo PDF"
+                      [title]="item.dataHoraSaida ? 'Visualizar recibo de saída (PDF)' : 'Visualizar recibo de entrada (PDF)'"
                       (click)="abrirReciboHistorico(item)"
                     >
                       {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
@@ -653,7 +653,7 @@
                           class="btn btn-secondary btn--sm"
                           type="button"
                           [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
-                          title="Visualizar recibo PDF"
+                          [title]="item.dataHoraSaida ? 'Visualizar recibo de saída (PDF)' : 'Visualizar recibo de entrada (PDF)'"
                           (click)="$event.stopPropagation(); abrirReciboHistorico(item)"
                         >
                           {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}

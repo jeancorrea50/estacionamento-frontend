@@ -1010,9 +1010,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Recibo disponível após saída registrada. */
+  /** Recibo disponível com id válido: entrada (ticket) ou saída (com valor). */
   podeVisualizarRecibo(item: EntradaSaidaSearchOutput): boolean {
-    return !!item?.id && item.id > 0 && !!item.dataHoraSaida;
+    return !!item?.id && item.id > 0;
   }
 
   /** Mantido como alias para templates/testes legados. */
@@ -1031,6 +1031,20 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const placa = item.placaVeiculo || String(item.id);
+    const temSaida = !!item.dataHoraSaida;
+
+    // Sem saída: ticket de entrada (sem valor).
+    if (!temSaida) {
+      this.visualizarRecibo({
+        id: item.id,
+        modo: ModoRecibo.Entrada,
+        placa
+      });
+      return;
+    }
+
+    // Com saída: recibo com valor de estacionamento.
     this.reciboBaixandoId.set(item.id);
     this.service
       .obterValorEstacionamento(item.id)
@@ -1052,7 +1066,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
             id: item.id,
             modo: ModoRecibo.Saida,
             valor,
-            placa: item.placaVeiculo || String(item.id)
+            placa
           });
         },
         error: (err: ApiError) => {

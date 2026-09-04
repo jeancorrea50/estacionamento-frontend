@@ -6,16 +6,23 @@ export const CONFIGURACOES_ROUTES: Routes = [
     path: '',
     component: ConfiguracoesLayoutComponent,
     children: [
-      { path: '', redirectTo: 'horario', pathMatch: 'full' },
+      { path: '', redirectTo: 'parametros', pathMatch: 'full' },
+      {
+        path: 'parametros',
+        loadComponent: () =>
+          import('./pages/parametros-page/parametros-page.component').then(
+            (m) => m.ParametrosPageComponent
+          ),
+      },
+      {
+        path: 'horario',
+        redirectTo: '/app/gerenciamento/horario',
+        pathMatch: 'full',
+      },
       {
         path: 'usuarios',
         redirectTo: '/app/administracao/usuario',
         pathMatch: 'full',
-      },
-      {
-        path: 'horario',
-        loadComponent: () =>
-          import('./pages/horario-page/horario-page.component').then((m) => m.HorarioPageComponent),
       },
       {
         path: 'perfis',

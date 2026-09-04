@@ -66,9 +66,5 @@ export function normalizeCadastroAppRoute(raw: string | null | undefined): strin
     return `${CADASTRO_ESTACIONAMENTOS_ROUTE}${path.slice(LEGACY_ESTACIONAMENTO.length)}`;
   }
 
-  if (lower === '/app/gerenciamento/estacionamento' || lower.startsWith('/app/gerenciamento/estacionamento/')) {
-    return `${CADASTRO_ESTACIONAMENTOS_ROUTE}${path.slice('/app/gerenciamento/estacionamento'.length)}`;
-  }
-
   return path === '/app' ? null : path;
 }

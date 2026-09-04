@@ -81,12 +81,25 @@ export class SessionAccessService {
     if (allowed.some((route) => isRouteMatch(current, route))) {
       return true;
     }
-    /** Lista em Gerenciamento espelha o mesmo acesso da rota canônica em Cadastro. */
-    if (current === '/app/gerenciamento/estacionamento') {
+    /** Estacionamento: Gerenciamento e Cadastro (legado/forms) compartilham o mesmo acesso. */
+    if (
+      current === '/app/gerenciamento/estacionamento' ||
+      current.startsWith('/app/gerenciamento/estacionamento/') ||
+      current === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+      current.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
+      current === '/app/cadastro/estacionamento' ||
+      current.startsWith('/app/cadastro/estacionamento/')
+    ) {
       return allowed.some((route) => {
         const r = normalizeRoute(route);
-        return r === CADASTRO_ESTACIONAMENTOS_ROUTE || r.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`)
-          || r === '/app/cadastro/estacionamento' || r.startsWith('/app/cadastro/estacionamento/');
+        return (
+          r === '/app/gerenciamento/estacionamento' ||
+          r.startsWith('/app/gerenciamento/estacionamento/') ||
+          r === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+          r.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
+          r === '/app/cadastro/estacionamento' ||
+          r.startsWith('/app/cadastro/estacionamento/')
+        );
       });
     }
     return false;
@@ -115,7 +128,28 @@ export class SessionAccessService {
     const allowed = this.allowedRoutes();
     const hasRoute = (route: string): boolean => {
       const normalized = normalizeRoute(route);
-      return allowed.some((r) => isRouteMatch(normalized, r));
+      if (allowed.some((r) => isRouteMatch(normalized, r))) {
+        return true;
+      }
+      /** Estacionamento: login pode vir com rota de Gerenciamento ou Cadastro. */
+      if (
+        normalized === '/app/gerenciamento/estacionamento' ||
+        normalized === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+        normalized === '/app/cadastro/estacionamento'
+      ) {
+        return allowed.some((r) => {
+          const a = normalizeRoute(r);
+          return (
+            a === '/app/gerenciamento/estacionamento' ||
+            a === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+            a === '/app/cadastro/estacionamento' ||
+            a.startsWith('/app/gerenciamento/estacionamento/') ||
+            a.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
+            a.startsWith('/app/cadastro/estacionamento/')
+          );
+        });
+      }
+      return false;
     };
 
     return items

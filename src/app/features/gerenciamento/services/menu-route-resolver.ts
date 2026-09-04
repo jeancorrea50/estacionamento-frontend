@@ -71,25 +71,26 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   veiculos: CADASTRO_VEICULOS_ROUTE,
   motorista: CADASTRO_MOTORISTAS_ROUTE,
   motoristas: CADASTRO_MOTORISTAS_ROUTE,
-  estacionamento: CADASTRO_ESTACIONAMENTOS_ROUTE,
-  estacionamentos: CADASTRO_ESTACIONAMENTOS_ROUTE,
+  estacionamento: '/app/gerenciamento/estacionamento',
+  estacionamentos: '/app/gerenciamento/estacionamento',
   usuario: '/app/administracao/usuario',
   usuarios: '/app/administracao/usuario',
-  horario: '/app/configuracoes/horario',
-  parametros: '/app/configuracoes/horario',
-  parametro: '/app/configuracoes/horario',
-  'fuso horario': '/app/configuracoes/horario',
-  fusohorario: '/app/configuracoes/horario',
+  horario: '/app/gerenciamento/horario',
+  'fuso horario': '/app/gerenciamento/horario',
+  fusohorario: '/app/gerenciamento/horario',
+  parametros: '/app/configuracoes/parametros',
+  parametro: '/app/configuracoes/parametros',
   /** Submódulo "menu" na API ≈ tela Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
-  /** Administração > Permissão = perfis + permissões (ex-tela Perfil) */
+  /** Submódulo "permissao" ≈ CRUD de roles em Administração */
   permissao: '/app/administracao/permissao',
   permissoes: '/app/administracao/permissao',
-  perfil: '/app/administracao/permissao',
   /** Alias legado / API — gestão de usuários em Administração */
   acessos: '/app/administracao/usuario',
   admin: '/app/gerenciamento/menu',
   administracao: '/app/administracao',
+  /** Alias legado — redireciona para Permissão */
+  perfil: '/app/administracao/permissao',
   bancodados: '/app/gerenciamento/bancoDados',
   'banco de dados': '/app/gerenciamento/bancoDados',
   'banco de dado': '/app/gerenciamento/bancoDados',
@@ -113,14 +114,14 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/gerencimento/menu': '/app/gerenciamento/menu',
   '/app/gerencimento/estacionamento': '/app/gerenciamento/estacionamento',
   '/app/gerenciamento/estacionamento': '/app/gerenciamento/estacionamento',
+  '/app/configuracoes/horario': '/app/gerenciamento/horario',
+  '/app/gerenciamento/horario': '/app/gerenciamento/horario',
+  '/app/configuracoes/parametros': '/app/configuracoes/parametros',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/gerenciamento/usuario': '/app/administracao/usuario',
   '/app/configuracoes/usuarios': '/app/administracao/usuario',
   '/app/administracao/usuario': '/app/administracao/usuario',
-  '/app/gerenciamento/perfil': '/app/administracao/permissao',
-  '/app/configuracoes/perfis': '/app/administracao/permissao',
-  '/app/administracao/permissao': '/app/administracao/permissao',
   '/app/financeiro': FINANCEIRO_ROUTE,
   '/app/financeiro/faturamento': FATURAMENTO_ROUTE,
   '/app/faturamento': FATURAMENTO_ROUTE,
@@ -298,6 +299,8 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
   if (
     path === CADASTRO_ESTACIONAMENTOS_ROUTE.toLowerCase() ||
     path.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE.toLowerCase()}/`) ||
+    path === '/app/gerenciamento/estacionamento' ||
+    path.startsWith('/app/gerenciamento/estacionamento/') ||
     key === 'estacionamento' ||
     key === 'estacionamentos'
   ) {

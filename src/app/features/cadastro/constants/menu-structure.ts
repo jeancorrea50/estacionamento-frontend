@@ -10,7 +10,6 @@ import {
   PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
 import {
-  CADASTRO_ESTACIONAMENTOS_ROUTE,
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
@@ -114,8 +113,8 @@ export const MENU_STRUCTURE: MenuNode[] = [
     children: [
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
       { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
-      { id: 'sub-estacionamento', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
-      { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
+      { id: 'sub-estacionamento', label: 'Estacionamento', route: '/app/gerenciamento/estacionamento' },
+      { id: 'sub-horario', label: 'Horário', route: '/app/gerenciamento/horario' },
     ],
   },
   {
@@ -124,7 +123,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: '/app/configuracoes',
     icon: 'settings',
     children: [
-      { id: 'sub-parametros', label: 'Parâmetros', route: '/app/configuracoes/horario' },
+      { id: 'sub-parametros', label: 'Parâmetros', route: '/app/configuracoes/parametros' },
     ],
   },
 ];

@@ -25,7 +25,7 @@ const motoristasPage = () =>
 export const CADASTRO_ROUTES: Routes = [
   {
     path: '',
-    redirectTo: CADASTRO_ESTACIONAMENTOS_PATH,
+    redirectTo: CADASTRO_TRANSPORTADORAS_PATH,
     pathMatch: 'full',
   },
   {

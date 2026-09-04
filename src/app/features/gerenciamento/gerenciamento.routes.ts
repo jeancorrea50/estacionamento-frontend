@@ -60,6 +60,13 @@ export const GERENCIAMENTO_ROUTES: Routes = [
         redirectTo: 'bancoDados',
         pathMatch: 'full',
       },
+      {
+        path: 'horario',
+        loadComponent: () =>
+          import('../configuracoes/pages/horario-page/horario-page.component').then(
+            (m) => m.HorarioPageComponent
+          ),
+      },
     ],
   },
 ];

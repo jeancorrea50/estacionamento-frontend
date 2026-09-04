@@ -33,11 +33,8 @@ import {
 } from './menu-tree.util';
 
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
-import {
-  CADASTRO_ESTACIONAMENTOS_ROUTE,
-} from '../../cadastro/cadastro-rotas';
 
-const ESTACIONAMENTO_SIDEBAR_ROUTE = CADASTRO_ESTACIONAMENTOS_ROUTE;
+const ESTACIONAMENTO_SIDEBAR_ROUTE = '/app/gerenciamento/estacionamento';
 
 function cloneState(s: MenuAdminState): MenuAdminState {
   return JSON.parse(JSON.stringify(s)) as MenuAdminState;
@@ -71,10 +68,10 @@ function isEstacionamentoNavRoute(route: string | null | undefined): boolean {
   return (
     n === ESTACIONAMENTO_SIDEBAR_ROUTE ||
     n.startsWith(`${ESTACIONAMENTO_SIDEBAR_ROUTE}/`) ||
+    n === '/app/cadastro/estacionamentos' ||
+    n.startsWith('/app/cadastro/estacionamentos/') ||
     n === '/app/cadastro/estacionamento' ||
-    n.startsWith('/app/cadastro/estacionamento/') ||
-    n === '/app/gerenciamento/estacionamento' ||
-    n.startsWith('/app/gerenciamento/estacionamento/')
+    n.startsWith('/app/cadastro/estacionamento/')
   );
 }
 

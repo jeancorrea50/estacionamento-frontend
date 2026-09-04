@@ -192,6 +192,7 @@ export class FaturamentoFaturasComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarLookups();
+    this.buscar();
   }
 
   setPeriodo(id: PeriodoFiltroId): void {

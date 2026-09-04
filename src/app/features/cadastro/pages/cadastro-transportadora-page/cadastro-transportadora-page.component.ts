@@ -219,6 +219,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     if (forceTab === 'motoristas') {
       this.setTab('motoristas');
     }
+
+    if (!this.route.snapshot.paramMap.get('id')) {
+      this.onBuscar();
+    }
   }
 
   /**

@@ -133,6 +133,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.carregarPerfis();
     this.carregarOpcoesCadastro();
+    this.buscar();
   }
 
   ngOnDestroy(): void {

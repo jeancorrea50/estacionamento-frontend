@@ -112,6 +112,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarLookups();
+    this.buscar();
   }
 
   carregarLista(): void {

@@ -82,6 +82,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
   ngOnInit(): void {
     this.criarFormMotorista();
     this.carregarTransportadoras();
+    this.onBuscar();
   }
 
   get searchPlaceholder(): string {

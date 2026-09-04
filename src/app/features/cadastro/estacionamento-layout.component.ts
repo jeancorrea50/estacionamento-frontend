@@ -37,6 +37,9 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
     this.sub = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe(() => this.updateShowStepper());
+    if (!this.showStepper()) {
+      this.onBuscar();
+    }
   }
 
   ngOnDestroy(): void {

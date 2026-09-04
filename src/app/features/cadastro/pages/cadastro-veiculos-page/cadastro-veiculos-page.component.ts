@@ -85,6 +85,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   ngOnInit(): void {
     this.criarFormVeiculo();
     this.carregarTransportadoras();
+    this.onBuscar();
   }
 
   get searchPlaceholder(): string {

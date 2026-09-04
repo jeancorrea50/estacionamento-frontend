@@ -70,18 +70,7 @@ export class EstacionamentoListComponent {
 
   constructor() {
     effect(() => {
-      const t = this.toolbar.trigger();
-      // Admin: espera o clique em Buscar. Perfil Estacionamento: carrega o pátio da sessão.
-      if (t === 0 && this.auth.isAdmin()) {
-        this.ngZone.run(() => {
-          this.loading = false;
-          this.itens = [];
-          this.erro = null;
-          this.totalCount = 0;
-          this.cdr.markForCheck();
-        });
-        return;
-      }
+      this.toolbar.trigger();
       this.buscar();
     });
   }

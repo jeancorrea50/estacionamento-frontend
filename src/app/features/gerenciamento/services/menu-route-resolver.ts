@@ -80,15 +80,16 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   parametro: '/app/configuracoes/horario',
   'fuso horario': '/app/configuracoes/horario',
   fusohorario: '/app/configuracoes/horario',
-  /** Submódulo "menu" / "permissão" na API ≈ tela Menu em Gerenciamento */
+  /** Submódulo "menu" na API ≈ tela Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
-  permissao: '/app/gerenciamento/menu',
-  permissoes: '/app/gerenciamento/menu',
+  /** Administração > Permissão = perfis + permissões (ex-tela Perfil) */
+  permissao: '/app/administracao/permissao',
+  permissoes: '/app/administracao/permissao',
+  perfil: '/app/administracao/permissao',
   /** Alias legado / API — gestão de usuários em Administração */
   acessos: '/app/administracao/usuario',
   admin: '/app/gerenciamento/menu',
   administracao: '/app/administracao',
-  perfil: '/app/gerenciamento/perfil',
   bancodados: '/app/gerenciamento/bancoDados',
   'banco de dados': '/app/gerenciamento/bancoDados',
   'banco de dado': '/app/gerenciamento/bancoDados',
@@ -117,6 +118,9 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/gerenciamento/usuario': '/app/administracao/usuario',
   '/app/configuracoes/usuarios': '/app/administracao/usuario',
   '/app/administracao/usuario': '/app/administracao/usuario',
+  '/app/gerenciamento/perfil': '/app/administracao/permissao',
+  '/app/configuracoes/perfis': '/app/administracao/permissao',
+  '/app/administracao/permissao': '/app/administracao/permissao',
   '/app/financeiro': FINANCEIRO_ROUTE,
   '/app/financeiro/faturamento': FATURAMENTO_ROUTE,
   '/app/faturamento': FATURAMENTO_ROUTE,

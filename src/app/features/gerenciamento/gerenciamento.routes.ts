@@ -34,7 +34,7 @@ export const GERENCIAMENTO_ROUTES: Routes = [
         pathMatch: 'full',
         redirectTo: 'menu',
       },
-      { path: 'permissoes', redirectTo: 'menu', pathMatch: 'full' },
+      { path: 'permissoes', redirectTo: '/app/administracao/permissao', pathMatch: 'full' },
       { path: 'admin', redirectTo: 'menu', pathMatch: 'full' },
       {
         path: 'menu',
@@ -45,10 +45,8 @@ export const GERENCIAMENTO_ROUTES: Routes = [
       },
       {
         path: 'perfil',
-        loadComponent: () =>
-          import('../cadastro/pages/acessos-perfis-page/acessos-perfis-page.component').then(
-            (m) => m.AcessosPerfisPageComponent
-          ),
+        redirectTo: '/app/administracao/permissao',
+        pathMatch: 'full',
       },
       {
         path: 'bancoDados',

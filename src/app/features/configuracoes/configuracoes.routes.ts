@@ -19,7 +19,7 @@ export const CONFIGURACOES_ROUTES: Routes = [
       },
       {
         path: 'perfis',
-        redirectTo: '/app/gerenciamento/perfil',
+        redirectTo: '/app/administracao/permissao',
         pathMatch: 'full',
       },
     ],

@@ -25,6 +25,7 @@ import { AGENDAMENTO_ROUTE, AGENDAMENTOS_ROUTE } from '../../agendamento/agendam
 import {
   ADMINISTRACAO_ROUTE,
   ADMINISTRACAO_USUARIO_ROUTE,
+  ADMINISTRACAO_PERMISSAO_ROUTE,
 } from '../../administracao/administracao-rotas';
 
 export interface MenuSubItem {
@@ -102,7 +103,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'manage_accounts',
     children: [
       { id: 'sub-usuario', label: 'Usuário', route: ADMINISTRACAO_USUARIO_ROUTE },
-      { id: 'sub-permissao', label: 'Permissão', route: '/app/gerenciamento/menu' },
+      { id: 'sub-permissao', label: 'Permissão', route: ADMINISTRACAO_PERMISSAO_ROUTE },
     ],
   },
   {
@@ -115,7 +116,6 @@ export const MENU_STRUCTURE: MenuNode[] = [
       { id: 'sub-banco-dados', label: 'Banco de dado', route: '/app/gerenciamento/bancoDados' },
       { id: 'sub-estacionamento', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
       { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
-      { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
     ],
   },
   {

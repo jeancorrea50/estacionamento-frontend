@@ -1,9 +1,11 @@
-import { ChangeDetectorRef, Component, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ThemeService, ThemeMode } from '../../../../core/services/theme.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 
 const REMEMBER_USERNAME_KEY = 'gts_login_remember_username';
@@ -16,9 +18,15 @@ const REMEMBER_USERNAME_KEY = 'gts_login_remember_username';
   styleUrls: ['./login-page.component.scss'],
 })
 export class LoginPageComponent {
+  private readonly themeService = inject(ThemeService);
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly form: FormGroup;
   loading = false;
   readonly showPassword = signal(false);
+
+  private readonly themeMode = signal<ThemeMode>(this.themeService.getCurrentTheme().mode);
+  readonly currentMode = computed(() => this.themeMode());
 
   constructor(
     private readonly fb: FormBuilder,
@@ -34,6 +42,10 @@ export class LoginPageComponent {
       password: ['', [Validators.required, Validators.minLength(5)]],
       rememberMe: [Boolean(rememberedUsername)],
     });
+
+    this.themeService.theme$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((theme) => {
+      this.themeMode.set(theme.mode);
+    });
   }
 
   get username() {
@@ -42,6 +54,11 @@ export class LoginPageComponent {
 
   get password() {
     return this.form.get('password');
+  }
+
+  toggleTheme(): void {
+    const next = this.currentMode() === 'dark' ? 'light' : 'dark';
+    this.themeService.setThemeMode(next);
   }
 
   togglePasswordVisibility(): void {

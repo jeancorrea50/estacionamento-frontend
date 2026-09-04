@@ -28,6 +28,22 @@
   --login-form-max: 400px;
 }
 
+/* Dark mode — paleta grafite premium do sistema (dark-theme.css) */
+:host-context(html.theme-dark) {
+  --login-surface: var(--dark-bg-content, #1d1d27);
+  --login-surface-alt: var(--dark-card, #292934);
+  --login-brand: var(--dark-primary, #3d8bff);
+  --login-brand-strong: var(--dark-primary-hover, #5a9dff);
+  --login-brand-soft: color-mix(in srgb, var(--dark-primary, #3d8bff) 70%, #fff);
+  --login-text: var(--dark-text, #f1f1f5);
+  --login-text-muted: var(--dark-text-muted, #92929f);
+  --login-border: var(--dark-border, #363642);
+  --login-input-bg: var(--dark-input, #23232d);
+  --login-input-focus: color-mix(in srgb, var(--dark-primary, #3d8bff) 28%, transparent);
+  --login-danger: var(--dark-danger, #f06468);
+  --login-wm-opacity: 0.12;
+}
+
 /* ── Layout split (login principal) ───────────────────────────────── */
 .login-page:has(.login-page__hero) {
   position: relative;
@@ -65,55 +81,24 @@
   margin: 0 auto;
 }
 
-/* ── Hero institucional ───────────────────────────────────────────── */
+/* ── Hero institucional (background cover, sem overlay/blur) ──────── */
 .login-page__hero {
+  --login-hero-position: 42% center;
+
   position: relative;
   z-index: 1;
-  width: 100%;
+  /* Estende 5% à direita para preencher os recortes das curvas do painel */
+  width: calc(100% + 5%);
   height: 100%;
   min-height: 0;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #0a1220;
-  isolation: isolate;
-}
-
-/* Fotografia principal preenchendo 100% da área (cover), proporção
-   preservada, foco central, com leve corte apenas nas extremidades. */
-.login-page__hero-img {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  image-rendering: auto;
-  filter: contrast(1.05) saturate(1.05) brightness(0.97);
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-/* Overlay cinematográfico extremamente sutil (tonalidade azul + vignette),
-   sem escurecer o topo/base a ponto de simular faixas. */
-.login-page__hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: radial-gradient(ellipse 82% 66% at 46% 54%, rgba(0, 168, 255, 0.08), transparent 68%);
-  pointer-events: none;
-}
-
-.login-page__hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: radial-gradient(ellipse 122% 122% at 50% 50%, transparent 62%, rgba(6, 14, 30, 0.28) 100%);
-  pointer-events: none;
+  background-color: #0a1220;
+  background-image: url('/login-hero.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: var(--login-hero-position);
 }
 
 /* ── Painel claro sobreposto ─────────────────────────────────────── */
@@ -138,6 +123,90 @@
   border-radius: 90px 0 0 90px;
   box-shadow: -10px 0 40px rgba(15, 40, 90, 0.06);
   overflow: hidden;
+}
+
+.login-page__toolbar {
+  position: absolute;
+  top: max(0.85rem, env(safe-area-inset-top));
+  right: max(0.85rem, env(safe-area-inset-right));
+  z-index: 3;
+}
+
+.theme-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #7aa7dc;
+  border-radius: 12px;
+  background: rgba(80, 136, 208, 0.35);
+  color: var(--login-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.theme-switcher__btn:hover {
+  background: rgba(80, 136, 208, 0.5);
+  border-color: #7aa7dc;
+  color: var(--login-text);
+}
+
+.theme-switcher__btn:focus-visible {
+  outline: 2px solid var(--login-brand);
+  outline-offset: 2px;
+}
+
+.theme-switcher__icon {
+  font-size: 1.25rem;
+}
+
+:host-context(html.theme-dark) .login-page__panel {
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.4);
+}
+
+:host-context(html.theme-dark) .theme-switcher__btn {
+  border: 1px solid var(--dark-border, #363642);
+  background: var(--dark-card-elevated, #2c2c37);
+  color: var(--login-text);
+}
+
+:host-context(html.theme-dark) .theme-switcher__btn:hover {
+  background: var(--dark-hover, #323240);
+  border-color: var(--dark-border, #363642);
+  color: var(--login-brand);
+}
+
+:host-context(html.theme-dark) .login-page__logo {
+  /* Logo branca no dark — mesmo recurso visual do sidebar em tema claro */
+  filter: brightness(0) invert(1);
+}
+
+:host-context(html.theme-dark) .login-checkbox__box {
+  background: var(--login-input-bg);
+  border-color: var(--login-border);
+}
+
+:host-context(html.theme-dark) .login-btn--primary {
+  border-color: var(--login-brand);
+  background: var(--login-brand);
+  color: #fff;
+}
+
+:host-context(html.theme-dark) .login-btn--primary:hover:not(:disabled) {
+  background: var(--login-brand-strong);
+  border-color: var(--login-brand-strong);
+}
+
+:host-context(html.theme-dark) .login-page__wm-dots {
+  background-image: radial-gradient(circle, rgba(146, 146, 159, 0.55) 1px, transparent 1px);
+}
+
+:host-context(html.theme-dark) .login-page__wm-logo {
+  filter: brightness(0) invert(1);
+  opacity: var(--login-wm-opacity);
 }
 
 .login-page__content {
@@ -385,6 +454,13 @@
   transition: background-color 9999s ease-out 0s;
 }
 
+:host-context(html.theme-dark) .login-field__input:-webkit-autofill,
+:host-context(html.theme-dark) .login-field__input:-webkit-autofill:hover,
+:host-context(html.theme-dark) .login-field__input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--login-text);
+  box-shadow: 0 0 0 1000px var(--login-input-bg) inset;
+}
+
 .login-field__toggle {
   position: absolute;
   right: 4px;
@@ -613,9 +689,20 @@ input:not(.login-field__input):not(.login-checkbox input):focus {
 }
 
 /* ── Responsividade ──────────────────────────────────────────────── */
+@media (max-width: 1440px) {
+  .login-page__hero {
+    /* Notebook: desloca levemente à direita para preservar a cabine */
+    --login-hero-position: 48% center;
+  }
+}
+
 @media (max-width: 1100px) {
   .login-page:has(.login-page__hero) {
     grid-template-columns: minmax(0, 55%) minmax(0, 1fr);
+  }
+
+  .login-page__hero {
+    --login-hero-position: 52% center;
   }
 }
 
@@ -635,12 +722,8 @@ input:not(.login-field__input):not(.login-checkbox input):focus {
     width: 100%;
     min-height: 200px;
     height: auto;
-  }
-
-  .login-page__hero-img {
-    min-height: 200px;
-    object-position: 50% 42%;
-    filter: contrast(1.04) saturate(1.04) brightness(0.98);
+    /* Telas menores: prioriza cabine e região tecnológica da vaga */
+    --login-hero-position: 58% 42%;
   }
 
   .login-page__panel {
@@ -666,9 +749,26 @@ input:not(.login-field__input):not(.login-checkbox input):focus {
   }
 }
 
+@media (max-width: 768px) {
+  .theme-switcher__label {
+    display: none;
+  }
+
+  .theme-switcher__btn {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0 12px;
+  }
+}
+
 @media (max-width: 520px) {
   :host {
     --login-form-max: 100%;
+  }
+
+  .login-page__hero {
+    --login-hero-position: 62% 40%;
   }
 
   .login-page__logo {

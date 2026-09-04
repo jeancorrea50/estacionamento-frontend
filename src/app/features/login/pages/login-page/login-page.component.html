@@ -1,18 +1,25 @@
 <div class="login-page">
-  <aside class="login-page__hero" aria-hidden="true">
-    <img
-      class="login-page__hero-img"
-      src="/login-hero.jpg"
-      alt=""
-      width="1024"
-      height="576"
-      decoding="async"
-      fetchpriority="high"
-      draggable="false"
-    />
-  </aside>
+  <aside class="login-page__hero" aria-hidden="true"></aside>
 
   <section class="login-page__panel" aria-label="Área de autenticação">
+    <div class="login-page__toolbar">
+      <button
+        type="button"
+        class="theme-switcher__btn"
+        (click)="toggleTheme()"
+        [attr.aria-pressed]="currentMode() === 'light'"
+        [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+      >
+        @if (currentMode() === 'dark') {
+          <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">light_mode</span>
+          <span class="theme-switcher__label">Claro</span>
+        } @else {
+          <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">dark_mode</span>
+          <span class="theme-switcher__label">Escuro</span>
+        }
+      </button>
+    </div>
+
     <div class="login-page__watermark" aria-hidden="true">
       <span class="login-page__wm-dots login-page__wm-dots--tl"></span>
       <span class="login-page__wm-dots login-page__wm-dots--tr"></span>

@@ -1,5 +1,4 @@
 import {
-  CADASTRO_ESTACIONAMENTOS_ROUTE,
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
@@ -17,12 +16,11 @@ export interface CadastroMenuItemDef {
   route: string;
 }
 
-/** Submenus canônicos do módulo Cadastro (nível 2). */
+/** Submenus canônicos do módulo Cadastro (nível 2). Estacionamento fica em Gerenciamento. */
 export const CADASTRO_MENU_TREE: CadastroMenuItemDef[] = [
-  { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
   { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
   { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
-  { id: 'sub-estacionamentos', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
+  { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
 ];
 
 export function flattenCadastroMenuTree(

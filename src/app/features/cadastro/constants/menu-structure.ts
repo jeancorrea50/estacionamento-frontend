@@ -1,16 +1,27 @@
 /**
- * Estrutura do menu da aplicação (menu > módulos > submenus).
- * Usada na tela de Permissões para exibir e vincular permissões por item.
+ * Árvore FIXA da sidebar (fonte única de estrutura).
+ * O login só filtra o que o usuário pode ver — não redefine hierarquia/ordem.
  */
-import { FINANCEIRO_ROUTE } from '../../financeiro/faturamento-rotas';
-import { FINANCEIRO_MENU_TREE } from '../../financeiro/financeiro-menu-structure';
-import { CADASTRO_MENU_TREE } from '../cadastro-menu-structure';
-import { CADASTRO_ROUTE } from '../cadastro-rotas';
+import {
+  FATURAMENTO_CONFIG_LABEL,
+  FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_ROUTE,
+  FINANCEIRO_ROUTE,
+  PAGAMENTOS_ROUTE,
+} from '../../financeiro/faturamento-rotas';
+import {
+  CADASTRO_ESTACIONAMENTOS_ROUTE,
+  CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_ROUTE,
+  CADASTRO_VEICULOS_ROUTE,
+} from '../cadastro-rotas';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
+import { AGENDAMENTO_ROUTE, AGENDAMENTOS_ROUTE } from '../../agendamento/agendamento-rotas';
 
 export interface MenuSubItem {
   id: string;
@@ -27,7 +38,7 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
-/** Estrutura completa do menu (seed admin / permissões / validação SPA). */
+/** Estrutura completa e fixa do menu lateral. */
 export const MENU_STRUCTURE: MenuNode[] = [
   {
     id: 'menu-patio',
@@ -36,26 +47,59 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'local_parking',
     children: [
       { id: 'sub-movimentacoes', label: 'Movimentações', route: PATIO_MOVIMENTACOES_ROUTE },
-      { id: 'sub-entrada-saida', label: 'Entrada / Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
+      { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
     ],
   },
-  { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
-  { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
+  {
+    id: 'menu-agendamento',
+    label: 'Agendamento',
+    route: AGENDAMENTO_ROUTE,
+    icon: 'calendar_month',
+    children: [
+      { id: 'sub-agendamentos', label: 'Agendamentos', route: AGENDAMENTOS_ROUTE },
+    ],
+  },
   {
     id: 'menu-financeiro',
     label: 'Financeiro',
     route: FINANCEIRO_ROUTE,
     icon: 'payments',
-    children: FINANCEIRO_MENU_TREE,
+    children: [
+      {
+        id: 'sub-faturamento',
+        label: 'Faturamento',
+        route: FATURAMENTO_ROUTE,
+        children: [
+          {
+            id: 'sub-faturamento-configuracao',
+            label: FATURAMENTO_CONFIG_LABEL,
+            route: FATURAMENTO_CONFIG_ROUTE,
+          },
+        ],
+      },
+      { id: 'sub-pagamentos', label: 'Pagamentos', route: PAGAMENTOS_ROUTE },
+    ],
   },
   {
-    id: 'menu-configuracoes',
-    label: 'Configurações',
-    route: '/app/configuracoes',
-    icon: 'settings',
+    id: 'menu-cadastro',
+    label: 'Cadastro',
+    route: CADASTRO_ROUTE,
+    icon: 'local_shipping',
     children: [
-      { id: 'sub-usuarios', label: 'Usuários', route: '/app/configuracoes/usuarios' },
-      { id: 'sub-horario', label: 'Parâmetros', route: '/app/configuracoes/horario' },
+      { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
+      { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
+      { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
+    ],
+  },
+  {
+    id: 'menu-administracao',
+    label: 'Administração',
+    route: '/app/administracao',
+    icon: 'manage_accounts',
+    children: [
+      { id: 'sub-usuario', label: 'Usuário', route: '/app/configuracoes/usuarios' },
+      { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
+      { id: 'sub-permissao', label: 'Permissão', route: '/app/gerenciamento/menu' },
     ],
   },
   {
@@ -65,20 +109,19 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'admin_panel_settings',
     children: [
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
-      { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
-      { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
+      { id: 'sub-banco-dados', label: 'Banco de dado', route: '/app/gerenciamento/bancoDados' },
+      { id: 'sub-estacionamento', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
+      { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
     ],
   },
   {
-    id: 'menu-cadastro',
-    label: 'Cadastro',
-    route: CADASTRO_ROUTE,
-    icon: 'local_shipping',
-    children: CADASTRO_MENU_TREE.map((item) => ({
-      id: item.id,
-      label: item.label,
-      route: item.route,
-    })),
+    id: 'menu-configuracoes',
+    label: 'Configurações',
+    route: '/app/configuracoes',
+    icon: 'settings',
+    children: [
+      { id: 'sub-parametros', label: 'Parâmetros', route: '/app/configuracoes/horario' },
+    ],
   },
 ];
 

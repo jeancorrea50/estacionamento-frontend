@@ -73,19 +73,28 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   motoristas: CADASTRO_MOTORISTAS_ROUTE,
   estacionamento: CADASTRO_ESTACIONAMENTOS_ROUTE,
   estacionamentos: CADASTRO_ESTACIONAMENTOS_ROUTE,
+  usuario: '/app/configuracoes/usuarios',
   usuarios: '/app/configuracoes/usuarios',
   horario: '/app/configuracoes/horario',
+  parametros: '/app/configuracoes/horario',
+  parametro: '/app/configuracoes/horario',
   'fuso horario': '/app/configuracoes/horario',
   fusohorario: '/app/configuracoes/horario',
-  /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
+  /** Submódulo "menu" / "permissão" na API ≈ tela Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
+  permissao: '/app/gerenciamento/menu',
+  permissoes: '/app/gerenciamento/menu',
   /** Alias legado / API — gestão de usuários em Configurações */
   acessos: '/app/configuracoes/usuarios',
   admin: '/app/gerenciamento/menu',
+  administracao: '/app/administracao',
   perfil: '/app/gerenciamento/perfil',
   bancodados: '/app/gerenciamento/bancoDados',
   'banco de dados': '/app/gerenciamento/bancoDados',
+  'banco de dado': '/app/gerenciamento/bancoDados',
   'banco dados': '/app/gerenciamento/bancoDados',
+  agendamento: '/app/agendamento',
+  agendamentos: '/app/agendamento/agendamentos',
 };
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {

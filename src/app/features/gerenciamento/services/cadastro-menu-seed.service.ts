@@ -47,7 +47,7 @@ interface MenuMutation {
 
 /**
  * Publica no backend (idempotente) os submenus do Cadastro:
- * Transportadora, Veículo, Motorista e Estacionamento.
+ * Veículo, Motorista e Transportadora.
  */
 @Injectable({ providedIn: 'root' })
 export class CadastroMenuSeedService {

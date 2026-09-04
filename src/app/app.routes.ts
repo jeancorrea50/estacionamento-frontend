@@ -17,6 +17,7 @@ import {
 } from './features/financeiro/faturamento-rotas';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
+import { AGENDAMENTO_ROUTES } from './features/agendamento/agendamento.routes';
 import { authGuard } from './core/guards/auth.guard';
 import { redirectAuthenticatedToAppGuard } from './core/guards/redirect-authenticated.guard';
 import { routeAccessGuard } from './core/guards/route-access.guard';
@@ -78,6 +79,11 @@ export const routes: Routes = [
 			{
 				path: 'financeiro',
 				children: FINANCEIRO_APP_ROUTES
+			},
+			// 5b. AGENDAMENTO
+			{
+				path: 'agendamento',
+				children: AGENDAMENTO_ROUTES,
 			},
 			// Legado: /app/faturamento → /app/financeiro/faturamento
 			{

@@ -98,8 +98,9 @@ export class SessionAccessService {
   }
 
   /**
-   * Filtra itens da sidebar pelas rotas permitidas na sessão.
-   * Suporta um nível extra de filhos (ex.: Motorista sob Transportadora).
+   * Filtra itens da sidebar FIXA pelas rotas permitidas na sessão.
+   * Suporta um nível extra de filhos (ex.: Configuração sob Faturamento).
+   * Grupo sem nenhum filho liberado é ocultado.
    */
   filterSidebarItems<
     T extends {
@@ -119,25 +120,27 @@ export class SessionAccessService {
 
     return items
       .map((item) => {
-        if (item.children?.length) {
-          const children = item.children
-            .map((child) => {
-              if (child.children?.length) {
-                const nestedVisible = child.children.filter((n) => hasRoute(n.route));
-                if (nestedVisible.length > 0) {
-                  return { ...child, children: nestedVisible };
-                }
-              }
-              return hasRoute(child.route) ? child : null;
-            })
-            .filter((child): child is NonNullable<typeof child> => child !== null);
-
-          if (children.length === 0 && !hasRoute(item.route)) {
-            return null;
-          }
-          return { ...item, children } as T;
+        if (!item.children?.length) {
+          return hasRoute(item.route) ? item : null;
         }
-        return hasRoute(item.route) ? item : null;
+
+        const children = item.children
+          .map((child) => {
+            if (child.children?.length) {
+              const nestedVisible = child.children.filter((n) => hasRoute(n.route));
+              if (nestedVisible.length > 0) {
+                return { ...child, children: nestedVisible };
+              }
+              return hasRoute(child.route) ? { ...child, children: undefined } : null;
+            }
+            return hasRoute(child.route) ? child : null;
+          })
+          .filter((child): child is NonNullable<typeof child> => child !== null);
+
+        if (children.length === 0) {
+          return null;
+        }
+        return { ...item, children } as T;
       })
       .filter((item): item is T => item !== null);
   }

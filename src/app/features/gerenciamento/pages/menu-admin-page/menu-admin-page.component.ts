@@ -32,7 +32,7 @@ import {
   defaultExibirNoSidebar,
   rememberSidebarVisibility,
 } from '../../services/menu-sidebar-visibility';
-import { getSpaRouteValidationMessage } from '../../../../core/utils/spa-route-registry';
+import { getSpaRouteValidationMessage, listInvalidSpaRoutesInMenus, listRegisteredSpaRoutes } from '../../../../core/utils/spa-route-registry';
 import { findSubMenuById } from '../../services/menu-tree.util';
 
 @Component({
@@ -48,6 +48,9 @@ export class MenuAdminPageComponent implements OnInit {
   private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
+
+  /** Rotas conhecidas do SPA — autocomplete e validação antes de salvar no banco. */
+  protected readonly rotasSpaConhecidas = listRegisteredSpaRoutes();
 
   /** Carregamento inicial da lista (GET Buscar). */
   protected readonly carregandoLista = signal(false);
@@ -214,6 +217,11 @@ export class MenuAdminPageComponent implements OnInit {
     const id = this.menuEditId();
     const icone = this.menuFormIcon.trim() || 'menu';
     const rota = this.normalizeMenuModuleRoute(this.menuFormRota, nome);
+    const spaError = getSpaRouteValidationMessage(rota);
+    if (spaError) {
+      this.toast.error(spaError);
+      return;
+    }
 
     if (id == null) {
       const dto: MenuCreateInput = {
@@ -821,6 +829,15 @@ export class MenuAdminPageComponent implements OnInit {
 
   protected salvarNoBackend(): void {
     if (this.salvandoNoBackend()) return;
+    const invalid = listInvalidSpaRoutesInMenus(this.admin.getSnapshot().menus);
+    if (invalid.length > 0) {
+      const preview = invalid.slice(0, 3).join('; ');
+      const extra = invalid.length > 3 ? ` (+${invalid.length - 3})` : '';
+      this.toast.error(
+        `Há rotas inexistentes no frontend. Corrija antes de salvar: ${preview}${extra}`
+      );
+      return;
+    }
     this.salvandoNoBackend.set(true);
     this.menuApi
       .salvarAlteracoesNoBackend()

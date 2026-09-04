@@ -44,17 +44,12 @@ export class SidebarComponent implements OnInit {
   expandedMenuRoute = signal<string | null>(null);
 
   /**
-   * Itens da sidebar: menus da sessão + filtro Admin.
-   * Gerenciamento exige Role JWT `"Admin"` (mesmo critério de `[RoleAuthorize(SystemRoles.Admin)]` / `adminRoleGuard`).
+   * Itens da sidebar: árvore fixa filtrada pelo acesso do login (`menus`).
    */
   menuItems = computed<MenuItem[]>(() => {
-    const items = this.sessionAccess.filterSidebarItems(
+    return this.sessionAccess.filterSidebarItems(
       this.menuAdmin.sidebarMenuItems() as MenuItem[]
     );
-    if (this.authService.isAdmin()) {
-      return items;
-    }
-    return items.filter((item) => !this.isGerenciamentoMenuItem(item));
   });
 
   ngOnInit(): void {
@@ -115,21 +110,6 @@ export class SidebarComponent implements OnInit {
     if (!trimmed) return '';
     if (trimmed === '/app/') return '/app';
     return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
-  }
-
-  /** Espelha backend `SystemRoles.Admin` — item só para Admin. */
-  private isGerenciamentoMenuItem(item: MenuItem): boolean {
-    const route = this.normalizeRoute(item.route).toLowerCase();
-    if (
-      route === '/app/cadastro/estacionamento' ||
-      route.startsWith('/app/cadastro/estacionamento/')
-    ) {
-      return false;
-    }
-    if (route === '/app/gerenciamento' || route.startsWith('/app/gerenciamento/')) {
-      return true;
-    }
-    return (item.label ?? '').trim().toLowerCase() === 'gerenciamento';
   }
 
   logout(): void {

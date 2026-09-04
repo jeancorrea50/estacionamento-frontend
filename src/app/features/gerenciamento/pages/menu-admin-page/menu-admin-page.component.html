@@ -5,12 +5,13 @@
     </div>
     <div class="menu-orientation-card__body">
       <p class="menu-orientation-card__lead">
-        Arraste os menus e submenus para definir a ordem. Você pode mover um submenu para outro menu — ele passa a
-        pertencer ao menu de destino.
+        Esta tela alinha o <strong>banco de dados</strong> com as rotas do frontend: ordem, visibilidade (esconder) e
+        permissões por menu/submenu. A estrutura visual da sidebar no app é fixa; o login libera o que o usuário pode ver.
       </p>
       <p class="menu-orientation-card__hint">
-        <strong class="menu-orientation-card__emphasis">Salvar</strong> envia a <strong>ordem</strong> e a
-        <strong>nova composição dos submenus por menu</strong> para a API (OrganizarMenus).
+        <strong class="menu-orientation-card__emphasis">Antes de salvar</strong>, a rota precisa existir no SPA.
+        Arraste para ordenar; use <strong>Exibir no sidebar</strong> para esconder; configure as permissões em cada submenu.
+        <strong class="menu-orientation-card__emphasis">Salvar</strong> envia a ordem e a composição (OrganizarMenus).
       </p>
     </div>
     <div class="menu-orientation-card__art" aria-hidden="true">
@@ -60,7 +61,9 @@
       <div class="menu-admin-empty" role="status">
         <span class="material-symbols-outlined menu-admin-empty__icon" aria-hidden="true">menu_book</span>
         <h2 class="menu-admin-empty__title">Nenhum menu cadastrado</h2>
-        <p class="menu-admin-empty__text">Crie o primeiro menu para montar a navegação do sistema.</p>
+        <p class="menu-admin-empty__text">
+          Crie o primeiro menu para alinhar rotas, ordem, visibilidade e permissões com o banco.
+        </p>
         <button type="button" class="menu-admin__toolbar-btn menu-admin__toolbar-btn--primary" (click)="openNovoMenu()">
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
           Novo menu
@@ -180,11 +183,15 @@
           <input
             id="m-rota"
             class="input-control"
+            list="spa-rotas-datalist"
             [(ngModel)]="menuFormRota"
             placeholder="/app/configuracoes"
             [disabled]="salvandoMenuModal()"
           />
-          <span class="form-hint">Caminho base do módulo no app (ex.: <code>/app/gerenciamento</code>). Se vazio, é gerado a partir do nome.</span>
+          <span class="form-hint">
+            Deve existir no frontend antes de gravar no banco (ex.: <code>/app/gerenciamento</code>).
+            Se vazio, é gerada a partir do nome e também validada.
+          </span>
         </div>
         @if (menuEditId() !== null) {
           <label class="form-row-check">
@@ -196,7 +203,7 @@
           <input type="checkbox" [(ngModel)]="menuFormExibirNoSidebar" [disabled]="salvandoMenuModal()" />
           Exibir no sidebar
         </label>
-        <span class="form-hint">Desmarque para manter o menu no sistema sem listá-lo no menu lateral.</span>
+        <span class="form-hint">Desmarque para esconder este menu no menu lateral (rota e permissões continuam no banco).</span>
       </div>
       <div class="modal-footer dk-modal-footer">
         <button
@@ -242,6 +249,7 @@
           <input
             id="s-rota"
             class="input-control"
+            list="spa-rotas-datalist"
             [(ngModel)]="subFormRota"
             (ngModelChange)="onSubmenuRotaChange($event)"
             placeholder="/app/dashboard"
@@ -258,8 +266,11 @@
           <input type="checkbox" [(ngModel)]="subFormExibirNoSidebar" [disabled]="salvandoSubModal()" />
           Exibir no sidebar
         </label>
-        <span class="form-hint">Desmarque para ocultar este item no menu lateral (a rota e as permissões continuam válidas).</span>
-        <span class="form-hint">A rota deve existir no SPA (rotas Angular). Ao digitar o nome, a URL é sugerida automaticamente.</span>
+        <span class="form-hint">Desmarque para esconder este item no menu lateral (a rota e as permissões continuam válidas).</span>
+        <span class="form-hint">
+          A rota precisa existir no SPA. Crie a tela no frontend primeiro; aqui você só alinha com o banco.
+          Ao digitar o nome, a URL é sugerida automaticamente.
+        </span>
         <div class="form-section form-section--permissions">
           <div class="form-section__header">
             <h3 class="form-section__title">Permissões do submenu</h3>
@@ -395,3 +406,9 @@
     </div>
   }
 </ng-template>
+
+<datalist id="spa-rotas-datalist">
+  @for (rota of rotasSpaConhecidas; track rota) {
+    <option [value]="rota"></option>
+  }
+</datalist>

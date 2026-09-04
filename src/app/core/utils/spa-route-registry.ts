@@ -72,6 +72,9 @@ function collectStaticRoutes(): void {
     '/app/movimentos/entrada-saida',
     '/app/movimentos/lista',
     '/app/relatorios',
+    '/app/agendamento',
+    '/app/agendamento/agendamentos',
+    '/app/administracao',
     '/app/configuracoes',
     '/app/configuracoes/usuarios',
     '/app/configuracoes/horario',
@@ -79,6 +82,7 @@ function collectStaticRoutes(): void {
     '/app/gerenciamento/menu',
     '/app/gerenciamento/perfil',
     '/app/gerenciamento/bancodados',
+    '/app/gerenciamento/estacionamento',
     '/app/cadastro',
     '/app/cadastro/transportadoras',
     '/app/cadastro/veiculos',
@@ -124,7 +128,52 @@ export function isRegisteredSpaRoute(path: string | null | undefined): boolean {
 export function getSpaRouteValidationMessage(path: string | null | undefined): string | null {
   if (!path?.trim()) return null;
   if (isRegisteredSpaRoute(path)) return null;
-  return `Rota "${path.trim()}" não está configurada no frontend. Cadastre a tela nas rotas do SPA antes de usar esta URL.`;
+  return (
+    `Rota "${path.trim()}" não existe no frontend. ` +
+    `Crie a tela/rota no SPA antes de gravar no banco (evita menus quebrados).`
+  );
+}
+
+/**
+ * Lista rotas inválidas em uma árvore de menus (menu + submenus aninhados).
+ * Usado antes de OrganizarMenus / salvar para bloquear URLs inexistentes no SPA.
+ */
+export function listInvalidSpaRoutesInMenus(
+  menus: ReadonlyArray<{
+    nome?: string | null;
+    rota?: string | null;
+    subMenus?: ReadonlyArray<SpaMenuNodeLike> | null;
+  }>
+): string[] {
+  const invalid: string[] = [];
+
+  const visitSub = (sub: SpaMenuNodeLike): void => {
+    const rota = String(sub.rota ?? '').trim();
+    if (rota && !isRegisteredSpaRoute(rota)) {
+      invalid.push(`${sub.nome?.trim() || 'submenu'}: ${rota}`);
+    }
+    for (const child of sub.subMenus ?? []) {
+      visitSub(child);
+    }
+  };
+
+  for (const menu of menus) {
+    const rota = String(menu.rota ?? '').trim();
+    if (rota && !isRegisteredSpaRoute(rota)) {
+      invalid.push(`${menu.nome?.trim() || 'menu'}: ${rota}`);
+    }
+    for (const sub of menu.subMenus ?? []) {
+      visitSub(sub);
+    }
+  }
+
+  return invalid;
+}
+
+interface SpaMenuNodeLike {
+  nome?: string | null;
+  rota?: string | null;
+  subMenus?: ReadonlyArray<SpaMenuNodeLike> | null;
 }
 
 /** Lista ordenada de rotas conhecidas (para autocomplete / documentação interna). */

@@ -613,7 +613,8 @@ export class MenuAdminService {
   }
 
   /**
-   * Itens para sidebar. Gerenciamento: link único. Cadastro: todos os submenus da API.
+   * Sidebar FIXA (`MENU_STRUCTURE`). O login só filtra o que aparece
+   * via `SessionAccessService.filterSidebarItems` — não redefine a árvore.
    */
   getSidebarMenuItems(): {
     label: string;
@@ -621,29 +622,19 @@ export class MenuAdminService {
     icon: string;
     children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
   }[] {
-    type NavItem = {
-      label: string;
-      route: string;
-      icon: string;
-      children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
-    };
-
-    const source = this.sessionAccess.hasSessionMenus()
-      ? this.buildNavItemsFromSessionMenus()
-      : this.buildNavItemsFromState();
-
-    const flattened = source.map((item) => {
-      if (!this.isGerenciamentoNavItem(item)) return item;
-      return {
-        label: item.label,
-        route: '/app/gerenciamento',
-        icon: item.icon,
-      };
-    });
-
-    const withCadastro = flattened.map((item) => this.sanitizeCadastroSidebarNavItem(item));
-    const labeled = withCadastro.map((item) => this.applyDisplayLabelsToNavItem(item));
-    return labeled;
+    return MENU_STRUCTURE.map((node) => ({
+      label: node.label,
+      route: node.route,
+      icon: node.icon,
+      children: node.children?.map((child) => ({
+        label: child.label,
+        route: child.route,
+        children: child.children?.map((nested) => ({
+          label: nested.label,
+          route: nested.route,
+        })),
+      })),
+    }));
   }
 
   /**

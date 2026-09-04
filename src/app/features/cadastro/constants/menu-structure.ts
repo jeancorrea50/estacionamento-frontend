@@ -113,7 +113,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'admin_panel_settings',
     children: [
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
-      { id: 'sub-banco-dados', label: 'Banco de dado', route: '/app/gerenciamento/bancoDados' },
+      { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
       { id: 'sub-estacionamento', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
       { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
     ],

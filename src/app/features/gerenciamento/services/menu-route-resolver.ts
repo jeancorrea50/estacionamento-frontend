@@ -110,6 +110,8 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/cadastro/veiculo': CADASTRO_VEICULOS_ROUTE,
   '/app/cadastro/estacionamento': CADASTRO_ESTACIONAMENTOS_ROUTE,
   '/app/gerencimento/menu': '/app/gerenciamento/menu',
+  '/app/gerencimento/estacionamento': '/app/gerenciamento/estacionamento',
+  '/app/gerenciamento/estacionamento': '/app/gerenciamento/estacionamento',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/gerenciamento/usuario': '/app/administracao/usuario',

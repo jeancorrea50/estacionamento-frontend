@@ -155,7 +155,10 @@ function toSubMenuInputForUpdate(
     nome: s.nome,
     descricao: s.nome,
     ordem: s.ordem,
-    rota: s.rota?.trim() || resolveAppRouteFromNome(s.nome, null),
+    rota:
+      normalizeLegacyAppRoute(s.rota?.trim() || null) ||
+      s.rota?.trim() ||
+      resolveAppRouteFromNome(s.nome, null),
     ativo: s.ativo !== false,
     ...sidebarPayload(s.exibirNoSidebar !== false),
   };
@@ -170,6 +173,10 @@ function toSubMenuInputForUpdate(
  * Payload para **Gravar** (criação) — ids zerados para o AutoMapper tratar como novo registro.
  */
 function toSubMenuInputForInsert(s: SubMenuAdmin): SubMenuCreateInput {
+  const rota =
+    normalizeLegacyAppRoute(s.rota?.trim() || null) ||
+    s.rota?.trim() ||
+    resolveAppRouteFromNome(s.nome, null);
   return {
     id: 0,
     nome: s.nome,
@@ -181,7 +188,7 @@ function toSubMenuInputForInsert(s: SubMenuAdmin): SubMenuCreateInput {
       subModuleId: 0,
       descricao: String(p.acao ?? '').trim().toLowerCase(),
     })),
-    rota: s.rota?.trim() || resolveAppRouteFromNome(s.nome, null),
+    rota,
     ativo: s.ativo !== false,
     ...sidebarPayload(s.exibirNoSidebar !== false),
   };
@@ -274,7 +281,8 @@ export function validateSubMenuAlterarPayload(sub: SubMenuAdmin): string | null 
   const nome = sub.nome?.trim();
   if (!nome) return 'Nome do submenu é obrigatório.';
 
-  const rota = sub.rota?.trim();
+  const rotaRaw = sub.rota?.trim();
+  const rota = rotaRaw ? normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw : '';
   if (!rota || !rota.startsWith('/app/')) {
     return 'Rota inválida. Use o padrão /app/...';
   }

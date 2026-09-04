@@ -33,6 +33,8 @@ import {
   rememberSidebarVisibility,
 } from '../../services/menu-sidebar-visibility';
 import { getSpaRouteValidationMessage, listInvalidSpaRoutesInMenus, listRegisteredSpaRoutes } from '../../../../core/utils/spa-route-registry';
+import { unwrapServiceResult } from '../../../../core/api/utils/service-result.util';
+import { normalizeLegacyAppRoute } from '../../../../core/utils/app-route-normalizer';
 import { findSubMenuById } from '../../services/menu-tree.util';
 
 @Component({
@@ -625,7 +627,10 @@ export class MenuAdminPageComponent implements OnInit {
       return;
     }
     const parentSubId = this.subModalParentSubId();
-    const rota = this.normalizeSubRoute(this.subFormRota, menuId, nome, parentSubId);
+    const rota =
+      normalizeLegacyAppRoute(
+        this.normalizeSubRoute(this.subFormRota, menuId, nome, parentSubId)
+      ) ?? this.normalizeSubRoute(this.subFormRota, menuId, nome, parentSubId);
     const spaError = getSpaRouteValidationMessage(rota);
     if (spaError) {
       this.toast.error(spaError);
@@ -664,7 +669,34 @@ export class MenuAdminPageComponent implements OnInit {
           .alterar(menuAdminToAlterarSubMenuOnlyInput(menu, novoSub, { includePermissions: true }))
           .pipe(finalize(() => this.salvandoSubModal.set(false)))
           .subscribe({
-            next: () => {
+            next: (body) => {
+              const result = unwrapServiceResult<Record<string, unknown>>(body);
+              const subMenusRaw =
+                (result && (result['subMenus'] ?? result['SubMenus'] ?? result['subModules'] ?? result['SubModules'])) ||
+                [];
+              const lista = Array.isArray(subMenusRaw) ? subMenusRaw : [];
+              const rotaNorm = (rota || '').trim().toLowerCase().replace(/\/+$/, '');
+              const nomeNorm = nome.trim().toLowerCase();
+              const criado = lista.some((row) => {
+                if (!row || typeof row !== 'object') return false;
+                const r = row as Record<string, unknown>;
+                const id = Number(r['id'] ?? r['Id'] ?? 0);
+                const rowNome = String(r['nome'] ?? r['Nome'] ?? r['descricao'] ?? r['Descricao'] ?? '')
+                  .trim()
+                  .toLowerCase();
+                const rowRota = String(r['rota'] ?? r['Rota'] ?? '')
+                  .trim()
+                  .toLowerCase()
+                  .replace(/\/+$/, '');
+                return id > 0 && (rowRota === rotaNorm || rowNome === nomeNorm);
+              });
+              if (!criado) {
+                this.toast.error(
+                  'A API respondeu sucesso, mas o submenu não foi persistido. Confira a rota e tente novamente.'
+                );
+                this.refreshMenusAfterMutation();
+                return;
+              }
               this.subModalOpen.set(false);
               this.toast.success('Submenu criado e publicado no servidor.');
               this.refreshMenusAfterMutation();

@@ -8,7 +8,10 @@ export function normalizeLegacyAppRoute(raw: string | null | undefined): string 
   const trimmed = String(raw).trim();
   if (!trimmed) return null;
 
-  const afterFaturamento = normalizeFaturamentoAppRoute(trimmed) ?? trimmed;
+  // Typo legado frequente: /app/gerencimento → /app/gerenciamento
+  const fixedTypo = trimmed.replace(/\/gerencimento(?=\/|$)/gi, '/gerenciamento');
+
+  const afterFaturamento = normalizeFaturamentoAppRoute(fixedTypo) ?? fixedTypo;
   const afterPatio = normalizePatioAppRoute(afterFaturamento) ?? afterFaturamento;
   return normalizeCadastroAppRoute(afterPatio) ?? afterPatio;
 }

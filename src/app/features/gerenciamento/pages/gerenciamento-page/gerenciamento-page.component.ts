@@ -287,7 +287,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     const termo = this.perfilBuscaTermo.trim().toLowerCase();
     if (!termo) return this.perfisList;
     return this.perfisList.filter((p) => {
-      const candidatos = [p.name, p.perfil, p.nome, p.normalizedName, p.id]
+      const candidatos = [p.name, p.permissao, p.perfil, p.nome, p.normalizedName, p.id]
         .filter((v): v is string | number => v != null)
         .map((v) => String(v).toLowerCase());
       return candidatos.some((v) => v.includes(termo));
@@ -298,7 +298,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     const selected = String(value ?? '').trim().toLowerCase();
     if (!selected) return undefined;
     return this.perfisList.find((p) => {
-      const candidates = [p.name, p.perfil, p.nome, p.normalizedName, p.id]
+      const candidates = [p.name, p.permissao, p.perfil, p.nome, p.normalizedName, p.id]
         .filter((v) => v != null)
         .map((v) => String(v).trim().toLowerCase());
       return candidates.includes(selected);
@@ -308,7 +308,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private resolvePerfilNomeForPayload(selectedValue: string): string | undefined {
     const role = this.findPerfilBySelectedValue(selectedValue);
     const nome = String(
-      role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? selectedValue ?? ''
+      role?.name ?? role?.permissao ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? selectedValue ?? ''
     ).trim();
     return nome || undefined;
   }

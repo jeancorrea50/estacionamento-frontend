@@ -4,12 +4,16 @@ import { Observable, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 const API_BASE = environment.API_BASE_URL;
-const AUTH_PERFIL = `${API_BASE}/auth/Perfil`;
+const AUTH_PERMISSAO = `${API_BASE}/auth/Permissao`;
 
-/** Perfil (Role) conforme Swagger ApplicationRole */
+/** Permissão (Role) conforme ApplicationRole / PermissaoDto */
 export interface ApplicationRole {
   id?: number | string;
+  permissaoId?: number | string;
+  /** @deprecated use permissaoId */
   perfilId?: number | string;
+  permissao?: string | null;
+  /** @deprecated use permissao / nome */
   perfil?: string | null;
   name?: string | null;
   nome?: string | null;
@@ -26,52 +30,53 @@ export interface ApplicationRole {
   ultimaAtualizacao?: string | null;
 }
 
-export interface PerfilPermissaoInput {
+export interface PermissaoPermissaoInput {
   permissaoId?: number;
   selecionado?: boolean;
 }
 
-export interface PerfilSubModuloInput {
+export interface PermissaoSubModuloInput {
   subMenuId?: number;
   selecionado?: boolean;
-  permissoes?: PerfilPermissaoInput[] | null;
+  permissoes?: PermissaoPermissaoInput[] | null;
 }
 
-export interface PerfilModuloInput {
+export interface PermissaoModuloInput {
   menuId?: number;
   selecionado?: boolean;
-  subMenus?: PerfilSubModuloInput[] | null;
+  subMenus?: PermissaoSubModuloInput[] | null;
 }
 
-export interface PerfilUpsertInput {
+export interface PermissaoUpsertInput {
   id?: number;
-  perfilId?: number;
+  permissaoId?: number;
   name?: string | null;
   nome?: string | null;
-  menus?: PerfilModuloInput[] | null;
+  menus?: PermissaoModuloInput[] | null;
 }
 
-/** Parâmetros opcionais para Buscar (Swagger não detalha; seguindo padrão da API). */
-export interface PerfilBuscarParams {
+/** Aliases legados — preferir tipos Permissao* */
+export type PerfilPermissaoInput = PermissaoPermissaoInput;
+export type PerfilSubModuloInput = PermissaoSubModuloInput;
+export type PerfilModuloInput = PermissaoModuloInput;
+export type PerfilUpsertInput = PermissaoUpsertInput;
+
+/** Parâmetros opcionais para Buscar. */
+export interface PermissaoBuscarParams {
   NumeroPagina?: number;
   TamanhoPagina?: number;
   Propriedade?: string;
   Sort?: string;
 }
 
+export type PerfilBuscarParams = PermissaoBuscarParams;
+
 /**
- * Service para CRUD de Perfis (Roles).
- * Endpoints reais:
- * GET /api/auth/Perfil
- * POST /api/auth/Perfil
- * PUT /api/auth/Perfil
- * GET /api/auth/Perfil/{id}
- * DELETE /api/auth/Perfil/{id}
- * GET /api/auth/Perfil/usuario/{usuarioId}
-
- * GET /api/auth/Perfil/usuario/buscarSimplicado
-
- * @see /estac/swagger/v1/swagger.json (tag Perfil)
+ * Service para CRUD de Permissões (Roles).
+ * GET/POST/PUT/DELETE /api/auth/Permissao
+ * GET /api/auth/Permissao/{id}
+ * GET /api/auth/Permissao/usuario/{usuarioId}
+ * GET /api/auth/Permissao/usuario/buscarSimplicado
  */
 @Injectable({
   providedIn: 'root'
@@ -79,45 +84,45 @@ export interface PerfilBuscarParams {
 export class AcessosPerfisService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/auth/Perfil */
-  buscar(params?: PerfilBuscarParams): Observable<unknown> {
+  /** GET /api/auth/Permissao */
+  buscar(params?: PermissaoBuscarParams): Observable<unknown> {
     const query = new URLSearchParams();
     if (params?.NumeroPagina != null) query.set('NumeroPagina', String(params.NumeroPagina));
     if (params?.TamanhoPagina != null) query.set('TamanhoPagina', String(params.TamanhoPagina));
     if (params?.Propriedade != null) query.set('Propriedade', params.Propriedade);
     if (params?.Sort != null) query.set('Sort', params.Sort);
     const qs = query.toString();
-    const url = qs ? `${AUTH_PERFIL}?${qs}` : `${AUTH_PERFIL}`;
+    const url = qs ? `${AUTH_PERMISSAO}?${qs}` : `${AUTH_PERMISSAO}`;
     return this.http.get<unknown>(url).pipe(timeout(15000));
   }
 
-  /** GET /api/auth/Perfil/{id} */
+  /** GET /api/auth/Permissao/{id} */
   obterPorId(id: string | number): Observable<ApplicationRole> {
-    return this.http.get<ApplicationRole>(`${AUTH_PERFIL}/${id}`).pipe(timeout(15000));
+    return this.http.get<ApplicationRole>(`${AUTH_PERMISSAO}/${id}`).pipe(timeout(15000));
   }
 
-  /** POST /api/auth/Perfil */
-  gravar(dto: PerfilUpsertInput): Observable<unknown> {
-    return this.http.post<unknown>(`${AUTH_PERFIL}`, dto).pipe(timeout(15000));
+  /** POST /api/auth/Permissao */
+  gravar(dto: PermissaoUpsertInput): Observable<unknown> {
+    return this.http.post<unknown>(`${AUTH_PERMISSAO}`, dto).pipe(timeout(15000));
   }
 
-  /** PUT /api/auth/Perfil */
-  alterar(dto: PerfilUpsertInput): Observable<unknown> {
-    return this.http.put<unknown>(`${AUTH_PERFIL}`, dto).pipe(timeout(15000));
+  /** PUT /api/auth/Permissao */
+  alterar(dto: PermissaoUpsertInput): Observable<unknown> {
+    return this.http.put<unknown>(`${AUTH_PERMISSAO}`, dto).pipe(timeout(15000));
   }
 
-  /** DELETE /api/auth/Perfil/{id} */
+  /** DELETE /api/auth/Permissao/{id} */
   delete(id: string | number): Observable<void> {
-    return this.http.delete<void>(`${AUTH_PERFIL}/${id}`).pipe(timeout(15000));
+    return this.http.delete<void>(`${AUTH_PERMISSAO}/${id}`).pipe(timeout(15000));
   }
 
-  /** GET /api/auth/Perfil/usuario/{usuarioId} */
+  /** GET /api/auth/Permissao/usuario/{usuarioId} */
   buscarPorUsuario(usuarioId: string | number): Observable<unknown> {
-    return this.http.get<unknown>(`${AUTH_PERFIL}/usuario/${usuarioId}`).pipe(timeout(15000));
+    return this.http.get<unknown>(`${AUTH_PERMISSAO}/usuario/${usuarioId}`).pipe(timeout(15000));
   }
 
-  /** GET /api/auth/Perfil/usuario/buscarSimplicado */
+  /** GET /api/auth/Permissao/usuario/buscarSimplicado */
   buscarSimplicadoUsuario(): Observable<unknown> {
-    return this.http.get<unknown>(`${AUTH_PERFIL}/usuario/buscarSimplicado`).pipe(timeout(15000));
+    return this.http.get<unknown>(`${AUTH_PERMISSAO}/usuario/buscarSimplicado`).pipe(timeout(15000));
   }
 }

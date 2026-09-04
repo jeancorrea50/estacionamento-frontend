@@ -455,19 +455,19 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   private normalizePerfilItem(raw: Record<string, unknown>): ApplicationRole | null {
-    const id = this.readId(raw, 'id', 'perfilId', 'roleId');
-    const perfilId = this.readId(raw, 'perfilId', 'id', 'roleId');
-    const display = this.readText(raw, 'name', 'perfil', 'nome', 'normalizedName', 'descricao');
-    if (id == null && perfilId == null && !display) return null;
-    const nome = this.readText(raw, 'nome', 'name', 'perfil', 'descricao');
-    const name = this.readText(raw, 'name', 'nome', 'perfil', 'descricao');
-    const perfil = this.readText(raw, 'perfil', 'name', 'nome', 'descricao');
+    const id = this.readId(raw, 'id', 'permissaoId', 'perfilId', 'roleId');
+    const permissaoId = this.readId(raw, 'permissaoId', 'perfilId', 'id', 'roleId');
+    const display = this.readText(raw, 'name', 'permissao', 'perfil', 'nome', 'normalizedName', 'descricao');
+    if (id == null && permissaoId == null && !display) return null;
+    const nome = this.readText(raw, 'nome', 'name', 'permissao', 'perfil', 'descricao');
+    const name = this.readText(raw, 'name', 'nome', 'permissao', 'perfil', 'descricao');
+    const permissao = this.readText(raw, 'permissao', 'perfil', 'name', 'nome', 'descricao');
     return {
       ...(id != null ? { id } : {}),
-      ...(perfilId != null ? { perfilId } : {}),
+      ...(permissaoId != null ? { permissaoId, perfilId: permissaoId } : {}),
       ...(name ? { name } : {}),
       ...(nome ? { nome } : {}),
-      ...(perfil ? { perfil } : {}),
+      ...(permissao ? { permissao, perfil: permissao } : {}),
       normalizedName: this.readText(raw, 'normalizedName', 'descricao') ?? null,
     };
   }

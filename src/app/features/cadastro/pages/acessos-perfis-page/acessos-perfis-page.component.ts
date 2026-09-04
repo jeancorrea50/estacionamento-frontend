@@ -324,12 +324,16 @@ export class AcessosPerfisPageComponent implements OnInit {
   private normalizeRoleItem(raw: Record<string, unknown>): ApplicationRole {
     const permissionIds = this.extractPermissionIdsFromRole(raw);
     const menus = this.getArrayProp(raw, 'menus', 'Menus');
+    const id = this.readId(raw, 'id', 'permissaoId', 'perfilId', 'roleId');
+    const nome = this.readString(raw, 'nome', 'name', 'permissao', 'perfil');
     return {
-      id: this.readId(raw, 'id', 'perfilId', 'roleId'),
-      perfilId: this.readId(raw, 'perfilId', 'id'),
-      perfil: this.readString(raw, 'perfil'),
-      name: this.readString(raw, 'name', 'nome', 'perfil'),
-      nome: this.readString(raw, 'nome', 'name', 'perfil'),
+      id,
+      permissaoId: this.readId(raw, 'permissaoId', 'id', 'perfilId'),
+      perfilId: this.readId(raw, 'perfilId', 'permissaoId', 'id'),
+      permissao: this.readString(raw, 'permissao', 'nome', 'name', 'perfil'),
+      perfil: this.readString(raw, 'perfil', 'permissao', 'nome', 'name'),
+      name: this.readString(raw, 'name', 'nome', 'permissao', 'perfil'),
+      nome,
       normalizedName: this.readString(raw, 'normalizedName', 'descricao'),
       concurrencyStamp: this.readString(raw, 'concurrencyStamp'),
       menus,

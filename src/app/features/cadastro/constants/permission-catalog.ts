@@ -1,6 +1,6 @@
 /**
  * Catálogo de permissões alinhado aos recursos/endpoints do backend.
- * Recursos: Estacionamento, Motorista, Transportadora, Veiculo, VeiculoModelo, Perfil, Usuario.
+ * Recursos: Estacionamento, Motorista, Transportadora, Veiculo, VeiculoModelo, Permissao, Usuario.
  * Ações por recurso: visualizar (Buscar + ObterPorId), gravar (Gravar), alterar (Alterar), excluir (Delete).
  * Módulos de app (Movimentos, Financeiro, Relatórios, Fotos) mantidos para uso na UI até o backend expor.
  */
@@ -10,7 +10,7 @@ export const PERMISSION_MODULES = [
   'Transportadora',
   'Veículo',
   'Veículo modelo',
-  'Perfil',
+  'Permissão',
   'Usuários',
   'Movimentos',
   'Financeiro',
@@ -52,11 +52,11 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'veiculoModelo.alterar',
     'veiculoModelo.excluir',
   ],
-  Perfil: [
-    'perfil.visualizar',
-    'perfil.gravar',
-    'perfil.alterar',
-    'perfil.excluir',
+  'Permissão': [
+    'permissao.visualizar',
+    'permissao.gravar',
+    'permissao.alterar',
+    'permissao.excluir',
   ],
   Usuários: [
     'usuarios.visualizar',

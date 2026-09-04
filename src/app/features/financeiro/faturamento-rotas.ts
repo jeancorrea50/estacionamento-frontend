@@ -16,14 +16,18 @@ export const FATURAMENTO_ROUTE = '/app/financeiro/faturamento';
 export const PAGAMENTOS_ROUTE = '/app/financeiro/pagamento';
 export const PAGAMENTOS_PATH = 'pagamento';
 
-/** Submenu Configuração — rota própria, fora das abas internas. */
-export const FATURAMENTO_CONFIG_ROUTE = '/app/financeiro/faturamento/configuracao';
-export const FATURAMENTO_CONFIG_PATH = 'configuracao';
-export const FATURAMENTO_CONFIG_LABEL = 'Configuração';
+/** Submenu Cobrança — rota própria, fora das abas internas. */
+export const FATURAMENTO_CONFIG_ROUTE = '/app/financeiro/faturamento/cobranca';
+export const FATURAMENTO_CONFIG_PATH = 'cobranca';
+export const FATURAMENTO_CONFIG_LABEL = 'Cobrança';
 
 /** Prefixo legado (menu/API antigos). */
 const LEGACY_FATURAMENTO_PREFIX = '/app/faturamento';
-const LEGACY_CONFIG_SLUGS = ['config-cobranca', 'configuracao-cobranca'] as const;
+const LEGACY_CONFIG_SLUGS = [
+  'config-cobranca',
+  'configuracao-cobranca',
+  'configuracao',
+] as const;
 
 export interface FaturamentoTabDef {
   id: FaturamentoTabId;

@@ -27,7 +27,7 @@ export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
     route: t.route,
   })),
   {
-    id: 'sub-faturamento-configuracao',
+    id: 'sub-faturamento-cobranca',
     label: FATURAMENTO_CONFIG_LABEL,
     route: FATURAMENTO_CONFIG_ROUTE,
   },

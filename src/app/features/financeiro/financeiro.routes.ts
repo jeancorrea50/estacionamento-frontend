@@ -25,6 +25,11 @@ export const FATURAMENTO_ROUTES: Routes = [
     redirectTo: FATURAMENTO_CONFIG_PATH,
   },
   {
+    path: 'configuracao',
+    pathMatch: 'full',
+    redirectTo: FATURAMENTO_CONFIG_PATH,
+  },
+  {
     path: 'recebimentos',
     pathMatch: 'full',
     redirectTo: `/app/financeiro/${PAGAMENTOS_PATH}`,

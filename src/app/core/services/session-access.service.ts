@@ -112,7 +112,7 @@ export class SessionAccessService {
 
   /**
    * Filtra itens da sidebar FIXA pelas rotas permitidas na sessão.
-   * Suporta um nível extra de filhos (ex.: Configuração sob Faturamento).
+   * Suporta um nível extra de filhos (ex.: Cobrança sob Faturamento).
    * Grupo sem nenhum filho liberado é ocultado.
    */
   filterSidebarItems<

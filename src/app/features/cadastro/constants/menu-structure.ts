@@ -75,7 +75,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
         route: FATURAMENTO_ROUTE,
         children: [
           {
-            id: 'sub-faturamento-configuracao',
+            id: 'sub-faturamento-cobranca',
             label: FATURAMENTO_CONFIG_LABEL,
             route: FATURAMENTO_CONFIG_ROUTE,
           },

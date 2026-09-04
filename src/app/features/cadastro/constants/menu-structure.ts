@@ -22,6 +22,10 @@ import {
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
 import { AGENDAMENTO_ROUTE, AGENDAMENTOS_ROUTE } from '../../agendamento/agendamento-rotas';
+import {
+  ADMINISTRACAO_ROUTE,
+  ADMINISTRACAO_USUARIO_ROUTE,
+} from '../../administracao/administracao-rotas';
 
 export interface MenuSubItem {
   id: string;
@@ -94,10 +98,10 @@ export const MENU_STRUCTURE: MenuNode[] = [
   {
     id: 'menu-administracao',
     label: 'Administração',
-    route: '/app/administracao',
+    route: ADMINISTRACAO_ROUTE,
     icon: 'manage_accounts',
     children: [
-      { id: 'sub-usuario', label: 'Usuário', route: '/app/configuracoes/usuarios' },
+      { id: 'sub-usuario', label: 'Usuário', route: ADMINISTRACAO_USUARIO_ROUTE },
       { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
       { id: 'sub-permissao', label: 'Permissão', route: '/app/gerenciamento/menu' },
     ],

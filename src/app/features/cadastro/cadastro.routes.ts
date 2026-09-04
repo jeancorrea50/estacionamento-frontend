@@ -105,8 +105,8 @@ export const CADASTRO_ROUTES: Routes = [
     path: 'estacionamento/editar/:id',
     redirectTo: `${CADASTRO_ESTACIONAMENTOS_PATH}/editar/:id`,
   },
-  { path: 'acessos', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
-  { path: 'acessos/usuarios', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
+  { path: 'acessos', redirectTo: '/app/administracao/usuario', pathMatch: 'full' },
+  { path: 'acessos/usuarios', redirectTo: '/app/administracao/usuario', pathMatch: 'full' },
   { path: 'acessos/perfis', redirectTo: '/app/gerenciamento/perfil', pathMatch: 'full' },
   { path: 'acessos/permissoes', redirectTo: '/app/gerenciamento/menu', pathMatch: 'full' },
 ];

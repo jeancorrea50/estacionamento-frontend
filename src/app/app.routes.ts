@@ -18,6 +18,7 @@ import {
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { AGENDAMENTO_ROUTES } from './features/agendamento/agendamento.routes';
+import { ADMINISTRACAO_ROUTES } from './features/administracao/administracao.routes';
 import { authGuard } from './core/guards/auth.guard';
 import { redirectAuthenticatedToAppGuard } from './core/guards/redirect-authenticated.guard';
 import { routeAccessGuard } from './core/guards/route-access.guard';
@@ -85,6 +86,11 @@ export const routes: Routes = [
 				path: 'agendamento',
 				children: AGENDAMENTO_ROUTES,
 			},
+			// 5c. ADMINISTRAÇÃO
+			{
+				path: 'administracao',
+				children: ADMINISTRACAO_ROUTES,
+			},
 			// Legado: /app/faturamento → /app/financeiro/faturamento
 			{
 				path: 'faturamento',
@@ -136,10 +142,10 @@ export const routes: Routes = [
 				path: 'configuracoes',
 				children: CONFIGURACOES_ROUTES
 			},
-			// Legado / bookmark: /app/usuarios → gestão em Configurações
+			// Legado / bookmark: /app/usuarios → Administração
 			{
 				path: 'usuarios',
-				redirectTo: 'configuracoes/usuarios',
+				redirectTo: 'administracao/usuario',
 				pathMatch: 'full',
 			},
 			// 7. GERENCIAMENTO

@@ -8,7 +8,7 @@
         <p class="page-subtitle">Cadastre e gerencie os dados do estacionamento.</p>
       </div>
       <div class="page-header__actions estacao-page-header__actions">
-        <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamentos">Voltar</a>
+        <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
         @if (stepService.currentStep() === 1 || stepService.currentStep() === 2) {
           <button type="button" class="btn btn-primary" (click)="onHeaderSalvar()">Salvar</button>
         }
@@ -77,7 +77,7 @@
         Buscar
       </button>
       @if (isAdmin) {
-        <a class="est-dash-btn est-dash-btn--primary" routerLink="/app/cadastro/estacionamentos/novo">
+        <a class="est-dash-btn est-dash-btn--primary" routerLink="/app/cadastro/estacionamento/novo">
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
           Novo
         </a>

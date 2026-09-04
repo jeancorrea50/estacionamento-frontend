@@ -64,7 +64,7 @@ export interface RecebimentoResumo {
   quantidadePagamentosParciais: number;
   valorPendente: number;
   quantidadePendentes: number;
-  recebimentosDoDia: number;
+  pagamentosDoDia: number;
 }
 
 export interface RecebimentoPartialDialogData {

@@ -2,7 +2,6 @@ import { Component, OnInit, output, input, computed, signal, inject } from '@ang
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { CADASTRO_ESTACIONAMENTOS_ROUTE } from '../../../features/cadastro/cadastro-rotas';
 import { MenuAdminService } from '../../../features/gerenciamento/services/menu-admin.service';
 import { SessionAccessService } from '../../../core/services/session-access.service';
 
@@ -122,8 +121,6 @@ export class SidebarComponent implements OnInit {
   private isGerenciamentoMenuItem(item: MenuItem): boolean {
     const route = this.normalizeRoute(item.route).toLowerCase();
     if (
-      route === CADASTRO_ESTACIONAMENTOS_ROUTE ||
-      route.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
       route === '/app/cadastro/estacionamento' ||
       route.startsWith('/app/cadastro/estacionamento/')
     ) {

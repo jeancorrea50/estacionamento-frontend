@@ -20,7 +20,7 @@ import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import { FaturaService } from '../../../services/fatura.service';
+import { PagamentoService } from '../../../services/pagamento.service';
 import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoRecebimentosPartialDialogComponent } from './faturamento-recebimentos-partial-dialog.component';
 import type {
@@ -71,7 +71,7 @@ interface RecCalendarioCelula {
 export class FaturamentoRecebimentosComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly themeService = inject(ThemeService);
-  private readonly api = inject(FaturaService);
+  private readonly api = inject(PagamentoService);
   private readonly snack = inject(MatSnackBar);
 
   readonly items = signal<RecebimentoListaItem[]>([]);
@@ -81,7 +81,7 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     quantidadePagamentosParciais: 0,
     valorPendente: 0,
     quantidadePendentes: 0,
-    recebimentosDoDia: 0
+    pagamentosDoDia: 0
   });
   readonly loading = signal(false);
   readonly totalCountApi = signal(0);
@@ -247,8 +247,8 @@ export class FaturamentoRecebimentosComponent implements OnInit {
   );
   readonly valorPendenteFormatado = computed(() => this.formatCurrency(this.resumo().valorPendente));
   readonly quantidadePendentes = computed(() => this.resumo().quantidadePendentes);
-  readonly recebimentosDoDiaFormatado = computed(() =>
-    this.formatCurrency(this.resumo().recebimentosDoDia)
+  readonly pagamentosDoDiaFormatado = computed(() =>
+    this.formatCurrency(this.resumo().pagamentosDoDia)
   );
 
   readonly panelFiltrosAberto = signal(false);
@@ -298,7 +298,7 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     const looksLikeNumero = /^[A-Za-z0-9._\-\/]+$/.test(q) && /\d/.test(q) && !/\s/.test(q);
 
     this.api
-      .listarRecebimentos({
+      .listar({
         numeroPagina: 1,
         tamanhoPagina: 200,
         dataInicial: this.toIsoDate(this.periodoDataInicio()),
@@ -323,10 +323,10 @@ export class FaturamentoRecebimentosComponent implements OnInit {
             quantidadePagamentosParciais: 0,
             valorPendente: 0,
             quantidadePendentes: 0,
-            recebimentosDoDia: 0
+            pagamentosDoDia: 0
           });
           this.totalCountApi.set(0);
-          this.snack.open(this.mensagemErro(err, 'Falha ao carregar recebimentos.'), 'Fechar', {
+          this.snack.open(this.mensagemErro(err, 'Falha ao carregar pagamentos.'), 'Fechar', {
             duration: 5500
           });
         }

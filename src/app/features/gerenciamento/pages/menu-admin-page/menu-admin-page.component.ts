@@ -214,11 +214,6 @@ export class MenuAdminPageComponent implements OnInit {
     const id = this.menuEditId();
     const icone = this.menuFormIcon.trim() || 'menu';
     const rota = this.normalizeMenuModuleRoute(this.menuFormRota, nome);
-    const spaError = getSpaRouteValidationMessage(rota);
-    if (spaError) {
-      this.toast.error(spaError);
-      return;
-    }
 
     if (id == null) {
       const dto: MenuCreateInput = {

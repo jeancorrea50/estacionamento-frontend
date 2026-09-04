@@ -21,7 +21,6 @@ import {
 } from 'rxjs';
 import { startWith } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
-import { CADASTRO_ESTACIONAMENTOS_ROUTE } from '../../cadastro-rotas';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -1100,7 +1099,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
           if (criacaoComSucesso && res?.id != null) {
             this.id = res.id;
             this.form.patchValue({ id: res.id }, { emitEvent: false });
-            this.router.navigate([`${CADASTRO_ESTACIONAMENTOS_ROUTE}/editar`, res.id], {
+            this.router.navigate(['/app/cadastro/estacionamento/editar', res.id], {
               replaceUrl: true,
               queryParams: this.resolverCodExportacaoConsulta()
                 ? { codExportacao: this.resolverCodExportacaoConsulta() }
@@ -1139,7 +1138,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
           }
         } else {
           this.toast.success(eraCriacao ? 'Estacionamento criado com sucesso.' : 'Estacionamento atualizado com sucesso.');
-          this.router.navigate([CADASTRO_ESTACIONAMENTOS_ROUTE]);
+          this.router.navigate(['/app/cadastro/estacionamento']);
         }
       },
       error: (err: unknown) => {
@@ -1319,7 +1318,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   cancelar(): void {
     this.stepService.reset();
-    this.router.navigate([CADASTRO_ESTACIONAMENTOS_ROUTE]);
+    this.router.navigate(['/app/cadastro/estacionamento']);
   }
 
   proximoStep(): void {

@@ -223,55 +223,6 @@ export interface FaturaInadimplentesOutput {
   };
 }
 
-/** GET `/api/financeiro/Fatura/recebimentos` — query. */
-export interface FaturaRecebimentosFilter {
-  transportadoraId?: number;
-  status?: StatusFatura;
-  formaPagamento?: ModalidadeRecebimento;
-  numero?: string;
-  descricao?: string;
-  dataInicial?: string;
-  dataFinal?: string;
-  numeroPagina: number;
-  tamanhoPagina: number;
-  propriedade?: string;
-  sort?: string;
-}
-
-export interface ResumoRecebimentosOutput {
-  totalRecebidoPeriodo: number;
-  pagamentosParciais: number;
-  quantidadePagamentosParciais: number;
-  valorPendente: number;
-  quantidadePendentes: number;
-  recebimentosDoDia: number;
-}
-
-export interface FaturaRecebimentoItemOutput {
-  id: number;
-  numero: string;
-  transportadoraId: number;
-  transportadoraNome: string;
-  valorTotal: number;
-  valorRecebido: number;
-  saldoRestante: number;
-  dataPagamento: string | null;
-  formaPagamento: ModalidadeRecebimento | null;
-  tipoFatura: TipoFatura;
-  status: StatusFatura;
-  comprovante: string | null;
-}
-
-export interface FaturaRecebimentosOutput {
-  resumo: ResumoRecebimentosOutput;
-  itens: {
-    items: FaturaRecebimentoItemOutput[];
-    totalCount: number;
-    numeroPagina: number;
-    tamanhoPagina: number;
-  };
-}
-
 /** GET `/api/financeiro/Fatura/fechamentos` — query. */
 export enum SituacaoFechamento {
   ProntoParaFaturar = 1,

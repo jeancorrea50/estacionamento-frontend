@@ -10,10 +10,8 @@ import {
   mapRawFechamentosOutput,
   mapRawInadimplentesOutput,
   mapRawOutput,
-  mapRawRecebimentosOutput,
   mapRawSearchItem,
   mapRawVisaoGeral,
-  mapRecebimentoItemToLista,
   mapSearchToListaItem,
   pickNumber,
   unwrapResult
@@ -28,8 +26,6 @@ import type {
   FaturaPagedResult,
   FaturaPostInput,
   FaturaPutInput,
-  FaturaRecebimentosFilter,
-  FaturaRecebimentosOutput,
   FaturaSearchOutput,
   FaturaVisaoGeralOutput
 } from '../models/fatura.models';
@@ -42,10 +38,6 @@ import type {
   InadimplenciaListaItem,
   InadimplenciaResumo
 } from '../pages/faturamento-page/inadimplencia/faturamento-inadimplencia.types';
-import type {
-  RecebimentoListaItem,
-  RecebimentoResumo
-} from '../pages/faturamento-page/recebimentos/faturamento-recebimentos.types';
 
 const API = `${environment.API_BASE_URL}/financeiro/Fatura`;
 
@@ -149,31 +141,6 @@ export class FaturaService {
     );
   }
 
-  /** GET `/api/financeiro/Fatura/recebimentos` — lista + resumo do dashboard. */
-  buscarRecebimentos(filtro: FaturaRecebimentosFilter): Observable<FaturaRecebimentosOutput> {
-    return this.http
-      .get<unknown>(`${API}/recebimentos`, { params: this.buildRecebimentosParams(filtro) })
-      .pipe(map((body) => mapRawRecebimentosOutput(body, filtro.numeroPagina, filtro.tamanhoPagina)));
-  }
-
-  listarRecebimentos(filtro: FaturaRecebimentosFilter): Observable<{
-    resumo: RecebimentoResumo;
-    items: RecebimentoListaItem[];
-    totalCount: number;
-    numeroPagina: number;
-    tamanhoPagina: number;
-  }> {
-    return this.buscarRecebimentos(filtro).pipe(
-      map((page) => ({
-        resumo: page.resumo,
-        items: page.itens.items.map((dto) => mapRecebimentoItemToLista(dto)),
-        totalCount: page.itens.totalCount,
-        numeroPagina: page.itens.numeroPagina,
-        tamanhoPagina: page.itens.tamanhoPagina
-      }))
-    );
-  }
-
   /** GET `/api/financeiro/Fatura/fechamentos` — lista + resumo do dashboard. */
   buscarFechamentos(filtro: FaturaFechamentosFilter): Observable<FaturaFechamentosOutput> {
     return this.http
@@ -235,29 +202,6 @@ export class FaturaService {
 
     if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
       params = params.set('TransportadoraId', String(filtro.transportadoraId));
-    }
-    if (filtro.numero?.trim()) params = params.set('Numero', filtro.numero.trim());
-    if (filtro.descricao?.trim()) params = params.set('Descricao', filtro.descricao.trim());
-    if (filtro.dataInicial) params = params.set('DataInicial', filtro.dataInicial);
-    if (filtro.dataFinal) params = params.set('DataFinal', filtro.dataFinal);
-    if (filtro.propriedade?.trim()) params = params.set('Propriedade', filtro.propriedade.trim());
-    if (filtro.sort?.trim()) params = params.set('Sort', filtro.sort.trim());
-    return params;
-  }
-
-  private buildRecebimentosParams(filtro: FaturaRecebimentosFilter): HttpParams {
-    let params = new HttpParams()
-      .set('NumeroPagina', String(filtro.numeroPagina))
-      .set('TamanhoPagina', String(filtro.tamanhoPagina));
-
-    if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
-      params = params.set('TransportadoraId', String(filtro.transportadoraId));
-    }
-    if (typeof filtro.status === 'number') {
-      params = params.set('Status', String(filtro.status));
-    }
-    if (typeof filtro.formaPagamento === 'number') {
-      params = params.set('FormaPagamento', String(filtro.formaPagamento));
     }
     if (filtro.numero?.trim()) params = params.set('Numero', filtro.numero.trim());
     if (filtro.descricao?.trim()) params = params.set('Descricao', filtro.descricao.trim());

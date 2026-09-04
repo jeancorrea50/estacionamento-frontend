@@ -13,7 +13,6 @@ import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { CADASTRO_ESTACIONAMENTOS_ROUTE } from '../../cadastro-rotas';
 import { AuthService } from '../../../../core/services/auth.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
@@ -43,8 +42,6 @@ type EstacionamentoListaSortCol =
   styleUrls: ['./estacionamento-list.component.scss'],
 })
 export class EstacionamentoListComponent {
-  protected readonly estacionamentosRoute = CADASTRO_ESTACIONAMENTOS_ROUTE;
-
   private EstacionamentoService = inject(EstacionamentoService);
   /** Exposto para o template: `trigger() === 0` = ainda não houve clique em Buscar. */
   readonly toolbar = inject(EstacionamentoToolbarService);
@@ -275,7 +272,7 @@ export class EstacionamentoListComponent {
     });
     ref.afterClosed().subscribe((result) => {
       if (result === 'edit') {
-        void this.router.navigate([`${CADASTRO_ESTACIONAMENTOS_ROUTE}/editar`, item.id], {
+        void this.router.navigate(['/app/cadastro/estacionamento/editar', item.id], {
           queryParams: this.queryEditar(item)
         });
       }

@@ -102,7 +102,6 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'manage_accounts',
     children: [
       { id: 'sub-usuario', label: 'Usuário', route: ADMINISTRACAO_USUARIO_ROUTE },
-      { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
       { id: 'sub-permissao', label: 'Permissão', route: '/app/gerenciamento/menu' },
     ],
   },
@@ -116,6 +115,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
       { id: 'sub-banco-dados', label: 'Banco de dado', route: '/app/gerenciamento/bancoDados' },
       { id: 'sub-estacionamento', label: 'Estacionamento', route: CADASTRO_ESTACIONAMENTOS_ROUTE },
       { id: 'sub-horario', label: 'Horário', route: '/app/configuracoes/horario' },
+      { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
     ],
   },
   {

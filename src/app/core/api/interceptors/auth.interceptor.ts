@@ -35,6 +35,8 @@ function readSessionEstacionamento(): SessionEstacionamento | null {
     return {
       id: Math.trunc(id),
       nome: typeof parsed.nome === 'string' ? parsed.nome : null,
+      razaoSocial: typeof parsed.razaoSocial === 'string' ? parsed.razaoSocial : null,
+      cnpj: typeof parsed.cnpj === 'string' ? parsed.cnpj : null,
       codExportacao: typeof parsed.codExportacao === 'string' ? parsed.codExportacao : null,
     };
   } catch {

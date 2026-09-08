@@ -158,17 +158,28 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
     }
     const opt = this.opcoes().find((o) => o.id === id);
     this.saving.set(true);
-    this.auth.setSessionEstacionamento({
-      id,
-      nome:
-        (opt?.fantasia ?? opt?.razaoSocial ?? opt?.nome ?? opt?.label?.split(' — ')[0] ?? '').trim() ||
-        `Estacionamento #${id}`,
-      razaoSocial: opt?.razaoSocial?.trim() || opt?.nome?.trim() || null,
-      cnpj: opt?.cnpj?.trim() || null,
-      codExportacao: opt?.codExportacao?.trim() || null,
-    });
-    this.saving.set(false);
-    this.selected.emit(id);
+    this.auth
+      .selecionarEstacionamentoSessao({
+        estacionamentoId: id,
+        codExportacao: opt?.codExportacao?.trim() || null,
+        nome: opt?.fantasia ?? opt?.nome ?? null,
+        razaoSocial: opt?.razaoSocial ?? null,
+        cnpj: opt?.cnpj ?? null,
+      })
+      .subscribe({
+        next: (res) => {
+          this.saving.set(false);
+          if (!res.success) {
+            this.toast.error(res.message || 'Não foi possível aplicar o estacionamento no backend.');
+            return;
+          }
+          this.selected.emit(id);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.toast.error('Não foi possível aplicar o estacionamento no backend.');
+        },
+      });
   }
 
   trackById(_: number, opt: LookupOption): number {

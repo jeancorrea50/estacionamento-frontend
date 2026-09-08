@@ -117,13 +117,30 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   onEstacionamentoSelected(): void {
     this.showEstacionamentoModal.set(false);
     this.refreshSessionEstacionamentoLabel();
+    // Recarrega a rota atual para as APIs usarem o novo EmpresaId/CodExportacao do JWT.
+    const url = this.router.url;
+    void this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+      void this.router.navigateByUrl(url);
+    });
   }
 
   trocarEstacionamento(): void {
     if (!this.authService.isAdmin()) return;
-    this.authService.clearSessionEstacionamento();
-    this.refreshSessionEstacionamentoLabel();
-    this.showEstacionamentoModal.set(true);
+    this.authService.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
+      next: (res) => {
+        if (!res.success) {
+          // Mesmo com falha na API, limpa sessão local para reabrir o modal.
+          this.authService.clearSessionEstacionamento();
+        }
+        this.refreshSessionEstacionamentoLabel();
+        this.showEstacionamentoModal.set(true);
+      },
+      error: () => {
+        this.authService.clearSessionEstacionamento();
+        this.refreshSessionEstacionamentoLabel();
+        this.showEstacionamentoModal.set(true);
+      },
+    });
   }
 
   private refreshSessionEstacionamentoLabel(): void {

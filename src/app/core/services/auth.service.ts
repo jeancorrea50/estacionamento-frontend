@@ -484,6 +484,100 @@ export class AuthService {
     }
   }
 
+  /**
+   * Admin: pede novo JWT com EmpresaId/CodExportacao do pátio (ou limpa).
+   * Atualiza token + sessionStorage para o CurrentUser do backend refletir a seleção.
+   */
+  selecionarEstacionamentoSessao(input: {
+    estacionamentoId?: number | null;
+    codExportacao?: string | null;
+    limpar?: boolean;
+    nome?: string | null;
+    razaoSocial?: string | null;
+    cnpj?: string | null;
+  }): Observable<{ success: boolean; message?: string }> {
+    const url = `${environment.API_BASE_URL}/auth/Usuario/selecionar-estacionamento`;
+    const body = {
+      estacionamentoId: input.limpar ? null : input.estacionamentoId ?? null,
+      codExportacao: input.limpar ? null : input.codExportacao?.trim() || null,
+      limpar: !!input.limpar,
+    };
+
+    return this.http.post<unknown>(url, body).pipe(
+      map((res) => {
+        const root =
+          res && typeof res === 'object'
+            ? (mergeServiceResultToRoot(res as Record<string, unknown>) as Record<string, unknown>)
+            : null;
+        if (!root) {
+          return { success: false, message: 'Resposta inválida ao selecionar estacionamento.' };
+        }
+
+        const fail = readLoginServiceFailure(root as LoginResponse);
+        if (fail) return fail;
+
+        const token = extractTokenFromLoginBody(root as LoginResponse);
+        if (!token) {
+          return { success: false, message: 'API não retornou novo token da sessão.' };
+        }
+
+        this.applyAccessToken(token);
+
+        if (input.limpar) {
+          this.clearSessionEstacionamento();
+          return { success: true };
+        }
+
+        const estacionamentoId =
+          Number(root['estacionamentoId'] ?? root['EstacionamentoId'] ?? input.estacionamentoId) || 0;
+        const codExportacao = String(
+          root['codExportacao'] ?? root['CodExportacao'] ?? input.codExportacao ?? ''
+        ).trim();
+        const razaoSocial = String(
+          root['nomeRazaoSocial'] ?? root['NomeRazaoSocial'] ?? input.razaoSocial ?? ''
+        ).trim();
+        const fantasia = String(root['fantasia'] ?? root['Fantasia'] ?? input.nome ?? '').trim();
+        const cnpj = String(root['cnpj'] ?? root['Cnpj'] ?? input.cnpj ?? '').trim();
+
+        if (estacionamentoId > 0) {
+          this.setSessionEstacionamento({
+            id: estacionamentoId,
+            nome: fantasia || razaoSocial || `Estacionamento #${estacionamentoId}`,
+            razaoSocial: razaoSocial || null,
+            cnpj: cnpj || null,
+            codExportacao: codExportacao || null,
+          });
+        }
+
+        return { success: true };
+      }),
+      catchError((err: unknown) => {
+        const message = this.getLoginErrorMessage(err);
+        return of({ success: false, message });
+      })
+    );
+  }
+
+  /** Substitui o Bearer atual e espelha EmpresaId no loggedUser. */
+  private applyAccessToken(token: string): void {
+    const normalized = normalizeBearerValue(token);
+    localStorage.setItem(this.TOKEN_KEY, normalized);
+
+    const payload = decodeJwtPayload(normalized);
+    const user = this.getLoggedUser();
+    if (user && payload) {
+      const empresaId = readEmpresaIdClaim(payload);
+      if (empresaId && empresaId > 0) {
+        user.empresaId = empresaId;
+      } else if (this.isAdmin()) {
+        delete user.empresaId;
+      }
+      localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
+    }
+
+    this.scheduleSessionExpiryWatch();
+  }
+
   isEstacionamentoRole(): boolean {
     const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
     return perfil === 'estacionamento';

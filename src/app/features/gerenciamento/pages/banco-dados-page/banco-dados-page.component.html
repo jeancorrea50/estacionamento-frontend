@@ -1,5 +1,8 @@
 <div class="tab-content">
   <div class="tab-content__actions">
+    <button type="button" class="btn btn-secondary" [disabled]="migrandoTodos()" (click)="migrarTodos()">
+      {{ migrandoTodos() ? 'Migrando...' : 'Aplicar migrations (todos)' }}
+    </button>
     <button type="button" class="btn btn-primary" (click)="openNovo()">Nova conexão</button>
   </div>
 
@@ -45,6 +48,15 @@
                   </button>
                   <button type="button" class="btn btn-secondary btn--sm" (click)="openMigrations(item)">
                     Migrations
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--sm"
+                    [disabled]="item.tipoBanco !== 1 || migrandoId() === item.id"
+                    [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : 'Aplicar migrations pendentes'"
+                    (click)="migrarConexao(item)"
+                  >
+                    {{ migrandoId() === item.id ? 'Migrando...' : 'Migrar' }}
                   </button>
                   <button
                     type="button"
@@ -582,6 +594,14 @@
         }
       </div>
       <div class="modal-footer modal-footer--bar">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!conexaoMigrations() || migrandoId() === conexaoMigrations()!.id"
+          (click)="migrarConexao(conexaoMigrations()!)"
+        >
+          {{ migrandoId() === conexaoMigrations()?.id ? 'Migrando...' : 'Aplicar pendentes' }}
+        </button>
         <button type="button" class="btn btn-secondary" (click)="closeModalMigrations()">Fechar</button>
       </div>
     </div>

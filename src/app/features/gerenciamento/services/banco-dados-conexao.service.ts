@@ -212,6 +212,42 @@ export class BancoDadosConexaoService {
     );
   }
 
+  /** POST /api/BancoDadosConexao/{id}/migrar — aplica migrations pendentes do Gts neste perfil. */
+  migrar(id: number): Observable<{ sucesso: boolean; mensagem?: string; data?: unknown }> {
+    return this.http.post<unknown>(`${API}/${id}/migrar`, {}).pipe(
+      map((body) => {
+        if (!body || typeof body !== 'object') {
+          return { sucesso: false, mensagem: 'Resposta inválida.' };
+        }
+        const o = mergeServiceResultToRoot(body as Record<string, unknown>);
+        return {
+          sucesso: Boolean(o['sucesso'] ?? o['Sucesso'] ?? true),
+          mensagem: String(o['mensagem'] ?? o['Mensagem'] ?? '').trim() || undefined,
+          data: o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'],
+        };
+      })
+    );
+  }
+
+  /** POST /api/BancoDadosConexao/migrar-todos — aplica pendências em todos os perfis ativos. */
+  migrarTodos(ambiente?: AmbienteBancoDados | null): Observable<{ sucesso: boolean; mensagem?: string; data?: unknown }> {
+    let params = new HttpParams();
+    if (ambiente != null) params = params.set('ambiente', String(ambiente));
+    return this.http.post<unknown>(`${API}/migrar-todos`, {}, { params }).pipe(
+      map((body) => {
+        if (!body || typeof body !== 'object') {
+          return { sucesso: false, mensagem: 'Resposta inválida.' };
+        }
+        const o = mergeServiceResultToRoot(body as Record<string, unknown>);
+        return {
+          sucesso: Boolean(o['sucesso'] ?? o['Sucesso'] ?? true),
+          mensagem: String(o['mensagem'] ?? o['Mensagem'] ?? '').trim() || undefined,
+          data: o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'],
+        };
+      })
+    );
+  }
+
   /** POST /api/BancoDadosConexao/{id}/excluir — enfileira DROP (202). Só Dev/Homolog no backend. */
   excluir(id: number): Observable<ExcluirBancoEnfileiradoResult> {
     return this.http.post<unknown>(`${API}/${id}/excluir`, {}).pipe(

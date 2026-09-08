@@ -35,7 +35,22 @@
             <div class="user-access-panel__main">
               <span class="user-access-panel__name">{{ loggedUsername() }}</span>
               <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
+              @if (sessionEstacionamentoLabel()) {
+                <span class="user-access-panel__estac" title="Estacionamento da sessão">
+                  {{ sessionEstacionamentoLabel() }}
+                </span>
+              }
             </div>
+            @if (sessionEstacionamentoLabel()) {
+              <button
+                type="button"
+                class="user-access-panel__trocar"
+                (click)="trocarEstacionamento()"
+                title="Trocar estacionamento da sessão"
+              >
+                Trocar pátio
+              </button>
+            }
             @if (hasMultipleContexts()) {
               <label class="user-access-panel__switcher">
                 <span class="user-access-panel__switcher-label">Acessar CNPJ</span>
@@ -78,3 +93,7 @@
     </main>
   </div>
 </div>
+
+@if (showEstacionamentoModal()) {
+  <app-admin-estacionamento-select-modal (selected)="onEstacionamentoSelected()" />
+}

@@ -25,6 +25,7 @@ import type {
 } from 'ng-apexcharts';
 
 import type { ApiError } from '../../../../../core/api/models';
+import { AuthService } from '../../../../../core/services/auth.service';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
 import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
@@ -87,6 +88,7 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
   private readonly transportadoraLookup = inject(TransportadoraLookupService);
   private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
+  private readonly auth = inject(AuthService);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
   });
@@ -587,7 +589,16 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
       error: () => this.transportadorasOpcoes.set([])
     });
     this.estacionamentoLookup.list().subscribe({
-      next: (rows) => this.estacionamentosOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label }))),
+      next: (rows) => {
+        this.estacionamentosOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label })));
+        // Usuário vinculado a um único estacionamento (sem listar API): pré-seleciona o Id da sessão.
+        if (rows.length === 1 && this.estacionamentoFiltro() === 'all') {
+          const sessionId = this.auth.resolveEstacionamentoId();
+          if (sessionId && rows[0].id === sessionId) {
+            this.estacionamentoFiltro.set(sessionId);
+          }
+        }
+      },
       error: () => this.estacionamentosOpcoes.set([])
     });
   }

@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { AUTH_TOKEN_STORAGE_KEY, normalizeBearerValue } from '../../auth/auth-token.storage';
+import { SESSION_ESTACIONAMENTO_KEY, type SessionEstacionamento } from '../../auth/session-estacionamento';
 import { decodeJwtPayload, getJwtStringClaim } from '../../auth/jwt.util';
 
 /** Requisições para APIs externas (ex.: BrasilAPI) não devem receber o token do backend. */
@@ -24,9 +25,26 @@ function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
   );
 }
 
+function readSessionEstacionamento(): SessionEstacionamento | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_ESTACIONAMENTO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SessionEstacionamento;
+    const id = Number(parsed?.id);
+    if (!Number.isFinite(id) || id <= 0) return null;
+    return {
+      id: Math.trunc(id),
+      nome: typeof parsed.nome === 'string' ? parsed.nome : null,
+      codExportacao: typeof parsed.codExportacao === 'string' ? parsed.codExportacao : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Adiciona `Authorization: Bearer <token>` em toda requisição HTTP (exceto APIs externas),
- * usando o valor gravado no login em {@link AUTH_TOKEN_STORAGE_KEY}.
+ * Adiciona `Authorization: Bearer <token>` e headers multi-tenant.
+ * Preferência: estacionamento de sessão (Admin) → claims do JWT.
  */
 export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
   if (isExternalApi(req) || isPublicAuthUsuarioRoute(req)) return next(req);
@@ -45,17 +63,19 @@ export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) 
 
   if (token) {
     const payload = decodeJwtPayload(token);
-    const codExportacao = payload
-      ? getJwtStringClaim(payload, 'CodExportacao', 'codExportacao')
-      : null;
-    const empresaId = payload
-      ? getJwtStringClaim(payload, 'EmpresaId', 'empresaId')
-      : null;
+    const session = isPlatformBrowser(platformId) ? readSessionEstacionamento() : null;
+    const codExportacao =
+      session?.codExportacao?.trim() ||
+      (payload ? getJwtStringClaim(payload, 'CodExportacao', 'codExportacao') : null);
+    const empresaId =
+      (session?.id && session.id > 0 ? String(session.id) : null) ||
+      (payload ? getJwtStringClaim(payload, 'EmpresaId', 'empresaId') : null);
+
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
     };
     if (codExportacao) headers['X-Cod-Exportacao'] = codExportacao;
-    if (empresaId) headers['X-Empresa-Id'] = empresaId;
+    if (empresaId && empresaId !== '0') headers['X-Empresa-Id'] = empresaId;
     req = req.clone({ setHeaders: headers });
   }
 

@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, timeout, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../core/services/permission-cache.service';
 
 const API_BASE = environment.API_BASE_URL;
 const TRANSPORTADORA = `${API_BASE}/Transportadora`;
@@ -15,13 +17,19 @@ export interface LookupOption {
 
 /**
  * Lookup de Transportadoras (GET /api/Transportadora?...).
+ * Sem claim `transportadora.visualizar` (e não Admin), não chama a API (evita 403 em Faturamento).
  */
 @Injectable({ providedIn: 'root' })
 export class TransportadoraLookupService {
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly permissions = inject(PermissionCacheService);
 
   /** GET /api/Transportadora?NumeroPagina=1&TamanhoPagina=100 */
   list(): Observable<LookupOption[]> {
+    if (!this.canList()) {
+      return of([]);
+    }
     const params = new URLSearchParams();
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '100');
@@ -38,6 +46,9 @@ export class TransportadoraLookupService {
     if (!t) {
       return of([]);
     }
+    if (!this.canList()) {
+      return of([]);
+    }
     const params = new URLSearchParams();
     const digits = t.replace(/\D/g, '');
     if (digits.length >= 8) {
@@ -52,6 +63,10 @@ export class TransportadoraLookupService {
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
     );
+  }
+
+  private canList(): boolean {
+    return this.auth.isAdmin() || this.permissions.has('transportadora.visualizar');
   }
 
   private normalizeToOptions(body: unknown): LookupOption[] {

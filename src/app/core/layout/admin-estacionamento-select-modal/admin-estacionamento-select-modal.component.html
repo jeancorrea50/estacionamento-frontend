@@ -1,0 +1,122 @@
+<div class="aes-overlay" role="presentation">
+  <div
+    class="aes-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="aes-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="aes-modal__header">
+      <div class="aes-modal__badge" aria-hidden="true">
+        <span class="material-symbols-outlined">apartment</span>
+      </div>
+      <div class="aes-modal__titles">
+        <h2 id="aes-title">Escolher estacionamento</h2>
+        <p class="aes-modal__sub">
+          Sessão de administrador. Selecione o pátio para carregar os dados operacionais. A escolha é
+          obrigatória.
+        </p>
+      </div>
+    </header>
+
+    <div class="aes-modal__body">
+      @if (loading()) {
+        <div class="aes-state" role="status">
+          <span class="aes-spinner" aria-hidden="true"></span>
+          <p>Carregando estacionamentos...</p>
+        </div>
+      } @else if (erro()) {
+        <div class="aes-state aes-state--error">
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
+          <p>{{ erro() }}</p>
+          <button type="button" class="aes-btn aes-btn--ghost" (click)="carregar()">
+            Tentar novamente
+          </button>
+        </div>
+      } @else {
+        <div class="aes-search" role="search">
+          <span class="material-symbols-outlined aes-search__icon" aria-hidden="true">search</span>
+          <input
+            #searchInput
+            class="aes-search__input"
+            type="search"
+            [ngModel]="filtro()"
+            (ngModelChange)="onFiltroChange($event)"
+            (keydown)="onListaKeydown($event)"
+            placeholder="Buscar por código de exportação, nome, CNPJ ou id..."
+            autocomplete="off"
+            aria-label="Pesquisar estacionamento"
+          />
+          @if (filtro()) {
+            <button type="button" class="aes-search__clear" (click)="limparFiltro()" aria-label="Limpar busca">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          }
+        </div>
+
+        <div class="aes-hints" aria-hidden="true">
+          <span class="aes-chip">Código exportação</span>
+          <span class="aes-chip">Nome</span>
+          <span class="aes-chip">CNPJ</span>
+          <span class="aes-chip">Id</span>
+        </div>
+
+        <div class="aes-meta">
+          <span>
+            {{ opcoesFiltradas().length }}
+            {{ opcoesFiltradas().length === 1 ? 'resultado' : 'resultados' }}
+          </span>
+          @if (selectedOption(); as sel) {
+            <span class="aes-meta__sel">Selecionado: {{ sel.nome || sel.label }}</span>
+          }
+        </div>
+
+        <ul class="aes-list" role="listbox" aria-label="Estacionamentos" (keydown)="onListaKeydown($event)">
+          @for (o of opcoesFiltradas(); track trackById($index, o); let i = $index) {
+            <li>
+              <button
+                type="button"
+                class="aes-item"
+                role="option"
+                [class.aes-item--selected]="selectedId() === o.id"
+                [class.aes-item--active]="highlightIndex() === i"
+                [attr.aria-selected]="selectedId() === o.id"
+                (click)="selecionar(o)"
+                (dblclick)="selecionarEConfirmar(o)"
+              >
+                <div class="aes-item__main">
+                  <span class="aes-item__name">{{ o.nome || o.label }}</span>
+                  <span class="aes-item__cnpj">{{ formatCnpj(o.cnpj) }}</span>
+                </div>
+                <div class="aes-item__side">
+                  <span class="aes-item__cod-label">Cód. exportação</span>
+                  <code class="aes-item__cod" [attr.title]="o.codExportacao || ''">
+                    {{ shortCod(o.codExportacao) }}
+                  </code>
+                  <span class="aes-item__id">#{{ o.id }}</span>
+                </div>
+                @if (selectedId() === o.id) {
+                  <span class="material-symbols-outlined aes-item__check" aria-hidden="true">check_circle</span>
+                }
+              </button>
+            </li>
+          } @empty {
+            <li class="aes-empty">Nenhum estacionamento corresponde à busca.</li>
+          }
+        </ul>
+      }
+    </div>
+
+    <footer class="aes-modal__footer">
+      <p class="aes-tip">Dica: digite o GUID do código de exportação para achar rápido. Enter confirma.</p>
+      <button
+        type="button"
+        class="aes-btn aes-btn--primary"
+        [disabled]="loading() || saving() || !selectedId()"
+        (click)="confirmar()"
+      >
+        {{ saving() ? 'Confirmando...' : 'Continuar neste pátio' }}
+      </button>
+    </footer>
+  </div>
+</div>

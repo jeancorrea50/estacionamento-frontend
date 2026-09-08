@@ -48,6 +48,8 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   readonly salvandoVinculo = signal(false);
   readonly transferindo = signal(false);
   readonly excluindoId = signal<number | null>(null);
+  readonly migrandoId = signal<number | null>(null);
+  readonly migrandoTodos = signal(false);
   readonly lista = signal<BancoDadosConexao[]>([]);
   readonly opcoes = signal<BancoDadosConexaoOpcoes | null>(null);
   readonly catalogoEstacionamentos = signal<EstacionamentoSelect[]>([]);
@@ -693,6 +695,57 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   /** Exclusão física só para Desenvolvimento (1) ou Homologação (2). */
   podeExcluirBanco(item: BancoDadosConexao): boolean {
     return item.ambiente === 1 || item.ambiente === 2;
+  }
+
+  migrarConexao(item: BancoDadosConexao): void {
+    if (!item?.id || item.tipoBanco !== 1) {
+      this.toast.error('Migrations disponíveis apenas para SQL Server.');
+      return;
+    }
+
+    this.migrandoId.set(item.id);
+    this.api
+      .migrar(item.id)
+      .pipe(finalize(() => this.migrandoId.set(null)))
+      .subscribe({
+        next: (r) => {
+          if (r?.sucesso === false) {
+            this.toast.error(r.mensagem || 'Falha ao aplicar migrations.');
+            return;
+          }
+          this.toast.success(r?.mensagem || 'Migrations aplicadas.');
+          this.carregar();
+        },
+        error: (err: ApiError) => {
+          this.toast.error(err?.message ?? 'Não foi possível aplicar migrations.');
+        },
+      });
+  }
+
+  migrarTodos(): void {
+    const ok = window.confirm(
+      'Aplicar migrations pendentes do Gts em todos os perfis ativos (SQL Server)?\n\n' +
+        'Pode levar alguns minutos conforme a quantidade de bancos.'
+    );
+    if (!ok) return;
+
+    this.migrandoTodos.set(true);
+    this.api
+      .migrarTodos()
+      .pipe(finalize(() => this.migrandoTodos.set(false)))
+      .subscribe({
+        next: (r) => {
+          if (r?.sucesso === false) {
+            this.toast.error(r.mensagem || 'Falha ao migrar perfis.');
+            return;
+          }
+          this.toast.success(r?.mensagem || 'Migrations aplicadas nos perfis.');
+          this.carregar();
+        },
+        error: (err: ApiError) => {
+          this.toast.error(err?.message ?? 'Não foi possível migrar todos os perfis.');
+        },
+      });
   }
 
   excluirBanco(item: BancoDadosConexao): void {

@@ -457,3 +457,30 @@
     color: var(--color-text-primary, #0a3890);
   }
 }
+
+.user-access-panel__estac {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--primary, #60a5fa);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-access-panel__trocar {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface-2, #1e2a45);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.user-access-panel__trocar:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}

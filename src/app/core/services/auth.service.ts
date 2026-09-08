@@ -4,6 +4,10 @@ import { Router } from '@angular/router';
 import { Observable, catchError, map, of } from 'rxjs';
 import { AUTH_TOKEN_STORAGE_KEY, normalizeBearerValue } from '../auth/auth-token.storage';
 import {
+  SESSION_ESTACIONAMENTO_KEY,
+  type SessionEstacionamento,
+} from '../auth/session-estacionamento';
+import {
   decodeJwtPayload,
   extractJwtPermissionKeys,
   getJwtStringClaim,
@@ -21,6 +25,9 @@ import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
 import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
 import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import { ToastService } from '../api/services/toast.service';
+
+export type { SessionEstacionamento } from '../auth/session-estacionamento';
+export { SESSION_ESTACIONAMENTO_KEY } from '../auth/session-estacionamento';
 
 export interface LoginRequest {
   userName: string;
@@ -246,6 +253,12 @@ export class AuthService {
       loggedUser.empresaId = empresaFromBody;
     }
 
+    // Admin não opera com vínculo fixo: limpa EmpresaId e exige seleção de sessão.
+    if (isAdminPerfil(loggedUser.perfil)) {
+      delete loggedUser.empresaId;
+      clearSessionEstacionamentoStorage();
+    }
+
     localStorage.setItem(this.TOKEN_KEY, normalized);
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(loggedUser));
@@ -301,6 +314,7 @@ export class AuthService {
     localStorage.removeItem(this.LOGGED_USER_KEY);
     localStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem('welcomeSeen');
+    clearSessionEstacionamentoStorage();
     this.permissionCache.clear();
     this.sessionAccess.clear();
   }
@@ -378,10 +392,16 @@ export class AuthService {
   }
 
   /**
-   * Estacionamento da sessão: claim JWT `EmpresaId` (mesmo valor que o backend usa no POST Fatura).
-   * Fallback: `loggedUser.empresaId` gravado no login.
+   * Estacionamento da sessão:
+   * - Admin: seleção obrigatória em sessionStorage (não usa vínculo JWT)
+   * - Demais: claim JWT / loggedUser.empresaId
    */
   resolveEstacionamentoId(): number | null {
+    if (this.isAdmin()) {
+      const sessionId = this.getSessionEstacionamento()?.id;
+      return sessionId && sessionId > 0 ? sessionId : null;
+    }
+
     const fromUser = this.getLoggedUser()?.empresaId;
     if (typeof fromUser === 'number' && Number.isFinite(fromUser) && fromUser > 0) {
       return Math.trunc(fromUser);
@@ -394,13 +414,71 @@ export class AuthService {
     return readEmpresaIdClaim(payload);
   }
 
-  /** GUID global do pátio (claim `CodExportacao`). */
+  /** GUID global do pátio (sessão Admin ou claim `CodExportacao`). */
   resolveCodExportacao(): string | null {
+    if (this.isAdmin()) {
+      const fromSession = this.getSessionEstacionamento()?.codExportacao?.trim();
+      if (fromSession) return fromSession;
+    }
+
     const token = this.getAccessToken();
     if (!token) return null;
     const payload = decodeJwtPayload(normalizeBearerValue(token));
     if (!payload) return null;
     return getJwtStringClaim(payload, 'CodExportacao', 'codExportacao');
+  }
+
+  /** Admin logado sem estacionamento de sessão selecionado. */
+  needsEstacionamentoSelection(): boolean {
+    return this.isAdmin() && !this.resolveEstacionamentoId();
+  }
+
+  getSessionEstacionamento(): SessionEstacionamento | null {
+    try {
+      const raw = sessionStorage.getItem(SESSION_ESTACIONAMENTO_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as SessionEstacionamento;
+      const id = Number(parsed?.id);
+      if (!Number.isFinite(id) || id <= 0) return null;
+      return {
+        id: Math.trunc(id),
+        nome: typeof parsed.nome === 'string' ? parsed.nome : null,
+        codExportacao: typeof parsed.codExportacao === 'string' ? parsed.codExportacao : null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  setSessionEstacionamento(value: SessionEstacionamento): void {
+    const id = Number(value?.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new Error('Estacionamento inválido.');
+    }
+    const payload: SessionEstacionamento = {
+      id: Math.trunc(id),
+      nome: value.nome?.trim() || null,
+      codExportacao: value.codExportacao?.trim() || null,
+    };
+    sessionStorage.setItem(SESSION_ESTACIONAMENTO_KEY, JSON.stringify(payload));
+
+    // Espelha em loggedUser para telas que leem empresaId direto.
+    const user = this.getLoggedUser();
+    if (user) {
+      user.empresaId = payload.id;
+      localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
+    }
+  }
+
+  clearSessionEstacionamento(): void {
+    clearSessionEstacionamentoStorage();
+    if (this.isAdmin()) {
+      const user = this.getLoggedUser();
+      if (user) {
+        delete user.empresaId;
+        localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
+      }
+    }
   }
 
   isEstacionamentoRole(): boolean {
@@ -430,6 +508,19 @@ export class AuthService {
    */
   markWelcomeAsSeen(): void {
     sessionStorage.setItem('welcomeSeen', 'true');
+  }
+}
+
+function isAdminPerfil(perfil: string | null | undefined): boolean {
+  const p = (perfil ?? '').trim().toLowerCase();
+  return p === 'admin' || p === 'administrator' || p === 'adm';
+}
+
+function clearSessionEstacionamentoStorage(): void {
+  try {
+    sessionStorage.removeItem(SESSION_ESTACIONAMENTO_KEY);
+  } catch {
+    /* ignore */
   }
 }
 

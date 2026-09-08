@@ -9,6 +9,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { SignalrNotificationService } from '../services/signalr-notification.service';
 import { NotificationBellComponent } from './notification-bell/notification-bell.component';
+import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
 
 const MOBILE_BREAKPOINT = 768;
@@ -24,7 +25,15 @@ interface AccessContext {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterModule, SidebarComponent, NotificationBellComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterOutlet,
+    RouterModule,
+    SidebarComponent,
+    NotificationBellComponent,
+    AdminEstacionamentoSelectModalComponent,
+  ],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss']
 })
@@ -36,6 +45,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private notificationHub = inject(SignalrNotificationService);
 
   sidebarCollapsed = false;
+  readonly showEstacionamentoModal = signal(false);
+  readonly sessionEstacionamentoLabel = signal<string | null>(null);
   private persistSidebarCollapsed(): void {
     if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(this.sidebarCollapsed));
@@ -79,9 +90,13 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadLoggedUserContext();
+    this.refreshSessionEstacionamentoLabel();
     this.loadSidebarCollapsed();
     this.checkMobile();
     this.updateFullWidthContent(this.router.url);
+    if (this.authService.needsEstacionamentoSelection()) {
+      this.showEstacionamentoModal.set(true);
+    }
     if (this.authService.isAdmin()) {
       void this.notificationHub.connect();
     }
@@ -91,6 +106,27 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
       this.mobileMenuOpen.set(false);
       this.updateFullWidthContent(e.urlAfterRedirects ?? e.url);
     });
+  }
+
+  onEstacionamentoSelected(): void {
+    this.showEstacionamentoModal.set(false);
+    this.refreshSessionEstacionamentoLabel();
+  }
+
+  trocarEstacionamento(): void {
+    if (!this.authService.isAdmin()) return;
+    this.authService.clearSessionEstacionamento();
+    this.refreshSessionEstacionamentoLabel();
+    this.showEstacionamentoModal.set(true);
+  }
+
+  private refreshSessionEstacionamentoLabel(): void {
+    if (!this.authService.isAdmin()) {
+      this.sessionEstacionamentoLabel.set(null);
+      return;
+    }
+    const session = this.authService.getSessionEstacionamento();
+    this.sessionEstacionamentoLabel.set(session?.nome?.trim() || (session?.id ? `#${session.id}` : null));
   }
 
   private updateFullWidthContent(url: string): void {

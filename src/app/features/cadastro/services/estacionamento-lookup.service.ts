@@ -21,6 +21,9 @@ export interface LookupOption {
   /** Razão social (endpoint: nomeRazaoSocial). */
   razaoSocial?: string | null;
   codExportacao?: string | null;
+  /** Ambiente do perfil de conexão (1=Dev, 2=Hotfix, 3=Produção). */
+  ambiente?: number | null;
+  ambienteDescricao?: string | null;
 }
 
 export interface EstacionamentoListOptions {
@@ -155,6 +158,20 @@ export class EstacionamentoLookupService {
     const nomePrincipal = fantasia || razaoSocial;
     const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? row['documento'] ?? '').trim();
     const codExportacao = String(row['codExportacao'] ?? row['CodExportacao'] ?? '').trim() || null;
+    const ambienteRaw = row['ambiente'] ?? row['Ambiente'];
+    const ambiente =
+      ambienteRaw === null || ambienteRaw === undefined || ambienteRaw === ''
+        ? null
+        : Number(ambienteRaw);
+    const ambienteDescricao =
+      String(row['ambienteDescricao'] ?? row['AmbienteDescricao'] ?? '').trim() ||
+      (ambiente === 1
+        ? 'Desenvolvimento'
+        : ambiente === 2
+          ? 'Hotfix'
+          : ambiente === 3
+            ? 'Produção'
+            : null);
     return {
       id,
       nome: nomePrincipal || null,
@@ -163,6 +180,8 @@ export class EstacionamentoLookupService {
       label: nomePrincipal ? `${nomePrincipal} — ${cnpj || '-'}` : String(id),
       cnpj,
       codExportacao,
+      ambiente: Number.isFinite(ambiente as number) ? (ambiente as number) : null,
+      ambienteDescricao,
     };
   }
 }

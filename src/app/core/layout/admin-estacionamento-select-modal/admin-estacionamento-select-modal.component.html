@@ -59,6 +59,7 @@
           <span class="aes-chip">Fantasia</span>
           <span class="aes-chip">Razão social</span>
           <span class="aes-chip">CNPJ</span>
+          <span class="aes-chip">Ambiente</span>
         </div>
 
         <div class="aes-meta">
@@ -81,6 +82,7 @@
                 <th scope="col" class="aes-th--razao">Razão social</th>
                 <th scope="col" class="aes-th--cnpj">CNPJ</th>
                 <th scope="col" class="aes-th--cod">Cód. exportação</th>
+                <th scope="col" class="aes-th--ambiente">Ambiente</th>
                 <th scope="col" class="aes-table__check" aria-hidden="true"></th>
               </tr>
             </thead>
@@ -103,11 +105,23 @@
                   <td class="aes-cell aes-cell--razao" [attr.title]="o.razaoSocial || ''">
                     {{ displayText(o.razaoSocial) }}
                   </td>
-                  <td class="aes-cell aes-cell--cnpj">{{ formatCnpj(o.cnpj) }}</td>
+                  <td class="aes-cell aes-cell--cnpj" [attr.title]="formatCnpj(o.cnpj)">
+                    {{ formatCnpj(o.cnpj) }}
+                  </td>
                   <td class="aes-cell aes-cell--cod">
                     <code class="aes-cod" [attr.title]="o.codExportacao || ''">
-                      {{ lastCodDigits(o.codExportacao) }}
+                      {{ firstCodDigits(o.codExportacao) }}
                     </code>
+                  </td>
+                  <td class="aes-cell aes-cell--ambiente">
+                    <span
+                      class="aes-ambiente"
+                      [class.aes-ambiente--dev]="o.ambiente === 1"
+                      [class.aes-ambiente--hot]="o.ambiente === 2"
+                      [class.aes-ambiente--prod]="o.ambiente === 3"
+                    >
+                      {{ ambienteLabel(o) }}
+                    </span>
                   </td>
                   <td class="aes-cell aes-cell--check">
                     @if (selectedId() === o.id) {
@@ -117,7 +131,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td class="aes-empty" colspan="5">Nenhum estacionamento corresponde à busca.</td>
+                  <td class="aes-empty" colspan="6">Nenhum estacionamento corresponde à busca.</td>
                 </tr>
               }
             </tbody>

@@ -71,6 +71,8 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
       if (idStr === q || idStr.includes(q)) return true;
       if (qDigits.length >= 3 && cnpj.includes(qDigits)) return true;
       if (cod.includes(qLower) || codCompact.includes(qCompact)) return true;
+      const ambiente = (o.ambienteDescricao ?? '').toLowerCase();
+      if (ambiente && ambiente.includes(qLower)) return true;
       return false;
     });
   });
@@ -197,10 +199,19 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
     return v || '—';
   }
 
-  /** Últimos 10 caracteres do código de exportação. */
-  lastCodDigits(cod: string | null | undefined): string {
+  /** Primeiros 5 caracteres do código de exportação. */
+  firstCodDigits(cod: string | null | undefined): string {
     const c = String(cod ?? '').trim();
     if (!c) return '—';
-    return c.length <= 10 ? c : c.slice(-10);
+    return c.length <= 5 ? c : c.slice(0, 5);
+  }
+
+  ambienteLabel(opt: LookupOption): string {
+    const desc = String(opt.ambienteDescricao ?? '').trim();
+    if (desc) return desc;
+    if (opt.ambiente === 1) return 'Desenvolvimento';
+    if (opt.ambiente === 2) return 'Hotfix';
+    if (opt.ambiente === 3) return 'Produção';
+    return '—';
   }
 }

@@ -163,6 +163,8 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
       nome:
         (opt?.fantasia ?? opt?.razaoSocial ?? opt?.nome ?? opt?.label?.split(' — ')[0] ?? '').trim() ||
         `Estacionamento #${id}`,
+      razaoSocial: opt?.razaoSocial?.trim() || opt?.nome?.trim() || null,
+      cnpj: opt?.cnpj?.trim() || null,
       codExportacao: opt?.codExportacao?.trim() || null,
     });
     this.saving.set(false);

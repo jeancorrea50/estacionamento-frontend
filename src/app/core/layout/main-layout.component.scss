@@ -136,7 +136,7 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  max-width: min(420px, 48vw);
+  max-width: min(480px, 52vw);
   min-height: 40px;
   padding: 6px 10px;
   border: 1px solid rgba(80, 120, 255, 0.22);
@@ -171,6 +171,17 @@
   line-height: 1.2;
   font-weight: 650;
   color: var(--primary, #60a5fa);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-estac-panel__cnpj {
+  font-size: 0.75rem;
+  line-height: 1.15;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #98a2b3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -440,6 +451,14 @@
     box-shadow: none;
   }
 
+  .session-estac-panel__name {
+    color: #93c5fd;
+  }
+
+  .session-estac-panel__cnpj {
+    color: #e2e8f0;
+  }
+
   .session-estac-panel__trocar {
     border-color: var(--dark-border, #363642);
     background: var(--dark-hover, #323240);
@@ -511,6 +530,10 @@
   .session-estac-panel__name,
   .session-estac-panel__icon {
     color: var(--color-primary, #5088d0);
+  }
+
+  .session-estac-panel__cnpj {
+    color: var(--color-text-secondary, var(--text-muted));
   }
 
   .session-estac-panel__trocar {

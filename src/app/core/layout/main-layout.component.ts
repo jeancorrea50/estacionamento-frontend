@@ -46,7 +46,10 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   sidebarCollapsed = false;
   readonly showEstacionamentoModal = signal(false);
-  readonly sessionEstacionamentoLabel = signal<string | null>(null);
+  readonly sessionEstacionamento = signal<{
+    razaoSocial: string;
+    cnpj: string;
+  } | null>(null);
   private persistSidebarCollapsed(): void {
     if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(this.sidebarCollapsed));
@@ -125,11 +128,22 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   private refreshSessionEstacionamentoLabel(): void {
     if (!this.authService.isAdmin()) {
-      this.sessionEstacionamentoLabel.set(null);
+      this.sessionEstacionamento.set(null);
       return;
     }
     const session = this.authService.getSessionEstacionamento();
-    this.sessionEstacionamentoLabel.set(session?.nome?.trim() || (session?.id ? `#${session.id}` : null));
+    if (!session?.id) {
+      this.sessionEstacionamento.set(null);
+      return;
+    }
+    const razaoSocial =
+      session.razaoSocial?.trim() ||
+      session.nome?.trim() ||
+      `#${session.id}`;
+    this.sessionEstacionamento.set({
+      razaoSocial,
+      cnpj: session.cnpj?.trim() || '',
+    });
   }
 
   private updateFullWidthContent(url: string): void {
@@ -346,6 +360,12 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     if (typeof value !== 'string' && typeof value !== 'number') return null;
     const digits = String(value).replace(/\D/g, '');
     return digits.length === 14 ? digits : null;
+  }
+
+  formatCnpjDisplay(value: string | null | undefined): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return 'CNPJ não informado';
+    return this.formatCnpj(raw);
   }
 
   private formatCnpj(value: string): string {

@@ -17,6 +17,9 @@ export interface LookupOption {
   /** Nome / razão social sem CNPJ concatenado. */
   nome?: string | null;
   codExportacao?: string | null;
+  estado?: string | null;
+  cidade?: string | null;
+  bairro?: string | null;
 }
 
 export interface EstacionamentoListOptions {
@@ -143,12 +146,24 @@ export class EstacionamentoLookupService {
     ).trim();
     const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? row['documento'] ?? '').trim();
     const codExportacao = String(row['codExportacao'] ?? row['CodExportacao'] ?? '').trim() || null;
+    const estado =
+      String(row['estado'] ?? row['Estado'] ?? row['estadoCatalogo'] ?? row['EstadoCatalogo'] ?? '').trim() ||
+      null;
+    const cidade =
+      String(row['cidade'] ?? row['Cidade'] ?? row['cidadeCatalogo'] ?? row['CidadeCatalogo'] ?? '').trim() ||
+      null;
+    const bairro =
+      String(row['bairro'] ?? row['Bairro'] ?? row['bairroCatalogo'] ?? row['BairroCatalogo'] ?? '').trim() ||
+      null;
     return {
       id,
       nome: nomeRazao || null,
       label: nomeRazao ? `${nomeRazao} — ${cnpj || '-'}` : String(id),
       cnpj,
       codExportacao,
+      estado,
+      cidade,
+      bairro,
     };
   }
 }

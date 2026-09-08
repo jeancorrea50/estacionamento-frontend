@@ -62,12 +62,16 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
       const cnpj = (o.cnpj ?? '').replace(/\D/g, '');
       const cod = (o.codExportacao ?? '').toLowerCase();
       const codCompact = cod.replace(/[\s\-]/g, '');
+      const estado = (o.estado ?? '').toLowerCase();
+      const cidade = (o.cidade ?? '').toLowerCase();
+      const bairro = (o.bairro ?? '').toLowerCase();
       const idStr = String(o.id);
 
       if (nome.includes(qLower) || label.includes(qLower)) return true;
       if (idStr === q || idStr.includes(q)) return true;
       if (qDigits.length >= 3 && cnpj.includes(qDigits)) return true;
       if (cod.includes(qLower) || codCompact.includes(qCompact)) return true;
+      if (estado.includes(qLower) || cidade.includes(qLower) || bairro.includes(qLower)) return true;
       return false;
     });
   });
@@ -174,10 +178,15 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
     return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   }
 
-  shortCod(cod: string | null | undefined): string {
+  displayText(value: string | null | undefined): string {
+    const v = String(value ?? '').trim();
+    return v || '—';
+  }
+
+  /** Últimos 10 caracteres do código de exportação. */
+  lastCodDigits(cod: string | null | undefined): string {
     const c = String(cod ?? '').trim();
     if (!c) return '—';
-    if (c.length <= 18) return c;
-    return `${c.slice(0, 8)}…${c.slice(-6)}`;
+    return c.length <= 10 ? c : c.slice(-10);
   }
 }

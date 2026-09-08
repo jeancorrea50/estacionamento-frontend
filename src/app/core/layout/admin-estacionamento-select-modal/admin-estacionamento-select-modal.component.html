@@ -43,7 +43,7 @@
             [ngModel]="filtro()"
             (ngModelChange)="onFiltroChange($event)"
             (keydown)="onListaKeydown($event)"
-            placeholder="Buscar por código de exportação, nome, CNPJ ou id..."
+            placeholder="Buscar por código de exportação, nome, CNPJ, cidade..."
             autocomplete="off"
             aria-label="Pesquisar estacionamento"
           />
@@ -58,7 +58,7 @@
           <span class="aes-chip">Código exportação</span>
           <span class="aes-chip">Nome</span>
           <span class="aes-chip">CNPJ</span>
-          <span class="aes-chip">Id</span>
+          <span class="aes-chip">Cidade</span>
         </div>
 
         <div class="aes-meta">
@@ -71,39 +71,58 @@
           }
         </div>
 
-        <ul class="aes-list" role="listbox" aria-label="Estacionamentos" (keydown)="onListaKeydown($event)">
-          @for (o of opcoesFiltradas(); track trackById($index, o); let i = $index) {
-            <li>
-              <button
-                type="button"
-                class="aes-item"
-                role="option"
-                [class.aes-item--selected]="selectedId() === o.id"
-                [class.aes-item--active]="highlightIndex() === i"
-                [attr.aria-selected]="selectedId() === o.id"
-                (click)="selecionar(o)"
-                (dblclick)="selecionarEConfirmar(o)"
-              >
-                <div class="aes-item__main">
-                  <span class="aes-item__name">{{ o.nome || o.label }}</span>
-                  <span class="aes-item__cnpj">{{ formatCnpj(o.cnpj) }}</span>
-                </div>
-                <div class="aes-item__side">
-                  <span class="aes-item__cod-label">Cód. exportação</span>
-                  <code class="aes-item__cod" [attr.title]="o.codExportacao || ''">
-                    {{ shortCod(o.codExportacao) }}
-                  </code>
-                  <span class="aes-item__id">#{{ o.id }}</span>
-                </div>
-                @if (selectedId() === o.id) {
-                  <span class="material-symbols-outlined aes-item__check" aria-hidden="true">check_circle</span>
-                }
-              </button>
-            </li>
-          } @empty {
-            <li class="aes-empty">Nenhum estacionamento corresponde à busca.</li>
-          }
-        </ul>
+        <div class="aes-table-wrap">
+          <table class="aes-table" role="listbox" aria-label="Estacionamentos">
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">CNPJ</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Cidade</th>
+                <th scope="col">Bairro</th>
+                <th scope="col">Cód. exportação</th>
+                <th scope="col" class="aes-table__check" aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (o of opcoesFiltradas(); track trackById($index, o); let i = $index) {
+                <tr
+                  class="aes-row"
+                  role="option"
+                  tabindex="0"
+                  [class.aes-row--selected]="selectedId() === o.id"
+                  [class.aes-row--active]="highlightIndex() === i"
+                  [attr.aria-selected]="selectedId() === o.id"
+                  (click)="selecionar(o)"
+                  (dblclick)="selecionarEConfirmar(o)"
+                  (keydown)="onListaKeydown($event)"
+                >
+                  <td class="aes-cell aes-cell--nome" [attr.title]="o.nome || o.label || ''">
+                    {{ o.nome || o.label || '—' }}
+                  </td>
+                  <td class="aes-cell aes-cell--cnpj">{{ formatCnpj(o.cnpj) }}</td>
+                  <td class="aes-cell">{{ displayText(o.estado) }}</td>
+                  <td class="aes-cell" [attr.title]="o.cidade || ''">{{ displayText(o.cidade) }}</td>
+                  <td class="aes-cell" [attr.title]="o.bairro || ''">{{ displayText(o.bairro) }}</td>
+                  <td class="aes-cell aes-cell--cod">
+                    <code class="aes-cod" [attr.title]="o.codExportacao || ''">
+                      {{ lastCodDigits(o.codExportacao) }}
+                    </code>
+                  </td>
+                  <td class="aes-cell aes-cell--check">
+                    @if (selectedId() === o.id) {
+                      <span class="material-symbols-outlined aes-check" aria-hidden="true">check_circle</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td class="aes-empty" colspan="7">Nenhum estacionamento corresponde à busca.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
     </div>
 

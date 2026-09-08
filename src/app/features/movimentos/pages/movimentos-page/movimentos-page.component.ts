@@ -306,8 +306,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     void this.signalrDashboardService.connect();
     if (this.viewMode() === 'operacao') {
       this.aplicarFiltroResumo('noPatio');
-    } else {
-      this.buscar();
     }
   }
 

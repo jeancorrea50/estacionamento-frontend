@@ -137,6 +137,31 @@ export class FaturaService {
     );
   }
 
+  /**
+   * GET `/api/financeiro/Fatura/transportadora` — lookup para filtros (Fatura.Visualizar).
+   * Mesmo payload do Buscar de Transportadora, sem exigir Transportadora.Visualizar.
+   */
+  buscarTransportadoras(options?: {
+    descricao?: string;
+    cnpj?: string;
+    numeroPagina?: number;
+    tamanhoPagina?: number;
+  }): Observable<Array<{ id: number; label: string; cnpj?: string }>> {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(options?.numeroPagina ?? 1))
+      .set('TamanhoPagina', String(options?.tamanhoPagina ?? 200));
+    if (options?.descricao?.trim()) {
+      params = params.set('Descricao', options.descricao.trim());
+    }
+    if (options?.cnpj?.trim()) {
+      params = params.set('Cnpj', options.cnpj.replace(/\D/g, ''));
+    }
+
+    return this.http.get<unknown>(`${API}/transportadora`, { params }).pipe(
+      map((body) => this.normalizeTransportadoraLookup(body))
+    );
+  }
+
   /** GET `/api/financeiro/Fatura/inadimplentes` — lista + resumo do dashboard. */
   buscarInadimplentes(filtro: FaturaInadimplentesFilter): Observable<FaturaInadimplentesOutput> {
     return this.http
@@ -312,17 +337,7 @@ export class FaturaService {
   private normalizeEstacionamentoLookup(
     body: unknown
   ): Array<{ id: number; label: string; cnpj?: string; nome?: string | null }> {
-    const source = unwrapResult(body);
-    const root = source && typeof source === 'object' ? (source as Record<string, unknown>) : {};
-    const rows =
-      (Array.isArray(root['results']) && (root['results'] as unknown[])) ||
-      (Array.isArray(root['Results']) && (root['Results'] as unknown[])) ||
-      (Array.isArray(root['items']) && (root['items'] as unknown[])) ||
-      (Array.isArray(source) && (source as unknown[])) ||
-      [];
-
-    return rows
-      .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+    return this.extractLookupRows(body)
       .map((row) => {
         const id = Number(row['id'] ?? row['Id']) || 0;
         const nome = String(
@@ -345,5 +360,45 @@ export class FaturaService {
         };
       })
       .filter((row) => row.id > 0);
+  }
+
+  private normalizeTransportadoraLookup(
+    body: unknown
+  ): Array<{ id: number; label: string; cnpj?: string }> {
+    return this.extractLookupRows(body)
+      .map((row) => {
+        const id = Number(row['id'] ?? row['Id']) || 0;
+        const nome = String(
+          row['razaoSocial'] ??
+            row['RazaoSocial'] ??
+            row['nomeRazaoSocial'] ??
+            row['NomeRazaoSocial'] ??
+            row['descricao'] ??
+            row['Descricao'] ??
+            row['descricaoPessoa'] ??
+            row['DescricaoPessoa'] ??
+            ''
+        ).trim();
+        const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? row['documento'] ?? row['Documento'] ?? '').trim();
+        return {
+          id,
+          cnpj,
+          label: nome ? `${nome} — ${cnpj || '-'}` : String(id),
+        };
+      })
+      .filter((row) => row.id > 0);
+  }
+
+  private extractLookupRows(body: unknown): Record<string, unknown>[] {
+    const source = unwrapResult(body);
+    const root = source && typeof source === 'object' ? (source as Record<string, unknown>) : {};
+    const rows =
+      (Array.isArray(root['results']) && (root['results'] as unknown[])) ||
+      (Array.isArray(root['Results']) && (root['Results'] as unknown[])) ||
+      (Array.isArray(root['items']) && (root['items'] as unknown[])) ||
+      (Array.isArray(source) && (source as unknown[])) ||
+      [];
+
+    return rows.filter((row): row is Record<string, unknown> => row != null && typeof row === 'object');
   }
 }

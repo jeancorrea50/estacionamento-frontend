@@ -27,7 +27,6 @@ import type {
 import type { ApiError } from '../../../../../core/api/models';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import { ModalidadeRecebimento } from '../../../models/fatura.models';
 import { emptyVisaoGeral, statusFaturaFromLabel } from '../../../mappers/fatura.mapper';
 import { FaturaService } from '../../../services/fatura.service';
@@ -85,7 +84,6 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
   private readonly nav = inject(FaturamentoNavService);
   private readonly api = inject(FaturaService);
   private readonly snack = inject(MatSnackBar);
-  private readonly transportadoraLookup = inject(TransportadoraLookupService);
   private readonly auth = inject(AuthService);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
@@ -582,7 +580,7 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
   }
 
   private carregarLookups(): void {
-    this.transportadoraLookup.list().subscribe({
+    this.api.buscarTransportadoras().subscribe({
       next: (rows) => this.transportadorasOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label }))),
       error: () => this.transportadorasOpcoes.set([])
     });

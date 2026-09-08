@@ -11,13 +11,13 @@ import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
 import { EstStatusPillEstacionamentoComponent } from '../../../../cadastro/components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
-import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import {
   mapListaItemToPostInput,
   modalidadeBadgeLabel
 } from '../../../mappers/configuracao-cobranca.mapper';
 import { StatusConfiguracaoCobranca } from '../../../models/configuracao-cobranca.models';
 import { ConfiguracaoCobrancaService } from '../../../services/configuracao-cobranca.service';
+import { FaturaService } from '../../../services/fatura.service';
 import type {
   ConfigCobrancaEnvioFiltroId,
   ConfigCobrancaListaItem,
@@ -51,7 +51,7 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
   private readonly api = inject(ConfiguracaoCobrancaService);
-  private readonly transportadoraLookup = inject(TransportadoraLookupService);
+  private readonly faturaApi = inject(FaturaService);
 
   readonly items = signal<ConfigCobrancaListaItem[]>([]);
   readonly loading = signal(false);
@@ -159,8 +159,8 @@ export class FaturamentoConfigCobrancaComponent implements OnInit {
   }
 
   private carregarLookups(): void {
-    this.transportadoraLookup
-      .list()
+    this.faturaApi
+      .buscarTransportadoras()
       .pipe(catchError(() => of([])))
       .subscribe((transportadoras) => {
         this.transportadorasLookup.set(

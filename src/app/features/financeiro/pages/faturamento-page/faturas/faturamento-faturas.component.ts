@@ -15,7 +15,6 @@ import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
-import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import { StatusFatura } from '../../../models/fatura.models';
 import { FaturaService } from '../../../services/fatura.service';
 import type { PeriodoFiltroId } from '../faturamento-visao.types';
@@ -60,7 +59,6 @@ export class FaturamentoFaturasComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly api = inject(FaturaService);
-  private readonly transportadoraLookup = inject(TransportadoraLookupService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -456,8 +454,8 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   private carregarLookups(): void {
-    this.transportadoraLookup
-      .list()
+    this.api
+      .buscarTransportadoras()
       .pipe(catchError(() => of([])))
       .subscribe((list) => {
         this.transportadorasLookup.set(

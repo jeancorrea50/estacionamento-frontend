@@ -27,7 +27,6 @@ import type {
 import type { ApiError } from '../../../../../core/api/models';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
 import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import { ModalidadeRecebimento } from '../../../models/fatura.models';
 import { emptyVisaoGeral, statusFaturaFromLabel } from '../../../mappers/fatura.mapper';
@@ -87,7 +86,6 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
   private readonly api = inject(FaturaService);
   private readonly snack = inject(MatSnackBar);
   private readonly transportadoraLookup = inject(TransportadoraLookupService);
-  private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
   private readonly auth = inject(AuthService);
   private readonly themeConfig = toSignal(this.themeService.theme$, {
     initialValue: this.themeService.getCurrentTheme()
@@ -588,7 +586,7 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
       next: (rows) => this.transportadorasOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label }))),
       error: () => this.transportadorasOpcoes.set([])
     });
-    this.estacionamentoLookup.list().subscribe({
+    this.api.buscarEstacionamentos().subscribe({
       next: (rows) => {
         this.estacionamentosOpcoes.set(rows.map((r) => ({ id: r.id, label: r.label })));
         // Usuário vinculado a um único estacionamento (sem listar API): pré-seleciona o Id da sessão.

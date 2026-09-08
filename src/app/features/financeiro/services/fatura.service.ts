@@ -116,6 +116,27 @@ export class FaturaService {
       .pipe(map((body) => mapRawVisaoGeral(body)));
   }
 
+  /**
+   * GET `/api/financeiro/Fatura/estacionamento` — lookup para filtros (Fatura.Visualizar).
+   * Mesmo payload do Buscar de Estacionamento, sem exigir Estacionamento.Visualizar.
+   */
+  buscarEstacionamentos(options?: {
+    descricao?: string;
+    numeroPagina?: number;
+    tamanhoPagina?: number;
+  }): Observable<Array<{ id: number; label: string; cnpj?: string; nome?: string | null }>> {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(options?.numeroPagina ?? 1))
+      .set('TamanhoPagina', String(options?.tamanhoPagina ?? 200));
+    if (options?.descricao?.trim()) {
+      params = params.set('Descricao', options.descricao.trim());
+    }
+
+    return this.http.get<unknown>(`${API}/estacionamento`, { params }).pipe(
+      map((body) => this.normalizeEstacionamentoLookup(body))
+    );
+  }
+
   /** GET `/api/financeiro/Fatura/inadimplentes` — lista + resumo do dashboard. */
   buscarInadimplentes(filtro: FaturaInadimplentesFilter): Observable<FaturaInadimplentesOutput> {
     return this.http
@@ -286,5 +307,43 @@ export class FaturaService {
     const raw = unwrapResult(body);
     if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null;
     return raw as Record<string, unknown>;
+  }
+
+  private normalizeEstacionamentoLookup(
+    body: unknown
+  ): Array<{ id: number; label: string; cnpj?: string; nome?: string | null }> {
+    const source = unwrapResult(body);
+    const root = source && typeof source === 'object' ? (source as Record<string, unknown>) : {};
+    const rows =
+      (Array.isArray(root['results']) && (root['results'] as unknown[])) ||
+      (Array.isArray(root['Results']) && (root['Results'] as unknown[])) ||
+      (Array.isArray(root['items']) && (root['items'] as unknown[])) ||
+      (Array.isArray(source) && (source as unknown[])) ||
+      [];
+
+    return rows
+      .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+      .map((row) => {
+        const id = Number(row['id'] ?? row['Id']) || 0;
+        const nome = String(
+          row['nomeRazaoSocial'] ??
+            row['NomeRazaoSocial'] ??
+            row['nomeFantasia'] ??
+            row['NomeFantasia'] ??
+            row['descricaoPessoa'] ??
+            row['DescricaoPessoa'] ??
+            row['descricao'] ??
+            row['Descricao'] ??
+            ''
+        ).trim();
+        const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? '').trim();
+        return {
+          id,
+          nome: nome || null,
+          cnpj,
+          label: nome ? `${nome} — ${cnpj || '-'}` : String(id),
+        };
+      })
+      .filter((row) => row.id > 0);
   }
 }

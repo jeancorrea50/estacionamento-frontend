@@ -15,7 +15,6 @@ import { of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
-import { EstacionamentoLookupService } from '../../../../cadastro/services/estacionamento-lookup.service';
 import { TransportadoraLookupService } from '../../../../cadastro/services/transportadora-lookup.service';
 import { StatusFatura } from '../../../models/fatura.models';
 import { FaturaService } from '../../../services/fatura.service';
@@ -62,7 +61,6 @@ export class FaturamentoFaturasComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly api = inject(FaturaService);
   private readonly transportadoraLookup = inject(TransportadoraLookupService);
-  private readonly estacionamentoLookup = inject(EstacionamentoLookupService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -466,8 +464,8 @@ export class FaturamentoFaturasComponent implements OnInit {
           list.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
         );
       });
-    this.estacionamentoLookup
-      .list()
+    this.api
+      .buscarEstacionamentos()
       .pipe(catchError(() => of([])))
       .subscribe((list) => {
         this.estacionamentosLookup.set(

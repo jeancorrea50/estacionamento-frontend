@@ -387,8 +387,7 @@ export class AuthService {
 
   /** True se o perfil da sessão é Admin (claim Role do JWT). */
   isAdmin(): boolean {
-    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
-    return perfil === 'admin' || perfil === 'administrator' || perfil === 'adm';
+    return isAdminPerfil(this.getLoggedUser()?.perfil);
   }
 
   /**
@@ -513,7 +512,47 @@ export class AuthService {
 
 function isAdminPerfil(perfil: string | null | undefined): boolean {
   const p = (perfil ?? '').trim().toLowerCase();
-  return p === 'admin' || p === 'administrator' || p === 'adm';
+  return (
+    p === 'admin' ||
+    p === 'administrator' ||
+    p === 'administrador' ||
+    p === 'adm'
+  );
+}
+
+function collectJwtRoles(payload: Record<string, unknown>): string[] {
+  const keys = [
+    'role',
+    'Role',
+    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+  ];
+  const out: string[] = [];
+  for (const key of keys) {
+    const raw = payload[key];
+    if (typeof raw === 'string' && raw.trim()) {
+      out.push(raw.trim());
+      continue;
+    }
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        if (typeof item === 'string' && item.trim()) out.push(item.trim());
+      }
+    }
+  }
+  return Array.from(new Set(out));
+}
+
+function resolveJwtRole(payload: Record<string, unknown>): string | null {
+  const roles = collectJwtRoles(payload);
+  if (!roles.length) return null;
+
+  // Preferir papel de negócio (JWT pode trazer ["Api","Admin"] na claim Role).
+  const admin = roles.find((r) => isAdminPerfil(r));
+  if (admin) return admin;
+
+  const skip = new Set(['api', 'apiinterna', 'api_interna']);
+  const business = roles.find((r) => !skip.has(r.trim().toLowerCase()));
+  return business ?? roles[0];
 }
 
 function clearSessionEstacionamentoStorage(): void {
@@ -600,8 +639,7 @@ function buildLoggedUserFromJwtClaims(
   const displayName = uniqueName ?? fallbackUsername;
   const perfil = role ?? 'Operador';
 
-  const roleLower = perfil.toLowerCase();
-  const isAdmin = roleLower === 'admin' || roleLower === 'administrator';
+  const isAdmin = isAdminPerfil(perfil);
   const hasConfigInPermissions = permissionKeys.some((k) => /config/i.test(k));
 
   return {
@@ -651,23 +689,6 @@ function readEstacionamentoIdFromLoginBody(res: LoginResponse): number | null {
   if (typeof raw === 'string' && raw.trim()) {
     const n = Number(raw.trim());
     if (Number.isFinite(n) && n > 0) return Math.trunc(n);
-  }
-  return null;
-}
-
-function resolveJwtRole(payload: Record<string, unknown>): string | null {
-  const claimRole =
-    payload['role'] ??
-    payload['Role'] ??
-    payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-  if (typeof claimRole === 'string' && claimRole.trim()) {
-    return claimRole.trim();
-  }
-  if (Array.isArray(claimRole) && claimRole.length > 0) {
-    const first = claimRole[0];
-    if (typeof first === 'string' && first.trim()) {
-      return first.trim();
-    }
   }
   return null;
 }

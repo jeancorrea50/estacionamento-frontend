@@ -105,6 +105,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     ).subscribe((e) => {
       this.mobileMenuOpen.set(false);
       this.updateFullWidthContent(e.urlAfterRedirects ?? e.url);
+      if (this.authService.needsEstacionamentoSelection()) {
+        this.showEstacionamentoModal.set(true);
+      }
     });
   }
 

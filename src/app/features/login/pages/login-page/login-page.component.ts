@@ -7,14 +7,13 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ThemeService, ThemeMode } from '../../../../core/services/theme.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { AdminEstacionamentoSelectModalComponent } from '../../../../core/layout/admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 
 const REMEMBER_USERNAME_KEY = 'gts_login_remember_username';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, AdminEstacionamentoSelectModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login-page.component.html',
   styleUrls: ['./login-page.component.scss'],
 })
@@ -25,7 +24,6 @@ export class LoginPageComponent {
   readonly form: FormGroup;
   loading = false;
   readonly showPassword = signal(false);
-  readonly showEstacionamentoModal = signal(false);
 
   private readonly themeMode = signal<ThemeMode>(this.themeService.getCurrentTheme().mode);
   readonly currentMode = computed(() => this.themeMode());
@@ -67,11 +65,6 @@ export class LoginPageComponent {
     this.showPassword.update((value) => !value);
   }
 
-  onEstacionamentoSelected(): void {
-    this.showEstacionamentoModal.set(false);
-    this.router.navigateByUrl(this.authService.getDefaultAuthorizedRoute());
-  }
-
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -99,11 +92,7 @@ export class LoginPageComponent {
         next: (result) => {
           if (result.success) {
             this.toast.success('Login realizado com sucesso.');
-            if (this.authService.needsEstacionamentoSelection()) {
-              this.showEstacionamentoModal.set(true);
-              this.cdr.detectChanges();
-              return;
-            }
+            // Modal no MainLayout (login tem overflow:hidden e cortava o overlay).
             this.router.navigateByUrl(this.authService.getDefaultAuthorizedRoute());
           } else {
             this.toast.error(result.message);

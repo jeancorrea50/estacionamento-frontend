@@ -128,6 +128,70 @@
 
 .top-bar__spacer {
   flex: 1;
+  min-width: 0.5rem;
+}
+
+.session-estac-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: min(420px, 48vw);
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(80, 120, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(12, 24, 44, 0.75);
+}
+
+.session-estac-panel__icon {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  color: var(--primary, #60a5fa);
+}
+
+.session-estac-panel__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.session-estac-panel__caption {
+  font-size: 0.68rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted, #98a2b3);
+}
+
+.session-estac-panel__name {
+  font-size: 0.84rem;
+  line-height: 1.2;
+  font-weight: 650;
+  color: var(--primary, #60a5fa);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-estac-panel__trocar {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface-2, #1e2a45);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.session-estac-panel__trocar:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .top-bar__right {
@@ -332,6 +396,21 @@
   .user-access-panel__tipo {
     max-width: 140px;
   }
+
+  .session-estac-panel {
+    max-width: min(220px, 42vw);
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .session-estac-panel__caption {
+    display: none;
+  }
+
+  .session-estac-panel__trocar {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.7rem;
+  }
 }
 
 /* Tema dark: topbar e painel de usuário flat */
@@ -353,6 +432,18 @@
     border: 1px solid var(--dark-border, #363642);
     background: var(--dark-card, #292934);
     box-shadow: none;
+  }
+
+  .session-estac-panel {
+    border: 1px solid var(--dark-border, #363642);
+    background: var(--dark-card, #292934);
+    box-shadow: none;
+  }
+
+  .session-estac-panel__trocar {
+    border-color: var(--dark-border, #363642);
+    background: var(--dark-hover, #323240);
+    color: var(--text);
   }
 
   .user-access-panel__select {
@@ -407,6 +498,33 @@
     box-shadow: 0 1px 4px rgba(10, 56, 120, 0.07);
   }
 
+  .session-estac-panel {
+    border: 1px solid var(--color-border-light, var(--border));
+    background: var(--color-bg-card, #eaf3ff);
+    box-shadow: 0 1px 4px rgba(10, 56, 120, 0.07);
+  }
+
+  .session-estac-panel__caption {
+    color: var(--color-text-secondary, var(--text-muted));
+  }
+
+  .session-estac-panel__name,
+  .session-estac-panel__icon {
+    color: var(--color-primary, #5088d0);
+  }
+
+  .session-estac-panel__trocar {
+    border-color: #7aa7dc;
+    background: rgba(80, 136, 208, 0.2);
+    color: var(--color-text-primary, #0a3890);
+  }
+
+  .session-estac-panel__trocar:hover {
+    background: rgba(80, 136, 208, 0.35);
+    border-color: #7aa7dc;
+    color: var(--color-text-primary, #0a3890);
+  }
+
   .user-access-panel__name {
     color: var(--color-text-primary, var(--text));
   }
@@ -458,29 +576,3 @@
   }
 }
 
-.user-access-panel__estac {
-  display: block;
-  margin-top: 0.15rem;
-  font-size: 0.75rem;
-  color: var(--primary, #60a5fa);
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.user-access-panel__trocar {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: var(--surface-2, #1e2a45);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 0.3rem 0.55rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.user-access-panel__trocar:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}

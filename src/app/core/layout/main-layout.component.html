@@ -28,6 +28,23 @@
             <span class="material-symbols-outlined">menu</span>
           </button>
         }
+        @if (sessionEstacionamentoLabel(); as estacLabel) {
+          <div class="session-estac-panel" title="Estacionamento da sessão">
+            <span class="material-symbols-outlined session-estac-panel__icon" aria-hidden="true">apartment</span>
+            <div class="session-estac-panel__main">
+              <span class="session-estac-panel__caption">Pátio selecionado</span>
+              <span class="session-estac-panel__name">{{ estacLabel }}</span>
+            </div>
+            <button
+              type="button"
+              class="session-estac-panel__trocar"
+              (click)="trocarEstacionamento()"
+              title="Trocar estacionamento da sessão"
+            >
+              Trocar pátio
+            </button>
+          </div>
+        }
         <div class="top-bar__spacer"></div>
         <div class="top-bar__right">
           <app-notification-bell />
@@ -35,22 +52,7 @@
             <div class="user-access-panel__main">
               <span class="user-access-panel__name">{{ loggedUsername() }}</span>
               <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
-              @if (sessionEstacionamentoLabel()) {
-                <span class="user-access-panel__estac" title="Estacionamento da sessão">
-                  {{ sessionEstacionamentoLabel() }}
-                </span>
-              }
             </div>
-            @if (sessionEstacionamentoLabel()) {
-              <button
-                type="button"
-                class="user-access-panel__trocar"
-                (click)="trocarEstacionamento()"
-                title="Trocar estacionamento da sessão"
-              >
-                Trocar pátio
-              </button>
-            }
             @if (hasMultipleContexts()) {
               <label class="user-access-panel__switcher">
                 <span class="user-access-panel__switcher-label">Acessar CNPJ</span>

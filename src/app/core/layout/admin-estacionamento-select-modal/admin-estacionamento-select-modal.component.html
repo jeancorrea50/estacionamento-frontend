@@ -43,7 +43,7 @@
             [ngModel]="filtro()"
             (ngModelChange)="onFiltroChange($event)"
             (keydown)="onListaKeydown($event)"
-            placeholder="Buscar por código de exportação, nome, CNPJ, cidade..."
+            placeholder="Buscar por código de exportação, fantasia, razão social ou CNPJ..."
             autocomplete="off"
             aria-label="Pesquisar estacionamento"
           />
@@ -56,9 +56,9 @@
 
         <div class="aes-hints" aria-hidden="true">
           <span class="aes-chip">Código exportação</span>
-          <span class="aes-chip">Nome</span>
+          <span class="aes-chip">Fantasia</span>
+          <span class="aes-chip">Razão social</span>
           <span class="aes-chip">CNPJ</span>
-          <span class="aes-chip">Cidade</span>
         </div>
 
         <div class="aes-meta">
@@ -67,7 +67,9 @@
             {{ opcoesFiltradas().length === 1 ? 'resultado' : 'resultados' }}
           </span>
           @if (selectedOption(); as sel) {
-            <span class="aes-meta__sel">Selecionado: {{ sel.nome || sel.label }}</span>
+            <span class="aes-meta__sel">
+              Selecionado: {{ sel.fantasia || sel.razaoSocial || sel.nome || sel.label }}
+            </span>
           }
         </div>
 
@@ -75,12 +77,10 @@
           <table class="aes-table" role="listbox" aria-label="Estacionamentos">
             <thead>
               <tr>
-                <th scope="col">Nome</th>
-                <th scope="col">CNPJ</th>
-                <th scope="col">Estado</th>
-                <th scope="col">Cidade</th>
-                <th scope="col">Bairro</th>
-                <th scope="col">Cód. exportação</th>
+                <th scope="col" class="aes-th--fantasia">Fantasia</th>
+                <th scope="col" class="aes-th--razao">Razão social</th>
+                <th scope="col" class="aes-th--cnpj">CNPJ</th>
+                <th scope="col" class="aes-th--cod">Cód. exportação</th>
                 <th scope="col" class="aes-table__check" aria-hidden="true"></th>
               </tr>
             </thead>
@@ -97,13 +97,13 @@
                   (dblclick)="selecionarEConfirmar(o)"
                   (keydown)="onListaKeydown($event)"
                 >
-                  <td class="aes-cell aes-cell--nome" [attr.title]="o.nome || o.label || ''">
-                    {{ o.nome || o.label || '—' }}
+                  <td class="aes-cell aes-cell--fantasia" [attr.title]="o.fantasia || ''">
+                    {{ displayText(o.fantasia) }}
+                  </td>
+                  <td class="aes-cell aes-cell--razao" [attr.title]="o.razaoSocial || ''">
+                    {{ displayText(o.razaoSocial) }}
                   </td>
                   <td class="aes-cell aes-cell--cnpj">{{ formatCnpj(o.cnpj) }}</td>
-                  <td class="aes-cell">{{ displayText(o.estado) }}</td>
-                  <td class="aes-cell" [attr.title]="o.cidade || ''">{{ displayText(o.cidade) }}</td>
-                  <td class="aes-cell" [attr.title]="o.bairro || ''">{{ displayText(o.bairro) }}</td>
                   <td class="aes-cell aes-cell--cod">
                     <code class="aes-cod" [attr.title]="o.codExportacao || ''">
                       {{ lastCodDigits(o.codExportacao) }}
@@ -117,7 +117,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td class="aes-empty" colspan="7">Nenhum estacionamento corresponde à busca.</td>
+                  <td class="aes-empty" colspan="5">Nenhum estacionamento corresponde à busca.</td>
                 </tr>
               }
             </tbody>

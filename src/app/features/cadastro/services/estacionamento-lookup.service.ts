@@ -14,12 +14,13 @@ export interface LookupOption {
   id: number;
   label: string;
   cnpj: string;
-  /** Nome / razão social sem CNPJ concatenado. */
+  /** Nome / razão social sem CNPJ concatenado (compatível com selects legados). */
   nome?: string | null;
+  /** Nome fantasia (endpoint: nomeFantasia / descricaoPessoa). */
+  fantasia?: string | null;
+  /** Razão social (endpoint: nomeRazaoSocial). */
+  razaoSocial?: string | null;
   codExportacao?: string | null;
-  estado?: string | null;
-  cidade?: string | null;
-  bairro?: string | null;
 }
 
 export interface EstacionamentoListOptions {
@@ -67,7 +68,7 @@ export class EstacionamentoLookupService {
 
     const fromSession = this.trySessionOnlyOption();
     if (fromSession) {
-      const hay = `${fromSession.label} ${fromSession.nome ?? ''} ${fromSession.id} ${fromSession.cnpj} ${fromSession.codExportacao ?? ''}`.toLowerCase();
+      const hay = `${fromSession.label} ${fromSession.fantasia ?? ''} ${fromSession.razaoSocial ?? ''} ${fromSession.nome ?? ''} ${fromSession.id} ${fromSession.cnpj} ${fromSession.codExportacao ?? ''}`.toLowerCase();
       return of(hay.includes(t.toLowerCase()) ? [fromSession] : []);
     }
 
@@ -103,6 +104,8 @@ export class EstacionamentoLookupService {
     return {
       id,
       nome: label,
+      fantasia: label,
+      razaoSocial: null,
       label,
       cnpj: '',
       codExportacao: session?.codExportacao ?? this.auth.resolveCodExportacao(),
@@ -135,35 +138,31 @@ export class EstacionamentoLookupService {
 
   private itemToOption(row: Record<string, unknown>): LookupOption {
     const id = Number(row['id'] ?? row['Id']) || 0;
-    const nomeRazao = String(
-      row['nomeRazaoSocial'] ??
-        row['NomeRazaoSocial'] ??
+    const fantasia = String(
+      row['nomeFantasia'] ??
+        row['NomeFantasia'] ??
+        row['descricaoPessoa'] ??
+        row['DescricaoPessoa'] ??
+        row['fantasia'] ??
+        row['Fantasia'] ??
         row['descricao'] ??
         row['Descricao'] ??
-        row['nomeFantasia'] ??
-        row['NomeFantasia'] ??
         ''
     ).trim();
+    const razaoSocial = String(
+      row['nomeRazaoSocial'] ?? row['NomeRazaoSocial'] ?? row['razaoSocial'] ?? row['RazaoSocial'] ?? ''
+    ).trim();
+    const nomePrincipal = fantasia || razaoSocial;
     const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? row['documento'] ?? '').trim();
     const codExportacao = String(row['codExportacao'] ?? row['CodExportacao'] ?? '').trim() || null;
-    const estado =
-      String(row['estado'] ?? row['Estado'] ?? row['estadoCatalogo'] ?? row['EstadoCatalogo'] ?? '').trim() ||
-      null;
-    const cidade =
-      String(row['cidade'] ?? row['Cidade'] ?? row['cidadeCatalogo'] ?? row['CidadeCatalogo'] ?? '').trim() ||
-      null;
-    const bairro =
-      String(row['bairro'] ?? row['Bairro'] ?? row['bairroCatalogo'] ?? row['BairroCatalogo'] ?? '').trim() ||
-      null;
     return {
       id,
-      nome: nomeRazao || null,
-      label: nomeRazao ? `${nomeRazao} — ${cnpj || '-'}` : String(id),
+      nome: nomePrincipal || null,
+      fantasia: fantasia || null,
+      razaoSocial: razaoSocial || null,
+      label: nomePrincipal ? `${nomePrincipal} — ${cnpj || '-'}` : String(id),
       cnpj,
       codExportacao,
-      estado,
-      cidade,
-      bairro,
     };
   }
 }

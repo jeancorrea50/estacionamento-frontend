@@ -57,21 +57,20 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
     const qCompact = qLower.replace(/[\s\-]/g, '');
 
     return list.filter((o) => {
+      const fantasia = (o.fantasia ?? '').toLowerCase();
+      const razao = (o.razaoSocial ?? '').toLowerCase();
       const nome = (o.nome ?? o.label ?? '').toLowerCase();
       const label = (o.label ?? '').toLowerCase();
       const cnpj = (o.cnpj ?? '').replace(/\D/g, '');
       const cod = (o.codExportacao ?? '').toLowerCase();
       const codCompact = cod.replace(/[\s\-]/g, '');
-      const estado = (o.estado ?? '').toLowerCase();
-      const cidade = (o.cidade ?? '').toLowerCase();
-      const bairro = (o.bairro ?? '').toLowerCase();
       const idStr = String(o.id);
 
+      if (fantasia.includes(qLower) || razao.includes(qLower)) return true;
       if (nome.includes(qLower) || label.includes(qLower)) return true;
       if (idStr === q || idStr.includes(q)) return true;
       if (qDigits.length >= 3 && cnpj.includes(qDigits)) return true;
       if (cod.includes(qLower) || codCompact.includes(qCompact)) return true;
-      if (estado.includes(qLower) || cidade.includes(qLower) || bairro.includes(qLower)) return true;
       return false;
     });
   });
@@ -161,7 +160,9 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
     this.saving.set(true);
     this.auth.setSessionEstacionamento({
       id,
-      nome: (opt?.nome ?? opt?.label?.split(' — ')[0] ?? '').trim() || `Estacionamento #${id}`,
+      nome:
+        (opt?.fantasia ?? opt?.razaoSocial ?? opt?.nome ?? opt?.label?.split(' — ')[0] ?? '').trim() ||
+        `Estacionamento #${id}`,
       codExportacao: opt?.codExportacao?.trim() || null,
     });
     this.saving.set(false);

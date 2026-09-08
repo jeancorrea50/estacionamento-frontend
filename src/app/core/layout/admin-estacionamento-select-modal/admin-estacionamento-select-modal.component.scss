@@ -186,7 +186,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 0.65rem 0.7rem;
+  padding: 0.65rem 0.85rem;
   text-align: left;
   font-size: 0.72rem;
   font-weight: 700;
@@ -195,6 +195,22 @@
   color: var(--aes-fg-muted);
   background: #1e2a44;
   border-bottom: 1px solid var(--aes-border);
+}
+
+.aes-th--fantasia {
+  width: 32%;
+}
+
+.aes-th--razao {
+  width: 34%;
+}
+
+.aes-th--cnpj {
+  width: 20%;
+}
+
+.aes-th--cod {
+  width: 12%;
 }
 
 .aes-table__check {
@@ -221,8 +237,8 @@
 }
 
 .aes-cell {
-  padding: 0.75rem 0.7rem;
-  font-size: 0.86rem;
+  padding: 0.85rem 0.85rem;
+  font-size: 0.92rem;
   color: var(--aes-fg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   overflow: hidden;
@@ -231,13 +247,16 @@
   vertical-align: middle;
 }
 
-.aes-cell--nome {
+.aes-cell--fantasia,
+.aes-cell--razao {
   font-weight: 650;
   color: #ffffff;
 }
 
 .aes-cell--cnpj {
+  font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
   color: var(--aes-fg);
 }
 
@@ -371,7 +390,8 @@
 }
 
 :host-context(html.theme-dark) .aes-cell,
-:host-context(html.theme-dark) .aes-cell--nome,
+:host-context(html.theme-dark) .aes-cell--fantasia,
+:host-context(html.theme-dark) .aes-cell--razao,
 :host-context(html.theme-dark) .aes-cell--cnpj,
 :host-context(html.theme-dark) .aes-search__input,
 :host-context(html.theme-dark) .aes-modal__titles h2,
@@ -397,7 +417,7 @@
 
   .aes-table {
     table-layout: auto;
-    min-width: 720px;
+    min-width: 680px;
   }
 
   .aes-modal__footer {

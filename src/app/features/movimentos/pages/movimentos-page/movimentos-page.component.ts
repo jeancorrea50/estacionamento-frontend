@@ -19,6 +19,7 @@ import {
   TipoTarifaEstacionamento
 } from '../../models/entrada-saida.models';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ApiError } from '../../../../core/api/models';
 import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
@@ -113,6 +114,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly motoristaService = inject(MotoristaService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -128,16 +130,23 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return this.sessionAccess.canAccessRoute(this.router.url);
   }
 
+  /**
+   * Perfil Transportadora: consulta + recibo apenas (sem Suspender/Saída/registro operacional).
+   */
+  get podeAcoesOperacionaisPatio(): boolean {
+    return !this.auth.isTransportadoraRole();
+  }
+
   get canGravar(): boolean {
-    return this.canVisualizar;
+    return this.canVisualizar && this.podeAcoesOperacionaisPatio;
   }
 
   get canAlterar(): boolean {
-    return this.canVisualizar;
+    return this.canVisualizar && this.podeAcoesOperacionaisPatio;
   }
 
   get canExcluir(): boolean {
-    return this.canVisualizar;
+    return this.canVisualizar && this.podeAcoesOperacionaisPatio;
   }
 
   private readonly viewMode = signal<MovimentosViewMode>('portaria');
@@ -536,6 +545,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   /** Suspende ou retorna ao pátio imediatamente, com data/hora atual (sem modal). */
   executarSuspensaoOuRetorno(item: EntradaSaidaSearchOutput): void {
+    if (!this.podeAcoesOperacionaisPatio) {
+      this.toast.error('Perfil Transportadora não pode suspender ou retornar movimentos.');
+      return;
+    }
     if (!item?.id || item.id <= 0) {
       this.toast.error('Registro sem id válido para atualizar permanência.');
       return;
@@ -631,6 +644,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     if (d.finalizado) {
       return 'Este movimento já possui saída registrada.';
     }
+    if (!this.podeAcoesOperacionaisPatio) {
+      return 'Use o botão Recibo na lista para visualizar o comprovante deste movimento.';
+    }
     if (d.permanenciaSuspensa) {
       const total = d.suspensoes?.length ?? 0;
       return total > 0
@@ -641,6 +657,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   abrirPermanencia(item: EntradaSaidaSearchOutput, acao: PermanenciaAcao = 'finalizar'): void {
+    if (!this.podeAcoesOperacionaisPatio) {
+      this.toast.error('Perfil Transportadora não pode registrar saída.');
+      return;
+    }
     if (acao === 'suspender' || acao === 'retornar') {
       this.executarSuspensaoOuRetorno(item);
       return;

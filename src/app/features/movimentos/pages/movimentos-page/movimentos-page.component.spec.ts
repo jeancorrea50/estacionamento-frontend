@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
@@ -51,6 +52,9 @@ describe('MovimentosPageComponent', () => {
   const sessionAccessMock = {
     canAccessRoute: () => true,
   };
+  const authServiceMock = {
+    isTransportadoraRole: vi.fn().mockReturnValue(false),
+  };
 
   const routerMock = { navigate: vi.fn().mockResolvedValue(true) };
   const veiculoServiceMock = {
@@ -64,12 +68,14 @@ describe('MovimentosPageComponent', () => {
   };
 
   beforeEach(async () => {
+    authServiceMock.isTransportadoraRole.mockReturnValue(false);
     await TestBed.configureTestingModule({
       imports: [MovimentosPageComponent],
       providers: [
         { provide: EntradaSaidaService, useValue: entradaSaidaServiceMock },
         { provide: ToastService, useValue: toastServiceMock },
         { provide: SessionAccessService, useValue: sessionAccessMock },
+        { provide: AuthService, useValue: authServiceMock },
         { provide: Router, useValue: routerMock },
         { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: SignalrDashboardService, useValue: signalrDashboardServiceMock },
@@ -294,5 +300,36 @@ describe('MovimentosPageComponent', () => {
 
     component.fecharPreviewRecibo();
     openSpy.mockRestore();
+  });
+
+  it('perfil Transportadora só libera recibo (sem ações operacionais)', () => {
+    authServiceMock.isTransportadoraRole.mockReturnValue(true);
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+
+    expect(component.podeAcoesOperacionaisPatio).toBe(false);
+    expect(component.canAlterar).toBe(false);
+    expect(component.podeVisualizarRecibo({ id: 10 } as never)).toBe(true);
+
+    component.abrirPermanencia(
+      {
+        id: 10,
+        descricao: '',
+        motoristaId: 0,
+        nomeMotorista: '',
+        transportadoraId: 1,
+        nomeTransportadora: '',
+        veiculoId: 0,
+        placaVeiculo: 'ABC1D23',
+        dataHoraEntrada: '2026-08-01T10:00:00',
+        dataHoraSaida: null,
+        avulso: true
+      },
+      'finalizar'
+    );
+    expect(toastServiceMock.error).toHaveBeenCalledWith(
+      'Perfil Transportadora não pode registrar saída.'
+    );
+    expect(entradaSaidaServiceMock.getById).not.toHaveBeenCalled();
   });
 });

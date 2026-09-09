@@ -28,7 +28,7 @@
       </article>
     </section>
 
-    @if (isPortariaView()) {
+    @if (isPortariaView() && podeAcoesOperacionaisPatio) {
     <section class="dashboard-grid">
       <article class="dashboard-card dashboard-card--registro">
         <header class="dashboard-card__header">
@@ -448,28 +448,30 @@
                     }
                   </td>
                   <td class="acoes-cell">
-                    <button
-                      class="btn btn-warning btn--sm"
-                      type="button"
-                      [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
-                      (click)="executarSuspensaoOuRetorno(item)"
-                    >
-                      {{
-                        permanenciaProcessandoId() === item.id
-                          ? '...'
-                          : estaSuspenso(item)
-                            ? 'Retornar'
-                            : 'Suspender'
-                      }}
-                    </button>
-                    <button
-                      class="btn btn-danger btn--sm"
-                      type="button"
-                      [disabled]="!!item.dataHoraSaida"
-                      (click)="abrirPermanencia(item, 'finalizar')"
-                    >
-                      Saída
-                    </button>
+                    @if (podeAcoesOperacionaisPatio) {
+                      <button
+                        class="btn btn-warning btn--sm"
+                        type="button"
+                        [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
+                        (click)="executarSuspensaoOuRetorno(item)"
+                      >
+                        {{
+                          permanenciaProcessandoId() === item.id
+                            ? '...'
+                            : estaSuspenso(item)
+                              ? 'Retornar'
+                              : 'Suspender'
+                        }}
+                      </button>
+                      <button
+                        class="btn btn-danger btn--sm"
+                        type="button"
+                        [disabled]="!!item.dataHoraSaida"
+                        (click)="abrirPermanencia(item, 'finalizar')"
+                      >
+                        Saída
+                      </button>
+                    }
                     <button
                       class="btn btn-secondary btn--sm"
                       type="button"
@@ -627,28 +629,30 @@
                         }
                       </td>
                       <td class="acoes-cell">
-                        <button
-                          class="btn btn-warning btn--sm"
-                          type="button"
-                          [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
-                          (click)="$event.stopPropagation(); executarSuspensaoOuRetorno(item)"
-                        >
-                          {{
-                            permanenciaProcessandoId() === item.id
-                              ? '...'
-                              : estaSuspenso(item)
-                                ? 'Retornar'
-                                : 'Suspender'
-                          }}
-                        </button>
-                        <button
-                          class="btn btn-danger btn--sm"
-                          type="button"
-                          [disabled]="!!item.dataHoraSaida"
-                          (click)="$event.stopPropagation(); abrirPermanencia(item, 'finalizar')"
-                        >
-                          Saída
-                        </button>
+                        @if (podeAcoesOperacionaisPatio) {
+                          <button
+                            class="btn btn-warning btn--sm"
+                            type="button"
+                            [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
+                            (click)="$event.stopPropagation(); executarSuspensaoOuRetorno(item)"
+                          >
+                            {{
+                              permanenciaProcessandoId() === item.id
+                                ? '...'
+                                : estaSuspenso(item)
+                                  ? 'Retornar'
+                                  : 'Suspender'
+                            }}
+                          </button>
+                          <button
+                            class="btn btn-danger btn--sm"
+                            type="button"
+                            [disabled]="!!item.dataHoraSaida"
+                            (click)="$event.stopPropagation(); abrirPermanencia(item, 'finalizar')"
+                          >
+                            Saída
+                          </button>
+                        }
                         <button
                           class="btn btn-secondary btn--sm"
                           type="button"
@@ -798,7 +802,7 @@
                 </div>
               }
 
-              @if (resumoItemLista(); as itemLista) {
+              @if (podeAcoesOperacionaisPatio && resumoItemLista(); as itemLista) {
                 <div class="movimento-aside__actions">
                   <button
                     class="btn btn-warning btn--sm"

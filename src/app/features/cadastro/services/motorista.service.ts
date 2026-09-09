@@ -10,6 +10,10 @@ import {
   MotoristaListItemDTO,
   PagedResultMotoristaDTO
 } from '../models/motorista.dto';
+import {
+  PropagacaoCadastroResumo,
+  unwrapApiResultComPropagacao
+} from '../models/propagacao-cadastro.models';
 
 const API_BASE = environment.API_BASE_URL;
 const TRANSPORTADORA = `${API_BASE}/Transportadora`;
@@ -98,33 +102,34 @@ export class MotoristaService {
     return 0;
   }
 
-  gravar(dto: MotoristaDTO): Observable<MotoristaDTO> {
+  gravar(dto: MotoristaDTO): Observable<MotoristaDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     const tid = this.requireTid(dto.transportadoraId);
     const payload = this.dtoToPayload(dto);
     return this.http.post<unknown>(this.resource(tid), payload).pipe(
       timeout(15000),
       map((res) => {
         throwIfServiceFailure(res);
-        const response = res as Record<string, unknown>;
-        const result =
-          response?.['result'] && typeof response['result'] === 'object'
-            ? (response['result'] as Record<string, unknown>)
-            : response;
-        const generatedId = Number(result?.['id'] ?? result?.['Id'] ?? response?.['id'] ?? response?.['Id']);
-        return { ...dto, id: Number.isFinite(generatedId) && generatedId > 0 ? generatedId : dto.id };
+        const { result, propagacao } = unwrapApiResultComPropagacao(res);
+        const generatedId = Number(result?.['id'] ?? result?.['Id']);
+        return {
+          ...dto,
+          id: Number.isFinite(generatedId) && generatedId > 0 ? generatedId : dto.id,
+          propagacao
+        };
       }),
       catchError((err) => throwError(() => err))
     );
   }
 
-  alterar(dto: MotoristaDTO): Observable<MotoristaDTO> {
+  alterar(dto: MotoristaDTO): Observable<MotoristaDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     const tid = this.requireTid(dto.transportadoraId);
     const payload = this.dtoToPayload(dto);
     return this.http.put<unknown>(this.resource(tid), payload).pipe(
       timeout(15000),
       map((res) => {
         throwIfServiceFailure(res);
-        return dto;
+        const { propagacao } = unwrapApiResultComPropagacao(res);
+        return { ...dto, propagacao };
       }),
       catchError((err) => throwError(() => err))
     );

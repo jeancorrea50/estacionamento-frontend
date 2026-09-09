@@ -18,6 +18,10 @@ import {
   splitMarcaModelo
 } from '../utils/marca-modelo';
 import { parseTipoCarga } from '../../../shared/models/tipo-carga';
+import {
+  PropagacaoCadastroResumo,
+  unwrapApiResultComPropagacao
+} from '../models/propagacao-cadastro.models';
 
 /**
  * Contrato: CRUD sob `/api/Transportadora/{id}/Veiculo`.
@@ -417,28 +421,43 @@ export class VeiculoService {
   }
 
   /** POST /api/Transportadora/{tid}/Veiculo */
-  gravar(dto: VeiculoDTO): Observable<VeiculoDTO> {
+  gravar(dto: VeiculoDTO): Observable<VeiculoDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     const tid = this.requireTid(dto.transportadoraId);
     const payload = this.dtoToPayload(dto, 'gravar');
-    return this.http.post<VeiculoDTO>(this.resource(tid), payload).pipe(
+    return this.http.post<unknown>(this.resource(tid), payload).pipe(
       timeout(15000),
-      map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
+      map((res) => this.normalizeSalvarComPropagacao(dto, res)),
       catchError((err) => throwError(() => err))
     );
   }
 
   /** PUT /api/Transportadora/{tid}/Veiculo */
-  alterar(dto: VeiculoDTO): Observable<VeiculoDTO> {
+  alterar(dto: VeiculoDTO): Observable<VeiculoDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     const tid = this.requireTid(dto.transportadoraId);
     const id = dto.id != null ? Number(dto.id) : NaN;
     if (!Number.isFinite(id) || id <= 0) {
       return throwError(() => new Error('Id obrigatório para alterar veículo.'));
     }
     const payload = this.dtoToPayload({ ...dto, id }, 'alterar');
-    return this.http.put<VeiculoDTO>(this.resource(tid), payload).pipe(
+    return this.http.put<unknown>(this.resource(tid), payload).pipe(
       timeout(15000),
+      map((res) => this.normalizeSalvarComPropagacao(dto, res)),
       catchError((err) => throwError(() => err))
     );
+  }
+
+  private normalizeSalvarComPropagacao(
+    dto: VeiculoDTO,
+    res: unknown
+  ): VeiculoDTO & { propagacao?: PropagacaoCadastroResumo | null } {
+    const { result, propagacao } = unwrapApiResultComPropagacao(res);
+    const id =
+      result != null
+        ? Number(result['id'] ?? result['Id']) || dto.id
+        : (res as { id?: number; Id?: number } | null)?.id ??
+          (res as { Id?: number } | null)?.Id ??
+          dto.id;
+    return { ...dto, id, propagacao };
   }
 
   /** DELETE /api/Transportadora/{tid}/Veiculo/{id} */

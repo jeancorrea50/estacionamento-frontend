@@ -14,6 +14,10 @@ import {
   ImportacaoTransportadoraConsulta,
   ImportacaoTransportadoraStatus
 } from '../models/importacao-transportadora.models';
+import {
+  PropagacaoCadastroResumo,
+  unwrapApiResultComPropagacao
+} from '../models/propagacao-cadastro.models';
 import { parseObservacaoContato, TRSPC1_PREFIX } from '../mappers/transportadora-contato.mapper';
 
 /** Base da API. Contrato: GET/POST/PUT em `/api/Transportadora`, GET/DELETE em `/api/Transportadora/{id}`. */
@@ -644,7 +648,7 @@ export class TransportadoraService {
   /**
    * POST /api/Transportadora
    */
-  criarTransportadora(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+  criarTransportadora(payload: Record<string, unknown>): Observable<TransportadoraDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     if (isDevMode()) {
       console.log('PAYLOAD TRANSPORTADORA', payload);
     }
@@ -656,14 +660,14 @@ export class TransportadoraService {
   }
 
   /** @deprecated Use `criarTransportadora`. */
-  gravar(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+  gravar(payload: Record<string, unknown>): Observable<TransportadoraDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     return this.criarTransportadora(payload);
   }
 
   /**
    * PUT /api/Transportadora
    */
-  atualizarTransportadora(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+  atualizarTransportadora(payload: Record<string, unknown>): Observable<TransportadoraDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     if (isDevMode()) {
       console.log('PAYLOAD TRANSPORTADORA', payload);
     }
@@ -675,7 +679,7 @@ export class TransportadoraService {
   }
 
   /** @deprecated Use `atualizarTransportadora`. */
-  alterar(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+  alterar(payload: Record<string, unknown>): Observable<TransportadoraDTO & { propagacao?: PropagacaoCadastroResumo | null }> {
     return this.atualizarTransportadora(payload);
   }
 
@@ -694,12 +698,19 @@ export class TransportadoraService {
     return this.excluirTransportadora(id);
   }
 
-  private normalizeSalvarResponse(payload: Record<string, unknown>, res: unknown): TransportadoraDTO {
+  private normalizeSalvarResponse(
+    payload: Record<string, unknown>,
+    res: unknown
+  ): TransportadoraDTO & { propagacao?: PropagacaoCadastroResumo | null } {
+    const { result, propagacao } = unwrapApiResultComPropagacao(res);
     const returnedId =
-      res && typeof res === 'object'
-        ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
-        : undefined;
-    return this.mapPayloadToDto(payload, returnedId != null ? Number(returnedId) : undefined);
+      result != null
+        ? Number(result['id'] ?? result['Id']) || undefined
+        : res && typeof res === 'object'
+          ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
+          : undefined;
+    const dto = this.mapPayloadToDto(payload, returnedId != null ? Number(returnedId) : undefined);
+    return { ...dto, propagacao };
   }
 
   /**

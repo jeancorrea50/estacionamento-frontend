@@ -13,6 +13,7 @@ import { TransportadoraListItemDTO } from '../../models/transportadora.dto';
 import { VeiculoDTO, VeiculoListItemDTO, VeiculoMotoristaVinculoDTO } from '../../models/veiculo.dto';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
 import { ImportacaoTransportadoraConsulta } from '../../models/importacao-transportadora.models';
+import { mensagemToastPropagacao, PropagacaoCadastroResumo } from '../../models/propagacao-cadastro.models';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
@@ -914,7 +915,14 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         this.salvando = false;
         if (this.activeTab === 'frota') this.carregarVeiculos();
         if (this.activeTab === 'motoristas') this.carregarCondutores();
-        this.toast.success(wasEdit ? 'Transportadora atualizada com sucesso.' : 'Transportadora cadastrada com sucesso.');
+        const base = wasEdit
+          ? 'Transportadora atualizada com sucesso.'
+          : 'Transportadora cadastrada com sucesso.';
+        this.toast.success(
+          this.somentePropriaTransportadora
+            ? mensagemToastPropagacao(base, saved.propagacao)
+            : base
+        );
         this.cdr.markForCheck();
       },
       error: (err: unknown) => {
@@ -1452,12 +1460,17 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.salvandoVeiculo = true;
     const obs = idSalvar != null ? this.veiculoService.alterar(dto) : this.veiculoService.gravar(dto);
     obs.subscribe({
-      next: () => {
+      next: (saved) => {
         this.salvandoVeiculo = false;
         this.veiculoEditId = null;
         this.showVeiculoForm = false;
         this.carregarVeiculos();
-        this.toast.success(dto.id ? 'Veículo atualizado com sucesso.' : 'Veículo cadastrado com sucesso.');
+        const base = dto.id ? 'Veículo atualizado com sucesso.' : 'Veículo cadastrado com sucesso.';
+        this.toast.success(
+          this.somentePropriaTransportadora
+            ? mensagemToastPropagacao(base, saved.propagacao)
+            : base
+        );
         this.cdr.markForCheck();
       },
       error: () => {
@@ -2224,18 +2237,22 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         })
       )
       .subscribe({
-        next: () => {
+        next: (saved) => {
           this.salvandoMotorista = false;
           this.showCondutorForm = false;
           this.condutorEditId = null;
           this.limparEstadoLookupMotorista();
           this.carregarCondutores();
+          const base = transferindoVinculo
+            ? 'Motorista vinculado com sucesso. O vínculo anterior foi desfeito.'
+            : dtoBase.id
+              ? 'Motorista atualizado com sucesso.'
+              : 'Motorista cadastrado com sucesso.';
+          const prop = (saved as MotoristaDTO & { propagacao?: PropagacaoCadastroResumo | null }).propagacao;
           this.toast.success(
-            transferindoVinculo
-              ? 'Motorista vinculado com sucesso. O vínculo anterior foi desfeito.'
-              : dtoBase.id
-                ? 'Motorista atualizado com sucesso.'
-                : 'Motorista cadastrado com sucesso.'
+            this.somentePropriaTransportadora && !transferindoVinculo
+              ? mensagemToastPropagacao(base, prop)
+              : base
           );
           this.cdr.markForCheck();
         },

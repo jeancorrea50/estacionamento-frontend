@@ -325,7 +325,7 @@
                   mat-icon-button
                   class="rec-ico"
                   matTooltip="Enviar por WhatsApp"
-                  (click)="acaoMock('whatsapp', row)"
+                  (click)="enviarLembreteWhatsApp(row)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">chat</span>
                 </button>
@@ -386,23 +386,23 @@
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">handshake</span>
       Registrar acordo
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('editar-ven', row)">
+    <button type="button" mat-menu-item (click)="editarVencimento(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">edit_calendar</span>
       Editar vencimento
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('acrescimo-menu', row)">
+    <button type="button" mat-menu-item (click)="aplicarAcrescimo(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">add_circle</span>
       Aplicar acréscimo
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('desconto-menu', row)">
+    <button type="button" mat-menu-item (click)="aplicarDesconto(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">percent</span>
       Aplicar desconto
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('hist-menu', row)">
+    <button type="button" mat-menu-item (click)="verHistorico(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">history</span>
       Ver histórico de cobranças
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('sem-retorno', row)">
+    <button type="button" mat-menu-item (click)="marcarSemRetorno(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">block</span>
       Marcar como sem retorno
     </button>

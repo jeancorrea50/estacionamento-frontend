@@ -403,7 +403,11 @@ export function mapRawInadimplenteItem(row: Record<string, unknown>): FaturaInad
     diasEmAtraso: pickNumber(row, 'diasEmAtraso', 'DiasEmAtraso'),
     quantidadeMovimentos: pickNumber(row, 'quantidadeMovimentos', 'QuantidadeMovimentos'),
     ultimaCobranca: pickStringOrNull(row, 'ultimaCobranca', 'UltimaCobranca'),
-    statusCobranca: pickStringOrNull(row, 'statusCobranca', 'StatusCobranca')
+    statusCobranca: pickStringOrNull(row, 'statusCobranca', 'StatusCobranca'),
+    emailFinanceiro: pickStringOrNull(row, 'emailFinanceiro', 'EmailFinanceiro'),
+    contato: pickStringOrNull(row, 'contato', 'Contato'),
+    valorDesconto: pickNumber(row, 'valorDesconto', 'ValorDesconto'),
+    valorAcrescimo: pickNumber(row, 'valorAcrescimo', 'ValorAcrescimo')
   };
 }
 
@@ -427,10 +431,12 @@ export function mapInadimplenteItemToLista(dto: FaturaInadimplenteItemOutput): I
     diasAtraso: Math.max(0, Number(dto.diasEmAtraso) || 0),
     ultimaCobranca: toIsoDate(dto.ultimaCobranca),
     statusCobranca: mapStatusCobrancaInadimplencia(dto.statusCobranca),
-    emailFinanceiro: '',
-    contato: '',
+    emailFinanceiro: dto.emailFinanceiro?.trim() || '',
+    contato: dto.contato?.trim() || '',
     historicoCobranca: [],
-    quantidadeMovimentos: Number(dto.quantidadeMovimentos) || 0
+    quantidadeMovimentos: Number(dto.quantidadeMovimentos) || 0,
+    valorDesconto: Number(dto.valorDesconto) || 0,
+    valorAcrescimo: Number(dto.valorAcrescimo) || 0
   };
 }
 

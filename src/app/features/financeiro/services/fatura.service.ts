@@ -3,19 +3,6 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/services/auth.service';
-import {
-  mapFechamentoItemToLista,
-  mapInadimplenteItemToLista,
-  mapOutputToListaItem,
-  mapRawFechamentosOutput,
-  mapRawInadimplentesOutput,
-  mapRawOutput,
-  mapRawSearchItem,
-  mapRawVisaoGeral,
-  mapSearchToListaItem,
-  pickNumber,
-  unwrapResult
-} from '../mappers/fatura.mapper';
 import type {
   FaturaFechamentosFilter,
   FaturaFechamentosOutput,
@@ -27,8 +14,26 @@ import type {
   FaturaPostInput,
   FaturaPutInput,
   FaturaSearchOutput,
-  FaturaVisaoGeralOutput
+  FaturaVisaoGeralOutput,
+  FaturaAcordoInadimplenciaInput,
+  FaturaWhatsAppCobrancaOutput,
+  HistoricoCobrancaItemOutput,
+  StatusCobrancaFatura
 } from '../models/fatura.models';
+import {
+  mapFechamentoItemToLista,
+  mapInadimplenteItemToLista,
+  mapOutputToListaItem,
+  mapRawFechamentosOutput,
+  mapRawInadimplentesOutput,
+  mapRawOutput,
+  mapRawSearchItem,
+  mapRawVisaoGeral,
+  mapSearchToListaItem,
+  pickNumber,
+  pickStringOrNull,
+  unwrapResult
+} from '../mappers/fatura.mapper';
 import type { FaturaListaItem } from '../pages/faturamento-page/faturas/faturamento-faturas.types';
 import type {
   FechamentoListaItem,
@@ -105,6 +110,75 @@ export class FaturaService {
   /** POST `/api/financeiro/Fatura/{id}/enviar-lembrete-email` — envia PDF por e-mail. */
   enviarLembreteEmail(id: number): Observable<void> {
     return this.http.post<unknown>(`${API}/${id}/enviar-lembrete-email`, {}).pipe(map(() => undefined));
+  }
+
+  /** POST `/api/financeiro/Fatura/{id}/enviar-lembrete-whatsapp` — gera wa.me + histórico. */
+  enviarLembreteWhatsApp(id: number): Observable<FaturaWhatsAppCobrancaOutput> {
+    return this.http.post<unknown>(`${API}/${id}/enviar-lembrete-whatsapp`, {}).pipe(
+      map((body) => {
+        const raw = this.extractRecord(body) ?? {};
+        return {
+          faturaId: pickNumber(raw, 'faturaId', 'FaturaId') || id,
+          destinatario: String(raw['destinatario'] ?? raw['Destinatario'] ?? ''),
+          mensagem: String(raw['mensagem'] ?? raw['Mensagem'] ?? ''),
+          url: String(raw['url'] ?? raw['Url'] ?? ''),
+          dataEnvio: String(raw['dataEnvio'] ?? raw['DataEnvio'] ?? '')
+        };
+      })
+    );
+  }
+
+  /** GET `/api/financeiro/Fatura/{id}/historico-cobranca` */
+  listarHistoricoCobranca(id: number): Observable<HistoricoCobrancaItemOutput[]> {
+    return this.http.get<unknown>(`${API}/${id}/historico-cobranca`).pipe(
+      map((body) => {
+        const raw = unwrapResult(body);
+        const rows = Array.isArray(raw) ? raw : [];
+        return rows
+          .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+          .map((row) => ({
+            id: pickNumber(row, 'id', 'Id'),
+            dataEnvio: String(row['dataEnvio'] ?? row['DataEnvio'] ?? ''),
+            modalidade: pickNumber(row, 'modalidade', 'Modalidade'),
+            modalidadeLabel: String(row['modalidadeLabel'] ?? row['ModalidadeLabel'] ?? ''),
+            destinatario: String(row['destinatario'] ?? row['Destinatario'] ?? ''),
+            assunto: pickStringOrNull(row, 'assunto', 'Assunto'),
+            descricao: pickStringOrNull(row, 'descricao', 'Descricao'),
+            sucesso: Boolean(row['sucesso'] ?? row['Sucesso']),
+            mensagemErro: pickStringOrNull(row, 'mensagemErro', 'MensagemErro'),
+            resultado: String(row['resultado'] ?? row['Resultado'] ?? '')
+          }));
+      })
+    );
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/vencimento` */
+  alterarVencimento(id: number, dataVencimento: string): Observable<void> {
+    return this.http
+      .put<unknown>(`${API}/${id}/vencimento`, { dataVencimento })
+      .pipe(map(() => undefined));
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/acrescimo` */
+  aplicarAcrescimo(id: number, valor: number): Observable<void> {
+    return this.http.put<unknown>(`${API}/${id}/acrescimo`, { valor }).pipe(map(() => undefined));
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/desconto` */
+  aplicarDesconto(id: number, valor: number): Observable<void> {
+    return this.http.put<unknown>(`${API}/${id}/desconto`, { valor }).pipe(map(() => undefined));
+  }
+
+  /** POST `/api/financeiro/Fatura/{id}/acordo` */
+  registrarAcordo(id: number, input: FaturaAcordoInadimplenciaInput): Observable<void> {
+    return this.http.post<unknown>(`${API}/${id}/acordo`, input).pipe(map(() => undefined));
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/status-cobranca` */
+  alterarStatusCobranca(id: number, statusCobranca: StatusCobrancaFatura): Observable<void> {
+    return this.http
+      .put<unknown>(`${API}/${id}/status-cobranca`, { statusCobranca })
+      .pipe(map(() => undefined));
   }
 
   /** GET `/api/financeiro/Fatura/{id}/excel` — planilha Excel blob. */

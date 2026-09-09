@@ -24,6 +24,11 @@ import { ThemeService } from '../../../../../core/services/theme.service';
 import { FaturaService } from '../../../services/fatura.service';
 import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoInadimplenciaAcordoDialogComponent } from './faturamento-inadimplencia-acordo-dialog.component';
+import {
+  InadHistoricoDialogComponent,
+  InadValorDialogComponent,
+  InadVencimentoDialogComponent
+} from './faturamento-inadimplencia-dialogs.component';
 import type {
   InadimplenciaDiasFiltroId,
   InadimplenciaFiltroRapidoId,
@@ -31,6 +36,7 @@ import type {
   InadimplenciaResumo,
   InadimplenciaStatusCobranca
 } from './faturamento-inadimplencia.types';
+import { StatusCobrancaFatura } from '../../../models/fatura.models';
 
 type InadimplenciaPeriodoGranularidade = 'dia' | 'mes' | 'ano';
 
@@ -439,8 +445,6 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
     return `${this.selection.isSelected(row) ? 'Desmarcar' : 'Selecionar'} ${row.id}`;
   }
 
-  acaoMock(_acao: string, _row?: InadimplenciaListaItem): void {}
-
   enviarLembreteEmail(row: InadimplenciaListaItem): void {
     if (!row?.faturaId) {
       this.snack.open('Fatura inválida para envio.', 'Fechar', { duration: 3500 });
@@ -453,6 +457,27 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
       },
       error: (err: unknown) => {
         this.snack.open(this.mensagemErro(err, 'Falha ao enviar lembrete por e-mail.'), 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
+  enviarLembreteWhatsApp(row: InadimplenciaListaItem): void {
+    if (!row?.faturaId) {
+      this.snack.open('Fatura inválida para envio.', 'Fechar', { duration: 3500 });
+      return;
+    }
+    this.api.enviarLembreteWhatsApp(row.faturaId).subscribe({
+      next: (res) => {
+        if (res?.url) {
+          window.open(res.url, '_blank', 'noopener');
+        }
+        this.snack.open('Link de WhatsApp gerado.', 'Fechar', { duration: 3500 });
+        this.carregarLista();
+      },
+      error: (err: unknown) => {
+        this.snack.open(this.mensagemErro(err, 'Falha ao gerar WhatsApp.'), 'Fechar', {
           duration: 5000
         });
       }
@@ -480,14 +505,122 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
 
   abrirAcordo(row?: InadimplenciaListaItem): void {
     const alvo = row ?? this.selection.selected[0];
-    this.dialog.open(FaturamentoInadimplenciaAcordoDialogComponent, {
+    if (!alvo?.faturaId) {
+      this.snack.open('Selecione uma fatura.', 'Fechar', { duration: 3000 });
+      return;
+    }
+    this.dialog
+      .open(FaturamentoInadimplenciaAcordoDialogComponent, {
+        width: '520px',
+        maxWidth: '96vw',
+        panelClass: 'cfg-form-dialog-panel',
+        data: {
+          faturaId: alvo.faturaId,
+          faturaNumero: alvo.id,
+          transportadora: alvo.transportadora,
+          valorOriginal: alvo.valor,
+          valorDesconto: alvo.valorDesconto ?? 0,
+          vencimento: alvo.vencimento
+        }
+      })
+      .afterClosed()
+      .subscribe((ok) => {
+        if (ok) {
+          this.snack.open('Acordo registrado.', 'Fechar', { duration: 3500 });
+          this.carregarLista();
+        }
+      });
+  }
+
+  editarVencimento(row: InadimplenciaListaItem): void {
+    this.dialog
+      .open(InadVencimentoDialogComponent, {
+        width: '420px',
+        maxWidth: '96vw',
+        panelClass: 'cfg-form-dialog-panel',
+        data: {
+          faturaId: row.faturaId,
+          faturaNumero: row.id,
+          vencimento: row.vencimento
+        }
+      })
+      .afterClosed()
+      .subscribe((ok) => {
+        if (ok) {
+          this.snack.open('Vencimento atualizado.', 'Fechar', { duration: 3500 });
+          this.carregarLista();
+        }
+      });
+  }
+
+  aplicarAcrescimo(row: InadimplenciaListaItem): void {
+    this.dialog
+      .open(InadValorDialogComponent, {
+        width: '420px',
+        maxWidth: '96vw',
+        panelClass: 'cfg-form-dialog-panel',
+        data: {
+          faturaId: row.faturaId,
+          faturaNumero: row.id,
+          titulo: 'Aplicar acréscimo',
+          label: 'Valor do acréscimo',
+          valorAtual: row.valorAcrescimo ?? 0,
+          modo: 'acrescimo' as const
+        }
+      })
+      .afterClosed()
+      .subscribe((ok) => {
+        if (ok) {
+          this.snack.open('Acréscimo aplicado.', 'Fechar', { duration: 3500 });
+          this.carregarLista();
+        }
+      });
+  }
+
+  aplicarDesconto(row: InadimplenciaListaItem): void {
+    this.dialog
+      .open(InadValorDialogComponent, {
+        width: '420px',
+        maxWidth: '96vw',
+        panelClass: 'cfg-form-dialog-panel',
+        data: {
+          faturaId: row.faturaId,
+          faturaNumero: row.id,
+          titulo: 'Aplicar desconto',
+          label: 'Valor do desconto',
+          valorAtual: row.valorDesconto ?? 0,
+          modo: 'desconto' as const
+        }
+      })
+      .afterClosed()
+      .subscribe((ok) => {
+        if (ok) {
+          this.snack.open('Desconto aplicado.', 'Fechar', { duration: 3500 });
+          this.carregarLista();
+        }
+      });
+  }
+
+  verHistorico(row: InadimplenciaListaItem): void {
+    this.dialog.open(InadHistoricoDialogComponent, {
       width: '520px',
       maxWidth: '96vw',
       panelClass: 'cfg-form-dialog-panel',
-      data: {
-        faturaId: alvo?.id ?? '—',
-        transportadora: alvo?.transportadora ?? '—',
-        valorOriginal: alvo?.valor ?? 0
+      data: row
+    });
+  }
+
+  marcarSemRetorno(row: InadimplenciaListaItem): void {
+    if (!row?.faturaId) return;
+    this.api.alterarStatusCobranca(row.faturaId, StatusCobrancaFatura.SemRetorno).subscribe({
+      next: () => {
+        this.snack.open('Marcada como sem retorno.', 'Fechar', { duration: 3500 });
+        this.carregarLista();
+      },
+      error: (err: unknown) => {
+        this.snack.open(this.mensagemErro(err, 'Falha ao atualizar status.'), 'Fechar', {
+          duration: 5000
+        });
       }
     });
   }

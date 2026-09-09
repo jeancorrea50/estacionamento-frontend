@@ -48,6 +48,8 @@ export interface InadimplenciaListaItem {
   contato: string;
   historicoCobranca: InadimplenciaHistoricoCobrancaItem[];
   quantidadeMovimentos: number;
+  valorDesconto: number;
+  valorAcrescimo: number;
 }
 
 export interface InadimplenciaResumo {
@@ -58,7 +60,10 @@ export interface InadimplenciaResumo {
 }
 
 export interface InadimplenciaAcordoDialogData {
-  faturaId: string;
+  faturaId: number;
+  faturaNumero: string;
   transportadora: string;
   valorOriginal: number;
+  valorDesconto: number;
+  vencimento: string;
 }

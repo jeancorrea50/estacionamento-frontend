@@ -211,6 +211,51 @@ export interface FaturaInadimplenteItemOutput {
   quantidadeMovimentos: number;
   ultimaCobranca: string | null;
   statusCobranca: string | null;
+  emailFinanceiro?: string | null;
+  contato?: string | null;
+  valorDesconto?: number;
+  valorAcrescimo?: number;
+}
+
+/** StatusCobrancaFatura no backend. */
+export enum StatusCobrancaFatura {
+  NaoEnviada = 0,
+  Enviada = 1,
+  Reenviada = 2,
+  FalhaNoEnvio = 3,
+  EmNegociacao = 4,
+  AcordoRealizado = 5,
+  SemRetorno = 6
+}
+
+export interface HistoricoCobrancaItemOutput {
+  id: number;
+  dataEnvio: string;
+  modalidade: number;
+  modalidadeLabel: string;
+  destinatario: string;
+  assunto: string | null;
+  descricao: string | null;
+  sucesso: boolean;
+  mensagemErro: string | null;
+  resultado: string;
+}
+
+export interface FaturaWhatsAppCobrancaOutput {
+  faturaId: number;
+  destinatario: string;
+  mensagem: string;
+  url: string;
+  dataEnvio: string;
+}
+
+export interface FaturaAcordoInadimplenciaInput {
+  valorNegociado?: number | null;
+  valorDesconto?: number | null;
+  novoVencimento?: string | null;
+  modalidadeRecebimento?: number | null;
+  observacao?: string | null;
+  responsavel?: string | null;
 }
 
 export interface FaturaInadimplentesOutput {

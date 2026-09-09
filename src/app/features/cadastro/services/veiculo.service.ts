@@ -24,12 +24,13 @@ import {
 } from '../models/propagacao-cadastro.models';
 
 /**
- * Contrato: CRUD sob `/api/Transportadora/{id}/Veiculo`.
+ * Contrato: listagem em `/api/Veiculo`; CRUD sob `/api/Transportadora/{id}/Veiculo`.
  * Lookup operacional por placa permanece em `/api/Veiculo/por-placa/{placa}`.
  */
 const API_BASE = environment.API_BASE_URL;
 const TRANSPORTADORA = `${API_BASE}/Transportadora`;
 const VEICULO_LOOKUP = `${API_BASE}/Veiculo`;
+const VEICULO = `${API_BASE}/Veiculo`;
 
 @Injectable({
   providedIn: 'root'
@@ -58,18 +59,22 @@ export class VeiculoService {
     return tid;
   }
 
-  /** GET /api/Transportadora/{id}/Veiculo?... */
+  /** GET listagem: com TransportadoraId usa recurso aninhado; sem filtro usa `/api/Veiculo`. */
   buscar(params: VeiculoBuscarParams): Observable<PagedResultVeiculoDTO> {
-    const tid = this.requireTid(params);
     const query = new URLSearchParams();
     const termo = params.Termo?.trim();
     if (termo) query.set('Descricao', termo);
     const placaNorm = (params.Placa ?? '').replace(/\s/g, '').toUpperCase();
     if (placaNorm.length >= 7) query.set('Placa', placaNorm);
-    query.set('TransportadoraId', String(tid));
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
-    const url = `${this.resource(tid)}?${query.toString()}`;
+
+    const tid = Number(params.TransportadoraId);
+    const url =
+      Number.isFinite(tid) && tid > 0
+        ? `${this.resource(tid)}?${query.toString()}&TransportadoraId=${tid}`
+        : `${VEICULO}?${query.toString()}`;
+
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscar(body, params.NumeroPagina, params.TamanhoPagina)),

@@ -17,6 +17,7 @@ import {
 
 const API_BASE = environment.API_BASE_URL;
 const TRANSPORTADORA = `${API_BASE}/Transportadora`;
+const MOTORISTA = `${API_BASE}/Motorista`;
 
 @Injectable({
   providedIn: 'root'
@@ -41,15 +42,20 @@ export class MotoristaService {
     return tid;
   }
 
+  /** GET listagem: com TransportadoraId usa recurso aninhado; sem filtro usa `/api/Motorista`. */
   buscar(params: MotoristaBuscarParams): Observable<PagedResultMotoristaDTO> {
-    const tid = this.requireTid(params);
     const query = new URLSearchParams();
     const termo = params.Termo?.trim();
     if (termo) query.set('Descricao', termo);
-    query.set('TransportadoraId', String(tid));
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
-    const url = `${this.resource(tid)}?${query.toString()}`;
+
+    const tid = Number(params.TransportadoraId);
+    const url =
+      Number.isFinite(tid) && tid > 0
+        ? `${this.resource(tid)}?${query.toString()}&TransportadoraId=${tid}`
+        : `${MOTORISTA}?${query.toString()}`;
+
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscar(body, params.NumeroPagina, params.TamanhoPagina)),

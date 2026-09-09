@@ -93,10 +93,10 @@ export interface VeiculoDTO {
 export interface VeiculoBuscarParams {
   /** Mapeado para query `Descricao` no serviço. */
   Termo?: string;
-  /** Busca por placa no recurso aninhado da transportadora. */
+  /** Busca por placa em `/api/Veiculo`. */
   Placa?: string;
-  /** Obrigatório — CRUD aninhado em `/api/Transportadora/{id}/Veiculo`. */
-  TransportadoraId: number;
+  /** Filtro opcional — sem valor lista todas as transportadoras (escopo JWT se perfil Transportadora). */
+  TransportadoraId?: number | null;
   NumeroPagina: number;
   TamanhoPagina: number;
 }

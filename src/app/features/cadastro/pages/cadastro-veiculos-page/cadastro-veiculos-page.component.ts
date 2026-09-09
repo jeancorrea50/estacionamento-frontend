@@ -160,16 +160,9 @@ export class CadastroVeiculosPageComponent implements OnInit {
 
   carregarLista(): void {
     const tid = this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId);
-    if (tid == null) {
-      this.jaBuscou = false;
-      this.loadingList = false;
-      this.veiculos = [];
-      this.totalCount = 0;
-      this.toast.error('Selecione a transportadora para buscar veículos.');
-      this.cdr.markForCheck();
-      return;
+    if (tid != null) {
+      this.filtroTransportadoraId = tid;
     }
-    this.filtroTransportadoraId = tid;
     this.jaBuscou = true;
     this.loadingList = true;
     this.erroList = null;
@@ -179,7 +172,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
       .buscar({
         Termo: this.campoBusca === 'geral' ? termo || undefined : undefined,
         Placa: placa && placa.length >= 7 ? placa : undefined,
-        TransportadoraId: tid,
+        TransportadoraId: tid ?? undefined,
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPaginaLista,
       })

@@ -20,12 +20,12 @@ import {
 import { parseTipoCarga } from '../../../shared/models/tipo-carga';
 
 /**
- * Contrato: GET/POST/PUT `/api/Veiculo`, GET/DELETE `/api/Veiculo/{id}`.
- * Parâmetros de listagem: Placa, Descricao, DataInicial, DataFinal, paginação (OpenAPI).
- * `TransportadoraId` e `Termo` não estão no spec; o backend ASP.NET costuma aceitar parâmetros extras no mesmo GET.
+ * Contrato: CRUD sob `/api/Transportadora/{id}/Veiculo`.
+ * Lookup operacional por placa permanece em `/api/Veiculo/por-placa/{placa}`.
  */
 const API_BASE = environment.API_BASE_URL;
-const VEICULO = `${API_BASE}/Veiculo`;
+const TRANSPORTADORA = `${API_BASE}/Transportadora`;
+const VEICULO_LOOKUP = `${API_BASE}/Veiculo`;
 
 @Injectable({
   providedIn: 'root'
@@ -33,17 +33,39 @@ const VEICULO = `${API_BASE}/Veiculo`;
 export class VeiculoService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/Veiculo?... */
+  private resource(transportadoraId: number): string {
+    const tid = Number(transportadoraId);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      throw new Error('TransportadoraId é obrigatório para operações de veículo.');
+    }
+    return `${TRANSPORTADORA}/${tid}/Veiculo`;
+  }
+
+  private requireTid(params: { TransportadoraId?: number | null; transportadoraId?: number | null } | number | null | undefined): number {
+    if (typeof params === 'number') return this.requireTidNumber(params);
+    const tid = Number(params?.TransportadoraId ?? params?.transportadoraId);
+    return this.requireTidNumber(tid);
+  }
+
+  private requireTidNumber(tid: number): number {
+    if (!Number.isFinite(tid) || tid <= 0) {
+      throw new Error('TransportadoraId é obrigatório para operações de veículo.');
+    }
+    return tid;
+  }
+
+  /** GET /api/Transportadora/{id}/Veiculo?... */
   buscar(params: VeiculoBuscarParams): Observable<PagedResultVeiculoDTO> {
+    const tid = this.requireTid(params);
     const query = new URLSearchParams();
     const termo = params.Termo?.trim();
     if (termo) query.set('Descricao', termo);
     const placaNorm = (params.Placa ?? '').replace(/\s/g, '').toUpperCase();
     if (placaNorm.length >= 7) query.set('Placa', placaNorm);
-    if (params.TransportadoraId != null) query.set('TransportadoraId', String(params.TransportadoraId));
+    query.set('TransportadoraId', String(tid));
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
-    const url = `${VEICULO}?${query.toString()}`;
+    const url = `${this.resource(tid)}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscar(body, params.NumeroPagina, params.TamanhoPagina)),
@@ -52,7 +74,7 @@ export class VeiculoService {
   }
 
   /**
-   * GET `/api/Veiculo/por-placa/{placa}` — agregado veículo + motorista + transportadora.
+   * GET `/api/Veiculo/por-placa/{placa}` — agregado veículo + motorista + transportadora (movimentos).
    * 404 → `null` (sem registro). Demais erros propagam para o chamador exibir toast.
    */
   obterPorPlaca(placa: string): Observable<MotoristaPorPlacaAggregateVm | null> {
@@ -60,7 +82,7 @@ export class VeiculoService {
     if (norm.length < 7) {
       return of(null);
     }
-    return this.http.get<unknown>(`${VEICULO}/por-placa/${encodeURIComponent(norm)}`).pipe(
+    return this.http.get<unknown>(`${VEICULO_LOOKUP}/por-placa/${encodeURIComponent(norm)}`).pipe(
       timeout(15000),
       map((body) => mapMotoristaPorPlacaResponse(body)),
       catchError((err: unknown) => {
@@ -143,9 +165,10 @@ export class VeiculoService {
     return current;
   }
 
-  /** GET /api/Veiculo/{id} */
-  obterPorId(id: number): Observable<VeiculoDTO | null> {
-    return this.http.get<unknown>(`${VEICULO}/${id}`).pipe(
+  /** GET /api/Transportadora/{tid}/Veiculo/{id} */
+  obterPorId(id: number, transportadoraId: number): Observable<VeiculoDTO | null> {
+    const tid = this.requireTid(transportadoraId);
+    return this.http.get<unknown>(`${this.resource(tid)}/${id}`).pipe(
       timeout(15000),
       map((body) => {
         const res = body as Record<string, unknown> | VeiculoDTO;
@@ -393,32 +416,35 @@ export class VeiculoService {
     return `${day}/${month}/${year}`;
   }
 
-  /** POST /api/Veiculo — mesmo shape do PUT, sem `id`. */
+  /** POST /api/Transportadora/{tid}/Veiculo */
   gravar(dto: VeiculoDTO): Observable<VeiculoDTO> {
+    const tid = this.requireTid(dto.transportadoraId);
     const payload = this.dtoToPayload(dto, 'gravar');
-    return this.http.post<VeiculoDTO>(VEICULO, payload).pipe(
+    return this.http.post<VeiculoDTO>(this.resource(tid), payload).pipe(
       timeout(15000),
       map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /** PUT /api/Veiculo — mesmos campos do POST + `id` obrigatório. */
+  /** PUT /api/Transportadora/{tid}/Veiculo */
   alterar(dto: VeiculoDTO): Observable<VeiculoDTO> {
+    const tid = this.requireTid(dto.transportadoraId);
     const id = dto.id != null ? Number(dto.id) : NaN;
     if (!Number.isFinite(id) || id <= 0) {
       return throwError(() => new Error('Id obrigatório para alterar veículo.'));
     }
     const payload = this.dtoToPayload({ ...dto, id }, 'alterar');
-    return this.http.put<VeiculoDTO>(VEICULO, payload).pipe(
+    return this.http.put<VeiculoDTO>(this.resource(tid), payload).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /** DELETE /api/Veiculo/{id} */
-  excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${VEICULO}/${id}`).pipe(
+  /** DELETE /api/Transportadora/{tid}/Veiculo/{id} */
+  excluir(id: number, transportadoraId: number): Observable<void> {
+    const tid = this.requireTid(transportadoraId);
+    return this.http.delete<void>(`${this.resource(tid)}/${id}`).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );
@@ -557,7 +583,7 @@ export class VeiculoService {
   }
 
   /**
-   * POST /api/Veiculo/ImportarDados — multipart Excel + transportadoraId.
+   * POST /api/Transportadora/{id}/Veiculo/ImportarDados — multipart Excel.
    */
   importarDadosExcel(
     transportadoraId: number,
@@ -570,10 +596,10 @@ export class VeiculoService {
     falha?: number;
     ignorado?: number;
   }> {
+    const tid = this.requireTid(transportadoraId);
     const form = new FormData();
-    form.append('transportadoraId', String(transportadoraId));
     form.append('arquivo', file, file.name);
-    return this.http.post<unknown>(`${VEICULO}/ImportarDados`, form).pipe(
+    return this.http.post<unknown>(`${this.resource(tid)}/ImportarDados`, form).pipe(
       timeout(120000),
       map((body) => this.normalizeImportacaoResult(body)),
       catchError((err) => of(this.normalizeImportacaoError(err)))

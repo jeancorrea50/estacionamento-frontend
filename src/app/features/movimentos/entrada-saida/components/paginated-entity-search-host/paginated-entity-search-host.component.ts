@@ -169,7 +169,7 @@ export class PaginatedEntitySearchHostComponent {
       case 'transportadora':
         return this.lookup.buscarTransportadoras(termo, p, s);
       case 'veiculo':
-        return this.lookup.buscarVeiculos(termo, p, s);
+        return this.lookup.buscarVeiculos(termo, p, s, this.transportadoraId());
     }
   }
 }

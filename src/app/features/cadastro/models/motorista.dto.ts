@@ -42,7 +42,8 @@ export interface MotoristaListItemDTO {
 
 export interface MotoristaBuscarParams {
   Termo?: string;
-  TransportadoraId?: number;
+  /** Obrigatório — CRUD aninhado em `/api/Transportadora/{id}/Motorista`. */
+  TransportadoraId: number;
   NumeroPagina: number;
   TamanhoPagina: number;
 }

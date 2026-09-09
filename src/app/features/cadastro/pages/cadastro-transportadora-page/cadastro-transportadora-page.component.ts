@@ -18,6 +18,7 @@ import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefo
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 import { ApiError } from '../../../../core/api/models';
 import {
@@ -73,6 +74,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private cnpjService = inject(CnpjService);
   private motoristaService = inject(MotoristaService);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
@@ -84,6 +86,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   // --- Aba Cadastro (Transportadora) ---
   listView = true;
+  /** Usuário com perfil transportadora: só edita a própria, sem listar/criar outras. */
+  somentePropriaTransportadora = false;
   transportadoraList: TransportadoraListItemDTO[] = [];
   /** Alias somente leitura: mesmos dados exibidos na tabela (`transportadoraList`). */
   get transportadoras(): TransportadoraListItemDTO[] {
@@ -201,6 +205,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.criarFormVeiculo();
     this.criarFormMotorista();
 
+    this.somentePropriaTransportadora = this.auth.isTransportadoraRole();
+
     this.route.paramMap
       .pipe(
         map((pm) => pm.get('id')),
@@ -220,7 +226,15 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.setTab('motoristas');
     }
 
-    if (!this.route.snapshot.paramMap.get('id')) {
+    const routeId = this.route.snapshot.paramMap.get('id');
+    if (!routeId) {
+      const propriaId =
+        this.somentePropriaTransportadora ? this.auth.resolveTransportadoraId() : null;
+      if (propriaId != null && propriaId > 0) {
+        this.listView = false;
+        this.carregarTransportadoraParaEdicao(propriaId);
+        return;
+      }
       this.onBuscar();
     }
   }
@@ -723,6 +737,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   novoTransportadora(): void {
+    if (this.somentePropriaTransportadora) {
+      this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
+      return;
+    }
     this.listView = false;
     this.transportadoraId = null;
     this.transportadoraMergeRaw = null;
@@ -1088,7 +1106,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     }
 
     this.frotaExpandLoadingIds.add(v.id);
-    this.veiculoService.obterPorId(v.id).subscribe({
+    const tid = this.transportadoraId ?? v.transportadoraId;
+    if (tid == null || tid <= 0) {
+      this.frotaExpandLoadingIds.delete(v.id);
+      return;
+    }
+    this.veiculoService.obterPorId(v.id, tid).subscribe({
       next: (dto) => {
         this.frotaExpandLoadingIds.delete(v.id);
         this.frotaExpandFetchedIds.add(v.id);
@@ -1198,12 +1221,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const placa = normalizePlaca(this.veiculoForm.get('placa')?.value);
     if (!placaCompleta(placa)) return;
     this.veiculoService
-      .buscar({ Placa: placa, NumeroPagina: 1, TamanhoPagina: 5 })
+      .buscar({ Placa: placa, TransportadoraId: this.transportadoraId, NumeroPagina: 1, TamanhoPagina: 5 })
       .subscribe({
         next: (paged) => {
           if (paged.items.length === 0) return;
           const primeiro = paged.items[0];
-          this.veiculoService.obterPorId(primeiro.id).subscribe((dto) => {
+          const tid = primeiro.transportadoraId ?? this.transportadoraId!;
+          this.veiculoService.obterPorId(primeiro.id, tid).subscribe((dto) => {
             if (!dto) return;
             const { marca, modelo } = this.resolveMarcaModeloForm(dto);
             this.veiculoEditId = dto.id ?? null;
@@ -1330,7 +1354,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.ensureTransportadoraListForFrota();
     this.agendarAbrirModalVeiculo();
 
-    this.veiculoService.obterPorId(v.id).subscribe((dto) => {
+    const tid = v.transportadoraId ?? this.transportadoraId;
+    if (tid == null || tid <= 0) return;
+    this.veiculoService.obterPorId(v.id, tid).subscribe((dto) => {
       if (dto) {
         const parsed = this.resolveMarcaModeloForm(dto);
         this.veiculoEditId = dto.id ?? null;
@@ -1445,7 +1471,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   excluirVeiculo(veiculo: VeiculoListItemDTO): void {
     if (!confirm('Excluir este veículo?')) return;
     if (veiculo.id <= 0) return;
-    this.veiculoService.excluir(veiculo.id).subscribe({
+    const tid = veiculo.transportadoraId ?? this.transportadoraId;
+    if (tid == null || tid <= 0) {
+      this.toast.error('Transportadora não identificada para excluir o veículo.');
+      return;
+    }
+    this.veiculoService.excluir(veiculo.id, tid).subscribe({
       next: () => this.carregarVeiculos(),
       error: () => this.cdr.markForCheck()
     });
@@ -1579,7 +1610,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.cdr.markForCheck();
       return;
     }
-    this.motoristaService.obterPorId(mid).subscribe({
+    const tid = this.transportadoraId;
+    if (tid == null || tid <= 0) {
+      this.cdr.markForCheck();
+      return;
+    }
+    this.motoristaService.obterPorId(mid, tid).subscribe({
       next: (m) => {
         this.frotaMotoristaTexto = m?.nomeCompleto ?? '';
         this.hidratarVinculosComMotoristaPrincipal();
@@ -1847,13 +1883,19 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         switchMap((cpfDigits) => {
           this.motoristaCpfBuscando = true;
           this.cdr.markForCheck();
-          return this.motoristaService.obterPorCpf(cpfDigits).pipe(
+          const tid = this.transportadoraId;
+          if (tid == null || tid <= 0) {
+            this.toast.error('Salve a transportadora antes de consultar motoristas.');
+            return of({ cpfDigits, dto: null as MotoristaListItemDTO | null, falhou: true as const });
+          }
+          return this.motoristaService.obterPorCpf(cpfDigits, tid).pipe(
             switchMap((dto) => {
               if (!dto || !dto.id) {
                 return of({ cpfDigits, dto: null as MotoristaListItemDTO | null });
               }
               // GET por CPF costuma vir incompleto; detalhe por id traz email/celular/CNH.
-              return this.motoristaService.obterPorId(dto.id).pipe(
+              const tidDetalhe = dto.transportadoraId ?? tid;
+              return this.motoristaService.obterPorId(dto.id, tidDetalhe).pipe(
                 map((full) => ({
                   cpfDigits,
                   dto: this.mesclarMotoristaLookup(dto, full)
@@ -2155,7 +2197,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       dtoBase.id != null &&
       dtoBase.id > 0 &&
       (dtoBase.pessoaId == null || dtoBase.pessoaId <= 0 || dtoBase.pessoaFisicaId == null || dtoBase.pessoaFisicaId <= 0)
-        ? this.motoristaService.obterPorId(dtoBase.id).pipe(
+        ? this.motoristaService.obterPorId(dtoBase.id, tid).pipe(
             map((full) =>
               full
                 ? {
@@ -2229,7 +2271,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.cdr.detectChanges();
 
     // Complementa celular/e-mail pelo detalhe quando a listagem não trouxer o contato completo.
-    this.motoristaService.obterPorId(c.id).subscribe({
+    const tid = c.transportadoraId ?? this.transportadoraId;
+    if (tid == null || tid <= 0) return;
+    this.motoristaService.obterPorId(c.id, tid).subscribe({
       next: (dto) => {
         if (!dto || this.condutorEditId !== c.id) return;
         this.ignorandoConsultaTemporaria(() => {
@@ -2375,7 +2419,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
     ref.afterClosed().subscribe((ok) => {
       if (!ok) return;
-      this.motoristaService.excluir(condutor.id).subscribe({
+      const tid = condutor.transportadoraId ?? this.transportadoraId;
+      if (tid == null || tid <= 0) {
+        this.toast.error('Transportadora não identificada para excluir o motorista.');
+        return;
+      }
+      this.motoristaService.excluir(condutor.id, tid).subscribe({
         next: () => {
           this.carregarCondutores();
           this.toast.success('Motorista excluído com sucesso.');

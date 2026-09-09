@@ -13,6 +13,19 @@
 
       <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
         <div class="est-dash-filter__select-wrap">
+          <select
+            class="est-dash-filter__select input-control trn-dash-filter__select"
+            [(ngModel)]="filtroTransportadoraId"
+            aria-label="Transportadora"
+            [disabled]="somentePropriaTransportadora"
+          >
+            <option [ngValue]="null">Transportadora…</option>
+            @for (t of transportadoras; track t.id) {
+              <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial || ('ID ' + t.id) }}</option>
+            }
+          </select>
+        </div>
+        <div class="est-dash-filter__select-wrap">
           <select class="est-dash-filter__select input-control trn-dash-filter__select" [(ngModel)]="campoBusca" aria-label="Tipo de busca">
             <option value="geral">Busca geral</option>
             <option value="cpf">CPF</option>

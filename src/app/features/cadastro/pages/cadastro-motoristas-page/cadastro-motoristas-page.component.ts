@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, of, Subject, switchMap } from 'rxjs';
 import { MotoristaService } from '../../services/motorista.service';
 import { TransportadoraService } from '../../services/transportadora.service';
@@ -14,11 +15,13 @@ import { TransportadoraListItemDTO } from '../../models/transportadora.dto';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ApiError } from '../../../../core/api/models';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 import { CadastroConfirmDialogComponent } from '../../components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
 import { cpfCompletoValidator, celularCompletoValidator } from '../../validators/cpf-celular.validator';
+import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 
 type MotoristaSearchField = 'geral' | 'cpf';
 
@@ -42,6 +45,8 @@ export class CadastroMotoristasPageComponent implements OnInit {
   private motoristaService = inject(MotoristaService);
   private transportadoraService = inject(TransportadoraService);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
@@ -54,10 +59,13 @@ export class CadastroMotoristasPageComponent implements OnInit {
   jaBuscou = false;
   termoBusca = '';
   campoBusca: MotoristaSearchField = 'geral';
+  /** Filtro obrigatório da listagem (exceto perfil transportadora, forçado pelo JWT). */
+  filtroTransportadoraId: number | null = null;
   numeroPagina = 1;
   totalCount = 0;
   tamanhoPaginaLista = 25;
   readonly opcoesTamanhoPaginaLista: number[] = [10, 25, 50];
+  somentePropriaTransportadora = false;
 
   showCondutorForm = false;
   motoristaForm!: FormGroup;
@@ -80,9 +88,28 @@ export class CadastroMotoristasPageComponent implements OnInit {
   importTransportadoraId: number | null = null;
 
   ngOnInit(): void {
+    this.somentePropriaTransportadora = this.auth.isTransportadoraRole();
+    const propriaTid = this.auth.resolveTransportadoraId();
+    if (this.somentePropriaTransportadora && propriaTid != null && propriaTid > 0) {
+      void this.router.navigate([CADASTRO_TRANSPORTADORAS_ROUTE, 'editar', propriaTid]);
+      return;
+    }
+
     this.criarFormMotorista();
     this.carregarTransportadoras();
+    if (propriaTid != null && propriaTid > 0) {
+      this.filtroTransportadoraId = propriaTid;
+    }
     this.onBuscar();
+  }
+
+  /** Transportadora efetiva para listagem/CRUD (JWT ou filtro/form). */
+  private resolveTransportadoraIdObrigatoria(preferido?: number | null): number | null {
+    if (this.somentePropriaTransportadora || this.auth.isTransportadoraRole()) {
+      return this.auth.resolveTransportadoraId();
+    }
+    const n = Number(preferido);
+    return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
   }
 
   get searchPlaceholder(): string {
@@ -114,6 +141,9 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   get transportadoraIdForm(): number | null {
+    if (this.auth.isTransportadoraRole()) {
+      return this.auth.resolveTransportadoraId();
+    }
     const v = Number(this.motoristaForm?.get('transportadoraId')?.value);
     return Number.isFinite(v) && v > 0 ? v : null;
   }
@@ -124,6 +154,17 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   carregarLista(): void {
+    const tid = this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId);
+    if (tid == null) {
+      this.jaBuscou = false;
+      this.loadingList = false;
+      this.condutores = [];
+      this.totalCount = 0;
+      this.toast.error('Selecione a transportadora para buscar motoristas.');
+      this.cdr.markForCheck();
+      return;
+    }
+    this.filtroTransportadoraId = tid;
     this.jaBuscou = true;
     this.loadingList = true;
     this.erroList = null;
@@ -131,6 +172,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
     this.motoristaService
       .buscar({
         Termo: termo || undefined,
+        TransportadoraId: tid,
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPaginaLista,
       })
@@ -255,10 +297,16 @@ export class CadastroMotoristasPageComponent implements OnInit {
         switchMap((cpfDigits) => {
           this.motoristaCpfBuscando = true;
           this.cdr.markForCheck();
-          return this.motoristaService.obterPorCpf(cpfDigits).pipe(
+          const tid = this.transportadoraIdForm;
+          if (tid == null) {
+            this.toast.error('Selecione a transportadora antes de consultar o CPF.');
+            return of({ cpfDigits, dto: null as MotoristaListItemDTO | null, falhou: true as const });
+          }
+          return this.motoristaService.obterPorCpf(cpfDigits, tid).pipe(
             switchMap((dto) => {
               if (!dto?.id) return of({ cpfDigits, dto: null as MotoristaListItemDTO | null });
-              return this.motoristaService.obterPorId(dto.id).pipe(
+              const tidDetalhe = dto.transportadoraId ?? tid;
+              return this.motoristaService.obterPorId(dto.id, tidDetalhe).pipe(
                 map((full) => ({ cpfDigits, dto: this.mesclarMotoristaLookup(dto, full) })),
                 catchError(() => of({ cpfDigits, dto: this.mesclarMotoristaLookup(dto, null) }))
               );
@@ -305,10 +353,12 @@ export class CadastroMotoristasPageComponent implements OnInit {
   abrirNovoCondutor(): void {
     this.limparEstadoLookupMotorista();
     this.condutorEditId = null;
+    const tidPadrao =
+      this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId) ?? this.filtroTransportadoraId;
     this.ignorandoConsultaTemporaria(() => {
       this.motoristaForm.reset({
         id: null,
-        transportadoraId: null,
+        transportadoraId: tidPadrao,
         nomeCompleto: '',
         cpf: '',
         email: '',
@@ -342,7 +392,9 @@ export class CadastroMotoristasPageComponent implements OnInit {
     this.showCondutorForm = true;
     this.cdr.detectChanges();
 
-    this.motoristaService.obterPorId(c.id).subscribe({
+    const tid = c.transportadoraId ?? this.transportadoraIdForm;
+    if (tid == null || tid <= 0) return;
+    this.motoristaService.obterPorId(c.id, tid).subscribe({
       next: (dto) => {
         if (!dto || this.condutorEditId !== c.id) return;
         this.ignorandoConsultaTemporaria(() => {
@@ -428,7 +480,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
       dtoBase.id != null &&
       dtoBase.id > 0 &&
       (dtoBase.pessoaId == null || dtoBase.pessoaId <= 0 || dtoBase.pessoaFisicaId == null || dtoBase.pessoaFisicaId <= 0)
-        ? this.motoristaService.obterPorId(dtoBase.id).pipe(
+        ? this.motoristaService.obterPorId(dtoBase.id, transportadoraId).pipe(
             map((full) =>
               full
                 ? {
@@ -490,7 +542,14 @@ export class CadastroMotoristasPageComponent implements OnInit {
     });
     ref.afterClosed().subscribe((ok) => {
       if (!ok) return;
-      this.motoristaService.excluir(condutor.id).subscribe({
+      const tid =
+        condutor.transportadoraId ??
+        this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId);
+      if (tid == null) {
+        this.toast.error('Transportadora não identificada para excluir o motorista.');
+        return;
+      }
+      this.motoristaService.excluir(condutor.id, tid).subscribe({
         next: () => {
           this.toast.success('Motorista excluído com sucesso.');
           this.carregarLista();
@@ -504,7 +563,8 @@ export class CadastroMotoristasPageComponent implements OnInit {
 
   abrirImportarCondutores(): void {
     this.fileCondutores = null;
-    this.importTransportadoraId = null;
+    this.importTransportadoraId =
+      this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId) ?? null;
     this.showImportarCondutores = true;
   }
 

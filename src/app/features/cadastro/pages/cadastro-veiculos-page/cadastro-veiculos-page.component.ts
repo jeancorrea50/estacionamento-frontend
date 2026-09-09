@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { VeiculoService } from '../../services/veiculo.service';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { MotoristaService } from '../../services/motorista.service';
@@ -8,6 +9,7 @@ import { VeiculoDTO, VeiculoListItemDTO } from '../../models/veiculo.dto';
 import { TransportadoraListItemDTO } from '../../models/transportadora.dto';
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/components/modal-busca-motorista/modal-busca-motorista.component';
@@ -16,6 +18,7 @@ import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../utils/p
 import { splitMarcaModelo } from '../../utils/marca-modelo';
 import { parseTipoCarga, TIPO_CARGA_OPCOES, tipoCargaLabel } from '../../../../shared/models/tipo-carga';
 import { formatCpf } from '../../directives/cpf-format.directive';
+import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 
 type VeiculoSearchField = 'geral' | 'placa';
 
@@ -47,6 +50,8 @@ export class CadastroVeiculosPageComponent implements OnInit {
   private transportadoraService = inject(TransportadoraService);
   private motoristaService = inject(MotoristaService);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
@@ -57,10 +62,12 @@ export class CadastroVeiculosPageComponent implements OnInit {
   jaBuscou = false;
   termoBusca = '';
   campoBusca: VeiculoSearchField = 'geral';
+  filtroTransportadoraId: number | null = null;
   numeroPagina = 1;
   totalCount = 0;
   tamanhoPaginaLista = 25;
   readonly opcoesTamanhoPaginaLista: number[] = [10, 25, 50];
+  somentePropriaTransportadora = false;
 
   showVeiculoForm = false;
   veiculoForm!: FormGroup;
@@ -83,9 +90,27 @@ export class CadastroVeiculosPageComponent implements OnInit {
   private bloquearFecharModalAte = 0;
 
   ngOnInit(): void {
+    this.somentePropriaTransportadora = this.auth.isTransportadoraRole();
+    const propriaTid = this.auth.resolveTransportadoraId();
+    if (this.somentePropriaTransportadora && propriaTid != null && propriaTid > 0) {
+      void this.router.navigate([CADASTRO_TRANSPORTADORAS_ROUTE, 'editar', propriaTid]);
+      return;
+    }
+
     this.criarFormVeiculo();
     this.carregarTransportadoras();
+    if (propriaTid != null && propriaTid > 0) {
+      this.filtroTransportadoraId = propriaTid;
+    }
     this.onBuscar();
+  }
+
+  private resolveTransportadoraIdObrigatoria(preferido?: number | null): number | null {
+    if (this.somentePropriaTransportadora || this.auth.isTransportadoraRole()) {
+      return this.auth.resolveTransportadoraId();
+    }
+    const n = Number(preferido);
+    return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
   }
 
   get searchPlaceholder(): string {
@@ -121,6 +146,9 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   get transportadoraIdForm(): number | null {
+    if (this.auth.isTransportadoraRole()) {
+      return this.auth.resolveTransportadoraId();
+    }
     const v = Number(this.veiculoForm?.get('transportadoraId')?.value);
     return Number.isFinite(v) && v > 0 ? v : null;
   }
@@ -131,6 +159,17 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   carregarLista(): void {
+    const tid = this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId);
+    if (tid == null) {
+      this.jaBuscou = false;
+      this.loadingList = false;
+      this.veiculos = [];
+      this.totalCount = 0;
+      this.toast.error('Selecione a transportadora para buscar veículos.');
+      this.cdr.markForCheck();
+      return;
+    }
+    this.filtroTransportadoraId = tid;
     this.jaBuscou = true;
     this.loadingList = true;
     this.erroList = null;
@@ -140,6 +179,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
       .buscar({
         Termo: this.campoBusca === 'geral' ? termo || undefined : undefined,
         Placa: placa && placa.length >= 7 ? placa : undefined,
+        TransportadoraId: tid,
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPaginaLista,
       })
@@ -240,6 +280,8 @@ export class CadastroVeiculosPageComponent implements OnInit {
     this.frotaMotoristaModalAberto = false;
     this.frotaMotoristaTexto = '';
     this.motoristasVinculadosFrota = [];
+    const tidPadrao =
+      this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId) ?? this.filtroTransportadoraId;
     this.veiculoForm.reset({
       id: null,
       placa: '',
@@ -253,7 +295,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
       anoModelo: null,
       tipoCarga: null,
       quantidadeEixos: '',
-      transportadoraId: null,
+      transportadoraId: tidPadrao,
       centroCusto: '',
       ativo: true,
     });
@@ -284,7 +326,9 @@ export class CadastroVeiculosPageComponent implements OnInit {
     this.modalFrotaTab = 'veiculo';
     this.agendarAbrirModalVeiculo();
 
-    this.veiculoService.obterPorId(v.id).subscribe((dto) => {
+    const tid = v.transportadoraId ?? this.transportadoraIdForm ?? this.filtroTransportadoraId;
+    if (tid == null || tid <= 0) return;
+    this.veiculoService.obterPorId(v.id, tid).subscribe((dto) => {
       if (!dto) return;
       const parsed = this.resolveMarcaModeloForm(dto);
       const placaFinal = formatPlacaDisplay(dto.placa);
@@ -315,7 +359,14 @@ export class CadastroVeiculosPageComponent implements OnInit {
   excluirVeiculo(veiculo: VeiculoListItemDTO): void {
     if (!confirm('Excluir este veículo?')) return;
     if (veiculo.id <= 0) return;
-    this.veiculoService.excluir(veiculo.id).subscribe({
+    const tid =
+      veiculo.transportadoraId ??
+      this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId);
+    if (tid == null) {
+      this.toast.error('Transportadora não identificada para excluir o veículo.');
+      return;
+    }
+    this.veiculoService.excluir(veiculo.id, tid).subscribe({
       next: () => {
         this.toast.success('Veículo excluído com sucesso.');
         this.carregarLista();
@@ -397,7 +448,12 @@ export class CadastroVeiculosPageComponent implements OnInit {
     if (this.veiculoEditId != null) return;
     const placa = normalizePlaca(this.veiculoForm.get('placa')?.value);
     if (!placaCompleta(placa)) return;
-    this.veiculoService.buscar({ Placa: placa, NumeroPagina: 1, TamanhoPagina: 5 }).subscribe({
+    const tid = this.transportadoraIdForm ?? this.filtroTransportadoraId;
+    if (tid == null || tid <= 0) {
+      this.toast.error('Selecione a transportadora antes de consultar a placa.');
+      return;
+    }
+    this.veiculoService.buscar({ Placa: placa, TransportadoraId: tid, NumeroPagina: 1, TamanhoPagina: 5 }).subscribe({
       next: (paged) => {
         if (paged.items.length === 0) return;
         this.editarVeiculo(paged.items[0]);
@@ -484,7 +540,8 @@ export class CadastroVeiculosPageComponent implements OnInit {
 
   abrirImportarFrota(): void {
     this.fileFrota = null;
-    this.importTransportadoraId = null;
+    this.importTransportadoraId =
+      this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId) ?? null;
     this.showImportarFrota = true;
   }
 
@@ -601,7 +658,9 @@ export class CadastroVeiculosPageComponent implements OnInit {
     this.motoristasVinculadosFrota = [];
     const mid = dto.motoristaId;
     if (mid != null && mid > 0) {
-      this.motoristaService.obterPorId(mid).subscribe({
+      const tid = dto.transportadoraId ?? this.transportadoraIdForm;
+      if (tid == null || tid <= 0) return;
+      this.motoristaService.obterPorId(mid, tid).subscribe({
         next: (m) => {
           if (m?.nomeCompleto) {
             this.definirMotoristaPrincipal(mid, m.nomeCompleto);

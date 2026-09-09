@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 import { MotoristaService } from '../../cadastro/services/motorista.service';
 import { TransportadoraService } from '../../cadastro/services/transportadora.service';
 import { VeiculoService } from '../../cadastro/services/veiculo.service';
@@ -17,9 +17,14 @@ export class EntradaSaidaLookupService {
     tamanhoPagina: number,
     transportadoraId?: number
   ): Observable<PaginatedSearchResult> {
+    const tid = Number(transportadoraId);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      return of({ items: [], totalCount: 0, numeroPagina, tamanhoPagina });
+    }
+
     return this.motoristaService.buscar({
       Termo: termo || undefined,
-      TransportadoraId: transportadoraId,
+      TransportadoraId: tid,
       NumeroPagina: numeroPagina,
       TamanhoPagina: tamanhoPagina
     }).pipe(
@@ -56,9 +61,20 @@ export class EntradaSaidaLookupService {
     );
   }
 
-  buscarVeiculos(termo: string, numeroPagina: number, tamanhoPagina: number): Observable<PaginatedSearchResult> {
+  buscarVeiculos(
+    termo: string,
+    numeroPagina: number,
+    tamanhoPagina: number,
+    transportadoraId?: number
+  ): Observable<PaginatedSearchResult> {
+    const tid = Number(transportadoraId);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      return of({ items: [], totalCount: 0, numeroPagina, tamanhoPagina });
+    }
+
     return this.veiculoService.buscar({
       Termo: termo || undefined,
+      TransportadoraId: tid,
       NumeroPagina: numeroPagina,
       TamanhoPagina: tamanhoPagina
     }).pipe(

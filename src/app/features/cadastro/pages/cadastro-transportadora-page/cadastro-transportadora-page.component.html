@@ -69,10 +69,12 @@
           <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
           Importar dados
         </button>
-        <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="novoTransportadora()">
-          <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          Novo
-        </button>
+        @if (!somentePropriaTransportadora) {
+          <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="novoTransportadora()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo
+          </button>
+        }
       </section>
     }
 

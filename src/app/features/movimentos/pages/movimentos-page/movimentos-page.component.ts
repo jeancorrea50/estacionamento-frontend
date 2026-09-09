@@ -825,9 +825,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     const cnpjDigits = String(this.registroRapido.transportadoraCnpj ?? '').replace(/\D/g, '');
     const placaNorm = normalizePlaca(this.registroRapido.placa);
 
-    const motorista$ = this.cpfPossui11Digitos(cpfDigits)
-      ? this.motoristaService.obterPorCpf(cpfDigits)
-      : of(null);
+    const motorista$ =
+      this.cpfPossui11Digitos(cpfDigits) && this.registroRapidoTransportadoraId > 0
+        ? this.motoristaService.obterPorCpf(cpfDigits, this.registroRapidoTransportadoraId)
+        : of(null);
     const transportadora$ = this.cnpjPossui14Digitos(cnpjDigits)
       ? this.transportadoraService.obterTransportadoraPorCnpj(cnpjDigits)
       : of(null);
@@ -1731,8 +1732,14 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   private buscarMotoristaPorCpfRegistroRapido(cpfDigits: string): void {
     const seq = ++this.consultaCpfSequencia;
+    const tid = this.registroRapidoTransportadoraId;
+    if (!(tid > 0)) {
+      this.buscandoMotoristaPorCpf = false;
+      this.motoristaAutoPreenchidoPorCpf = false;
+      return;
+    }
     this.buscandoMotoristaPorCpf = true;
-    this.motoristaService.obterPorCpf(cpfDigits).subscribe({
+    this.motoristaService.obterPorCpf(cpfDigits, tid).subscribe({
       next: (dto) => {
         if (seq !== this.consultaCpfSequencia) return;
         this.buscandoMotoristaPorCpf = false;

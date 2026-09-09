@@ -558,7 +558,7 @@ export class AuthService {
     );
   }
 
-  /** Substitui o Bearer atual e espelha EmpresaId no loggedUser. */
+  /** Substitui o Bearer atual e espelha EmpresaId / TransportadoraId no loggedUser. */
   private applyAccessToken(token: string): void {
     const normalized = normalizeBearerValue(token);
     localStorage.setItem(this.TOKEN_KEY, normalized);
@@ -572,6 +572,14 @@ export class AuthService {
       } else if (this.isAdmin()) {
         delete user.empresaId;
       }
+
+      const transportadoraId = readTransportadoraIdClaim(payload);
+      if (transportadoraId && transportadoraId > 0) {
+        user.transportadoraId = transportadoraId;
+      } else {
+        delete user.transportadoraId;
+      }
+
       localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
     }
 
@@ -581,6 +589,28 @@ export class AuthService {
   isEstacionamentoRole(): boolean {
     const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
     return perfil === 'estacionamento';
+  }
+
+  /** Perfil de usuário vinculado a uma transportadora (claim Role). */
+  isTransportadoraRole(): boolean {
+    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
+    return perfil.includes('transportadora');
+  }
+
+  /**
+   * Transportadora da sessão: `loggedUser.transportadoraId` ou claim JWT `TransportadoraId`.
+   */
+  resolveTransportadoraId(): number | null {
+    const fromUser = this.getLoggedUser()?.transportadoraId;
+    if (typeof fromUser === 'number' && Number.isFinite(fromUser) && fromUser > 0) {
+      return Math.trunc(fromUser);
+    }
+
+    const token = this.getAccessToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return null;
+    return readTransportadoraIdClaim(payload);
   }
 
   /**
@@ -733,6 +763,7 @@ function buildLoggedUserFromJwtClaims(
   const nameId = getJwtStringClaim(payload, 'nameid', 'nameId', 'sub');
   const role = resolveJwtRole(payload);
   const empresaId = readEmpresaIdClaim(payload);
+  const transportadoraId = readTransportadoraIdClaim(payload);
 
   const displayName = uniqueName ?? fallbackUsername;
   const perfil = role ?? 'Operador';
@@ -747,6 +778,7 @@ function buildLoggedUserFromJwtClaims(
     email: email ?? undefined,
     nameId: nameId ?? undefined,
     empresaId: empresaId ?? undefined,
+    transportadoraId: transportadoraId ?? undefined,
     permissoes: {
       acessoConfiguracoes: isAdmin || hasConfigInPermissions,
       verHome: true,
@@ -761,6 +793,19 @@ function readEmpresaIdClaim(payload: Record<string, unknown>): number | null {
     payload['empresaId'] ??
     payload['EstacionamentoId'] ??
     payload['estacionamentoId'];
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n);
+  }
+  return null;
+}
+
+/** Claim `TransportadoraId` do JWT (usuário vinculado a transportadora). */
+function readTransportadoraIdClaim(payload: Record<string, unknown>): number | null {
+  const raw = payload['TransportadoraId'] ?? payload['transportadoraId'];
   if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
     return Math.trunc(raw);
   }

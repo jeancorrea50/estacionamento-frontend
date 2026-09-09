@@ -25,6 +25,8 @@ export interface LoggedUser {
    * Usado em POST de fatura e filtros multi-tenant.
    */
   empresaId?: number;
+  /** Claim `TransportadoraId` do JWT (usuário vinculado a transportadora). */
+  transportadoraId?: number;
   permissoes: {
     acessoConfiguracoes: boolean;
     verHome: boolean;

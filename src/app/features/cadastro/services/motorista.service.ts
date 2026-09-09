@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, map, of, switchMap, throwError, timeout } from 'rxjs';
+import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { throwIfServiceFailure } from '../../../core/api/utils/service-result.util';
 import { stripUndefinedDeep } from '../pages/estacionamento-form/estacionamento-form.mapper';
@@ -12,7 +12,7 @@ import {
 } from '../models/motorista.dto';
 
 const API_BASE = environment.API_BASE_URL;
-const MOTORISTA = `${API_BASE}/Motorista`;
+const TRANSPORTADORA = `${API_BASE}/Transportadora`;
 
 @Injectable({
   providedIn: 'root'
@@ -20,14 +20,32 @@ const MOTORISTA = `${API_BASE}/Motorista`;
 export class MotoristaService {
   constructor(private http: HttpClient) {}
 
+  /** Base aninhada: `/api/Transportadora/{id}/Motorista`. */
+  private resource(transportadoraId: number): string {
+    const tid = Number(transportadoraId);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      throw new Error('TransportadoraId é obrigatório para operações de motorista.');
+    }
+    return `${TRANSPORTADORA}/${tid}/Motorista`;
+  }
+
+  private requireTid(params: { TransportadoraId?: number | null } | number | null | undefined): number {
+    const tid = typeof params === 'number' ? params : Number(params?.TransportadoraId);
+    if (!Number.isFinite(tid) || tid <= 0) {
+      throw new Error('TransportadoraId é obrigatório para operações de motorista.');
+    }
+    return tid;
+  }
+
   buscar(params: MotoristaBuscarParams): Observable<PagedResultMotoristaDTO> {
+    const tid = this.requireTid(params);
     const query = new URLSearchParams();
     const termo = params.Termo?.trim();
     if (termo) query.set('Descricao', termo);
-    if (params.TransportadoraId != null) query.set('TransportadoraId', String(params.TransportadoraId));
+    query.set('TransportadoraId', String(tid));
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
-    const url = `${MOTORISTA}?${query.toString()}`;
+    const url = `${this.resource(tid)}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscar(body, params.NumeroPagina, params.TamanhoPagina)),
@@ -35,8 +53,9 @@ export class MotoristaService {
     );
   }
 
-  obterPorId(id: number): Observable<MotoristaDTO | null> {
-    return this.http.get<unknown>(`${MOTORISTA}/${id}`).pipe(
+  obterPorId(id: number, transportadoraId: number): Observable<MotoristaDTO | null> {
+    const tid = this.requireTid(transportadoraId);
+    return this.http.get<unknown>(`${this.resource(tid)}/${id}`).pipe(
       timeout(15000),
       map((body) => {
         const source = body as Record<string, unknown>;
@@ -48,10 +67,11 @@ export class MotoristaService {
     );
   }
 
-  obterPorCpf(cpf: string): Observable<MotoristaDTO | null> {
+  obterPorCpf(cpf: string, transportadoraId: number): Observable<MotoristaDTO | null> {
+    const tid = this.requireTid(transportadoraId);
     const cpfDigits = String(cpf ?? '').replace(/\D/g, '');
     if (cpfDigits.length !== 11) return of(null);
-    return this.http.get<unknown>(`${MOTORISTA}/cpf/${cpfDigits}`).pipe(
+    return this.http.get<unknown>(`${this.resource(tid)}/cpf/${cpfDigits}`).pipe(
       timeout(15000),
       map((body) => {
         const source = body as Record<string, unknown>;
@@ -79,8 +99,9 @@ export class MotoristaService {
   }
 
   gravar(dto: MotoristaDTO): Observable<MotoristaDTO> {
+    const tid = this.requireTid(dto.transportadoraId);
     const payload = this.dtoToPayload(dto);
-    return this.http.post<unknown>(MOTORISTA, payload).pipe(
+    return this.http.post<unknown>(this.resource(tid), payload).pipe(
       timeout(15000),
       map((res) => {
         throwIfServiceFailure(res);
@@ -97,8 +118,9 @@ export class MotoristaService {
   }
 
   alterar(dto: MotoristaDTO): Observable<MotoristaDTO> {
+    const tid = this.requireTid(dto.transportadoraId);
     const payload = this.dtoToPayload(dto);
-    return this.http.put<unknown>(MOTORISTA, payload).pipe(
+    return this.http.put<unknown>(this.resource(tid), payload).pipe(
       timeout(15000),
       map((res) => {
         throwIfServiceFailure(res);
@@ -109,8 +131,7 @@ export class MotoristaService {
   }
 
   /**
-   * Transferência de vínculo: a API rejeita trocar `transportadoraId` direto
-   * quando já existe vínculo. Fluxo: desvincula (null/0) e depois vincula a nova.
+   * Troca de vínculo: o backend inativa o cadastro antigo e cria o novo na transportadora informada.
    */
   transferirVinculo(dto: MotoristaDTO): Observable<MotoristaDTO> {
     const motoristaId = dto.id != null && dto.id > 0 ? dto.id : 0;
@@ -122,17 +143,12 @@ export class MotoristaService {
       return throwError(() => new Error('Dados insuficientes para transferir o vínculo do motorista.'));
     }
 
-    const base: MotoristaDTO = { ...dto, id: motoristaId };
-    const vinculado: MotoristaDTO = { ...base, transportadoraId: novaTransportadoraId };
-
-    return this.alterar({ ...base, transportadoraId: null }).pipe(
-      catchError(() => this.alterar({ ...base, transportadoraId: 0 })),
-      switchMap(() => this.alterar(vinculado))
-    );
+    return this.alterar({ ...dto, id: motoristaId, transportadoraId: novaTransportadoraId });
   }
 
-  excluir(id: number): Observable<void> {
-    return this.http.delete<unknown>(`${MOTORISTA}/${id}`).pipe(
+  excluir(id: number, transportadoraId: number): Observable<void> {
+    const tid = this.requireTid(transportadoraId);
+    return this.http.delete<unknown>(`${this.resource(tid)}/${id}`).pipe(
       timeout(15000),
       map((res) => {
         throwIfServiceFailure(res);
@@ -404,7 +420,7 @@ export class MotoristaService {
   }
 
   /**
-   * POST /api/Motorista/ImportarDados — multipart Excel + transportadoraId.
+   * POST /api/Transportadora/{id}/Motorista/ImportarDados — multipart Excel.
    */
   importarDadosExcel(
     transportadoraId: number,
@@ -417,10 +433,10 @@ export class MotoristaService {
     falha?: number;
     ignorado?: number;
   }> {
+    const tid = this.requireTid(transportadoraId);
     const form = new FormData();
-    form.append('transportadoraId', String(transportadoraId));
     form.append('arquivo', file, file.name);
-    return this.http.post<unknown>(`${MOTORISTA}/ImportarDados`, form).pipe(
+    return this.http.post<unknown>(`${this.resource(tid)}/ImportarDados`, form).pipe(
       timeout(120000),
       map((body) => {
         const o = (body ?? {}) as Record<string, unknown>;

@@ -19,7 +19,7 @@ import { SessionAccessService, SessionMenuAccess, SessionSubMenuAccess } from '.
 import { resolveExibirNoSidebar } from '../../features/gerenciamento/services/menu-sidebar-visibility';
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
-import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/service-result.util';
+import { mergeServiceResultToRoot, readLoginServiceFailure, unwrapServiceResult } from '../api/utils/service-result.util';
 import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
 import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
 import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
@@ -392,11 +392,11 @@ export class AuthService {
 
   /**
    * Estacionamento da sessão:
-   * - Admin: seleção obrigatória em sessionStorage (não usa vínculo JWT)
+   * - Admin / Transportadora: seleção obrigatória em sessionStorage
    * - Demais: claim JWT / loggedUser.empresaId
    */
   resolveEstacionamentoId(): number | null {
-    if (this.isAdmin()) {
+    if (this.isAdmin() || this.isTransportadoraRole()) {
       const sessionId = this.getSessionEstacionamento()?.id;
       return sessionId && sessionId > 0 ? sessionId : null;
     }
@@ -413,9 +413,9 @@ export class AuthService {
     return readEmpresaIdClaim(payload);
   }
 
-  /** GUID global do pátio (sessão Admin ou claim `CodExportacao`). */
+  /** GUID global do pátio (sessão Admin/Transportadora ou claim `CodExportacao`). */
   resolveCodExportacao(): string | null {
-    if (this.isAdmin()) {
+    if (this.isAdmin() || this.isTransportadoraRole()) {
       const fromSession = this.getSessionEstacionamento()?.codExportacao?.trim();
       if (fromSession) return fromSession;
     }
@@ -427,9 +427,9 @@ export class AuthService {
     return getJwtStringClaim(payload, 'CodExportacao', 'codExportacao');
   }
 
-  /** Admin logado sem estacionamento de sessão selecionado. */
+  /** Admin ou Transportadora logado sem estacionamento de sessão selecionado. */
   needsEstacionamentoSelection(): boolean {
-    return this.isAdmin() && !this.resolveEstacionamentoId();
+    return (this.isAdmin() || this.isTransportadoraRole()) && !this.resolveEstacionamentoId();
   }
 
   getSessionEstacionamento(): SessionEstacionamento | null {
@@ -475,7 +475,7 @@ export class AuthService {
 
   clearSessionEstacionamento(): void {
     clearSessionEstacionamentoStorage();
-    if (this.isAdmin()) {
+    if (this.isAdmin() || this.isTransportadoraRole()) {
       const user = this.getLoggedUser();
       if (user) {
         delete user.empresaId;
@@ -485,7 +485,7 @@ export class AuthService {
   }
 
   /**
-   * Admin: pede novo JWT com EmpresaId/CodExportacao do pátio (ou limpa).
+   * Admin/Transportadora: pede novo JWT com EmpresaId/CodExportacao do pátio (ou limpa).
    * Atualiza token + sessionStorage para o CurrentUser do backend refletir a seleção.
    */
   selecionarEstacionamentoSessao(input: {
@@ -558,6 +558,53 @@ export class AuthService {
     );
   }
 
+  /**
+   * Transportadora: pátios onde o CNPJ da transportadora está cadastrado.
+   * Formato compatível com LookupOption do modal de seleção.
+   */
+  listarMeusEstacionamentos(): Observable<
+    Array<{
+      id: number;
+      label: string;
+      cnpj: string;
+      nome?: string | null;
+      fantasia?: string | null;
+      razaoSocial?: string | null;
+      codExportacao?: string | null;
+    }>
+  > {
+    const url = `${environment.API_BASE_URL}/auth/Usuario/meus-estacionamentos`;
+    return this.http.get<unknown>(url).pipe(
+      map((body) => {
+        const raw = unwrapServiceResult<unknown>(body);
+        const rows = Array.isArray(raw) ? raw : [];
+        return rows
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const o = item as Record<string, unknown>;
+            const id = Number(o['estacionamentoId'] ?? o['EstacionamentoId'] ?? 0);
+            if (!Number.isFinite(id) || id <= 0) return null;
+            const fantasia = String(o['fantasia'] ?? o['Fantasia'] ?? '').trim();
+            const razaoSocial = String(o['nomeRazaoSocial'] ?? o['NomeRazaoSocial'] ?? '').trim();
+            const cnpj = String(o['cnpjEstacionamento'] ?? o['CnpjEstacionamento'] ?? '').trim();
+            const codExportacao = String(o['codExportacao'] ?? o['CodExportacao'] ?? '').trim();
+            const nome = fantasia || razaoSocial || `Estacionamento #${id}`;
+            return {
+              id: Math.trunc(id),
+              label: nome,
+              cnpj,
+              nome,
+              fantasia: fantasia || null,
+              razaoSocial: razaoSocial || null,
+              codExportacao: codExportacao || null,
+            };
+          })
+          .filter((x): x is NonNullable<typeof x> => x != null);
+      }),
+      catchError(() => of([]))
+    );
+  }
+
   /** Substitui o Bearer atual e espelha EmpresaId / TransportadoraId no loggedUser. */
   private applyAccessToken(token: string): void {
     const normalized = normalizeBearerValue(token);
@@ -569,7 +616,7 @@ export class AuthService {
       const empresaId = readEmpresaIdClaim(payload);
       if (empresaId && empresaId > 0) {
         user.empresaId = empresaId;
-      } else if (this.isAdmin()) {
+      } else if (this.isAdmin() || this.isTransportadoraRole()) {
         delete user.empresaId;
       }
 

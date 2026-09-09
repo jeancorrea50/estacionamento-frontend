@@ -125,7 +125,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   trocarEstacionamento(): void {
-    if (!this.authService.isAdmin()) return;
+    if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) return;
     this.authService.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
       next: (res) => {
         if (!res.success) {
@@ -144,7 +144,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   private refreshSessionEstacionamentoLabel(): void {
-    if (!this.authService.isAdmin()) {
+    if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) {
       this.sessionEstacionamento.set(null);
       return;
     }

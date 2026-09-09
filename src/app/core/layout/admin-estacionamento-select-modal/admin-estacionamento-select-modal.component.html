@@ -13,8 +13,13 @@
       <div class="aes-modal__titles">
         <h2 id="aes-title">Escolher estacionamento</h2>
         <p class="aes-modal__sub">
-          Sessão de administrador. Selecione o pátio para carregar os dados operacionais. A escolha é
-          obrigatória.
+          @if (isTransportadora) {
+            Sessão da transportadora. Selecione o pátio para ver os movimentos desta empresa. A escolha é
+            obrigatória.
+          } @else {
+            Sessão de administrador. Selecione o pátio para carregar os dados operacionais. A escolha é
+            obrigatória.
+          }
         </p>
       </div>
     </header>

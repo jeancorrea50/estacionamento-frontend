@@ -20,7 +20,7 @@ import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../api/services/toast.service';
 
 /**
- * Modal obrigatório: Admin escolhe o estacionamento operacional da sessão.
+ * Modal obrigatório: Admin/Transportadora escolhe o estacionamento operacional da sessão.
  * Busca por nome, CNPJ, id e principalmente código de exportação.
  */
 @Component({
@@ -46,6 +46,7 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
   readonly filtro = signal('');
   readonly selectedId = signal<number | null>(null);
   readonly highlightIndex = signal(0);
+  readonly isTransportadora = this.auth.isTransportadoraRole();
 
   readonly opcoesFiltradas = computed(() => {
     const list = this.opcoes();
@@ -94,13 +95,22 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
   carregar(): void {
     this.loading.set(true);
     this.erro.set(null);
-    this.lookup.list({ forceApi: true }).subscribe({
+
+    const source$ = this.isTransportadora
+      ? this.auth.listarMeusEstacionamentos()
+      : this.lookup.list({ forceApi: true });
+
+    source$.subscribe({
       next: (rows) => {
         this.opcoes.set(rows);
         this.loading.set(false);
         this.highlightIndex.set(0);
         if (!rows.length) {
-          this.erro.set('Nenhum estacionamento disponível. Cadastre um pátio antes de continuar.');
+          this.erro.set(
+            this.isTransportadora
+              ? 'Nenhum pátio encontrado com o CNPJ desta transportadora.'
+              : 'Nenhum estacionamento disponível. Cadastre um pátio antes de continuar.'
+          );
         }
       },
       error: () => {

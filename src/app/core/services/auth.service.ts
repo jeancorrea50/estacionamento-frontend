@@ -621,13 +621,10 @@ export class AuthService {
   }
 
   /**
-   * Rota padrão da sessão logada com base no menu autorizado recebido no login.
+   * Rota padrão pós-login: tela vazia (sem abrir menu/submenu).
    */
   getDefaultAuthorizedRoute(): string {
-    const sessionRoute = this.sessionAccess.getDefaultRoute();
-    if (sessionRoute) return sessionRoute;
-    if (this.sessionAccess.hasSessionMenus()) return '/';
-    return '/app/dashboard';
+    return '/app/inicio';
   }
 
   /**

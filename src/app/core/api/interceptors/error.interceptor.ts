@@ -122,14 +122,20 @@ function isEstacionamentoConfiguracaoAtualGet(req: HttpRequest<unknown>): boolea
 function isMovimentosLookupSilencioso(req: HttpRequest<unknown>): boolean {
   if (req.method !== 'GET') return false;
   const u = req.url.toLowerCase().split('?')[0];
-  return u.includes('/entradasaida/buscar-por-placa/') || u.includes('/motorista/cpf/');
+  return (
+    u.includes('/entradasaida/buscar-por-placa/') ||
+    u.includes('/movimento/buscar-por-placa/') ||
+    u.includes('/motorista/cpf/') ||
+    (u.includes('/transportadora/') && u.includes('/motorista/cpf/'))
+  );
 }
 
 /** GET valor-estacionamento: ausência de config ativa (404) é cenário esperado na saída. */
 function isValorEstacionamentoGet(req: HttpRequest<unknown>): boolean {
   if (req.method !== 'GET') return false;
   const u = req.url.toLowerCase().split('?')[0];
-  return u.includes('/entradasaida/valor-estacionamento');
+  return u.includes('/entradasaida/valor-estacionamento')
+    || u.includes('/movimento/valor-estacionamento');
 }
 
 /** Sugestão de NomeBanco: feedback fica no formulário (verde/vermelho), sem toast. */

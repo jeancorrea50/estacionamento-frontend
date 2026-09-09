@@ -7,7 +7,7 @@ import { PATIO_ENTRADA_SAIDA_PATH, PATIO_MOVIMENTACOES_PATH } from './patio-rota
 export const PATIO_ROUTES: Routes = [
   {
     path: '',
-    redirectTo: PATIO_ENTRADA_SAIDA_PATH,
+    redirectTo: PATIO_MOVIMENTACOES_PATH,
     pathMatch: 'full',
   },
   {
@@ -36,7 +36,7 @@ export const PATIO_ROUTES: Routes = [
   },
   {
     path: '**',
-    redirectTo: PATIO_ENTRADA_SAIDA_PATH,
+    redirectTo: PATIO_MOVIMENTACOES_PATH,
     pathMatch: 'full',
   },
 ];

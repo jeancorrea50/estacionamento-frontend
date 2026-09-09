@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
+import { MovimentoService } from '../../entrada-saida/movimento.service';
 import { PATIO_ENTRADA_SAIDA_ROUTE } from '../../../patio/patio-rotas';
 import {
   EntradaSaidaFiltro,
@@ -106,7 +107,8 @@ interface AlertaItemVm {
   styleUrls: ['./movimentos-page.component.scss']
 })
 export class MovimentosPageComponent implements OnInit, OnDestroy {
-  private readonly service = inject(EntradaSaidaService);
+  private readonly entradaSaidaService = inject(EntradaSaidaService);
+  private readonly movimentoService = inject(MovimentoService);
   private readonly signalrDashboardService = inject(SignalrDashboardService);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly motoristaService = inject(MotoristaService);
@@ -115,6 +117,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
+
+  /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
+  private get service(): EntradaSaidaService {
+    return this.viewMode() === 'operacao' ? this.movimentoService : this.entradaSaidaService;
+  }
 
   /** Acesso derivado do payload `menus` do login (não do claim JWT `permission`). */
   get canVisualizar(): boolean {

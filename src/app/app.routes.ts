@@ -40,6 +40,12 @@ export const routes: Routes = [
 		canActivate: [authGuard],
 		canActivateChild: [routeAccessGuard],
 		children: [
+			// Início vazio (padrão pós-login — sem abrir menu)
+			{
+				path: 'inicio',
+				loadComponent: () =>
+					import('./features/home/home-blank-page.component').then((m) => m.HomeBlankPageComponent),
+			},
 			// DASHBOARD
 			{
 				path: 'dashboard',
@@ -159,10 +165,10 @@ export const routes: Routes = [
 				component: CadastroLayoutComponent,
 				children: CADASTRO_ROUTES
 			},
-			// Redirecionar /app para /app/dashboard
+			// Redirecionar /app para tela inicial vazia
 			{
 				path: '',
-				redirectTo: 'dashboard',
+				redirectTo: 'inicio',
 				pathMatch: 'full'
 			}
 		]

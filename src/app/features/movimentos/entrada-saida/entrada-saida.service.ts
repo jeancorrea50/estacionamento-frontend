@@ -16,21 +16,20 @@ import {
   ValorEstacionamentoResponse
 } from '../models/entrada-saida.models';
 
-const ENTRADA_SAIDA_API = `${environment.API_BASE_URL}/EntradaSaida`;
-
 @Injectable({ providedIn: 'root' })
 export class EntradaSaidaService {
+  protected readonly apiRoot = `${environment.API_BASE_URL}/EntradaSaida`;
   private readonly http = inject(HttpClient);
 
   buscar(filtro: EntradaSaidaFiltro): Observable<EntradaSaidaPagedResult<EntradaSaidaSearchOutput>> {
     const params = this.buildBuscarParams(filtro);
-    return this.http.get<unknown>(ENTRADA_SAIDA_API, { params }).pipe(
+    return this.http.get<unknown>(this.apiRoot, { params }).pipe(
       map((body) => this.normalizePagedResult(body, filtro.numeroPagina, filtro.tamanhoPagina))
     );
   }
 
   getById(id: number): Observable<EntradaSaidaOutput | null> {
-    return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/${id}`).pipe(
+    return this.http.get<unknown>(`${this.apiRoot}/${id}`).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body);
         if (!raw) return null;
@@ -47,7 +46,7 @@ export class EntradaSaidaService {
    * @see mapBuscarPorPlacaParaRegistroRapido
    */
   obterPorPlaca(placa: string): Observable<EntradaSaidaOutput | null> {
-    return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/buscar-por-placa/${encodeURIComponent(placa)}`).pipe(
+    return this.http.get<unknown>(`${this.apiRoot}/buscar-por-placa/${encodeURIComponent(placa)}`).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body);
         if (!raw) return null;
@@ -61,7 +60,7 @@ export class EntradaSaidaService {
   }
 
   create(data: EntradaSaidaPostInput): Observable<EntradaSaidaOutput> {
-    return this.http.post<unknown>(ENTRADA_SAIDA_API, data).pipe(
+    return this.http.post<unknown>(this.apiRoot, data).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body) ?? {};
         const id = this.pickNumber(raw, 'id', 'Id');
@@ -72,7 +71,7 @@ export class EntradaSaidaService {
 
   update(id: number, data: EntradaSaidaPostInput): Observable<EntradaSaidaOutput> {
     const payload: EntradaSaidaPutInput = { ...data, id };
-    return this.http.put<unknown>(ENTRADA_SAIDA_API, payload).pipe(
+    return this.http.put<unknown>(this.apiRoot, payload).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body) ?? {};
         return this.mapDetailItem(raw, id);
@@ -81,7 +80,7 @@ export class EntradaSaidaService {
   }
 
   suspenderPermanencia(id: number, payload: EntradaSaidaPermanenciaInput): Observable<void> {
-    return this.http.patch<void>(`${ENTRADA_SAIDA_API}/${id}/suspender-permanencia`, payload);
+    return this.http.patch<void>(`${this.apiRoot}/${id}/suspender-permanencia`, payload);
   }
 
   finalizarPermanencia(id: number, dataHoraEvento?: string): Observable<void> {
@@ -89,11 +88,11 @@ export class EntradaSaidaService {
     if (dataHoraEvento?.trim()) {
       params = params.set('dataHoraSaida', dataHoraEvento.trim());
     }
-    return this.http.patch<void>(`${ENTRADA_SAIDA_API}/${id}/finalizar-permanencia`, null, { params });
+    return this.http.patch<void>(`${this.apiRoot}/${id}/finalizar-permanencia`, null, { params });
   }
 
   saida(placa: string): Observable<void> {
-    return this.http.post<void>(`${ENTRADA_SAIDA_API}/saida`, { placa });
+    return this.http.post<void>(`${this.apiRoot}/saida`, { placa });
   }
 
   /**
@@ -102,7 +101,7 @@ export class EntradaSaidaService {
    */
   obterValorEstacionamento(entradaSaidaId: number): Observable<ValorEstacionamentoResponse> {
     const params = new HttpParams().set('entradaSaidaId', String(entradaSaidaId));
-    return this.http.get<unknown>(`${ENTRADA_SAIDA_API}/valor-estacionamento`, { params }).pipe(
+    return this.http.get<unknown>(`${this.apiRoot}/valor-estacionamento`, { params }).pipe(
       map((body) => {
         const raw = this.extractResultRecord(body) ?? {};
         return {
@@ -150,14 +149,14 @@ export class EntradaSaidaService {
       }
       params = params.set('valor', String(valor));
     }
-    return this.http.get(`${ENTRADA_SAIDA_API}/${id}/recibo`, {
+    return this.http.get(`${this.apiRoot}/${id}/recibo`, {
       params,
       responseType: 'blob'
     });
   }
 
   excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${ENTRADA_SAIDA_API}/${id}`);
+    return this.http.delete<void>(`${this.apiRoot}/${id}`);
   }
 
   private buildBuscarParams(filtro: EntradaSaidaFiltro): HttpParams {

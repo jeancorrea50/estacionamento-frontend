@@ -131,6 +131,15 @@ export class SessionAccessService {
       if (allowed.some((r) => isRouteMatch(normalized, r))) {
         return true;
       }
+      /** Mostra o item pai se o login concedeu algum filho dele. */
+      if (
+        allowed.some((r) => {
+          const a = normalizeRoute(r);
+          return a.startsWith(`${normalized}/`);
+        })
+      ) {
+        return true;
+      }
       /** Estacionamento: login pode vir com rota de Gerenciamento ou Cadastro. */
       if (
         normalized === '/app/gerenciamento/estacionamento' ||
@@ -208,7 +217,7 @@ export class SessionAccessService {
 
       if (activeSubs.length === 0) {
         const route = resolveAppRouteFromNome(safeText(menu.descricao), menu.rota ?? null);
-        addRouteWithAncestors(routeSet, route);
+        addGrantedRoute(routeSet, route);
         continue;
       }
 
@@ -228,7 +237,7 @@ function collectSessionSubRoutes(
 ): void {
   if (sub.ativo === false || sub.selecionado === false) return;
   const route = resolveAppRouteFromNome(safeText(sub.descricao), sub.rota ?? null);
-  addRouteWithAncestors(routeSet, route);
+  addGrantedRoute(routeSet, route);
   for (const nested of sub.subMenus ?? []) {
     collectSessionSubRoutes(nested, routeSet, menuLabel);
   }
@@ -277,21 +286,15 @@ function normalizeBoolean(value: boolean | null | undefined): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
 
-function addRouteWithAncestors(set: Set<string>, route: string): void {
+/**
+ * Registra apenas a rota concedida no login.
+ * Não inclui ancestrais: liberar `/app/patio/movimentacoes` não pode liberar
+ * `/app/patio/entrada-saida` (irmãos sob o mesmo pai).
+ */
+function addGrantedRoute(set: Set<string>, route: string): void {
   const normalized = normalizeRoute(route);
-  if (!normalized.startsWith('/app')) return;
-  if (normalized !== '/app') {
-    set.add(normalized);
-  }
-
-  const parts = normalized.split('/').filter(Boolean);
-  let acc = '';
-  for (const part of parts) {
-    acc += `/${part}`;
-    if (acc.startsWith('/app') && acc !== '/app') {
-      set.add(acc);
-    }
-  }
+  if (!normalized.startsWith('/app') || normalized === '/app') return;
+  set.add(normalized);
 }
 
 function normalizeRoute(route: string): string {
@@ -307,6 +310,11 @@ function safeText(value: string | null | undefined): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * Libera a rota atual se for exatamente a concedida ou um filho dela
+ * (ex.: `/app/patio/entrada-saida/123` sob `/app/patio/entrada-saida`).
+ * Não libera irmãos a partir do pai (ex.: `/app/patio` ≠ liberar entrada-saída).
+ */
 function isRouteMatch(current: string, allowed: string): boolean {
   const normalizedAllowed = normalizeRoute(allowed);
   if (!normalizedAllowed || normalizedAllowed === '/app') return false;

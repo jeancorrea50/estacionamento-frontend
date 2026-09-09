@@ -12,6 +12,7 @@ export const PERMISSION_MODULES = [
   'Veículo modelo',
   'Permissão',
   'Usuários',
+  'Movimentações',
   'Movimentos',
   'Financeiro',
   'Relatórios',
@@ -62,10 +63,17 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'usuarios.visualizar',
     'usuarios.gerenciar',
   ],
+  Movimentações: [
+    'movimentacoes.visualizar',
+    'movimentacoes.gravar',
+    'movimentacoes.alterar',
+    'movimentacoes.excluir',
+  ],
   Movimentos: [ // módulo interno (permissões/API); exibição na UI: "Entrada e Saída"
-    'movimentos.entrada',
-    'movimentos.saida',
-    'movimentos.consultar',
+    'entradasaida.visualizar',
+    'entradasaida.gravar',
+    'entradasaida.alterar',
+    'entradasaida.excluir',
   ],
   Financeiro: [
     'financeiro.ver',

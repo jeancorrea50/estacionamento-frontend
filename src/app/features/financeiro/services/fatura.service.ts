@@ -102,6 +102,11 @@ export class FaturaService {
     return this.http.get(`${API}/${id}/report`, { responseType: 'blob' });
   }
 
+  /** POST `/api/financeiro/Fatura/{id}/enviar-lembrete-email` — envia PDF por e-mail. */
+  enviarLembreteEmail(id: number): Observable<void> {
+    return this.http.post<unknown>(`${API}/${id}/enviar-lembrete-email`, {}).pipe(map(() => undefined));
+  }
+
   /** GET `/api/financeiro/Fatura/{id}/excel` — planilha Excel blob. */
   baixarExcel(id: number): Observable<Blob> {
     return this.http.get(`${API}/${id}/excel`, { responseType: 'blob' });

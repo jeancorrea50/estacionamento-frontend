@@ -373,6 +373,7 @@ const STATUS_COBRANCA_VALIDOS: readonly InadimplenciaStatusCobranca[] = [
   'N\u00e3o enviada',
   'Enviada',
   'Reenviada',
+  'Falha no envio',
   'Em negocia\u00e7\u00e3o',
   'Acordo realizado',
   'Sem retorno'

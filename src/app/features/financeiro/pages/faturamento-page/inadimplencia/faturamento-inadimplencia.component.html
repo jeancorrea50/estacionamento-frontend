@@ -316,7 +316,7 @@
                   mat-icon-button
                   class="rec-ico"
                   matTooltip="Enviar lembrete por e-mail"
-                  (click)="acaoMock('email', row)"
+                  (click)="enviarLembreteEmail(row)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">mail</span>
                 </button>
@@ -333,13 +333,13 @@
                   type="button"
                   mat-icon-button
                   class="rec-ico"
-                  matTooltip="Reenviar cobrança"
+                  matTooltip="Reenviar cobrança por e-mail"
                   [disabled]="bloquearReenviar(row)"
-                  (click)="acaoMock('reenviar', row)"
+                  (click)="enviarLembreteEmail(row)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
                 </button>
-                <button type="button" mat-icon-button class="rec-ico" matTooltip="Ver fatura" (click)="acaoMock('fatura', row)">
+                <button type="button" mat-icon-button class="rec-ico" matTooltip="Ver fatura" (click)="baixarPdfFatura(row)">
                   <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
                 </button>
                 <button

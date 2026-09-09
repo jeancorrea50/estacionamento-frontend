@@ -5,6 +5,7 @@ export type InadimplenciaStatusCobranca =
   | 'Não enviada'
   | 'Enviada'
   | 'Reenviada'
+  | 'Falha no envio'
   | 'Em negociação'
   | 'Acordo realizado'
   | 'Sem retorno';

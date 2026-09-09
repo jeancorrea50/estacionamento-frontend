@@ -120,6 +120,7 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
     'Não enviada',
     'Enviada',
     'Reenviada',
+    'Falha no envio',
     'Em negociação',
     'Acordo realizado',
     'Sem retorno'
@@ -396,6 +397,7 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
       'Não enviada': 'inad-chip inad-chip--nao-enviada',
       Enviada: 'inad-chip inad-chip--enviada',
       Reenviada: 'inad-chip inad-chip--reenviada',
+      'Falha no envio': 'inad-chip inad-chip--sem-retorno',
       'Em negociação': 'inad-chip inad-chip--negociacao',
       'Acordo realizado': 'inad-chip inad-chip--acordo',
       'Sem retorno': 'inad-chip inad-chip--sem-retorno'
@@ -438,6 +440,43 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
   }
 
   acaoMock(_acao: string, _row?: InadimplenciaListaItem): void {}
+
+  enviarLembreteEmail(row: InadimplenciaListaItem): void {
+    if (!row?.faturaId) {
+      this.snack.open('Fatura inválida para envio.', 'Fechar', { duration: 3500 });
+      return;
+    }
+    this.api.enviarLembreteEmail(row.faturaId).subscribe({
+      next: () => {
+        this.snack.open('Lembrete enviado por e-mail.', 'Fechar', { duration: 3500 });
+        this.carregarLista();
+      },
+      error: (err: unknown) => {
+        this.snack.open(this.mensagemErro(err, 'Falha ao enviar lembrete por e-mail.'), 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
+  baixarPdfFatura(row: InadimplenciaListaItem): void {
+    if (!row?.faturaId) return;
+    this.api.baixarPdf(row.faturaId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fatura-${row.id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (err: unknown) => {
+        this.snack.open(this.mensagemErro(err, 'Falha ao baixar PDF da fatura.'), 'Fechar', {
+          duration: 5000
+        });
+      }
+    });
+  }
 
   abrirAcordo(row?: InadimplenciaListaItem): void {
     const alvo = row ?? this.selection.selected[0];

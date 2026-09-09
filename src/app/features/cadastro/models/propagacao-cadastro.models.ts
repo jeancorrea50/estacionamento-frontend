@@ -1,5 +1,9 @@
 /** Resumo opcional da sincronização multi-pátio após save (perfil Transportadora). */
 export interface PropagacaoCadastroResumo {
+  /** Job Hangfire enfileirado (propagação assíncrona). */
+  enfileirada: boolean;
+  propagacaoId?: number | null;
+  /** Preenchido apenas quando a sincronização ainda era síncrona / legado. */
   executada: boolean;
   destinosOk: number;
   destinosFalha: number;
@@ -17,12 +21,26 @@ export function parsePropagacaoCadastroResumo(raw: unknown): PropagacaoCadastroR
     (o['Propagacao'] as Record<string, unknown> | undefined);
   const src = nested && typeof nested === 'object' ? nested : o;
 
+  const enfileirada = Boolean(src['enfileirada'] ?? src['Enfileirada']);
   const executada = Boolean(src['executada'] ?? src['Executada']);
   const destinosOk = Number(src['destinosOk'] ?? src['DestinosOk'] ?? 0);
   const destinosFalha = Number(src['destinosFalha'] ?? src['DestinosFalha'] ?? 0);
-  if (!executada && destinosOk === 0 && destinosFalha === 0) {
+  const propagacaoIdRaw = src['propagacaoId'] ?? src['PropagacaoId'];
+  const propagacaoId =
+    propagacaoIdRaw == null || propagacaoIdRaw === ''
+      ? null
+      : Number(propagacaoIdRaw);
+
+  if (!enfileirada && !executada && destinosOk === 0 && destinosFalha === 0) {
     // Pode ser objeto sem ser propagação — só aceita se houver flag ou contagens.
-    if (src['destinosOk'] == null && src['DestinosOk'] == null && src['executada'] == null && src['Executada'] == null) {
+    if (
+      src['destinosOk'] == null &&
+      src['DestinosOk'] == null &&
+      src['executada'] == null &&
+      src['Executada'] == null &&
+      src['enfileirada'] == null &&
+      src['Enfileirada'] == null
+    ) {
       return null;
     }
   }
@@ -33,6 +51,8 @@ export function parsePropagacaoCadastroResumo(raw: unknown): PropagacaoCadastroR
     : [];
 
   return {
+    enfileirada,
+    propagacaoId: Number.isFinite(propagacaoId as number) ? (propagacaoId as number) : null,
     executada,
     destinosOk: Number.isFinite(destinosOk) ? destinosOk : 0,
     destinosFalha: Number.isFinite(destinosFalha) ? destinosFalha : 0,
@@ -67,7 +87,17 @@ export function mensagemToastPropagacao(
   base: string,
   prop: PropagacaoCadastroResumo | null | undefined
 ): string {
-  if (!prop?.executada) return base;
+  if (!prop) return base;
+
+  if (prop.falhas.length > 0) {
+    return `${base} ${prop.falhas[0]}`;
+  }
+
+  if (prop.enfileirada) {
+    return `${base} Sincronização com outros pátios enfileirada; os operadores serão notificados ao concluir.`;
+  }
+
+  if (!prop.executada) return base;
   if (prop.destinosOk <= 0 && prop.destinosFalha <= 0) {
     return `${base} Nenhum outro pátio para sincronizar.`;
   }

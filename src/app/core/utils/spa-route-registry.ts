@@ -67,6 +67,7 @@ function collectPatioRoutes(): void {
 function collectStaticRoutes(): void {
   const extras = [
     '/app',
+    '/app/inicio',
     '/app/dashboard',
     '/app/movimentos',
     '/app/movimentos/entrada-saida',

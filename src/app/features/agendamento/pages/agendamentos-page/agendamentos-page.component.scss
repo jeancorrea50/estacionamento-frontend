@@ -1,0 +1,32 @@
+@use '../../../cadastro/styles/cadastro-est-shared' as *;
+@use '../../../cadastro/styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+@import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
+
+.ag-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 9.5rem;
+}
+
+.ag-date-field__label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+}
+
+.ag-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+  color: var(--primary, #1d4ed8);
+  font-size: 0.78rem;
+  font-weight: 600;
+}

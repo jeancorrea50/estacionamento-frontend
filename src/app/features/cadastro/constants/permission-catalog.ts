@@ -14,6 +14,7 @@ export const PERMISSION_MODULES = [
   'Usuários',
   'Movimentações',
   'Movimentos',
+  'Agendamento',
   'Financeiro',
   'Relatórios',
   'Fotos',
@@ -74,6 +75,12 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'entradasaida.gravar',
     'entradasaida.alterar',
     'entradasaida.excluir',
+  ],
+  Agendamento: [
+    'agendamento.visualizar',
+    'agendamento.gravar',
+    'agendamento.alterar',
+    'agendamento.excluir',
   ],
   Financeiro: [
     'financeiro.ver',

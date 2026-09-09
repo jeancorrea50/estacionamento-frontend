@@ -28,8 +28,9 @@
       </article>
     </section>
 
-    @if (isPortariaView() && podeAcoesOperacionaisPatio) {
+    @if (isPortariaView()) {
     <section class="dashboard-grid">
+      @if (podeAcoesOperacionaisPatio) {
       <article class="dashboard-card dashboard-card--registro">
         <header class="dashboard-card__header">
           <h2>Registro Rápido de Movimentação</h2>
@@ -206,6 +207,7 @@
           <button class="btn btn-secondary" type="button" (click)="limparRegistroRapido()">Limpar Campos</button>
         </div>
       </article>
+      }
 
       <article class="dashboard-card dashboard-card--monitoramento">
         <header class="dashboard-card__header">

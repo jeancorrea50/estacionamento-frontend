@@ -635,6 +635,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       return 'Saída registrada. O tempo total inclui permanência e suspensões.';
     }
     if (d.permanenciaSuspensa) {
+      if (!this.podeAcoesOperacionaisPatio) {
+        return 'Suspensão ativa neste movimento.';
+      }
       return 'Suspensão ativa. Use Retornar para voltar ao pátio.';
     }
     return 'Veículo em permanência no pátio.';
@@ -657,12 +660,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   abrirPermanencia(item: EntradaSaidaSearchOutput, acao: PermanenciaAcao = 'finalizar'): void {
-    if (!this.podeAcoesOperacionaisPatio) {
-      this.toast.error('Perfil Transportadora não pode registrar saída.');
-      return;
-    }
     if (acao === 'suspender' || acao === 'retornar') {
       this.executarSuspensaoOuRetorno(item);
+      return;
+    }
+    if (!this.podeAcoesOperacionaisPatio) {
+      this.toast.error('Perfil Transportadora não pode registrar saída.');
       return;
     }
     if (!item?.id || item.id <= 0) {

@@ -304,32 +304,42 @@ describe('MovimentosPageComponent', () => {
 
   it('perfil Transportadora só libera recibo (sem ações operacionais)', () => {
     authServiceMock.isTransportadoraRole.mockReturnValue(true);
+    entradaSaidaServiceMock.getById.mockClear();
+    entradaSaidaServiceMock.suspenderPermanencia.mockClear();
+    toastServiceMock.error.mockClear();
+
     const fixture = TestBed.createComponent(MovimentosPageComponent);
     const component = fixture.componentInstance;
+    const item = {
+      id: 10,
+      descricao: '',
+      motoristaId: 0,
+      nomeMotorista: '',
+      transportadoraId: 1,
+      nomeTransportadora: '',
+      veiculoId: 0,
+      placaVeiculo: 'ABC1D23',
+      dataHoraEntrada: '2026-08-01T10:00:00',
+      dataHoraSaida: null,
+      avulso: true
+    };
 
     expect(component.podeAcoesOperacionaisPatio).toBe(false);
     expect(component.canAlterar).toBe(false);
-    expect(component.podeVisualizarRecibo({ id: 10 } as never)).toBe(true);
+    expect(component.canGravar).toBe(false);
+    expect(component.podeVisualizarRecibo(item as never)).toBe(true);
 
-    component.abrirPermanencia(
-      {
-        id: 10,
-        descricao: '',
-        motoristaId: 0,
-        nomeMotorista: '',
-        transportadoraId: 1,
-        nomeTransportadora: '',
-        veiculoId: 0,
-        placaVeiculo: 'ABC1D23',
-        dataHoraEntrada: '2026-08-01T10:00:00',
-        dataHoraSaida: null,
-        avulso: true
-      },
-      'finalizar'
-    );
+    component.abrirPermanencia(item as never, 'finalizar');
     expect(toastServiceMock.error).toHaveBeenCalledWith(
       'Perfil Transportadora não pode registrar saída.'
     );
     expect(entradaSaidaServiceMock.getById).not.toHaveBeenCalled();
+
+    toastServiceMock.error.mockClear();
+    component.executarSuspensaoOuRetorno(item as never);
+    expect(toastServiceMock.error).toHaveBeenCalledWith(
+      'Perfil Transportadora não pode suspender ou retornar movimentos.'
+    );
+    expect(entradaSaidaServiceMock.suspenderPermanencia).not.toHaveBeenCalled();
   });
 });

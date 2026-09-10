@@ -11,10 +11,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
+import { AuthService } from '../../../../../core/services/auth.service';
 import { StatusFatura } from '../../../models/fatura.models';
 import { FaturaService } from '../../../services/fatura.service';
 import type { PeriodoFiltroId } from '../faturamento-visao.types';
@@ -59,6 +59,7 @@ export class FaturamentoFaturasComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly api = inject(FaturaService);
+  private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -66,8 +67,6 @@ export class FaturamentoFaturasComponent implements OnInit {
   readonly loading = signal(false);
   readonly jaBuscou = signal(false);
   readonly salvando = signal(false);
-  private readonly transportadorasLookup = signal<FaturaLookupOption[]>([]);
-  private readonly estacionamentosLookup = signal<FaturaLookupOption[]>([]);
 
   private readonly filtrosRapidosValidos = new Set<FiltroRapidoFaturas>([
     'vencidas',
@@ -187,7 +186,6 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.carregarLookups();
     this.buscar();
   }
 
@@ -210,6 +208,17 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   carregarLista(): void {
+    const estacionamentoId = this.auth.resolveEstacionamentoId();
+    if (estacionamentoId == null || estacionamentoId <= 0) {
+      this.jaBuscou.set(true);
+      this.items.set([]);
+      this.totalCount.set(0);
+      this.snack.open('Selecione o estacionamento da sessão para listar as faturas.', 'Fechar', {
+        duration: 4500
+      });
+      return;
+    }
+
     this.jaBuscou.set(true);
     this.loading.set(true);
     const range = this.periodoRangeAtual();
@@ -220,6 +229,7 @@ export class FaturamentoFaturasComponent implements OnInit {
       .listar({
         numeroPagina: 1,
         tamanhoPagina: 200,
+        estacionamentoId,
         ...this.termoBuscaParams(q),
         dataInicial: range ? this.toApiDate(range.inicio, false) : undefined,
         dataFinal: range ? this.toApiDate(range.fim, true) : undefined,
@@ -250,21 +260,43 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   abrirNova(): void {
+    const estacionamento = this.estacionamentoSessaoLookup();
+    if (!estacionamento) {
+      this.snack.open('Selecione o estacionamento da sessão antes de gerar fatura.', 'Fechar', {
+        duration: 4500
+      });
+      return;
+    }
+
+    const transportadoras = this.transportadorasDasFaturasCarregadas();
+    if (transportadoras.length === 0) {
+      this.snack.open(
+        'Não há transportadoras nas faturas carregadas para gerar uma nova. Busque faturas primeiro ou aguarde a geração automática.',
+        'Fechar',
+        { duration: 5500 }
+      );
+      return;
+    }
+
     const ref = this.dialog.open(FaturaFormDialogComponent, {
       width: '640px',
       maxWidth: '95vw',
       panelClass: 'cfg-form-dialog-panel',
       data: {
         mode: 'create',
-        transportadoras: this.transportadorasLookup(),
-        estacionamentos: this.estacionamentosLookup()
+        transportadoras,
+        estacionamentos: [estacionamento],
+        estacionamentoFixoId: estacionamento.id
       }
     });
     ref.afterClosed().subscribe((result: FaturaFormDialogResult | undefined) => {
       if (!result?.create) return;
       this.salvando.set(true);
       this.api
-        .gravar(result.create)
+        .gravar({
+          ...result.create,
+          estacionamentoId: estacionamento.id
+        })
         .pipe(finalize(() => this.salvando.set(false)))
         .subscribe({
           next: () => {
@@ -300,8 +332,12 @@ export class FaturamentoFaturasComponent implements OnInit {
             data: {
               mode: 'view',
               item,
-              transportadoras: this.transportadorasLookup(),
-              estacionamentos: this.estacionamentosLookup()
+              transportadoras: item.transportadoraId
+                ? [{ id: item.transportadoraId, label: item.transportadora || `#${item.transportadoraId}` }]
+                : [],
+              estacionamentos: item.estacionamentoId
+                ? [{ id: item.estacionamentoId, label: item.estacionamento || `#${item.estacionamentoId}` }]
+                : []
             }
           });
         },
@@ -453,23 +489,26 @@ export class FaturamentoFaturasComponent implements OnInit {
     return { de, ate };
   }
 
-  private carregarLookups(): void {
-    this.api
-      .buscarTransportadoras()
-      .pipe(catchError(() => of([])))
-      .subscribe((list) => {
-        this.transportadorasLookup.set(
-          list.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
-        );
-      });
-    this.api
-      .buscarEstacionamentos()
-      .pipe(catchError(() => of([])))
-      .subscribe((list) => {
-        this.estacionamentosLookup.set(
-          list.map((e) => ({ id: e.id, label: e.label.split(' — ')[0] || e.label }))
-        );
-      });
+  private estacionamentoSessaoLookup(): FaturaLookupOption | null {
+    const id = this.auth.resolveEstacionamentoId();
+    if (id == null || id <= 0) return null;
+    const sessao = this.auth.getSessionEstacionamento();
+    const label =
+      sessao?.nome?.trim() ||
+      sessao?.razaoSocial?.trim() ||
+      `Estacionamento #${id}`;
+    return { id, label };
+  }
+
+  /** Opções de transportadora sem chamar API — derivadas das faturas já listadas. */
+  private transportadorasDasFaturasCarregadas(): FaturaLookupOption[] {
+    const map = new Map<number, string>();
+    for (const row of this.items()) {
+      if (row.transportadoraId > 0 && !map.has(row.transportadoraId)) {
+        map.set(row.transportadoraId, row.transportadora || `#${row.transportadoraId}`);
+      }
+    }
+    return [...map.entries()].map(([id, label]) => ({ id, label }));
   }
 
   private aplicarFiltrosCliente(rows: FaturaListaItem[]): FaturaListaItem[] {

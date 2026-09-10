@@ -23,6 +23,8 @@ export interface FaturaFormDialogData {
   item?: FaturaListaItem;
   transportadoras: FaturaLookupOption[];
   estacionamentos: FaturaLookupOption[];
+  /** Quando informado, o estacionamento fica fixo (sessão) e não pode ser alterado. */
+  estacionamentoFixoId?: number | null;
 }
 
 export interface FaturaFormDialogResult {
@@ -74,7 +76,12 @@ export class FaturaFormDialogComponent {
   ];
 
   transportadoraId: number | null = this.data.item?.transportadoraId ?? null;
-  estacionamentoId: number | null = this.data.item?.estacionamentoId ?? null;
+  estacionamentoId: number | null =
+    this.data.estacionamentoFixoId && this.data.estacionamentoFixoId > 0
+      ? this.data.estacionamentoFixoId
+      : (this.data.item?.estacionamentoId ?? null);
+  readonly estacionamentoFixo =
+    !!this.data.estacionamentoFixoId && this.data.estacionamentoFixoId > 0;
   numero = this.data.item?.numero ?? '';
   status: FaturaStatusLabel = this.data.item?.status ?? 'Aguardando envio';
   modalidadeRecebimento: ModalidadeRecebimentoLabel | '' =

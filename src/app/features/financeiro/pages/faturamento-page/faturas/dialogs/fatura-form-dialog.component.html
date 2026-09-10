@@ -12,9 +12,13 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-form__field fat-form__field--full">
-      <mat-label>Estacionamento{{ isCreate ? ' (opcional)' : '' }}</mat-label>
-      <mat-select [(ngModel)]="estacionamentoId" name="estacionamentoId" [disabled]="readOnly">
-        @if (isCreate) {
+      <mat-label>Estacionamento</mat-label>
+      <mat-select
+        [(ngModel)]="estacionamentoId"
+        name="estacionamentoId"
+        [disabled]="readOnly || estacionamentoFixo"
+      >
+        @if (isCreate && !estacionamentoFixo) {
           <mat-option [value]="null">Usar do token</mat-option>
         }
         @for (e of data.estacionamentos; track e.id) {

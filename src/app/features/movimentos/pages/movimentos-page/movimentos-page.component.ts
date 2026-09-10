@@ -333,11 +333,26 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   buscar(): void {
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.loading.set(false);
+      this.handleApiError(
+        { message: 'Selecione o estacionamento da sessão antes de consultar movimentações.' } as ApiError,
+        'Selecione o estacionamento da sessão antes de consultar movimentações.'
+      );
+      return;
+    }
+
     this.loading.set(true);
     const col = this.sortCol();
+    const transportadoraId = this.auth.isTransportadoraRole()
+      ? this.auth.resolveTransportadoraId()
+      : null;
+
     this.service.buscar({
       placa: this.filtro.descricao || undefined,
       somenteEmAberto: this.filtro.somenteEmAberto,
+      transportadoraId:
+        transportadoraId != null && transportadoraId > 0 ? transportadoraId : undefined,
       numeroPagina: this.numeroPagina(),
       tamanhoPagina: this.tamanhoPagina(),
       propriedade: this.mapSortColToPropriedade(col),

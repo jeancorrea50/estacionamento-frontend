@@ -1,6 +1,7 @@
 import {
   Component,
   DestroyRef,
+  HostListener,
   OnInit,
   computed,
   effect,
@@ -11,7 +12,9 @@ import {
   untracked
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/services/auth.service';
 import { MenuAdminService } from '../../../features/gerenciamento/services/menu-admin.service';
 import { SessionAccessService } from '../../../core/services/session-access.service';
@@ -19,6 +22,7 @@ import { SessionAccessService } from '../../../core/services/session-access.serv
 interface MenuSubItem {
   label: string;
   route: string;
+  icon?: string;
   children?: MenuSubItem[];
 }
 
@@ -32,6 +36,7 @@ interface MenuItem {
 interface RailFlyoutState {
   item: MenuItem;
   top: number;
+  pinned: boolean;
 }
 
 @Component({
@@ -85,12 +90,26 @@ export class SidebarComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentRoute = this.router.url;
-    this.router.events.subscribe(() => {
-      this.currentRoute = this.router.url;
-      this.autoExpandFromRoute();
-      this.closeRailFlyout();
-    });
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.currentRoute = this.router.url;
+        this.autoExpandFromRoute();
+        this.closeRailFlyout();
+      });
     this.autoExpandFromRoute();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.railFlyout()) return;
+    const target = event.target as Element | null;
+    if (!target) return;
+    if (target.closest('.rail-flyout') || target.closest('.menu-li')) return;
+    this.closeRailFlyout();
   }
 
   private autoExpandFromRoute(): void {
@@ -113,9 +132,11 @@ export class SidebarComponent implements OnInit {
     return this.expandedMenuRoute() === route;
   }
 
-  toggleMenu(route: string): void {
-    if (this.canShowRailFlyout()) return;
-    this.expandedMenuRoute.set(this.expandedMenuRoute() === route ? null : route);
+  isParentExpanded(item: MenuItem): boolean {
+    if (this.canShowRailFlyout()) {
+      return this.railFlyout()?.item.route === item.route;
+    }
+    return this.isMenuExpanded(item.route);
   }
 
   canShowRailFlyout(): boolean {
@@ -124,21 +145,44 @@ export class SidebarComponent implements OnInit {
 
   onRailItemEnter(item: MenuItem, event: MouseEvent): void {
     if (!this.canShowRailFlyout()) return;
+    const current = this.railFlyout();
+    if (current?.pinned && current.item.route === item.route) {
+      this.clearRailCloseTimer();
+      return;
+    }
+    if (current?.pinned && current.item.route !== item.route) {
+      // Troca o item pinado ao passar em outro ícone.
+    }
     this.clearRailCloseTimer();
-
-    const el = event.currentTarget as HTMLElement;
-    const rect = el.getBoundingClientRect();
-    const childCount = this.countFlyoutRows(item);
-    const estimatedHeight = 44 + childCount * 36;
-    const maxTop = Math.max(8, window.innerHeight - estimatedHeight - 8);
-    const top = Math.max(8, Math.min(rect.top, maxTop));
-
-    this.railFlyout.set({ item, top });
+    this.openRailFlyout(item, event.currentTarget as HTMLElement, current?.pinned ?? false);
   }
 
   onRailItemLeave(): void {
     if (!this.canShowRailFlyout()) return;
+    const current = this.railFlyout();
+    if (current?.pinned) return;
     this.scheduleRailClose();
+  }
+
+  onParentClick(item: MenuItem, event: MouseEvent): void {
+    if (!this.canShowRailFlyout()) {
+      this.toggleMenu(item.route);
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const current = this.railFlyout();
+    if (current?.item.route === item.route && current.pinned) {
+      this.closeRailFlyout();
+      return;
+    }
+
+    const anchor =
+      (event.currentTarget as HTMLElement)?.closest('.menu-li') ??
+      (event.currentTarget as HTMLElement);
+    this.openRailFlyout(item, anchor as HTMLElement, true);
   }
 
   onFlyoutEnter(): void {
@@ -146,6 +190,8 @@ export class SidebarComponent implements OnInit {
   }
 
   onFlyoutLeave(): void {
+    const current = this.railFlyout();
+    if (current?.pinned) return;
     this.scheduleRailClose();
   }
 
@@ -172,6 +218,19 @@ export class SidebarComponent implements OnInit {
     return current === target || current.startsWith(`${target}/`);
   }
 
+  private toggleMenu(route: string): void {
+    this.expandedMenuRoute.set(this.expandedMenuRoute() === route ? null : route);
+  }
+
+  private openRailFlyout(item: MenuItem, anchor: HTMLElement, pinned: boolean): void {
+    const rect = anchor.getBoundingClientRect();
+    const childCount = this.countFlyoutRows(item);
+    const estimatedHeight = 48 + Math.max(childCount, 0) * 36;
+    const maxTop = Math.max(8, window.innerHeight - estimatedHeight - 8);
+    const top = Math.max(8, Math.min(rect.top, maxTop));
+    this.railFlyout.set({ item, top, pinned });
+  }
+
   private normalizeRoute(route: string): string {
     const noHash = route.split('#')[0] ?? '';
     const noQuery = noHash.split('?')[0] ?? '';
@@ -193,7 +252,11 @@ export class SidebarComponent implements OnInit {
 
   private scheduleRailClose(): void {
     this.clearRailCloseTimer();
-    this.railCloseTimer = setTimeout(() => this.railFlyout.set(null), 160);
+    this.railCloseTimer = setTimeout(() => {
+      const current = this.railFlyout();
+      if (current?.pinned) return;
+      this.railFlyout.set(null);
+    }, 220);
   }
 
   private clearRailCloseTimer(): void {

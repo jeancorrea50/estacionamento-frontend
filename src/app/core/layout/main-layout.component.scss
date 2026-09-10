@@ -51,6 +51,15 @@
   z-index: 1;
 }
 
+/* Sidebar (e flyout rail) precisa ficar acima do conteúdo à direita. */
+.layout > app-sidebar {
+  z-index: 30;
+}
+
+.layout > .layout-right {
+  z-index: 1;
+}
+
 .layout-right {
   flex: 1 1 auto;
   display: flex;

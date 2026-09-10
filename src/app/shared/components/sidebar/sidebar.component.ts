@@ -1,4 +1,15 @@
-import { Component, OnInit, output, input, computed, signal, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -18,18 +29,24 @@ interface MenuItem {
   children?: MenuSubItem[];
 }
 
+interface RailFlyoutState {
+  item: MenuItem;
+  top: number;
+}
+
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.scss'],
+  styleUrls: ['./sidebar.component.scss']
 })
 export class SidebarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly menuAdmin = inject(MenuAdminService);
   private readonly sessionAccess = inject(SessionAccessService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Controlado pelo MainLayout (hamburger na topbar). */
   collapsed = input<boolean>(false);
@@ -42,6 +59,10 @@ export class SidebarComponent implements OnInit {
   currentRoute = '';
   /** Rota do menu com subitens que está expandido. */
   expandedMenuRoute = signal<string | null>(null);
+  /** Flyout lateral quando a sidebar está recolhida (desktop). */
+  readonly railFlyout = signal<RailFlyoutState | null>(null);
+
+  private railCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Itens da sidebar: árvore fixa filtrada pelo acesso do login (`menus`).
@@ -52,11 +73,22 @@ export class SidebarComponent implements OnInit {
     );
   });
 
+  constructor() {
+    effect(() => {
+      if (!this.isCollapsed() || this.isMobile()) {
+        untracked(() => this.closeRailFlyout());
+      }
+    });
+
+    this.destroyRef.onDestroy(() => this.clearRailCloseTimer());
+  }
+
   ngOnInit(): void {
     this.currentRoute = this.router.url;
     this.router.events.subscribe(() => {
       this.currentRoute = this.router.url;
       this.autoExpandFromRoute();
+      this.closeRailFlyout();
     });
     this.autoExpandFromRoute();
   }
@@ -82,7 +114,43 @@ export class SidebarComponent implements OnInit {
   }
 
   toggleMenu(route: string): void {
+    if (this.canShowRailFlyout()) return;
     this.expandedMenuRoute.set(this.expandedMenuRoute() === route ? null : route);
+  }
+
+  canShowRailFlyout(): boolean {
+    return this.isCollapsed() && !this.isMobile();
+  }
+
+  onRailItemEnter(item: MenuItem, event: MouseEvent): void {
+    if (!this.canShowRailFlyout()) return;
+    this.clearRailCloseTimer();
+
+    const el = event.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const childCount = this.countFlyoutRows(item);
+    const estimatedHeight = 44 + childCount * 36;
+    const maxTop = Math.max(8, window.innerHeight - estimatedHeight - 8);
+    const top = Math.max(8, Math.min(rect.top, maxTop));
+
+    this.railFlyout.set({ item, top });
+  }
+
+  onRailItemLeave(): void {
+    if (!this.canShowRailFlyout()) return;
+    this.scheduleRailClose();
+  }
+
+  onFlyoutEnter(): void {
+    this.clearRailCloseTimer();
+  }
+
+  onFlyoutLeave(): void {
+    this.scheduleRailClose();
+  }
+
+  onFlyoutNavigate(): void {
+    this.closeRailFlyout();
   }
 
   onToggleClick(): void {
@@ -91,6 +159,7 @@ export class SidebarComponent implements OnInit {
         this.closeMobile.emit();
       }
     } else {
+      this.closeRailFlyout();
       this.collapsedChange.emit(!this.isCollapsed());
     }
   }
@@ -110,6 +179,33 @@ export class SidebarComponent implements OnInit {
     if (!trimmed) return '';
     if (trimmed === '/app/') return '/app';
     return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+  }
+
+  private countFlyoutRows(item: MenuItem): number {
+    if (!item.children?.length) return 0;
+    let n = 0;
+    for (const sub of item.children) {
+      n += 1;
+      n += sub.children?.length ?? 0;
+    }
+    return n;
+  }
+
+  private scheduleRailClose(): void {
+    this.clearRailCloseTimer();
+    this.railCloseTimer = setTimeout(() => this.railFlyout.set(null), 160);
+  }
+
+  private clearRailCloseTimer(): void {
+    if (this.railCloseTimer !== null) {
+      clearTimeout(this.railCloseTimer);
+      this.railCloseTimer = null;
+    }
+  }
+
+  private closeRailFlyout(): void {
+    this.clearRailCloseTimer();
+    this.railFlyout.set(null);
   }
 
   logout(): void {

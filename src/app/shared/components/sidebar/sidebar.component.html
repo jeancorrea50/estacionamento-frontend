@@ -21,7 +21,11 @@
   <nav class="sidebar-nav">
     <ul class="menu">
       @for (item of menuItems(); track item.label + item.route) {
-      <li>
+      <li
+        class="menu-li"
+        (mouseenter)="onRailItemEnter(item, $event)"
+        (mouseleave)="onRailItemLeave()"
+      >
         @if (item.children?.length) {
           <div class="menu-group">
             <button
@@ -30,6 +34,7 @@
               [class.active]="isActive(item.route)"
               (click)="toggleMenu(item.route)"
               [attr.aria-expanded]="isMenuExpanded(item.route)"
+              [attr.aria-haspopup]="canShowRailFlyout() ? 'menu' : null"
             >
               <span class="menu-item__icon" aria-hidden="true">
                 <span class="material-symbols-outlined icon">{{ item.icon }}</span>
@@ -121,4 +126,67 @@
       <span class="label" [class.hidden]="isCollapsed()">Sair</span>
     </button>
   </div>
+
+  @if (canShowRailFlyout() && railFlyout(); as fly) {
+    <div
+      class="rail-flyout"
+      [class.rail-flyout--menu]="!!fly.item.children?.length"
+      role="menu"
+      [attr.aria-label]="fly.item.label"
+      [style.top.px]="fly.top"
+      (mouseenter)="onFlyoutEnter()"
+      (mouseleave)="onFlyoutLeave()"
+    >
+      <p class="rail-flyout__title">{{ fly.item.label }}</p>
+      @if (fly.item.children?.length) {
+        <ul class="rail-flyout__list">
+          @for (sub of fly.item.children; track sub.route) {
+            <li>
+              @if (sub.children?.length) {
+                <div class="rail-flyout__group">
+                  <a
+                    [routerLink]="sub.route"
+                    class="rail-flyout__link rail-flyout__link--branch"
+                    routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: false }"
+                    role="menuitem"
+                    (click)="onFlyoutNavigate()"
+                  >
+                    {{ sub.label }}
+                  </a>
+                  <ul class="rail-flyout__nested">
+                    @for (nest of sub.children; track nest.route) {
+                      <li>
+                        <a
+                          [routerLink]="nest.route"
+                          class="rail-flyout__link rail-flyout__link--nested"
+                          routerLinkActive="active"
+                          [routerLinkActiveOptions]="{ exact: false }"
+                          role="menuitem"
+                          (click)="onFlyoutNavigate()"
+                        >
+                          {{ nest.label }}
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              } @else {
+                <a
+                  [routerLink]="sub.route"
+                  class="rail-flyout__link"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: false }"
+                  role="menuitem"
+                  (click)="onFlyoutNavigate()"
+                >
+                  {{ sub.label }}
+                </a>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
 </aside>

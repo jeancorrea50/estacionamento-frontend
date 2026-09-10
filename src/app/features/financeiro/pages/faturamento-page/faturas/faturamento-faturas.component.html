@@ -119,7 +119,6 @@
                 <th scope="col">Fatura</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Transportadora</th>
-                <th scope="col" class="fat-table__col-est">Estacionamento</th>
                 <th scope="col" class="fat-table__col-mod">Recebimento</th>
                 <th scope="col">Emissão</th>
                 <th scope="col" class="fat-table__num">Valor</th>
@@ -144,7 +143,6 @@
                   </td>
                   <td>{{ row.tipoFatura || '—' }}</td>
                   <td>{{ row.transportadora || '—' }}</td>
-                  <td class="fat-table__col-est">{{ row.estacionamento || '—' }}</td>
                   <td class="fat-table__col-mod">{{ row.modalidadeRecebimento || '—' }}</td>
                   <td class="fat-table__nowrap">{{ formatData(row.dataEmissao) }}</td>
                   <td class="fat-table__num">{{ formatCurrency(row.valorTotal) }}</td>

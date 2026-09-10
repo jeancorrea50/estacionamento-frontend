@@ -11,13 +11,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { StatusFatura } from '../../../models/fatura.models';
 import { FaturaService } from '../../../services/fatura.service';
-import type { PeriodoFiltroId } from '../faturamento-visao.types';
 import {
   FaturaConfirmDialogComponent
 } from './dialogs/fatura-confirm-dialog.component';
@@ -33,11 +33,6 @@ import type {
 } from './faturamento-faturas.types';
 
 type CampoBuscaFaturas = 'geral' | 'numero' | 'transportadora' | 'descricao';
-
-interface PeriodoOpcao {
-  id: PeriodoFiltroId;
-  label: string;
-}
 
 @Component({
   selector: 'app-faturamento-faturas',
@@ -67,6 +62,8 @@ export class FaturamentoFaturasComponent implements OnInit {
   readonly loading = signal(false);
   readonly jaBuscou = signal(false);
   readonly salvando = signal(false);
+  private readonly transportadorasLookup = signal<FaturaLookupOption[]>([]);
+  private readonly estacionamentosLookup = signal<FaturaLookupOption[]>([]);
 
   private readonly filtrosRapidosValidos = new Set<FiltroRapidoFaturas>([
     'vencidas',
@@ -75,13 +72,6 @@ export class FaturamentoFaturasComponent implements OnInit {
     'pagas',
     'aguardando-envio'
   ]);
-
-  readonly periodoOpcoes: PeriodoOpcao[] = [
-    { id: 'hoje', label: 'Hoje' },
-    { id: 'semana', label: 'Esta semana' },
-    { id: 'mes', label: 'Este mês' },
-    { id: 'personalizado', label: 'Personalizado' }
-  ];
 
   readonly statusOpcoes: FaturaStatusLabel[] = [
     'Pago',
@@ -99,10 +89,6 @@ export class FaturamentoFaturasComponent implements OnInit {
     { id: 'pagas', label: 'Pagas' },
     { id: 'aguardando-envio', label: 'Aguardando envio' }
   ];
-
-  readonly periodoFiltro = signal<PeriodoFiltroId>('mes');
-  dataInicioPersonalizado = '';
-  dataFimPersonalizado = '';
 
   readonly statusFiltro = signal<string>('all');
   readonly filtroRapido = signal<FiltroRapidoFaturas | null>(null);
@@ -146,7 +132,6 @@ export class FaturamentoFaturasComponent implements OnInit {
       const filtro = params.get('filtro');
       const status = params.get('status');
       const transportadora = params.get('transportadora');
-      const temDeepLink = !!(filtro || status || transportadora);
 
       if (filtro && this.filtrosRapidosValidos.has(filtro as FiltroRapidoFaturas)) {
         this.filtroRapido.set(filtro as FiltroRapidoFaturas);
@@ -159,13 +144,6 @@ export class FaturamentoFaturasComponent implements OnInit {
       if (transportadora) {
         this.campoBusca.set('transportadora');
         this.searchText.set(transportadora);
-      }
-
-      // Deep-link dos Alertas: não restringir ao mês atual.
-      if (temDeepLink) {
-        this.periodoFiltro.set('personalizado');
-        this.dataInicioPersonalizado = '';
-        this.dataFimPersonalizado = '';
       }
     });
 
@@ -186,11 +164,8 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.carregarLookups();
     this.buscar();
-  }
-
-  setPeriodo(id: PeriodoFiltroId): void {
-    this.periodoFiltro.set(id);
   }
 
   alternarFiltroRapido(id: FiltroRapidoFaturas): void {
@@ -221,7 +196,6 @@ export class FaturamentoFaturasComponent implements OnInit {
 
     this.jaBuscou.set(true);
     this.loading.set(true);
-    const range = this.periodoRangeAtual();
     const st = this.statusFiltro();
     const q = this.searchText().trim();
 
@@ -231,19 +205,18 @@ export class FaturamentoFaturasComponent implements OnInit {
         tamanhoPagina: 200,
         estacionamentoId,
         ...this.termoBuscaParams(q),
-        dataInicial: range ? this.toApiDate(range.inicio, false) : undefined,
-        dataFinal: range ? this.toApiDate(range.fim, true) : undefined,
         status: this.statusCodigoFromFiltro(st)
       })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (page) => {
           this.selection.clear();
+          // Backend já ordena por DataEmissao/Id desc — mantém os mais recentes primeiro.
           this.items.set(page.items);
           this.totalCount.set(page.totalCount);
           if (page.totalCount > page.items.length) {
             this.snack.open(
-              `Exibindo ${page.items.length} de ${page.totalCount} registros. Refine a busca para ver os demais.`,
+              `Exibindo ${page.items.length} de ${page.totalCount} registros mais recentes. Refine a busca para ver os demais.`,
               'Fechar',
               { duration: 5000 }
             );
@@ -260,21 +233,17 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   abrirNova(): void {
-    const estacionamento = this.estacionamentoSessaoLookup();
-    if (!estacionamento) {
+    const estacionamentoId = this.auth.resolveEstacionamentoId();
+    if (estacionamentoId == null || estacionamentoId <= 0) {
       this.snack.open('Selecione o estacionamento da sessão antes de gerar fatura.', 'Fechar', {
         duration: 4500
       });
       return;
     }
 
-    const transportadoras = this.transportadorasDasFaturasCarregadas();
-    if (transportadoras.length === 0) {
-      this.snack.open(
-        'Não há transportadoras nas faturas carregadas para gerar uma nova. Busque faturas primeiro ou aguarde a geração automática.',
-        'Fechar',
-        { duration: 5500 }
-      );
+    const estacionamentos = this.estacionamentosLookup();
+    if (estacionamentos.length === 0) {
+      this.snack.open('Estacionamento da sessão não disponível.', 'Fechar', { duration: 4500 });
       return;
     }
 
@@ -284,9 +253,9 @@ export class FaturamentoFaturasComponent implements OnInit {
       panelClass: 'cfg-form-dialog-panel',
       data: {
         mode: 'create',
-        transportadoras,
-        estacionamentos: [estacionamento],
-        estacionamentoFixoId: estacionamento.id
+        transportadoras: this.transportadorasLookup(),
+        estacionamentos,
+        estacionamentoFixoId: estacionamentoId
       }
     });
     ref.afterClosed().subscribe((result: FaturaFormDialogResult | undefined) => {
@@ -295,7 +264,7 @@ export class FaturamentoFaturasComponent implements OnInit {
       this.api
         .gravar({
           ...result.create,
-          estacionamentoId: estacionamento.id
+          estacionamentoId
         })
         .pipe(finalize(() => this.salvando.set(false)))
         .subscribe({
@@ -332,12 +301,8 @@ export class FaturamentoFaturasComponent implements OnInit {
             data: {
               mode: 'view',
               item,
-              transportadoras: item.transportadoraId
-                ? [{ id: item.transportadoraId, label: item.transportadora || `#${item.transportadoraId}` }]
-                : [],
-              estacionamentos: item.estacionamentoId
-                ? [{ id: item.estacionamentoId, label: item.estacionamento || `#${item.estacionamentoId}` }]
-                : []
+              transportadoras: this.transportadorasLookup(),
+              estacionamentos: this.estacionamentosLookup()
             }
           });
         },
@@ -489,6 +454,39 @@ export class FaturamentoFaturasComponent implements OnInit {
     return { de, ate };
   }
 
+  private carregarLookups(): void {
+    this.api
+      .buscarTransportadoras()
+      .pipe(catchError(() => of([])))
+      .subscribe((list) => {
+        this.transportadorasLookup.set(
+          list.map((t) => ({ id: t.id, label: t.label.split(' — ')[0] || t.label }))
+        );
+      });
+
+    const sessaoId = this.auth.resolveEstacionamentoId();
+    this.api
+      .buscarEstacionamentos()
+      .pipe(catchError(() => of([])))
+      .subscribe((list) => {
+        const mapped = list.map((e) => ({
+          id: e.id,
+          label: e.label.split(' — ')[0] || e.label
+        }));
+        // Somente o estacionamento selecionado na sessão (mesmo se a API devolver catálogo).
+        const filtrados =
+          sessaoId != null && sessaoId > 0
+            ? mapped.filter((e) => e.id === sessaoId)
+            : [];
+        if (filtrados.length > 0) {
+          this.estacionamentosLookup.set(filtrados);
+          return;
+        }
+        const fallback = this.estacionamentoSessaoLookup();
+        this.estacionamentosLookup.set(fallback ? [fallback] : []);
+      });
+  }
+
   private estacionamentoSessaoLookup(): FaturaLookupOption | null {
     const id = this.auth.resolveEstacionamentoId();
     if (id == null || id <= 0) return null;
@@ -498,17 +496,6 @@ export class FaturamentoFaturasComponent implements OnInit {
       sessao?.razaoSocial?.trim() ||
       `Estacionamento #${id}`;
     return { id, label };
-  }
-
-  /** Opções de transportadora sem chamar API — derivadas das faturas já listadas. */
-  private transportadorasDasFaturasCarregadas(): FaturaLookupOption[] {
-    const map = new Map<number, string>();
-    for (const row of this.items()) {
-      if (row.transportadoraId > 0 && !map.has(row.transportadoraId)) {
-        map.set(row.transportadoraId, row.transportadora || `#${row.transportadoraId}`);
-      }
-    }
-    return [...map.entries()].map(([id, label]) => ({ id, label }));
   }
 
   private aplicarFiltrosCliente(rows: FaturaListaItem[]): FaturaListaItem[] {
@@ -549,33 +536,6 @@ export class FaturamentoFaturasComponent implements OnInit {
     }
   }
 
-  private periodoRangeAtual(): { inicio: Date; fim: Date } | null {
-    const id = this.periodoFiltro();
-    const hoje = this.startOfDay(new Date());
-
-    if (id === 'personalizado') {
-      if (!this.dataInicioPersonalizado || !this.dataFimPersonalizado) return null;
-      const i = this.parseIsoDate(this.dataInicioPersonalizado);
-      const fimRaw = this.parseIsoDate(this.dataFimPersonalizado);
-      if (!i || !fimRaw) return null;
-      const f = this.endOfDay(fimRaw);
-      if (f < i) return null;
-      return { inicio: i, fim: f };
-    }
-    if (id === 'hoje') return { inicio: hoje, fim: this.endOfDay(hoje) };
-    if (id === 'semana') {
-      const start = this.startOfWeekMonday(hoje);
-      return { inicio: start, fim: this.endOfDay(this.addDays(start, 6)) };
-    }
-    if (id === 'mes') {
-      return {
-        inicio: new Date(hoje.getFullYear(), hoje.getMonth(), 1),
-        fim: this.endOfDay(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0))
-      };
-    }
-    return null;
-  }
-
   private statusCodigoFromFiltro(st: string): StatusFatura | undefined {
     switch (st) {
       case 'Aguardando envio':
@@ -614,7 +574,6 @@ export class FaturamentoFaturasComponent implements OnInit {
     a.click();
     a.remove();
 
-    // Revogar só depois do navegador iniciar o download.
     window.setTimeout(() => URL.revokeObjectURL(url), 2500);
   }
 
@@ -646,34 +605,14 @@ export class FaturamentoFaturasComponent implements OnInit {
     return fallback;
   }
 
-  private toApiDate(d: Date, endOfDay: boolean): string {
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const dia = String(d.getDate()).padStart(2, '0');
-    return endOfDay
-      ? `${d.getFullYear()}-${mes}-${dia}T23:59:59`
-      : `${d.getFullYear()}-${mes}-${dia}T00:00:00`;
-  }
-
   private startOfDay(d: Date): Date {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  }
-
-  private endOfDay(d: Date): Date {
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   }
 
   private addDays(d: Date, n: number): Date {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
     return this.startOfDay(x);
-  }
-
-  private startOfWeekMonday(ref: Date): Date {
-    const d = this.startOfDay(ref);
-    const day = d.getDay();
-    const diff = (day + 6) % 7;
-    d.setDate(d.getDate() - diff);
-    return d;
   }
 
   private parseIsoDate(ymd: string): Date | null {

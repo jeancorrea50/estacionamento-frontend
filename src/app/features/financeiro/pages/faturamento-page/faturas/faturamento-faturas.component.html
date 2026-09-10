@@ -17,18 +17,6 @@
     <div class="cfg-search-bar__select-wrap">
       <select
         class="cfg-search-bar__select"
-        [ngModel]="periodoFiltro()"
-        (ngModelChange)="setPeriodo($event)"
-        aria-label="Período"
-      >
-        @for (p of periodoOpcoes; track p.id) {
-          <option [ngValue]="p.id">{{ p.label }}</option>
-        }
-      </select>
-    </div>
-    <div class="cfg-search-bar__select-wrap">
-      <select
-        class="cfg-search-bar__select"
         [ngModel]="statusFiltro()"
         (ngModelChange)="statusFiltro.set($event)"
         aria-label="Status"
@@ -71,19 +59,6 @@
       Novo
     </button>
   </section>
-
-  @if (periodoFiltro() === 'personalizado') {
-    <section class="cfg-search-bar cfg-search-bar--dates" aria-label="Período personalizado">
-      <label class="cfg-date-field">
-        <span class="cfg-date-field__label">De</span>
-        <input class="cfg-search-bar__select" type="date" [(ngModel)]="dataInicioPersonalizado" />
-      </label>
-      <label class="cfg-date-field">
-        <span class="cfg-date-field__label">Até</span>
-        <input class="cfg-search-bar__select" type="date" [(ngModel)]="dataFimPersonalizado" />
-      </label>
-    </section>
-  }
 
   <section class="fat-quick-bar" aria-label="Filtros rápidos por situação">
     @for (o of filtroRapidoOpcoes; track o.id) {

@@ -306,7 +306,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     transportadoraResponsavelNome: '',
     transportadoraResponsavelTelefone: '',
     tipoCarga: '',
-    dataAgendamento: '',
     observacao: ''
   };
 
@@ -958,7 +957,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       transportadoraResponsavelNome: '',
       transportadoraResponsavelTelefone: '',
       tipoCarga: '',
-      dataAgendamento: '',
       observacao: ''
     };
     this.buscandoMotoristaPorCpf = false;

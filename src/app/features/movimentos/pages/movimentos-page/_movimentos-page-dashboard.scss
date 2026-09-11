@@ -58,6 +58,44 @@
   color: var(--muted);
 }
 
+.dashboard-card__header--stack {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.dashboard-card__header--stack > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portaria-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.portaria-acoes__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  font-size: 1rem;
+  font-weight: 700;
+  width: 100%;
+}
+
+.portaria-acoes__btn .material-symbols-outlined {
+  font-size: 1.35rem;
+}
+
+.registro-actions--secondary {
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
 .dashboard-card--registro {
   grid-row: span 2;
 }

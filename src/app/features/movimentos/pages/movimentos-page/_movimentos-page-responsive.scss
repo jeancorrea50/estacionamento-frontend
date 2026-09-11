@@ -56,6 +56,10 @@
   .operacao-layout__main {
     order: 1;
   }
+
+  .portaria-acoes {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {

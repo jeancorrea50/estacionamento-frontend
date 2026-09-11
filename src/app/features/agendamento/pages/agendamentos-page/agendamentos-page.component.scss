@@ -30,3 +30,35 @@
   font-size: 0.78rem;
   font-weight: 600;
 }
+
+.trn-table__acoes,
+.trn-act-btns {
+  overflow: visible;
+}
+
+.trn-act-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+.ag-acoes-vazio {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .ag-date-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .trn-dash-filter {
+    align-items: stretch;
+  }
+
+  .trn-act-btns {
+    flex-wrap: wrap;
+  }
+}

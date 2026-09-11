@@ -1,8 +1,9 @@
 import { normalizeCadastroAppRoute } from '../../features/cadastro/cadastro-rotas';
+import { normalizeAgendamentoAppRoute } from '../../features/agendamento/agendamento-rotas';
 import { normalizeFaturamentoAppRoute } from '../../features/financeiro/faturamento-rotas';
 import { normalizePatioAppRoute } from '../../features/patio/patio-rotas';
 
-/** Normaliza rotas legadas para o canônico do SPA (Financeiro, Pátio e Cadastro). */
+/** Normaliza rotas legadas para o canônico do SPA (Financeiro, Pátio, Cadastro e Agendamento). */
 export function normalizeLegacyAppRoute(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   const trimmed = String(raw).trim();
@@ -13,5 +14,6 @@ export function normalizeLegacyAppRoute(raw: string | null | undefined): string 
 
   const afterFaturamento = normalizeFaturamentoAppRoute(fixedTypo) ?? fixedTypo;
   const afterPatio = normalizePatioAppRoute(afterFaturamento) ?? afterFaturamento;
-  return normalizeCadastroAppRoute(afterPatio) ?? afterPatio;
+  const afterCadastro = normalizeCadastroAppRoute(afterPatio) ?? afterPatio;
+  return normalizeAgendamentoAppRoute(afterCadastro) ?? afterCadastro;
 }

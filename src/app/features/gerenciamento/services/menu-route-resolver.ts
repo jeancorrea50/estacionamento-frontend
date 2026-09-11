@@ -97,7 +97,7 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   'banco de dado': '/app/gerenciamento/bancoDados',
   'banco dados': '/app/gerenciamento/bancoDados',
   agendamento: '/app/agendamento',
-  agendamentos: '/app/agendamento/agendamentos',
+  agendamentos: '/app/agendamento',
 };
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {

@@ -3,7 +3,9 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
@@ -15,10 +17,13 @@ import {
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
 import { PlacaFormatDirective } from '../../../cadastro/directives/placa-format.directive';
+import { AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
 import {
   AgendamentoSearchItem,
+  EntradaSaidaStatus,
   entradaSaidaStatusLabel,
+  parseEntradaSaidaStatus,
 } from '../../models/agendamento.models';
 
 @Component({
@@ -37,6 +42,8 @@ import {
 })
 export class AgendamentosPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly sessionAccess = inject(SessionAccessService);
+  private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
   private readonly veiculoService = inject(VeiculoService);
   private readonly transportadoraService = inject(TransportadoraService);
@@ -46,7 +53,31 @@ export class AgendamentosPageComponent implements OnInit {
 
   readonly isAdmin = this.auth.isAdmin();
   readonly isTransportadora = this.auth.isTransportadoraRole();
-  readonly podeOperar = this.isAdmin || this.isTransportadora;
+
+  /** Acesso pelo payload `menus` do login (igual Pátio/Movimentos). */
+  get canVisualizar(): boolean {
+    return (
+      this.sessionAccess.canAccessRoute(this.router.url) ||
+      this.sessionAccess.canAccessRoute(AGENDAMENTO_ROUTE)
+    );
+  }
+
+  /** Criar/cancelar: quem visualiza o módulo. */
+  get podeCriar(): boolean {
+    return this.canVisualizar;
+  }
+
+  get podeCancelar(): boolean {
+    return this.canVisualizar;
+  }
+
+  /**
+   * Confirmar entrada no pátio: perfil operacional (não Transportadora).
+   * Espelha `podeAcoesOperacionaisPatio` de Movimentos.
+   */
+  get podeConfirmarEntrada(): boolean {
+    return this.canVisualizar && !this.isTransportadora;
+  }
 
   loadingList = false;
   jaBuscou = false;
@@ -78,7 +109,13 @@ export class AgendamentosPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    if (!this.podeOperar) return;
+    if (!this.canVisualizar) return;
+
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.erroList = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
+      this.toast.error(this.erroList);
+      return;
+    }
 
     if (this.isTransportadora && !this.isAdmin) {
       this.filtroTransportadoraId = this.auth.resolveTransportadoraId();
@@ -108,7 +145,16 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   carregar(): void {
-    if (!this.podeOperar) return;
+    if (!this.canVisualizar) return;
+
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.erroList = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
+      this.toast.error(this.erroList);
+      this.items = [];
+      this.totalCount = 0;
+      this.jaBuscou = true;
+      return;
+    }
 
     this.loadingList = true;
     this.erroList = null;
@@ -129,15 +175,22 @@ export class AgendamentosPageComponent implements OnInit {
           this.totalCount = res.totalCount;
           this.loadingList = false;
         },
-        error: () => {
+        error: (err: { message?: string } | unknown) => {
           this.loadingList = false;
-          this.erroList = 'Não foi possível carregar os agendamentos.';
+          this.items = [];
+          this.totalCount = 0;
+          const msg =
+            err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+              ? err.message
+              : 'Não foi possível carregar os agendamentos.';
+          this.erroList = msg;
           this.toast.error(this.erroList);
         },
       });
   }
 
   abrirNovo(): void {
+    if (!this.podeCriar) return;
     this.form.reset({
       dataAgendamento: this.defaultDateTimeLocal(),
       placa: '',
@@ -153,6 +206,18 @@ export class AgendamentosPageComponent implements OnInit {
 
   fecharForm(): void {
     this.showForm = false;
+  }
+
+  podeConfirmarItem(item: AgendamentoSearchItem): boolean {
+    return this.podeConfirmarEntrada && this.isStatusAgendado(item);
+  }
+
+  podeCancelarItem(item: AgendamentoSearchItem): boolean {
+    return this.podeCancelar && this.isStatusAgendado(item);
+  }
+
+  temAcoes(item: AgendamentoSearchItem): boolean {
+    return this.podeConfirmarItem(item) || this.podeCancelarItem(item);
   }
 
   onPlacaBlur(): void {
@@ -197,6 +262,7 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   salvar(): void {
+    if (!this.podeCriar) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toast.error('Preencha data/hora e placa.');
@@ -256,6 +322,7 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   confirmarEntrada(item: AgendamentoSearchItem): void {
+    if (!this.podeConfirmarItem(item)) return;
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       data: {
         titulo: 'Confirmar entrada',
@@ -281,6 +348,7 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   cancelar(item: AgendamentoSearchItem): void {
+    if (!this.podeCancelarItem(item)) return;
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       data: {
         titulo: 'Cancelar agendamento',
@@ -324,6 +392,10 @@ export class AgendamentosPageComponent implements OnInit {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleString('pt-BR');
+  }
+
+  private isStatusAgendado(item: AgendamentoSearchItem): boolean {
+    return parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado;
   }
 
   private carregarTransportadoras(): void {

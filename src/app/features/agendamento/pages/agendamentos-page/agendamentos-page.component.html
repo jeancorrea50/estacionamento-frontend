@@ -13,11 +13,9 @@
         </div>
       </header>
 
-      @if (!podeOperar) {
+      @if (!canVisualizar) {
         <div class="trn-list-banner trn-list-banner--error" role="status">
-          <p class="error-msg">
-            Este módulo está disponível para perfis <strong>Admin</strong> e <strong>Transportadora</strong>.
-          </p>
+          <p class="error-msg">Sem permissão para visualizar Agendamentos.</p>
         </div>
       } @else {
         <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
@@ -59,10 +57,12 @@
             <span class="material-symbols-outlined" aria-hidden="true">search</span>
             Buscar
           </button>
-          <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovo()">
-            <span class="material-symbols-outlined" aria-hidden="true">add</span>
-            Novo
-          </button>
+          @if (podeCriar) {
+            <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovo()">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              Novo
+            </button>
+          }
         </section>
 
         @if (erroList) {
@@ -117,24 +117,32 @@
                       </td>
                       <td>{{ item.observacao || '—' }}</td>
                       <td class="trn-table__acoes">
-                        <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para agendamento ' + item.id">
-                          <button
-                            type="button"
-                            class="trn-act-btn trn-act-btn--accent"
-                            title="Confirmar entrada"
-                            (click)="confirmarEntrada(item)"
-                          >
-                            <span class="material-symbols-outlined" aria-hidden="true">login</span>
-                          </button>
-                          <button
-                            type="button"
-                            class="trn-act-btn trn-act-btn--danger"
-                            title="Cancelar agendamento"
-                            (click)="cancelar(item)"
-                          >
-                            <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
-                          </button>
-                        </div>
+                        @if (temAcoes(item)) {
+                          <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para agendamento ' + item.id">
+                            @if (podeConfirmarItem(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--accent"
+                                title="Confirmar entrada"
+                                (click)="confirmarEntrada(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">login</span>
+                              </button>
+                            }
+                            @if (podeCancelarItem(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Cancelar agendamento"
+                                (click)="cancelar(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
+                              </button>
+                            }
+                          </div>
+                        } @else {
+                          <span class="ag-acoes-vazio" aria-hidden="true">—</span>
+                        }
                       </td>
                     </tr>
                   }

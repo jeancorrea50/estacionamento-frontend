@@ -91,7 +91,7 @@ describe('SessionAccessService sidebar filter', () => {
           {
             id: 3060,
             descricao: 'agendamentos',
-            rota: '/app/agendamento/agendamentos',
+            rota: '/app/agendamento',
             ativo: true,
             ordem: 0,
           },
@@ -111,7 +111,6 @@ describe('SessionAccessService sidebar filter', () => {
       {
         label: 'Agendamento',
         route: '/app/agendamento',
-        children: [{ label: 'Agendamentos', route: '/app/agendamento/agendamentos' }],
       },
       {
         label: 'Cadastro',
@@ -128,10 +127,13 @@ describe('SessionAccessService sidebar filter', () => {
     expect(filtered.find((i) => i.label === 'Pátio')?.children?.map((c) => c.route)).toEqual([
       '/app/patio/movimentacoes',
     ]);
+    expect(filtered.find((i) => i.label === 'Agendamento')?.route).toBe('/app/agendamento');
+    expect(filtered.find((i) => i.label === 'Agendamento')?.children).toBeUndefined();
     expect(filtered.find((i) => i.label === 'Cadastro')?.children?.map((c) => c.route)).toEqual([
       '/app/cadastro/transportadoras',
     ]);
     expect(service.canAccessRoute('/app/cadastro/transportadoras')).toBe(true);
+    expect(service.canAccessRoute('/app/agendamento')).toBe(true);
     expect(service.canAccessRoute('/app/cadastro/veiculos')).toBe(false);
     expect(service.canAccessRoute('/app/cadastro/motoristas')).toBe(false);
     expect(service.canAccessRoute('/app/patio/entrada-saida')).toBe(false);

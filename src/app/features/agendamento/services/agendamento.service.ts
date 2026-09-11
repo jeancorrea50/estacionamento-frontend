@@ -29,15 +29,7 @@ export class AgendamentoService {
     }
 
     return this.http.get<unknown>(this.apiRoot, { params }).pipe(
-      map((body) => this.normalizePaged(body, filtro.numeroPagina, filtro.tamanhoPagina)),
-      catchError(() =>
-        of({
-          items: [],
-          totalCount: 0,
-          numeroPagina: filtro.numeroPagina,
-          tamanhoPagina: filtro.tamanhoPagina,
-        })
-      )
+      map((body) => this.normalizePaged(body, filtro.numeroPagina, filtro.tamanhoPagina))
     );
   }
 

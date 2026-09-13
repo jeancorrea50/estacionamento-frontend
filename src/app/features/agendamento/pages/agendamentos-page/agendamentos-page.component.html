@@ -18,7 +18,7 @@
           <p class="error-msg">Sem permissão para visualizar Agendamentos.</p>
         </div>
       } @else {
-        <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
+        <section class="est-dash-filter trn-dash-filter ag-dash-filter" aria-label="Filtros da listagem">
           @if (isAdmin) {
             <div class="est-dash-filter__select-wrap">
               <select
@@ -33,7 +33,7 @@
               </select>
             </div>
           }
-          <label class="est-dash-filter__search">
+          <label class="est-dash-filter__search ag-dash-filter__search">
             <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
             <input
               type="text"
@@ -45,24 +45,19 @@
               aria-label="Placa"
             />
           </label>
-          <label class="ag-date-field">
-            <span class="ag-date-field__label">De</span>
-            <input type="date" class="input-control" [(ngModel)]="filtroDataInicial" />
-          </label>
-          <label class="ag-date-field">
-            <span class="ag-date-field__label">Até</span>
-            <input type="date" class="input-control" [(ngModel)]="filtroDataFinal" />
-          </label>
-          <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
-            <span class="material-symbols-outlined" aria-hidden="true">search</span>
-            Buscar
-          </button>
-          @if (podeCriar) {
-            <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovo()">
-              <span class="material-symbols-outlined" aria-hidden="true">add</span>
-              Novo
+          <app-agendamento-periodo-picker (periodoChange)="onPeriodoChange($event)" />
+          <div class="ag-dash-filter__actions">
+            <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              Buscar
             </button>
-          }
+            @if (podeCriar) {
+              <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovo()">
+                <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                Novo
+              </button>
+            }
+          </div>
         </section>
 
         @if (erroList) {

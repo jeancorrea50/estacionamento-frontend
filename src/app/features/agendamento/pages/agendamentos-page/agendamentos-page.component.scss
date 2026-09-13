@@ -8,16 +8,32 @@
 
 @import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
 
-.ag-date-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 9.5rem;
+/* Barra de filtros: uma linha alinhada (mesmo ritmo do dash de cadastro). */
+.ag-dash-filter.est-dash-filter {
+  align-items: center;
+  gap: 10px;
+  overflow: visible;
 }
 
-.ag-date-field__label {
-  font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
+.ag-dash-filter__search.est-dash-filter__search {
+  flex: 1 1 180px;
+  max-width: 260px;
+  min-width: 160px;
+}
+
+.ag-dash-filter__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.ag-dash-filter .est-dash-btn {
+  height: 42px;
+  min-height: 42px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .ag-status-pill {
@@ -48,14 +64,30 @@
   font-size: 0.9rem;
 }
 
-@media (max-width: 768px) {
-  .ag-date-field {
-    width: 100%;
-    min-width: 0;
+@media (max-width: 900px) {
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
   }
 
-  .trn-dash-filter {
+  .ag-dash-filter__actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .ag-dash-filter.est-dash-filter {
     align-items: stretch;
+  }
+
+  .ag-dash-filter__actions {
+    flex-wrap: wrap;
+  }
+
+  .ag-dash-filter .est-dash-btn {
+    flex: 1 1 auto;
   }
 
   .trn-act-btns {

@@ -1,0 +1,59 @@
+/* Estilos do calendário (rec-data-picker / rec-cal). Sobrescreve :host overflow-x: clip. */
+@use '../../../../financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: inline-flex;
+  position: relative;
+  z-index: 40;
+  overflow: visible;
+  min-width: 0;
+}
+
+.ag-periodo-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: visible;
+}
+
+.ag-periodo-picker__control {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+.ag-periodo-picker__control .rec-data-picker__trigger {
+  height: 42px;
+  min-height: 42px;
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 10px;
+  padding: 0 12px;
+}
+
+.ag-periodo-picker__modes.rec-data-picker__modes,
+.ag-periodo-picker .rec-cal .rec-data-picker__modes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ag-periodo-picker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-2) 90%, #000);
+  color: var(--muted);
+  cursor: pointer;
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  &:hover {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 40%, var(--border-subtle));
+  }
+}

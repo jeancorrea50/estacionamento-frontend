@@ -25,6 +25,10 @@ import {
   entradaSaidaStatusLabel,
   parseEntradaSaidaStatus,
 } from '../../models/agendamento.models';
+import {
+  AgendamentoPeriodoPickerComponent,
+  AgendamentoPeriodoSelecionado,
+} from './agendamento-periodo-picker/agendamento-periodo-picker.component';
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -36,6 +40,7 @@ import {
     MatDialogModule,
     EstSummaryMetricComponent,
     PlacaFormatDirective,
+    AgendamentoPeriodoPickerComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],
@@ -142,6 +147,11 @@ export class AgendamentosPageComponent implements OnInit {
   onBuscar(): void {
     this.numeroPagina = 1;
     this.carregar();
+  }
+
+  onPeriodoChange(periodo: AgendamentoPeriodoSelecionado): void {
+    this.filtroDataInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.filtroDataFinal = periodo.ativo ? periodo.dataFinal : '';
   }
 
   carregar(): void {

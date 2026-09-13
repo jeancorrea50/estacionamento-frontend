@@ -84,6 +84,15 @@ export interface EntradaSaidaFiltro {
   motoristaId?: number;
   transportadoraId?: number;
   somenteEmAberto?: boolean;
+  /** ISO date-time (`DataInicial` no Swagger). */
+  dataInicial?: string;
+  /** ISO date-time (`DataFinal` no Swagger). */
+  dataFinal?: string;
+  /**
+   * Filtro local de UI apenas — fora do Swagger GET /api/Movimento.
+   * `buildBuscarParams` não envia; a página aplica em `registrosExibidos`.
+   */
+  ehExcedente?: boolean;
   numeroPagina: number;
   tamanhoPagina: number;
   page?: number;

@@ -54,6 +54,13 @@ import {
   calcularQuantidadeUnidades,
   calcularTotalDiarias
 } from '../../utils/calcular-diarias';
+import { MovimentosFiltrosPanelComponent } from './movimentos-filtros-panel/movimentos-filtros-panel.component';
+import {
+  MovimentosFiltrosAvancados,
+  criarFiltrosAvancadosVazios,
+  toIsoDateTimeEnd,
+  toIsoDateTimeStart
+} from './movimentos-filtros.util';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -103,7 +110,7 @@ interface AlertaItemVm {
 @Component({
   selector: 'app-movimentos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, CameraPreviewComponent, TelefoneFormatDirective],
+  imports: [CommonModule, FormsModule, CameraPreviewComponent, TelefoneFormatDirective, MovimentosFiltrosPanelComponent],
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
 })
@@ -137,6 +144,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return !this.auth.isTransportadoraRole();
   }
 
+  get isPerfilTransportadora(): boolean {
+    return this.auth.isTransportadoraRole();
+  }
+
   get canGravar(): boolean {
     return this.canVisualizar && this.podeAcoesOperacionaisPatio;
   }
@@ -167,6 +178,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   readonly registrosExibidos = computed(() => {
     const items = this.registros();
     const chip = this.filtroResumoChip();
+    const excedente = this.filtrosAvancados().excedente;
     let filtered = items;
     if (chip === 'suspensos') {
       filtered = items.filter((item) => this.estaSuspenso(item));
@@ -176,6 +188,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       );
     } else if (chip === 'entradasHoje') {
       filtered = items.filter((item) => this.isEntradaHoje(item.dataHoraEntrada));
+    }
+    // Fallback local se a API ainda não filtrar por ehExcedente.
+    if (excedente === 'sim') {
+      filtered = filtered.filter((item) => item.ehExcedente === true);
+    } else if (excedente === 'nao') {
+      filtered = filtered.filter((item) => item.ehExcedente !== true);
     }
     return this.ordenarRegistros(filtered);
   });
@@ -208,6 +226,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   );
 
   filtro = { descricao: '', somenteEmAberto: true };
+  /** Filtros avançados do painel (AND com busca rápida / chips). */
+  readonly filtrosAvancados = signal<MovimentosFiltrosAvancados>(criarFiltrosAvancadosVazios());
 
   /** Histórico via HTTP `/EntradaSaida` — signals para UI zoneless atualizar ao clicar Buscar. */
   readonly registros = signal<EntradaSaidaSearchOutput[]>([]);
@@ -343,20 +363,42 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
     this.loading.set(true);
     const col = this.sortCol();
-    const transportadoraId = this.auth.isTransportadoraRole()
+    const transportadoraSessao = this.auth.isTransportadoraRole()
       ? this.auth.resolveTransportadoraId()
       : null;
+    const avancados = this.filtrosAvancados();
+    const placaRapida = this.filtro.descricao.trim();
+    const placaAvancada = avancados.placa.trim();
+    const placaRaw = placaAvancada || placaRapida;
+    const placa = placaRaw ? formatPlacaDisplay(normalizePlaca(placaRaw)) : undefined;
+    const transportadoraId =
+      transportadoraSessao != null && transportadoraSessao > 0
+        ? transportadoraSessao
+        : avancados.transportadoraId != null && avancados.transportadoraId > 0
+          ? avancados.transportadoraId
+          : undefined;
 
-    this.service.buscar({
-      placa: this.filtro.descricao || undefined,
+    const filtroBusca: EntradaSaidaFiltro = {
+      placa: placa || undefined,
       somenteEmAberto: this.filtro.somenteEmAberto,
-      transportadoraId:
-        transportadoraId != null && transportadoraId > 0 ? transportadoraId : undefined,
+      motoristaId:
+        avancados.motoristaId != null && avancados.motoristaId > 0
+          ? avancados.motoristaId
+          : undefined,
+      transportadoraId,
+      dataInicial: avancados.periodoAtivo
+        ? toIsoDateTimeStart(avancados.dataInicio)
+        : undefined,
+      dataFinal: avancados.periodoAtivo
+        ? toIsoDateTimeEnd(avancados.dataFim)
+        : undefined,
       numeroPagina: this.numeroPagina(),
       tamanhoPagina: this.tamanhoPagina(),
       propriedade: this.mapSortColToPropriedade(col),
       sort: this.sortDir()
-    }).subscribe({
+    };
+
+    this.service.buscar(filtroBusca).subscribe({
       next: (paged) => this.applyPagedResult(paged),
       error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar movimentos.')
     });
@@ -484,8 +526,22 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return this.registros().find((r) => r.id === id) ?? null;
   }
 
-  onFiltroPlacaInput(value: string): void {
-    this.filtro.descricao = formatPlacaDisplay(normalizePlaca(value));
+  onAplicarFiltrosAvancados(filtros: MovimentosFiltrosAvancados): void {
+    const placaNorm = filtros.placa.trim()
+      ? formatPlacaDisplay(normalizePlaca(filtros.placa))
+      : '';
+    this.filtrosAvancados.set({ ...filtros, placa: placaNorm });
+    // Uma fonte de verdade: painel aplicado espelha a busca rápida de placa.
+    this.filtro.descricao = placaNorm;
+    this.numeroPagina.set(1);
+    this.buscar();
+  }
+
+  onLimparFiltrosAvancados(): void {
+    this.filtrosAvancados.set(criarFiltrosAvancadosVazios());
+    this.filtro.descricao = '';
+    this.numeroPagina.set(1);
+    this.buscar();
   }
 
   onMotoristaCpfInput(value: string): void {

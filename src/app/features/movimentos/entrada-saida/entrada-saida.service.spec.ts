@@ -42,6 +42,21 @@ describe('EntradaSaidaService', () => {
     req.flush({ results: [] });
   });
 
+  it('deve enviar período na busca', () => {
+    service.buscar({
+      dataInicial: '2026-09-01T00:00:00',
+      dataFinal: '2026-09-30T23:59:59',
+      numeroPagina: 1,
+      tamanhoPagina: 20
+    }).subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.API_BASE_URL}/EntradaSaida`);
+    expect(req.request.params.get('DataInicial')).toBe('2026-09-01T00:00:00');
+    expect(req.request.params.get('DataFinal')).toBe('2026-09-30T23:59:59');
+    expect(req.request.params.get('ehExcedente')).toBeNull();
+    req.flush({ results: [] });
+  });
+
   it('deve mapear envelope em getById', () => {
     let resultId = 0;
     service.getById(99).subscribe((res) => {

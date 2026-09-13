@@ -332,15 +332,11 @@
             </div>
           </div>
           <form class="operacao-actions__busca operacao-busca" (submit)="$event.preventDefault(); buscar()">
-            <input
-              class="operacao-busca__input"
-              type="search"
-              placeholder="Placa"
-              aria-label="Buscar por placa"
-              [(ngModel)]="filtro.descricao"
-              (ngModelChange)="onFiltroPlacaInput($event)"
-              maxlength="8"
-              [ngModelOptions]="{ standalone: true }"
+            <app-movimentos-filtros-panel
+              [aplicados]="filtrosAvancados()"
+              [ocultarTransportadora]="isPerfilTransportadora"
+              (aplicar)="onAplicarFiltrosAvancados($event)"
+              (limpar)="onLimparFiltrosAvancados()"
             />
             <label class="operacao-busca__check">
               <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" [ngModelOptions]="{ standalone: true }" />

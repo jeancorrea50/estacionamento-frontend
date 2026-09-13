@@ -9,8 +9,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
@@ -21,26 +19,29 @@ import {
 import { ProfilePermissionsStoreService } from '../../services/profile-permissions-store.service';
 import type { MenuAdmin } from '../../../gerenciamento/models/menu-admin.model';
 import { MenuApiService } from '../../../gerenciamento/services/menu-api.service';
-import {
-  mapBuscarResponseToMenuAdmins,
-} from '../../../gerenciamento/services/menu-api.mapper';
+import { mapBuscarResponseToMenuAdmins } from '../../../gerenciamento/services/menu-api.mapper';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import {
-  PERMISSAO_ACOES_LEGENDA,
   resolvePermissaoAcaoMeta,
-  sortPermissoesByAction,
   type PermissaoAcaoMeta,
 } from './perfil-permissao-acao.util';
 import {
   buildPermissionTreeState,
-  getSelectedMenuCount,
+  countMenusInTree,
+  countPermissionsInMenu,
+  countTotalPermissionsInTree,
+  findPermissionByAction,
+  getExtraPermissions,
   getSelectedPermissionCount,
   getSelectedPermissionKeys,
-  hasAnyMenuSelected,
+  isActionColumnFullySelected,
+  isActionColumnIndeterminate,
   mapTreeToPerfilMenusPayload,
+  setAllPermissionsInTree,
+  toggleActionColumnInMenu,
   toggleMenuSelection,
   togglePermissaoSelection,
   toggleSubMenuSelection,
@@ -49,20 +50,29 @@ import {
   type TreeSubMenuNode,
 } from './perfil-permissoes-tree.util';
 
-type ModalKind = 'create' | 'edit' | 'delete' | 'view' | null;
+type ModalKind = 'create' | 'rename' | 'delete' | null;
+type AccessFilter = 'all' | 'allowed' | 'denied';
 
-const AVISO_SEM_ENDPOINT =
-  'Backend não possui endpoints de perfis (roles) ainda.';
+const AVISO_SEM_ENDPOINT = 'Backend não possui endpoints de perfis (roles) ainda.';
+const LAST_PROFILE_KEY = 'acessos-perfis-last-profile-id';
+const ACOES_PADRAO = ['visualizar', 'gravar', 'alterar', 'excluir'] as const;
 
 @Component({
   selector: 'app-acessos-perfis-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCheckboxModule, MatExpansionModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, MatCheckboxModule],
   templateUrl: './acessos-perfis-page.component.html',
   styleUrls: ['./acessos-perfis-page.component.scss'],
 })
 export class AcessosPerfisPageComponent implements OnInit {
-  readonly permAcoesLegenda = PERMISSAO_ACOES_LEGENDA;
+  readonly acoesPadrao = ACOES_PADRAO;
+  readonly acaoLabels: Record<(typeof ACOES_PADRAO)[number], string> = {
+    visualizar: 'Visualizar',
+    gravar: 'Gravar',
+    alterar: 'Alterar',
+    excluir: 'Excluir',
+  };
+
   private perfisService = inject(AcessosPerfisService);
   private menuApi = inject(MenuApiService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
@@ -76,59 +86,92 @@ export class AcessosPerfisPageComponent implements OnInit {
   erro: string | null = null;
   itens: ApplicationRole[] = [];
 
-  /** Filtros (somente UI; lista já carregada). Ordem fixa: nome A-Z. */
-  /** Texto digitado no campo (ainda não aplicado até clicar na lupa ou Enter). */
-  searchDraft = '';
-  /** Termo efetivo da busca (usado em `perfisFiltrados`). */
-  searchTerm = '';
-  statusFilter: 'all' | 'ativo' | 'inativo' = 'all';
+  selectedProfileId = signal<string | null>(null);
+  expandedMenus = signal<Set<number>>(new Set());
+  searchQuery = signal('');
+  accessFilter = signal<AccessFilter>('all');
+  dirty = signal(false);
+  baselineKeys = signal('');
+
+  permissionTree = signal<TreeMenuNode[]>([]);
+  private backendMenuCatalog = signal<MenuAdmin[]>([]);
 
   modalKind = signal<ModalKind>(null);
-  editItem = signal<ApplicationRole | null>(null);
-  deleteItem = signal<ApplicationRole | null>(null);
-  viewItem = signal<ApplicationRole | null>(null);
   saving = signal(false);
   saveError = signal<string | null>(null);
   deleting = signal(false);
-
-  form = { name: '', normalizedName: '', permissionIds: [] as string[] };
-  private backendMenuCatalog = signal<MenuAdmin[]>([]);
-  permissionTree = signal<TreeMenuNode[]>([]);
-
-  get selectedPermissionsCount(): number {
-    return getSelectedPermissionCount(this.permissionTree());
-  }
-
-  get selectedMenusCount(): number {
-    return getSelectedMenuCount(this.permissionTree());
-  }
+  formName = '';
 
   isModalOpen = computed(() => this.modalKind() !== null);
   isCreate = computed(() => this.modalKind() === 'create');
-  isEdit = computed(() => this.modalKind() === 'edit');
+  isRename = computed(() => this.modalKind() === 'rename');
   isDelete = computed(() => this.modalKind() === 'delete');
-  isView = computed(() => this.modalKind() === 'view');
+
+  selectedProfile = computed(() => {
+    const id = this.selectedProfileId();
+    if (!id) return null;
+    return this.itens.find((item) => this.profileKey(item) === id) ?? null;
+  });
+
+  selectedPermissionsCount = computed(() => getSelectedPermissionCount(this.permissionTree()));
+
+  modulesSummary = computed(() => {
+    const tree = this.permissionTree();
+    let selected = 0;
+    for (const menu of tree) {
+      const counts = countPermissionsInMenu(menu);
+      if (counts.selected > 0 || menu.selecionado) selected += 1;
+    }
+    return { total: tree.length, selected };
+  });
+
+  menusSummary = computed(() => countMenusInTree(this.permissionTree()));
+
+  totalPermissionsInCatalog = computed(() => countTotalPermissionsInTree(this.permissionTree()));
+
+  filteredTree = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    const filter = this.accessFilter();
+    return this.permissionTree()
+      .map((menu) => this.filterMenuNode(menu, query, filter))
+      .filter((menu): menu is TreeMenuNode => menu != null);
+  });
+
+  sideSummaryModules = computed(() => {
+    return this.permissionTree()
+      .map((menu) => {
+        const counts = countPermissionsInMenu(menu);
+        return {
+          menuId: menu.menuId,
+          nome: menu.nome,
+          selected: counts.selected,
+          total: counts.total,
+        };
+      })
+      .filter((m) => m.total > 0);
+  });
 
   ngOnInit(): void {
     this.carregar();
   }
 
-  carregar(): void {
+  carregar(opts?: { preferProfileId?: string | null; preferName?: string | null }): void {
     this.loading = true;
     this.erro = null;
     this.cdr.markForCheck();
     forkJoin({
       perfis: this.perfisService.buscar(),
-      // Catálogo oficial de menus/permissões (ids corretos para o PUT/POST de Perfil).
       menus: this.menuApi.buscar().pipe(catchError(() => of(null))),
     }).subscribe({
       next: ({ perfis, menus }) => {
         const rawList = this.extractRawProfileList(perfis);
         this.loading = false;
         this.erro = null;
-        this.itens = rawList.map((item) => this.normalizeRoleItem(item));
-        this.searchDraft = '';
-        this.searchTerm = '';
+        this.itens = rawList
+          .map((item) => this.normalizeRoleItem(item))
+          .sort((a, b) =>
+            this.perfilDisplayName(a).localeCompare(this.perfilDisplayName(b), 'pt-BR')
+          );
         const fromMenuApi =
           menus != null ? this.sanitizeMenuCatalog(mapBuscarResponseToMenuAdmins(menus)) : [];
         const catalog =
@@ -136,8 +179,25 @@ export class AcessosPerfisPageComponent implements OnInit {
             ? fromMenuApi
             : this.sanitizeMenuCatalog(this.buildMenuCatalogFromProfiles(rawList));
         this.backendMenuCatalog.set(catalog);
-        this.permissionTree.set(buildPermissionTreeState(catalog, null, []));
         this.syncProfilePermissionsStore();
+
+        const preferredId =
+          opts?.preferProfileId ?? this.selectedProfileId() ?? this.readLastProfileId();
+        const preferredName = opts?.preferName?.trim().toLowerCase() ?? null;
+        const match =
+          (preferredId ? this.itens.find((i) => this.profileKey(i) === preferredId) : null) ??
+          (preferredName
+            ? this.itens.find((i) => this.perfilDisplayName(i).toLowerCase() === preferredName)
+            : null) ??
+          this.itens[0] ??
+          null;
+        if (match) {
+          this.applyProfileSelection(match, { expandAll: true });
+        } else {
+          this.selectedProfileId.set(null);
+          this.permissionTree.set(buildPermissionTreeState(catalog, null, []));
+          this.resetBaseline();
+        }
         this.cdr.markForCheck();
       },
       error: () => {
@@ -147,6 +207,301 @@ export class AcessosPerfisPageComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  retry(): void {
+    this.carregar();
+  }
+
+  perfilDisplayName(item: ApplicationRole | null | undefined): string {
+    if (!item) return '—';
+    return (item.name ?? item.nome ?? item.perfil ?? '—').trim() || '—';
+  }
+
+  profileKey(item: ApplicationRole): string {
+    const id = item.id ?? item.perfilId ?? item.permissaoId;
+    if (id != null && `${id}`.length > 0) return String(id);
+    return `name:${(item.name ?? item.nome ?? '').trim()}`;
+  }
+
+  onProfileSelectChange(rawId: string): void {
+    const next = this.itens.find((item) => this.profileKey(item) === rawId);
+    if (!next) return;
+    this.selectProfile(next);
+  }
+
+  selectProfile(item: ApplicationRole): void {
+    if (this.profileKey(item) === this.selectedProfileId()) return;
+    if (this.dirty()) {
+      const ok = window.confirm(
+        'Você possui alterações não salvas. Descartar e trocar de perfil?'
+      );
+      if (!ok) {
+        this.cdr.markForCheck();
+        return;
+      }
+    }
+    this.applyProfileSelection(item, { expandAll: false });
+  }
+
+  openNovo(): void {
+    this.saveError.set(null);
+    this.formName = '';
+    this.modalKind.set('create');
+    this.cdr.markForCheck();
+  }
+
+  openRenomear(): void {
+    const profile = this.selectedProfile();
+    if (!profile) return;
+    this.saveError.set(null);
+    this.formName = this.perfilDisplayName(profile);
+    this.modalKind.set('rename');
+    this.cdr.markForCheck();
+  }
+
+  openExcluir(): void {
+    const profile = this.selectedProfile();
+    if (!profile) return;
+    this.modalKind.set('delete');
+    this.cdr.markForCheck();
+  }
+
+  closeModal(): void {
+    this.modalKind.set(null);
+    this.saveError.set(null);
+    this.formName = '';
+    this.cdr.markForCheck();
+  }
+
+  confirmarModalNome(): void {
+    const kind = this.modalKind();
+    const nome = this.formName.trim();
+    if (!nome) {
+      this.saveError.set('Informe o nome do perfil.');
+      return;
+    }
+    if (kind === 'create') {
+      this.criarPerfil(nome);
+      return;
+    }
+    if (kind === 'rename') {
+      this.renomearPerfil(nome);
+    }
+  }
+
+  confirmarExclusao(): void {
+    const item = this.selectedProfile();
+    if (!item?.id) {
+      this.closeModal();
+      return;
+    }
+    this.deleting.set(true);
+    this.cdr.markForCheck();
+    this.perfisService.delete(item.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.closeModal();
+        this.selectedProfileId.set(null);
+        this.dirty.set(false);
+        this.carregar();
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.deleting.set(false);
+        this.closeModal();
+        this.carregar();
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  get deleteItemName(): string {
+    return this.perfilDisplayName(this.selectedProfile());
+  }
+
+  isMenuExpanded(menuId: number): boolean {
+    return this.expandedMenus().has(menuId);
+  }
+
+  toggleMenuExpanded(menuId: number): void {
+    const next = new Set(this.expandedMenus());
+    if (next.has(menuId)) next.delete(menuId);
+    else next.add(menuId);
+    this.expandedMenus.set(next);
+  }
+
+  expandirTodos(): void {
+    this.expandedMenus.set(new Set(this.permissionTree().map((m) => m.menuId)));
+  }
+
+  recolherTodos(): void {
+    this.expandedMenus.set(new Set());
+  }
+
+  selecionarTodos(): void {
+    this.setTree(setAllPermissionsInTree(this.permissionTree(), true));
+  }
+
+  limparSelecao(): void {
+    this.setTree(setAllPermissionsInTree(this.permissionTree(), false));
+  }
+
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+  }
+
+  setAccessFilter(filter: AccessFilter): void {
+    this.accessFilter.set(filter);
+  }
+
+  onMenuToggle(menuId: number, checked: boolean): void {
+    this.setTree(toggleMenuSelection(this.permissionTree(), menuId, checked));
+  }
+
+  onMenuCheckboxChange(menuId: number, event: MatCheckboxChange): void {
+    this.onMenuToggle(menuId, event.checked);
+  }
+
+  onSubMenuToggle(menuId: number, subMenuId: number, checked: boolean): void {
+    this.setTree(toggleSubMenuSelection(this.permissionTree(), menuId, subMenuId, checked));
+  }
+
+  onSubMenuCheckboxChange(menuId: number, subMenuId: number, event: MatCheckboxChange): void {
+    this.onSubMenuToggle(menuId, subMenuId, event.checked);
+  }
+
+  onPermissaoToggle(
+    menuId: number,
+    subMenuId: number,
+    permissaoId: number,
+    checked: boolean
+  ): void {
+    this.setTree(
+      togglePermissaoSelection(this.permissionTree(), menuId, subMenuId, permissaoId, checked)
+    );
+  }
+
+  onPermissaoCheckboxChange(
+    menuId: number,
+    subMenuId: number,
+    permissaoId: number,
+    event: MatCheckboxChange
+  ): void {
+    this.onPermissaoToggle(menuId, subMenuId, permissaoId, event.checked);
+  }
+
+  onActionColumnToggle(menuId: number, action: string, event: MatCheckboxChange): void {
+    this.setTree(toggleActionColumnInMenu(this.permissionTree(), menuId, action, event.checked));
+  }
+
+  isMenuIndeterminate(menu: TreeMenuNode): boolean {
+    const counts = countPermissionsInMenu(menu);
+    return counts.selected > 0 && counts.selected < counts.total;
+  }
+
+  isSubMenuIndeterminate(subMenu: TreeSubMenuNode): boolean {
+    const flat = this.flattenSubMenus([subMenu]);
+    const total = flat.reduce((acc, node) => acc + node.permissoes.length, 0);
+    if (total === 0) return false;
+    const selected = flat.reduce(
+      (acc, node) => acc + node.permissoes.filter((p) => p.selecionado).length,
+      0
+    );
+    return selected > 0 && selected < total;
+  }
+
+  menuCounts(menu: TreeMenuNode): { total: number; selected: number } {
+    return countPermissionsInMenu(menu);
+  }
+
+  isColumnChecked(menu: TreeMenuNode, action: string): boolean {
+    return isActionColumnFullySelected(menu, action);
+  }
+
+  isColumnIndeterminate(menu: TreeMenuNode, action: string): boolean {
+    return isActionColumnIndeterminate(menu, action);
+  }
+
+  permissionForAction(subMenu: TreeSubMenuNode, action: string): TreePermissaoNode | undefined {
+    return findPermissionByAction(subMenu, action);
+  }
+
+  extraPermissions(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
+    return getExtraPermissions(subMenu);
+  }
+
+  extraActionColumns(menu: TreeMenuNode): string[] {
+    const seen = new Set<string>();
+    const extras: string[] = [];
+    for (const sub of this.flattenSubMenus(menu.subMenus)) {
+      for (const perm of getExtraPermissions(sub)) {
+        const action = resolvePermissaoAcaoMeta(perm.key || perm.nome).action;
+        if (!seen.has(action)) {
+          seen.add(action);
+          extras.push(action);
+        }
+      }
+    }
+    return extras;
+  }
+
+  resolveAcaoMeta(permissao: TreePermissaoNode): PermissaoAcaoMeta {
+    return resolvePermissaoAcaoMeta(permissao.key || permissao.nome);
+  }
+
+  actionLabel(action: string): string {
+    const known = (ACOES_PADRAO as readonly string[]).includes(action)
+      ? this.acaoLabels[action as (typeof ACOES_PADRAO)[number]]
+      : null;
+    return known ?? resolvePermissaoAcaoMeta(action).label;
+  }
+
+  descartarAlteracoes(): void {
+    const profile = this.selectedProfile();
+    if (!profile) return;
+    const ok = window.confirm('Descartar todas as alterações não salvas?');
+    if (!ok) return;
+    this.applyProfileSelection(profile, { expandAll: false });
+  }
+
+  salvarPermissoes(): void {
+    const profile = this.selectedProfile();
+    if (!profile) return;
+    this.saveError.set(null);
+    this.saving.set(true);
+    this.cdr.markForCheck();
+
+    const dto = this.toUpsertPayload(profile);
+    this.perfisService.alterar(dto).subscribe({
+      next: () => {
+        const key = this.getProfileStoreKey(profile) ?? this.perfilDisplayName(profile);
+        const selectedPermissionKeys = getSelectedPermissionKeys(this.permissionTree());
+        if (key) {
+          this.profilePermissionsStore.setProfilePermissions(key, selectedPermissionKeys);
+        }
+        this.syncPermissionCacheForCurrentUserProfile(this.perfilDisplayName(profile));
+        this.syncSessionAccessFromBackendCatalog();
+        this.toast.success('Permissões salvas com sucesso.');
+        this.toast.warning(
+          'Permissões atualizadas. Faça novo login para aplicar 100% das regras do token.'
+        );
+        this.saving.set(false);
+        this.resetBaseline();
+        this.carregar({ preferProfileId: this.profileKey(profile) });
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.saveError.set(this.mensagemErroSalvarPerfil(err));
+        this.toast.warning(this.saveError() ?? 'Erro ao salvar.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  trackPerfil(item: ApplicationRole): string {
+    return this.profileKey(item);
   }
 
   /** Mantém apenas ids válidos do servidor (evita FK inválida no save do perfil). */
@@ -165,20 +520,233 @@ export class AcessosPerfisPageComponent implements OnInit {
       .sort((a, b) => a.ordem - b.ordem);
   }
 
-  retry(): void {
-    this.carregar();
-  }
-
-  /** Aplica o texto do campo à lista (sem nova chamada HTTP). */
-  aplicarBuscaPerfil(): void {
-    this.searchTerm = this.searchDraft.trim();
+  private applyProfileSelection(
+    item: ApplicationRole,
+    opts: { expandAll: boolean }
+  ): void {
+    const key = this.profileKey(item);
+    this.selectedProfileId.set(key);
+    this.writeLastProfileId(key);
+    this.permissionTree.set(
+      buildPermissionTreeState(
+        this.backendMenuCatalog(),
+        item.menus ?? null,
+        item.permissionIds ?? []
+      )
+    );
+    if (opts.expandAll || this.expandedMenus().size === 0) {
+      this.expandirTodos();
+    }
+    this.resetBaseline();
     this.cdr.markForCheck();
   }
 
-  limparBuscaPerfil(): void {
-    this.searchDraft = '';
-    this.searchTerm = '';
+  private setTree(tree: TreeMenuNode[]): void {
+    this.permissionTree.set(tree);
+    this.recomputeDirty();
     this.cdr.markForCheck();
+  }
+
+  private resetBaseline(): void {
+    const keys = this.snapshotKeys(this.permissionTree());
+    this.baselineKeys.set(keys);
+    this.dirty.set(false);
+  }
+
+  private recomputeDirty(): void {
+    this.dirty.set(this.snapshotKeys(this.permissionTree()) !== this.baselineKeys());
+  }
+
+  private snapshotKeys(tree: TreeMenuNode[]): string {
+    return JSON.stringify([...getSelectedPermissionKeys(tree)].sort());
+  }
+
+  private criarPerfil(nome: string): void {
+    this.saving.set(true);
+    this.cdr.markForCheck();
+    const emptyTree = buildPermissionTreeState(this.backendMenuCatalog(), null, []);
+    const dto: PerfilUpsertInput = {
+      nome,
+      menus: mapTreeToPerfilMenusPayload(emptyTree),
+    };
+    this.perfisService.gravar(dto).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+        this.toast.success('Perfil criado com sucesso.');
+        this.carregar({ preferName: nome });
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.saveError.set(this.mensagemErroSalvarPerfil(err));
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private renomearPerfil(nome: string): void {
+    const profile = this.selectedProfile();
+    if (!profile) return;
+    this.saving.set(true);
+    this.cdr.markForCheck();
+    const dto = this.toUpsertPayload(profile);
+    dto.nome = nome;
+    this.perfisService.alterar(dto).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+        this.toast.success('Perfil renomeado.');
+        this.carregar({ preferProfileId: this.profileKey(profile), preferName: nome });
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.saveError.set(this.mensagemErroSalvarPerfil(err));
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private filterMenuNode(
+    menu: TreeMenuNode,
+    query: string,
+    filter: AccessFilter
+  ): TreeMenuNode | null {
+    const menuNameMatch = !query || menu.nome.toLowerCase().includes(query);
+    const filteredSubs = menu.subMenus
+      .map((sub) => this.filterSubMenuNode(sub, query, filter, menuNameMatch))
+      .filter((sub): sub is TreeSubMenuNode => sub != null);
+
+    if (filteredSubs.length === 0 && !menuNameMatch) return null;
+    if (filteredSubs.length === 0 && menuNameMatch && query) {
+      // Módulo bate na busca: mostra filhos filtrados só por accessFilter
+      const byAccess = menu.subMenus
+        .map((sub) => this.filterSubMenuNode(sub, '', filter, true))
+        .filter((sub): sub is TreeSubMenuNode => sub != null);
+      if (byAccess.length === 0 && filter !== 'all') return null;
+      return { ...menu, subMenus: byAccess.length ? byAccess : menu.subMenus };
+    }
+    if (filteredSubs.length === 0 && filter !== 'all') return null;
+    return { ...menu, subMenus: filteredSubs.length ? filteredSubs : menu.subMenus };
+  }
+
+  private filterSubMenuNode(
+    subMenu: TreeSubMenuNode,
+    query: string,
+    filter: AccessFilter,
+    ancestorMatched: boolean
+  ): TreeSubMenuNode | null {
+    const nameMatch = !query || subMenu.nome.toLowerCase().includes(query) || ancestorMatched;
+    const hasSelected = subMenu.permissoes.some((p) => p.selecionado) || subMenu.selecionado;
+    const accessOk =
+      filter === 'all' ||
+      (filter === 'allowed' && hasSelected) ||
+      (filter === 'denied' && !hasSelected);
+
+    const nested = (subMenu.subMenus ?? [])
+      .map((child) => this.filterSubMenuNode(child, query, filter, nameMatch))
+      .filter((child): child is TreeSubMenuNode => child != null);
+
+    if (!nameMatch && nested.length === 0) return null;
+    if (!accessOk && nested.length === 0) return null;
+
+    return {
+      ...subMenu,
+      subMenus: nested.length ? nested : subMenu.subMenus,
+    };
+  }
+
+  private flattenSubMenus(subMenus: TreeSubMenuNode[]): TreeSubMenuNode[] {
+    const out: TreeSubMenuNode[] = [];
+    const walk = (items: TreeSubMenuNode[]) => {
+      for (const item of items) {
+        out.push(item);
+        if (item.subMenus?.length) walk(item.subMenus);
+      }
+    };
+    walk(subMenus);
+    return out;
+  }
+
+  private toUpsertPayload(editingItem: ApplicationRole | null): PerfilUpsertInput {
+    const nome =
+      (editingItem ? this.perfilDisplayName(editingItem) : this.formName.trim()) || null;
+    const dto: PerfilUpsertInput = {
+      nome: nome === '—' ? null : nome,
+      menus: mapTreeToPerfilMenusPayload(this.permissionTree()),
+    };
+    const id = this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId);
+    if (id != null && id > 0) {
+      dto.id = id;
+    }
+    return dto;
+  }
+
+  private mensagemErroSalvarPerfil(err: unknown): string {
+    const raw =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message?: unknown }).message ?? '').trim()
+        : '';
+    if (/entity changes|inner exception|dbupdate|foreign key|fk_/i.test(raw)) {
+      return 'Não foi possível salvar o perfil. Verifique as permissões selecionadas (ids inválidos ou vínculo inconsistente no servidor).';
+    }
+    return raw || 'Erro ao salvar.';
+  }
+
+  private syncSessionAccessFromBackendCatalog(): void {
+    const menus = this.backendMenuCatalog();
+    this.sessionAccess.setMenus(
+      menus.map((m) => ({
+        id: m.id,
+        descricao: m.nome,
+        icone: m.icone,
+        ativo: m.ativo,
+        ordem: m.ordem,
+        subMenus: (m.subMenus ?? []).map((s) => ({
+          id: s.id,
+          descricao: s.nome,
+          rota: s.rota,
+          ativo: s.ativo,
+          ordem: s.ordem,
+        })),
+      }))
+    );
+  }
+
+  private syncPermissionCacheForCurrentUserProfile(editedRoleName: string): void {
+    const logged = this.authService.getLoggedUser();
+    if (!logged) return;
+
+    const loggedPerfil = (logged.perfil ?? '').trim().toLowerCase();
+    const role = (editedRoleName ?? '').trim().toLowerCase();
+    if (!loggedPerfil || !role || loggedPerfil !== role) return;
+
+    const keys = getSelectedPermissionKeys(this.permissionTree());
+    this.permissionCache.setKeys(keys);
+    const updated = { ...logged, permissionKeys: keys };
+    localStorage.setItem('loggedUser', JSON.stringify(updated));
+  }
+
+  private getProfileStoreKey(item: ApplicationRole | null | undefined): string | null {
+    if (!item) return null;
+    const key = item.name ?? item.nome ?? item.perfil ?? item.id?.toString() ?? item.perfilId?.toString();
+    return key?.trim() ? key.trim() : null;
+  }
+
+  private readLastProfileId(): string | null {
+    try {
+      return localStorage.getItem(LAST_PROFILE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeLastProfileId(id: string): void {
+    try {
+      localStorage.setItem(LAST_PROFILE_KEY, id);
+    } catch {
+      /* ignore */
+    }
   }
 
   private buildMenuCatalogFromProfiles(items: Record<string, unknown>[]): MenuAdmin[] {
@@ -356,84 +924,6 @@ export class AcessosPerfisPageComponent implements OnInit {
     };
   }
 
-  /** Lista aplicando busca e status (sem nova chamada HTTP). Ordem: nome A-Z. */
-  get perfisFiltrados(): ApplicationRole[] {
-    let list = [...this.itens];
-    const q = this.searchTerm.trim().toLowerCase();
-    if (q) {
-      list = list.filter((item) => {
-        const nome = (item.name ?? item.nome ?? '').toLowerCase();
-        const desc = (item.normalizedName ?? '').toLowerCase();
-        return nome.includes(q) || desc.includes(q);
-      });
-    }
-    if (this.statusFilter === 'ativo') {
-      list = list.filter((item) => this.isPerfilAtivoUi(item));
-    } else if (this.statusFilter === 'inativo') {
-      list = list.filter((item) => !this.isPerfilAtivoUi(item));
-    }
-
-    list.sort((a, b) => {
-      const na = (a.name ?? a.nome ?? '').toLocaleLowerCase('pt-BR');
-      const nb = (b.name ?? b.nome ?? '').toLocaleLowerCase('pt-BR');
-      return na.localeCompare(nb, 'pt-BR');
-    });
-
-    return list;
-  }
-
-  isPerfilAtivoUi(item: ApplicationRole): boolean {
-    if (item.ativo === false) return false;
-    if (item.ativo === true) return true;
-    return true;
-  }
-
-  formatUltimaAtualizacao(iso: string | null | undefined): string {
-    if (!iso?.trim()) return '—';
-    const t = Date.parse(iso);
-    if (!Number.isFinite(t)) return iso.trim();
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(t));
-  }
-
-  formatUsuariosVinculados(item: ApplicationRole): string {
-    const n = item.usuariosVinculados;
-    if (n == null || Number.isNaN(n)) return '—';
-    return String(n);
-  }
-
-  perfilDisplayName(item: ApplicationRole): string {
-    return (item.name ?? item.nome ?? item.perfil ?? '—').trim() || '—';
-  }
-
-  openVisualizar(item: ApplicationRole): void {
-    this.viewItem.set(item);
-    this.modalKind.set('view');
-    this.cdr.markForCheck();
-  }
-
-  openDuplicar(item: ApplicationRole): void {
-    this.saveError.set(null);
-    this.editItem.set(null);
-    const base = this.perfilDisplayName(item);
-    const suffix = base !== '—' ? `${base} (cópia)` : 'Perfil (cópia)';
-    this.form = {
-      name: suffix,
-      normalizedName: item.normalizedName ?? '',
-      permissionIds: [...(item.permissionIds ?? [])],
-    };
-    this.permissionTree.set(
-      buildPermissionTreeState(this.backendMenuCatalog(), item.menus ?? null, item.permissionIds ?? [])
-    );
-    this.modalKind.set('create');
-    this.cdr.markForCheck();
-  }
-
   private readProfileAtivoFlag(raw: Record<string, unknown>): boolean | undefined {
     if (raw['inativo'] === true || raw['Inativo'] === true) return false;
     if (raw['ativo'] === false || raw['Ativo'] === false) return false;
@@ -575,6 +1065,21 @@ export class AcessosPerfisPageComponent implements OnInit {
     }
   }
 
+  private getPermissionIdToKeyMap(): Map<number, string> {
+    const map = new Map<number, string>();
+    for (const menu of this.backendMenuCatalog()) {
+      for (const sub of menu.subMenus ?? []) {
+        for (const permission of sub.permissions ?? []) {
+          const key = (permission.acao ?? '').trim();
+          if (permission.id && key) {
+            map.set(permission.id, key);
+          }
+        }
+      }
+    }
+    return map;
+  }
+
   private readString(record: Record<string, unknown>, ...keys: string[]): string | null {
     for (const key of keys) {
       const value = record[key];
@@ -637,325 +1142,4 @@ export class AcessosPerfisPageComponent implements OnInit {
       .filter((item) => item.length > 0);
   }
 
-  openNovo(): void {
-    this.saveError.set(null);
-    this.editItem.set(null);
-    this.form = { name: '', normalizedName: '', permissionIds: [] };
-    this.permissionTree.set(buildPermissionTreeState(this.backendMenuCatalog(), null, []));
-    this.modalKind.set('create');
-    this.cdr.markForCheck();
-  }
-
-  openEditar(item: ApplicationRole): void {
-    this.saveError.set(null);
-    this.editItem.set(item);
-    this.form = {
-      name: item.name ?? item.nome ?? item.perfil ?? '',
-      normalizedName: item.normalizedName ?? '',
-      permissionIds: [...(item.permissionIds ?? [])],
-    };
-    this.permissionTree.set(
-      buildPermissionTreeState(this.backendMenuCatalog(), item.menus ?? null, item.permissionIds ?? [])
-    );
-    this.modalKind.set('edit');
-    this.cdr.markForCheck();
-  }
-
-  onMenuToggle(menuId: number, checked: boolean): void {
-    this.permissionTree.set(toggleMenuSelection(this.permissionTree(), menuId, checked));
-    this.cdr.markForCheck();
-  }
-
-  selecionarTodasPermissoes(): void {
-    this.permissionTree.set(
-      this.permissionTree().map((menu) => ({
-        ...menu,
-        selecionado: true,
-        subMenus: menu.subMenus.map((subMenu) => ({
-          ...subMenu,
-          selecionado: true,
-          permissoes: subMenu.permissoes.map((permissao) => ({ ...permissao, selecionado: true })),
-        })),
-      }))
-    );
-    this.cdr.markForCheck();
-  }
-
-  limparPermissoesSelecionadas(): void {
-    this.permissionTree.set(
-      this.permissionTree().map((menu) => ({
-        ...menu,
-        selecionado: false,
-        subMenus: menu.subMenus.map((subMenu) => ({
-          ...subMenu,
-          selecionado: false,
-          permissoes: subMenu.permissoes.map((permissao) => ({ ...permissao, selecionado: false })),
-        })),
-      }))
-    );
-    this.cdr.markForCheck();
-  }
-
-  onSubMenuToggle(menuId: number, subMenuId: number, checked: boolean): void {
-    this.permissionTree.set(toggleSubMenuSelection(this.permissionTree(), menuId, subMenuId, checked));
-    this.cdr.markForCheck();
-  }
-
-  onMenuCheckboxChange(menuId: number, event: MatCheckboxChange): void {
-    this.onMenuToggle(menuId, event.checked);
-  }
-
-  onSubMenuCheckboxChange(menuId: number, subMenuId: number, event: MatCheckboxChange): void {
-    this.onSubMenuToggle(menuId, subMenuId, event.checked);
-  }
-
-  onPermissaoCheckboxChange(
-    menuId: number,
-    subMenuId: number,
-    permissaoId: number,
-    event: MatCheckboxChange
-  ): void {
-    this.onPermissaoToggle(menuId, subMenuId, permissaoId, event.checked);
-  }
-
-  onPermissaoToggle(
-    menuId: number,
-    subMenuId: number,
-    permissaoId: number,
-    checked: boolean
-  ): void {
-    this.permissionTree.set(
-      togglePermissaoSelection(this.permissionTree(), menuId, subMenuId, permissaoId, checked)
-    );
-    this.cdr.markForCheck();
-  }
-
-  resolveAcaoMeta(permissao: TreePermissaoNode): PermissaoAcaoMeta {
-    return resolvePermissaoAcaoMeta(permissao.key || permissao.nome);
-  }
-
-  sortedPermissoes(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
-    return sortPermissoesByAction(subMenu.permissoes ?? []);
-  }
-
-  isMenuIndeterminate(menu: TreeMenuNode): boolean {
-    const flat = this.flattenSubMenus(menu.subMenus);
-    const total = flat.reduce((acc, sub) => acc + sub.permissoes.length, 0);
-    if (total === 0) return false;
-    const selected = flat.reduce(
-      (acc, sub) => acc + sub.permissoes.filter((p) => p.selecionado).length,
-      0
-    );
-    return selected > 0 && selected < total;
-  }
-
-  isSubMenuIndeterminate(subMenu: TreeSubMenuNode): boolean {
-    const flat = this.flattenSubMenus([subMenu]);
-    const total = flat.reduce((acc, node) => acc + node.permissoes.length, 0);
-    if (total === 0) return false;
-    const selected = flat.reduce(
-      (acc, node) => acc + node.permissoes.filter((p) => p.selecionado).length,
-      0
-    );
-    return selected > 0 && selected < total;
-  }
-
-  private flattenSubMenus(subMenus: TreeSubMenuNode[]): TreeSubMenuNode[] {
-    const out: TreeSubMenuNode[] = [];
-    const walk = (items: TreeSubMenuNode[]) => {
-      for (const item of items) {
-        out.push(item);
-        if (item.subMenus?.length) walk(item.subMenus);
-      }
-    };
-    walk(subMenus);
-    return out;
-  }
-
-  private syncSessionAccessFromBackendCatalog(): void {
-    const menus = this.backendMenuCatalog();
-    this.sessionAccess.setMenus(
-      menus.map((m) => ({
-        id: m.id,
-        descricao: m.nome,
-        icone: m.icone,
-        ativo: m.ativo,
-        ordem: m.ordem,
-        subMenus: (m.subMenus ?? []).map((s) => ({
-          id: s.id,
-          descricao: s.nome,
-          rota: s.rota,
-          ativo: s.ativo,
-          ordem: s.ordem,
-        })),
-      }))
-    );
-  }
-
-  private syncPermissionCacheForCurrentUserProfile(editedRoleName: string): void {
-    const logged = this.authService.getLoggedUser();
-    if (!logged) return;
-
-    const loggedPerfil = (logged.perfil ?? '').trim().toLowerCase();
-    const role = (editedRoleName ?? '').trim().toLowerCase();
-    if (!loggedPerfil || !role || loggedPerfil !== role) return;
-
-    const keys = getSelectedPermissionKeys(this.permissionTree());
-    this.permissionCache.setKeys(keys);
-    const updated = { ...logged, permissionKeys: keys };
-    localStorage.setItem('loggedUser', JSON.stringify(updated));
-  }
-
-  private getProfileStoreKey(item: ApplicationRole | null | undefined): string | null {
-    if (!item) return null;
-    const key = item.name ?? item.nome ?? item.perfil ?? item.id?.toString() ?? item.perfilId?.toString();
-    return key?.trim() ? key.trim() : null;
-  }
-
-  private toUpsertPayload(editingItem: ApplicationRole | null): PerfilUpsertInput {
-    const nome = this.form.name.trim() || null;
-    // Contrato Swagger: PerfilCreateInput / PerfilUpdateInput → { id?, nome, menus }
-    const dto: PerfilUpsertInput = {
-      nome,
-      menus: mapTreeToPerfilMenusPayload(this.permissionTree()),
-    };
-    const id = this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId);
-    if (id != null && id > 0) {
-      dto.id = id;
-    }
-    return dto;
-  }
-
-  private getPermissionIdToKeyMap(): Map<number, string> {
-    const map = new Map<number, string>();
-    for (const menu of this.backendMenuCatalog()) {
-      for (const sub of menu.subMenus ?? []) {
-        for (const permission of sub.permissions ?? []) {
-          const key = (permission.acao ?? '').trim();
-          if (permission.id && key) {
-            map.set(permission.id, key);
-          }
-        }
-      }
-    }
-    return map;
-  }
-
-  getProfilePermissionCount(item: ApplicationRole): number {
-    return item.permissionIds?.length ?? 0;
-  }
-
-  trackPerfil(item: ApplicationRole): string {
-    const id = item.id ?? item.perfilId;
-    if (id != null && `${id}`.length > 0) {
-      return `perfil:${id}`;
-    }
-    const nome = `${item.name ?? ''}::${item.nome ?? ''}`;
-    return `perfil-name:${nome}`;
-  }
-
-  openExcluir(item: ApplicationRole): void {
-    this.deleteItem.set(item);
-    this.modalKind.set('delete');
-    this.cdr.markForCheck();
-  }
-
-  closeModal(): void {
-    this.modalKind.set(null);
-    this.editItem.set(null);
-    this.deleteItem.set(null);
-    this.viewItem.set(null);
-    this.saveError.set(null);
-    this.cdr.markForCheck();
-  }
-
-  salvar(): void {
-    const kind = this.modalKind();
-    if (kind === 'delete') return;
-    this.saveError.set(null);
-    if (!hasAnyMenuSelected(this.permissionTree())) {
-      this.saveError.set('Selecione pelo menos um menu para salvar o perfil.');
-      this.cdr.markForCheck();
-      return;
-    }
-    this.saving.set(true);
-    this.cdr.markForCheck();
-
-    const dto: PerfilUpsertInput = this.toUpsertPayload(kind === 'edit' ? this.editItem() : null);
-
-    if (kind === 'edit') {
-      const item = this.editItem();
-      if (item?.id) {
-        dto.id = this.toOptionalNumber(item.id);
-      }
-    }
-
-    const obs =
-      kind === 'create'
-        ? this.perfisService.gravar(dto)
-        : this.perfisService.alterar(dto);
-
-    obs.subscribe({
-      next: () => {
-        const key = this.getProfileStoreKey(this.editItem()) ?? this.form.name.trim();
-        const selectedPermissionKeys = getSelectedPermissionKeys(this.permissionTree());
-        if (key) {
-          this.profilePermissionsStore.setProfilePermissions(key, selectedPermissionKeys);
-        }
-        const editedRoleName = this.form.name.trim() || this.editItem()?.name || '';
-        this.syncPermissionCacheForCurrentUserProfile(editedRoleName);
-        this.syncSessionAccessFromBackendCatalog();
-        this.toast.warning('Permissões atualizadas. Faça novo login para aplicar 100% das regras do token.');
-        this.saving.set(false);
-        this.closeModal();
-        this.carregar();
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.saving.set(false);
-        this.saveError.set(this.mensagemErroSalvarPerfil(err));
-        this.cdr.markForCheck();
-      },
-    });
-  }
-
-  private mensagemErroSalvarPerfil(err: unknown): string {
-    const raw =
-      err && typeof err === 'object' && 'message' in err
-        ? String((err as { message?: unknown }).message ?? '').trim()
-        : '';
-    if (/entity changes|inner exception|dbupdate|foreign key|fk_/i.test(raw)) {
-      return 'Não foi possível salvar o perfil. Verifique as permissões selecionadas (ids inválidos ou vínculo inconsistente no servidor).';
-    }
-    return raw || 'Erro ao salvar.';
-  }
-
-  confirmarExclusao(): void {
-    const item = this.deleteItem();
-    if (!item?.id) {
-      this.closeModal();
-      return;
-    }
-    this.deleting.set(true);
-    this.cdr.markForCheck();
-    this.perfisService.delete(item.id).subscribe({
-      next: () => {
-        this.deleting.set(false);
-        this.closeModal();
-        this.carregar();
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.deleting.set(false);
-        this.closeModal();
-        this.carregar();
-        this.cdr.markForCheck();
-      },
-    });
-  }
-
-  get deleteItemName(): string {
-    const item = this.deleteItem();
-    return item?.name ?? item?.normalizedName ?? 'este perfil';
-  }
 }

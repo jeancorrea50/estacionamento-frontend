@@ -132,7 +132,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'manage_accounts',
     children: [
       { id: 'sub-usuario', label: 'Usuário', route: ADMINISTRACAO_USUARIO_ROUTE },
-      { id: 'sub-permissao', label: 'Permissão', route: ADMINISTRACAO_PERMISSAO_ROUTE },
+      { id: 'sub-permissao', label: 'Permissões', route: ADMINISTRACAO_PERMISSAO_ROUTE },
     ],
   },
   {

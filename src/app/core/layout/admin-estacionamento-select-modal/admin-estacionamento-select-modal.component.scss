@@ -1,3 +1,5 @@
+/* Modal de seleção de estacionamento — tokens do tema do sistema (ThemeService). */
+
 .aes-overlay {
   position: fixed;
   inset: 0;
@@ -5,30 +7,39 @@
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(6, 10, 22, 0.78);
+  background: color-mix(in srgb, var(--bg, #0f172a) 72%, #000 28%);
   backdrop-filter: blur(6px);
 }
 
 .aes-modal {
-  --aes-fg: #f8fafc;
-  --aes-fg-muted: #cbd5e1;
-  --aes-fg-soft: #94a3b8;
-  --aes-surface: #1a243a;
-  --aes-surface-2: #151d30;
-  --aes-row-bg: rgba(0, 0, 0, 0.18);
-  --aes-border: rgba(255, 255, 255, 0.1);
+  --aes-fg: var(--text, var(--text-primary, #f8fafc));
+  --aes-fg-muted: var(--muted, var(--text-secondary, #94a3b8));
+  --aes-fg-soft: var(--text-muted, var(--muted, #64748b));
+  --aes-surface: var(--surface, var(--color-bg-card, #1a243a));
+  --aes-surface-2: var(--surface-2, var(--color-bg-card-secondary, #151d30));
+  --aes-row-bg: color-mix(in srgb, var(--aes-surface-2) 88%, transparent);
+  --aes-border: var(--border-subtle, var(--border, rgba(255, 255, 255, 0.1)));
+  --aes-accent: var(--primary, var(--accent, #3b82f6));
+  --aes-accent-soft: color-mix(in srgb, var(--aes-accent) 18%, transparent);
+  --aes-btn-bg: var(--btn-primary-bg, var(--aes-accent));
+  --aes-btn-bg-hover: var(--btn-primary-bg-hover, var(--aes-accent));
+  --aes-btn-fg: var(--btn-primary-text, #ffffff);
+  --aes-thead-bg: color-mix(in srgb, var(--aes-surface-2) 92%, var(--aes-accent) 8%);
+  --aes-input-bg: var(--color-bg-input, color-mix(in srgb, var(--aes-surface-2) 90%, #000 10%));
+  --aes-overlay-tint: color-mix(in srgb, var(--bg, #0f172a) 55%, #000 45%);
+  --aes-shadow: 0 24px 64px color-mix(in srgb, #000 45%, transparent);
 
   width: min(1180px, 100%);
   max-height: min(94vh, 820px);
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: var(--radius-lg, 16px);
   background: linear-gradient(180deg, var(--aes-surface) 0%, var(--aes-surface-2) 100%);
   color: var(--aes-fg);
   border: 1px solid var(--aes-border);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    var(--aes-shadow),
+    inset 0 1px 0 color-mix(in srgb, var(--aes-fg) 6%, transparent);
   overflow: hidden;
 }
 
@@ -46,8 +57,8 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: rgba(59, 130, 246, 0.18);
-  color: #93c5fd;
+  background: var(--aes-accent-soft);
+  color: var(--aes-accent);
 }
 
 .aes-modal__badge .material-symbols-outlined {
@@ -98,7 +109,7 @@
   padding: 0.65rem 2.5rem 0.65rem 2.55rem;
   border-radius: 12px;
   border: 1px solid var(--aes-border);
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--aes-input-bg);
   color: var(--aes-fg);
   font-size: 0.95rem;
   outline: none;
@@ -110,8 +121,8 @@
 }
 
 .aes-search__input:focus {
-  border-color: rgba(59, 130, 246, 0.7);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: var(--focus, var(--aes-accent));
+  box-shadow: var(--focus-ring, 0 0 0 3px color-mix(in srgb, var(--aes-accent) 22%, transparent));
 }
 
 .aes-search__clear {
@@ -129,7 +140,7 @@
 }
 
 .aes-search__clear:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--aes-fg) 8%, transparent);
   color: var(--aes-fg);
 }
 
@@ -146,8 +157,9 @@
   text-transform: uppercase;
   padding: 0.22rem 0.55rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--aes-fg) 6%, transparent);
   color: var(--aes-fg-muted);
+  border: 1px solid var(--aes-border);
 }
 
 .aes-meta {
@@ -159,11 +171,12 @@
 }
 
 .aes-meta__sel {
-  color: #93c5fd;
+  color: var(--aes-accent);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 60%;
+  font-weight: 600;
 }
 
 .aes-table-wrap {
@@ -193,7 +206,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--aes-fg-muted);
-  background: #1e2a44;
+  background: var(--aes-thead-bg);
   border-bottom: 1px solid var(--aes-border);
 }
 
@@ -229,23 +242,23 @@
 
 .aes-row:hover,
 .aes-row--active {
-  background: rgba(59, 130, 246, 0.12);
+  background: color-mix(in srgb, var(--aes-accent) 10%, transparent);
 }
 
 .aes-row--selected {
-  background: rgba(59, 130, 246, 0.2);
+  background: color-mix(in srgb, var(--aes-accent) 16%, transparent);
 }
 
 .aes-row--selected:hover,
 .aes-row--selected.aes-row--active {
-  background: rgba(59, 130, 246, 0.26);
+  background: color-mix(in srgb, var(--aes-accent) 22%, transparent);
 }
 
 .aes-cell {
   padding: 0.85rem 0.85rem;
   font-size: 0.92rem;
   color: var(--aes-fg);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--aes-border);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -255,14 +268,14 @@
 .aes-cell--fantasia,
 .aes-cell--razao {
   font-weight: 650;
-  color: #ffffff;
+  color: var(--aes-fg);
 }
 
 .aes-cell--cnpj {
   font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
-  color: var(--aes-fg);
+  color: var(--aes-fg-muted);
   white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
@@ -283,23 +296,23 @@
   font-weight: 650;
   padding: 0.18rem 0.5rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--aes-fg) 8%, transparent);
   color: var(--aes-fg-muted);
 }
 
 .aes-ambiente--dev {
-  background: rgba(56, 189, 248, 0.18);
-  color: #bae6fd;
+  background: color-mix(in srgb, var(--aes-accent) 18%, transparent);
+  color: var(--aes-accent);
 }
 
 .aes-ambiente--hot {
-  background: rgba(251, 146, 60, 0.2);
-  color: #fed7aa;
+  background: color-mix(in srgb, var(--warning, #ea580c) 18%, transparent);
+  color: var(--warning, #ea580c);
 }
 
 .aes-ambiente--prod {
-  background: rgba(52, 211, 153, 0.18);
-  color: #a7f3d0;
+  background: color-mix(in srgb, var(--success, #16a34a) 18%, transparent);
+  color: var(--success, #16a34a);
 }
 
 .aes-cell--check {
@@ -312,17 +325,18 @@
   max-width: 100%;
   font-family: inherit;
   font-size: 0.8rem;
-  color: #e0f2fe;
-  background: rgba(59, 130, 246, 0.18);
+  color: var(--aes-accent);
+  background: var(--aes-accent-soft);
   padding: 0.18rem 0.45rem;
   border-radius: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--aes-accent) 22%, transparent);
 }
 
 .aes-check {
-  color: #60a5fa;
+  color: var(--aes-accent);
   font-size: 1.2rem;
   vertical-align: middle;
 }
@@ -351,19 +365,19 @@
 }
 
 .aes-state--error {
-  color: #fca5a5;
+  color: var(--danger, #dc2626);
 }
 
 .aes-state--error p {
-  color: #fca5a5;
+  color: var(--danger, #dc2626);
 }
 
 .aes-spinner {
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #60a5fa;
+  border: 2px solid color-mix(in srgb, var(--aes-fg) 15%, transparent);
+  border-top-color: var(--aes-accent);
   animation: aes-spin 0.7s linear infinite;
 }
 
@@ -406,46 +420,74 @@
 }
 
 .aes-btn--primary {
-  background: linear-gradient(180deg, #4f8ef7, #3b82f6);
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.28);
+  background: var(--aes-btn-bg);
+  color: var(--aes-btn-fg);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--aes-accent) 28%, transparent);
 }
 
 .aes-btn--primary:hover:not(:disabled) {
-  filter: brightness(1.05);
+  background: var(--aes-btn-bg-hover);
+  filter: brightness(1.03);
 }
 
 .aes-btn--ghost {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--aes-fg) 8%, transparent);
   color: var(--aes-fg);
+  border: 1px solid var(--aes-border);
 }
 
-/* Garante contraste no tema escuro global (evita herdar --text escuro/claro incorreto). */
+.aes-btn--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--aes-fg) 12%, transparent);
+}
+
+/* Tema claro: superfícies brancas / texto escuro / acento do sistema. */
+:host-context(html.theme-light) .aes-overlay {
+  background: color-mix(in srgb, #0f172a 42%, transparent);
+}
+
+:host-context(html.theme-light) .aes-modal {
+  --aes-fg: var(--text, #111827);
+  --aes-fg-muted: var(--muted, #6b7280);
+  --aes-fg-soft: var(--text-muted, #9ca3af);
+  --aes-surface: var(--surface, #ffffff);
+  --aes-surface-2: var(--surface-2, #f9fafb);
+  --aes-row-bg: var(--surface-2, #f9fafb);
+  --aes-border: var(--border-subtle, #e5e7eb);
+  --aes-thead-bg: color-mix(in srgb, var(--aes-surface-2) 88%, var(--aes-accent) 12%);
+  --aes-input-bg: var(--color-bg-input, #ffffff);
+  --aes-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+}
+
+:host-context(html.theme-light) .aes-search__input {
+  background: var(--aes-input-bg);
+}
+
+:host-context(html.theme-light) .aes-chip {
+  background: color-mix(in srgb, var(--aes-accent) 8%, #fff);
+  border-color: var(--aes-border);
+}
+
+:host-context(html.theme-light) .aes-row:hover,
+:host-context(html.theme-light) .aes-row--active {
+  background: color-mix(in srgb, var(--aes-accent) 8%, #fff);
+}
+
+:host-context(html.theme-light) .aes-row--selected,
+:host-context(html.theme-light) .aes-row--selected:hover,
+:host-context(html.theme-light) .aes-row--selected.aes-row--active {
+  background: color-mix(in srgb, var(--aes-accent) 14%, #fff);
+}
+
+/* Tema escuro: reforça contraste sem forçar azul fixo. */
 :host-context(html.theme-dark) .aes-modal {
-  --aes-fg: #ffffff;
-  --aes-fg-muted: #e2e8f0;
-  --aes-fg-soft: #cbd5e1;
-}
-
-:host-context(html.theme-dark) .aes-cell,
-:host-context(html.theme-dark) .aes-cell--fantasia,
-:host-context(html.theme-dark) .aes-cell--razao,
-:host-context(html.theme-dark) .aes-cell--cnpj,
-:host-context(html.theme-dark) .aes-search__input,
-:host-context(html.theme-dark) .aes-modal__titles h2,
-:host-context(html.theme-dark) .aes-meta,
-:host-context(html.theme-dark) .aes-tip {
-  color: #ffffff;
-}
-
-:host-context(html.theme-dark) .aes-modal__sub,
-:host-context(html.theme-dark) .aes-chip,
-:host-context(html.theme-dark) .aes-table thead th {
-  color: #e2e8f0;
-}
-
-:host-context(html.theme-dark) .aes-cod {
-  color: #f0f9ff;
+  --aes-fg: var(--text, #f8fafc);
+  --aes-fg-muted: var(--muted, #cbd5e1);
+  --aes-fg-soft: var(--text-muted, #94a3b8);
+  --aes-surface: var(--surface, #1a243a);
+  --aes-surface-2: var(--surface-2, #151d30);
+  --aes-border: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  --aes-input-bg: color-mix(in srgb, var(--aes-surface-2) 86%, #000 14%);
+  --aes-thead-bg: color-mix(in srgb, var(--aes-surface-2) 90%, var(--aes-accent) 10%);
 }
 
 @media (max-width: 760px) {

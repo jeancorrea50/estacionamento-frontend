@@ -74,12 +74,17 @@ export class AgendamentosPageComponent implements OnInit {
     return this.canVisualizar;
   }
 
+  /** Operacional (Admin/Estacionamento): pode filtrar e informar transportadora. */
+  get podeOperarPatio(): boolean {
+    return this.canVisualizar && !this.isTransportadora;
+  }
+
   /**
    * Confirmar entrada no pátio: perfil operacional (não Transportadora).
    * Espelha `podeAcoesOperacionaisPatio` de Movimentos.
    */
   get podeConfirmarEntrada(): boolean {
-    return this.canVisualizar && !this.isTransportadora;
+    return this.podeOperarPatio;
   }
 
   loadingList = false;
@@ -124,7 +129,7 @@ export class AgendamentosPageComponent implements OnInit {
       this.filtroTransportadoraId = this.auth.resolveTransportadoraId();
     }
 
-    if (this.isAdmin) {
+    if (this.podeOperarPatio) {
       this.carregarTransportadoras();
     }
 
@@ -173,7 +178,7 @@ export class AgendamentosPageComponent implements OnInit {
         placa: this.filtroPlaca.trim() || undefined,
         dataInicial: this.filtroDataInicial || this.filtroDataFinal || undefined,
         dataFinal: this.filtroDataFinal || this.filtroDataInicial || undefined,
-        transportadoraId: this.isAdmin ? this.filtroTransportadoraId ?? undefined : undefined,
+        transportadoraId: this.podeOperarPatio ? this.filtroTransportadoraId ?? undefined : undefined,
         numeroPagina: this.numeroPagina,
         tamanhoPagina: this.tamanhoPagina,
       })
@@ -255,7 +260,9 @@ export class AgendamentosPageComponent implements OnInit {
           motoristaId: agg.motoristaId > 0 ? agg.motoristaId : null,
           motoristaNome: agg.motoristaNome || '',
           motoristaCpf: agg.motoristaCpf || '',
-          transportadoraId: this.isAdmin ? agg.transportadoraId || this.form.value.transportadoraId : this.form.value.transportadoraId,
+          transportadoraId: this.podeOperarPatio
+            ? agg.transportadoraId || this.form.value.transportadoraId
+            : this.form.value.transportadoraId,
         });
 
         if (!(agg.motoristaId > 0)) {

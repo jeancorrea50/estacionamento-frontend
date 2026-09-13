@@ -19,7 +19,7 @@
         </div>
       } @else {
         <section class="est-dash-filter trn-dash-filter ag-dash-filter" aria-label="Filtros da listagem">
-          @if (isAdmin) {
+          @if (podeOperarPatio) {
             <div class="est-dash-filter__select-wrap">
               <select
                 class="est-dash-filter__select input-control trn-dash-filter__select"
@@ -88,7 +88,7 @@
                     <th scope="col">ID</th>
                     <th scope="col">Placa</th>
                     <th scope="col">Motorista</th>
-                    @if (isAdmin) {
+                    @if (podeOperarPatio) {
                       <th scope="col">Transportadora</th>
                     }
                     <th scope="col">Data agendada</th>
@@ -103,7 +103,7 @@
                       <td>{{ item.id }}</td>
                       <td>{{ formatPlaca(item.placaVeiculo) }}</td>
                       <td>{{ item.nomeMotorista || '—' }}</td>
-                      @if (isAdmin) {
+                      @if (podeOperarPatio) {
                         <td>{{ item.nomeTransportadora || '—' }}</td>
                       }
                       <td>{{ formatDateTime(item.dataHoraEntrada) }}</td>
@@ -224,7 +224,7 @@
               <label for="ag-data">Data/hora <span class="required">*</span></label>
               <input id="ag-data" type="datetime-local" class="input-control" formControlName="dataAgendamento" />
             </div>
-            @if (isAdmin) {
+            @if (podeOperarPatio) {
               <div class="form-row">
                 <label for="ag-transp">Transportadora <span class="required">*</span></label>
                 <select id="ag-transp" class="input-control input-control--select" formControlName="transportadoraId">

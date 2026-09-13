@@ -26,6 +26,22 @@ function pickRecord(o: unknown): Record<string, unknown> | null {
   return o != null && typeof o === 'object' && !Array.isArray(o) ? (o as Record<string, unknown>) : null;
 }
 
+/**
+ * Contrato `EntradaSaidaVinculoOutput`: `motorista` pode ser lista (principal primeiro)
+ * ou objeto único em payloads legados.
+ */
+function pickMotoristaRecord(root: Record<string, unknown>): Record<string, unknown> | null {
+  const raw = root['motorista'] ?? root['Motorista'] ?? root['condutor'] ?? root['Condutor'];
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const rec = pickRecord(item);
+      if (rec) return rec;
+    }
+    return null;
+  }
+  return pickRecord(raw);
+}
+
 function getNum(obj: Record<string, unknown> | null, keys: string[]): number {
   if (!obj) return 0;
   for (const k of keys) {
@@ -122,11 +138,7 @@ export function mapMotoristaPorPlacaResponse(body: unknown): MotoristaPorPlacaAg
   const root = pickRecord(raw);
   if (!root) return null;
 
-  const mObj =
-    pickRecord(root['motorista']) ??
-    pickRecord(root['Motorista']) ??
-    pickRecord(root['condutor']) ??
-    pickRecord(root['Condutor']);
+  const mObj = pickMotoristaRecord(root);
   const vObj =
     pickRecord(root['veiculo']) ??
     pickRecord(root['Veiculo']) ??
@@ -227,10 +239,11 @@ export function mapMotoristaPorPlacaResponse(body: unknown): MotoristaPorPlacaAg
     transportadoraId,
     motoristaNome:
       getStr(pessoaM, ['nomeRazaoSocial', 'NomeRazaoSocial', 'nome', 'Nome']) ||
-      getStr(mObj, ['descricao', 'Descricao', 'nomeCompleto', 'NomeCompleto']) ||
+      getStr(mObj, ['descricao', 'Descricao', 'nomeCompleto', 'NomeCompleto', 'nome', 'Nome']) ||
       getStr(root, ['nomeMotorista', 'NomeMotorista', 'motoristaNome', 'MotoristaNome']),
     motoristaCpf:
       getStr(pessoaM, ['documento', 'Documento', 'cpf', 'Cpf']) ||
+      getStr(mObj, ['cpf', 'Cpf', 'documento', 'Documento']) ||
       getStr(root, ['cpfMotorista', 'CpfMotorista']),
     motoristaTelefone: primeiraContatoNumero(pessoaM ?? mObj),
     motoristaCnh: getStr(mObj, ['cnh', 'Cnh', 'CNH']),
@@ -238,18 +251,23 @@ export function mapMotoristaPorPlacaResponse(body: unknown): MotoristaPorPlacaAg
     veiculoModelo: getStr(vObj, ['modelo', 'Modelo']) || modeloSplit,
     veiculoMarca: getStr(vObj, ['marca', 'Marca']) || marcaSplit,
     veiculoAno: anoVeiculo(vObj),
-    transportadoraNome: nomeTransportadoraFallback,
-    transportadoraRazaoSocial: razaoSocial,
+    transportadoraNome: nomeTransportadoraFallback || getStr(root, ['razaoSocial', 'RazaoSocial']),
+    transportadoraRazaoSocial: razaoSocial || getStr(root, ['razaoSocial', 'RazaoSocial']),
     transportadoraNomeFantasia: nomeFantasia,
-    transportadoraCnpj: getStr(pessoaT, ['documento', 'Documento', 'cnpj', 'Cnpj']),
+    transportadoraCnpj:
+      getStr(pessoaT, ['documento', 'Documento', 'cnpj', 'Cnpj']) || getStr(root, ['cnpj', 'Cnpj']),
     transportadoraContato:
       primeiraContatoNumero(pessoaT ?? tObj) ||
-      getStr(tObj, ['telefone', 'Telefone', 'celular', 'Celular']),
-    transportadoraResponsavelNome,
-    transportadoraResponsavelTelefone
+      getStr(tObj, ['telefone', 'Telefone', 'celular', 'Celular']) ||
+      getStr(root, ['responsavelTelefone', 'ResponsavelTelefone']),
+    transportadoraResponsavelNome:
+      transportadoraResponsavelNome || getStr(root, ['responsavelLegal', 'ResponsavelLegal']),
+    transportadoraResponsavelTelefone:
+      transportadoraResponsavelTelefone || getStr(root, ['responsavelTelefone', 'ResponsavelTelefone'])
   };
 
-  if (!motoristaId || !veiculoId || !transportadoraId) {
+  // Contrato flat por-placa: basta veiculoId (motorista pode ser lista vazia / ausente).
+  if (!veiculoId) {
     return null;
   }
 

@@ -5,6 +5,8 @@
 import {
   FATURAMENTO_CONFIG_LABEL,
   FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_RELATORIO_LABEL,
+  FATURAMENTO_RELATORIO_ROUTE,
   FATURAMENTO_ROUTE,
   FINANCEIRO_ROUTE,
   PAGAMENTOS_ROUTE,
@@ -75,6 +77,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
             id: 'sub-faturamento-cobranca',
             label: FATURAMENTO_CONFIG_LABEL,
             route: FATURAMENTO_CONFIG_ROUTE,
+          },
+          {
+            id: 'sub-faturamento-relatorio',
+            label: FATURAMENTO_RELATORIO_LABEL,
+            route: FATURAMENTO_RELATORIO_ROUTE,
           },
         ],
       },

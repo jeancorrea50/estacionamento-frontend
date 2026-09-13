@@ -9,6 +9,7 @@ import {
 import { normalizeLegacyAppRoute } from '../../../core/utils/app-route-normalizer';
 import {
   FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_RELATORIO_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
@@ -55,9 +56,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   recebimentos: PAGAMENTOS_ROUTE,
   inadimplencia: `${FATURAMENTO_ROUTE}/inadimplencia`,
   faturas: `${FATURAMENTO_ROUTE}/faturas`,
-  /** Aba Relatório de faturamento — não confundir com `/app/relatorios`. */
-  'relatorio de faturamento': `${FATURAMENTO_ROUTE}/relatorio`,
-  'relatorio faturamento': `${FATURAMENTO_ROUTE}/relatorio`,
+  /** Submenu Relatório de faturamento (sidebar, abaixo de Cobrança) — não confundir com `/app/relatorios`. */
+  'relatorio de faturamento': FATURAMENTO_RELATORIO_ROUTE,
+  'relatorio faturamento': FATURAMENTO_RELATORIO_ROUTE,
   cobranca: FATURAMENTO_CONFIG_ROUTE,
   'configuracoes de cobranca': FATURAMENTO_CONFIG_ROUTE,
   'config cobranca': FATURAMENTO_CONFIG_ROUTE,
@@ -134,7 +135,8 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/faturamento/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/faturamento/configuracao': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/configuracao': FATURAMENTO_CONFIG_ROUTE,
-  '/app/financeiro/faturamento/cobranca': FATURAMENTO_CONFIG_ROUTE,
+  '/app/financeiro/faturamento/relatorio': FATURAMENTO_RELATORIO_ROUTE,
+  '/app/faturamento/relatorio': FATURAMENTO_RELATORIO_ROUTE,
   '/app/financeiro/faturamento/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,

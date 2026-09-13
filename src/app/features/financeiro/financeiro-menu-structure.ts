@@ -6,6 +6,8 @@ import type { MenuSubItem } from '../cadastro/constants/menu-structure';
 import {
   FATURAMENTO_CONFIG_LABEL,
   FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_RELATORIO_LABEL,
+  FATURAMENTO_RELATORIO_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
@@ -19,7 +21,7 @@ export interface FinanceiroFlatSubMenuDef {
   exibirNoSidebar: boolean;
 }
 
-/** Submenus de 2º nível (Faturamento) com filhos de 3º nível (abas + configuração). */
+/** Submenus de 2º nível (Faturamento) com filhos de 3º nível (abas + Cobrança + Relatório). */
 export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
   ...FATURAMENTO_TABS.map((t) => ({
     id: `sub-faturamento-${t.id}`,
@@ -30,6 +32,11 @@ export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
     id: 'sub-faturamento-cobranca',
     label: FATURAMENTO_CONFIG_LABEL,
     route: FATURAMENTO_CONFIG_ROUTE,
+  },
+  {
+    id: 'sub-faturamento-relatorio',
+    label: FATURAMENTO_RELATORIO_LABEL,
+    route: FATURAMENTO_RELATORIO_ROUTE,
   },
 ];
 

@@ -1,5 +1,40 @@
 @use '../faturamento-shared-list-shell';
 
+.rel-page-shell {
+  display: block;
+  min-width: 0;
+}
+
+.cfg-page-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+}
+
+.cfg-page-head__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--primary, #1976d2) 16%, transparent);
+  color: var(--primary, #1976d2);
+}
+
+.cfg-page-head__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cfg-page-head__sub {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted, #94a3b8);
+}
+
 .rel-page {
   display: flex;
   flex-direction: column;

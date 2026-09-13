@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { FaturamentoPageComponent } from './pages/faturamento-page/faturamento-page.component';
 import {
   FATURAMENTO_CONFIG_PATH,
+  FATURAMENTO_RELATORIO_PATH,
   PAGAMENTOS_PATH,
 } from './faturamento-rotas';
 
@@ -12,6 +13,13 @@ export const FATURAMENTO_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/faturamento-page/config-cobranca/faturamento-config-cobranca.component').then(
         (m) => m.FaturamentoConfigCobrancaComponent
+      ),
+  },
+  {
+    path: FATURAMENTO_RELATORIO_PATH,
+    loadComponent: () =>
+      import('./pages/faturamento-page/relatorio/faturamento-relatorio.component').then(
+        (m) => m.FaturamentoRelatorioComponent
       ),
   },
   {
@@ -69,13 +77,6 @@ export const FATURAMENTO_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/faturamento-page/inadimplencia/faturamento-inadimplencia.component').then(
             (m) => m.FaturamentoInadimplenciaComponent
-          ),
-      },
-      {
-        path: 'relatorio',
-        loadComponent: () =>
-          import('./pages/faturamento-page/relatorio/faturamento-relatorio.component').then(
-            (m) => m.FaturamentoRelatorioComponent
           ),
       },
     ],

@@ -21,6 +21,11 @@ export const FATURAMENTO_CONFIG_ROUTE = '/app/financeiro/faturamento/cobranca';
 export const FATURAMENTO_CONFIG_PATH = 'cobranca';
 export const FATURAMENTO_CONFIG_LABEL = 'Cobrança';
 
+/** Submenu Relatório — rota própria (sidebar), abaixo de Cobrança. */
+export const FATURAMENTO_RELATORIO_ROUTE = '/app/financeiro/faturamento/relatorio';
+export const FATURAMENTO_RELATORIO_PATH = 'relatorio';
+export const FATURAMENTO_RELATORIO_LABEL = 'Relatório';
+
 /** Prefixo legado (menu/API antigos). */
 const LEGACY_FATURAMENTO_PREFIX = '/app/faturamento';
 const LEGACY_CONFIG_SLUGS = [
@@ -48,7 +53,6 @@ export const FATURAMENTO_TABS: readonly FaturamentoTabDef[] = [
   tab('fechamentos', 'Fechamentos'),
   tab('inadimplencia', 'Inadimplência'),
   tab('faturas', 'Faturas'),
-  tab('relatorio', 'Relatório'),
 ];
 
 export function faturamentoTabRoute(id: FaturamentoTabId): string {

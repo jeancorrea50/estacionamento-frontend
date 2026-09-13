@@ -216,27 +216,44 @@
                 </button>
               </div>
             </div>
-            <div class="permission-tree">
-              @for (menu of permissionTree(); track menu.menuId) {
-                <div class="permission-tree__menu">
-                  <label class="permission-tree__checkbox permission-tree__checkbox--menu">
-                    <input
-                      type="checkbox"
-                      [checked]="menu.selecionado"
-                      (change)="onMenuToggle(menu.menuId, $any($event.target).checked)"
-                    />
-                    <span>{{ menu.nome }}</span>
-                  </label>
 
-                  <div class="permission-tree__submenu-list">
-                    @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
-                      <ng-container
-                        *ngTemplateOutlet="subMenuBranch; context: { subMenu: subMenu, menuId: menu.menuId, depth: 0 }"
-                      />
-                    }
-                  </div>
-                </div>
+            <div class="perm-legend" aria-label="Legenda das ações">
+              @for (acao of permAcoesLegenda; track acao.action) {
+                <span class="perm-legend__item">
+                  <span class="material-symbols-outlined" aria-hidden="true">{{ acao.icon }}</span>
+                  {{ acao.label }}
+                </span>
               }
+            </div>
+
+            <div class="permission-tree permission-tree--modern">
+              <mat-accordion multi displayMode="flat" class="perm-accordion">
+                @for (menu of permissionTree(); track menu.menuId) {
+                  <mat-expansion-panel class="perm-panel" [expanded]="true">
+                    <mat-expansion-panel-header class="perm-panel__header">
+                      <mat-panel-title class="perm-panel__title">
+                        <mat-checkbox
+                          color="primary"
+                          [checked]="menu.selecionado"
+                          [indeterminate]="isMenuIndeterminate(menu)"
+                          (click)="$event.stopPropagation()"
+                          (change)="onMenuCheckboxChange(menu.menuId, $event)"
+                          [attr.aria-label]="'Selecionar módulo ' + menu.nome"
+                        />
+                        <span class="perm-panel__name">{{ menu.nome }}</span>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+
+                    <div class="perm-panel__body">
+                      @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
+                        <ng-container
+                          *ngTemplateOutlet="subMenuBranch; context: { subMenu: subMenu, menuId: menu.menuId, depth: 0 }"
+                        />
+                      }
+                    </div>
+                  </mat-expansion-panel>
+                }
+              </mat-accordion>
             </div>
           </div>
         </div>
@@ -311,33 +328,51 @@
 }
 
 <ng-template #subMenuBranch let-subMenu="subMenu" let-menuId="menuId" let-depth="depth">
-  <div class="permission-tree__submenu" [class.permission-tree__submenu--nested]="depth > 0">
-    <label class="permission-tree__checkbox permission-tree__checkbox--submenu">
-      <input
-        type="checkbox"
-        [checked]="subMenu.selecionado"
-        (change)="onSubMenuToggle(menuId, subMenu.subMenuId, $any($event.target).checked)"
-      />
-      <span>{{ subMenu.nome }}</span>
-    </label>
+  <div
+    class="perm-submenu"
+    [class.perm-submenu--nested]="depth > 0"
+    [style.--perm-depth]="depth"
+  >
+    <div class="perm-submenu__row">
+      <div class="perm-submenu__label">
+        <mat-checkbox
+          color="primary"
+          [checked]="subMenu.selecionado"
+          [indeterminate]="isSubMenuIndeterminate(subMenu)"
+          (change)="onSubMenuCheckboxChange(menuId, subMenu.subMenuId, $event)"
+          [attr.aria-label]="'Selecionar tela ' + subMenu.nome"
+        >
+          <span class="perm-submenu__name">{{ subMenu.nome }}</span>
+        </mat-checkbox>
+      </div>
 
-    <div class="permission-tree__permissions">
-      @for (permissao of subMenu.permissoes; track permissao.permissaoId) {
-        <label class="permission-tree__checkbox permission-tree__checkbox--permission">
-          <input
-            type="checkbox"
-            [checked]="permissao.selecionado"
-            (change)="
-              onPermissaoToggle(menuId, subMenu.subMenuId, permissao.permissaoId, $any($event.target).checked)
-            "
-          />
-          <span>{{ permissao.nome }}</span>
-        </label>
+      @if (subMenu.permissoes?.length) {
+        <div class="perm-actions" role="group" [attr.aria-label]="'Ações de ' + subMenu.nome">
+          @for (permissao of sortedPermissoes(subMenu); track permissao.permissaoId) {
+            @let meta = resolveAcaoMeta(permissao);
+            <mat-checkbox
+              class="perm-action"
+              [class.perm-action--on]="permissao.selecionado"
+              color="primary"
+              [checked]="permissao.selecionado"
+              [matTooltip]="meta.label"
+              matTooltipPosition="above"
+              [attr.aria-label]="meta.label + ' — ' + subMenu.nome"
+              (change)="
+                onPermissaoCheckboxChange(menuId, subMenu.subMenuId, permissao.permissaoId, $event)
+              "
+            >
+              <span class="material-symbols-outlined perm-action__icon" aria-hidden="true">{{
+                meta.icon
+              }}</span>
+            </mat-checkbox>
+          }
+        </div>
       }
     </div>
 
     @if (subMenu.subMenus?.length) {
-      <div class="permission-tree__submenu-list permission-tree__submenu-list--nested">
+      <div class="perm-submenu__children">
         @for (child of subMenu.subMenus; track child.subMenuId) {
           <ng-container
             *ngTemplateOutlet="subMenuBranch; context: { subMenu: child, menuId: menuId, depth: depth + 1 }"

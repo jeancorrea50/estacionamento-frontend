@@ -8,6 +8,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
@@ -26,6 +29,12 @@ import { SessionAccessService } from '../../../../core/services/session-access.s
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import {
+  PERMISSAO_ACOES_LEGENDA,
+  resolvePermissaoAcaoMeta,
+  sortPermissoesByAction,
+  type PermissaoAcaoMeta,
+} from './perfil-permissao-acao.util';
+import {
   buildPermissionTreeState,
   getSelectedMenuCount,
   getSelectedPermissionCount,
@@ -36,6 +45,8 @@ import {
   togglePermissaoSelection,
   toggleSubMenuSelection,
   type TreeMenuNode,
+  type TreePermissaoNode,
+  type TreeSubMenuNode,
 } from './perfil-permissoes-tree.util';
 
 type ModalKind = 'create' | 'edit' | 'delete' | 'view' | null;
@@ -46,11 +57,12 @@ const AVISO_SEM_ENDPOINT =
 @Component({
   selector: 'app-acessos-perfis-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatCheckboxModule, MatExpansionModule, MatTooltipModule],
   templateUrl: './acessos-perfis-page.component.html',
   styleUrls: ['./acessos-perfis-page.component.scss'],
 })
 export class AcessosPerfisPageComponent implements OnInit {
+  readonly permAcoesLegenda = PERMISSAO_ACOES_LEGENDA;
   private perfisService = inject(AcessosPerfisService);
   private menuApi = inject(MenuApiService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
@@ -689,6 +701,23 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  onMenuCheckboxChange(menuId: number, event: MatCheckboxChange): void {
+    this.onMenuToggle(menuId, event.checked);
+  }
+
+  onSubMenuCheckboxChange(menuId: number, subMenuId: number, event: MatCheckboxChange): void {
+    this.onSubMenuToggle(menuId, subMenuId, event.checked);
+  }
+
+  onPermissaoCheckboxChange(
+    menuId: number,
+    subMenuId: number,
+    permissaoId: number,
+    event: MatCheckboxChange
+  ): void {
+    this.onPermissaoToggle(menuId, subMenuId, permissaoId, event.checked);
+  }
+
   onPermissaoToggle(
     menuId: number,
     subMenuId: number,
@@ -699,6 +728,48 @@ export class AcessosPerfisPageComponent implements OnInit {
       togglePermissaoSelection(this.permissionTree(), menuId, subMenuId, permissaoId, checked)
     );
     this.cdr.markForCheck();
+  }
+
+  resolveAcaoMeta(permissao: TreePermissaoNode): PermissaoAcaoMeta {
+    return resolvePermissaoAcaoMeta(permissao.key || permissao.nome);
+  }
+
+  sortedPermissoes(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
+    return sortPermissoesByAction(subMenu.permissoes ?? []);
+  }
+
+  isMenuIndeterminate(menu: TreeMenuNode): boolean {
+    const flat = this.flattenSubMenus(menu.subMenus);
+    const total = flat.reduce((acc, sub) => acc + sub.permissoes.length, 0);
+    if (total === 0) return false;
+    const selected = flat.reduce(
+      (acc, sub) => acc + sub.permissoes.filter((p) => p.selecionado).length,
+      0
+    );
+    return selected > 0 && selected < total;
+  }
+
+  isSubMenuIndeterminate(subMenu: TreeSubMenuNode): boolean {
+    const flat = this.flattenSubMenus([subMenu]);
+    const total = flat.reduce((acc, node) => acc + node.permissoes.length, 0);
+    if (total === 0) return false;
+    const selected = flat.reduce(
+      (acc, node) => acc + node.permissoes.filter((p) => p.selecionado).length,
+      0
+    );
+    return selected > 0 && selected < total;
+  }
+
+  private flattenSubMenus(subMenus: TreeSubMenuNode[]): TreeSubMenuNode[] {
+    const out: TreeSubMenuNode[] = [];
+    const walk = (items: TreeSubMenuNode[]) => {
+      for (const item of items) {
+        out.push(item);
+        if (item.subMenus?.length) walk(item.subMenus);
+      }
+    };
+    walk(subMenus);
+    return out;
   }
 
   private syncSessionAccessFromBackendCatalog(): void {

@@ -16,7 +16,7 @@ import {
   mapBuscarResponseToMenuAdmins,
   menuAdminToAlterarSubMenuOnlyInput,
 } from './menu-api.mapper';
-import { buildFullAcaoPermissao } from './menu-permission-acao';
+import { buildPermissaoAcaoPorRota } from './menu-permission-acao';
 import { walkSubMenus } from './menu-tree.util';
 import { normalizeLegacyAppRoute } from '../../../core/utils/app-route-normalizer';
 
@@ -199,7 +199,7 @@ export class FinanceiroMenuSeedService {
           id: 0,
           ordem: 0,
           subModuleId: 0,
-          acao: buildFullAcaoPermissao(def.nome, 'visualizar'),
+          acao: buildPermissaoAcaoPorRota(def.rota, def.nome, 'visualizar'),
         },
       ],
     };

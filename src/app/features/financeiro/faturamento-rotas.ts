@@ -16,6 +16,11 @@ export const FATURAMENTO_ROUTE = '/app/financeiro/faturamento';
 export const PAGAMENTOS_ROUTE = '/app/financeiro/pagamento';
 export const PAGAMENTOS_PATH = 'pagamento';
 
+/** Submenu Relatório — sob Pagamentos (`/app/financeiro/pagamento/relatorio`). */
+export const PAGAMENTOS_RELATORIO_ROUTE = '/app/financeiro/pagamento/relatorio';
+export const PAGAMENTOS_RELATORIO_PATH = 'relatorio';
+export const PAGAMENTOS_RELATORIO_LABEL = 'Relatório';
+
 /** Submenu Cobrança — rota própria, fora das abas internas. */
 export const FATURAMENTO_CONFIG_ROUTE = '/app/financeiro/faturamento/cobranca';
 export const FATURAMENTO_CONFIG_PATH = 'cobranca';

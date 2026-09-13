@@ -4,6 +4,7 @@ import {
   FATURAMENTO_CONFIG_PATH,
   FATURAMENTO_RELATORIO_PATH,
   PAGAMENTOS_PATH,
+  PAGAMENTOS_RELATORIO_PATH,
 } from './faturamento-rotas';
 
 /** Abas e configuração em `/app/financeiro/faturamento/...`. */
@@ -93,6 +94,13 @@ export const FINANCEIRO_APP_ROUTES: Routes = [
   {
     path: 'faturamento',
     children: FATURAMENTO_ROUTES,
+  },
+  {
+    path: `${PAGAMENTOS_PATH}/${PAGAMENTOS_RELATORIO_PATH}`,
+    loadComponent: () =>
+      import('./pages/pagamento-relatorio/pagamento-relatorio.component').then(
+        (m) => m.PagamentoRelatorioComponent
+      ),
   },
   {
     path: PAGAMENTOS_PATH,

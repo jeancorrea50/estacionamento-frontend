@@ -62,7 +62,7 @@ export const CADASTRO_ROUTES: Routes = [
       import('./pages/transportadora-relatorio/transportadora-relatorio.component').then(
         (m) => m.TransportadoraRelatorioComponent
       ),
-    title: 'Relatório de Transportadoras',
+    title: 'Relatório',
   },
   {
     path: `${CADASTRO_TRANSPORTADORAS_PATH}/editar/:id`,

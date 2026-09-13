@@ -29,6 +29,36 @@ export function buildFullAcaoPermissao(subNome: string, uiAcao: string): string 
   return `${slugSubModuloNome(subNome)}.${suffix}`;
 }
 
+/**
+ * Vários submenus usam o label curto "Relatório". A claim deve ser única por rota
+ * para não colidir com `relatorio.visualizar` do faturamento.
+ */
+export function buildPermissaoAcaoPorRota(
+  rota: string | null | undefined,
+  subNome: string,
+  uiAcao: string = 'visualizar'
+): string {
+  const r = String(rota ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\/+$/, '');
+  const suffix = UI_TO_API_SUFFIX[uiAcao] ?? uiAcao;
+
+  if (r.endsWith('/cadastro/transportadoras/relatorio')) {
+    return `relatoriodetransportadoras.${suffix}`;
+  }
+  if (r.endsWith('/patio/movimentacoes/relatorio')) {
+    return `relatoriodemovimentacoes.${suffix}`;
+  }
+  if (r.endsWith('/financeiro/pagamento/relatorio') || r.endsWith('/financeiro/pagamentos/relatorio')) {
+    return `relatoriodepagamentos.${suffix}`;
+  }
+  if (r.endsWith('/financeiro/faturamento/relatorio') || r.endsWith('/faturamento/relatorio')) {
+    return `relatorio.${suffix}`;
+  }
+  return buildFullAcaoPermissao(subNome, uiAcao);
+}
+
 /** Verifica se a linha de permissão corresponde à ação da UI (nome curto ou string completa da API). */
 export function permissionRowMatchesUi(p: MenuPermissionRow, subNome: string, uiAcao: string): boolean {
   const target = norm(buildFullAcaoPermissao(subNome, uiAcao));

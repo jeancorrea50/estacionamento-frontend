@@ -11,6 +11,8 @@ import {
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
+  PAGAMENTOS_RELATORIO_LABEL,
+  PAGAMENTOS_RELATORIO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from './faturamento-rotas';
 import { defaultExibirNoSidebar } from '../gerenciamento/services/menu-sidebar-visibility';
@@ -52,6 +54,13 @@ export const FINANCEIRO_MENU_TREE: MenuSubItem[] = [
     id: 'sub-pagamentos',
     label: 'Pagamentos',
     route: PAGAMENTOS_ROUTE,
+    children: [
+      {
+        id: 'sub-pagamentos-relatorio',
+        label: PAGAMENTOS_RELATORIO_LABEL,
+        route: PAGAMENTOS_RELATORIO_ROUTE,
+      },
+    ],
   },
 ];
 

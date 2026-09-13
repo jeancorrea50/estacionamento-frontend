@@ -20,7 +20,7 @@ export const PATIO_ROUTES: Routes = [
       import('./pages/movimentacao-relatorio/movimentacao-relatorio.component').then(
         (m) => m.MovimentacaoRelatorioComponent
       ),
-    title: 'Relatório de Movimentações',
+    title: 'Relatório',
   },
   {
     path: PATIO_MOVIMENTACOES_PATH,

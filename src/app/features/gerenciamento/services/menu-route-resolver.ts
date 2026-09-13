@@ -14,6 +14,7 @@ import {
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
+  PAGAMENTOS_RELATORIO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
 import {
@@ -293,7 +294,7 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     key === 'relatorio de transportadoras' ||
     key === 'relatorio transportadoras'
   ) {
-    return raw || 'Relatório de Transportadoras';
+    return raw || 'Relatório';
   }
 
   if (
@@ -301,7 +302,15 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     key === 'relatorio de movimentacoes' ||
     key === 'relatorio movimentacoes'
   ) {
-    return raw || 'Relatório de Movimentações';
+    return raw || 'Relatório';
+  }
+
+  if (
+    path === PAGAMENTOS_RELATORIO_ROUTE.toLowerCase() ||
+    key === 'relatorio de pagamentos' ||
+    key === 'relatorio pagamentos'
+  ) {
+    return raw || 'Relatório';
   }
 
   if (

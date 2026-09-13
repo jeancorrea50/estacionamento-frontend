@@ -105,6 +105,7 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'relatorios.exportar',
     'relatoriodetransportadoras.visualizar',
     'relatoriodemovimentacoes.visualizar',
+    'relatoriodepagamentos.visualizar',
   ],
   Fotos: [
     'fotos.upload',

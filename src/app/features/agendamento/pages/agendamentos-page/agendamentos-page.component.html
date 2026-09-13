@@ -8,7 +8,8 @@
         <div class="est-dash-hero__copy">
           <h1 id="ag-dash-title" class="est-dash-hero__title">Agendamentos</h1>
           <p class="est-dash-hero__subtitle">
-            Agende entradas de veículos no pátio selecionado, confirme a chegada ou cancele compromissos.
+            Agende entradas de veículos no pátio selecionado, confirme a chegada ou cancele
+            compromissos.
           </p>
         </div>
       </header>
@@ -18,7 +19,10 @@
           <p class="error-msg">Sem permissão para visualizar Agendamentos.</p>
         </div>
       } @else {
-        <section class="est-dash-filter trn-dash-filter ag-dash-filter" aria-label="Filtros da listagem">
+        <section
+          class="est-dash-filter trn-dash-filter ag-dash-filter"
+          aria-label="Filtros da listagem"
+        >
           @if (podeOperarPatio) {
             <div class="est-dash-filter__select-wrap">
               <select
@@ -28,13 +32,17 @@
               >
                 <option [ngValue]="null">Todas as transportadoras</option>
                 @for (t of transportadoras; track t.id) {
-                  <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial || ('ID ' + t.id) }}</option>
+                  <option [ngValue]="t.id">
+                    {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
+                  </option>
                 }
               </select>
             </div>
           }
           <label class="est-dash-filter__search ag-dash-filter__search">
-            <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
+            <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true"
+              >search</span
+            >
             <input
               type="text"
               class="est-dash-filter__search-input"
@@ -47,12 +55,20 @@
           </label>
           <app-agendamento-periodo-picker (periodoChange)="onPeriodoChange($event)" />
           <div class="ag-dash-filter__actions">
-            <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar"
+              (click)="onBuscar()"
+            >
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
               Buscar
             </button>
             @if (podeCriar) {
-              <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovo()">
+              <button
+                type="button"
+                class="est-dash-btn est-dash-btn--primary"
+                (click)="abrirNovo()"
+              >
                 <span class="material-symbols-outlined" aria-hidden="true">add</span>
                 Novo
               </button>
@@ -71,7 +87,12 @@
 
         @if (jaBuscou && !loadingList && !erroList) {
           <div class="trn-list-metrics" aria-label="Resumo da consulta">
-            <app-est-summary-metric icon="event" label="Agendados" [value]="totalCount" variant="neutral" />
+            <app-est-summary-metric
+              icon="event"
+              label="Agendados"
+              [value]="totalCount"
+              variant="neutral"
+            />
             <app-est-summary-metric
               icon="local_shipping"
               label="Nesta página"
@@ -113,7 +134,11 @@
                       <td>{{ item.observacao || '—' }}</td>
                       <td class="trn-table__acoes">
                         @if (temAcoes(item)) {
-                          <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para agendamento ' + item.id">
+                          <div
+                            class="trn-act-btns"
+                            role="group"
+                            [attr.aria-label]="'Ações para agendamento ' + item.id"
+                          >
                             @if (podeConfirmarItem(item)) {
                               <button
                                 type="button"
@@ -121,7 +146,9 @@
                                 title="Confirmar entrada"
                                 (click)="confirmarEntrada(item)"
                               >
-                                <span class="material-symbols-outlined" aria-hidden="true">login</span>
+                                <span class="material-symbols-outlined" aria-hidden="true"
+                                  >login</span
+                                >
                               </button>
                             }
                             @if (podeCancelarItem(item)) {
@@ -131,7 +158,9 @@
                                 title="Cancelar agendamento"
                                 (click)="cancelar(item)"
                               >
-                                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
+                                <span class="material-symbols-outlined" aria-hidden="true"
+                                  >cancel</span
+                                >
                               </button>
                             }
                           </div>
@@ -154,7 +183,8 @@
 
           <footer class="trn-list-footer">
             <p class="trn-list-footer__info">
-              Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+              Mostrando <strong>{{ intervaloLista.de }}</strong> a
+              <strong>{{ intervaloLista.ate }}</strong> de
               <strong>{{ totalCount }}</strong>
               {{ totalCount === 1 ? 'agendamento' : 'agendamentos' }}
             </p>
@@ -167,7 +197,9 @@
                   (click)="irParaPagina(1)"
                   aria-label="Primeira página"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >keyboard_double_arrow_left</span
+                  >
                 </button>
                 <button
                   type="button"
@@ -178,7 +210,9 @@
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
                 </button>
-                <span class="trn-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
+                <span class="trn-foot-current" aria-current="page">{{
+                  totalCount === 0 ? 0 : numeroPagina
+                }}</span>
                 <button
                   type="button"
                   class="trn-foot-page"
@@ -195,7 +229,9 @@
                   (click)="irParaPagina(totalPaginas)"
                   aria-label="Última página"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >keyboard_double_arrow_right</span
+                  >
                 </button>
               </div>
             </div>
@@ -216,18 +252,29 @@
       >
         <div class="modal-header">
           <h2 id="modal-agendamento-title">Novo agendamento</h2>
-          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharForm()">&times;</button>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharForm()">
+            &times;
+          </button>
         </div>
         <form [formGroup]="form" (ngSubmit)="salvar()">
           <div class="modal-body modal-body--frota-compact">
             <div class="form-row">
               <label for="ag-data">Data/hora <span class="required">*</span></label>
-              <input id="ag-data" type="datetime-local" class="input-control" formControlName="dataAgendamento" />
+              <input
+                id="ag-data"
+                type="datetime-local"
+                class="input-control"
+                formControlName="dataAgendamento"
+              />
             </div>
             @if (podeOperarPatio) {
               <div class="form-row">
                 <label for="ag-transp">Transportadora <span class="required">*</span></label>
-                <select id="ag-transp" class="input-control input-control--select" formControlName="transportadoraId">
+                <select
+                  id="ag-transp"
+                  class="input-control input-control--select"
+                  formControlName="transportadoraId"
+                >
                   <option [ngValue]="null">Selecione</option>
                   @for (t of transportadoras; track t.id) {
                     <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial }}</option>
@@ -252,16 +299,31 @@
             </div>
             <div class="form-row">
               <label for="ag-mot">Motorista</label>
-              <input id="ag-mot" type="text" class="input-control" formControlName="motoristaNome" />
+              <input
+                id="ag-mot"
+                type="text"
+                class="input-control"
+                formControlName="motoristaNome"
+              />
             </div>
             <div class="form-row">
               <label for="ag-obs">Observação</label>
-              <input id="ag-obs" type="text" class="input-control" formControlName="observacao" maxlength="200" />
+              <input
+                id="ag-obs"
+                type="text"
+                class="input-control"
+                formControlName="observacao"
+                maxlength="200"
+              />
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharForm()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="form.invalid || salvando || lookingUp">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="form.invalid || salvando || lookingUp"
+            >
               {{ salvando ? 'Salvando...' : 'Salvar agendamento' }}
             </button>
           </div>

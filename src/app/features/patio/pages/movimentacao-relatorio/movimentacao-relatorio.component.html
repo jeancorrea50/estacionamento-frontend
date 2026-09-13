@@ -1,0 +1,217 @@
+<div class="rel-page-shell">
+  <div class="page-container rel-page">
+    <header class="cfg-page-head">
+      <div class="cfg-page-head__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">summarize</span>
+      </div>
+      <div class="cfg-page-head__text">
+        <h1 class="cfg-page-head__title">Relatório de Movimentações</h1>
+        <p class="cfg-page-head__sub">Filtre e exporte movimentações em PDF ou Excel</p>
+      </div>
+    </header>
+
+  <section class="cfg-search-bar rel-filters" aria-label="Filtros do relatório de movimentações">
+    <div class="rel-filters__grid">
+      <label class="rel-field">
+        <span class="rel-field__label">Entrada inicial</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataInicial" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Entrada final</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataFinal" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Saída inicial</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataSaidaInicial" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Saída final</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataSaidaFinal" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Placa</span>
+        <input type="text" class="cfg-search-bar__search-input" [(ngModel)]="placa" placeholder="ABC1D23" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Transportadora</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="transportadoraId">
+          <option [ngValue]="null">Todas</option>
+          @for (t of transportadoras; track t.id) {
+            <option [ngValue]="t.id">{{ t.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Status</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="status">
+          <option [ngValue]="null">Todos</option>
+          @for (s of statusOpcoes; track s.value) {
+            <option [ngValue]="s.value">{{ s.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Faturado</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="faturado">
+          @for (o of boolOpcoes; track $index) {
+            <option [ngValue]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Excedente</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="ehExcedente">
+          @for (o of boolOpcoes; track $index) {
+            <option [ngValue]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Avulso</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="avulso">
+          @for (o of boolOpcoes; track $index) {
+            <option [ngValue]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field rel-field--wide">
+        <span class="rel-field__label">Busca (descrição / observação)</span>
+        <input type="text" class="cfg-search-bar__search-input" [(ngModel)]="descricao" placeholder="Texto livre" />
+      </label>
+    </div>
+
+    <div class="rel-filters__actions">
+      <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="limparFiltros()" [disabled]="loading()">
+        Limpar
+      </button>
+      <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="buscar()" [disabled]="loading()">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        Buscar
+      </button>
+      <button
+        type="button"
+        class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+        (click)="imprimirPdf()"
+        [disabled]="loading() || exportando()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+        PDF
+      </button>
+      <button
+        type="button"
+        class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
+        (click)="exportarExcel()"
+        [disabled]="loading() || exportando()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+        Excel
+      </button>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <p class="loading-msg">Carregando relatório…</p>
+  }
+
+  @if (!jaBuscou() && !loading()) {
+    <div class="empty-state empty-state--compact cfg-before-search">
+      <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
+      <p class="empty-msg">Ajuste os filtros e clique em <strong>Buscar</strong> para pré-visualizar. Use <strong>PDF</strong> ou <strong>Excel</strong> para exportar.</p>
+    </div>
+  }
+
+  @if (jaBuscou() && !loading()) {
+    <section class="rel-kpi rel-kpi--wide" aria-label="Resumo do relatório">
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Movimentações</span>
+        <strong class="rel-kpi__value">{{ resumo().quantidade }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Entrada</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdEntrada }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Saída</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdSaida }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Suspenso</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdSuspenso }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Agendado</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdAgendado }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Cancelado</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdCancelado }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Faturado</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdFaturado }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Excedente</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdExcedente }}</strong>
+      </article>
+    </section>
+
+    @if (truncado()) {
+      <p class="rel-warn" role="status">
+        Resultado truncado em {{ limiteAplicado() }} linhas. Refine os filtros para exportar o conjunto completo.
+      </p>
+    }
+
+    <div class="trn-list-table-card rel-table-wrap">
+      <div class="trn-list-table-scroll">
+        <table class="data-table trn-table">
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Motorista</th>
+              <th>Transportadora</th>
+              <th>Status</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Faturado</th>
+              <th>Avulso</th>
+              <th>Excedente</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itens(); track item.id) {
+              <tr>
+                <td>{{ item.placaVeiculo || '—' }}</td>
+                <td>{{ item.nomeMotorista || '—' }}</td>
+                <td>{{ item.nomeTransportadora || '—' }}</td>
+                <td>{{ item.statusDescricao || '—' }}</td>
+                <td>{{ item.dataHoraEntrada ? (item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+                <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+                <td>{{ item.faturado ? 'Sim' : 'Não' }}</td>
+                <td>{{ item.avulso ? 'Sim' : 'Não' }}</td>
+                <td>{{ item.ehExcedente ? 'Sim' : 'Não' }}</td>
+                <td>{{ item.observacao || '—' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="10" class="rel-empty-row">Nenhuma movimentação encontrada com os filtros informados.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+  </div>
+</div>

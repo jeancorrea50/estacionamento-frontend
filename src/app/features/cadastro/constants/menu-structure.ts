@@ -14,11 +14,15 @@ import {
 import {
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
+  CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
   CADASTRO_VEICULOS_ROUTE,
 } from '../cadastro-rotas';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+  PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
@@ -52,7 +56,18 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: PATIO_ROUTE,
     icon: 'local_parking',
     children: [
-      { id: 'sub-movimentacoes', label: 'Movimentações', route: PATIO_MOVIMENTACOES_ROUTE },
+      {
+        id: 'sub-movimentacoes',
+        label: 'Movimentações',
+        route: PATIO_MOVIMENTACOES_ROUTE,
+        children: [
+          {
+            id: 'sub-movimentacoes-relatorio',
+            label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+            route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+          },
+        ],
+      },
       { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
     ],
   },
@@ -96,7 +111,18 @@ export const MENU_STRUCTURE: MenuNode[] = [
     children: [
       { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
       { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
-      { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
+      {
+        id: 'sub-transportadoras',
+        label: 'Transportadora',
+        route: CADASTRO_TRANSPORTADORAS_ROUTE,
+        children: [
+          {
+            id: 'sub-transportadoras-relatorio',
+            label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
+            route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+          },
+        ],
+      },
     ],
   },
   {

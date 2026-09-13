@@ -10,6 +10,11 @@ export const PATIO_ROUTE = '/app/patio';
 export const PATIO_MOVIMENTACOES_ROUTE = '/app/patio/movimentacoes';
 export const PATIO_MOVIMENTACOES_PATH = 'movimentacoes';
 
+/** Relatório de Movimentações — rota própria sob Pátio. */
+export const PATIO_MOVIMENTACOES_RELATORIO_ROUTE = '/app/patio/movimentacoes/relatorio';
+export const PATIO_MOVIMENTACOES_RELATORIO_PATH = 'movimentacoes/relatorio';
+export const PATIO_MOVIMENTACOES_RELATORIO_LABEL = 'Relatório de Movimentações';
+
 /** Operação de entrada e saída (portaria). */
 export const PATIO_ENTRADA_SAIDA_ROUTE = '/app/patio/entrada-saida';
 export const PATIO_ENTRADA_SAIDA_PATH = 'entrada-saida';

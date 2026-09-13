@@ -4,6 +4,7 @@ import {
   CADASTRO_ESTACIONAMENTOS_PATH,
   CADASTRO_MOTORISTAS_PATH,
   CADASTRO_TRANSPORTADORAS_PATH,
+  CADASTRO_TRANSPORTADORAS_RELATORIO_PATH,
   CADASTRO_VEICULOS_PATH,
 } from './cadastro-rotas';
 
@@ -54,6 +55,14 @@ export const CADASTRO_ROUTES: Routes = [
           ),
       },
     ],
+  },
+  {
+    path: CADASTRO_TRANSPORTADORAS_RELATORIO_PATH,
+    loadComponent: () =>
+      import('./pages/transportadora-relatorio/transportadora-relatorio.component').then(
+        (m) => m.TransportadoraRelatorioComponent
+      ),
+    title: 'Relatório de Transportadoras',
   },
   {
     path: `${CADASTRO_TRANSPORTADORAS_PATH}/editar/:id`,

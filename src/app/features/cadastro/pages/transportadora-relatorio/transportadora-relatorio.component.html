@@ -1,0 +1,161 @@
+<div class="rel-page-shell">
+  <div class="page-container rel-page">
+    <header class="cfg-page-head">
+      <div class="cfg-page-head__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">summarize</span>
+      </div>
+      <div class="cfg-page-head__text">
+        <h1 class="cfg-page-head__title">Relatório de Transportadoras</h1>
+        <p class="cfg-page-head__sub">Filtre e exporte transportadoras em PDF ou Excel</p>
+      </div>
+    </header>
+
+  <section class="cfg-search-bar rel-filters" aria-label="Filtros do relatório de transportadoras">
+    <div class="rel-filters__grid">
+      <label class="rel-field">
+        <span class="rel-field__label">Data inicial (criação)</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataInicial" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Data final (criação)</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataFinal" />
+      </label>
+
+      <label class="rel-field rel-field--wide">
+        <span class="rel-field__label">Busca / descrição</span>
+        <input type="text" class="cfg-search-bar__search-input" [(ngModel)]="descricao" placeholder="Razão social, fantasia…" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">CNPJ</span>
+        <input type="text" class="cfg-search-bar__search-input" [(ngModel)]="cnpj" placeholder="Somente números" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Ativo</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="ativo">
+          @for (o of ativoOpcoes; track $index) {
+            <option [ngValue]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Qtd. veículos (mín.)</span>
+        <input type="number" class="cfg-search-bar__search-input" [(ngModel)]="quantidadeVeiculosMin" min="0" step="1" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Qtd. veículos (máx.)</span>
+        <input type="number" class="cfg-search-bar__search-input" [(ngModel)]="quantidadeVeiculosMax" min="0" step="1" />
+      </label>
+    </div>
+
+    <div class="rel-filters__actions">
+      <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="limparFiltros()" [disabled]="loading()">
+        Limpar
+      </button>
+      <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="buscar()" [disabled]="loading()">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        Buscar
+      </button>
+      <button
+        type="button"
+        class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+        (click)="imprimirPdf()"
+        [disabled]="loading() || exportando()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+        PDF
+      </button>
+      <button
+        type="button"
+        class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
+        (click)="exportarExcel()"
+        [disabled]="loading() || exportando()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+        Excel
+      </button>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <p class="loading-msg">Carregando relatório…</p>
+  }
+
+  @if (!jaBuscou() && !loading()) {
+    <div class="empty-state empty-state--compact cfg-before-search">
+      <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
+      <p class="empty-msg">Ajuste os filtros e clique em <strong>Buscar</strong> para pré-visualizar. Use <strong>PDF</strong> ou <strong>Excel</strong> para exportar.</p>
+    </div>
+  }
+
+  @if (jaBuscou() && !loading()) {
+    <section class="rel-kpi" aria-label="Resumo do relatório">
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Transportadoras</span>
+        <strong class="rel-kpi__value">{{ resumo().quantidade }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Ativas</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdAtivas }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Inativas</span>
+        <strong class="rel-kpi__value">{{ resumo().qtdInativas }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Total veículos</span>
+        <strong class="rel-kpi__value">{{ resumo().totalVeiculos }}</strong>
+      </article>
+    </section>
+
+    @if (truncado()) {
+      <p class="rel-warn" role="status">
+        Resultado truncado em {{ limiteAplicado() }} linhas. Refine os filtros para exportar o conjunto completo.
+      </p>
+    }
+
+    <div class="trn-list-table-card rel-table-wrap">
+      <div class="trn-list-table-scroll">
+        <table class="data-table trn-table">
+          <thead>
+            <tr>
+              <th>Razão social</th>
+              <th>Fantasia</th>
+              <th>CNPJ</th>
+              <th>E-mail</th>
+              <th>Ativo</th>
+              <th>Responsável</th>
+              <th>Telefone</th>
+              <th>Veículos</th>
+              <th>Atualização</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itens(); track item.id) {
+              <tr>
+                <td>{{ item.razaoSocial || '—' }}</td>
+                <td>{{ item.fantasia || '—' }}</td>
+                <td>{{ item.cnpj || '—' }}</td>
+                <td>{{ item.email || '—' }}</td>
+                <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                <td>{{ item.responsavelLegal || '—' }}</td>
+                <td>{{ item.responsavelTelefone || '—' }}</td>
+                <td>{{ item.quantidadeVeiculo }}</td>
+                <td>{{ item.dataAtualizacao ? (item.dataAtualizacao | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="rel-empty-row">Nenhuma transportadora encontrada com os filtros informados.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+  </div>
+</div>

@@ -3,6 +3,7 @@ import {
   CADASTRO_ESTACIONAMENTOS_ROUTE,
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
   CADASTRO_VEICULOS_ROUTE,
 } from '../../cadastro/cadastro-rotas';
@@ -17,6 +18,7 @@ import {
 } from '../../financeiro/faturamento-rotas';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
@@ -59,6 +61,10 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   /** Submenu Relatório de faturamento (sidebar, abaixo de Cobrança) — não confundir com `/app/relatorios`. */
   'relatorio de faturamento': FATURAMENTO_RELATORIO_ROUTE,
   'relatorio faturamento': FATURAMENTO_RELATORIO_ROUTE,
+  'relatorio de transportadoras': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+  'relatorio transportadoras': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+  'relatorio de movimentacoes': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+  'relatorio movimentacoes': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   cobranca: FATURAMENTO_CONFIG_ROUTE,
   'configuracoes de cobranca': FATURAMENTO_CONFIG_ROUTE,
   'config cobranca': FATURAMENTO_CONFIG_ROUTE,
@@ -137,6 +143,8 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/financeiro/faturamento/configuracao': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/relatorio': FATURAMENTO_RELATORIO_ROUTE,
   '/app/faturamento/relatorio': FATURAMENTO_RELATORIO_ROUTE,
+  '/app/cadastro/transportadoras/relatorio': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+  '/app/patio/movimentacoes/relatorio': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   '/app/financeiro/faturamento/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
@@ -281,8 +289,23 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
   }
 
   if (
+    path === CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE.toLowerCase() ||
+    key === 'relatorio de transportadoras' ||
+    key === 'relatorio transportadoras'
+  ) {
+    return raw || 'Relatório de Transportadoras';
+  }
+
+  if (
+    path === PATIO_MOVIMENTACOES_RELATORIO_ROUTE.toLowerCase() ||
+    key === 'relatorio de movimentacoes' ||
+    key === 'relatorio movimentacoes'
+  ) {
+    return raw || 'Relatório de Movimentações';
+  }
+
+  if (
     path === CADASTRO_TRANSPORTADORAS_ROUTE.toLowerCase() ||
-    path.startsWith(`${CADASTRO_TRANSPORTADORAS_ROUTE.toLowerCase()}/`) ||
     key === 'transportadora' ||
     key === 'transportadoras'
   ) {
@@ -348,9 +371,13 @@ for (const node of MENU_STRUCTURE) {
   LABEL_TO_MATERIAL_ICON.set(norm(node.label), node.icon);
   ROUTE_TO_MATERIAL_ICON.set(node.route, node.icon);
   if (node.children?.length) {
-    for (const c of node.children) {
-      ROUTE_TO_MATERIAL_ICON.set(c.route, node.icon);
-    }
+    const walk = (subs: MenuSubItem[]) => {
+      for (const c of subs) {
+        ROUTE_TO_MATERIAL_ICON.set(c.route, node.icon);
+        if (c.children?.length) walk(c.children);
+      }
+    };
+    walk(node.children);
   }
 }
 // Aliases legados da API (singular/plural)

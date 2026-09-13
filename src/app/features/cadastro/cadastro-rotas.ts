@@ -8,6 +8,11 @@ export const CADASTRO_ROUTE = '/app/cadastro';
 export const CADASTRO_TRANSPORTADORAS_ROUTE = '/app/cadastro/transportadoras';
 export const CADASTRO_TRANSPORTADORAS_PATH = 'transportadoras';
 
+/** Relatório de Transportadoras — rota própria sob Cadastro. */
+export const CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE = '/app/cadastro/transportadoras/relatorio';
+export const CADASTRO_TRANSPORTADORAS_RELATORIO_PATH = 'transportadoras/relatorio';
+export const CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL = 'Relatório de Transportadoras';
+
 export const CADASTRO_VEICULOS_ROUTE = '/app/cadastro/veiculos';
 export const CADASTRO_VEICULOS_PATH = 'veiculos';
 

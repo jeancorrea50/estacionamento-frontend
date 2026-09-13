@@ -71,6 +71,13 @@ export const FATURAMENTO_ROUTES: Routes = [
             (m) => m.FaturamentoInadimplenciaComponent
           ),
       },
+      {
+        path: 'relatorio',
+        loadComponent: () =>
+          import('./pages/faturamento-page/relatorio/faturamento-relatorio.component').then(
+            (m) => m.FaturamentoRelatorioComponent
+          ),
+      },
     ],
   },
 ];

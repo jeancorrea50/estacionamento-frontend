@@ -55,6 +55,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   recebimentos: PAGAMENTOS_ROUTE,
   inadimplencia: `${FATURAMENTO_ROUTE}/inadimplencia`,
   faturas: `${FATURAMENTO_ROUTE}/faturas`,
+  /** Aba Relatório de faturamento — não confundir com `/app/relatorios`. */
+  'relatorio de faturamento': `${FATURAMENTO_ROUTE}/relatorio`,
+  'relatorio faturamento': `${FATURAMENTO_ROUTE}/relatorio`,
   cobranca: FATURAMENTO_CONFIG_ROUTE,
   'configuracoes de cobranca': FATURAMENTO_CONFIG_ROUTE,
   'config cobranca': FATURAMENTO_CONFIG_ROUTE,

@@ -1,0 +1,209 @@
+<div class="rel-page">
+  <section class="cfg-search-bar rel-filters" aria-label="Filtros do relatório de faturamento">
+    <div class="rel-filters__grid">
+      <label class="rel-field">
+        <span class="rel-field__label">Período (campo)</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="periodoCampo">
+          @for (o of periodoCampoOpcoes; track o.value) {
+            <option [ngValue]="o.value">{{ o.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Data inicial</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataInicial" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Data final</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataFinal" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Transportadora</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="transportadoraId">
+          <option [ngValue]="null">Todas</option>
+          @for (t of transportadoras; track t.id) {
+            <option [ngValue]="t.id">{{ t.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Status</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="status">
+          <option [ngValue]="null">Todos</option>
+          @for (s of statusOpcoes; track s.value) {
+            <option [ngValue]="s.value">{{ s.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Modalidade</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="modalidadeRecebimento">
+          <option [ngValue]="null">Todas</option>
+          @for (m of modalidadeOpcoes; track m.value) {
+            <option [ngValue]="m.value">{{ m.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Tipo</span>
+        <select class="cfg-search-bar__select" [(ngModel)]="tipoFatura">
+          <option [ngValue]="null">Todos</option>
+          @for (t of tipoOpcoes; track t.value) {
+            <option [ngValue]="t.value">{{ t.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Número</span>
+        <input type="text" class="cfg-search-bar__search-input" [(ngModel)]="numero" placeholder="Ex.: FAT-2026" />
+      </label>
+
+      <label class="rel-field rel-field--wide">
+        <span class="rel-field__label">Busca (descrição / transportadora)</span>
+        <input type="text" class="cfg-search-bar__search-input" [(ngModel)]="descricao" placeholder="Texto livre" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Venc. inicial</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataVencimentoInicial" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Venc. final</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataVencimentoFinal" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Pag. inicial</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataPagamentoInicial" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Pag. final</span>
+        <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataPagamentoFinal" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Valor mínimo</span>
+        <input type="number" class="cfg-search-bar__search-input" [(ngModel)]="valorMinimo" min="0" step="0.01" />
+      </label>
+
+      <label class="rel-field">
+        <span class="rel-field__label">Valor máximo</span>
+        <input type="number" class="cfg-search-bar__search-input" [(ngModel)]="valorMaximo" min="0" step="0.01" />
+      </label>
+    </div>
+
+    <div class="rel-filters__actions">
+      <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="limparFiltros()" [disabled]="loading()">
+        Limpar
+      </button>
+      <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" (click)="buscar()" [disabled]="loading()">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        Buscar
+      </button>
+      <button
+        type="button"
+        class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+        (click)="imprimirPdf()"
+        [disabled]="loading() || exportando()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+        PDF
+      </button>
+      <button
+        type="button"
+        class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
+        (click)="exportarExcel()"
+        [disabled]="loading() || exportando()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+        Excel
+      </button>
+    </div>
+  </section>
+
+  @if (loading()) {
+    <p class="loading-msg">Carregando relatório…</p>
+  }
+
+  @if (!jaBuscou() && !loading()) {
+    <div class="empty-state empty-state--compact cfg-before-search">
+      <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
+      <p class="empty-msg">Ajuste os filtros e clique em <strong>Buscar</strong> para pré-visualizar. Use <strong>PDF</strong> ou <strong>Excel</strong> para exportar.</p>
+    </div>
+  }
+
+  @if (jaBuscou() && !loading()) {
+    <section class="rel-kpi" aria-label="Resumo do relatório">
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Faturas</span>
+        <strong class="rel-kpi__value">{{ resumo().quantidade }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Valor total</span>
+        <strong class="rel-kpi__value">{{ resumo().valorTotal | currency: 'BRL' }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Recebido</span>
+        <strong class="rel-kpi__value">{{ resumo().valorRecebido | currency: 'BRL' }}</strong>
+      </article>
+      <article class="rel-kpi__card">
+        <span class="rel-kpi__label">Em aberto</span>
+        <strong class="rel-kpi__value">{{ resumo().valorEmAberto | currency: 'BRL' }}</strong>
+      </article>
+    </section>
+
+    @if (truncado()) {
+      <p class="rel-warn" role="status">
+        Resultado truncado em {{ limiteAplicado() }} linhas. Refine os filtros para exportar o conjunto completo.
+      </p>
+    }
+
+    <div class="trn-list-table-card rel-table-wrap">
+      <div class="trn-list-table-scroll">
+        <table class="data-table trn-table">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Transportadora</th>
+              <th>Status</th>
+              <th>Tipo</th>
+              <th>Modalidade</th>
+              <th>Valor</th>
+              <th>Emissão</th>
+              <th>Vencimento</th>
+              <th>Pagamento</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itens(); track item.id) {
+              <tr>
+                <td>{{ item.numero || '—' }}</td>
+                <td>{{ item.transportadoraNome || '—' }}</td>
+                <td>{{ item.statusDescricao || '—' }}</td>
+                <td>{{ item.tipoFaturaDescricao || '—' }}</td>
+                <td>{{ item.modalidadeDescricao || '—' }}</td>
+                <td>{{ item.valorTotal | currency: 'BRL' }}</td>
+                <td>{{ item.dataEmissao | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ item.dataVencimento | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ item.dataPagamento ? (item.dataPagamento | date: 'dd/MM/yyyy') : '—' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="rel-empty-row">Nenhuma fatura encontrada com os filtros informados.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

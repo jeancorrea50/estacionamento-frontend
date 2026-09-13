@@ -2,8 +2,9 @@
 export type FaturamentoTabId =
   | 'visao-geral'
   | 'fechamentos'
+  | 'inadimplencia'
   | 'faturas'
-  | 'inadimplencia';
+  | 'relatorio';
 
 export type PeriodoFiltroId = 'hoje' | 'semana' | 'mes' | 'personalizado';
 

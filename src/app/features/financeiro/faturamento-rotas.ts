@@ -48,6 +48,7 @@ export const FATURAMENTO_TABS: readonly FaturamentoTabDef[] = [
   tab('fechamentos', 'Fechamentos'),
   tab('inadimplencia', 'Inadimplência'),
   tab('faturas', 'Faturas'),
+  tab('relatorio', 'Relatório'),
 ];
 
 export function faturamentoTabRoute(id: FaturamentoTabId): string {

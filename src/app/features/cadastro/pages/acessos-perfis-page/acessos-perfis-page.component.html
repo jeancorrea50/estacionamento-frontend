@@ -1,305 +1,160 @@
-<div class="perm-page" [class.perm-page--dirty]="dirty()">
+<div class="perfis-page tab-content">
   @if (loading) {
-    <p class="perm-page__status" role="status">Carregando permissões…</p>
+    <p class="loading-msg" role="status">Carregando perfis…</p>
   } @else if (erro) {
-    <div class="perm-page__error">
-      <p class="perm-page__status">{{ erro }}</p>
-      <button type="button" class="btn btn-secondary btn--sm" (click)="retry()">Tentar novamente</button>
-    </div>
+    <p class="error-msg error-msg--discreto">{{ erro }}</p>
+    <button type="button" class="btn btn-secondary" (click)="retry()">Tentar novamente</button>
   } @else {
-    <header class="perm-header">
-      <div class="perm-header__titles">
-        <h1 class="perm-header__title">Permissões</h1>
-        <p class="perm-header__subtitle">Gerencie os acessos e permissões dos perfis do sistema.</p>
-      </div>
-
-      <div class="perm-header__controls">
-        <div class="perm-profile">
-          <label class="perm-profile__label" for="perm-profile-select">Perfil:</label>
-          <select
-            id="perm-profile-select"
-            class="perm-profile__select"
-            [ngModel]="selectedProfileId()"
-            (ngModelChange)="onProfileSelectChange($event)"
-            [disabled]="itens.length === 0"
-          >
-            @if (itens.length === 0) {
-              <option [ngValue]="null">Nenhum perfil</option>
-            }
-            @for (item of itens; track trackPerfil(item)) {
-              <option [ngValue]="profileKey(item)">{{ perfilDisplayName(item) }}</option>
-            }
-          </select>
-
-          <div class="perm-profile__actions" role="group" aria-label="Ações do perfil">
-            <button type="button" class="perm-icon-btn" (click)="openNovo()" title="Novo perfil" aria-label="Novo perfil">
-              <span class="material-symbols-outlined" aria-hidden="true">add</span>
-            </button>
-            <button
-              type="button"
-              class="perm-icon-btn"
-              (click)="openRenomear()"
-              [disabled]="!selectedProfile()"
-              title="Renomear"
-              aria-label="Renomear perfil"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-            </button>
-            <button
-              type="button"
-              class="perm-icon-btn perm-icon-btn--danger"
-              (click)="openExcluir()"
-              [disabled]="!selectedProfile()"
-              title="Excluir"
-              aria-label="Excluir perfil"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="perm-header__summary" aria-live="polite">
-          <span class="perm-header__selected">
-            {{ selectedPermissionsCount() }}
-            {{ selectedPermissionsCount() === 1 ? 'permissão selecionada' : 'permissões selecionadas' }}
-          </span>
-          <span class="perm-header__meta">
-            Módulos: {{ modulesSummary().selected }}
-            <span class="perm-header__sep" aria-hidden="true">|</span>
-            Menus: {{ menusSummary().selected }}
-            <span class="perm-header__sep" aria-hidden="true">|</span>
-            Permissões: {{ selectedPermissionsCount() }}
-          </span>
-        </div>
-      </div>
-    </header>
-
     @if (itens.length === 0) {
-      <div class="perm-empty" role="status">
-        <p class="perm-empty__title">Nenhum perfil cadastrado</p>
-        <p class="perm-empty__hint">Crie um perfil para definir permissões de acesso.</p>
-        <button type="button" class="btn btn-primary btn--sm" (click)="openNovo()">Novo perfil</button>
-      </div>
-    } @else if (!selectedProfile()) {
-      <div class="perm-empty" role="status">
-        <p class="perm-empty__title">Selecione um perfil</p>
-        <p class="perm-empty__hint">Escolha um perfil no seletor acima para editar as permissões.</p>
+      <div class="perfis-empty perfis-empty--global" role="status">
+        <span class="material-symbols-outlined perfis-empty__icon" aria-hidden="true">badge</span>
+        <p class="perfis-empty__title">Nenhum perfil cadastrado</p>
+        <p class="perfis-empty__hint">Crie um perfil para definir permissões de acesso.</p>
+        <button type="button" class="btn btn-primary perfis-empty__cta" (click)="openNovo()">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo perfil
+        </button>
       </div>
     } @else {
-      <div class="perm-toolbar" role="toolbar" aria-label="Ferramentas de permissões">
-        <div class="perm-search">
-          <span class="material-symbols-outlined perm-search__icon" aria-hidden="true">search</span>
-          <input
-            type="search"
-            class="perm-search__input"
-            placeholder="Buscar funcionalidade..."
-            [ngModel]="searchQuery()"
-            (ngModelChange)="onSearchInput($event)"
-            autocomplete="off"
-            aria-label="Buscar funcionalidade"
-          />
-          @if (searchQuery().trim()) {
-            <button type="button" class="perm-search__clear" (click)="onSearchInput('')" aria-label="Limpar busca">
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          }
-        </div>
-
-        <div class="perm-filter" role="group" aria-label="Filtro de acesso">
-          <button
-            type="button"
-            class="perm-filter__btn"
-            [class.perm-filter__btn--active]="accessFilter() === 'all'"
-            (click)="setAccessFilter('all')"
-          >
-            Todos
-          </button>
-          <button
-            type="button"
-            class="perm-filter__btn"
-            [class.perm-filter__btn--active]="accessFilter() === 'allowed'"
-            (click)="setAccessFilter('allowed')"
-          >
-            Permitidos
-          </button>
-          <button
-            type="button"
-            class="perm-filter__btn"
-            [class.perm-filter__btn--active]="accessFilter() === 'denied'"
-            (click)="setAccessFilter('denied')"
-          >
-            Não permitidos
-          </button>
-        </div>
-
-        <div class="perm-toolbar__actions">
-          <button type="button" class="perm-tool-btn" (click)="expandirTodos()" title="Expandir todos">
-            <span class="material-symbols-outlined" aria-hidden="true">unfold_more</span>
-            <span class="perm-tool-btn__label">Expandir</span>
-          </button>
-          <button type="button" class="perm-tool-btn" (click)="recolherTodos()" title="Recolher todos">
-            <span class="material-symbols-outlined" aria-hidden="true">unfold_less</span>
-            <span class="perm-tool-btn__label">Recolher</span>
-          </button>
-          <button type="button" class="perm-tool-btn" (click)="selecionarTodos()" title="Selecionar todos">
-            <span class="material-symbols-outlined" aria-hidden="true">select_all</span>
-            <span class="perm-tool-btn__label">Selecionar</span>
-          </button>
-          <button type="button" class="perm-tool-btn" (click)="limparSelecao()" title="Limpar seleção">
-            <span class="material-symbols-outlined" aria-hidden="true">deselect</span>
-            <span class="perm-tool-btn__label">Limpar</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="perm-body">
-        <main class="perm-matrix" aria-label="Matriz de permissões">
-          @for (menu of filteredTree(); track menu.menuId) {
-            @let counts = menuCounts(menu);
-            @let extras = extraActionColumns(menu);
-            <section class="perm-module" [class.perm-module--open]="isMenuExpanded(menu.menuId)">
-              <header class="perm-module__head">
-                <button
-                  type="button"
-                  class="perm-module__toggle"
-                  (click)="toggleMenuExpanded(menu.menuId)"
-                  [attr.aria-expanded]="isMenuExpanded(menu.menuId)"
-                  [attr.aria-label]="(isMenuExpanded(menu.menuId) ? 'Recolher' : 'Expandir') + ' módulo ' + menu.nome"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    {{ isMenuExpanded(menu.menuId) ? 'expand_more' : 'chevron_right' }}
-                  </span>
-                </button>
-
-                <mat-checkbox
-                  color="primary"
-                  class="perm-check"
-                  [checked]="counts.total > 0 && counts.selected === counts.total"
-                  [indeterminate]="isMenuIndeterminate(menu)"
-                  (change)="onMenuCheckboxChange(menu.menuId, $event)"
-                  [attr.aria-label]="'Selecionar módulo ' + menu.nome"
+      <div class="perfis-panel">
+        <div class="perfis-toolbar" role="toolbar" aria-label="Filtros e ações de perfis">
+          <div class="perfis-toolbar__filters">
+            <div class="perfis-search-group">
+              <div class="perfis-search">
+                <span class="material-symbols-outlined perfis-search__icon" aria-hidden="true">search</span>
+                <input
+                  type="text"
+                  class="perfis-search__input"
+                  placeholder="Buscar perfil..."
+                  [(ngModel)]="searchDraft"
+                  (keyup.enter)="aplicarBuscaPerfil()"
+                  autocomplete="off"
+                  aria-label="Termo para buscar perfil"
                 />
-
-                <div class="perm-module__title-wrap">
-                  <h2 class="perm-module__title">{{ menu.nome }}</h2>
-                  <span class="perm-module__count">{{ counts.selected }}/{{ counts.total }}</span>
-                </div>
-              </header>
-
-              @if (isMenuExpanded(menu.menuId)) {
-                <div class="perm-module__table-wrap">
-                  <table class="perm-grid">
-                    <thead>
-                      <tr>
-                        <th scope="col" class="perm-grid__col-func">Funcionalidade</th>
-                        @for (acao of acoesPadrao; track acao) {
-                          <th scope="col" class="perm-grid__col-action">
-                            <div class="perm-grid__th">
-                              <mat-checkbox
-                                color="primary"
-                                class="perm-check perm-check--sm"
-                                [checked]="isColumnChecked(menu, acao)"
-                                [indeterminate]="isColumnIndeterminate(menu, acao)"
-                                (change)="onActionColumnToggle(menu.menuId, acao, $event)"
-                                [attr.aria-label]="'Selecionar coluna ' + actionLabel(acao) + ' em ' + menu.nome"
-                              />
-                              <span>{{ actionLabel(acao) }}</span>
-                            </div>
-                          </th>
-                        }
-                        @for (extra of extras; track extra) {
-                          <th scope="col" class="perm-grid__col-action">
-                            <div class="perm-grid__th">
-                              <mat-checkbox
-                                color="primary"
-                                class="perm-check perm-check--sm"
-                                [checked]="isColumnChecked(menu, extra)"
-                                [indeterminate]="isColumnIndeterminate(menu, extra)"
-                                (change)="onActionColumnToggle(menu.menuId, extra, $event)"
-                                [attr.aria-label]="'Selecionar coluna ' + actionLabel(extra) + ' em ' + menu.nome"
-                              />
-                              <span>{{ actionLabel(extra) }}</span>
-                            </div>
-                          </th>
-                        }
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
-                        <ng-container
-                          *ngTemplateOutlet="
-                            subMenuRow;
-                            context: {
-                              subMenu: subMenu,
-                              menuId: menu.menuId,
-                              depth: 0,
-                              extras: extras
-                            }
-                          "
-                        />
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-            </section>
-          } @empty {
-            <div class="perm-empty perm-empty--inline" role="status">
-              <p class="perm-empty__title">Nenhuma funcionalidade encontrada</p>
-              <p class="perm-empty__hint">Ajuste a busca ou o filtro de acesso.</p>
-            </div>
-          }
-        </main>
-
-        <aside class="perm-aside" aria-label="Resumo do perfil">
-          <div class="perm-aside__card">
-            <h2 class="perm-aside__title">Resumo do perfil</h2>
-            <p class="perm-aside__name">{{ perfilDisplayName(selectedProfile()) }}</p>
-
-            <dl class="perm-aside__stats">
-              <div class="perm-aside__stat">
-                <dt>Módulos</dt>
-                <dd>{{ modulesSummary().selected }}/{{ modulesSummary().total }}</dd>
-              </div>
-              <div class="perm-aside__stat">
-                <dt>Menus</dt>
-                <dd>{{ menusSummary().selected }}/{{ menusSummary().total }}</dd>
-              </div>
-              <div class="perm-aside__stat">
-                <dt>Permissões</dt>
-                <dd>{{ selectedPermissionsCount() }}/{{ totalPermissionsInCatalog() }}</dd>
-              </div>
-            </dl>
-
-            <div class="perm-aside__modules">
-              <h3 class="perm-aside__section">Por módulo</h3>
-              <ul class="perm-aside__list">
-                @for (mod of sideSummaryModules(); track mod.menuId) {
-                  <li class="perm-aside__item">
-                    <span class="perm-aside__item-name">{{ mod.nome }}</span>
-                    <span class="perm-aside__item-count">{{ mod.selected }}/{{ mod.total }}</span>
-                  </li>
+                @if (searchDraft.trim() || searchTerm.trim()) {
+                  <button
+                    type="button"
+                    class="perfis-search__clear"
+                    (click)="limparBuscaPerfil()"
+                    aria-label="Limpar busca"
+                    title="Limpar"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                  </button>
                 }
-              </ul>
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary perfis-buscar-btn"
+                (click)="aplicarBuscaPerfil()"
+                title="Buscar"
+                aria-label="Buscar perfis pelo termo"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              </button>
             </div>
+            <select
+              class="input-control perfis-select"
+              [(ngModel)]="statusFilter"
+              aria-label="Filtrar por status"
+            >
+              <option value="all">Todos os status</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
           </div>
-        </aside>
+          <button type="button" class="btn btn-primary perfis-toolbar__cta" (click)="openNovo()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo perfil
+          </button>
+        </div>
+
+        <div class="table-wrap perfis-table-wrap">
+          <table class="data-table perfis-table">
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">Descrição</th>
+                <th scope="col" class="perfis-col-num">Qtde permissões</th>
+                <th scope="col" class="perfis-col-num">Usuários vinculados</th>
+                <th scope="col">Status</th>
+                <th scope="col">Última atualização</th>
+                <th scope="col" class="perfis-col-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of perfisFiltrados; track trackPerfil(item)) {
+                <tr class="perfis-row">
+                  <td>
+                    <span class="perfis-name">{{ perfilDisplayName(item) }}</span>
+                  </td>
+                  <td>
+                    <span class="perfis-desc">{{ item.normalizedName?.trim() || '—' }}</span>
+                  </td>
+                  <td class="perfis-col-num">{{ getProfilePermissionCount(item) }}</td>
+                  <td class="perfis-col-num">{{ formatUsuariosVinculados(item) }}</td>
+                  <td>
+                    <span
+                      class="perfis-status"
+                      [class.perfis-status--on]="isPerfilAtivoUi(item)"
+                      [class.perfis-status--off]="!isPerfilAtivoUi(item)"
+                    >
+                      <span class="perfis-status__dot" aria-hidden="true"></span>
+                      {{ isPerfilAtivoUi(item) ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
+                  <td class="perfis-date">{{ formatUltimaAtualizacao(item.ultimaAtualizacao) }}</td>
+                  <td class="perfis-actions-cell">
+                    <div class="perfis-actions" role="group" [attr.aria-label]="'Ações para ' + perfilDisplayName(item)">
+                      <button
+                        type="button"
+                        class="perfis-icon-btn"
+                        (click)="openVisualizar(item)"
+                        title="Visualizar"
+                        aria-label="Visualizar perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="perfis-icon-btn"
+                        (click)="openEditar(item)"
+                        title="Editar"
+                        aria-label="Editar perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="perfis-icon-btn"
+                        (click)="openDuplicar(item)"
+                        title="Duplicar"
+                        aria-label="Duplicar perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="perfis-icon-btn perfis-icon-btn--danger"
+                        (click)="openExcluir(item)"
+                        title="Excluir"
+                        aria-label="Excluir perfil"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="perfis-empty-row">Nenhum perfil corresponde aos filtros atuais.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     }
-  }
-
-  @if (dirty() && selectedProfile() && !loading && !erro) {
-    <footer class="perm-dirty" role="status">
-      <span class="perm-dirty__msg">Você possui alterações não salvas</span>
-      <div class="perm-dirty__actions">
-        <button type="button" class="btn btn-secondary btn--sm" (click)="descartarAlteracoes()" [disabled]="saving()">
-          Descartar alterações
-        </button>
-        <button type="button" class="btn btn-primary btn--sm" (click)="salvarPermissoes()" [disabled]="saving()">
-          {{ saving() ? 'Salvando…' : 'Salvar permissões' }}
-        </button>
-      </div>
-    </footer>
   }
 </div>
 
@@ -307,14 +162,16 @@
   <div class="modal-overlay" (click)="closeModal()">
     <div
       class="modal-content"
+      [class.modal-content--wide]="isCreate() || isEdit()"
+      [class.modal-content--view]="isView()"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="perm-modal-title"
+      [attr.aria-labelledby]="isView() ? 'modal-title-view' : 'modal-title'"
       (click)="$event.stopPropagation()"
     >
-      @if (isCreate() || isRename()) {
+      @if (isCreate() || isEdit()) {
         <div class="modal-header">
-          <h2 id="perm-modal-title">{{ isCreate() ? 'Novo perfil' : 'Renomear perfil' }}</h2>
+          <h2 id="modal-title">{{ isCreate() ? 'Novo perfil' : 'Editar perfil' }}</h2>
         </div>
         <div class="modal-body">
           @if (saveError()) {
@@ -326,28 +183,96 @@
               id="perfil-name"
               type="text"
               class="input-control"
-              [(ngModel)]="formName"
+              [(ngModel)]="form.name"
               placeholder="Nome do perfil"
-              (keyup.enter)="confirmarModalNome()"
             />
+          </div>
+          <div class="form-group">
+            <label for="perfil-desc">Descrição</label>
+            <input
+              id="perfil-desc"
+              type="text"
+              class="input-control"
+              [(ngModel)]="form.normalizedName"
+              placeholder="Descrição (opcional)"
+            />
+          </div>
+          <div class="form-section form-section--permissions">
+            <h3 class="form-section__title">Permissões do Perfil</h3>
+            <div class="form-section__toolbar">
+              <span class="form-section__count">{{ selectedPermissionsCount }} selecionadas</span>
+              <div class="form-section__toolbar-actions">
+                <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">
+                  Selecionar todas
+                </button>
+                <button
+                  type="button"
+                  class="filter-clear-btn"
+                  (click)="limparPermissoesSelecionadas()"
+                  aria-label="Tirar permissões selecionadas"
+                  title="Tirar permissões selecionadas"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div class="perm-legend" aria-label="Legenda das ações">
+              @for (acao of permAcoesLegenda; track acao.action) {
+                <span class="perm-legend__item">
+                  <span class="material-symbols-outlined" aria-hidden="true">{{ acao.icon }}</span>
+                  {{ acao.label }}
+                </span>
+              }
+            </div>
+
+            <div class="permission-tree permission-tree--modern">
+              <mat-accordion multi displayMode="flat" class="perm-accordion">
+                @for (menu of permissionTree(); track menu.menuId) {
+                  <mat-expansion-panel class="perm-panel" [expanded]="true">
+                    <mat-expansion-panel-header class="perm-panel__header">
+                      <mat-panel-title class="perm-panel__title">
+                        <mat-checkbox
+                          color="primary"
+                          [checked]="menu.selecionado"
+                          [indeterminate]="isMenuIndeterminate(menu)"
+                          (click)="$event.stopPropagation()"
+                          (change)="onMenuCheckboxChange(menu.menuId, $event)"
+                          [attr.aria-label]="'Selecionar módulo ' + menu.nome"
+                        />
+                        <span class="perm-panel__name">{{ menu.nome }}</span>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+
+                    <div class="perm-panel__body">
+                      @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
+                        <ng-container
+                          *ngTemplateOutlet="subMenuBranch; context: { subMenu: subMenu, menuId: menu.menuId, depth: 0 }"
+                        />
+                      }
+                    </div>
+                  </mat-expansion-panel>
+                }
+              </mat-accordion>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn--sm" (click)="closeModal()">Cancelar</button>
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
           <button
             type="button"
-            class="btn btn-primary btn--sm"
-            [disabled]="saving() || !formName.trim()"
-            (click)="confirmarModalNome()"
+            class="btn btn-primary"
+            [disabled]="saving() || !form.name.trim() || selectedMenusCount === 0"
+            (click)="salvar()"
           >
-            {{ saving() ? 'Salvando…' : isCreate() ? 'Criar' : 'Salvar' }}
+            {{ saving() ? 'Salvando...' : 'Salvar' }}
           </button>
         </div>
       }
 
       @if (isDelete()) {
         <div class="modal-header">
-          <h2 id="perm-modal-title">Excluir perfil</h2>
+          <h2 id="modal-title">Excluir perfil</h2>
         </div>
         <div class="modal-body">
           <p class="modal-confirm-msg">
@@ -356,79 +281,104 @@
           </p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn--sm" (click)="closeModal()">Cancelar</button>
-          <button type="button" class="btn btn-danger btn--sm" [disabled]="deleting()" (click)="confirmarExclusao()">
-            {{ deleting() ? 'Excluindo…' : 'Excluir' }}
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="button" class="btn btn-danger" [disabled]="deleting()" (click)="confirmarExclusao()">
+            {{ deleting() ? 'Excluindo...' : 'Excluir' }}
           </button>
         </div>
+      }
+
+      @if (isView()) {
+        @if (viewItem(); as v) {
+          <div class="modal-header">
+            <h2 id="modal-title-view">Detalhes do perfil</h2>
+          </div>
+          <div class="modal-body modal-body--view">
+            <div class="perfis-view-head">
+              <p class="perfis-view-name">{{ perfilDisplayName(v) }}</p>
+              <p class="perfis-view-desc">{{ v.normalizedName?.trim() || 'Sem descrição' }}</p>
+            </div>
+            <dl class="perfis-view-dl">
+              <dt>Qtde permissões</dt>
+              <dd>{{ getProfilePermissionCount(v) }}</dd>
+              <dt>Usuários vinculados</dt>
+              <dd>{{ formatUsuariosVinculados(v) }}</dd>
+              <dt>Status</dt>
+              <dd>
+                <span
+                  class="perfis-status"
+                  [class.perfis-status--on]="isPerfilAtivoUi(v)"
+                  [class.perfis-status--off]="!isPerfilAtivoUi(v)"
+                >
+                  <span class="perfis-status__dot" aria-hidden="true"></span>
+                  {{ isPerfilAtivoUi(v) ? 'Ativo' : 'Inativo' }}
+                </span>
+              </dd>
+              <dt>Última atualização</dt>
+              <dd>{{ formatUltimaAtualizacao(v.ultimaAtualizacao) }}</dd>
+            </dl>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" (click)="closeModal()">Fechar</button>
+          </div>
+        }
       }
     </div>
   </div>
 }
 
-<ng-template
-  #subMenuRow
-  let-subMenu="subMenu"
-  let-menuId="menuId"
-  let-depth="depth"
-  let-extras="extras"
->
-  <tr class="perm-grid__row" [class.perm-grid__row--nested]="depth > 0">
-    <td class="perm-grid__col-func">
-      <div class="perm-func" [style.--perm-depth]="depth">
+<ng-template #subMenuBranch let-subMenu="subMenu" let-menuId="menuId" let-depth="depth">
+  <div
+    class="perm-submenu"
+    [class.perm-submenu--nested]="depth > 0"
+    [style.--perm-depth]="depth"
+  >
+    <div class="perm-submenu__row">
+      <div class="perm-submenu__label">
         <mat-checkbox
           color="primary"
-          class="perm-check perm-check--sm"
           [checked]="subMenu.selecionado"
           [indeterminate]="isSubMenuIndeterminate(subMenu)"
           (change)="onSubMenuCheckboxChange(menuId, subMenu.subMenuId, $event)"
-          [attr.aria-label]="'Selecionar ' + subMenu.nome"
-        />
-        <span class="perm-func__name">{{ subMenu.nome }}</span>
+          [attr.aria-label]="'Selecionar tela ' + subMenu.nome"
+        >
+          <span class="perm-submenu__name">{{ subMenu.nome }}</span>
+        </mat-checkbox>
       </div>
-    </td>
 
-    @for (acao of acoesPadrao; track acao) {
-      <td class="perm-grid__col-action">
-        @if (permissionForAction(subMenu, acao); as perm) {
-          <mat-checkbox
-            color="primary"
-            class="perm-check perm-check--sm"
-            [checked]="perm.selecionado"
-            (change)="onPermissaoCheckboxChange(menuId, subMenu.subMenuId, perm.permissaoId, $event)"
-            [attr.aria-label]="actionLabel(acao) + ' — ' + subMenu.nome"
+      @if (subMenu.permissoes?.length) {
+        <div class="perm-actions" role="group" [attr.aria-label]="'Ações de ' + subMenu.nome">
+          @for (permissao of sortedPermissoes(subMenu); track permissao.permissaoId) {
+            @let meta = resolveAcaoMeta(permissao);
+            <mat-checkbox
+              class="perm-action"
+              [class.perm-action--on]="permissao.selecionado"
+              color="primary"
+              [checked]="permissao.selecionado"
+              [matTooltip]="meta.label"
+              matTooltipPosition="above"
+              [attr.aria-label]="meta.label + ' — ' + subMenu.nome"
+              (change)="
+                onPermissaoCheckboxChange(menuId, subMenu.subMenuId, permissao.permissaoId, $event)
+              "
+            >
+              <span class="material-symbols-outlined perm-action__icon" aria-hidden="true">{{
+                meta.icon
+              }}</span>
+            </mat-checkbox>
+          }
+        </div>
+      }
+    </div>
+
+    @if (subMenu.subMenus?.length) {
+      <div class="perm-submenu__children">
+        @for (child of subMenu.subMenus; track child.subMenuId) {
+          <ng-container
+            *ngTemplateOutlet="subMenuBranch; context: { subMenu: child, menuId: menuId, depth: depth + 1 }"
           />
-        } @else {
-          <span class="perm-grid__na" aria-hidden="true">—</span>
         }
-      </td>
+      </div>
     }
-
-    @for (extra of extras; track extra) {
-      <td class="perm-grid__col-action">
-        @if (permissionForAction(subMenu, extra); as perm) {
-          <mat-checkbox
-            color="primary"
-            class="perm-check perm-check--sm"
-            [checked]="perm.selecionado"
-            (change)="onPermissaoCheckboxChange(menuId, subMenu.subMenuId, perm.permissaoId, $event)"
-            [attr.aria-label]="actionLabel(extra) + ' — ' + subMenu.nome"
-          />
-        } @else {
-          <span class="perm-grid__na" aria-hidden="true">—</span>
-        }
-      </td>
-    }
-  </tr>
-
-  @if (subMenu.subMenus?.length) {
-    @for (child of subMenu.subMenus; track child.subMenuId) {
-      <ng-container
-        *ngTemplateOutlet="
-          subMenuRow;
-          context: { subMenu: child, menuId: menuId, depth: depth + 1, extras: extras }
-        "
-      />
-    }
-  }
+  </div>
 </ng-template>

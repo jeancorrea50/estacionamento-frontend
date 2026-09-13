@@ -1,8 +1,11 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { unwrapServiceResult } from '../../../core/api/utils/service-result.util';
+import { mapMotoristaPorPlacaResponse } from '../../cadastro/mappers/motorista-por-placa.mapper';
+import { MotoristaPorPlacaAggregateVm } from '../../cadastro/models/motorista-por-placa.vm';
+import { normalizePlaca } from '../../cadastro/utils/placa-br';
 import {
   AgendamentoFiltro,
   AgendamentoPagedResult,
@@ -30,6 +33,26 @@ export class AgendamentoService {
 
     return this.http.get<unknown>(this.apiRoot, { params }).pipe(
       map((body) => this.normalizePaged(body, filtro.numeroPagina, filtro.tamanhoPagina))
+    );
+  }
+
+  /**
+   * GET `/api/Agendamento/por-placa/{placa}` — mesmo contrato de Veiculo/por-placa,
+   * sob permissão `agendamento.visualizar` (evita 403 de Motorista/Veiculo).
+   */
+  obterPorPlaca(placa: string): Observable<MotoristaPorPlacaAggregateVm | null> {
+    const norm = normalizePlaca(placa);
+    if (norm.length < 7) {
+      return of(null);
+    }
+    return this.http.get<unknown>(`${this.apiRoot}/por-placa/${encodeURIComponent(norm)}`).pipe(
+      timeout(15000),
+      map((body) => mapMotoristaPorPlacaResponse(body)),
+      catchError((err: unknown) => {
+        const status = err instanceof HttpErrorResponse ? err.status : 0;
+        if (status === 404) return of(null);
+        return throwError(() => err);
+      })
     );
   }
 

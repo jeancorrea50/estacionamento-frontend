@@ -7,7 +7,6 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
 import { normalizePlaca, formatPlacaDisplay, placaCompleta } from '../../../cadastro/utils/placa-br';
@@ -50,7 +49,6 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
-  private readonly veiculoService = inject(VeiculoService);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
@@ -237,7 +235,7 @@ export class AgendamentosPageComponent implements OnInit {
     if (!placaCompleta(placa)) return;
 
     this.lookingUp = true;
-    this.veiculoService.obterPorPlaca(placa).subscribe({
+    this.api.obterPorPlaca(placa).subscribe({
       next: (agg) => {
         this.lookingUp = false;
         if (!agg?.veiculoId) {

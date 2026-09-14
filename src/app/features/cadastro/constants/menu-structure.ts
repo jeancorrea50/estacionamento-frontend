@@ -9,6 +9,8 @@ import {
   FATURAMENTO_RELATORIO_ROUTE,
   FATURAMENTO_ROUTE,
   FINANCEIRO_ROUTE,
+  PAGAMENTOS_RELATORIO_LABEL,
+  PAGAMENTOS_RELATORIO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from '../../financeiro/faturamento-rotas';
 import {
@@ -100,7 +102,18 @@ export const MENU_STRUCTURE: MenuNode[] = [
           },
         ],
       },
-      { id: 'sub-pagamentos', label: 'Pagamentos', route: PAGAMENTOS_ROUTE },
+      {
+        id: 'sub-pagamentos',
+        label: 'Pagamentos',
+        route: PAGAMENTOS_ROUTE,
+        children: [
+          {
+            id: 'sub-pagamentos-relatorio',
+            label: PAGAMENTOS_RELATORIO_LABEL,
+            route: PAGAMENTOS_RELATORIO_ROUTE,
+          },
+        ],
+      },
     ],
   },
   {

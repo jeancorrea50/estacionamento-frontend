@@ -2,9 +2,12 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
+import { PAGAMENTOS_RELATORIO_ROUTE } from '../../faturamento-rotas';
 import { FaturaService } from '../../services/fatura.service';
 import { PagamentoRelatorioService } from '../../services/pagamento-relatorio.service';
 import type {
@@ -28,6 +31,8 @@ export class PagamentoRelatorioComponent implements OnInit {
   private readonly api = inject(PagamentoRelatorioService);
   private readonly faturaApi = inject(FaturaService);
   private readonly auth = inject(AuthService);
+  private readonly sessionAccess = inject(SessionAccessService);
+  private readonly router = inject(Router);
   private readonly snack = inject(MatSnackBar);
 
   readonly statusOpcoes = PAGAMENTO_RELATORIO_STATUS_OPCOES;
@@ -60,9 +65,22 @@ export class PagamentoRelatorioComponent implements OnInit {
   numero = '';
   descricao = '';
 
+  /**
+   * Acesso só pelo `menus` do login (SessionAccessService).
+   * A rota `/app/financeiro/pagamento/relatorio` precisa vir no payload.
+   */
+  get canVisualizar(): boolean {
+    return (
+      this.sessionAccess.canAccessRoute(this.router.url) ||
+      this.sessionAccess.canAccessRoute(PAGAMENTOS_RELATORIO_ROUTE)
+    );
+  }
+
   ngOnInit(): void {
     this.definirPeriodoMesAtual();
-    this.carregarTransportadoras();
+    if (this.canVisualizar) {
+      this.carregarTransportadoras();
+    }
   }
 
   limparFiltros(): void {
@@ -75,6 +93,7 @@ export class PagamentoRelatorioComponent implements OnInit {
   }
 
   buscar(): void {
+    if (!this.canVisualizar) return;
     if (this.auth.needsEstacionamentoSelection()) {
       this.snack.open('Selecione o estacionamento da sessão antes de consultar.', 'Fechar', {
         duration: 4000,
@@ -113,6 +132,7 @@ export class PagamentoRelatorioComponent implements OnInit {
   }
 
   private exportar(tipo: 'pdf' | 'excel'): void {
+    if (!this.canVisualizar) return;
     if (this.auth.needsEstacionamentoSelection()) {
       this.snack.open('Selecione o estacionamento da sessão antes de exportar.', 'Fechar', {
         duration: 4000,

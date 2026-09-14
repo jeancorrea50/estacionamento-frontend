@@ -10,6 +10,13 @@
       </div>
     </header>
 
+    @if (!canVisualizar) {
+      <p class="empty-msg" role="status">
+        Sem permissão para visualizar este relatório. A rota
+        <code>/app/financeiro/pagamento/relatorio</code> precisa vir no objeto
+        <code>menus</code> do login.
+      </p>
+    } @else {
     <section class="cfg-search-bar rel-filters" aria-label="Filtros do relatório de pagamentos">
       <div class="rel-filters__grid">
         <label class="rel-field">
@@ -193,6 +200,7 @@
           </table>
         </div>
       </div>
+    }
     }
   </div>
 </div>

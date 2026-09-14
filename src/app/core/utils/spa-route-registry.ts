@@ -1,9 +1,11 @@
 import { MENU_STRUCTURE } from '../../features/cadastro/constants/menu-structure';
 import {
   FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_RELATORIO_ROUTE,
   FATURAMENTO_ROUTE,
   FATURAMENTO_TABS,
   FINANCEIRO_ROUTE,
+  PAGAMENTOS_RELATORIO_ROUTE,
   PAGAMENTOS_ROUTE,
 } from '../../features/financeiro/faturamento-rotas';
 import {
@@ -44,7 +46,9 @@ function collectFaturamentoRoutes(): void {
   addRoute(FINANCEIRO_ROUTE);
   addRoute(FATURAMENTO_ROUTE);
   addRoute(PAGAMENTOS_ROUTE);
+  addRoute(PAGAMENTOS_RELATORIO_ROUTE);
   addRoute(FATURAMENTO_CONFIG_ROUTE);
+  addRoute(FATURAMENTO_RELATORIO_ROUTE);
   for (const tab of FATURAMENTO_TABS) {
     addRoute(tab.route);
   }

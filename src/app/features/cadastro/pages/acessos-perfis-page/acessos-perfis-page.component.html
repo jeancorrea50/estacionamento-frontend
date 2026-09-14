@@ -328,13 +328,16 @@
 }
 
 <ng-template #subMenuBranch let-subMenu="subMenu" let-menuId="menuId" let-depth="depth">
-  <div
-    class="perm-submenu"
-    [class.perm-submenu--nested]="depth > 0"
-    [style.--perm-depth]="depth"
-  >
+  <div class="perm-submenu">
     <div class="perm-submenu__row">
-      <div class="perm-submenu__label">
+      <div
+        class="perm-submenu__label"
+        [class.perm-submenu__label--nested]="depth > 0"
+        [style.--perm-depth]="depth"
+      >
+        @if (depth > 0) {
+          <span class="perm-submenu__dot" aria-hidden="true"></span>
+        }
         <mat-checkbox
           color="primary"
           [checked]="subMenu.selecionado"
@@ -346,29 +349,46 @@
         </mat-checkbox>
       </div>
 
-      @if (subMenu.permissoes?.length) {
-        <div class="perm-actions" role="group" [attr.aria-label]="'Ações de ' + subMenu.nome">
-          @for (permissao of sortedPermissoes(subMenu); track permissao.permissaoId) {
-            @let meta = resolveAcaoMeta(permissao);
-            <mat-checkbox
+      <div class="perm-actions" role="group" [attr.aria-label]="'Ações de ' + subMenu.nome">
+        @for (acao of permAcoesLegenda; track acao.action) {
+          @let permissao = findAcaoPadrao(subMenu, acao.action);
+          @if (permissao) {
+            <button
+              type="button"
               class="perm-action"
               [class.perm-action--on]="permissao.selecionado"
-              color="primary"
-              [checked]="permissao.selecionado"
-              [matTooltip]="meta.label"
+              [matTooltip]="acao.label"
               matTooltipPosition="above"
-              [attr.aria-label]="meta.label + ' — ' + subMenu.nome"
-              (change)="
-                onPermissaoCheckboxChange(menuId, subMenu.subMenuId, permissao.permissaoId, $event)
-              "
+              [attr.aria-label]="acao.label + ' — ' + subMenu.nome"
+              [attr.aria-pressed]="permissao.selecionado"
+              (click)="toggleAcaoPermissao(menuId, subMenu.subMenuId, permissao, $event)"
             >
               <span class="material-symbols-outlined perm-action__icon" aria-hidden="true">{{
-                meta.icon
+                acao.icon
               }}</span>
-            </mat-checkbox>
+            </button>
+          } @else {
+            <span class="perm-action perm-action--empty" aria-hidden="true"></span>
           }
-        </div>
-      }
+        }
+        @for (permissao of customPermissoes(subMenu); track permissao.permissaoId) {
+          @let meta = resolveAcaoMeta(permissao);
+          <button
+            type="button"
+            class="perm-action perm-action--custom"
+            [class.perm-action--on]="permissao.selecionado"
+            [matTooltip]="meta.label"
+            matTooltipPosition="above"
+            [attr.aria-label]="meta.label + ' — ' + subMenu.nome"
+            [attr.aria-pressed]="permissao.selecionado"
+            (click)="toggleAcaoPermissao(menuId, subMenu.subMenuId, permissao, $event)"
+          >
+            <span class="material-symbols-outlined perm-action__icon" aria-hidden="true">{{
+              meta.icon
+            }}</span>
+          </button>
+        }
+      </div>
     </div>
 
     @if (subMenu.subMenus?.length) {

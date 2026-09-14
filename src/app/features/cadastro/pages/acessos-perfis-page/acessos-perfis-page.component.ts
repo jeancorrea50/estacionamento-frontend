@@ -30,9 +30,12 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import {
   PERMISSAO_ACOES_LEGENDA,
+  findPermissaoByAction,
+  listCustomPermissoes,
   resolvePermissaoAcaoMeta,
   sortPermissoesByAction,
   type PermissaoAcaoMeta,
+  type PermissaoAcaoPadrao,
 } from './perfil-permissao-acao.util';
 import {
   buildPermissionTreeState,
@@ -736,6 +739,28 @@ export class AcessosPerfisPageComponent implements OnInit {
 
   sortedPermissoes(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
     return sortPermissoesByAction(subMenu.permissoes ?? []);
+  }
+
+  findAcaoPadrao(
+    subMenu: TreeSubMenuNode,
+    action: PermissaoAcaoPadrao
+  ): TreePermissaoNode | undefined {
+    return findPermissaoByAction(subMenu.permissoes, action);
+  }
+
+  customPermissoes(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
+    return listCustomPermissoes(subMenu.permissoes);
+  }
+
+  toggleAcaoPermissao(
+    menuId: number,
+    subMenuId: number,
+    permissao: TreePermissaoNode,
+    event?: Event
+  ): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    this.onPermissaoToggle(menuId, subMenuId, permissao.permissaoId, !permissao.selecionado);
   }
 
   isMenuIndeterminate(menu: TreeMenuNode): boolean {

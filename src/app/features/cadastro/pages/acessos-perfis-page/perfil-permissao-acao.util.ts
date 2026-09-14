@@ -9,14 +9,15 @@ export interface PermissaoAcaoMeta {
   isPadrao: boolean;
 }
 
+/** Ícones no estilo das referências: check / + / lápis / X. */
 const ACAO_META: Record<string, Omit<PermissaoAcaoMeta, 'action' | 'isPadrao'>> = {
-  visualizar: { label: 'Visualizar', icon: 'visibility' },
-  gravar: { label: 'Gravar', icon: 'save' },
+  visualizar: { label: 'Visualizar', icon: 'check' },
+  gravar: { label: 'Gravar', icon: 'add' },
   alterar: { label: 'Alterar', icon: 'edit' },
-  excluir: { label: 'Excluir', icon: 'delete' },
+  excluir: { label: 'Excluir', icon: 'close' },
   gerenciar: { label: 'Gerenciar', icon: 'manage_accounts' },
   exportar: { label: 'Exportar', icon: 'download' },
-  ver: { label: 'Ver', icon: 'visibility' },
+  ver: { label: 'Ver', icon: 'check' },
   upload: { label: 'Upload', icon: 'upload' },
 };
 
@@ -38,10 +39,10 @@ export const PERMISSAO_ACOES_LEGENDA: ReadonlyArray<{
   label: string;
   icon: string;
 }> = [
-  { action: 'visualizar', label: 'Visualizar', icon: 'visibility' },
-  { action: 'gravar', label: 'Gravar', icon: 'save' },
+  { action: 'visualizar', label: 'Visualizar', icon: 'check' },
+  { action: 'gravar', label: 'Gravar', icon: 'add' },
   { action: 'alterar', label: 'Alterar', icon: 'edit' },
-  { action: 'excluir', label: 'Excluir', icon: 'delete' },
+  { action: 'excluir', label: 'Excluir', icon: 'close' },
 ];
 
 /** Extrai o sufixo da claim (`entradasaida.visualizar` → `visualizar`). */
@@ -85,4 +86,24 @@ export function sortPermissoesByAction(permissoes: TreePermissaoNode[]): TreePer
     if (rankA !== rankB) return rankA - rankB;
     return actionA.localeCompare(actionB, 'pt-BR');
   });
+}
+
+/** Localiza a claim padrão (visualizar/gravar/alterar/excluir) na linha do submenu. */
+export function findPermissaoByAction(
+  permissoes: TreePermissaoNode[] | null | undefined,
+  action: string
+): TreePermissaoNode | undefined {
+  const target = (action ?? '').trim().toLowerCase();
+  if (!target || !permissoes?.length) return undefined;
+  return permissoes.find((p) => extractPermissionAction(p.key || p.nome) === target);
+}
+
+/** Claims fora das 4 ações padrão (ex.: custom / exportar). */
+export function listCustomPermissoes(
+  permissoes: TreePermissaoNode[] | null | undefined
+): TreePermissaoNode[] {
+  if (!permissoes?.length) return [];
+  return sortPermissoesByAction(
+    permissoes.filter((p) => !PADRAO.has(extractPermissionAction(p.key || p.nome)))
+  );
 }

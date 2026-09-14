@@ -142,18 +142,57 @@ export class FinanceiroMenuSeedService {
   }
 
   private hasMatchingSub(existing: SubMenuAdmin[], def: FinanceiroFlatSubMenuDef): boolean {
+    return this.findExistingForDef(existing, def) != null;
+  }
+
+  /**
+   * Resolve o submenu existente correspondente a `def`.
+   * Labels curtos repetidos (ex.: vários "Relatório") NÃO podem casar só por nome —
+   * isso oscilava rotas faturamento/pagamento e gerava loop Alterar↔Buscar.
+   */
+  private findExistingForDef(
+    existing: SubMenuAdmin[],
+    def: FinanceiroFlatSubMenuDef
+  ): SubMenuAdmin | undefined {
     const route = normRoute(def.rota);
     const label = normLabel(def.nome);
-    const tabSuffix = route.split('/').pop() ?? '';
+    const parent = this.parentRoute(route);
 
-    return existing.some((sub) => {
-      const subRoute = normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota);
-      const subLabel = normLabel(sub.nome);
-      if (subRoute === route) return true;
-      if (subLabel === label) return true;
-      if (tabSuffix && (subRoute.endsWith(`/${tabSuffix}`) || subRoute === tabSuffix)) return true;
-      return false;
-    });
+    const byExactRoute = existing.find(
+      (sub) => normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota) === route
+    );
+    if (byExactRoute) return byExactRoute;
+
+    const sameLabel = existing.filter((sub) => normLabel(sub.nome) === label);
+    if (sameLabel.length === 0) return undefined;
+
+    if (parent) {
+      const byParent = sameLabel.find((sub) => {
+        const subRoute = normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota);
+        return this.parentRoute(subRoute) === parent;
+      });
+      if (byParent) return byParent;
+    }
+
+    // Label único no menu: pode realinhar rota legada.
+    if (sameLabel.length === 1) {
+      const only = sameLabel[0];
+      const onlyRoute = normRoute(normalizeLegacyAppRoute(only.rota) ?? only.rota);
+      const conflict = existing.some(
+        (sub) =>
+          sub !== only &&
+          normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota) === route
+      );
+      if (!conflict) return only;
+    }
+
+    return undefined;
+  }
+
+  private parentRoute(route: string): string {
+    const parts = route.split('/').filter(Boolean);
+    if (parts.length <= 1) return '';
+    return `/${parts.slice(0, -1).join('/')}`;
   }
 
   private listRouteFixes(existing: SubMenuAdmin[], expected: FinanceiroFlatSubMenuDef[]): SubMenuAdmin[] {
@@ -161,17 +200,25 @@ export class FinanceiroMenuSeedService {
 
     for (const def of expected) {
       const targetRoute = normalizeLegacyAppRoute(def.rota) ?? def.rota;
-      const match = existing.find((sub) => normLabel(sub.nome) === normLabel(def.nome));
+      const match = this.findExistingForDef(existing, def);
       if (!match) continue;
 
       const currentRoute = normalizeLegacyAppRoute(match.rota) ?? match.rota;
-      if (normRoute(currentRoute) !== normRoute(targetRoute)) {
-        fixes.push({
-          ...match,
-          rota: targetRoute,
-          exibirNoSidebar: def.exibirNoSidebar,
-        });
-      }
+      if (normRoute(currentRoute) === normRoute(targetRoute)) continue;
+
+      // Não “roubar” a rota de outro submenu que já está correta.
+      const occupiedByOther = existing.some(
+        (sub) =>
+          sub !== match &&
+          normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota) === normRoute(targetRoute)
+      );
+      if (occupiedByOther) continue;
+
+      fixes.push({
+        ...match,
+        rota: targetRoute,
+        exibirNoSidebar: def.exibirNoSidebar,
+      });
     }
 
     return fixes;

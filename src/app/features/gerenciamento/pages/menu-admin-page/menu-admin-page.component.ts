@@ -68,6 +68,12 @@ export class MenuAdminPageComponent implements OnInit {
   /** DELETE em andamento para menu/submenu. */
   protected readonly excluindoKey = signal<string | null>(null);
 
+  /**
+   * Evita loop seed→Alterar→Buscar→seed quando o alinhamento ainda reporta diff.
+   * Após um ciclo de mutação do seed, o próximo apply só hidrata a lista.
+   */
+  private skipNextFinanceiroSeed = false;
+
   ngOnInit(): void {
     this.carregarMenusDoBackend();
   }
@@ -97,6 +103,12 @@ export class MenuAdminPageComponent implements OnInit {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
+
+    if (this.skipNextFinanceiroSeed) {
+      this.skipNextFinanceiroSeed = false;
+      return;
+    }
+
     this.financeiroMenuSeed.ensureFinanceiroMenuStructure(menus).subscribe({
       next: (result) => {
         if (result.created > 0 || result.updatedRoutes > 0) {
@@ -108,6 +120,7 @@ export class MenuAdminPageComponent implements OnInit {
             parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
           }
           this.toast.success(`Financeiro: ${parts.join('; ')}.`);
+          this.skipNextFinanceiroSeed = true;
           this.refreshMenusAfterMutation();
         }
       },

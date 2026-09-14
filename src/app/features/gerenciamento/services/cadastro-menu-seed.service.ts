@@ -134,17 +134,44 @@ export class CadastroMenuSeedService {
   }
 
   private hasMatchingSub(existing: SubMenuAdmin[], def: CadastroFlatSubMenuDef): boolean {
+    return this.findExistingForDef(existing, def) != null;
+  }
+
+  private findExistingForDef(
+    existing: SubMenuAdmin[],
+    def: CadastroFlatSubMenuDef
+  ): SubMenuAdmin | undefined {
     const route = normRoute(def.rota);
     const label = normLabel(def.nome);
+    const parent = this.parentRoute(route);
 
-    return existing.some((sub) => {
-      const subRoute = normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota);
+    const byExactRoute = existing.find(
+      (sub) => normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota) === route
+    );
+    if (byExactRoute) return byExactRoute;
+
+    const sameLabel = existing.filter((sub) => {
       const subLabel = normLabel(sub.nome);
-      if (subRoute === route) return true;
-      if (subLabel === label) return true;
-      if (subLabel === normLabel(def.nome.replace(/s$/, ''))) return true;
-      return false;
+      return subLabel === label || subLabel === normLabel(def.nome.replace(/s$/, ''));
     });
+    if (sameLabel.length === 0) return undefined;
+
+    if (parent) {
+      const byParent = sameLabel.find((sub) => {
+        const subRoute = normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota);
+        return this.parentRoute(subRoute) === parent;
+      });
+      if (byParent) return byParent;
+    }
+
+    if (sameLabel.length === 1) return sameLabel[0];
+    return undefined;
+  }
+
+  private parentRoute(route: string): string {
+    const parts = route.split('/').filter(Boolean);
+    if (parts.length <= 1) return '';
+    return `/${parts.slice(0, -1).join('/')}`;
   }
 
   private listRouteFixes(existing: SubMenuAdmin[], expected: CadastroFlatSubMenuDef[]): SubMenuAdmin[] {
@@ -152,28 +179,29 @@ export class CadastroMenuSeedService {
 
     for (const def of expected) {
       const targetRoute = normalizeLegacyAppRoute(def.rota) ?? def.rota;
-      const match = existing.find((sub) => {
-        const label = normLabel(sub.nome);
-        return label === normLabel(def.nome) || label === normLabel(def.nome.replace(/s$/, ''));
-      });
+      const match = this.findExistingForDef(existing, def);
       if (!match) continue;
 
       const currentRoute = normalizeLegacyAppRoute(match.rota) ?? match.rota;
-      if (normRoute(currentRoute) !== normRoute(targetRoute)) {
-        fixes.push({
-          ...match,
-          nome: def.nome,
-          rota: targetRoute,
-          exibirNoSidebar: true,
-        });
-      } else if (normLabel(match.nome) !== normLabel(def.nome)) {
-        fixes.push({
-          ...match,
-          nome: def.nome,
-          rota: targetRoute,
-          exibirNoSidebar: true,
-        });
+      const needsRoute = normRoute(currentRoute) !== normRoute(targetRoute);
+      const needsName = normLabel(match.nome) !== normLabel(def.nome);
+      if (!needsRoute && !needsName) continue;
+
+      if (needsRoute) {
+        const occupiedByOther = existing.some(
+          (sub) =>
+            sub !== match &&
+            normRoute(normalizeLegacyAppRoute(sub.rota) ?? sub.rota) === normRoute(targetRoute)
+        );
+        if (occupiedByOther) continue;
       }
+
+      fixes.push({
+        ...match,
+        nome: def.nome,
+        rota: targetRoute,
+        exibirNoSidebar: true,
+      });
     }
 
     return fixes;

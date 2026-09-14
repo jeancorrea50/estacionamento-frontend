@@ -296,10 +296,10 @@ export function validateSubMenuAlterarPayload(sub: SubMenuAdmin): string | null 
 
   const hasVisualizar = permissions.some((acao) => {
     const normalized = acao.toLowerCase();
-    return normalized.endsWith('.visualizar') || normalized === 'visualizar';
+    return normalized.includes('visualizar');
   });
   if (!hasVisualizar) {
-    return 'A permissão de visualizar é obrigatória.';
+    return 'Informe ao menos uma permissão contendo "visualizar".';
   }
 
   return null;

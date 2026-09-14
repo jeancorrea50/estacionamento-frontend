@@ -25,6 +25,7 @@ import {
 import {
   buildFullAcaoPermissao,
   hasMatchingPermissionAcao,
+  permissionListHasVisualizar,
   permissionRowMatchesUi,
   slugSubModuloNome,
 } from '../../services/menu-permission-acao';
@@ -635,8 +636,13 @@ export class MenuAdminPageComponent implements OnInit {
     if (menuId == null) return;
     const nome = this.subFormNome.trim();
     if (!nome) return;
-    if (!this.subFormPermissoesSelecionadas.includes('visualizar')) {
-      this.toast.error('O submenu precisa ter a permissão de visualizar.');
+    if (
+      !permissionListHasVisualizar([
+        ...this.subFormPermissoesSelecionadas,
+        ...this.subFormPermissoesCustomizadas,
+      ])
+    ) {
+      this.toast.error('Informe ao menos uma permissão contendo "visualizar".');
       return;
     }
     const parentSubId = this.subModalParentSubId();

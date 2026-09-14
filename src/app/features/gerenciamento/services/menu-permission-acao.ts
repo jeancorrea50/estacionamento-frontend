@@ -62,13 +62,21 @@ export function buildPermissaoAcaoPorRota(
 /** Verifica se a linha de permissão corresponde à ação da UI (nome curto ou string completa da API). */
 export function permissionRowMatchesUi(p: MenuPermissionRow, subNome: string, uiAcao: string): boolean {
   const target = norm(buildFullAcaoPermissao(subNome, uiAcao));
-  const suffix = norm(UI_TO_API_SUFFIX[uiAcao] ?? uiAcao);
   const ui = norm(uiAcao);
   const a = norm(p.acao);
   if (a === target) return true;
   if (a === ui) return true;
-  if (a.endsWith(`.${suffix}`)) return true;
   return false;
+}
+
+/** True se alguma claim contém o token `visualizar` (checkbox padrão ou permissão custom). */
+export function permissionListHasVisualizar(actions: Array<string | null | undefined>): boolean {
+  return actions.some((acao) => {
+    const normalized = String(acao ?? '')
+      .trim()
+      .toLowerCase();
+    return normalized.includes('visualizar');
+  });
 }
 
 export function hasMatchingPermissionAcao(

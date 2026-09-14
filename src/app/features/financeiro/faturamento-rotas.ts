@@ -12,11 +12,11 @@ export const FINANCEIRO_ROUTE = '/app/financeiro';
 /** Container das abas de Faturamento. */
 export const FATURAMENTO_ROUTE = '/app/financeiro/faturamento';
 
-/** Tela Pagamentos — rota canônica da API/login. */
+/** Tela Pagamento — rota canônica da API/login. */
 export const PAGAMENTOS_ROUTE = '/app/financeiro/pagamento';
 export const PAGAMENTOS_PATH = 'pagamento';
 
-/** Submenu Relatório — sob Pagamentos (`/app/financeiro/pagamento/relatorio`). */
+/** Submenu Relatório — sob Pagamento (`/app/financeiro/pagamento/relatorio`). */
 export const PAGAMENTOS_RELATORIO_ROUTE = '/app/financeiro/pagamento/relatorio';
 export const PAGAMENTOS_RELATORIO_PATH = 'relatorio';
 export const PAGAMENTOS_RELATORIO_LABEL = 'Relatório';
@@ -52,7 +52,7 @@ function tab(id: FaturamentoTabId, label: string): FaturamentoTabDef {
   return { id, label, path: id, route: `${FATURAMENTO_ROUTE}/${id}` };
 }
 
-/** Abas internas da tela Faturamento (sem Pagamentos — submenu separado). */
+/** Abas internas da tela Faturamento (sem Pagamento — submenu separado). */
 export const FATURAMENTO_TABS: readonly FaturamentoTabDef[] = [
   tab('visao-geral', 'Visão Geral'),
   tab('fechamentos', 'Fechamentos'),

@@ -257,7 +257,7 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
     return 'Faturamento';
   }
   if (key === 'pagamentos' || key === 'pagamento' || key === 'recebimentos') {
-    return 'Pagamentos';
+    return 'Pagamento';
   }
 
   if (

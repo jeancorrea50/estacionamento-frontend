@@ -1,5 +1,5 @@
 /**
- * Estrutura plana (nível API) do menu Financeiro → Faturamento/Pagamentos → abas.
+ * Estrutura plana (nível API) do menu Financeiro → Faturamento/Pagamento → abas.
  * O frontend recompõe a árvore visual com `nestSubMenusByRoute`.
  */
 import type { MenuSubItem } from '../cadastro/constants/menu-structure';
@@ -52,7 +52,7 @@ export const FINANCEIRO_MENU_TREE: MenuSubItem[] = [
   },
   {
     id: 'sub-pagamentos',
-    label: 'Pagamentos',
+    label: 'Pagamento',
     route: PAGAMENTOS_ROUTE,
     children: [
       {

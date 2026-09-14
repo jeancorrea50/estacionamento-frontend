@@ -104,7 +104,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
       },
       {
         id: 'sub-pagamentos',
-        label: 'Pagamentos',
+        label: 'Pagamento',
         route: PAGAMENTOS_ROUTE,
         children: [
           {

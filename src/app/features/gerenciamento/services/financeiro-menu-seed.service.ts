@@ -47,7 +47,7 @@ interface MenuMutation {
 }
 
 /**
- * Publica no backend (idempotente) a estrutura Financeiro → Faturamento/Pagamentos → abas.
+ * Publica no backend (idempotente) a estrutura Financeiro → Faturamento/Pagamento → abas.
  * A API persiste submenus planos; o front recompõe 3 níveis pelo prefixo de rota.
  */
 @Injectable({ providedIn: 'root' })

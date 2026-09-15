@@ -112,7 +112,11 @@ function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
 function isEstacionamentoConfiguracaoAtualGet(req: HttpRequest<unknown>): boolean {
   if (req.method !== 'GET') return false;
   const u = req.url.toLowerCase().split('?')[0];
-  return u.endsWith('/estacionamentoconfiguracao') || u.endsWith('/estacionamentoconfiguracao/');
+  return (
+    u.endsWith('/estacionamentoconfiguracao') ||
+    u.endsWith('/estacionamentoconfiguracao/') ||
+    /\/estacionamentoconfiguracao\/estacionamento\/\d+$/.test(u)
+  );
 }
 
 /**

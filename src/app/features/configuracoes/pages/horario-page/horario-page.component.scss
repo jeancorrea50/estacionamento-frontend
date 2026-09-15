@@ -38,6 +38,17 @@
   color: var(--muted);
 }
 
+.horario-card__banner {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
 .horario-card__field {
   display: flex;
   flex-direction: column;

@@ -32,6 +32,9 @@ export class HorarioPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly salvando = signal(false);
 
+  /** true após carregar: ainda não existe config no pátio (primeiro cadastro). */
+  readonly semConfiguracao = computed(() => !this.loading() && this.configId() == null);
+
   readonly podeSalvar = computed(
     () => !!this.timeZoneId().trim() && !this.loading() && !this.salvando()
   );
@@ -78,10 +81,14 @@ export class HorarioPageComponent implements OnInit {
         atualOk = true;
         liberarSePossivel();
       },
-      error: () => {
-        // Sem toast: ausência de config é cenário esperado antes do primeiro POST.
+      error: (err: ApiError) => {
+        // 404/null já tratados no service; outros erros (ex.: sem pátio) avisam sem travar a tela.
         this.configId.set(null);
+        this.configAtual = null;
         atualOk = true;
+        if (err?.status && err.status !== 404 && err.status !== 204) {
+          this.toast.error(err.message ?? 'Não foi possível carregar o horário deste estacionamento.');
+        }
         liberarSePossivel();
       }
     });

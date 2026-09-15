@@ -10,6 +10,13 @@
         </p>
       </header>
 
+      @if (semConfiguracao()) {
+        <p class="horario-card__banner" role="status">
+          Este estacionamento ainda não tem horário configurado. Selecione o fuso e clique em
+          <strong>Salvar horário</strong> para cadastrar.
+        </p>
+      }
+
       <div class="horario-card__field">
         <label class="horario-card__label" for="timeZoneId">Horário</label>
         <select

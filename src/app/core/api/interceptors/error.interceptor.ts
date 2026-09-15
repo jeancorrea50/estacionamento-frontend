@@ -119,6 +119,11 @@ function isEstacionamentoConfiguracaoAtualGet(req: HttpRequest<unknown>): boolea
   );
 }
 
+function isNullReferenceMessage(message: string | undefined): boolean {
+  const m = String(message ?? '').toLowerCase();
+  return m.includes('nullreferenceexception') || m.includes('object reference not set');
+}
+
 /**
  * Lookups do registro rápido em Movimentos: 404 = sem cadastro prévio (esperado).
  * A tela preenche silenciosamente quando houver dado; não deve exibir toast.
@@ -193,7 +198,11 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         isUsuarioRegisterRequest(req) ||
         isSugerirNomeBancoGet(req) ||
         isMotoristaWriteRequest(req) ||
-        (isEstacionamentoConfiguracaoAtualGet(req) && apiError.status === 404) ||
+        (isEstacionamentoConfiguracaoAtualGet(req) &&
+          (apiError.status === 404 ||
+            apiError.status === 204 ||
+            apiError.status === 403 ||
+            isNullReferenceMessage(apiError.message))) ||
         (isMovimentosLookupSilencioso(req) && (apiError.status === 404 || apiError.status === 204)) ||
         (isValorEstacionamentoGet(req) && (apiError.status === 404 || apiError.status === 204));
       if (!skipToast) {

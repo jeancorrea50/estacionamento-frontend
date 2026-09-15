@@ -47,7 +47,15 @@ export class EstacionamentoConfiguracaoService {
             : err && typeof err === 'object' && 'status' in err
               ? Number((err as { status?: number }).status)
               : undefined;
-        if (status === 404 || status === 204) {
+        // Sem config / sem permissão transitória: trata como "ainda não cadastrado".
+        if (status === 404 || status === 204 || status === 403) {
+          return of(null);
+        }
+        const msg =
+          err && typeof err === 'object' && 'message' in err
+            ? String((err as { message?: string }).message ?? '')
+            : '';
+        if (/nullreferenceexception|object reference not set/i.test(msg)) {
           return of(null);
         }
         return throwError(() => this.toApiError(err, 'Falha ao carregar configuração de horário.'));

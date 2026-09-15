@@ -34,6 +34,7 @@ import { Subject, forkJoin, map, of, throwError } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
+import { PortariaAlertasStore } from '../../services/portaria-alertas.store';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
 import {
   datetimeLocalInputToApiIso,
@@ -124,6 +125,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly entradaSaidaService = inject(EntradaSaidaService);
   private readonly movimentoService = inject(MovimentoService);
   private readonly signalrDashboardService = inject(SignalrDashboardService);
+  private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly motoristaService = inject(MotoristaService);
   private readonly toast = inject(ToastService);
@@ -223,14 +225,36 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   /** KPIs e monitoramento reativos ao hub (zoneless). */
   private readonly dashboardTempoReal = this.signalrDashboardService.dashboardAtualizado;
-  /** Lista do socket `movimentacaoAtualizada`, mais recente primeiro (sem mock). */
-  private readonly movimentacoesTempoReal = computed(() =>
-    this.signalrDashboardService
+  /**
+   * Snapshot HTTP do pátio da sessão (JWT / X-Empresa-Id).
+   * Usado quando o hub não envia itens escopados (broadcast global).
+   */
+  private readonly monitoramentoHttpSeed = signal<MovimentacaoTempoRealVm[]>([]);
+  private readonly cancelarMonitoramentoPortaria$ = new Subject<void>();
+  /** Lista ao vivo da portaria: com pátio selecionado, HTTP do pátio é a fonte da verdade (hub não mistura outros pátios). */
+  private readonly movimentacoesTempoReal = computed(() => {
+    const sessionId = this.auth.resolveEstacionamentoId();
+    const fromHttp = this.monitoramentoHttpSeed();
+
+    if (this.isPortariaView() && sessionId != null && sessionId > 0) {
+      return fromHttp;
+    }
+
+    const fromHub = this.signalrDashboardService
       .movimentacoes()
       .map((item, index) => this.mapMovimentacaoHubParaVm(item, index))
-      .filter((item): item is MovimentacaoTempoRealVm => item != null)
-      .sort((a, b) => b.horarioSortMs - a.horarioSortMs)
-  );
+      .filter((item): item is MovimentacaoTempoRealVm => item != null);
+
+    const byId = new Map<string, MovimentacaoTempoRealVm>();
+    for (const item of fromHttp) {
+      byId.set(item.id, item);
+    }
+    for (const item of fromHub) {
+      byId.set(item.id, item);
+    }
+
+    return [...byId.values()].sort((a, b) => b.horarioSortMs - a.horarioSortMs);
+  });
 
   filtro = { descricao: '', somenteEmAberto: true };
   /** Filtros avançados do painel (AND com busca rápida / chips). */
@@ -454,6 +478,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     void this.signalrDashboardService.connect();
     if (this.viewMode() === 'operacao') {
       this.aplicarFiltroResumo('noPatio');
+    } else {
+      this.carregarMonitoramentoDoPatio();
     }
   }
 
@@ -462,6 +488,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.cancelarValorEstacionamento$.complete();
     this.cancelarSaidaModalLista$.next();
     this.cancelarSaidaModalLista$.complete();
+    this.cancelarMonitoramentoPortaria$.next();
+    this.cancelarMonitoramentoPortaria$.complete();
     this.fecharReciboConfirm(false);
     this.fecharPreviewRecibo();
   }
@@ -501,6 +529,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           ? avancados.motoristaId
           : undefined,
       transportadoraId,
+      estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
       dataInicial: avancados.periodoAtivo
         ? toIsoDateTimeStart(avancados.dataInicio)
         : undefined,
@@ -846,7 +875,15 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           this.toast.success(
             retornar ? 'Retorno ao pátio realizado.' : 'Permanência suspensa com sucesso.'
           );
+          const placa = item.placaVeiculo?.trim() || 'não informada';
+          const transportadora = item.nomeTransportadora?.trim() || '—';
+          this.portariaAlertas.push({
+            id: `${retornar ? 'retorno' : 'suspensao'}-${item.id}-${Date.now()}`,
+            titulo: retornar ? 'Retorno ao pátio' : 'Permanência suspensa',
+            descricao: `Placa ${placa} - ${transportadora}`
+          });
           this.buscar();
+          this.carregarMonitoramentoDoPatio();
           if (this.saidaModalOpen()) {
             this.carregarVeiculosEmAbertoSaida();
           }
@@ -1060,19 +1097,58 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       }))
   );
 
-  readonly ultimosAlertas = computed((): AlertaItemVm[] =>
-    this.movimentacoesTempoReal()
+  readonly ultimosAlertas = computed((): AlertaItemVm[] => {
+    const locais = this.portariaAlertas.items().map((alerta) => ({
+      id: alerta.id,
+      titulo: alerta.titulo,
+      descricao: alerta.descricao,
+      tempoRelativo: this.tempoRelativo(new Date(alerta.createdAtMs).toISOString()),
+      sortMs: alerta.createdAtMs
+    }));
+
+    const doFeed = this.movimentacoesTempoReal().map((item) => ({
+      id: `feed-${item.id}`,
+      titulo: this.tituloAlertaMonitoramento(item),
+      descricao: `Placa ${item.placa || 'não informada'} - ${item.transportadora || '—'}`,
+      tempoRelativo: this.tempoRelativo(item.dataHoraSaida || item.dataHoraEntrada),
+      sortMs: item.horarioSortMs
+    }));
+
+    const byId = new Map<string, (typeof locais)[number]>();
+    for (const item of doFeed) {
+      byId.set(item.id, item);
+    }
+    for (const item of locais) {
+      byId.set(item.id, item);
+    }
+
+    return [...byId.values()]
+      .sort((a, b) => b.sortMs - a.sortMs)
       .slice(0, 5)
-      .map((item) => ({
-        id: item.id,
-        titulo:
-          item.status === 'saida'
-            ? 'Saída registrada com sucesso'
-            : item.statusLabel || 'Movimentação em andamento',
-        descricao: `Placa ${item.placa || 'não informada'} - ${item.transportadora || 'transportadora'}`,
-        tempoRelativo: this.tempoRelativo(item.dataHoraSaida || item.dataHoraEntrada)
-      }))
-  );
+      .map(({ id, titulo, descricao, tempoRelativo }) => ({ id, titulo, descricao, tempoRelativo }));
+  });
+
+  private tituloAlertaMonitoramento(item: MovimentacaoTempoRealVm): string {
+    const label = (item.statusLabel || '').trim();
+    const normalized = label
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    if (item.status === 'saida' || normalized.includes('saida')) {
+      return 'Saída registrada com sucesso';
+    }
+    if (normalized.includes('suspens')) {
+      return 'Permanência suspensa';
+    }
+    if (normalized.includes('agend')) {
+      return 'Agendamento registrado';
+    }
+    if (item.status === 'entrada' || normalized.includes('entrada')) {
+      return 'Entrada registrada';
+    }
+    return label || 'Movimentação em andamento';
+  }
 
   classeStatusMonitoramento(status: StatusMonitoramento): string {
     if (status === 'saida') return 'status-dot status-dot--saida';
@@ -1208,6 +1284,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.entradaSaidaService
         .buscar({
           somenteEmAberto: true,
+          estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
           numeroPagina: pagina,
           tamanhoPagina: pageSize,
           propriedade: 'DataHoraEntrada',
@@ -1216,7 +1293,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.cancelarSaidaModalLista$))
         .subscribe({
           next: (page) => {
-            const lote = (page.items ?? []).filter((item) => !item.dataHoraSaida);
+            const lote = (page.items ?? [])
+              .filter((item) => !item.dataHoraSaida)
+              .filter((item) => this.itemPertenceAoPatioSessao(item));
             const todos = [...acumulado, ...lote];
             const total = Number(page.totalCount) || todos.length;
             const temMais = todos.length < total && lote.length > 0;
@@ -1271,6 +1350,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
             this.toast.success('Entrada registrada com sucesso.');
             this.entradaModalOpen.set(false);
             this.buscar();
+            this.carregarMonitoramentoDoPatio();
             this.limparRegistroRapido();
           },
           error: (err: ApiError) => {
@@ -1360,6 +1440,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         this.processandoRegistroRapido.set(false);
         this.toast.success('Saída registrada com sucesso.');
         this.buscar();
+        this.carregarMonitoramentoDoPatio();
         this.limparRegistroRapido();
       },
       error: (err: ApiError) => {
@@ -1631,11 +1712,15 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         .buscar({
           placa,
           somenteEmAberto: true,
+          estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
           numeroPagina: 1,
           tamanhoPagina: 1
         })
         .subscribe({
-          next: (paged) => resolve(paged.items[0]?.id ?? 0),
+          next: (paged) => {
+            const item = (paged.items ?? []).find((row) => this.itemPertenceAoPatioSessao(row));
+            resolve(item?.id ?? 0);
+          },
           error: () => resolve(0)
         });
     });
@@ -1933,12 +2018,13 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private applyPagedResult(paged: EntradaSaidaPagedResult<EntradaSaidaSearchOutput>): void {
-    this.registros.set(paged.items ?? []);
+    const items = (paged.items ?? []).filter((item) => this.itemPertenceAoPatioSessao(item));
+    this.registros.set(items);
     this.totalCount.set(paged.totalCount ?? 0);
     this.numeroPagina.set(paged.numeroPagina ?? 1);
     this.tamanhoPagina.set(paged.tamanhoPagina ?? 20);
     this.loading.set(false);
-    this.carregarHistoricosSuspensao((paged.items ?? []).map((item) => item.id));
+    this.carregarHistoricosSuspensao(items.map((item) => item.id));
   }
 
   private mapSortColToPropriedade(col: MovimentosListaSortCol): string {
@@ -2419,6 +2505,89 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private toIsoOrUndefined(value: string | null | undefined): string | undefined {
     const iso = datetimeLocalInputToApiIso(value);
     return iso || undefined;
+  }
+
+  /**
+   * Carrega monitoramento/alertas via HTTP no escopo do pátio (JWT + EstacionamentoId).
+   * Na portaria Admin/Transportadora esta lista é a fonte da verdade (não usa hub cruzado).
+   */
+  private carregarMonitoramentoDoPatio(): void {
+    if (!this.isPortariaView() || this.auth.needsEstacionamentoSelection()) {
+      this.monitoramentoHttpSeed.set([]);
+      return;
+    }
+
+    const hoje = criarDataHoje();
+    this.cancelarMonitoramentoPortaria$.next();
+    this.entradaSaidaService
+      .buscar({
+        numeroPagina: 1,
+        tamanhoPagina: 10,
+        estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
+        dataInicial: toIsoDateTimeStart(hoje),
+        dataFinal: toIsoDateTimeEnd(hoje),
+        propriedade: 'DataHoraEntrada',
+        sort: 'Desc'
+      })
+      .pipe(takeUntil(this.cancelarMonitoramentoPortaria$))
+      .subscribe({
+        next: (paged) => {
+          const mapped = (paged.items ?? [])
+            .filter((item) => this.itemPertenceAoPatioSessao(item))
+            .map((item, index) => this.mapSearchItemParaMonitoramento(item, index))
+            .filter((item): item is MovimentacaoTempoRealVm => item != null)
+            .sort((a, b) => b.horarioSortMs - a.horarioSortMs);
+          this.monitoramentoHttpSeed.set(mapped);
+        },
+        error: () => {
+          this.monitoramentoHttpSeed.set([]);
+        }
+      });
+  }
+
+  /** EstacionamentoId da sessão (Admin/Transportadora) ou do vínculo fixo. */
+  private estacionamentoIdDaSessao(): number | null {
+    const id = this.auth.resolveEstacionamentoId();
+    return id != null && id > 0 ? id : null;
+  }
+
+  /** Defesa no client quando a API ainda devolve itens de outro pátio. */
+  private itemPertenceAoPatioSessao(item: EntradaSaidaSearchOutput): boolean {
+    const sessionId = this.estacionamentoIdDaSessao();
+    if (sessionId == null) return true;
+    const itemId = item.estacionamentoId;
+    if (itemId == null || itemId <= 0) {
+      // Sem campo no DTO: confia no filtro da query/JWT.
+      return true;
+    }
+    return itemId === sessionId;
+  }
+
+  private mapSearchItemParaMonitoramento(
+    item: EntradaSaidaSearchOutput,
+    index: number
+  ): MovimentacaoTempoRealVm | null {
+    if (!item) return null;
+    const saidaIso = item.dataHoraSaida?.trim() || null;
+    const entradaIso = item.dataHoraEntrada?.trim() || '';
+    const statusLabel = entradaSaidaStatusLabel(parseEntradaSaidaStatus(item.status)) || '';
+    const status = this.mapStatusHubParaMonitoramento(statusLabel, !!saidaIso);
+    const sortIso = saidaIso || entradaIso;
+    const horarioSortMs = sortIso ? Date.parse(sortIso) : 0;
+
+    return {
+      id: String(item.id || `${item.placaVeiculo || 'item'}-${entradaIso || index}`),
+      horario: this.formatarHorario(saidaIso || entradaIso),
+      horarioSortMs: Number.isNaN(horarioSortMs) ? 0 : horarioSortMs,
+      placa: item.placaVeiculo?.trim() || '—',
+      motorista: item.nomeMotorista?.trim() || '—',
+      transportadora: item.nomeTransportadora?.trim() || '—',
+      status,
+      statusLabel:
+        statusLabel || (status === 'saida' ? 'Saída' : status === 'aberto' ? 'Aberto' : 'Entrada'),
+      dataHoraEntrada: entradaIso,
+      dataHoraSaida: saidaIso
+    };
   }
 
   private mapMovimentacaoHubParaVm(

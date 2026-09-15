@@ -18,6 +18,7 @@ import {
 import { PlacaFormatDirective } from '../../../cadastro/directives/placa-format.directive';
 import { AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
+import { PortariaAlertasStore } from '../../../movimentos/services/portaria-alertas.store';
 import {
   AgendamentoSearchItem,
   EntradaSaidaStatus,
@@ -49,6 +50,7 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
+  private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
@@ -326,6 +328,15 @@ export class AgendamentosPageComponent implements OnInit {
             return;
           }
           this.toast.success(res.message || 'Agendamento criado.');
+          const transportadoraLabel =
+            this.transportadoras.find((t) => t.id === tid)?.razaoSocial?.trim() ||
+            this.transportadoras.find((t) => t.id === tid)?.nomeFantasia?.trim() ||
+            '—';
+          this.portariaAlertas.push({
+            id: `agendamento-${placa}-${Date.now()}`,
+            titulo: 'Agendamento registrado',
+            descricao: `Placa ${formatPlacaDisplay(placa) || placa} - ${transportadoraLabel}`,
+          });
           this.fecharForm();
           this.carregar();
         },

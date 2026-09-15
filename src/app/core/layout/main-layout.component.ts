@@ -7,7 +7,9 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
 import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { SignalrDashboardService } from '../services/signalr-dashboard.service';
 import { SignalrNotificationService } from '../services/signalr-notification.service';
+import { PortariaAlertasStore } from '../../features/movimentos/services/portaria-alertas.store';
 import { NotificationBellComponent } from './notification-bell/notification-bell.component';
 import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
@@ -42,7 +44,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
   private authService = inject(AuthService);
+  private dashboardHub = inject(SignalrDashboardService);
   private notificationHub = inject(SignalrNotificationService);
+  private portariaAlertas = inject(PortariaAlertasStore);
 
   sidebarCollapsed = false;
   readonly showEstacionamentoModal = signal(false);
@@ -117,10 +121,13 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   onEstacionamentoSelected(): void {
     this.showEstacionamentoModal.set(false);
     this.refreshSessionEstacionamentoLabel();
-    // Recarrega a rota atual para as APIs usarem o novo EmpresaId/CodExportacao do JWT.
+    // Hub + HTTP devem usar o JWT do pátio novo (EmpresaId/CodExportacao).
     const url = this.router.url;
-    void this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-      void this.router.navigateByUrl(url);
+    this.portariaAlertas.clear();
+    void this.dashboardHub.reconnectForSession().finally(() => {
+      void this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+        void this.router.navigateByUrl(url);
+      });
     });
   }
 
@@ -132,11 +139,17 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
           // Mesmo com falha na API, limpa sessão local para reabrir o modal.
           this.authService.clearSessionEstacionamento();
         }
+        this.dashboardHub.clearState();
+        this.portariaAlertas.clear();
+        void this.dashboardHub.disconnect();
         this.refreshSessionEstacionamentoLabel();
         this.showEstacionamentoModal.set(true);
       },
       error: () => {
         this.authService.clearSessionEstacionamento();
+        this.dashboardHub.clearState();
+        this.portariaAlertas.clear();
+        void this.dashboardHub.disconnect();
         this.refreshSessionEstacionamentoLabel();
         this.showEstacionamentoModal.set(true);
       },

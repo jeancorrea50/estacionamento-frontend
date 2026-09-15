@@ -27,6 +27,7 @@ describe('EntradaSaidaService', () => {
       motoristaId: 1,
       transportadoraId: 2,
       somenteEmAberto: true,
+      estacionamentoId: 9,
       numeroPagina: 2,
       tamanhoPagina: 20
     }).subscribe();
@@ -37,6 +38,7 @@ describe('EntradaSaidaService', () => {
     expect(req.request.params.get('motoristaId')).toBe('1');
     expect(req.request.params.get('transportadoraId')).toBe('2');
     expect(req.request.params.get('somenteEmAberto')).toBe('true');
+    expect(req.request.params.get('EstacionamentoId')).toBe('9');
     expect(req.request.params.get('NumeroPagina')).toBe('2');
     expect(req.request.params.get('TamanhoPagina')).toBe('20');
     req.flush({ results: [] });

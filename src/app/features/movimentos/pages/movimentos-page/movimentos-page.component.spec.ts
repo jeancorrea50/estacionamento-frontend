@@ -54,6 +54,11 @@ describe('MovimentosPageComponent', () => {
   };
   const authServiceMock = {
     isTransportadoraRole: vi.fn().mockReturnValue(false),
+    needsEstacionamentoSelection: vi.fn().mockReturnValue(false),
+    resolveEstacionamentoId: vi.fn().mockReturnValue(1),
+    resolveCodExportacao: vi.fn().mockReturnValue(null),
+    isAdmin: vi.fn().mockReturnValue(false),
+    getAccessToken: vi.fn().mockReturnValue(null)
   };
 
   const routerMock = { navigate: vi.fn().mockResolvedValue(true) };
@@ -64,7 +69,9 @@ describe('MovimentosPageComponent', () => {
     dashboardAtualizado: signal(null).asReadonly(),
     movimentacoes: signal([]).asReadonly(),
     alertaOperacional: signal('').asReadonly(),
-    connect: vi.fn().mockResolvedValue(undefined)
+    connect: vi.fn().mockResolvedValue(undefined),
+    clearState: vi.fn(),
+    reconnectForSession: vi.fn().mockResolvedValue(undefined)
   };
 
   beforeEach(async () => {

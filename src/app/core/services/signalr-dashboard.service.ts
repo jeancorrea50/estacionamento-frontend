@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -10,21 +10,25 @@ import {
 import { Observable, filter } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
+import { normalizeBearerValue } from '../auth/auth-token.storage';
 import {
   AlertaOperacionalPayload,
   DashboardAtualizadoPayload,
   MovimentacaoAtualizadaPayload
 } from '../models/dashboard.models';
+import { AuthService } from './auth.service';
 
 /**
  * Hub SignalR do dashboard/movimentos.
  * URL: `environment.dashboardHubUrl` → `/estac/worker/hubs/movimento/entradasaida`
+ * Auth: JWT da sessão (EmpresaId/CodExportacao do pátio) via `accessTokenFactory`.
  * Estado em `signal` — sem Zone.js, só signals notificam a UI a cada evento do hub.
  */
 @Injectable({
   providedIn: 'root'
 })
 export class SignalrDashboardService {
+  private readonly auth = inject(AuthService);
   private readonly hubUrl = environment.dashboardHubUrl;
 
   private readonly dashboardSignal = signal<DashboardAtualizadoPayload | null>(null);
@@ -60,6 +64,25 @@ export class SignalrDashboardService {
 
   constructor() {
     void this.connect();
+  }
+
+  /** Zera KPIs/monitoramento/alerta (ex.: troca de pátio). */
+  clearState(): void {
+    this.dashboardSignal.set(null);
+    this.movimentacoesSignal.set([]);
+    this.alertaSignal.set(null);
+  }
+
+  /**
+   * Reconecta com o JWT atual (EmpresaId do pátio) e limpa estado antigo.
+   * Chamar após `selecionarEstacionamentoSessao`.
+   */
+  async reconnectForSession(): Promise<void> {
+    this.clearState();
+    this.connectFailed = false;
+    await this.disconnect();
+    this.hubConnection = null;
+    await this.connect();
   }
 
   async connect(): Promise<void> {
@@ -121,8 +144,12 @@ export class SignalrDashboardService {
 
   private buildConnection(): HubConnection {
     const options: IHttpConnectionOptions = {
+      accessTokenFactory: () => normalizeBearerValue(this.auth.getAccessToken() ?? ''),
       withCredentials: false,
-      transport: HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling
+      transport:
+        HttpTransportType.WebSockets |
+        HttpTransportType.ServerSentEvents |
+        HttpTransportType.LongPolling
     };
 
     return new HubConnectionBuilder()
@@ -156,6 +183,10 @@ export class SignalrDashboardService {
 
     const handleDashboard = (payload: DashboardAtualizadoPayload): void => {
       logDevEvent('dashboard', payload);
+      if (!this.payloadMatchesSession(payload)) {
+        this.log('Evento dashboard ignorado (fora do pátio da sessão).');
+        return;
+      }
       this.dashboardSignal.set(payload);
     };
 
@@ -166,15 +197,93 @@ export class SignalrDashboardService {
       // SignalR: arguments = [[item, item, ...]] → 1º arg é a lista.
       const payload = args.length === 1 ? args[0] : args;
       logDevEvent('movimentacao', payload);
-      const normalized = this.normalizeMovimentacaoPayload(payload);
-      this.log(`Evento movimentacaoAtualizada recebido: ${normalized.length} item(ns).`);
+      const normalized = this.normalizeMovimentacaoPayload(payload).filter((item) =>
+        this.payloadMatchesSession(item)
+      );
+      this.log(
+        `Evento movimentacaoAtualizada recebido: ${normalized.length} item(ns) no pátio da sessão.`
+      );
       this.movimentacoesSignal.set(normalized);
     });
 
     connection.on('alertaOperacional', (payload: AlertaOperacionalPayload) => {
       logDevEvent('alerta', payload);
+      if (this.auth.needsEstacionamentoSelection()) {
+        this.log('Evento alertaOperacional ignorado (pátio não selecionado).');
+        return;
+      }
       this.alertaSignal.set({ text: payload, at: Date.now() });
     });
+  }
+
+  /**
+   * Escopo do pátio selecionado:
+   * - Admin/Transportadora sem pátio → rejeita tudo (evita vazamento ao “Trocar pátio”).
+   * - Com `estacionamentoId`/`codExportacao` no payload → só aceita se bater com a sessão.
+   * - Sem esses campos + Admin/Transportadora com pátio → rejeita broadcast global.
+   * - Usuário com vínculo fixo (sem seleção) → aceita (escopo vem do JWT no hub).
+   */
+  private payloadMatchesSession(payload: unknown): boolean {
+    if (this.auth.needsEstacionamentoSelection()) {
+      return false;
+    }
+
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return false;
+    }
+
+    const row = payload as Record<string, unknown>;
+    const sessionId = this.auth.resolveEstacionamentoId();
+    const sessionCod = this.auth.resolveCodExportacao()?.trim().toLowerCase() || null;
+    const requiresPatioScope =
+      (this.auth.isAdmin() || this.auth.isTransportadoraRole()) && !!sessionId;
+
+    const itemId = this.pickPositiveNumber(
+      row,
+      'estacionamentoId',
+      'EstacionamentoId',
+      'empresaId',
+      'EmpresaId'
+    );
+    const itemCod =
+      this.pickText(row, 'codExportacao', 'CodExportacao')?.trim().toLowerCase() || null;
+    const hasScope = itemId != null || !!itemCod;
+
+    if (!hasScope) {
+      return !requiresPatioScope;
+    }
+
+    if (sessionId != null && itemId != null && itemId !== sessionId) {
+      return false;
+    }
+    if (sessionCod && itemCod && itemCod !== sessionCod) {
+      return false;
+    }
+
+    if (requiresPatioScope) {
+      if (itemId != null) return itemId === sessionId;
+      if (itemCod && sessionCod) return itemCod === sessionCod;
+      return false;
+    }
+
+    return true;
+  }
+
+  private pickPositiveNumber(row: Record<string, unknown>, ...keys: string[]): number | null {
+    for (const key of keys) {
+      const raw = row[key];
+      const n = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN;
+      if (Number.isFinite(n) && n > 0) return Math.trunc(n);
+    }
+    return null;
+  }
+
+  private pickText(row: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const key of keys) {
+      const raw = row[key];
+      if (typeof raw === 'string' && raw.trim()) return raw.trim();
+    }
+    return null;
   }
 
   private normalizeMovimentacaoPayload(payload: unknown): MovimentacaoAtualizadaPayload {

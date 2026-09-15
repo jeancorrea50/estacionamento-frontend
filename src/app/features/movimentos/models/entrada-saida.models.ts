@@ -84,6 +84,11 @@ export interface EntradaSaidaFiltro {
   motoristaId?: number;
   transportadoraId?: number;
   somenteEmAberto?: boolean;
+  /**
+   * Escopo do pátio (Admin/Transportadora).
+   * Enviado como `EstacionamentoId` — defesa além do JWT / `X-Empresa-Id`.
+   */
+  estacionamentoId?: number;
   /** ISO date-time (`DataInicial` no Swagger). */
   dataInicial?: string;
   /** ISO date-time (`DataFinal` no Swagger). */
@@ -114,6 +119,8 @@ export interface EntradaSaidaSearchOutput {
   placaVeiculo: string;
   dataHoraEntrada: string;
   dataHoraSaida?: string | null;
+  /** Pátio dono do movimento, quando a API expõe o campo. */
+  estacionamentoId?: number | null;
   /** Enum byte do backend (`EntradaSaidaStatus` / Situacao). */
   status?: EntradaSaidaStatus | number | string;
   /** Movimento já vinculado a fatura (paga ou não). */

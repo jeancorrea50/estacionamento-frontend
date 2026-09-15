@@ -170,6 +170,9 @@ export class EntradaSaidaService {
     if (typeof filtro.motoristaId === 'number') params = params.set('motoristaId', String(filtro.motoristaId));
     if (typeof filtro.transportadoraId === 'number') params = params.set('transportadoraId', String(filtro.transportadoraId));
     if (typeof filtro.somenteEmAberto === 'boolean') params = params.set('somenteEmAberto', String(filtro.somenteEmAberto));
+    if (typeof filtro.estacionamentoId === 'number' && filtro.estacionamentoId > 0) {
+      params = params.set('EstacionamentoId', String(filtro.estacionamentoId));
+    }
     if (filtro.dataInicial?.trim()) params = params.set('DataInicial', filtro.dataInicial.trim());
     if (filtro.dataFinal?.trim()) params = params.set('DataFinal', filtro.dataFinal.trim());
     // ehExcedente: não enviado — fora do Swagger GET /api/Movimento; filtro local na página.
@@ -228,6 +231,13 @@ export class EntradaSaidaService {
       placaVeiculo: this.pickString(row, 'placaVeiculo', 'PlacaVeiculo'),
       dataHoraEntrada: this.pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),
       dataHoraSaida: this.pickStringOrNull(row, 'dataHoraSaida', 'DataHoraSaida'),
+      estacionamentoId: this.pickNumberOrNull(
+        row,
+        'estacionamentoId',
+        'EstacionamentoId',
+        'empresaId',
+        'EmpresaId'
+      ),
       status: parseEntradaSaidaStatus(
         this.pickRaw(row, 'status', 'Status', 'situacao', 'Situacao') as number | string | undefined
       ),

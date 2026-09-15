@@ -5,6 +5,7 @@ import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import type {
   EstacionamentoConfiguracao,
   EstacionamentoConfiguracaoPadrao
@@ -21,6 +22,7 @@ import { EstacionamentoConfiguracaoService } from '../../services/estacionamento
 export class HorarioPageComponent implements OnInit {
   private readonly api = inject(EstacionamentoConfiguracaoService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
 
   readonly padroes = signal<EstacionamentoConfiguracaoPadrao[]>([]);
   readonly timeZoneId = signal('');
@@ -136,8 +138,15 @@ export class HorarioPageComponent implements OnInit {
 
     const id = this.configId();
     const preservado = this.configAtual;
+    const sessaoId = this.auth.getSessionEstacionamento()?.id ?? 0;
     const payloadBase = {
       timeZoneId: tz,
+      estacionamentoId:
+        (preservado?.estacionamentoId && preservado.estacionamentoId > 0
+          ? preservado.estacionamentoId
+          : sessaoId > 0
+            ? sessaoId
+            : null) as number | null,
       tipoTarifaAvulsa: preservado?.tipoTarifaAvulsa ?? null,
       valorAvulso: preservado?.valorAvulso ?? null,
       minutosToleranciaPermanencia: preservado?.minutosToleranciaPermanencia ?? null

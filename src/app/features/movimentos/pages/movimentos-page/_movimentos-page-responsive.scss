@@ -57,8 +57,17 @@
     order: 1;
   }
 
-  .portaria-acoes {
+  .portaria-acoes,
+  .portaria-cta {
     grid-template-columns: 1fr;
+  }
+
+  .portaria-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .portaria-layout__cameras {
+    position: static;
   }
 }
 

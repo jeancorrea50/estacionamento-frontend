@@ -90,6 +90,23 @@
   border-radius: var(--radius-sm, 8px) !important;
 }
 
+.operacao-busca__export {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+  border-radius: var(--radius-sm, 8px) !important;
+
+  .material-symbols-outlined {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+}
+
 .operacao-busca__input {
   width: 104px;
   max-width: 104px;

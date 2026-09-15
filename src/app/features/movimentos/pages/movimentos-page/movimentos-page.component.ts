@@ -44,7 +44,8 @@ import { mapBuscarPorPlacaParaRegistroRapido, extrairMotoristasVinculados } from
 import { EntradaSaidaMotoristaVinculoItem } from '../../models/entrada-saida-buscar-por-placa.models';
 import {
   mapearTipoCargaParaEnum as toTipoCargaEnum,
-  TIPO_CARGA_LABELS
+  TIPO_CARGA_LABELS,
+  tipoCargaLabel
 } from '../../../../shared/models/tipo-carga';
 import {
   formatarBrl,
@@ -57,10 +58,14 @@ import {
 import { MovimentosFiltrosPanelComponent } from './movimentos-filtros-panel/movimentos-filtros-panel.component';
 import {
   MovimentosFiltrosAvancados,
+  criarDataHoje,
   criarFiltrosAvancadosVazios,
+  toIsoDate,
   toIsoDateTimeEnd,
   toIsoDateTimeStart
 } from './movimentos-filtros.util';
+import { MovimentacaoRelatorioService } from '../../../patio/services/movimentacao-relatorio.service';
+import type { MovimentacaoRelatorioFiltro } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio.types';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -93,6 +98,7 @@ interface MovimentacaoTempoRealVm {
 
 interface MonitoramentoItemVm {
   id: string;
+  data: string;
   horario: string;
   placa: string;
   motorista: string;
@@ -126,6 +132,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly movimentacaoRelatorio = inject(MovimentacaoRelatorioService);
 
   /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
   private get service(): EntradaSaidaService {
@@ -235,6 +242,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   readonly tamanhoPagina = signal(20);
   readonly totalCount = signal(0);
   readonly loading = signal(false);
+  /** Exportação PDF/Excel via MovimentacaoRelatorio. */
+  readonly exportando = signal(false);
   readonly totalPaginas = computed(() =>
     Math.max(1, Math.ceil(this.totalCount() / this.tamanhoPagina()))
   );
@@ -294,12 +303,14 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   /** Id do movimento com download de recibo em andamento. */
   readonly reciboBaixandoId = signal<number | null>(null);
   /** Id/transportadora do movimento em aberto no registro rápido (para recibo). */
-  private registroRapidoEntradaId = 0;
+  registroRapidoEntradaId = 0;
   private registroRapidoTransportadoraId = 0;
   processandoRegistroRapido = signal(false);
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
   existeEntradaEmAbertoPorPlaca = false;
+  /** Movimento em aberto da placa consultada está com permanência suspensa. */
+  registroRapidoSuspenso = false;
   alertaAcordoRegistroRapido = '';
   alertaAcordoExcedente = false;
   buscandoMotoristaPorCpf = false;
@@ -317,6 +328,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private ultimaPlacaConsultadaRegistroRapido = '';
   /** Cancela GET valor-estacionamento ao fechar/reabrir o modal (evita corrida). */
   private readonly cancelarValorEstacionamento$ = new Subject<void>();
+  /** Cancela busca de veículos em aberto no modal de saída. */
+  private readonly cancelarSaidaModalLista$ = new Subject<void>();
   registroRapido = {
     placa: '',
     motorista: '',
@@ -331,6 +344,106 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   /** Opções do enum `TipoCarga` do backend (Seca, Refrigerada, …). */
   readonly tipoCargaOpcoes = TIPO_CARGA_LABELS;
+
+  /** Modal portaria: registrar entrada. */
+  readonly entradaModalOpen = signal(false);
+  /** Modal portaria: lista de veículos em aberto para saída. */
+  readonly saidaModalOpen = signal(false);
+  readonly saidaModalLoading = signal(false);
+  readonly saidaModalItens = signal<EntradaSaidaSearchOutput[]>([]);
+  readonly saidaModalPagina = signal(1);
+  readonly saidaModalPageSize = 10;
+  readonly saidaModalSelecionadoId = signal<number | null>(null);
+  readonly saidaModalFiltroTipo = signal<string | null>(null);
+  readonly saidaFiltrosVisiveis = signal(true);
+  readonly saidaModalBusca = signal('');
+
+  readonly saidaModalFiltrados = computed(() => {
+    const qRaw = this.saidaModalBusca().trim();
+    const q = qRaw.toLowerCase();
+    const qPlaca = normalizePlaca(qRaw);
+    const tipo = this.saidaModalFiltroTipo();
+    return this.saidaModalItens().filter((item) => {
+      if (tipo) {
+        const key = this.chaveTipoVeiculoSaida(item);
+        if (key !== tipo) return false;
+      }
+      if (!q) return true;
+      const placaNorm = normalizePlaca(item.placaVeiculo);
+      if (qPlaca && placaNorm.includes(qPlaca)) return true;
+      const hay = [item.placaVeiculo, item.nomeMotorista, item.nomeTransportadora, item.tipoVeiculo]
+        .map((v) => String(v ?? '').toLowerCase())
+        .join(' ');
+      return hay.includes(q);
+    });
+  });
+
+  /** Itens após busca textual (sem chip de tipo) — base dos contadores. */
+  readonly saidaModalAposBusca = computed(() => {
+    const qRaw = this.saidaModalBusca().trim();
+    const q = qRaw.toLowerCase();
+    const qPlaca = normalizePlaca(qRaw);
+    if (!q) return this.saidaModalItens();
+    return this.saidaModalItens().filter((item) => {
+      const placaNorm = normalizePlaca(item.placaVeiculo);
+      if (qPlaca && placaNorm.includes(qPlaca)) return true;
+      const hay = [item.placaVeiculo, item.nomeMotorista, item.nomeTransportadora, item.tipoVeiculo]
+        .map((v) => String(v ?? '').toLowerCase())
+        .join(' ');
+      return hay.includes(q);
+    });
+  });
+
+  readonly saidaModalTotalFiltrado = computed(() => this.saidaModalFiltrados().length);
+
+  readonly saidaModalTotalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.saidaModalTotalFiltrado() / this.saidaModalPageSize))
+  );
+
+  readonly saidaModalPaginaItens = computed(() => {
+    const page = this.saidaModalPagina();
+    const size = this.saidaModalPageSize;
+    const start = (page - 1) * size;
+    return this.saidaModalFiltrados().slice(start, start + size);
+  });
+
+  readonly saidaModalMostrandoDe = computed(() => {
+    if (this.saidaModalTotalFiltrado() === 0) return 0;
+    return (this.saidaModalPagina() - 1) * this.saidaModalPageSize + 1;
+  });
+
+  readonly saidaModalMostrandoAte = computed(() =>
+    Math.min(this.saidaModalPagina() * this.saidaModalPageSize, this.saidaModalTotalFiltrado())
+  );
+
+  readonly saidaModalChips = computed(() => {
+    const counts = new Map<string, { label: string; count: number }>();
+    for (const item of this.saidaModalAposBusca()) {
+      const key = this.chaveTipoVeiculoSaida(item);
+      if (!key) continue;
+      const label = this.labelTipoVeiculoSaida(item) || key;
+      const cur = counts.get(key);
+      if (cur) cur.count += 1;
+      else counts.set(key, { label, count: 1 });
+    }
+    return [...counts.entries()]
+      .map(([key, v]) => ({ key, label: v.label, count: v.count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'));
+  });
+
+  readonly saidaModalTotalBusca = computed(() => this.saidaModalAposBusca().length);
+
+  readonly saidaModalPaginasVisiveis = computed(() => {
+    const total = this.saidaModalTotalPaginas();
+    const current = this.saidaModalPagina();
+    const pages: number[] = [];
+    const window = 4;
+    let start = Math.max(1, current - Math.floor(window / 2));
+    let end = Math.min(total, start + window - 1);
+    start = Math.max(1, end - window + 1);
+    for (let p = start; p <= end; p++) pages.push(p);
+    return pages;
+  });
 
   ngOnInit(): void {
     const dataView = this.route.snapshot.data['movimentosView'] as MovimentosViewMode | undefined;
@@ -347,6 +460,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.cancelarValorEstacionamento$.next();
     this.cancelarValorEstacionamento$.complete();
+    this.cancelarSaidaModalLista$.next();
+    this.cancelarSaidaModalLista$.complete();
     this.fecharReciboConfirm(false);
     this.fecharPreviewRecibo();
   }
@@ -544,6 +659,94 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.buscar();
   }
 
+  exportarPdf(): void {
+    this.exportarFiltro('pdf');
+  }
+
+  exportarExcel(): void {
+    this.exportarFiltro('excel');
+  }
+
+  private exportarFiltro(tipo: 'pdf' | 'excel'): void {
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.toast.error('Selecione o estacionamento da sessão antes de exportar.');
+      return;
+    }
+
+    this.exportando.set(true);
+    const filtro = this.montarFiltroExportacao();
+    const req$ =
+      tipo === 'pdf'
+        ? this.movimentacaoRelatorio.baixarPdf(filtro)
+        : this.movimentacaoRelatorio.baixarExcel(filtro);
+    const ext = tipo === 'pdf' ? 'pdf' : 'xlsx';
+
+    req$.pipe(finalize(() => this.exportando.set(false))).subscribe({
+      next: (blob) => this.downloadBlob(blob, `movimentacoes.${ext}`),
+      error: () => this.toast.error(`Falha ao gerar ${tipo.toUpperCase()}.`)
+    });
+  }
+
+  /** Mapeia filtros da tela para o contrato de MovimentacaoRelatorio. */
+  private montarFiltroExportacao(): MovimentacaoRelatorioFiltro {
+    const avancados = this.filtrosAvancados();
+    const placaRapida = this.filtro.descricao.trim();
+    const placaAvancada = avancados.placa.trim();
+    const placaRaw = placaAvancada || placaRapida;
+    const placa = placaRaw ? formatPlacaDisplay(normalizePlaca(placaRaw)) : null;
+
+    const transportadoraSessao = this.auth.isTransportadoraRole()
+      ? this.auth.resolveTransportadoraId()
+      : null;
+    const transportadoraId =
+      transportadoraSessao != null && transportadoraSessao > 0
+        ? transportadoraSessao
+        : avancados.transportadoraId != null && avancados.transportadoraId > 0
+          ? avancados.transportadoraId
+          : null;
+
+    let dataInicial: string | null = avancados.periodoAtivo
+      ? toIsoDate(avancados.dataInicio)
+      : null;
+    let dataFinal: string | null = avancados.periodoAtivo
+      ? toIsoDate(avancados.dataFim)
+      : null;
+
+    const chip = this.filtroResumoChip();
+    if (chip === 'entradasHoje' && !avancados.periodoAtivo) {
+      const hoje = toIsoDate(criarDataHoje());
+      dataInicial = hoje;
+      dataFinal = hoje;
+    }
+
+    // Relatório exige janela de datas; sem isso o backend usa default estreito
+    // (ex.: só hoje) e o PDF/Excel fica bem menor que a lista da tela.
+    if (!dataInicial || !dataFinal) {
+      const hoje = criarDataHoje();
+      dataInicial = toIsoDate(new Date(hoje.getFullYear() - 5, 0, 1));
+      dataFinal = toIsoDate(hoje);
+    }
+
+    let status: number | null = null;
+    if (chip === 'suspensos') status = EntradaSaidaStatus.Suspenso;
+    else if (chip === 'agendados') status = EntradaSaidaStatus.Agendado;
+    else if (chip === 'noPatio') status = EntradaSaidaStatus.Entrada;
+
+    let ehExcedente: boolean | null = null;
+    if (avancados.excedente === 'sim') ehExcedente = true;
+    else if (avancados.excedente === 'nao') ehExcedente = false;
+
+    return {
+      dataInicial,
+      dataFinal,
+      placa,
+      transportadoraId,
+      status,
+      ehExcedente,
+      limite: Math.max(this.totalCount() || 0, 1000)
+    };
+  }
+
   onMotoristaCpfInput(value: string): void {
     const masked = this.aplicarMascaraCpf(value);
     this.registroRapido.motoristaCpf = masked;
@@ -644,6 +847,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
             retornar ? 'Retorno ao pátio realizado.' : 'Permanência suspensa com sucesso.'
           );
           this.buscar();
+          if (this.saidaModalOpen()) {
+            this.carregarVeiculosEmAbertoSaida();
+          }
+          if (this.registroRapidoEntradaId === item.id) {
+            this.registroRapidoSuspenso = !retornar;
+          }
           if (this.resumoMovimentoId() === item.id) {
             this.selecionarMovimento(item);
           }
@@ -842,6 +1051,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       .slice(0, 5)
       .map((item) => ({
         id: item.id,
+        data: this.formatarDataMonitoramento(item.dataHoraSaida || item.dataHoraEntrada),
         horario: item.horario,
         placa: item.placa || '—',
         motorista: item.motorista || '—',
@@ -888,6 +1098,161 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.postEntradaSaidaAposValidacao();
   }
 
+  abrirModalEntrada(): void {
+    if (!this.canGravar || this.processandoRegistroRapido()) return;
+    this.limparRegistroRapido();
+    this.entradaModalOpen.set(true);
+  }
+
+  fecharModalEntrada(): void {
+    if (this.processandoRegistroRapido()) return;
+    this.entradaModalOpen.set(false);
+  }
+
+  confirmarEntradaModal(): void {
+    this.abrirRegistroEntradaRapida();
+  }
+
+  abrirModalSaida(): void {
+    if (!this.canGravar || this.processandoRegistroRapido()) return;
+    this.saidaModalBusca.set('');
+    this.saidaModalFiltroTipo.set(null);
+    this.saidaModalPagina.set(1);
+    this.saidaModalSelecionadoId.set(null);
+    this.saidaFiltrosVisiveis.set(true);
+    this.saidaModalOpen.set(true);
+    this.carregarVeiculosEmAbertoSaida();
+  }
+
+  fecharModalSaida(): void {
+    this.saidaModalOpen.set(false);
+  }
+
+  alternarFiltrosSaida(): void {
+    this.saidaFiltrosVisiveis.update((v) => !v);
+  }
+
+  onSaidaModalBuscaChange(valor: string): void {
+    this.saidaModalBusca.set(valor);
+    this.saidaModalPagina.set(1);
+  }
+
+  aplicarFiltroTipoSaida(tipo: string | null): void {
+    this.saidaModalFiltroTipo.set(tipo);
+    this.saidaModalPagina.set(1);
+  }
+
+  irPaginaSaida(pagina: number): void {
+    const total = this.saidaModalTotalPaginas();
+    const next = Math.min(total, Math.max(1, pagina));
+    this.saidaModalPagina.set(next);
+  }
+
+  selecionarLinhaSaida(id: number): void {
+    this.saidaModalSelecionadoId.set(id);
+  }
+
+  darSaidaDoModal(item: EntradaSaidaSearchOutput): void {
+    if (!this.canGravar) return;
+    this.saidaModalSelecionadoId.set(item.id);
+    this.saidaModalOpen.set(false);
+    this.abrirPermanencia(item, 'finalizar');
+  }
+
+  suspenderOuRetomarDoModalSaida(item: EntradaSaidaSearchOutput): void {
+    if (!this.canGravar) return;
+    this.saidaModalSelecionadoId.set(item.id);
+    this.executarSuspensaoOuRetorno(item);
+  }
+
+  /** Retoma permanência do movimento em aberto detectado pela placa no modal de entrada. */
+  retomarDoModalEntrada(): void {
+    if (!this.canGravar || !this.registroRapidoSuspenso || this.registroRapidoEntradaId <= 0) return;
+    const item: EntradaSaidaSearchOutput = {
+      id: this.registroRapidoEntradaId,
+      descricao: '',
+      motoristaId: 0,
+      nomeMotorista: String(this.registroRapido.motorista ?? ''),
+      transportadoraId: this.registroRapidoTransportadoraId,
+      nomeTransportadora: String(this.registroRapido.transportadoraRazaoSocial ?? ''),
+      veiculoId: 0,
+      placaVeiculo: normalizePlaca(this.registroRapido.placa),
+      dataHoraEntrada: '',
+      dataHoraSaida: null,
+      status: EntradaSaidaStatus.Suspenso
+    };
+    this.executarSuspensaoOuRetorno(item);
+  }
+
+  tempoNoPatioDesde(dataHoraEntrada: string | null | undefined): string {
+    if (!dataHoraEntrada) return '—';
+    const inicio = new Date(dataHoraEntrada).getTime();
+    if (!Number.isFinite(inicio)) return '—';
+    const minutos = Math.max(0, Math.floor((Date.now() - inicio) / 60_000));
+    return this.formatarMinutos(minutos);
+  }
+
+  private carregarVeiculosEmAbertoSaida(): void {
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.toast.error('Selecione o estacionamento da sessão antes de consultar veículos em aberto.');
+      this.saidaModalItens.set([]);
+      return;
+    }
+    this.cancelarSaidaModalLista$.next();
+    this.saidaModalLoading.set(true);
+    const pageSize = 100;
+    const carregarPagina = (
+      pagina: number,
+      acumulado: EntradaSaidaSearchOutput[]
+    ): void => {
+      this.entradaSaidaService
+        .buscar({
+          somenteEmAberto: true,
+          numeroPagina: pagina,
+          tamanhoPagina: pageSize,
+          propriedade: 'DataHoraEntrada',
+          sort: 'Desc'
+        })
+        .pipe(takeUntil(this.cancelarSaidaModalLista$))
+        .subscribe({
+          next: (page) => {
+            const lote = (page.items ?? []).filter((item) => !item.dataHoraSaida);
+            const todos = [...acumulado, ...lote];
+            const total = Number(page.totalCount) || todos.length;
+            const temMais = todos.length < total && lote.length > 0;
+            if (temMais && pagina < 50) {
+              carregarPagina(pagina + 1, todos);
+              return;
+            }
+            this.saidaModalItens.set(todos);
+            this.saidaModalPagina.set(1);
+            this.saidaModalLoading.set(false);
+          },
+          error: (err: ApiError) => {
+            this.saidaModalItens.set([]);
+            this.saidaModalLoading.set(false);
+            this.toast.error(err?.message ?? 'Erro ao carregar veículos em aberto.');
+          }
+        });
+    };
+    carregarPagina(1, []);
+  }
+
+  private chaveTipoVeiculoSaida(item: EntradaSaidaSearchOutput): string | null {
+    const tipo = String(item.tipoVeiculo ?? '').trim();
+    if (tipo) return tipo.toLowerCase();
+    const carga = item.tipoCarga;
+    if (carga == null || carga === '') return null;
+    return `carga:${String(carga).toLowerCase()}`;
+  }
+
+  private labelTipoVeiculoSaida(item: EntradaSaidaSearchOutput): string | null {
+    const tipo = String(item.tipoVeiculo ?? '').trim();
+    if (tipo) return tipo;
+    if (item.tipoCarga == null || item.tipoCarga === '') return null;
+    return tipoCargaLabel(item.tipoCarga) ?? String(item.tipoCarga);
+  }
+
   /** POST `EntradaSaida` — chamado somente após `mensagemValidacaoCamposObrigatoriosEntrada()` retornar null. */
   private postEntradaSaidaAposValidacao(): void {
     const placaNorm = normalizePlaca(this.registroRapido.placa);
@@ -904,6 +1269,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
               mensagem: 'Entrada registrada. Deseja visualizar o recibo de entrada?'
             });
             this.toast.success('Entrada registrada com sucesso.');
+            this.entradaModalOpen.set(false);
             this.buscar();
             this.limparRegistroRapido();
           },
@@ -1026,6 +1392,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.ultimaPlacaConsultadaRegistroRapido = '';
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoSuspenso = false;
     this.alertaAcordoRegistroRapido = '';
     this.alertaAcordoExcedente = false;
     this.registroRapidoEntradaId = 0;
@@ -1703,6 +2070,17 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
+  private formatarDataMonitoramento(valor: string | null | undefined): string {
+    if (!valor?.trim()) return '--/--/--';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return '--/--/--';
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    });
+  }
+
   private tempoRelativo(valor: string | null | undefined): string {
     if (!valor?.trim()) return 'agora';
     const d = new Date(valor);
@@ -1876,6 +2254,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.consultaCnpjSequencia++;
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoSuspenso = false;
     this.alertaAcordoRegistroRapido = '';
     this.alertaAcordoExcedente = false;
     this.registroRapidoEntradaId = 0;
@@ -1931,6 +2310,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.tipoCarga = campos.tipoCargaLabel;
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.registroRapidoSuspenso = campos.existeEntradaEmAberto && this.estaSuspenso(entrada);
     this.aplicarAlertaAcordoRegistroRapido(campos);
     this.camposBloqueadosPorPlaca = true;
     this.registroRapidoEntradaId =
@@ -1983,6 +2363,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.tipoCarga = campos.tipoCargaLabel;
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.registroRapidoSuspenso = campos.existeEntradaEmAberto && this.estaSuspenso(entrada);
     this.aplicarAlertaAcordoRegistroRapido(campos);
     this.camposBloqueadosPorPlaca = true;
     this.registroRapidoEntradaId =

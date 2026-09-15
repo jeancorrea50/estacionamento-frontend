@@ -1,14 +1,129 @@
 <div class="page-container">
-  @if (isPortariaView()) {
-    <header class="page-header dk-page-header">
-      <h1 class="page-title dk-page-title">Entrada e Saída</h1>
-      <p class="page-subtitle dk-page-subtitle">Controle operacional de entradas e saídas no pátio.</p>
-    </header>
-  }
-
   @if (!canVisualizar) {
     <p class="empty-msg">Sem permissão para visualizar Entrada/Saída.</p>
   } @else {
+    @if (isPortariaView()) {
+    <section class="portaria-layout" aria-label="Operação de entrada e saída">
+      <div class="portaria-layout__main">
+        <header class="dashboard-card portaria-hero">
+          <h1 class="portaria-hero__title">Entrada e Saída</h1>
+          <p class="portaria-hero__sub">Controle operacional de entradas e saídas no pátio.</p>
+        </header>
+
+        <section class="dashboard-kpis dashboard-kpis--portaria" aria-label="Indicadores do dia">
+          <article class="kpi-card">
+            <p class="kpi-card__label">Entradas Hoje</p>
+            <p class="kpi-card__valor">{{ entradasHoje() }}</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-card__label">Saídas Hoje</p>
+            <p class="kpi-card__valor">{{ saidasHoje() }}</p>
+          </article>
+        </section>
+
+        @if (podeAcoesOperacionaisPatio) {
+          <div class="portaria-cta" role="group" aria-label="Ações de entrada e saída">
+            <button
+              type="button"
+              class="portaria-cta__btn portaria-cta__btn--entrada"
+              [disabled]="!canGravar || processandoRegistroRapido()"
+              (click)="abrirModalEntrada()"
+            >
+              <span class="portaria-cta__ico" aria-hidden="true">
+                <span class="material-symbols-outlined">login</span>
+              </span>
+              <span class="portaria-cta__text">
+                <span class="portaria-cta__title">Entrada</span>
+                <span class="portaria-cta__sub">Registrar entrada de veículo</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              class="portaria-cta__btn portaria-cta__btn--saida"
+              [disabled]="!canGravar || processandoRegistroRapido()"
+              (click)="abrirModalSaida()"
+            >
+              <span class="portaria-cta__ico" aria-hidden="true">
+                <span class="material-symbols-outlined">logout</span>
+              </span>
+              <span class="portaria-cta__text">
+                <span class="portaria-cta__title">Saída</span>
+                <span class="portaria-cta__sub">Registrar saída de veículo</span>
+              </span>
+            </button>
+          </div>
+        }
+
+        <article class="dashboard-card dashboard-card--alertas">
+          <header class="dashboard-card__header">
+            <h2>Últimos Alertas</h2>
+            <button type="button" class="portaria-link" disabled title="Em breve">Ver todos &gt;</button>
+          </header>
+          @if (ultimosAlertas().length === 0) {
+            <div class="portaria-empty" role="status">
+              <span class="material-symbols-outlined portaria-empty__ico" aria-hidden="true">notifications</span>
+              <p class="portaria-empty__title">Nenhum alerta recente.</p>
+              <p class="portaria-empty__sub">Os alertas de eventos na portaria aparecerão aqui.</p>
+            </div>
+          } @else {
+            <ul class="alert-list">
+              @for (alerta of ultimosAlertas(); track alerta.id) {
+                <li class="alert-list__item">
+                  <span class="alert-list__title">{{ alerta.titulo }}</span>
+                  <span class="alert-list__sep" aria-hidden="true">·</span>
+                  <span class="alert-list__desc">{{ alerta.descricao }}</span>
+                  <span class="alert-list__time">{{ alerta.tempoRelativo }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </article>
+
+        <article class="dashboard-card dashboard-card--monitoramento">
+          <header class="dashboard-card__header">
+            <h2>Monitoramento em Tempo Real</h2>
+          </header>
+          <div class="monitor-table-wrap">
+            @if (monitoramentoItens().length === 0) {
+              <div class="portaria-empty" role="status">
+                <span class="material-symbols-outlined portaria-empty__ico" aria-hidden="true">inventory_2</span>
+                <p class="portaria-empty__title">Sem dados de monitoramento no momento.</p>
+              </div>
+            } @else {
+              <table class="monitor-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Veículo</th>
+                    <th>Motorista</th>
+                    <th>Transportadora</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of monitoramentoItens(); track item.id) {
+                    <tr>
+                      <td><span [class]="classeStatusMonitoramento(item.status)"></span></td>
+                      <td>{{ item.data }}</td>
+                      <td>{{ item.horario }}</td>
+                      <td>{{ item.placa }}</td>
+                      <td>{{ item.motorista }}</td>
+                      <td>{{ item.transportadora }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        </article>
+      </div>
+
+      <aside class="portaria-layout__cameras dashboard-card dashboard-card--cameras" aria-label="Câmeras da Portaria">
+        <app-camera-preview />
+      </aside>
+    </section>
+    } @else {
     <section class="dashboard-kpis">
       <article class="kpi-card">
         <p class="kpi-card__label">Entradas Hoje</p>
@@ -26,256 +141,6 @@
         <p class="kpi-card__label">Tempo Médio no Pátio</p>
         <p class="kpi-card__valor">{{ tempoMedioPatio() }}</p>
       </article>
-    </section>
-
-    @if (isPortariaView()) {
-    <section class="dashboard-grid">
-      @if (podeAcoesOperacionaisPatio) {
-      <article class="dashboard-card dashboard-card--registro">
-        <header class="dashboard-card__header dashboard-card__header--stack">
-          <div>
-            <h2>Entrada e Saída</h2>
-            <p>Informe a placa e registre a entrada ou a saída no pátio. Agendamentos ficam em Agendamento.</p>
-          </div>
-        </header>
-
-        <div class="portaria-acoes" role="group" aria-label="Ações de entrada e saída">
-          <button
-            class="btn btn-success portaria-acoes__btn"
-            type="button"
-            [disabled]="!canGravar || processandoRegistroRapido() || existeEntradaEmAbertoPorPlaca"
-            (click)="abrirRegistroEntradaRapida()"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">login</span>
-            Entrada
-          </button>
-          <button
-            class="btn btn-danger portaria-acoes__btn"
-            type="button"
-            [disabled]="!canGravar || processandoRegistroRapido() || !existeEntradaEmAbertoPorPlaca"
-            (click)="registrarSaidaRapida()"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">logout</span>
-            Saída
-          </button>
-        </div>
-
-        <div class="registro-form-layout">
-          <section class="registro-section registro-section--motorista" aria-labelledby="registro-motorista-titulo">
-            <h3 id="registro-motorista-titulo" class="registro-section__title">Motorista e veículo</h3>
-            <div class="registro-grid">
-              <label class="field">
-                <span>Placa do Veículo <abbr class="field__req" title="Obrigatório">*</abbr></span>
-                <input
-                  class="input-control"
-                  type="text"
-                  placeholder="ABC-1D23"
-                  required
-                  aria-required="true"
-                  [(ngModel)]="registroRapido.placa"
-                  (ngModelChange)="onRegistroRapidoPlacaInput($event)"
-                  maxlength="8"
-                  autocomplete="off"
-                  spellcheck="false"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
-                <span>CPF do motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
-                <input
-                  class="input-control"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  placeholder="000.000.000-00"
-                  maxlength="14"
-                  required
-                  aria-required="true"
-                  [ngModel]="registroRapido.motoristaCpf"
-                  (ngModelChange)="onMotoristaCpfInput($event)"
-                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
-                <span>Motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
-                <input
-                  class="input-control"
-                  type="text"
-                  placeholder="Nome"
-                  required
-                  aria-required="true"
-                  [(ngModel)]="registroRapido.motorista"
-                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoMotoristaPorCpf || motoristaAutoPreenchidoPorCpf"
-                  [attr.maxlength]="registroRapidoMaxTexto"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
-                <span>Tipo de Carga</span>
-                <select
-                  class="input-control input-control--select"
-                  [(ngModel)]="registroRapido.tipoCarga"
-                  [disabled]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
-                  [ngModelOptions]="{ standalone: true }"
-                >
-                  <option value="">Selecione...</option>
-                  @for (opcao of tipoCargaOpcoes; track opcao) {
-                    <option [value]="opcao">{{ opcao }}</option>
-                  }
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section class="registro-section registro-section--transportadora" aria-labelledby="registro-transp-titulo">
-            <h3 id="registro-transp-titulo" class="registro-section__title">Transportadora</h3>
-            <div class="registro-grid">
-              <label class="field field--full">
-                <span>CNPJ</span>
-                <input
-                  class="input-control"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  placeholder="00.000.000/0000-00"
-                  maxlength="18"
-                  [ngModel]="registroRapido.transportadoraCnpj"
-                  (ngModelChange)="onTransportadoraCnpjInput($event)"
-                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
-                <span>Razão social</span>
-                <input
-                  class="input-control"
-                  type="text"
-                  placeholder="Razão social"
-                  [(ngModel)]="registroRapido.transportadoraRazaoSocial"
-                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
-                  [attr.maxlength]="registroRapidoMaxTexto"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
-                <span>Nome do responsável</span>
-                <input
-                  class="input-control"
-                  type="text"
-                  placeholder="Nome do responsável"
-                  [(ngModel)]="registroRapido.transportadoraResponsavelNome"
-                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
-                  [attr.maxlength]="registroRapidoMaxTexto"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-              <label class="field">
-                <span>Telefone do responsável</span>
-                <input
-                  class="input-control"
-                  type="text"
-                  inputmode="tel"
-                  autocomplete="off"
-                  placeholder="(00) 00000-0000"
-                  appTelefoneFormat
-                  [(ngModel)]="registroRapido.transportadoraResponsavelTelefone"
-                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
-                  [attr.maxlength]="registroRapidoMaxTelefone"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-            </div>
-          </section>
-
-          <section class="registro-section registro-section--extras" aria-labelledby="registro-extras-titulo">
-            <h3 id="registro-extras-titulo" class="registro-section__title">Observação</h3>
-            <div class="registro-grid">
-              <label class="field field--full">
-                <span>Observação</span>
-                <input
-                  class="input-control"
-                  type="text"
-                  placeholder="Observação opcional"
-                  [(ngModel)]="registroRapido.observacao"
-                  [readonly]="camposBloqueadosPorPlaca"
-                  [attr.maxlength]="registroRapidoMaxTexto"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-              </label>
-            </div>
-          </section>
-        </div>
-        @if (alertaAcordoRegistroRapido) {
-          <p class="registro-acordo-alerta" [class.registro-acordo-alerta--excedente]="alertaAcordoExcedente">
-            {{ alertaAcordoRegistroRapido }}
-          </p>
-        }
-        <div class="registro-actions registro-actions--secondary">
-          <button class="btn btn-secondary" type="button" (click)="limparRegistroRapido()">Limpar campos</button>
-        </div>
-      </article>
-      }
-
-      <article class="dashboard-card dashboard-card--monitoramento">
-        <header class="dashboard-card__header">
-          <h2>Monitoramento em Tempo Real</h2>
-        </header>
-        <table class="monitor-table">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Horário</th>
-              <th>Veículo</th>
-              <th>Motorista</th>
-              <th>Transportadora</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of monitoramentoItens(); track item.id) {
-              <tr>
-                <td><span [class]="classeStatusMonitoramento(item.status)"></span></td>
-                <td>{{ item.horario }}</td>
-                <td>{{ item.placa }}</td>
-                <td>{{ item.motorista }}</td>
-                <td>{{ item.transportadora }}</td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5">Sem dados de monitoramento no momento.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </article>
-
-      <article class="dashboard-card dashboard-card--alertas">
-        <header class="dashboard-card__header">
-          <h2>Últimos Alertas</h2>
-        </header>
-        <ul class="alert-list">
-          @for (alerta of ultimosAlertas(); track alerta.id) {
-            <li>
-              <p class="alert-list__title">{{ alerta.titulo }}</p>
-              <p class="alert-list__desc">{{ alerta.descricao }}</p>
-              <span class="alert-list__time">{{ alerta.tempoRelativo }}</span>
-            </li>
-          } @empty {
-            <li>
-              <p class="alert-list__desc">Nenhum alerta recente.</p>
-            </li>
-          }
-        </ul>
-      </article>
-
-      <article class="dashboard-card dashboard-card--camera">
-        <header class="dashboard-card__header">
-          <h2>Câmera da Portaria</h2>
-          <span class="camera-live">AO VIVO</span>
-        </header>
-        <app-camera-preview />
-      </article>
-
     </section>
     }
 
@@ -343,6 +208,26 @@
               <span>Em aberto</span>
             </label>
             <button class="btn btn-primary btn--sm operacao-busca__btn" type="submit">Buscar</button>
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm operacao-busca__export"
+              (click)="exportarPdf()"
+              [disabled]="loading() || exportando()"
+              title="Exportar resultado do filtro em PDF"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+              PDF
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm operacao-busca__export"
+              (click)="exportarExcel()"
+              [disabled]="loading() || exportando()"
+              title="Exportar resultado do filtro em Excel"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+              Excel
+            </button>
           </form>
         </div>
       </section>
@@ -661,6 +546,406 @@
         </aside>
       </div>
     }
+  }
+
+  @if (entradaModalOpen()) {
+    <div
+      class="modal-overlay es-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="entradaModalTitle"
+      (click)="fecharModalEntrada()"
+    >
+      <div class="modal-content es-modal es-modal--entrada" (click)="$event.stopPropagation()">
+        <header class="es-modal__header">
+          <div class="es-modal__header-main">
+            <span class="es-modal__header-ico es-modal__header-ico--entrada" aria-hidden="true">
+              <span class="material-symbols-outlined">local_shipping</span>
+            </span>
+            <div>
+              <h2 id="entradaModalTitle" class="es-modal__title">Registrar Entrada</h2>
+              <p class="es-modal__subtitle">
+                Preencha os dados para registrar a entrada do veículo no pátio.
+              </p>
+            </div>
+          </div>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalEntrada()">
+            ×
+          </button>
+        </header>
+
+        <div class="es-modal__body">
+          <section class="registro-section registro-section--motorista" aria-labelledby="entrada-sec-veiculo">
+            <h3 id="entrada-sec-veiculo" class="registro-section__title">Dados do Veículo e Motorista</h3>
+            <div class="registro-grid">
+              <label class="field">
+                <span>Placa do veículo <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="ABC-1D23"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.placa"
+                  (ngModelChange)="onRegistroRapidoPlacaInput($event)"
+                  maxlength="8"
+                  autocomplete="off"
+                  spellcheck="false"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>CPF do motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="000.000.000-00"
+                  maxlength="14"
+                  required
+                  aria-required="true"
+                  [ngModel]="registroRapido.motoristaCpf"
+                  (ngModelChange)="onMotoristaCpfInput($event)"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.motorista"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoMotoristaPorCpf || motoristaAutoPreenchidoPorCpf"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Tipo de carga</span>
+                <select
+                  class="input-control input-control--select"
+                  [(ngModel)]="registroRapido.tipoCarga"
+                  [disabled]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">Selecione...</option>
+                  @for (opcao of tipoCargaOpcoes; track opcao) {
+                    <option [value]="opcao">{{ opcao }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="registro-section registro-section--transportadora" aria-labelledby="entrada-sec-transp">
+            <h3 id="entrada-sec-transp" class="registro-section__title">Dados da Transportadora</h3>
+            <div class="registro-grid">
+              <label class="field">
+                <span>CNPJ</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="00.000.000/0000-00"
+                  maxlength="18"
+                  [ngModel]="registroRapido.transportadoraCnpj"
+                  (ngModelChange)="onTransportadoraCnpjInput($event)"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Razão social</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Razão social"
+                  [(ngModel)]="registroRapido.transportadoraRazaoSocial"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Nome do responsável</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome do responsável"
+                  [(ngModel)]="registroRapido.transportadoraResponsavelNome"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Telefone do responsável</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="tel"
+                  autocomplete="off"
+                  placeholder="(00) 00000-0000"
+                  appTelefoneFormat
+                  [(ngModel)]="registroRapido.transportadoraResponsavelTelefone"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
+                  [attr.maxlength]="registroRapidoMaxTelefone"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section class="registro-section registro-section--extras" aria-labelledby="entrada-sec-obs">
+            <h3 id="entrada-sec-obs" class="registro-section__title">Observação</h3>
+            <div class="registro-grid">
+              <label class="field field--full">
+                <span>Observação opcional</span>
+                <textarea
+                  class="input-control es-modal__textarea"
+                  rows="3"
+                  placeholder="Observação opcional"
+                  [(ngModel)]="registroRapido.observacao"
+                  [readonly]="camposBloqueadosPorPlaca"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                ></textarea>
+              </label>
+            </div>
+          </section>
+
+          @if (alertaAcordoRegistroRapido) {
+            <p class="registro-acordo-alerta" [class.registro-acordo-alerta--excedente]="alertaAcordoExcedente">
+              {{ alertaAcordoRegistroRapido }}
+            </p>
+          }
+          @if (existeEntradaEmAbertoPorPlaca && registroRapidoSuspenso) {
+            <p class="registro-acordo-alerta registro-acordo-alerta--suspenso" role="status">
+              Esta placa possui permanência suspensa. Use Retomar para devolver o veículo ao pátio.
+            </p>
+          } @else if (existeEntradaEmAbertoPorPlaca) {
+            <p class="registro-acordo-alerta" role="status">
+              Já existe entrada em aberto para esta placa. Não é possível registrar outra entrada.
+            </p>
+          }
+        </div>
+
+        <footer class="es-modal__footer">
+          <button class="btn btn-secondary" type="button" [disabled]="processandoRegistroRapido()" (click)="fecharModalEntrada()">
+            Cancelar
+          </button>
+          @if (registroRapidoSuspenso && registroRapidoEntradaId > 0) {
+            <button
+              class="btn btn-warning"
+              type="button"
+              [disabled]="!canGravar || permanenciaProcessandoId() === registroRapidoEntradaId"
+              (click)="retomarDoModalEntrada()"
+            >
+              {{
+                permanenciaProcessandoId() === registroRapidoEntradaId ? 'Retomando...' : 'Retomar'
+              }}
+            </button>
+          }
+          <button
+            class="btn btn-success"
+            type="button"
+            [disabled]="!canGravar || processandoRegistroRapido() || existeEntradaEmAbertoPorPlaca"
+            (click)="confirmarEntradaModal()"
+          >
+            {{ processandoRegistroRapido() ? 'Registrando...' : 'Confirmar entrada' }}
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+
+  @if (saidaModalOpen()) {
+    <div
+      class="modal-overlay es-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="saidaModalTitle"
+      (click)="fecharModalSaida()"
+    >
+      <div class="modal-content es-modal es-modal--saida-lista" (click)="$event.stopPropagation()">
+        <header class="es-modal__header">
+          <div class="es-modal__header-main">
+            <span class="es-modal__header-ico es-modal__header-ico--saida" aria-hidden="true">
+              <span class="material-symbols-outlined">logout</span>
+            </span>
+            <div>
+              <h2 id="saidaModalTitle" class="es-modal__title">Veículos em aberto para saída</h2>
+              <p class="es-modal__subtitle">
+                Selecione um veículo da lista abaixo para registrar a saída.
+              </p>
+            </div>
+          </div>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalSaida()">
+            ×
+          </button>
+        </header>
+
+        <div class="es-modal__toolbar">
+          <label class="es-modal__search">
+            <span class="material-symbols-outlined es-modal__search-ico" aria-hidden="true">search</span>
+            <input
+              class="input-control"
+              type="search"
+              placeholder="Buscar por placa, motorista ou transportadora..."
+              [ngModel]="saidaModalBusca()"
+              (ngModelChange)="onSaidaModalBuscaChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+              aria-label="Buscar veículos em aberto"
+            />
+          </label>
+          <button
+            type="button"
+            class="btn btn-secondary btn--sm"
+            [class.btn--active]="saidaFiltrosVisiveis()"
+            (click)="alternarFiltrosSaida()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
+            Filtros
+          </button>
+        </div>
+
+        @if (saidaFiltrosVisiveis()) {
+          <div class="es-modal__chips" role="group" aria-label="Filtros por tipo">
+            <button
+              type="button"
+              class="es-chip"
+              [class.es-chip--active]="saidaModalFiltroTipo() === null"
+              (click)="aplicarFiltroTipoSaida(null)"
+            >
+              Todos <span class="es-chip__count">{{ saidaModalTotalBusca() }}</span>
+            </button>
+            @for (chip of saidaModalChips(); track chip.key) {
+              <button
+                type="button"
+                class="es-chip"
+                [class.es-chip--active]="saidaModalFiltroTipo() === chip.key"
+                (click)="aplicarFiltroTipoSaida(chip.key)"
+              >
+                {{ chip.label }} <span class="es-chip__count">{{ chip.count }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        <div class="es-modal__body es-modal__body--table">
+          @if (saidaModalLoading()) {
+            <p class="loading-msg">Carregando veículos em aberto...</p>
+          } @else {
+            <div class="table-wrap es-modal__table-wrap">
+              <table class="data-table es-saida-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Placa</th>
+                    <th scope="col">Motorista</th>
+                    <th scope="col">Transportadora</th>
+                    <th scope="col">Horário de entrada</th>
+                    <th scope="col">Tempo no pátio</th>
+                    <th scope="col" class="col-acoes">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of saidaModalPaginaItens(); track item.id) {
+                    <tr
+                      [class.es-saida-table__row--selected]="saidaModalSelecionadoId() === item.id"
+                      (click)="selecionarLinhaSaida(item.id)"
+                    >
+                      <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista || '—' }}</span>
+                      </td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                          item.nomeTransportadora || '—'
+                        }}</span>
+                      </td>
+                      <td>{{ item.dataHoraEntrada ? (item.dataHoraEntrada | date: 'HH:mm') : '—' }}</td>
+                      <td>{{ tempoNoPatioDesde(item.dataHoraEntrada) }}</td>
+                      <td class="acoes-cell es-saida-table__acoes">
+                        <button
+                          type="button"
+                          class="btn btn-warning btn--sm"
+                          [disabled]="!canGravar || permanenciaProcessandoId() === item.id"
+                          (click)="$event.stopPropagation(); suspenderOuRetomarDoModalSaida(item)"
+                        >
+                          {{
+                            permanenciaProcessandoId() === item.id
+                              ? '...'
+                              : estaSuspenso(item)
+                                ? 'Retomar'
+                                : 'Suspender'
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn--sm"
+                          [disabled]="!canGravar"
+                          (click)="$event.stopPropagation(); darSaidaDoModal(item)"
+                        >
+                          Dar saída
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6">Nenhum veículo em aberto encontrado.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <footer class="es-modal__footer es-modal__footer--between">
+          <span class="es-modal__pager-info">
+            Mostrando {{ saidaModalMostrandoDe() }} a {{ saidaModalMostrandoAte() }} de
+            {{ saidaModalTotalFiltrado() }} veículos em aberto
+          </span>
+          @if (saidaModalTotalPaginas() > 1) {
+            <nav class="es-modal__pager" aria-label="Paginação de veículos em aberto">
+              <button
+                type="button"
+                class="btn btn-secondary btn--sm"
+                [disabled]="saidaModalPagina() <= 1"
+                (click)="irPaginaSaida(saidaModalPagina() - 1)"
+              >
+                &lt;
+              </button>
+              @for (p of saidaModalPaginasVisiveis(); track p) {
+                <button
+                  type="button"
+                  class="btn btn--sm"
+                  [class.btn-primary]="p === saidaModalPagina()"
+                  [class.btn-secondary]="p !== saidaModalPagina()"
+                  (click)="irPaginaSaida(p)"
+                >
+                  {{ p }}
+                </button>
+              }
+              <button
+                type="button"
+                class="btn btn-secondary btn--sm"
+                [disabled]="saidaModalPagina() >= saidaModalTotalPaginas()"
+                (click)="irPaginaSaida(saidaModalPagina() + 1)"
+              >
+                &gt;
+              </button>
+            </nav>
+          }
+        </footer>
+      </div>
+    </div>
   }
 
   @if (reciboConfirmOpen()) {

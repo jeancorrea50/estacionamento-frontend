@@ -127,6 +127,10 @@ export interface EntradaSaidaSearchOutput {
   /** True quando a entrada foi marcada como excedente do acordo. */
   ehExcedente?: boolean;
   acordoCobrancaId?: number | null;
+  /** Tipo de veículo quando a listagem expõe o campo (ex.: Carreta, Truck). */
+  tipoVeiculo?: string | null;
+  /** Enum/label de tipo de carga quando a listagem expõe o campo. */
+  tipoCarga?: number | string | null;
 }
 
 export interface EntradaSaidaSuspensaoOutput {

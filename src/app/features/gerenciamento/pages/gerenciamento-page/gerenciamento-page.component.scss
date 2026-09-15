@@ -1424,15 +1424,37 @@
 }
 
 :host-context(html.theme-light) .usuarios-page {
-  --usu-bg: var(--color-bg-page, #f3f4f6);
+  --usu-bg: var(--color-bg-page, #f5f7fa);
   --usu-table: var(--color-bg-card, #ffffff);
-  --usu-table-header: var(--color-bg-section, #f3f4f6);
+  --usu-table-header: var(--color-bg-section, #f8fafc);
   --usu-input: var(--color-bg-input, #ffffff);
-  --usu-border: var(--color-border, #e5e7eb);
-  --usu-text: var(--color-text-primary, #111827);
-  --usu-muted: var(--color-text-secondary, #6b7280);
+  --usu-border: var(--color-border, #dce3ec);
+  --usu-text: var(--color-text-primary, #1f2937);
+  --usu-muted: var(--color-text-secondary, #64748b);
   --usu-primary: var(--color-primary, #2563eb);
-  --usu-hover: rgba(37, 99, 235, 0.06);
+  --usu-hover: #f8fafc;
+}
+
+:host-context(html.theme-light) .usuarios-table thead th {
+  color: #475569;
+  font-weight: 600;
+}
+
+:host-context(html.theme-light) .usuarios-perfil-chip--admin {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+
+:host-context(html.theme-light) .usuarios-perfil-chip--transport {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+:host-context(html.theme-light) .usuarios-icon-btn .material-symbols-outlined,
+:host-context(html.theme-light) .usuarios-vinculo-ico {
+  color: #475569;
 }
 
 /* Tema white: modal Novo usuário / vínculo alinhado à paleta do sistema */

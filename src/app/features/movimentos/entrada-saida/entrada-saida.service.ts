@@ -235,7 +235,13 @@ export class EntradaSaidaService {
       dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
       avulso: this.pickBool(row, 'avulso', 'Avulso'),
       ehExcedente: this.pickBool(row, 'ehExcedente', 'EhExcedente'),
-      acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId')
+      acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId'),
+      tipoVeiculo: this.pickString(row, 'tipoVeiculo', 'TipoVeiculo') || null,
+      tipoCarga: this.pickRaw(row, 'tipoCarga', 'TipoCarga', 'tipoCargaDescricao', 'TipoCargaDescricao') as
+        | number
+        | string
+        | null
+        | undefined
     };
   }
 

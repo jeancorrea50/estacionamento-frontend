@@ -1,32 +1,155 @@
-<div class="camera-preview">
-  <div class="camera-preview__toolbar">
-    <select
-      class="input-control"
-      [value]="selectedDeviceId"
-      (change)="onDeviceSelectChange($event)"
-      [disabled]="loading || devices.length === 0"
-    >
-      @for (device of devices; track device.deviceId) {
-        <option [value]="device.deviceId">
-          {{ device.label || ('Câmera ' + ($index + 1)) }}
-        </option>
-      } @empty {
-        <option value="">Nenhuma câmera detectada</option>
-      }
-    </select>
-    <button class="btn btn-secondary btn--sm" type="button" (click)="refreshDevices()" [disabled]="loading">
-      Atualizar
-    </button>
-    <button class="btn btn-secondary btn--sm" type="button" (click)="stopCamera()" [disabled]="!stream">
-      Parar
-    </button>
-  </div>
-
-  <div class="camera-preview__video-wrap">
-    <video #videoPreview autoplay playsinline muted></video>
-  </div>
-
-  @if (errorMessage) {
-    <p class="camera-preview__error">{{ errorMessage }}</p>
+<div
+  class="camera-preview"
+  [class.camera-preview--expanded]="expanded"
+  aria-label="Câmeras da Portaria"
+>
+  @if (expanded) {
+    <div class="camera-preview__backdrop" (click)="recolherCameras()" aria-hidden="true"></div>
   }
+
+  <div
+    class="camera-preview__panel"
+    [class.camera-preview__panel--expanded]="expanded"
+    [attr.role]="expanded ? 'dialog' : null"
+    [attr.aria-modal]="expanded ? true : null"
+    [attr.aria-labelledby]="expanded ? 'cameraExpandTitle' : null"
+  >
+    <header class="camera-preview__block-head">
+      <div class="camera-preview__block-titles">
+        <h2
+          class="camera-preview__block-title"
+          [attr.id]="expanded ? 'cameraExpandTitle' : null"
+        >
+          Câmeras da Portaria
+        </h2>
+        @if (expanded) {
+          <p class="camera-preview__block-sub">Visualização ampliada de todas as câmeras.</p>
+        }
+      </div>
+      <div class="camera-preview__block-actions">
+        <span class="camera-live" aria-label="Status ao vivo">
+          <span class="camera-live__dot" aria-hidden="true"></span>
+          AO VIVO
+        </span>
+        @if (!expanded) {
+          <button
+            type="button"
+            class="btn btn-secondary btn--sm camera-preview__expand-btn"
+            (click)="expandirCameras()"
+            title="Expandir para ver todas as câmeras"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">open_in_full</span>
+            Expandir
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-secondary btn--sm camera-preview__expand-btn"
+            (click)="recolherCameras()"
+            title="Recolher"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">close_fullscreen</span>
+            Recolher
+          </button>
+          <button
+            type="button"
+            class="modal-close camera-preview__close"
+            aria-label="Fechar visualização ampliada"
+            (click)="recolherCameras()"
+          >
+            ×
+          </button>
+        }
+      </div>
+    </header>
+
+    <div
+      class="camera-preview__stack"
+      [class.camera-preview__stack--grid]="expanded"
+    >
+      @for (panel of panels; track panel.id; let i = $index) {
+        <article class="camera-card" [class.camera-card--expanded]="expanded">
+          <header class="camera-card__header">
+            <label class="camera-card__name">
+              <span class="visually-hidden">Selecionar câmera {{ i + 1 }}</span>
+              <select
+                class="input-control camera-card__select"
+                [value]="panel.deviceId"
+                (change)="onPanelDeviceChange(panel, $event)"
+                [disabled]="panel.loading || devices.length === 0"
+              >
+                @for (device of devices; track device.deviceId; let di = $index) {
+                  <option [value]="device.deviceId">
+                    {{ device.label || ('Câmera ' + (di + 1)) }}
+                  </option>
+                } @empty {
+                  <option value="">Nenhuma câmera detectada</option>
+                }
+              </select>
+            </label>
+            <span class="camera-live camera-live--sm" [class.camera-live--off]="!panel.stream">
+              <span class="camera-live__dot" aria-hidden="true"></span>
+              AO VIVO
+            </span>
+            <div class="camera-card__actions">
+              <button
+                class="btn btn-secondary btn--sm"
+                type="button"
+                (click)="refreshPanel(panel)"
+                [disabled]="panel.loading"
+              >
+                Atualizar
+              </button>
+              <button
+                class="btn btn-secondary btn--sm"
+                type="button"
+                (click)="stopPanel(panel)"
+                [disabled]="!panel.stream"
+              >
+                Parar
+              </button>
+              @if (panels.length > 1) {
+                <button
+                  class="btn btn-secondary btn--sm camera-card__remove"
+                  type="button"
+                  (click)="removePanel(panel)"
+                  aria-label="Remover câmera"
+                  title="Remover"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                </button>
+              }
+            </div>
+          </header>
+
+          <div class="camera-card__video-wrap">
+            <video #videoPreview autoplay playsinline muted></video>
+            @if (!panel.stream && !panel.loading) {
+              <div class="camera-card__placeholder" aria-hidden="true">
+                <span class="material-symbols-outlined">videocam</span>
+                <span>Aguardando vídeo...</span>
+              </div>
+            }
+            @if (panel.loading) {
+              <div class="camera-card__placeholder" role="status">
+                <span>Carregando...</span>
+              </div>
+            }
+          </div>
+
+          @if (panel.errorMessage) {
+            <p class="camera-card__error">{{ panel.errorMessage }}</p>
+          }
+        </article>
+      }
+    </div>
+
+    <button class="camera-preview__add" type="button" (click)="addCamera()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      <span class="camera-preview__add-text">
+        <strong>Adicionar Câmera</strong>
+        <small>Suporta múltiplas câmeras</small>
+      </span>
+    </button>
+  </div>
 </div>

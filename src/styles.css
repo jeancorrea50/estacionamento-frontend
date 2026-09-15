@@ -1,5 +1,6 @@
 @import './app/shared/styles/design-kit.css';
 @import './app/shared/styles/dark-theme.css';
+@import './app/shared/styles/light-theme.css';
 
 /* Angular Material (tema pré-construído — ajuste ou troque por tema custom se necessário) */
 @import '@angular/material/prebuilt-themes/azure-blue.css';
@@ -333,21 +334,21 @@ textarea:focus-visible {
 /* ========== Tema: WHITE MODE — paleta alinhada ao modal Config. Cobrança ========== */
 html.theme-light {
   /* Canvas / superfícies */
-  --color-bg-main: #f3f4f6;
-  --color-bg-page: #f3f4f6;
+  --color-bg-main: #f5f7fa;
+  --color-bg-page: #f5f7fa;
 
   --color-bg-card: #ffffff;
-  --color-bg-card-secondary: #f9fafb;
-  --color-bg-section: #f3f4f6;
+  --color-bg-card-secondary: #f8fafc;
+  --color-bg-section: #f8fafc;
 
   --color-bg-input: #ffffff;
-  --color-border: #e5e7eb;
+  --color-border: #dce3ec;
   --color-border-light: #e2e8f0;
 
-  /* Tipografia neutra (slate), não azul */
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
+  /* Tipografia — contraste reforçado no white */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
 
   /* Azul vibrante de seleção / ação */
   --color-primary: #2563eb;
@@ -362,15 +363,15 @@ html.theme-light {
   --color-sidebar-border: rgba(255, 255, 255, 0.16);
 
   --color-topbar-bg: #ffffff;
-  --color-topbar-border: #e5e7eb;
+  --color-topbar-border: #dce3ec;
 
   --color-btn-primary: #2563eb;
-  --color-btn-secondary-border: #e5e7eb;
+  --color-btn-secondary-border: #dce3ec;
   --color-btn-success: #16a34a;
   --color-btn-success-text: #15803d;
   --color-btn-danger: #dc2626;
   --color-btn-danger-text: #b91c1c;
-  --color-btn-outline: #e5e7eb;
+  --color-btn-outline: #dce3ec;
 
   --color-content-white: #ffffff;
   --color-avatar-bg: #2563eb;
@@ -381,7 +382,7 @@ html.theme-light {
   --selection-bg-hover: #1d4ed8;
   --selection-text: #ffffff;
   --selection-soft: #eff6ff;
-  --selection-border: #bfdbfe;
+  --selection-border: #93c5fd;
   --selection-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
 
   --app-bg: var(--color-bg-main);
@@ -410,10 +411,10 @@ html.theme-light {
   --card-bg: var(--color-bg-card);
   --card-border: var(--color-border);
 
-  --table-header-bg: var(--color-bg-section);
-  --table-header-text: var(--color-text-primary);
-  --table-row-hover: rgba(37, 99, 235, 0.06);
-  --table-row-stripe: var(--color-bg-card-secondary);
+  --table-header-bg: #f8fafc;
+  --table-header-text: #475569;
+  --table-row-hover: #f8fafc;
+  --table-row-stripe: #ffffff;
 
   --surface: var(--color-bg-card);
   --surface-2: var(--color-bg-card-secondary);
@@ -436,14 +437,14 @@ html.theme-light {
   --input-bg: var(--color-bg-input);
   --input-border: #cbd5e1;
   --input-text: var(--color-text-primary);
-  --input-placeholder: var(--color-text-muted);
-  --placeholder-color: var(--color-text-muted);
+  --input-placeholder: #64748b;
+  --placeholder-color: #64748b;
 
   --focus: var(--color-primary);
   --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
 
   --danger: var(--color-btn-danger);
-  --warning: #ea580c;
+  --warning: #b45309;
   --success: var(--color-btn-success);
 
   --link-color: var(--color-primary);
@@ -458,8 +459,8 @@ html.theme-light {
   --btn-primary-border: #2563eb;
   --btn-secondary-bg: #ffffff;
   --btn-secondary-bg-hover: #f8fafc;
-  --btn-secondary-text: #111827;
-  --btn-secondary-border: #e5e7eb;
+  --btn-secondary-text: #1f2937;
+  --btn-secondary-border: #dce3ec;
   --btn-success-bg: #16a34a;
   --btn-success-bg-hover: #15803d;
   --btn-success-text: #ffffff;
@@ -485,14 +486,14 @@ html.theme-light {
 
   /* Tokens de formulário / modal (compartilhados com Config. Cobrança) */
   --cfg-form-surface: #ffffff;
-  --cfg-form-text: #111827;
+  --cfg-form-text: #1f2937;
   --cfg-form-input-bg: #ffffff;
   --cfg-form-input-border: #cbd5e1;
-  --cfg-form-input-text: #111827;
-  --cfg-form-input-placeholder: #9ca3af;
+  --cfg-form-input-text: #1f2937;
+  --cfg-form-input-placeholder: #64748b;
   --cfg-form-focus: #2563eb;
   --cfg-form-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
-  --cfg-form-border: #e5e7eb;
+  --cfg-form-border: #dce3ec;
   --cfg-form-shadow: 0 24px 64px rgba(15, 23, 42, 0.16);
 }
 
@@ -2113,27 +2114,27 @@ html.theme-dark .layout:not(.app-layout--movimentos) .dk-table-wrap {
 /* Modal financeiro: overlay do Angular Material precisa de estilo global (Prioridade B: theme-aware). */
 .cfg-form-dialog-panel {
   --cfg-form-surface: #ffffff;
-  --cfg-form-text: #111827;
+  --cfg-form-text: #1f2937;
   --cfg-form-input-bg: #ffffff;
   --cfg-form-input-border: #cbd5e1;
-  --cfg-form-input-text: #111827;
-  --cfg-form-input-placeholder: #9ca3af;
+  --cfg-form-input-text: #1f2937;
+  --cfg-form-input-placeholder: #64748b;
   --cfg-form-focus: #2563eb;
   --cfg-form-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.22);
-  --cfg-form-border: #e5e7eb;
+  --cfg-form-border: #dce3ec;
   --cfg-form-shadow: 0 24px 64px rgba(15, 23, 42, 0.16);
 }
 
 html.theme-light .cfg-form-dialog-panel {
   --cfg-form-surface: var(--color-bg-card, #ffffff);
-  --cfg-form-text: var(--color-text-primary, #111827);
+  --cfg-form-text: var(--color-text-primary, #1f2937);
   --cfg-form-input-bg: var(--color-bg-input, #ffffff);
   --cfg-form-input-border: var(--input-border, #cbd5e1);
-  --cfg-form-input-text: var(--input-text, #111827);
-  --cfg-form-input-placeholder: var(--input-placeholder, #9ca3af);
+  --cfg-form-input-text: var(--input-text, #1f2937);
+  --cfg-form-input-placeholder: var(--input-placeholder, #64748b);
   --cfg-form-focus: var(--color-primary, #2563eb);
   --cfg-form-focus-ring: var(--focus-ring, 0 0 0 3px rgba(37, 99, 235, 0.22));
-  --cfg-form-border: var(--color-border, #e5e7eb);
+  --cfg-form-border: var(--color-border, #dce3ec);
   --cfg-form-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.16));
 }
 

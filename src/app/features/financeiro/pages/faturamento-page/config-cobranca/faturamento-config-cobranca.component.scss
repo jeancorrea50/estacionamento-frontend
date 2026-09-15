@@ -32,15 +32,15 @@
 }
 
 :host-context(html.theme-light) .cfg-page {
-  --cfg-page-bg: var(--color-bg-page, #f3f4f6);
+  --cfg-page-bg: var(--color-bg-page, #f5f7fa);
   --cfg-page-table: var(--color-bg-card, #ffffff);
-  --cfg-page-table-header: var(--color-bg-section, #f3f4f6);
+  --cfg-page-table-header: var(--color-bg-section, #f8fafc);
   --cfg-page-input: var(--color-bg-input, #ffffff);
-  --cfg-page-border: var(--color-border, #e5e7eb);
-  --cfg-page-text: var(--color-text-primary, #111827);
-  --cfg-page-muted: var(--color-text-secondary, #6b7280);
+  --cfg-page-border: var(--color-border, #dce3ec);
+  --cfg-page-text: var(--color-text-primary, #1f2937);
+  --cfg-page-muted: var(--color-text-secondary, #64748b);
   --cfg-page-primary: var(--color-primary, #2563eb);
-  --cfg-page-hover: rgba(37, 99, 235, 0.06);
+  --cfg-page-hover: #f8fafc;
 }
 
 .cfg-page-head {
@@ -107,11 +107,33 @@
 .cfg-chip--envio-sim {
   color: var(--cfg-page-primary);
   border-color: color-mix(in srgb, var(--cfg-page-primary) 35%, var(--cfg-page-border));
-  background: #2a3347;
+  background: var(--cfg-chip-mod-bg, #2a3347);
 }
 
 .cfg-chip--envio-nao {
   color: var(--cfg-page-muted);
+}
+
+:host-context(html.theme-light) .cfg-page {
+  --cfg-chip-mod-bg: #eff6ff;
+}
+
+:host-context(html.theme-light) .cfg-chip--mod-diaria,
+:host-context(html.theme-light) .cfg-chip--mod-semanal,
+:host-context(html.theme-light) .cfg-chip--mod-quinzenal,
+:host-context(html.theme-light) .cfg-chip--mod-mensal,
+:host-context(html.theme-light) .cfg-chip--mod-personal,
+:host-context(html.theme-light) .cfg-chip--mod-acordo,
+:host-context(html.theme-light) .cfg-chip--envio-sim {
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+:host-context(html.theme-light) .cfg-chip--envio-nao {
+  color: #475569;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 /* Barra de busca — flat, sem card externo */

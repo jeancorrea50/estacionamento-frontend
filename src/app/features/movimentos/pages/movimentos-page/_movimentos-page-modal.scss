@@ -762,3 +762,263 @@
     border-color: var(--dark-border, #363642);
   }
 }
+
+/* ── Modais portaria: Entrada / lista Saída ─────────────────────────── */
+.es-modal-overlay {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.es-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(92vh, 900px);
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(15, 23, 42, 0.18));
+}
+
+.es-modal--entrada {
+  width: min(860px, 94vw);
+}
+
+.es-modal--saida-lista {
+  width: min(980px, 96vw);
+}
+
+.es-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.es-modal__header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.es-modal__header-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.es-modal__header-ico .material-symbols-outlined {
+  font-size: 1.45rem;
+}
+
+.es-modal__header-ico--entrada {
+  background: color-mix(in srgb, #16a34a 16%, var(--surface));
+  color: #16a34a;
+  border: 1px solid color-mix(in srgb, #16a34a 35%, var(--border-subtle));
+}
+
+.es-modal__header-ico--saida {
+  background: color-mix(in srgb, #dc2626 14%, var(--surface));
+  color: #dc2626;
+  border: 1px solid color-mix(in srgb, #dc2626 35%, var(--border-subtle));
+}
+
+.es-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.es-modal__subtitle {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.es-modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.es-modal__body--table {
+  padding-top: 8px;
+}
+
+.es-modal__textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.es-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.es-modal__footer--between {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.es-modal__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px 0;
+  flex-shrink: 0;
+}
+
+.es-modal__search {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  display: block;
+}
+
+.es-modal__search-ico {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.15rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.es-modal__search .input-control {
+  padding-left: 36px;
+  width: 100%;
+}
+
+.es-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 18px 0;
+  flex-shrink: 0;
+}
+
+.es-chip {
+  appearance: none;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--surface-2, #f1f5f9);
+  color: var(--text-secondary, #475569);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.es-chip--active {
+  background: color-mix(in srgb, var(--primary, #2563eb) 12%, var(--surface));
+  color: var(--primary, #2563eb);
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 40%, var(--border-subtle));
+}
+
+.es-chip__count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+.es-modal__table-wrap {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: min(48vh, 420px);
+  background: var(--surface);
+}
+
+.es-saida-table__acoes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.es-saida-table {
+  width: 100%;
+  margin: 0;
+}
+
+.es-saida-table tbody tr {
+  cursor: pointer;
+}
+
+.es-saida-table tbody tr:hover {
+  background: var(--table-row-hover, #f8fafc);
+}
+
+.es-saida-table__row--selected {
+  background: color-mix(in srgb, var(--primary, #2563eb) 10%, var(--surface)) !important;
+}
+
+.es-modal__pager-info {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.es-modal__pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.es-modal__pager .btn {
+  min-width: 32px;
+}
+
+@media (max-width: 720px) {
+  .es-modal--entrada .registro-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .es-modal__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+:host-context(html.theme-dark) {
+  .es-modal,
+  .es-modal__header,
+  .es-modal__footer,
+  .es-modal__table-wrap {
+    background: var(--dark-card, #292934);
+    border-color: var(--dark-border, #363642);
+  }
+
+  .es-saida-table tbody tr:hover {
+    background: var(--dark-hover, #323240);
+  }
+
+  .es-saida-table__row--selected {
+    background: color-mix(in srgb, #3d8bff 16%, var(--dark-card, #292934)) !important;
+  }
+}

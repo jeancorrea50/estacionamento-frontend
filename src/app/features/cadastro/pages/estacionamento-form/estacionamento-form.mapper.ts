@@ -284,7 +284,8 @@ export function montarPayloadEstacionamento(
   value: FormValue,
   enderecosCarregados?: EnderecoPayload[] | null,
   fotosBase64?: string[],
-  merge?: EstacionamentoPayloadMergeContext | null
+  merge?: EstacionamentoPayloadMergeContext | null,
+  contratoBase64?: string | null
 ): Record<string, unknown> {
   const nowIso = new Date().toISOString();
   const cnpj = String(value.pessoa?.cnpj ?? '').replace(/\D/g, '');
@@ -433,6 +434,14 @@ export function montarPayloadEstacionamento(
     ativo: value.ativoTenant ?? value.pessoa?.ativo ?? true,
   };
 
+  const contrato = String(contratoBase64 ?? '')
+    .trim()
+    .replace(/^data:application\/pdf;base64,/i, '');
+  if (contrato) {
+    /** byte[] Contrato — JSON como base64, sem prefixo data URL. */
+    payload['contrato'] = contrato;
+  }
+
   const cod = String(value.codExportacao ?? '').trim();
   if (cod) {
     payload['codExportacao'] = cod;
@@ -458,9 +467,16 @@ export function formValueToEstacionamentoPayload(
   value: FormValue,
   enderecosCarregados?: EnderecoPayload[] | null,
   fotosBase64?: string[],
-  merge?: EstacionamentoPayloadMergeContext | null
+  merge?: EstacionamentoPayloadMergeContext | null,
+  contratoBase64?: string | null
 ): Record<string, unknown> {
-  return montarPayloadEstacionamento(value, enderecosCarregados ?? null, fotosBase64 ?? [], merge ?? null);
+  return montarPayloadEstacionamento(
+    value,
+    enderecosCarregados ?? null,
+    fotosBase64 ?? [],
+    merge ?? null,
+    contratoBase64
+  );
 }
 
 /**
@@ -470,10 +486,11 @@ export function montarPayloadSalvarAbaDadosBancarios(
   value: FormValue,
   enderecosCarregados: EnderecoPayload[] | null | undefined,
   merge: EstacionamentoPayloadMergeContext | null,
-  estacionamentoId: number
+  estacionamentoId: number,
+  contratoBase64?: string | null
 ): Record<string, unknown> {
   const nowIso = new Date().toISOString();
-  const base = montarPayloadEstacionamento(value, enderecosCarregados ?? null, [], merge);
+  const base = montarPayloadEstacionamento(value, enderecosCarregados ?? null, [], merge, contratoBase64);
   const merged = buildContaBancariaMerged(merge?.contaBancariaPreserved ?? null, value, estacionamentoId, nowIso);
   if (!contaBancariaRegistroComDadosRelevantes(merged)) {
     delete base['contaBancaria'];

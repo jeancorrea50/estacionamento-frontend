@@ -100,8 +100,14 @@ describe('Estacionamento-form.mapper', () => {
       bancoDadosConexaoId: 15
     });
     expect(payload['codExportacao']).toBe('abc-123');
+    expect(payload['contrato']).toBeUndefined();
     expect(payload['isolationMode']).toBeUndefined();
     expect(payload['bancoDadosConexaoId']).toBeUndefined();
+  });
+
+  it('deve enviar contrato em base64 quando o PDF estiver selecionado', () => {
+    const payload = formValueToEstacionamentoPayload(baseFormValue, null, [], null, 'data:application/pdf;base64,JVBERi0=');
+    expect(payload['contrato']).toBe('JVBERi0=');
   });
 
   it('deve enviar CNPJ da pessoa apenas com dígitos', () => {

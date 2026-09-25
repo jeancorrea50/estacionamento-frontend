@@ -101,7 +101,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   complementaresOpen = false;
   /** Accordion "Contatos (Responsável legal e complementares)": inicia fechado. */
   contatosOpen = false;
-  /** PDF do contrato anexado (não enviado na API atual; preparado para integração futura). */
+  /** PDF do contrato; enviado como `contrato` (byte[] em base64) no POST/PUT. */
   contratoPdf: File | null = null;
   contratoPdfError: string | null = null;
   /** Endereços retornados por ObterPorId; preservados no payload ao alterar. */
@@ -821,7 +821,25 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       this.toast.warning('Informe a chave PIX quando o tipo estiver selecionado.');
       return;
     }
-    const payload = montarPayloadSalvarAbaDadosBancarios(raw, this.loadedEnderecos, this.payloadMerge, this.id);
+    void this.lerContratoBase64()
+      .then((contrato) => {
+        if (this.salvandoDadosBancarios || this.salvando) return;
+        this.enviarDadosBancarios(raw, contrato);
+      })
+      .catch(() => {
+        this.toast.error('Não foi possível ler o PDF do contrato.');
+        this.cdr.markForCheck();
+      });
+  }
+
+  private enviarDadosBancarios(raw: FormValue, contratoBase64: string | null): void {
+    const payload = montarPayloadSalvarAbaDadosBancarios(
+      raw,
+      this.loadedEnderecos,
+      this.payloadMerge,
+      this.id!,
+      contratoBase64
+    );
     const contaPayloadRaw = payload['contaBancaria'] as unknown;
     const primeiraConta = Array.isArray(contaPayloadRaw)
       ? contaPayloadRaw[0]
@@ -1084,9 +1102,25 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.salvando = true;
     this.erro = null;
     this.errosCamposSalvar = [];
+    void this.lerContratoBase64()
+      .then((contrato) => this.enviarCadastroEstacionamento(stayOnPage, contrato))
+      .catch(() => {
+        this.salvando = false;
+        this.toast.error('Não foi possível ler o PDF do contrato.');
+        this.cdr.markForCheck();
+      });
+  }
+
+  private enviarCadastroEstacionamento(stayOnPage: boolean, contratoBase64: string | null): void {
     // Fotos são gerenciadas apenas pelos endpoints BuscarFotos / UploadFotos / DeletarFotos (Azure); não enviamos no payload Gravar/Alterar.
     const raw = this.form.getRawValue() as FormValue;
-    const dto = formValueToEstacionamentoPayload(raw, this.loadedEnderecos, [], this.payloadMerge);
+    const dto = formValueToEstacionamentoPayload(
+      raw,
+      this.loadedEnderecos,
+      [],
+      this.payloadMerge,
+      contratoBase64
+    );
     const eraCriacao = this.id == null;
     const request$ = this.id
       ? this.EstacionamentoService.alterar(dto)
@@ -1745,6 +1779,21 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         arr.push(this.criarGrupoContatoComplementar(c));
       });
     }
+  }
+
+  /** Base64 sem prefixo data URL — ASP.NET desserializa em `byte[] Contrato`. */
+  private lerContratoBase64(): Promise<string | null> {
+    const file = this.contratoPdf;
+    if (!file) return Promise.resolve(null);
+    return file.arrayBuffer().then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    });
   }
 
   onContratoPdfChange(event: Event): void {

@@ -46,7 +46,7 @@ export interface EstacionamentoViewDialogData {
             <dd>{{ tipoPessoaLabel }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>Capacidade</dt>
+            <dt>Capacidade Veic.</dt>
             <dd>{{ capacidadeExibicao }}</dd>
           </div>
           <div class="trn-view__row">

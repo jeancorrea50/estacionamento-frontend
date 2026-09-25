@@ -1,4 +1,6 @@
-import { ChangeDetectorRef, Component, NgZone, inject, effect } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, inject, effect } from '@angular/core';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, map, takeUntil } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -41,7 +43,7 @@ type EstacionamentoListaSortCol =
   templateUrl: './estacionamento-list.component.html',
   styleUrls: ['./estacionamento-list.component.scss'],
 })
-export class EstacionamentoListComponent {
+export class EstacionamentoListComponent implements OnDestroy {
   private EstacionamentoService = inject(EstacionamentoService);
   /** Exposto para o template: `trigger() === 0` = ainda não houve clique em Buscar. */
   readonly toolbar = inject(EstacionamentoToolbarService);
@@ -51,6 +53,7 @@ export class EstacionamentoListComponent {
   private auth = inject(AuthService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private readonly cancelarHidratar$ = new Subject<void>();
   readonly canExcluir = this.auth.isAdmin();
 
   itens: EstacionamentoListItemDTO[] = [];
@@ -127,6 +130,7 @@ export class EstacionamentoListComponent {
           this.numeroPagina = paged.numeroPagina;
           this.tamanhoPagina = paged.tamanhoPagina;
           this.loading = false;
+          this.hidratarCapacidadeTamanho(paged.items);
           this.cdr.markForCheck();
         });
       },
@@ -210,6 +214,55 @@ export class EstacionamentoListComponent {
     if (field === 'cnpj') return base.replace(/\D/g, '');
     if (field === 'id') return base.replace(/\D/g, '');
     return base;
+  }
+
+  ngOnDestroy(): void {
+    this.cancelarHidratar$.next();
+    this.cancelarHidratar$.complete();
+  }
+
+  /**
+   * O GET da listagem não projeta capacidade/tamanho (dados do tenant).
+   * O mesmo GET por id usado na edição traz esses campos.
+   */
+  private hidratarCapacidadeTamanho(itens: EstacionamentoListItemDTO[]): void {
+    this.cancelarHidratar$.next();
+    const alvos = itens.filter(
+      (item) =>
+        item.id > 0 &&
+        (item.capacidadeVeiculo == null || !String(item.tamanhoTerreno ?? '').trim())
+    );
+    if (alvos.length === 0) return;
+
+    forkJoin(
+      alvos.map((item) =>
+        this.EstacionamentoService.obterPorId(item.id, item.codExportacao).pipe(
+          map((dto) => ({ id: item.id, cod: item.codExportacao ?? '', dto })),
+          catchError(() => of({ id: item.id, cod: item.codExportacao ?? '', dto: null }))
+        )
+      )
+    )
+      .pipe(takeUntil(this.cancelarHidratar$))
+      .subscribe((results) => {
+        this.ngZone.run(() => {
+          const byKey = new Map(
+            results
+              .filter((row) => row.dto != null)
+              .map((row) => [`${row.id}:${row.cod}`, row.dto!] as const)
+          );
+          this.itens = this.itens.map((item) => {
+            const dto = byKey.get(`${item.id}:${item.codExportacao ?? ''}`);
+            if (!dto) return item;
+            const tamanho = dto.tamanho != null ? String(dto.tamanho).trim() : '';
+            return {
+              ...item,
+              capacidadeVeiculo: dto.capacidadeVeiculos ?? item.capacidadeVeiculo ?? null,
+              tamanhoTerreno: tamanho || item.tamanhoTerreno || ''
+            };
+          });
+          this.cdr.markForCheck();
+        });
+      });
   }
 
   buscar(): void {

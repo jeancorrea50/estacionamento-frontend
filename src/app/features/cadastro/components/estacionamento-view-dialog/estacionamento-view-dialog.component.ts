@@ -50,7 +50,7 @@ export interface EstacionamentoViewDialogData {
             <dd>{{ capacidadeExibicao }}</dd>
           </div>
           <div class="trn-view__row">
-            <dt>Tamanho</dt>
+            <dt>Tamanho M²</dt>
             <dd>{{ tamanhoExibicao }}</dd>
           </div>
           <div class="trn-view__row">

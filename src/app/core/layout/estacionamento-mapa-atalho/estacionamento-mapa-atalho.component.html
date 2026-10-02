@@ -1,4 +1,4 @@
-<div class="est-mapa" (click)="$event.stopPropagation()">
+<div class="est-mapa">
   <button
     type="button"
     class="est-mapa__btn"
@@ -11,23 +11,79 @@
   </button>
 
   @if (aberto()) {
-    <section class="est-mapa__panel" role="dialog" aria-label="Estacionamentos no Brasil">
-      <header class="est-mapa__header">
-        <h2>Estacionamentos no Brasil</h2>
-        <button type="button" class="est-mapa__fechar" (click)="aberto.set(false)" aria-label="Fechar mapa">
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </header>
-      @if (carregando()) {
-        <p class="est-mapa__status">Carregando localizações...</p>
-      } @else if (erro()) {
-        <p class="est-mapa__status">{{ erro() }}</p>
-      } @else if (!pontos().length) {
-        <p class="est-mapa__status">Nenhum estacionamento com localização cadastrada.</p>
-      }
-      <div class="est-mapa__canvas">
-        <app-brasil-mapa modo="brasil" [pontos]="pontos()" />
-      </div>
-    </section>
+    <div class="est-mapa__backdrop" [class.est-mapa__backdrop--cheia]="telaCheia()" (click)="fechar()">
+      <section
+        class="est-mapa__panel"
+        [class.est-mapa__panel--cheia]="telaCheia()"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Estacionamentos no Brasil"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="est-mapa__header">
+          <h2>Estacionamentos no Brasil</h2>
+          <div class="est-mapa__acoes">
+            <button
+              type="button"
+              class="est-mapa__fechar"
+              (click)="alternarTelaCheia()"
+              [attr.aria-pressed]="telaCheia()"
+              [attr.aria-label]="telaCheia() ? 'Sair da tela cheia' : 'Tela cheia'"
+              [attr.title]="telaCheia() ? 'Sair da tela cheia' : 'Tela cheia'"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{ telaCheia() ? 'fullscreen_exit' : 'fullscreen' }}</span>
+            </button>
+            <button type="button" class="est-mapa__fechar" (click)="fechar()" aria-label="Fechar mapa">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="est-mapa__busca" role="search">
+          <label class="est-mapa__campo">
+            <span>Cidade</span>
+            <input
+              type="search"
+              [value]="cidade()"
+              (input)="atualizarCidade($event)"
+              placeholder="Ex.: Cuiabá"
+              autocomplete="off"
+            />
+          </label>
+          <label class="est-mapa__campo">
+            <span>Estado</span>
+            <select [value]="estado()" (change)="atualizarEstado($event)">
+              <option value="">Todos</option>
+              @for (item of estados; track item.uf) {
+                <option [value]="item.uf">{{ item.uf }} — {{ item.nome }}</option>
+              }
+            </select>
+          </label>
+          @if (temFiltro()) {
+            <button type="button" class="est-mapa__limpar" (click)="limparBusca()">Limpar</button>
+          }
+        </div>
+
+        @if (carregando()) {
+          <p class="est-mapa__status">Carregando localizações...</p>
+        } @else if (erro()) {
+          <p class="est-mapa__status">{{ erro() }}</p>
+        } @else if (!pontos().length) {
+          <p class="est-mapa__status">Nenhum estacionamento com localização cadastrada.</p>
+        } @else if (!pontosVisiveis().length) {
+          <p class="est-mapa__status">Nenhum estacionamento nessa cidade ou estado.</p>
+        } @else if (temFiltro()) {
+          <p class="est-mapa__status">{{ pontosVisiveis().length }} {{ pontosVisiveis().length === 1 ? 'estacionamento' : 'estacionamentos' }}</p>
+        }
+
+        <div class="est-mapa__canvas">
+          <app-brasil-mapa
+            modo="brasil"
+            [pontos]="pontosVisiveis()"
+            [foco]="temFiltro() ? 'pontos' : 'brasil'"
+          />
+        </div>
+      </section>
+    </div>
   }
 </div>

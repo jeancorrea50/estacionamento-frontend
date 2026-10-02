@@ -1,7 +1,7 @@
-import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal, viewChild } from '@angular/core';
 import { EstacionamentoService } from '../../../features/cadastro/services/estacionamento.service';
 import { BrasilMapaComponent } from '../../../shared/maps/brasil-mapa.component';
-import type { PontoMapa } from '../../../shared/maps/ponto-mapa.model';
+import { ESTADOS_BRASIL, filtrarPontosMapa, type PontoMapa } from '../../../shared/maps/ponto-mapa.model';
 
 @Component({
   selector: 'app-estacionamento-mapa-atalho',
@@ -12,25 +12,57 @@ import type { PontoMapa } from '../../../shared/maps/ponto-mapa.model';
 })
 export class EstacionamentoMapaAtalhoComponent {
   private readonly estacionamentoService = inject(EstacionamentoService);
-  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly mapa = viewChild(BrasilMapaComponent);
 
+  readonly estados = ESTADOS_BRASIL;
   readonly aberto = signal(false);
+  readonly telaCheia = signal(false);
   readonly carregando = signal(false);
   readonly erro = signal<string | null>(null);
+  readonly cidade = signal('');
+  readonly estado = signal('');
   readonly pontos = signal<PontoMapa[]>([]);
+  readonly pontosVisiveis = computed(() => filtrarPontosMapa(this.pontos(), this.cidade(), this.estado()));
+  readonly temFiltro = computed(() => this.cidade().trim().length > 0 || this.estado().trim().length > 0);
 
   toggle(): void {
     const abrir = !this.aberto();
     this.aberto.set(abrir);
     if (abrir) this.carregar();
+    else this.telaCheia.set(false);
   }
 
-  @HostListener('document:click', ['$event'])
-  fecharAoClicarFora(evento: MouseEvent): void {
-    if (!this.aberto()) return;
-    const alvo = evento.target;
-    if (alvo instanceof Node && this.host.nativeElement.contains(alvo)) return;
+  fechar(): void {
     this.aberto.set(false);
+    this.telaCheia.set(false);
+  }
+
+  alternarTelaCheia(): void {
+    this.telaCheia.update((ativa) => !ativa);
+    setTimeout(() => this.mapa()?.atualizarTamanho(), 50);
+  }
+
+  atualizarCidade(evento: Event): void {
+    this.cidade.set((evento.target as HTMLInputElement).value);
+  }
+
+  atualizarEstado(evento: Event): void {
+    this.estado.set((evento.target as HTMLSelectElement).value);
+  }
+
+  limparBusca(): void {
+    this.cidade.set('');
+    this.estado.set('');
+  }
+
+  @HostListener('document:keydown.escape')
+  fecharPorEsc(): void {
+    if (!this.aberto()) return;
+    if (this.telaCheia()) {
+      this.alternarTelaCheia();
+      return;
+    }
+    this.fechar();
   }
 
   private carregar(): void {

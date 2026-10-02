@@ -39,6 +39,8 @@ function leafletApi(): LeafletApi {
 export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() modo: 'brasil' | 'ponto' = 'brasil';
   @Input() pontos: PontoMapa[] = [];
+  /** brasil enquadra o país; pontos aproxima o recorte da lista visível. */
+  @Input() foco: 'brasil' | 'pontos' = 'brasil';
   @Input() latitude: number | null = null;
   @Input() longitude: number | null = null;
   @Output() readonly pontoSelecionado = new EventEmitter<{ latitude: number; longitude: number }>();
@@ -69,7 +71,6 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     }).addTo(mapa);
 
     if (this.modo === 'brasil') {
-      mapa.fitBounds(L.latLngBounds([-33.6, -73.8], [5.2, -34.6]), { padding: [12, 12] });
       mapa.on('zoomend', () => this.desenharPontos());
       void this.aplicarMascaraBrasil(mapa);
     } else {
@@ -85,6 +86,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     this.mapa = mapa;
     this.desenharPontos();
     this.desenharPontoUnico();
+    this.aplicarFoco();
     setTimeout(() => mapa.invalidateSize(), 0);
   }
 
@@ -95,6 +97,11 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       this.desenharPontoUnico();
       if (this.modo === 'ponto') this.enquadrarPonto(this.mapa);
     }
+    if (this.modo === 'brasil' && (changes['pontos'] || changes['foco'])) this.aplicarFoco();
+  }
+
+  atualizarTamanho(): void {
+    this.mapa?.invalidateSize();
   }
 
   ngOnDestroy(): void {
@@ -175,6 +182,25 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       iconAnchor: [9, 9]
     });
     this.marcadorPonto = L.marker([this.latitude, this.longitude], { icon: icone }).addTo(this.mapa);
+  }
+
+  private aplicarFoco(): void {
+    if (!this.mapa || this.modo !== 'brasil') return;
+    if (this.foco === 'pontos' && this.pontos.length) {
+      this.enquadrarLista(this.pontos);
+      return;
+    }
+    this.mapa.fitBounds(leafletApi().latLngBounds([-33.6, -73.8], [5.2, -34.6]), { padding: [12, 12] });
+  }
+
+  private enquadrarLista(pontos: PontoMapa[]): void {
+    if (!this.mapa) return;
+    if (pontos.length === 1) {
+      this.mapa.setView([pontos[0].latitude, pontos[0].longitude], 12);
+      return;
+    }
+    const limites = leafletApi().latLngBounds(pontos.map((ponto) => [ponto.latitude, ponto.longitude]));
+    this.mapa.fitBounds(limites, { padding: [36, 36], maxZoom: 12 });
   }
 
   private enquadrarPonto(mapa: LeafletMap): void {

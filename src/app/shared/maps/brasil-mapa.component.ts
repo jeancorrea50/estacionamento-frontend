@@ -62,10 +62,10 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       worldCopyJump: false
     });
     L.control.zoom({ position: 'bottomright' }).addTo(mapa);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
+    // CARTO dark_all passou a carimbar "API KEY REQUIRED". O OSM publica sem chave.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapa);
 
     if (this.modo === 'brasil') {

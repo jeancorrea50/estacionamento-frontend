@@ -439,6 +439,20 @@
   margin: 0;
 }
 
+.dias-funcionamento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.dias-funcionamento label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 13px;
+}
+
 .form-compact .form-row--file .file-upload {
   margin: 0;
 }

@@ -51,6 +51,11 @@ export interface FormValue {
   tipoTarifaAvulsa?: 1 | 2 | null;
   valorAvulso?: number | null;
   minutosToleranciaPermanencia?: number | null;
+  /** HH:mm. Vazio quando o pátio não informou. */
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  /** 1=segunda … 7=domingo, separados por vírgula. */
+  diasFuncionamento?: string | null;
   banco?: string;
   agenciaNumero?: string;
   agenciaDigito?: string;
@@ -152,6 +157,12 @@ function buildConfiguracaoValoresPayload(value: FormValue): Record<string, unkno
   };
 }
 
+
+function horaPayload(valor: unknown): string | null {
+  const texto = String(valor ?? '').trim();
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}:00` : null;
+}
 
 function gContaKey(obj: Record<string, unknown>, k: string): string {
   const pascal = k.charAt(0).toUpperCase() + k.slice(1);
@@ -440,6 +451,9 @@ export function montarPayloadEstacionamento(
      * TipoTarifaAvulsa: 1=Hora, 2=Diaria.
      */
     configuracaoValores: buildConfiguracaoValoresPayload(value),
+    horarioAbertura: horaPayload(value.horarioAbertura),
+    horarioFechamento: horaPayload(value.horarioFechamento),
+    diasFuncionamento: String(value.diasFuncionamento ?? '').trim() || null,
     /** Tenant GtCentral + flag raiz do contrato EstacionamentoPost/PutInput.Ativo */
     ativo: value.ativoTenant ?? value.pessoa?.ativo ?? true,
   };

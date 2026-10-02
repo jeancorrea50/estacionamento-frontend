@@ -41,6 +41,9 @@ export interface EstacionamentoFormValue {
   tamanho: string;
   possuiSeguranca: boolean;
   possuiBanheiro: boolean;
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  diasFuncionamento?: string | null;
   tipoTaxaMensalidade: 'taxa' | 'mensalidade' | null;
   taxaPercentual: number | null;
   mensalidadeValor: number | null;
@@ -646,6 +649,9 @@ export class EstacionamentoService {
       tamanho: r.tamanhoTerreno ?? '',
       possuiSeguranca: r.possuiSeguranca ?? false,
       possuiBanheiro: r.possuiBanheiro ?? false,
+      horarioAbertura: lerHora(raw['horarioAbertura'] ?? raw['HorarioAbertura']),
+      horarioFechamento: lerHora(raw['horarioFechamento'] ?? raw['HorarioFechamento']),
+      diasFuncionamento: String(raw['diasFuncionamento'] ?? raw['DiasFuncionamento'] ?? '').trim(),
       tipoTaxaMensalidade: tipoTaxa,
       taxaPercentual: r.cobrancaPorcentagem != null ? r.cobrancaPorcentagem : null,
       mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null,
@@ -736,6 +742,18 @@ function lerBool(valor: unknown): boolean | null {
   return null;
 }
 
+function lerHora(valor: unknown): string | null {
+  if (valor == null || valor === '') return null;
+  const texto = String(valor).trim();
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
+
+function lerTexto(valor: unknown): string | null {
+  const texto = String(valor ?? '').trim();
+  return texto ? texto : null;
+}
+
 function lerTipoTarifa(valor: unknown): 1 | 2 | null {
   if (valor === 1 || valor === '1' || valor === 'Hora') return 1;
   if (valor === 2 || valor === '2' || valor === 'Diaria' || valor === 'Diária') return 2;
@@ -772,7 +790,11 @@ function normalizarPontosMapa(body: unknown): PontoMapa[] {
       possuiBanheiro: lerBool(row['possuiBanheiro'] ?? row['PossuiBanheiro']),
       tipoTarifaAvulsa: lerTipoTarifa(row['tipoTarifaAvulsa'] ?? row['TipoTarifaAvulsa']),
       valorAvulso: lerNumero(row['valorAvulso'] ?? row['ValorAvulso']),
-      minutosTolerancia: lerNumero(row['minutosToleranciaPermanencia'] ?? row['MinutosToleranciaPermanencia'])
+      minutosTolerancia: lerNumero(row['minutosToleranciaPermanencia'] ?? row['MinutosToleranciaPermanencia']),
+      horarioAbertura: lerHora(row['horarioAbertura'] ?? row['HorarioAbertura']),
+      horarioFechamento: lerHora(row['horarioFechamento'] ?? row['HorarioFechamento']),
+      diasFuncionamento: lerTexto(row['diasFuncionamento'] ?? row['DiasFuncionamento']),
+      timeZoneId: lerTexto(row['timeZoneId'] ?? row['TimeZoneId'])
     });
   }
   return pontos;

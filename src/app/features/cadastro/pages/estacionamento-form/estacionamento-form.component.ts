@@ -148,6 +148,15 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   private stepService = inject(EstacionamentoFormStepService);
   private destroyRef = inject(DestroyRef);
   private enderecoGeo = inject(EnderecoGeolocalizacaoService);
+  readonly diasSemana = [
+    { valor: 1, sigla: 'Seg' },
+    { valor: 2, sigla: 'Ter' },
+    { valor: 3, sigla: 'Qua' },
+    { valor: 4, sigla: 'Qui' },
+    { valor: 5, sigla: 'Sex' },
+    { valor: 6, sigla: 'Sáb' },
+    { valor: 7, sigla: 'Dom' }
+  ];
   private cnpjService = inject(CnpjService);
   private titularSyncSub?: Subscription;
 
@@ -327,6 +336,26 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.fotoItems = [];
   }
 
+  diaMarcado(valor: number): boolean {
+    return this.diasSelecionados().includes(valor);
+  }
+
+  alternarDia(valor: number, evento: Event): void {
+    const marcado = (evento.target as HTMLInputElement).checked;
+    const proximo = new Set(this.diasSelecionados());
+    if (marcado) proximo.add(valor);
+    else proximo.delete(valor);
+    const dias = [...proximo].sort((a, b) => a - b).join(',');
+    this.form.patchValue({ diasFuncionamento: dias });
+  }
+
+  private diasSelecionados(): number[] {
+    return String(this.form.get('diasFuncionamento')?.value ?? '')
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((item) => item >= 1 && item <= 7);
+  }
+
   private criarFormulario(): void {
     this.form = this.fb.group({
       id: [0],
@@ -346,6 +375,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       tamanho: [null as number | null, [Validators.min(0)]],
       possuiSeguranca: [false],
       possuiBanheiro: [false],
+      horarioAbertura: [''],
+      horarioFechamento: [''],
+      diasFuncionamento: ['1,2,3,4,5'],
       tipoTaxaMensalidade: [null as 'taxa' | 'mensalidade' | null],
       taxaPercentual: [{ value: null as number | null, disabled: true }, [Validators.min(0), Validators.max(100)]],
       mensalidadeValor: [{ value: null as number | null, disabled: true }, [Validators.min(0)]],
@@ -985,6 +1017,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               tamanho: tamanhoNum,
               possuiSeguranca: dto.possuiSeguranca,
               possuiBanheiro: dto.possuiBanheiro,
+              horarioAbertura: horaFormulario(dto.horarioAbertura),
+              horarioFechamento: horaFormulario(dto.horarioFechamento),
+              diasFuncionamento: dto.diasFuncionamento ?? '',
               tipoTaxaMensalidade: dto.tipoTaxaMensalidade,
               taxaPercentual: dto.taxaPercentual,
               mensalidadeValor: dto.mensalidadeValor,
@@ -1922,4 +1957,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     const doc = errors['documento'];
     return doc && typeof doc === 'object' && 'message' in doc ? String(doc.message) : null;
   }
+}
+
+function horaFormulario(valor: string | null | undefined): string {
+  const match = String(valor ?? '').match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : '';
 }

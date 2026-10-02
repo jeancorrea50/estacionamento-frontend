@@ -95,6 +95,9 @@ export interface EstacionamentoObterPorIdResultDTO {
   responsavelCpf: string;
   possuiSeguranca: boolean;
   possuiBanheiro: boolean;
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  diasFuncionamento?: string | null;
   tipoCobranca: number;
   cobrancaPorcentagem: number;
   cobrancaValor: number;

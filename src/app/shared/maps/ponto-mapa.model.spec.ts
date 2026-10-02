@@ -43,6 +43,16 @@ describe('detalhesPontoMapa', () => {
     ]);
     expect(detalhes.map((item) => item.icone)).toEqual(['calendar_month', 'shield', 'wc', 'check_circle']);
   });
+
+  it('resume o horário de funcionamento na sequência da semana', () => {
+    const texto = detalhesPontoMapa({
+      ...ponto(1, 'Cuiabá', 'MT'),
+      horarioAbertura: '08:00:00',
+      horarioFechamento: '18:00',
+      diasFuncionamento: '1,2,3,4,5'
+    }).find((item) => item.icone === 'event_available')?.texto;
+    expect(texto).toBe('Seg a Sex · 08:00–18:00');
+  });
 });
 
 function ponto(id: number, cidade: string, estado: string): PontoMapa {

@@ -13,6 +13,12 @@ export interface PontoMapa {
   tipoTarifaAvulsa?: 1 | 2 | null;
   valorAvulso?: number | null;
   minutosTolerancia?: number | null;
+  /** HH:mm ou HH:mm:ss. */
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  /** 1=segunda … 7=domingo, separados por vírgula. */
+  diasFuncionamento?: string | null;
+  timeZoneId?: string | null;
 }
 
 export interface DetalhePontoMapa {
@@ -61,7 +67,7 @@ export function detalhesPontoMapa(ponto: PontoMapa): DetalhePontoMapa[] {
     ? `${rotuloTipo}${valor ? ` · ${valor}` : ''}${tolerancia}`
     : 'Sem cobrança avulsa';
 
-  return [
+  const detalhes: DetalhePontoMapa[] = [
     {
       icone: tipo === 1 ? 'schedule' : tipo === 2 ? 'calendar_month' : 'payments',
       texto: cobranca,
@@ -83,6 +89,50 @@ export function detalhesPontoMapa(ponto: PontoMapa): DetalhePontoMapa[] {
       estado: ponto.ativo === false ? 'alerta' : 'ok'
     }
   ];
+  const horario = textoHorarioFuncionamento(
+    ponto.horarioAbertura,
+    ponto.horarioFechamento,
+    ponto.diasFuncionamento
+  );
+  if (horario) {
+    detalhes.push({ icone: 'event_available', texto: horario, estado: 'ok' });
+  }
+  return detalhes;
+}
+
+const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+export function textoHorarioFuncionamento(
+  abertura?: string | null,
+  fechamento?: string | null,
+  dias?: string | null
+): string | null {
+  const inicio = horaCurta(abertura);
+  const fim = horaCurta(fechamento);
+  const rotulo = rotuloDias(dias);
+  if (!inicio && !fim && !rotulo) return null;
+  const faixa = inicio && fim ? `${inicio}–${fim}` : inicio || fim || '';
+  return [rotulo, faixa].filter(Boolean).join(' · ');
+}
+
+function horaCurta(valor?: string | null): string | null {
+  const texto = String(valor ?? '').trim();
+  if (!texto) return null;
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
+
+function rotuloDias(dias?: string | null): string | null {
+  const numeros = String(dias ?? '')
+    .split(',')
+    .map((item) => Number(item.trim()))
+    .filter((item) => item >= 1 && item <= 7);
+  if (!numeros.length) return null;
+  const unicos = [...new Set(numeros)].sort((a, b) => a - b);
+  if (unicos.length === 7) return 'Todos os dias';
+  const sequencia = unicos.every((dia, indice) => indice === 0 || dia === unicos[indice - 1] + 1);
+  if (sequencia && unicos.length > 1) return `${DIAS[unicos[0] - 1]} a ${DIAS[unicos[unicos.length - 1] - 1]}`;
+  return unicos.map((dia) => DIAS[dia - 1]).join(', ');
 }
 
 export const ESTADOS_BRASIL: ReadonlyArray<{ uf: string; nome: string }> = [

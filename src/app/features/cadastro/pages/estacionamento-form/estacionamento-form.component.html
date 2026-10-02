@@ -361,6 +361,29 @@
                         <label>Banheiro</label>
                         <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /></label>
                       </div>
+                      <div class="form-row">
+                        <label for="horarioAbertura">Abre</label>
+                        <input id="horarioAbertura" class="field__input" type="time" formControlName="horarioAbertura" />
+                      </div>
+                      <div class="form-row">
+                        <label for="horarioFechamento">Fecha</label>
+                        <input id="horarioFechamento" class="field__input" type="time" formControlName="horarioFechamento" />
+                      </div>
+                      <div class="form-row form-row--dias">
+                        <label>Dias</label>
+                        <div class="dias-funcionamento">
+                          @for (dia of diasSemana; track dia.valor) {
+                            <label>
+                              <input
+                                type="checkbox"
+                                [checked]="diaMarcado(dia.valor)"
+                                (change)="alternarDia(dia.valor, $event)"
+                              />
+                              {{ dia.sigla }}
+                            </label>
+                          }
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div class="complementares-block">

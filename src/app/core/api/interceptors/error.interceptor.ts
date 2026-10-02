@@ -85,7 +85,7 @@ function isLoginRequest(req: HttpRequest<unknown>): boolean {
 
 /** Consulta CNPJ (BrasilAPI direta): mensagem de erro é exibida no próprio campo do formulário. */
 function isBrasilApiCnpjRequest(req: HttpRequest<unknown>): boolean {
-  return req.url.includes('brasilapi.com.br');
+  return req.url.includes('brasilapi.com.br') || req.url.includes('nominatim.openstreetmap.org');
 }
 
 /** Confirmação de e-mail: feedback na própria página. */

@@ -425,7 +425,7 @@
                         @if (linkGeolocalizacao(); as linkMapa) {
                           <a class="geo-layout__link" [href]="linkMapa" target="_blank" rel="noopener noreferrer">{{ linkMapa }}</a>
                         } @else {
-                          <p class="geo-layout__hint">Clique no mapa para marcar o pátio. O ponto precisa estar no Brasil.</p>
+                          <p class="geo-layout__hint">Clique no mapa para marcar o pátio, ou salve o cadastro: a latitude e a longitude são preenchidas pelo endereço quando ainda não houver ponto.</p>
                         }
                       </div>
                       <app-brasil-mapa

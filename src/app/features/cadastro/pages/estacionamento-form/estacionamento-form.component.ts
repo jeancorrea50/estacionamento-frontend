@@ -62,6 +62,9 @@ import {
 import { BANCOS_BRASIL, bancoToOption } from '../../data/bancos-brasil';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
 import { CnpjLookupResult, CnpjService } from '../../services/cnpj.service';
+import { EnderecoGeolocalizacaoService } from '../../services/endereco-geolocalizacao.service';
+import { escolherEnderecoParaGeocode } from '../../services/endereco-geolocalizacao.util';
+import { firstValueFrom } from 'rxjs';
 import { BrasilMapaComponent } from '../../../../shared/maps/brasil-mapa.component';
 import {
   arredondarCoordenada,
@@ -144,6 +147,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   private stepService = inject(EstacionamentoFormStepService);
   private destroyRef = inject(DestroyRef);
+  private enderecoGeo = inject(EnderecoGeolocalizacaoService);
   private cnpjService = inject(CnpjService);
   private titularSyncSub?: Subscription;
 
@@ -829,9 +833,11 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       return;
     }
     void this.lerContratoBase64()
-      .then((contrato) => {
+      .then(async (contrato) => {
         if (this.salvandoDadosBancarios || this.salvando) return;
-        this.enviarDadosBancarios(raw, contrato);
+        await this.preencherGeolocalizacaoPeloEndereco();
+        const atualizado = this.form.getRawValue() as FormValue;
+        this.enviarDadosBancarios(atualizado, contrato);
       })
       .catch(() => {
         this.toast.error('Não foi possível ler o PDF do contrato.');
@@ -1110,7 +1116,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.erro = null;
     this.errosCamposSalvar = [];
     void this.lerContratoBase64()
-      .then((contrato) => this.enviarCadastroEstacionamento(stayOnPage, contrato))
+      .then(async (contrato) => {
+        await this.preencherGeolocalizacaoPeloEndereco();
+        this.enviarCadastroEstacionamento(stayOnPage, contrato);
+      })
       .catch(() => {
         this.salvando = false;
         this.toast.error('Não foi possível ler o PDF do contrato.');
@@ -1785,6 +1794,29 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         if (arr.length >= MAX_CONTATOS_COMPLEMENTARES) return;
         arr.push(this.criarGrupoContatoComplementar(c));
       });
+    }
+  }
+
+  /**
+   * Preenche latitude/longitude a partir do endereço quando o cadastro ainda não tem ponto.
+   * Não substitui uma coordenada já informada no mapa ou no formulário.
+   */
+  private async preencherGeolocalizacaoPeloEndereco(): Promise<void> {
+    if (this.coordenadaFormulario('latitude') != null && this.coordenadaFormulario('longitude') != null) {
+      return;
+    }
+    const raw = this.form.getRawValue() as FormValue;
+    const endereco = escolherEnderecoParaGeocode(raw.enderecos, this.loadedEnderecos);
+    if (!endereco) return;
+    try {
+      const ponto = await firstValueFrom(this.enderecoGeo.buscar(endereco));
+      if (!ponto) {
+        this.toast.warning('Não foi possível obter a localização a partir do endereço.');
+        return;
+      }
+      this.definirGeolocalizacao(ponto);
+    } catch {
+      this.toast.warning('Não foi possível obter a localização a partir do endereço.');
     }
   }
 

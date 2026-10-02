@@ -6,6 +6,19 @@ export interface PontoMapa {
   estado: string;
   latitude: number;
   longitude: number;
+  ativo?: boolean | null;
+  possuiSeguranca?: boolean | null;
+  possuiBanheiro?: boolean | null;
+  /** 1 = hora, 2 = diária. */
+  tipoTarifaAvulsa?: 1 | 2 | null;
+  valorAvulso?: number | null;
+  minutosTolerancia?: number | null;
+}
+
+export interface DetalhePontoMapa {
+  icone: string;
+  texto: string;
+  estado: 'ok' | 'ausente' | 'alerta';
 }
 
 /** Limites aproximados do território brasileiro, incluindo Fernando de Noronha. */
@@ -31,6 +44,45 @@ export function linkGoogleMaps(latitude: number, longitude: number): string {
 
 export function arredondarCoordenada(valor: number): number {
   return Math.round(valor * 1e6) / 1e6;
+}
+
+const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** Ícones e textos do popup: cobrança, segurança, banheiro e status. */
+export function detalhesPontoMapa(ponto: PontoMapa): DetalhePontoMapa[] {
+  const tipo = ponto.tipoTarifaAvulsa === 1 || ponto.tipoTarifaAvulsa === 2 ? ponto.tipoTarifaAvulsa : null;
+  const valor = ponto.valorAvulso != null && Number.isFinite(ponto.valorAvulso) ? MOEDA.format(ponto.valorAvulso) : null;
+  const rotuloTipo = tipo === 1 ? 'Hora' : tipo === 2 ? 'Diária' : null;
+  const tolerancia =
+    ponto.minutosTolerancia != null && Number.isFinite(ponto.minutosTolerancia)
+      ? ` · tolerância ${ponto.minutosTolerancia} min`
+      : '';
+  const cobranca = rotuloTipo
+    ? `${rotuloTipo}${valor ? ` · ${valor}` : ''}${tolerancia}`
+    : 'Sem cobrança avulsa';
+
+  return [
+    {
+      icone: tipo === 1 ? 'schedule' : tipo === 2 ? 'calendar_month' : 'payments',
+      texto: cobranca,
+      estado: rotuloTipo ? 'ok' : 'ausente'
+    },
+    {
+      icone: 'shield',
+      texto: ponto.possuiSeguranca ? 'Com segurança' : 'Sem segurança',
+      estado: ponto.possuiSeguranca ? 'ok' : 'ausente'
+    },
+    {
+      icone: 'wc',
+      texto: ponto.possuiBanheiro ? 'Com banheiro' : 'Sem banheiro',
+      estado: ponto.possuiBanheiro ? 'ok' : 'ausente'
+    },
+    {
+      icone: ponto.ativo === false ? 'cancel' : 'check_circle',
+      texto: ponto.ativo === false ? 'Inativo' : 'Ativo',
+      estado: ponto.ativo === false ? 'alerta' : 'ok'
+    }
+  ];
 }
 
 export const ESTADOS_BRASIL: ReadonlyArray<{ uf: string; nome: string }> = [

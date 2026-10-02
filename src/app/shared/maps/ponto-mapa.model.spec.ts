@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filtrarPontosMapa, type PontoMapa } from './ponto-mapa.model';
+import { detalhesPontoMapa, filtrarPontosMapa, type PontoMapa } from './ponto-mapa.model';
 
 const pontos: PontoMapa[] = [
   ponto(1, 'Cuiabá', 'MT'),
@@ -20,6 +20,28 @@ describe('filtrarPontosMapa', () => {
 
   it('lista só o estado quando a cidade fica em branco', () => {
     expect(filtrarPontosMapa(pontos, '  ', 'MT')).toHaveLength(2);
+  });
+});
+
+describe('detalhesPontoMapa', () => {
+  it('mostra diária, valor, segurança, banheiro e status', () => {
+    const detalhes = detalhesPontoMapa({
+      ...ponto(1, 'Cuiabá', 'MT'),
+      tipoTarifaAvulsa: 2,
+      valorAvulso: 15,
+      minutosTolerancia: 1,
+      possuiSeguranca: true,
+      possuiBanheiro: false,
+      ativo: true
+    });
+    const [cobranca, seguranca, banheiro, status] = detalhes;
+    expect(cobranca.texto.replace(/\u00a0/g, ' ')).toBe('Diária · R$ 15,00 · tolerância 1 min');
+    expect([seguranca.texto, banheiro.texto, status.texto]).toEqual([
+      'Com segurança',
+      'Sem banheiro',
+      'Ativo'
+    ]);
+    expect(detalhes.map((item) => item.icone)).toEqual(['calendar_month', 'shield', 'wc', 'check_circle']);
   });
 });
 

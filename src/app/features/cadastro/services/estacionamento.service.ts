@@ -85,7 +85,7 @@ export interface EstacionamentoFormValue {
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/Estacionamento/mapa — pátios ativos com latitude e longitude. Sem permissão extra. */
+  /** GET /api/Estacionamento/mapa — pátios com latitude e longitude. Sem permissão extra. */
   listarMapa(): Observable<PontoMapa[]> {
     return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.mapa}`).pipe(
       map((body) => normalizarPontosMapa(this.peelApiEnvelope(body)))
@@ -729,6 +729,19 @@ function lerNumero(valor: unknown): number | null {
   return Number.isFinite(numero) ? numero : null;
 }
 
+function lerBool(valor: unknown): boolean | null {
+  if (valor === true || valor === false) return valor;
+  if (valor === 1 || valor === '1' || valor === 'true') return true;
+  if (valor === 0 || valor === '0' || valor === 'false') return false;
+  return null;
+}
+
+function lerTipoTarifa(valor: unknown): 1 | 2 | null {
+  if (valor === 1 || valor === '1' || valor === 'Hora') return 1;
+  if (valor === 2 || valor === '2' || valor === 'Diaria' || valor === 'Diária') return 2;
+  return null;
+}
+
 function normalizarPontosMapa(body: unknown): PontoMapa[] {
   const lista = Array.isArray(body)
     ? body
@@ -753,7 +766,13 @@ function normalizarPontosMapa(body: unknown): PontoMapa[] {
       cidade: String(row['cidade'] ?? row['Cidade'] ?? ''),
       estado: String(row['estado'] ?? row['Estado'] ?? ''),
       latitude,
-      longitude
+      longitude,
+      ativo: lerBool(row['ativo'] ?? row['Ativo']) ?? true,
+      possuiSeguranca: lerBool(row['possuiSeguranca'] ?? row['PossuiSeguranca']),
+      possuiBanheiro: lerBool(row['possuiBanheiro'] ?? row['PossuiBanheiro']),
+      tipoTarifaAvulsa: lerTipoTarifa(row['tipoTarifaAvulsa'] ?? row['TipoTarifaAvulsa']),
+      valorAvulso: lerNumero(row['valorAvulso'] ?? row['ValorAvulso']),
+      minutosTolerancia: lerNumero(row['minutosToleranciaPermanencia'] ?? row['MinutosToleranciaPermanencia'])
     });
   }
   return pontos;

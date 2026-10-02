@@ -20,6 +20,7 @@ import {
   agruparPontos,
   arredondarCoordenada,
   coordenadaNoBrasil,
+  detalhesPontoMapa,
   type PontoMapa
 } from './ponto-mapa.model';
 
@@ -149,7 +150,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
         className: 'br-pin',
         html: varios
           ? `<span class="br-cluster">${grupo.pontos.length}</span>`
-          : '<span class="br-dot"></span>',
+          : `<span class="br-dot${grupo.pontos[0].ativo === false ? ' br-dot--inativo' : ''}"></span>`,
         iconSize: varios ? [36, 36] : [16, 16],
         iconAnchor: varios ? [18, 18] : [8, 8]
       });
@@ -160,9 +161,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
         });
       } else {
         const ponto = grupo.pontos[0];
-        marcador.bindPopup(
-          `<strong>${escaparHtml(ponto.descricao)}</strong><br>${escaparHtml(rotuloLocal(ponto))}`
-        );
+        marcador.bindPopup(htmlPopup(ponto), { maxWidth: 320 });
       }
       this.marcadores.push(marcador);
     }
@@ -210,6 +209,16 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     }
     mapa.fitBounds(leafletApi().latLngBounds([-33.6, -73.8], [5.2, -34.6]), { padding: [8, 8] });
   }
+}
+
+function htmlPopup(ponto: PontoMapa): string {
+  const linhas = detalhesPontoMapa(ponto)
+    .map(
+      (item) =>
+        `<span class="mapa-popup__linha mapa-popup__linha--${item.estado}"><span class="material-symbols-outlined" aria-hidden="true">${item.icone}</span>${escaparHtml(item.texto)}</span>`
+    )
+    .join('');
+  return `<div class="mapa-popup"><strong>${escaparHtml(ponto.descricao)}</strong><br>${escaparHtml(rotuloLocal(ponto))}${linhas}</div>`;
 }
 
 function rotuloLocal(ponto: PontoMapa): string {

@@ -45,6 +45,8 @@ export interface FormValue {
   tipoTaxaMensalidade?: 'taxa' | 'mensalidade' | null;
   taxaPercentual?: number | null;
   mensalidadeValor?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   /** Configuração Valores — EstacionamentoConfiguracao via CRUD Estacionamento */
   tipoTarifaAvulsa?: 1 | 2 | null;
   valorAvulso?: number | null;
@@ -70,6 +72,12 @@ export interface FormValue {
 }
 
 /** TipoCobranca no backend: 0 = nenhum, 1 = taxa, 2 = mensalidade (ajustar se o backend usar outros valores). */
+function coordenadaPayload(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const numero = Number(value);
+  return Number.isFinite(numero) ? Math.round(numero * 1e6) / 1e6 : null;
+}
+
 function mapTipoCobranca(tipo: 'taxa' | 'mensalidade' | null | undefined): number {
   if (tipo === 'taxa') return 1;
   if (tipo === 'mensalidade') return 2;
@@ -413,6 +421,8 @@ export function montarPayloadEstacionamento(
     tipoCobranca,
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
+    latitude: coordenadaPayload(value.latitude),
+    longitude: coordenadaPayload(value.longitude),
     // Contrato EstacionamentoPostInput/PutInput usa PessoaJuridica (não `pessoa` na raiz).
     pessoaJuridica: pessoa,
     /** Legado — alguns consumidores ainda leem `pessoa`. */

@@ -62,6 +62,12 @@ import {
 import { BANCOS_BRASIL, bancoToOption } from '../../data/bancos-brasil';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
 import { CnpjLookupResult, CnpjService } from '../../services/cnpj.service';
+import { BrasilMapaComponent } from '../../../../shared/maps/brasil-mapa.component';
+import {
+  arredondarCoordenada,
+  coordenadaNoBrasil,
+  linkGoogleMaps
+} from '../../../../shared/maps/ponto-mapa.model';
 
 const MAX_FOTOS = 4;
 const MAX_CONTATOS_COMPLEMENTARES = 5;
@@ -83,7 +89,8 @@ function telefoneContatoMinDigitosValidator(minDigitos = 10): ValidatorFn {
     ReactiveFormsModule,
     CnpjFormatDirective,
     CpfFormatDirective,
-    TelefoneFormatDirective
+    TelefoneFormatDirective,
+    BrasilMapaComponent
   ],
   templateUrl: './estacionamento-form.component.html',
   styleUrls: ['./estacionamento-form.component.scss']
@@ -1778,6 +1785,62 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         if (arr.length >= MAX_CONTATOS_COMPLEMENTARES) return;
         arr.push(this.criarGrupoContatoComplementar(c));
       });
+    }
+  }
+
+  coordenadaFormulario(campo: 'latitude' | 'longitude'): number | null {
+    const bruto = this.form.get(campo)?.value;
+    if (bruto == null || bruto === '') return null;
+    const valor = Number(bruto);
+    return Number.isFinite(valor) ? valor : null;
+  }
+
+  linkGeolocalizacao(): string | null {
+    const latitude = this.coordenadaFormulario('latitude');
+    const longitude = this.coordenadaFormulario('longitude');
+    if (latitude == null || longitude == null || !coordenadaNoBrasil(latitude, longitude)) return null;
+    return linkGoogleMaps(latitude, longitude);
+  }
+
+  definirGeolocalizacao(ponto: { latitude: number; longitude: number }): void {
+    if (!coordenadaNoBrasil(ponto.latitude, ponto.longitude)) {
+      this.toast.warning('A localização precisa estar no Brasil.');
+      return;
+    }
+    this.form.patchValue({
+      latitude: arredondarCoordenada(ponto.latitude),
+      longitude: arredondarCoordenada(ponto.longitude)
+    });
+    this.cdr.markForCheck();
+  }
+
+  usarMinhaGeolocalizacao(): void {
+    if (!navigator.geolocation) {
+      this.toast.warning('Este navegador não informa a localização.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (posicao) => {
+        this.definirGeolocalizacao({
+          latitude: posicao.coords.latitude,
+          longitude: posicao.coords.longitude
+        });
+      },
+      () => this.toast.warning('Não foi possível obter a localização deste dispositivo.')
+    );
+  }
+
+  async compartilharGeolocalizacao(): Promise<void> {
+    const link = this.linkGeolocalizacao();
+    if (!link) {
+      this.toast.warning('Informe um ponto no Brasil para compartilhar.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+      this.toast.success('Link da localização copiado.');
+    } catch {
+      this.toast.warning('Não foi possível copiar o link. Abra o endereço exibido abaixo.');
     }
   }
 

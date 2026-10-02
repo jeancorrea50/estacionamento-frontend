@@ -110,6 +110,16 @@ describe('Estacionamento-form.mapper', () => {
     expect(payload['contrato']).toBe('JVBERi0=');
   });
 
+  it('deve enviar latitude e longitude quando informadas', () => {
+    const payload = formValueToEstacionamentoPayload({
+      ...baseFormValue,
+      latitude: -26.9078,
+      longitude: -48.6658
+    });
+    expect(payload['latitude']).toBe(-26.9078);
+    expect(payload['longitude']).toBe(-48.6658);
+  });
+
   it('deve enviar CNPJ da pessoa apenas com dígitos', () => {
     const payload = formValueToEstacionamentoPayload(baseFormValue);
     const pessoa = payload['pessoa'] as Record<string, unknown>;

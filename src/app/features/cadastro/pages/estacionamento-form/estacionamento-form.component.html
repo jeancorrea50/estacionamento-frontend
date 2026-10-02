@@ -395,17 +395,46 @@
                       </div>
                     </div>
                   </div>
-                  <div class="complementares-block">
+                  <div class="complementares-block complementares-block--full">
                     <h3 class="card__subtitle">Localização</h3>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="latitude">Latitude</label>
-                        <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                    <div class="geo-layout">
+                      <div class="geo-layout__dados">
+                        <div class="form-compact__body">
+                          <div class="form-row">
+                            <label for="latitude">Latitude</label>
+                            <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                          </div>
+                          <div class="form-row">
+                            <label for="longitude">Longitude</label>
+                            <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
+                          </div>
+                        </div>
+                        <div class="geo-layout__acoes">
+                          <button type="button" class="btn btn-secondary btn--sm" (click)="usarMinhaGeolocalizacao()">
+                            Usar minha localização
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn--sm"
+                            (click)="compartilharGeolocalizacao()"
+                            [disabled]="!linkGeolocalizacao()"
+                          >
+                            Compartilhar link
+                          </button>
+                        </div>
+                        @if (linkGeolocalizacao(); as linkMapa) {
+                          <a class="geo-layout__link" [href]="linkMapa" target="_blank" rel="noopener noreferrer">{{ linkMapa }}</a>
+                        } @else {
+                          <p class="geo-layout__hint">Clique no mapa para marcar o pátio. O ponto precisa estar no Brasil.</p>
+                        }
                       </div>
-                      <div class="form-row">
-                        <label for="longitude">Longitude</label>
-                        <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
-                      </div>
+                      <app-brasil-mapa
+                        class="geo-layout__mapa"
+                        modo="ponto"
+                        [latitude]="coordenadaFormulario('latitude')"
+                        [longitude]="coordenadaFormulario('longitude')"
+                        (pontoSelecionado)="definirGeolocalizacao($event)"
+                      />
                     </div>
                   </div>
 

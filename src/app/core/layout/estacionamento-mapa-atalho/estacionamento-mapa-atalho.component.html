@@ -1,0 +1,33 @@
+<div class="est-mapa" (click)="$event.stopPropagation()">
+  <button
+    type="button"
+    class="est-mapa__btn"
+    (click)="toggle()"
+    [attr.aria-expanded]="aberto()"
+    aria-label="Mapa dos estacionamentos no Brasil"
+    title="Mapa dos estacionamentos"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">map</span>
+  </button>
+
+  @if (aberto()) {
+    <section class="est-mapa__panel" role="dialog" aria-label="Estacionamentos no Brasil">
+      <header class="est-mapa__header">
+        <h2>Estacionamentos no Brasil</h2>
+        <button type="button" class="est-mapa__fechar" (click)="aberto.set(false)" aria-label="Fechar mapa">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </header>
+      @if (carregando()) {
+        <p class="est-mapa__status">Carregando localizações...</p>
+      } @else if (erro()) {
+        <p class="est-mapa__status">{{ erro() }}</p>
+      } @else if (!pontos().length) {
+        <p class="est-mapa__status">Nenhum estacionamento com localização cadastrada.</p>
+      }
+      <div class="est-mapa__canvas">
+        <app-brasil-mapa modo="brasil" [pontos]="pontos()" />
+      </div>
+    </section>
+  }
+</div>

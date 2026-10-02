@@ -14,6 +14,7 @@ import {
 } from '../models/estacionamento.dto';
 import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
+import type { PontoMapa } from '../../../shared/maps/ponto-mapa.model';
 
 /** Base da API do backend (dev: /api com proxy; prod: URL completa). */
 const API_BASE = environment.API_BASE_URL;
@@ -83,6 +84,13 @@ export interface EstacionamentoFormValue {
 })
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
+
+  /** GET /api/Estacionamento/mapa — pátios ativos com latitude e longitude. Sem permissão extra. */
+  listarMapa(): Observable<PontoMapa[]> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.mapa}`).pipe(
+      map((body) => normalizarPontosMapa(this.peelApiEnvelope(body)))
+    );
+  }
 
   /** POST /api/Estacionamento (body: EstacionamentoPostInput). */
   gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
@@ -641,8 +649,8 @@ export class EstacionamentoService {
       tipoTaxaMensalidade: tipoTaxa,
       taxaPercentual: r.cobrancaPorcentagem != null ? r.cobrancaPorcentagem : null,
       mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null,
-      latitude: (r as unknown as Record<string, unknown>)['latitude'] as number | null ?? null,
-      longitude: (r as unknown as Record<string, unknown>)['longitude'] as number | null ?? null,
+      latitude: lerNumero(raw['latitude'] ?? raw['Latitude']),
+      longitude: lerNumero(raw['longitude'] ?? raw['Longitude']),
       enderecos: p?.enderecos ?? [],
       banco: String(banco ?? ''),
       agencia: String(agencia ?? ''),
@@ -713,4 +721,40 @@ function mapConfiguracaoValoresFromApi(
     minutosToleranciaPermanencia:
       tolerancia != null && Number.isFinite(tolerancia) ? tolerancia : null
   };
+}
+
+function lerNumero(valor: unknown): number | null {
+  if (valor == null || valor === '') return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function normalizarPontosMapa(body: unknown): PontoMapa[] {
+  const lista = Array.isArray(body)
+    ? body
+    : body != null && typeof body === 'object'
+      ? ((body as Record<string, unknown>)['data'] ??
+          (body as Record<string, unknown>)['Data'] ??
+          (body as Record<string, unknown>)['results'] ??
+          (body as Record<string, unknown>)['Results'])
+      : null;
+  if (!Array.isArray(lista)) return [];
+  const pontos: PontoMapa[] = [];
+  for (const item of lista) {
+    if (item == null || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const latitude = lerNumero(row['latitude'] ?? row['Latitude']);
+    const longitude = lerNumero(row['longitude'] ?? row['Longitude']);
+    if (latitude == null || longitude == null) continue;
+    pontos.push({
+      id: Number(row['id'] ?? row['Id'] ?? 0),
+      codExportacao: String(row['codExportacao'] ?? row['CodExportacao'] ?? ''),
+      descricao: String(row['descricao'] ?? row['Descricao'] ?? 'Estacionamento'),
+      cidade: String(row['cidade'] ?? row['Cidade'] ?? ''),
+      estado: String(row['estado'] ?? row['Estado'] ?? ''),
+      latitude,
+      longitude
+    });
+  }
+  return pontos;
 }

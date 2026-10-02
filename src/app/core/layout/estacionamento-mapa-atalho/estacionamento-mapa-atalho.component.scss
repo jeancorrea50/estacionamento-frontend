@@ -1,0 +1,93 @@
+.est-mapa {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.est-mapa__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(80, 120, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(12, 24, 44, 0.7);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.est-mapa__btn:hover {
+  background: var(--surface-2, #1e2a45);
+  color: var(--primary);
+}
+
+:host-context(html.theme-dark) .est-mapa__btn {
+  border: 1px solid var(--dark-border, #363642);
+  background: var(--dark-hover, #323240);
+}
+
+:host-context(html.theme-light) .est-mapa__btn {
+  border-color: #f5c518;
+  background: #fff;
+  color: var(--color-text-primary, #0a3890);
+}
+
+.est-mapa__panel {
+  position: fixed;
+  top: calc(var(--topbar-height, 56px) + 8px);
+  right: 16px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 24px));
+  height: min(560px, calc(100vh - 80px));
+  padding: 12px;
+  border: 1px solid #363642;
+  border-radius: 16px;
+  background: #16161c;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.est-mapa__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #f4f4f5;
+}
+
+.est-mapa__header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.est-mapa__fechar {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.est-mapa__status {
+  margin: 0 0 8px;
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.est-mapa__canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 768px) {
+  .est-mapa__panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}

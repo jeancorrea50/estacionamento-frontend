@@ -40,7 +40,7 @@ export interface CriarConviteTransportadoraInput {
   responsavelNome: string;
   responsavelCpf: string;
   responsavelEmail: string;
-  /** Telefone com DDD — usado nos links WhatsApp/SMS. */
+  /** Telefone com DDD — usado no link WhatsApp. */
   responsavelTelefone?: string;
 }
 

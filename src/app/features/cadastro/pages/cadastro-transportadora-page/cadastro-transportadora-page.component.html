@@ -70,6 +70,10 @@
           Importar dados
         </button>
         @if (!somentePropriaTransportadora) {
+          <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirModalConvite()">
+            <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+            Convidar
+          </button>
           <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="novoTransportadora()">
             <span class="material-symbols-outlined" aria-hidden="true">add</span>
             Novo

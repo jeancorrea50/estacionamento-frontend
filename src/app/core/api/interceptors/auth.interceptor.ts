@@ -21,14 +21,18 @@ function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
     u.includes('auth/usuario/confirmar-email') ||
     u.includes('auth/usuario/login') ||
     u.includes('auth/usuario/esqueci-senha') ||
-    u.includes('auth/usuario/redefinir-senha')
+    u.includes('auth/usuario/redefinir-senha') ||
+    u.includes('/public/convite-transportadora')
   );
 }
 
 /** Onboarding público por token de convite (sem Bearer). */
 function isPublicConviteTransportadoraRoute(req: HttpRequest<unknown>): boolean {
   const u = req.url.toLowerCase();
-  return u.includes('/transportadora/convite/publico/');
+  return (
+    u.includes('/transportadora/convite/publico/') ||
+    u.includes('/public/convite-transportadora')
+  );
 }
 
 function readSessionEstacionamento(): SessionEstacionamento | null {

@@ -25,12 +25,20 @@ import { routeAccessGuard } from './core/guards/route-access.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
 
 export const routes: Routes = [
-	// Convite público (sem layout admin; sem exigir login do estacionamento)
+	// Convite público multi-step (API /public/convite-transportadora)
+	{
+		path: 'convite/transportadora/:token',
+		loadComponent: () =>
+			import('./features/convite/pages/convite-transportadora-page/convite-transportadora-page.component').then(
+				(m) => m.ConviteTransportadoraPageComponent
+			),
+	},
+	// Alias legado do onboarding público
 	{
 		path: 'cadastro-transportadora/:token',
 		loadComponent: () =>
-			import('./features/cadastro/pages/cadastro-transportadora-publico-page/cadastro-transportadora-publico-page.component').then(
-				(m) => m.CadastroTransportadoraPublicoPageComponent
+			import('./features/convite/pages/convite-transportadora-page/convite-transportadora-page.component').then(
+				(m) => m.ConviteTransportadoraPageComponent
 			),
 	},
 

@@ -761,6 +761,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   /** Abre modal de convite (substitui o formulário completo no + Novo). */
+  abrirModalConvite(): void {
+    this.novoTransportadora();
+  }
+
   novoTransportadora(): void {
     if (this.somentePropriaTransportadora) {
       this.toast.error('Seu perfil permite apenas editar a própria transportadora.');

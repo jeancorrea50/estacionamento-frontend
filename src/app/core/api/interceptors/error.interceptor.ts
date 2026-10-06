@@ -101,7 +101,12 @@ function isPasswordResetPublicRequest(req: HttpRequest<unknown>): boolean {
 
 /** Convite de transportadora: UI (modal/lista/página pública) trata a mensagem. */
 function isConviteTransportadoraRequest(req: HttpRequest<unknown>): boolean {
-  return req.url.toLowerCase().includes('/transportadora/convite');
+  const u = req.url.toLowerCase();
+  return (
+    u.includes('/transportadora/convite') ||
+    u.includes('/public/convite-transportadora') ||
+    u.includes('/convitetransportadora')
+  );
 }
 
 /** Cadastro de usuário: a tela (modal) exibe a mensagem; evita toast duplicado. */

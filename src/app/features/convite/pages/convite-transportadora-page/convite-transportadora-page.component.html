@@ -1,0 +1,207 @@
+<div class="cv-shell">
+  <div class="cv-bg" aria-hidden="true"></div>
+
+  <header class="cv-top">
+    <div class="cv-brand">
+      <span class="material-symbols-outlined cv-brand__icon">local_shipping</span>
+      <div>
+        <strong>Cadastro Transportadora</strong>
+        <small>Convite do estacionamento</small>
+      </div>
+    </div>
+    <a routerLink="/" class="cv-link-login">Já tenho conta → Entrar</a>
+  </header>
+
+  <main class="cv-main">
+    @if (loading) {
+      <div class="cv-card cv-card--center">
+        <div class="cv-spinner" aria-hidden="true"></div>
+        <p>Carregando convite…</p>
+      </div>
+    } @else if (errorMessage && !convite) {
+      <div class="cv-card cv-card--center">
+        <span class="material-symbols-outlined cv-error-ico">link_off</span>
+        <h1>Convite indisponível</h1>
+        <p>{{ errorMessage }}</p>
+        <a routerLink="/" class="cv-btn cv-btn--primary">Ir para o login</a>
+      </div>
+    } @else {
+      <section class="cv-stepper" aria-label="Etapas do cadastro">
+        @for (s of steps; track s.key) {
+          <div
+            class="cv-step"
+            [class.cv-step--done]="isDone(s.key)"
+            [class.cv-step--active]="isActive(s.key)"
+            [class.cv-step--todo]="!isDone(s.key) && !isActive(s.key)"
+          >
+            <div class="cv-step__circle">
+              @if (isDone(s.key) || concluido) {
+                <span class="material-symbols-outlined">check</span>
+              } @else {
+                <span class="material-symbols-outlined">{{ s.icon }}</span>
+              }
+            </div>
+            <span class="cv-step__label">{{ s.label }}</span>
+            @if (s.key < 4) {
+              <div class="cv-step__line" [class.cv-step__line--done]="isDone(s.key)"></div>
+            }
+          </div>
+        }
+      </section>
+
+      @if (successMessage) {
+        <div class="cv-alert cv-alert--ok" role="status">{{ successMessage }}</div>
+      }
+      @if (errorMessage) {
+        <div class="cv-alert cv-alert--err" role="alert">{{ errorMessage }}</div>
+      }
+
+      @if (concluido) {
+        <div class="cv-card cv-card--center cv-done">
+          <div class="cv-done__badge">
+            <span class="material-symbols-outlined">verified</span>
+          </div>
+          <h1>Tudo pronto!</h1>
+          <p>Sua transportadora e seu usuário foram criados. Use o login com o usuário e a senha definidos.</p>
+          <a routerLink="/" class="cv-btn cv-btn--primary cv-btn--lg">Entrar no sistema</a>
+        </div>
+      } @else {
+        <div class="cv-card">
+          @if (step === 1) {
+            <h1 class="cv-title">Usuário e senha</h1>
+            <p class="cv-sub">Crie o acesso que você usará para entrar no sistema.</p>
+            <form class="cv-form" [formGroup]="acessoForm" (ngSubmit)="avancar()">
+              <label class="cv-field">
+                <span>Usuário *</span>
+                <input formControlName="userName" autocomplete="username" />
+              </label>
+              <label class="cv-field">
+                <span>E-mail *</span>
+                <input type="email" formControlName="email" autocomplete="email" />
+              </label>
+              <label class="cv-field">
+                <span>Senha *</span>
+                <input type="password" formControlName="password" autocomplete="new-password" />
+              </label>
+              <label class="cv-field">
+                <span>Confirmar senha *</span>
+                <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
+              </label>
+            </form>
+          }
+
+          @if (step === 2) {
+            <h1 class="cv-title">Dados do responsável</h1>
+            <p class="cv-sub">Informações pré-preenchidas pelo estacionamento — revise e avance.</p>
+            <form class="cv-form" [formGroup]="responsavelForm" (ngSubmit)="avancar()">
+              <label class="cv-field">
+                <span>Nome completo *</span>
+                <input formControlName="nome" />
+              </label>
+              <label class="cv-field">
+                <span>CPF *</span>
+                <input formControlName="cpf" inputmode="numeric" />
+              </label>
+              <label class="cv-field">
+                <span>E-mail *</span>
+                <input type="email" formControlName="email" />
+              </label>
+              <label class="cv-field">
+                <span>Telefone</span>
+                <input formControlName="telefone" inputmode="tel" />
+              </label>
+              <label class="cv-field">
+                <span>Data de nascimento</span>
+                <input type="date" formControlName="dataNascimento" />
+              </label>
+              <label class="cv-field">
+                <span>Nome da mãe</span>
+                <input formControlName="nomeMae" />
+              </label>
+            </form>
+          }
+
+          @if (step === 3) {
+            <h1 class="cv-title">Dados da transportadora</h1>
+            <p class="cv-sub">Informe os dados da empresa (pessoa jurídica).</p>
+            <form class="cv-form" [formGroup]="empresaForm" (ngSubmit)="avancar()">
+              <label class="cv-field">
+                <span>Razão social *</span>
+                <input formControlName="razaoSocial" />
+              </label>
+              <label class="cv-field">
+                <span>Nome fantasia *</span>
+                <input formControlName="nomeFantasia" />
+              </label>
+              <label class="cv-field">
+                <span>CNPJ *</span>
+                <input formControlName="cnpj" inputmode="numeric" />
+              </label>
+              <label class="cv-field">
+                <span>Inscrição estadual</span>
+                <input formControlName="inscricaoEstadual" />
+              </label>
+            </form>
+          }
+
+          @if (step === 4) {
+            <h1 class="cv-title">Endereço da transportadora</h1>
+            <p class="cv-sub">Última etapa — ao avançar o cadastro será finalizado.</p>
+            <form class="cv-form" [formGroup]="enderecoForm" (ngSubmit)="avancar()">
+              <div class="cv-row">
+                <label class="cv-field cv-field--cep">
+                  <span>CEP *</span>
+                  <input formControlName="cep" inputmode="numeric" (blur)="buscarCep()" />
+                </label>
+                <button type="button" class="cv-btn cv-btn--teal" (click)="buscarCep()">Buscar CEP</button>
+              </div>
+              <label class="cv-field">
+                <span>Logradouro *</span>
+                <input formControlName="logradouro" />
+              </label>
+              <div class="cv-row">
+                <label class="cv-field">
+                  <span>Número *</span>
+                  <input formControlName="numero" />
+                </label>
+                <label class="cv-field">
+                  <span>Complemento</span>
+                  <input formControlName="complemento" />
+                </label>
+              </div>
+              <label class="cv-field">
+                <span>Bairro *</span>
+                <input formControlName="bairro" />
+              </label>
+              <div class="cv-row">
+                <label class="cv-field">
+                  <span>Cidade *</span>
+                  <input formControlName="cidade" />
+                </label>
+                <label class="cv-field cv-field--uf">
+                  <span>UF *</span>
+                  <input formControlName="estado" maxlength="2" />
+                </label>
+              </div>
+            </form>
+          }
+
+          <footer class="cv-actions">
+            <button type="button" class="cv-btn cv-btn--ghost" (click)="voltar()" [disabled]="step === 1 || saving">
+              Voltar
+            </button>
+            <button type="button" class="cv-btn cv-btn--primary cv-btn--lg" (click)="avancar()" [disabled]="saving">
+              @if (saving) {
+                Salvando…
+              } @else if (step === 4) {
+                Concluir cadastro
+              } @else {
+                Avançar
+              }
+            </button>
+          </footer>
+        </div>
+      }
+    }
+  </main>
+</div>

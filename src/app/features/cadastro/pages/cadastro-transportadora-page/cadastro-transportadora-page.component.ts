@@ -760,12 +760,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     return base;
   }
 
-  /** Abre modal de convite (substitui o formulário completo no + Novo). */
+  /** Abre modal de convite (botão Convidar). */
   abrirModalConvite(): void {
-    this.novoTransportadora();
-  }
-
-  novoTransportadora(): void {
     if (this.somentePropriaTransportadora) {
       this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
       return;
@@ -783,6 +779,49 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         this.carregarLista();
       }
     });
+  }
+
+  /** Abre o formulário de inserção de transportadora (botão + Novo). */
+  novoTransportadora(): void {
+    if (this.somentePropriaTransportadora) {
+      this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
+      return;
+    }
+    this.listView = false;
+    this.activeTab = 'cadastro';
+    this.transportadoraId = null;
+    this.transportadoraMergeRaw = null;
+    this.contatosComplementares.clear();
+    this.transportadoraForm.reset({
+      id: null,
+      pessoa: {
+        razaoSocial: '',
+        nomeFantasia: '',
+        cnpj: '',
+        inscricaoEstadual: '',
+        ativo: true
+      },
+      responsavelLegal: {
+        nome: '',
+        cpf: '',
+        telefone: '',
+        email: '',
+        cargo: ''
+      },
+      endereco: {
+        cep: '',
+        logradouro: '',
+        numero: '',
+        bairro: '',
+        cidade: '',
+        estado: '',
+        complemento: ''
+      }
+    });
+    this.erroForm = null;
+    this.cnpjError = null;
+    this.veiculos = [];
+    this.condutores = [];
   }
 
   reenviarConvite(item: TransportadoraListItemDTO): void {

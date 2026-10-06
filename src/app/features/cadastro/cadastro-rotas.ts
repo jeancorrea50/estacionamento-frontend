@@ -13,6 +13,11 @@ export const CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE = '/app/cadastro/transport
 export const CADASTRO_TRANSPORTADORAS_RELATORIO_PATH = 'transportadoras/relatorio';
 export const CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL = 'Relatório';
 
+/** Lista de convites enviados pelo pátio. */
+export const CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE = '/app/cadastro/transportadoras/convites';
+export const CADASTRO_TRANSPORTADORAS_CONVITES_PATH = 'transportadoras/convites';
+export const CADASTRO_TRANSPORTADORAS_CONVITES_LABEL = 'Convites';
+
 export const CADASTRO_VEICULOS_ROUTE = '/app/cadastro/veiculos';
 export const CADASTRO_VEICULOS_PATH = 'veiculos';
 

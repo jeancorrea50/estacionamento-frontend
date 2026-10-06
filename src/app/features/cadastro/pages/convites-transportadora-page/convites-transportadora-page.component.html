@@ -1,0 +1,163 @@
+<div class="cvl-page-shell">
+  <div class="page-container cvl-page">
+    <header class="cfg-page-head">
+      <div class="cfg-page-head__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">mail</span>
+      </div>
+      <div class="cfg-page-head__text">
+        <h1 class="cfg-page-head__title">Convites de Transportadora</h1>
+        <p class="cfg-page-head__sub">
+          Acompanhe o preenchimento das etapas e reenvie o link para o responsável retomar de onde parou
+        </p>
+      </div>
+      <div class="cvl-head-actions">
+        <a class="cvl-btn cvl-btn--ghost" [routerLink]="transportadorasRoute">
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          Transportadoras
+        </a>
+        <button type="button" class="cvl-btn cvl-btn--primary" (click)="carregar()" [disabled]="loading()">
+          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          Atualizar
+        </button>
+      </div>
+    </header>
+
+    @if (loading()) {
+      <div class="cvl-empty">
+        <div class="cvl-spinner" aria-hidden="true"></div>
+        <p>Carregando convites…</p>
+      </div>
+    } @else if (itens().length === 0) {
+      <div class="cvl-empty">
+        <span class="material-symbols-outlined cvl-empty__ico">inbox</span>
+        <h2>Nenhum convite enviado</h2>
+        <p>Os convites criados a partir do cadastro de transportadoras aparecerão aqui.</p>
+        <a class="cvl-btn cvl-btn--primary" [routerLink]="transportadorasRoute">Ir para Transportadoras</a>
+      </div>
+    } @else {
+      <div class="cvl-list" role="list">
+        @for (c of itens(); track trackById($index, c)) {
+          <article
+            class="cvl-card"
+            role="listitem"
+            [class.cvl-card--done]="isConcluido(c.status)"
+            [class.cvl-card--cancel]="isCancelado(c.status)"
+            [class.cvl-card--expired]="isExpirado(c.status)"
+          >
+            <div class="cvl-card__top">
+              <div class="cvl-card__who">
+                <strong>{{ c.responsavelNome?.trim() || c.emailConvidado || '—' }}</strong>
+                <span class="cvl-card__email">{{ c.emailConvidado }}</span>
+                @if (c.razaoSocial?.trim()) {
+                  <span class="cvl-card__meta">{{ c.razaoSocial }}</span>
+                }
+              </div>
+              <div class="cvl-card__badges">
+                <span
+                  class="cvl-pill"
+                  [class.cvl-pill--ok]="isConcluido(c.status)"
+                  [class.cvl-pill--warn]="isExpirado(c.status)"
+                  [class.cvl-pill--muted]="isCancelado(c.status)"
+                  [class.cvl-pill--info]="!isConcluido(c.status) && !isExpirado(c.status) && !isCancelado(c.status)"
+                >
+                  {{ labelStatus(c.status) }}
+                </span>
+                <span class="cvl-pill cvl-pill--soft">{{ labelEtapa(c.etapaAtual, c.status) }}</span>
+              </div>
+            </div>
+
+            <section class="cv-stepper" aria-label="Etapas do cadastro">
+              @for (s of steps; track s.key) {
+                <div
+                  class="cv-step"
+                  [class.cv-step--done]="isDone(c.etapaAtual, s.key, c.status)"
+                  [class.cv-step--active]="isActive(c.etapaAtual, s.key, c.status)"
+                  [class.cv-step--todo]="!isDone(c.etapaAtual, s.key, c.status) && !isActive(c.etapaAtual, s.key, c.status)"
+                >
+                  <div class="cv-step__circle">
+                    @if (isDone(c.etapaAtual, s.key, c.status) || isConcluido(c.status)) {
+                      <span class="material-symbols-outlined">check</span>
+                    } @else {
+                      <span class="material-symbols-outlined">{{ s.icon }}</span>
+                    }
+                  </div>
+                  <span class="cv-step__label">{{ s.label }}</span>
+                  @if (s.key < 4) {
+                    <div
+                      class="cv-step__line"
+                      [class.cv-step__line--done]="isDone(c.etapaAtual, s.key, c.status)"
+                    ></div>
+                  }
+                </div>
+              }
+            </section>
+
+            <div class="cvl-card__foot">
+              <div class="cvl-card__dates">
+                <span>
+                  Criado
+                  {{ c.dataCriacao ? (c.dataCriacao | date: 'dd/MM/yyyy HH:mm') : '—' }}
+                </span>
+                @if (c.dataExpiracao) {
+                  <span>Expira {{ c.dataExpiracao | date: 'dd/MM/yyyy HH:mm' }}</span>
+                }
+                @if (c.dataConclusao) {
+                  <span>Concluído {{ c.dataConclusao | date: 'dd/MM/yyyy HH:mm' }}</span>
+                }
+              </div>
+
+              <div class="cvl-card__actions" role="group" [attr.aria-label]="'Ações do convite ' + c.id">
+                @if (podeReenviar(c)) {
+                  <button
+                    type="button"
+                    class="cvl-btn cvl-btn--primary"
+                    (click)="reenviar(c)"
+                    [disabled]="reenviandoId() === c.id"
+                    title="Reenviar e-mail com o mesmo link — o convidado retoma na etapa atual"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                    {{ reenviandoId() === c.id ? 'Reenviando…' : 'Reenviar' }}
+                  </button>
+                  <button type="button" class="cvl-btn cvl-btn--ghost" (click)="copiarLink(c)" title="Copiar link">
+                    <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                    Link
+                  </button>
+                  @if (c.urlWhatsApp) {
+                    <button type="button" class="cvl-btn cvl-btn--wa" (click)="abrirWhatsApp(c)" title="WhatsApp">
+                      <span class="material-symbols-outlined" aria-hidden="true">chat</span>
+                      WhatsApp
+                    </button>
+                  }
+                  @if (c.urlSms) {
+                    <button type="button" class="cvl-btn cvl-btn--ghost" (click)="abrirSms(c)" title="SMS">
+                      <span class="material-symbols-outlined" aria-hidden="true">sms</span>
+                      SMS
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="cvl-btn cvl-btn--danger"
+                    (click)="cancelar(c)"
+                    [disabled]="cancelandoId() === c.id"
+                    title="Cancelar convite"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    Cancelar
+                  </button>
+                } @else if (isConcluido(c.status) && c.transportadoraIdCriada) {
+                  <a
+                    class="cvl-btn cvl-btn--ghost"
+                    [routerLink]="[transportadorasRoute, 'editar', c.transportadoraIdCriada]"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                    Ver transportadora
+                  </a>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+</div>

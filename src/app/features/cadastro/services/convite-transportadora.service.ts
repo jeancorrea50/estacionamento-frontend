@@ -51,15 +51,16 @@ export class ConviteTransportadoraService {
     );
   }
 
-  /** Cancelar via POST `/api/ConviteTransportadora/{id}/cancelar` (reenvio não implementado). */
+  /** POST `/api/ConviteTransportadora/{id}/reenviar` — mesmo token/etapaAtual. */
   reenviar(conviteId: number): Observable<ConviteOperacaoResult> {
     if (!conviteId || conviteId <= 0) {
       return of({ ok: false, message: 'Convite inválido.' });
     }
-    return of({
-      ok: false,
-      message: 'Reenvio de e-mail ainda não está disponível. Copie o link do convite novamente.',
-    });
+    return this.http.post<unknown>(`${CONVITE_AUTH}/${conviteId}/reenviar`, {}).pipe(
+      timeout(30000),
+      map((raw) => this.mapOperacao(raw, 'Convite reenviado.')),
+      catchError((err) => of(this.mapErro(err, 'Não foi possível reenviar o convite.')))
+    );
   }
 
   /** POST `/api/ConviteTransportadora/{id}/cancelar` */

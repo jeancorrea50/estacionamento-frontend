@@ -3,6 +3,7 @@ import { EstacionamentoLayoutComponent } from './estacionamento-layout.component
 import {
   CADASTRO_ESTACIONAMENTOS_PATH,
   CADASTRO_MOTORISTAS_PATH,
+  CADASTRO_TRANSPORTADORAS_CONVITES_PATH,
   CADASTRO_TRANSPORTADORAS_PATH,
   CADASTRO_TRANSPORTADORAS_RELATORIO_PATH,
   CADASTRO_VEICULOS_PATH,
@@ -63,6 +64,14 @@ export const CADASTRO_ROUTES: Routes = [
         (m) => m.TransportadoraRelatorioComponent
       ),
     title: 'Relatório',
+  },
+  {
+    path: CADASTRO_TRANSPORTADORAS_CONVITES_PATH,
+    loadComponent: () =>
+      import('./pages/convites-transportadora-page/convites-transportadora-page.component').then(
+        (m) => m.ConvitesTransportadoraPageComponent
+      ),
+    title: 'Convites de Transportadora',
   },
   {
     path: `${CADASTRO_TRANSPORTADORAS_PATH}/editar/:id`,

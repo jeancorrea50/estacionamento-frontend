@@ -21,6 +21,10 @@ export interface ConviteTransportadoraDto {
   dataConclusao?: string;
   transportadoraIdCriada?: number;
   usuarioIdCriado?: number;
+  emailEnviado?: boolean;
+  urlWhatsApp?: string | null;
+  urlSms?: string | null;
+  mensagemCompartilhamento?: string | null;
   responsavelNome?: string;
   responsavelCpf?: string;
   responsavelEmail?: string;
@@ -45,9 +49,14 @@ export interface ConviteTransportadoraDto {
 
 interface ApiEnvelope<T> {
   success?: boolean;
+  Success?: boolean;
   sucess?: boolean;
   data?: T;
+  Data?: T;
+  result?: T;
+  Result?: T;
   message?: string;
+  Message?: string;
   userMessage?: string;
   errors?: string[] | string;
 }
@@ -138,10 +147,18 @@ export class ConviteTransportadoraApiService {
   listar(): Observable<ConviteTransportadoraDto[]> {
     return this.http.get<unknown>(AUTH).pipe(
       map((body) => {
-        const env = body as ApiEnvelope<ConviteTransportadoraDto[]>;
-        const data = env?.data ?? body;
-        return Array.isArray(data) ? data.map((x) => this.normalize(x)) : [];
-      })
+        const peeled = this.peelPayload(body);
+        return Array.isArray(peeled) ? peeled.map((x) => this.normalize(x)) : [];
+      }),
+      catchError((e) => this.rethrow(e))
+    );
+  }
+
+  /** Reenvia e-mail mantendo o mesmo token/etapaAtual. */
+  reenviar(id: number): Observable<ConviteTransportadoraDto> {
+    return this.http.post<unknown>(`${AUTH}/${id}/reenviar`, {}).pipe(
+      map((b) => this.unwrap(b)),
+      catchError((e) => this.rethrow(e))
     );
   }
 
@@ -157,7 +174,7 @@ export class ConviteTransportadoraApiService {
       const body = err.error as ApiEnvelope<unknown> | string | null;
       let message = err.message;
       if (body && typeof body === 'object') {
-        const errors = body.errors ?? body.message ?? body.userMessage;
+        const errors = body.errors ?? body.message ?? body.Message ?? body.userMessage;
         message = Array.isArray(errors) ? errors.join(' ') : String(errors ?? message);
       } else if (typeof body === 'string' && body.trim()) {
         message = body.trim();
@@ -169,13 +186,20 @@ export class ConviteTransportadoraApiService {
 
   private unwrap(body: unknown): ConviteTransportadoraDto {
     const env = body as ApiEnvelope<ConviteTransportadoraDto>;
-    const ok = env?.success ?? env?.sucess;
-    const data = (env?.data ?? body) as ConviteTransportadoraDto;
+    const ok = env?.success ?? env?.Success ?? env?.sucess;
+    const data = this.peelPayload(body) as ConviteTransportadoraDto;
     if (ok === false) {
-      const err = env.errors ?? env.message ?? env.userMessage ?? 'Falha na operação.';
+      const err = env.errors ?? env.message ?? env.Message ?? env.userMessage ?? 'Falha na operação.';
       throw { message: Array.isArray(err) ? err.join(' ') : String(err), raw: body };
     }
     return this.normalize(data);
+  }
+
+  private peelPayload(body: unknown): unknown {
+    if (!body || typeof body !== 'object') return body;
+    const o = body as Record<string, unknown>;
+    const inner = o['result'] ?? o['Result'] ?? o['data'] ?? o['Data'];
+    return inner !== undefined ? inner : body;
   }
 
   private normalize(raw: ConviteTransportadoraDto | Record<string, unknown>): ConviteTransportadoraDto {
@@ -196,6 +220,11 @@ export class ConviteTransportadoraApiService {
       dataConclusao: g('dataConclusao', 'DataConclusao'),
       transportadoraIdCriada: g('transportadoraIdCriada', 'TransportadoraIdCriada'),
       usuarioIdCriado: g('usuarioIdCriado', 'UsuarioIdCriado'),
+      emailEnviado: Boolean(g('emailEnviado', 'EmailEnviado')),
+      urlWhatsApp: (g('urlWhatsApp', 'UrlWhatsApp') as string | null) ?? null,
+      urlSms: (g('urlSms', 'UrlSms') as string | null) ?? null,
+      mensagemCompartilhamento:
+        (g('mensagemCompartilhamento', 'MensagemCompartilhamento') as string | null) ?? null,
       responsavelNome: g('responsavelNome', 'ResponsavelNome'),
       responsavelCpf: g('responsavelCpf', 'ResponsavelCpf'),
       responsavelEmail: g('responsavelEmail', 'ResponsavelEmail'),

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -16,6 +17,7 @@ import { CnpjFormatDirective, formatCnpj } from '../../../cadastro/directives/cn
 import { CepFormatDirective, formatCep } from '../../../cadastro/directives/cep-format.directive';
 import { celularCompletoValidator, cpfCompletoValidator } from '../../../cadastro/validators/cpf-celular.validator';
 import { ViacepService } from '../../../cadastro/services/viacep.service';
+import { ThemeService, ThemeMode } from '../../../../core/services/theme.service';
 
 type StepKey = 1 | 2 | 3 | 4;
 
@@ -40,6 +42,11 @@ export class ConviteTransportadoraPageComponent implements OnInit {
   private fb = inject(FormBuilder);
   private viacep = inject(ViacepService);
   private cdr = inject(ChangeDetectorRef);
+  private themeService = inject(ThemeService);
+  private destroyRef = inject(DestroyRef);
+
+  private readonly themeMode = signal<ThemeMode>(this.themeService.getCurrentTheme().mode);
+  readonly currentMode = computed(() => this.themeMode());
 
   buscandoCep = false;
 
@@ -94,6 +101,11 @@ export class ConviteTransportadoraPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.themeService.theme$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((theme) => {
+      this.themeMode.set(theme.mode);
+      this.cdr.markForCheck();
+    });
+
     this.token = this.route.snapshot.paramMap.get('token')?.trim() ?? '';
     if (!this.token) {
       this.loading = false;
@@ -101,6 +113,11 @@ export class ConviteTransportadoraPageComponent implements OnInit {
       return;
     }
     this.carregar();
+  }
+
+  toggleTheme(): void {
+    const next = this.currentMode() === 'dark' ? 'light' : 'dark';
+    this.themeService.setThemeMode(next);
   }
 
   carregar(): void {

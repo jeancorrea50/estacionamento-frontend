@@ -3,17 +3,41 @@
 
   <header class="cv-top">
     <div class="cv-brand">
-      <span class="material-symbols-outlined cv-brand__icon">local_shipping</span>
+      <img
+        class="cv-brand__logo"
+        src="/logo-gts-transparent.png"
+        alt="GTS Sistema"
+        width="48"
+        height="48"
+        decoding="async"
+      />
       <div>
         <strong>Cadastro Transportadora</strong>
         <small>Convite do estacionamento</small>
       </div>
     </div>
-    @if (concluido) {
-      <a routerLink="/" class="cv-link-login">Entrar no sistema →</a>
-    } @else {
-      <span class="cv-link-login cv-link-login--muted">Conclua todas as etapas para entrar</span>
-    }
+    <div class="cv-top__actions">
+      <button
+        type="button"
+        class="cv-theme-btn"
+        (click)="toggleTheme()"
+        [attr.aria-pressed]="currentMode() === 'light'"
+        [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+      >
+        @if (currentMode() === 'dark') {
+          <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
+          <span>Claro</span>
+        } @else {
+          <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
+          <span>Escuro</span>
+        }
+      </button>
+      @if (concluido) {
+        <a routerLink="/" class="cv-link-login">Entrar no sistema →</a>
+      } @else {
+        <span class="cv-link-login cv-link-login--muted">Conclua todas as etapas para entrar</span>
+      }
+    </div>
   </header>
 
   <main class="cv-main">

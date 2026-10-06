@@ -145,7 +145,7 @@
           type="button"
           class="convite-dlg__btn convite-dlg__btn--wa"
           (click)="abrirWhatsApp()"
-          [disabled]="!resultado()?.urlWhatsApp"
+          [disabled]="!podeWhatsApp()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">chat</span>
           WhatsApp
@@ -154,7 +154,7 @@
           type="button"
           class="convite-dlg__btn convite-dlg__btn--sms"
           (click)="abrirSms()"
-          [disabled]="!resultado()?.urlSms"
+          [disabled]="!podeSms()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">sms</span>
           SMS

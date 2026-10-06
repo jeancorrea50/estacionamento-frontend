@@ -179,12 +179,34 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
   }
 
   abrirSms(c: ConviteTransportadoraDto): void {
-    const url = (c.urlSms ?? '').trim();
+    let url = (c.urlSms ?? '').trim();
     if (!url) {
-      this.snack.open('SMS indisponível para este convite.', 'Fechar', { duration: 3500 });
-      return;
+      // Monta sms: no cliente se a API não trouxe o link.
+      const telDigits = String(c.responsavelTelefone ?? '').replace(/\D/g, '');
+      let tel = telDigits;
+      if (tel.length >= 10 && !tel.startsWith('55') && tel.length <= 11) tel = `55${tel}`;
+      const link = (c.urlConvite ?? '').trim();
+      if (!tel || !link) {
+        this.snack.open('SMS indisponível para este convite.', 'Fechar', { duration: 3500 });
+        return;
+      }
+      const msg = encodeURIComponent(
+        `Olá!\n\nCadastre sua transportadora no GTS Sistema:\n${link}\n\nCadastrar Transportadora`
+      );
+      url = `sms:+${tel}?&body=${msg}`;
+    } else if (url.toLowerCase().startsWith('sms:') && !url.includes('?&body=') && url.includes('?body=')) {
+      url = url.replace('?body=', '?&body=');
+      if (!url.includes('sms:+')) url = url.replace(/^sms:/i, 'sms:+');
     }
-    window.location.href = url;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    this.snack.open('Abrindo o app de SMS…', 'Fechar', { duration: 2500 });
   }
 
   trackById(_: number, c: ConviteTransportadoraDto): number {

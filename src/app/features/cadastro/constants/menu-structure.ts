@@ -16,6 +16,8 @@ import {
 import {
   CADASTRO_MOTORISTAS_ROUTE,
   CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
+  CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
   CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
   CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
@@ -129,6 +131,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
         label: 'Transportadora',
         route: CADASTRO_TRANSPORTADORAS_ROUTE,
         children: [
+          {
+            id: 'sub-transportadoras-convites',
+            label: CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
+            route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
+          },
           {
             id: 'sub-transportadoras-relatorio',
             label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,

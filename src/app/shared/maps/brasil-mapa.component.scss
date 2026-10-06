@@ -52,6 +52,16 @@
   box-shadow: 0 0 0 4px rgba(113, 113, 122, 0.35);
 }
 
+:host ::ng-deep .br-dot--destaque {
+  background: #60a5fa;
+  box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.45);
+}
+
+:host ::ng-deep .br-dot--atual {
+  background: #22c55e;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.35);
+}
+
 :host ::ng-deep .mapa-popup__linha {
   display: flex;
   align-items: center;

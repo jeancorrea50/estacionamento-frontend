@@ -165,13 +165,70 @@ export const ESTADOS_BRASIL: ReadonlyArray<{ uf: string; nome: string }> = [
   { uf: 'TO', nome: 'Tocantins' }
 ];
 
+export type FiltroTriState = 'todos' | 'sim' | 'nao';
+export type FiltroStatusMapa = 'todos' | 'ativo' | 'inativo';
+export type FiltroTipoTarifaMapa = 'todos' | 'hora' | 'diaria' | 'sem';
+
+export interface FiltroPontosMapa {
+  busca?: string;
+  cidade?: string;
+  estado?: string;
+  status?: FiltroStatusMapa;
+  seguranca?: FiltroTriState;
+  banheiro?: FiltroTriState;
+  tipoTarifa?: FiltroTipoTarifaMapa;
+}
+
 /** Mantém os pátios cuja cidade contém o texto e cujo estado é a UF ou o nome. */
 export function filtrarPontosMapa(pontos: PontoMapa[], cidade: string, estado: string): PontoMapa[] {
-  const cidadeBusca = normalizarTexto(cidade);
-  const uf = estado.trim().toUpperCase();
-  return pontos.filter(
-    (ponto) => combinaCidade(ponto.cidade, cidadeBusca) && combinaEstado(ponto.estado, uf)
+  return filtrarPontosMapaCompleto(pontos, { cidade, estado });
+}
+
+/** Filtros completos da rede credenciada (cidade/UF + status, estrutura e tarifa). */
+export function filtrarPontosMapaCompleto(pontos: PontoMapa[], filtro: FiltroPontosMapa): PontoMapa[] {
+  const cidadeBusca = normalizarTexto(filtro.cidade);
+  const uf = String(filtro.estado ?? '').trim().toUpperCase();
+  const busca = normalizarTexto(filtro.busca);
+  const status = filtro.status ?? 'todos';
+  const seguranca = filtro.seguranca ?? 'todos';
+  const banheiro = filtro.banheiro ?? 'todos';
+  const tipoTarifa = filtro.tipoTarifa ?? 'todos';
+
+  return pontos.filter((ponto) => {
+    if (!combinaCidade(ponto.cidade, cidadeBusca) || !combinaEstado(ponto.estado, uf)) return false;
+    if (busca && !textoPontoCombinaBusca(ponto, busca)) return false;
+    if (status === 'ativo' && ponto.ativo === false) return false;
+    if (status === 'inativo' && ponto.ativo !== false) return false;
+    if (!combinaTriState(ponto.possuiSeguranca, seguranca)) return false;
+    if (!combinaTriState(ponto.possuiBanheiro, banheiro)) return false;
+    if (!combinaTipoTarifa(ponto.tipoTarifaAvulsa, tipoTarifa)) return false;
+    return true;
+  });
+}
+
+function textoPontoCombinaBusca(ponto: PontoMapa, busca: string): boolean {
+  return (
+    normalizarTexto(ponto.descricao).includes(busca) ||
+    normalizarTexto(ponto.cidade).includes(busca) ||
+    normalizarTexto(ponto.estado).includes(busca) ||
+    normalizarTexto(ponto.codExportacao).includes(busca)
   );
+}
+
+function combinaTriState(valor: boolean | null | undefined, filtro: FiltroTriState): boolean {
+  if (filtro === 'todos') return true;
+  if (filtro === 'sim') return valor === true;
+  return valor === false;
+}
+
+function combinaTipoTarifa(
+  tipo: 1 | 2 | null | undefined,
+  filtro: FiltroTipoTarifaMapa
+): boolean {
+  if (filtro === 'todos') return true;
+  if (filtro === 'hora') return tipo === 1;
+  if (filtro === 'diaria') return tipo === 2;
+  return tipo !== 1 && tipo !== 2;
 }
 
 function combinaCidade(cidade: string, busca: string): boolean {

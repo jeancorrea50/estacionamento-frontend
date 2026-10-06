@@ -11,7 +11,6 @@ import { SignalrDashboardService } from '../services/signalr-dashboard.service';
 import { SignalrNotificationService } from '../services/signalr-notification.service';
 import { PortariaAlertasStore } from '../../features/movimentos/services/portaria-alertas.store';
 import { NotificationBellComponent } from './notification-bell/notification-bell.component';
-import { EstacionamentoMapaAtalhoComponent } from './estacionamento-mapa-atalho/estacionamento-mapa-atalho.component';
 import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
 
@@ -35,7 +34,6 @@ interface AccessContext {
     RouterModule,
     SidebarComponent,
     NotificationBellComponent,
-    EstacionamentoMapaAtalhoComponent,
     AdminEstacionamentoSelectModalComponent,
   ],
   templateUrl: './main-layout.component.html',
@@ -186,8 +184,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const financeiro = url.includes('/financeiro') || url.includes('/faturamento');
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');
+    const redeCredenciada = url.includes('/rede-credenciada');
     this.isFullWidthContent.set(
-      movimentos || estacionamento || transportadora || financeiro || acessos || gerenciamento
+      movimentos || estacionamento || transportadora || financeiro || acessos || gerenciamento || redeCredenciada
     );
   }
 

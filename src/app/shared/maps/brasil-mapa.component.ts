@@ -31,6 +31,13 @@ function leafletApi(): LeafletApi {
   return modulo.default ?? modulo;
 }
 
+const BRASIL_VIEW: [[number, number], [number, number]] = [
+  [BRASIL_LAT_MIN, BRASIL_LNG_MIN],
+  [BRASIL_LAT_MAX, BRASIL_LNG_MAX]
+];
+const MIN_ZOOM_BRASIL = 4.25;
+const MAX_ZOOM_ENQUADRE = 12;
+
 @Component({
   selector: 'app-brasil-mapa',
   standalone: true,
@@ -44,35 +51,48 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
   @Input() foco: 'brasil' | 'pontos' = 'brasil';
   @Input() latitude: number | null = null;
   @Input() longitude: number | null = null;
+  @Input() destaqueId: number | null = null;
   @Output() readonly pontoSelecionado = new EventEmitter<{ latitude: number; longitude: number }>();
+  @Output() readonly patioClicado = new EventEmitter<PontoMapa>();
 
   @ViewChild('canvas', { static: true }) private canvas?: ElementRef<HTMLDivElement>;
 
   private mapa: LeafletMap | null = null;
   private marcadores: Marker[] = [];
   private marcadorPonto: Marker | null = null;
+  private marcadoresPorId = new Map<number, Marker>();
+  private contandoBrasil = false;
 
   ngAfterViewInit(): void {
     const el = this.canvas?.nativeElement;
     if (!el) return;
     const L = leafletApi();
+    const limites = L.latLngBounds(BRASIL_VIEW[0], BRASIL_VIEW[1]);
     const mapa = L.map(el, {
       zoomControl: false,
       attributionControl: true,
-      maxBounds: L.latLngBounds([BRASIL_LAT_MIN, BRASIL_LNG_MIN], [BRASIL_LAT_MAX, BRASIL_LNG_MAX]),
+      maxBounds: limites.pad(0.02),
       maxBoundsViscosity: 1,
-      minZoom: 4,
-      worldCopyJump: false
+      minZoom: MIN_ZOOM_BRASIL,
+      maxZoom: 18,
+      worldCopyJump: false,
+      bounceAtZoomLimits: true
     });
     L.control.zoom({ position: 'bottomright' }).addTo(mapa);
-    // CARTO dark_all passou a carimbar "API KEY REQUIRED". O OSM publica sem chave.
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
+      bounds: limites.pad(0.08),
+      noWrap: true,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapa);
 
     if (this.modo === 'brasil') {
-      mapa.on('zoomend', () => this.desenharPontos());
+      mapa.on('zoomend', () => {
+        this.conterNoBrasil();
+        this.desenharPontos();
+      });
+      mapa.on('dragend', () => this.conterNoBrasil());
+      mapa.on('moveend', () => this.conterNoBrasil());
       void this.aplicarMascaraBrasil(mapa);
     } else {
       mapa.on('click', (evento) => {
@@ -88,21 +108,43 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     this.desenharPontos();
     this.desenharPontoUnico();
     this.aplicarFoco();
-    setTimeout(() => mapa.invalidateSize(), 0);
+    setTimeout(() => {
+      mapa.invalidateSize();
+      this.conterNoBrasil();
+    }, 0);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.mapa) return;
-    if (changes['pontos']) this.desenharPontos();
+    if (changes['pontos'] || changes['destaqueId']) this.desenharPontos();
     if (changes['latitude'] || changes['longitude']) {
       this.desenharPontoUnico();
       if (this.modo === 'ponto') this.enquadrarPonto(this.mapa);
     }
-    if (this.modo === 'brasil' && (changes['pontos'] || changes['foco'])) this.aplicarFoco();
+    // Só reenquadra quando o modo de foco muda (evita “teleporte” a cada tecla de filtro).
+    if (this.modo === 'brasil' && changes['foco']) this.aplicarFoco();
   }
 
   atualizarTamanho(): void {
     this.mapa?.invalidateSize();
+    this.conterNoBrasil();
+  }
+
+  /** Centraliza um pátio e abre o popup após o zoom estabilizar (fora de cluster). */
+  focarPonto(ponto: PontoMapa): void {
+    if (!this.mapa || !coordenadaNoBrasil(ponto.latitude, ponto.longitude)) return;
+    const zoomAlvo = Math.max(this.mapa.getZoom(), 11);
+    this.mapa.once('moveend', () => {
+      const marcador = this.marcadoresPorId.get(ponto.id);
+      if (marcador) {
+        marcador.openPopup();
+        return;
+      }
+      // Se ainda estiver agrupado, redesenha no zoom atual e tenta de novo.
+      this.desenharPontos();
+      this.marcadoresPorId.get(ponto.id)?.openPopup();
+    });
+    this.mapa.setView([ponto.latitude, ponto.longitude], zoomAlvo, { animate: true });
   }
 
   ngOnDestroy(): void {
@@ -118,20 +160,21 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       const geo = (await resposta.json()) as { geometry?: { type?: string; coordinates?: unknown } };
       const aneis = extrairAneis(geo);
       if (!aneis.length) return;
+      // Anel externo cobre o globo inteiro; o buraco é o polígono do Brasil.
       const mundo: [number, number][] = [
-        [85, -180],
-        [85, 20],
-        [-60, 20],
-        [-60, -180]
+        [90, -180],
+        [90, 180],
+        [-90, 180],
+        [-90, -180]
       ];
       L.polygon([mundo, ...aneis], {
         stroke: false,
         fillColor: '#101114',
-        fillOpacity: 0.94,
+        fillOpacity: 0.97,
         interactive: false
       }).addTo(mapa);
       L.geoJSON(geo as never, {
-        style: { color: '#5b8def', weight: 1, fill: false, opacity: 0.55, interactive: false }
+        style: { color: '#5b8def', weight: 1.2, fill: false, opacity: 0.65, interactive: false }
       }).addTo(mapa);
     } catch {
       /* O recorte de bounds já impede sair do Brasil. */
@@ -143,25 +186,30 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     const L = leafletApi();
     this.marcadores.forEach((marcador) => marcador.remove());
     this.marcadores = [];
+    this.marcadoresPorId.clear();
     const zoom = this.mapa.getZoom();
     for (const grupo of agruparPontos(this.pontos, zoom)) {
       const varios = grupo.pontos.length > 1;
+      const destaque = !varios && grupo.pontos[0].id === this.destaqueId;
       const icone = L.divIcon({
         className: 'br-pin',
         html: varios
           ? `<span class="br-cluster">${grupo.pontos.length}</span>`
-          : `<span class="br-dot${grupo.pontos[0].ativo === false ? ' br-dot--inativo' : ''}"></span>`,
-        iconSize: varios ? [36, 36] : [16, 16],
-        iconAnchor: varios ? [18, 18] : [8, 8]
+          : `<span class="br-dot${grupo.pontos[0].ativo === false ? ' br-dot--inativo' : ''}${destaque ? ' br-dot--destaque' : ''}"></span>`,
+        iconSize: varios ? [36, 36] : destaque ? [20, 20] : [16, 16],
+        iconAnchor: varios ? [18, 18] : destaque ? [10, 10] : [8, 8]
       });
       const marcador = L.marker([grupo.latitude, grupo.longitude], { icon: icone }).addTo(this.mapa);
       if (varios) {
         marcador.on('click', () => {
-          this.mapa?.setView([grupo.latitude, grupo.longitude], Math.min(zoom + 2, 12));
+          const proximo = Math.min(zoom + 2, MAX_ZOOM_ENQUADRE);
+          this.mapa?.setView([grupo.latitude, grupo.longitude], proximo);
         });
       } else {
         const ponto = grupo.pontos[0];
         marcador.bindPopup(htmlPopup(ponto), { maxWidth: 320 });
+        marcador.on('click', () => this.patioClicado.emit(ponto));
+        this.marcadoresPorId.set(ponto.id, marcador);
       }
       this.marcadores.push(marcador);
     }
@@ -189,17 +237,40 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       this.enquadrarLista(this.pontos);
       return;
     }
-    this.mapa.fitBounds(leafletApi().latLngBounds([-33.6, -73.8], [5.2, -34.6]), { padding: [12, 12] });
+    this.enquadrarBrasil();
+  }
+
+  private enquadrarBrasil(): void {
+    if (!this.mapa) return;
+    const L = leafletApi();
+    this.mapa.fitBounds(L.latLngBounds(BRASIL_VIEW[0], BRASIL_VIEW[1]), {
+      padding: [16, 16],
+      maxZoom: 5.2
+    });
+    this.conterNoBrasil();
   }
 
   private enquadrarLista(pontos: PontoMapa[]): void {
     if (!this.mapa) return;
-    if (pontos.length === 1) {
-      this.mapa.setView([pontos[0].latitude, pontos[0].longitude], 12);
+    const validos = pontos.filter((ponto) => coordenadaNoBrasil(ponto.latitude, ponto.longitude));
+    if (!validos.length) {
+      this.enquadrarBrasil();
       return;
     }
-    const limites = leafletApi().latLngBounds(pontos.map((ponto) => [ponto.latitude, ponto.longitude]));
-    this.mapa.fitBounds(limites, { padding: [36, 36], maxZoom: 12 });
+    if (validos.length === 1) {
+      this.mapa.setView([validos[0].latitude, validos[0].longitude], 11);
+      this.conterNoBrasil();
+      return;
+    }
+    const L = leafletApi();
+    const limites = L.latLngBounds(validos.map((ponto) => [ponto.latitude, ponto.longitude] as [number, number]));
+    const brasil = L.latLngBounds(BRASIL_VIEW[0], BRASIL_VIEW[1]);
+    const recorte = brasil.intersects(limites) ? limites : brasil;
+    this.mapa.fitBounds(recorte, { padding: [40, 40], maxZoom: MAX_ZOOM_ENQUADRE });
+    if (this.mapa.getZoom() < MIN_ZOOM_BRASIL) {
+      this.mapa.setZoom(MIN_ZOOM_BRASIL);
+    }
+    this.conterNoBrasil();
   }
 
   private enquadrarPonto(mapa: LeafletMap): void {
@@ -207,7 +278,32 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       mapa.setView([this.latitude, this.longitude], 14);
       return;
     }
-    mapa.fitBounds(leafletApi().latLngBounds([-33.6, -73.8], [5.2, -34.6]), { padding: [8, 8] });
+    mapa.fitBounds(leafletApi().latLngBounds(BRASIL_VIEW[0], BRASIL_VIEW[1]), { padding: [8, 8], maxZoom: 5.2 });
+  }
+
+  /** Impede centro/zoom de escapar para países vizinhos ou cópias do mundo. */
+  private conterNoBrasil(): void {
+    if (!this.mapa || this.modo !== 'brasil' || this.contandoBrasil) return;
+    this.contandoBrasil = true;
+    try {
+      const L = leafletApi();
+      const brasil = L.latLngBounds(BRASIL_VIEW[0], BRASIL_VIEW[1]);
+      const centro = this.mapa.getCenter();
+      const lat = Math.min(Math.max(centro.lat, BRASIL_LAT_MIN), BRASIL_LAT_MAX);
+      const lng = Math.min(Math.max(centro.lng, BRASIL_LNG_MIN), BRASIL_LNG_MAX);
+      if (lat !== centro.lat || lng !== centro.lng) {
+        this.mapa.panTo([lat, lng], { animate: false });
+      }
+      if (this.mapa.getZoom() < MIN_ZOOM_BRASIL) {
+        this.mapa.setZoom(MIN_ZOOM_BRASIL);
+      }
+      const view = this.mapa.getBounds();
+      if (!brasil.contains(view.getCenter()) || !brasil.intersects(view)) {
+        this.mapa.fitBounds(brasil, { padding: [12, 12], maxZoom: 5.2, animate: false });
+      }
+    } finally {
+      this.contandoBrasil = false;
+    }
   }
 }
 

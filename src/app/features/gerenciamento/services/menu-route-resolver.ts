@@ -23,6 +23,7 @@ import {
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
+import { REDE_CREDENCIADA_ROUTE } from '../../rede-credenciada/rede-credenciada-rotas';
 
 function norm(s: string): string {
   return s
@@ -109,6 +110,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   'banco dados': '/app/gerenciamento/bancoDados',
   agendamento: '/app/agendamento',
   agendamentos: '/app/agendamento',
+  'rede credenciada': REDE_CREDENCIADA_ROUTE,
+  redecredenciada: REDE_CREDENCIADA_ROUTE,
+  'mapa de estacionamentos': REDE_CREDENCIADA_ROUTE,
 };
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {

@@ -19,6 +19,7 @@ import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { AGENDAMENTO_ROUTES } from './features/agendamento/agendamento.routes';
 import { ADMINISTRACAO_ROUTES } from './features/administracao/administracao.routes';
+import { REDE_CREDENCIADA_ROUTES } from './features/rede-credenciada/rede-credenciada.routes';
 import { authGuard } from './core/guards/auth.guard';
 import { redirectAuthenticatedToAppGuard } from './core/guards/redirect-authenticated.guard';
 import { routeAccessGuard } from './core/guards/route-access.guard';
@@ -108,6 +109,11 @@ export const routes: Routes = [
 			{
 				path: 'agendamento',
 				children: AGENDAMENTO_ROUTES,
+			},
+			// 5b2. REDE CREDENCIADA (mapa de estacionamentos)
+			{
+				path: 'rede-credenciada',
+				children: REDE_CREDENCIADA_ROUTES,
 			},
 			// 5c. ADMINISTRAÇÃO
 			{

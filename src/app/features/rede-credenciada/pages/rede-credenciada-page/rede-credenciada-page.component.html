@@ -1,0 +1,164 @@
+<section class="rede" aria-label="Rede credenciada de estacionamentos">
+  <header class="rede__header">
+    <div class="rede__titulo">
+      <h1>Rede credenciada</h1>
+      <p>Mapa dos estacionamentos com localização cadastrada no Brasil.</p>
+    </div>
+    <div class="rede__meta">
+      <span class="rede__badge">{{ pontosVisiveis().length }} no mapa</span>
+      <button type="button" class="rede__btn" (click)="recarregar()" [disabled]="carregando()">
+        <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <div class="rede__filtros" role="search">
+    <label class="rede__campo rede__campo--largo">
+      <span>Buscar</span>
+      <input
+        type="search"
+        [ngModel]="busca()"
+        (ngModelChange)="atualizarBusca($event)"
+        placeholder="Nome, cidade ou código"
+        autocomplete="off"
+      />
+    </label>
+    <label class="rede__campo">
+      <span>Cidade</span>
+      <input
+        type="search"
+        [ngModel]="cidade()"
+        (ngModelChange)="atualizarCidade($event)"
+        placeholder="Ex.: Cuiabá"
+        autocomplete="off"
+      />
+    </label>
+    <label class="rede__campo">
+      <span>Estado</span>
+      <select [ngModel]="estado()" (ngModelChange)="atualizarEstado($event)">
+        <option value="">Todos</option>
+        @for (item of estados; track item.uf) {
+          <option [value]="item.uf">{{ item.uf }} — {{ item.nome }}</option>
+        }
+      </select>
+    </label>
+    <label class="rede__campo">
+      <span>Status</span>
+      <select [ngModel]="status()" (ngModelChange)="atualizarStatus($event)">
+        <option value="todos">Todos</option>
+        <option value="ativo">Ativos</option>
+        <option value="inativo">Inativos</option>
+      </select>
+    </label>
+    <label class="rede__campo">
+      <span>Segurança</span>
+      <select [ngModel]="seguranca()" (ngModelChange)="atualizarSeguranca($event)">
+        <option value="todos">Todos</option>
+        <option value="sim">Com segurança</option>
+        <option value="nao">Sem segurança</option>
+      </select>
+    </label>
+    <label class="rede__campo">
+      <span>Banheiro</span>
+      <select [ngModel]="banheiro()" (ngModelChange)="atualizarBanheiro($event)">
+        <option value="todos">Todos</option>
+        <option value="sim">Com banheiro</option>
+        <option value="nao">Sem banheiro</option>
+      </select>
+    </label>
+    <label class="rede__campo">
+      <span>Cobrança avulsa</span>
+      <select [ngModel]="tipoTarifa()" (ngModelChange)="atualizarTipoTarifa($event)">
+        <option value="todos">Todas</option>
+        <option value="hora">Por hora</option>
+        <option value="diaria">Diária</option>
+        <option value="sem">Sem cobrança</option>
+      </select>
+    </label>
+    @if (temFiltro()) {
+      <button type="button" class="rede__btn rede__btn--ghost" (click)="limparFiltros()">Limpar filtros</button>
+    }
+  </div>
+
+  <div class="rede__status-wrap" aria-live="polite">
+    @if (carregando()) {
+      <p class="rede__status">Carregando localizações...</p>
+    } @else if (erro()) {
+      <p class="rede__status rede__status--erro">{{ erro() }}</p>
+    } @else if (!pontos().length) {
+      <p class="rede__status">Nenhum estacionamento com localização cadastrada.</p>
+    } @else if (!pontosVisiveis().length) {
+      <p class="rede__status">Nenhum estacionamento corresponde aos filtros.</p>
+    }
+  </div>
+
+  <div class="rede__corpo">
+    <div class="rede__mapa">
+      <app-brasil-mapa
+        modo="brasil"
+        [pontos]="pontosVisiveis()"
+        [foco]="focoMapa()"
+        [destaqueId]="selecionadoId()"
+        (patioClicado)="onPatioClicado($event)"
+      />
+    </div>
+
+    <aside class="rede__lista" aria-label="Detalhes dos estacionamentos no mapa">
+      <header class="rede__lista-header">
+        <h2>Estacionamentos</h2>
+        <span>{{ cards().length }}</span>
+      </header>
+
+      @if (!cards().length) {
+        <p class="rede__lista-vazia">Nenhum pátio visível no mapa.</p>
+      } @else {
+        <ul class="rede__cards">
+          @for (card of cards(); track card.ponto.id) {
+            <li>
+              <article
+                class="rede__card"
+                [id]="'rede-card-' + card.ponto.id"
+                [class.rede__card--ativo]="selecionadoId() === card.ponto.id"
+              >
+                <button
+                  type="button"
+                  class="rede__card-btn"
+                  [attr.aria-current]="selecionadoId() === card.ponto.id ? 'true' : null"
+                  (click)="selecionar(card.ponto)"
+                >
+                  <div class="rede__card-topo">
+                    <strong>{{ card.ponto.descricao }}</strong>
+                    <span class="rede__card-local">{{ card.local }}</span>
+                  </div>
+                  <div class="rede__card-detalhes">
+                    @for (item of card.detalhes; track item.icone + item.texto) {
+                      <span
+                        class="rede__linha"
+                        [class.rede__linha--ok]="item.estado === 'ok'"
+                        [class.rede__linha--ausente]="item.estado === 'ausente'"
+                        [class.rede__linha--alerta]="item.estado === 'alerta'"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">{{ item.icone }}</span>
+                        {{ item.texto }}
+                      </span>
+                    }
+                  </div>
+                </button>
+                <a
+                  class="rede__maps"
+                  [href]="card.maps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="'Abrir ' + card.ponto.descricao + ' no Google Maps (nova aba)'"
+                >
+                  Abrir no Google Maps
+                </a>
+              </article>
+            </li>
+          }
+        </ul>
+      }
+    </aside>
+  </div>
+</section>

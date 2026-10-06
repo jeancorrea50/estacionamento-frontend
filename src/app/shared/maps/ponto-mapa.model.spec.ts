@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { detalhesPontoMapa, filtrarPontosMapa, type PontoMapa } from './ponto-mapa.model';
+import {
+  detalhesPontoMapa,
+  filtrarPontosMapa,
+  filtrarPontosMapaCompleto,
+  type PontoMapa
+} from './ponto-mapa.model';
 
 const pontos: PontoMapa[] = [
   ponto(1, 'Cuiabá', 'MT'),
@@ -20,6 +25,36 @@ describe('filtrarPontosMapa', () => {
 
   it('lista só o estado quando a cidade fica em branco', () => {
     expect(filtrarPontosMapa(pontos, '  ', 'MT')).toHaveLength(2);
+  });
+});
+
+describe('filtrarPontosMapaCompleto', () => {
+  it('filtra por status, segurança, banheiro e tipo de tarifa', () => {
+    const lista: PontoMapa[] = [
+      {
+        ...ponto(1, 'Cuiabá', 'MT'),
+        ativo: true,
+        possuiSeguranca: true,
+        possuiBanheiro: true,
+        tipoTarifaAvulsa: 2
+      },
+      {
+        ...ponto(2, 'Curitiba', 'PR'),
+        ativo: false,
+        possuiSeguranca: false,
+        possuiBanheiro: false,
+        tipoTarifaAvulsa: 1
+      }
+    ];
+    expect(
+      filtrarPontosMapaCompleto(lista, {
+        status: 'ativo',
+        seguranca: 'sim',
+        banheiro: 'sim',
+        tipoTarifa: 'diaria'
+      }).map((item) => item.id)
+    ).toEqual([1]);
+    expect(filtrarPontosMapaCompleto(lista, { busca: 'curiti' }).map((item) => item.id)).toEqual([2]);
   });
 });
 

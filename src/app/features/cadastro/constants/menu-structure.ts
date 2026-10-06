@@ -36,6 +36,10 @@ import {
   ADMINISTRACAO_USUARIO_ROUTE,
   ADMINISTRACAO_PERMISSAO_ROUTE,
 } from '../../administracao/administracao-rotas';
+import {
+  REDE_CREDENCIADA_LABEL,
+  REDE_CREDENCIADA_ROUTE,
+} from '../../rede-credenciada/rede-credenciada-rotas';
 
 export interface MenuSubItem {
   id: string;
@@ -80,6 +84,12 @@ export const MENU_STRUCTURE: MenuNode[] = [
     label: 'Agendamento',
     route: AGENDAMENTO_ROUTE,
     icon: 'calendar_month',
+  },
+  {
+    id: 'menu-rede-credenciada',
+    label: REDE_CREDENCIADA_LABEL,
+    route: REDE_CREDENCIADA_ROUTE,
+    icon: 'map',
   },
   {
     id: 'menu-financeiro',

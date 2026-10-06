@@ -74,8 +74,6 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     cpf: ['', [Validators.required, cpfCompletoValidator()]],
     email: ['', [Validators.required, Validators.email]],
     telefone: ['', [Validators.required, celularCompletoValidator()]],
-    dataNascimento: [''],
-    nomeMae: [''],
   });
 
   empresaForm = this.fb.group({
@@ -281,8 +279,6 @@ export class ConviteTransportadoraPageComponent implements OnInit {
         cpf: String(v.cpf ?? '').replace(/\D/g, ''),
         email: v.email!.trim().toLowerCase(),
         telefone: String(v.telefone ?? '').replace(/\D/g, '') || undefined,
-        dataNascimento: v.dataNascimento || null,
-        nomeMae: v.nomeMae?.trim() || undefined,
       })
       .pipe(
         finalize(() => {
@@ -384,10 +380,6 @@ export class ConviteTransportadoraPageComponent implements OnInit {
           .replace(/\D/g, '')
           .replace(/^55(?=\d{10,11}$)/, '')
       ),
-      dataNascimento: c.responsavelDataNascimento
-        ? String(c.responsavelDataNascimento).slice(0, 10)
-        : '',
-      nomeMae: c.responsavelNomeMae ?? '',
     });
     this.empresaForm.patchValue({
       razaoSocial: c.razaoSocial ?? '',

@@ -62,6 +62,15 @@ import {
 import { BANCOS_BRASIL, bancoToOption } from '../../data/bancos-brasil';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
 import { CnpjLookupResult, CnpjService } from '../../services/cnpj.service';
+import { EnderecoGeolocalizacaoService } from '../../services/endereco-geolocalizacao.service';
+import { escolherEnderecoParaGeocode } from '../../services/endereco-geolocalizacao.util';
+import { firstValueFrom } from 'rxjs';
+import { BrasilMapaComponent } from '../../../../shared/maps/brasil-mapa.component';
+import {
+  arredondarCoordenada,
+  coordenadaNoBrasil,
+  linkGoogleMaps
+} from '../../../../shared/maps/ponto-mapa.model';
 
 const MAX_FOTOS = 4;
 const MAX_CONTATOS_COMPLEMENTARES = 5;
@@ -83,7 +92,8 @@ function telefoneContatoMinDigitosValidator(minDigitos = 10): ValidatorFn {
     ReactiveFormsModule,
     CnpjFormatDirective,
     CpfFormatDirective,
-    TelefoneFormatDirective
+    TelefoneFormatDirective,
+    BrasilMapaComponent
   ],
   templateUrl: './estacionamento-form.component.html',
   styleUrls: ['./estacionamento-form.component.scss']
@@ -137,6 +147,16 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   private stepService = inject(EstacionamentoFormStepService);
   private destroyRef = inject(DestroyRef);
+  private enderecoGeo = inject(EnderecoGeolocalizacaoService);
+  readonly diasSemana = [
+    { valor: 1, sigla: 'Seg' },
+    { valor: 2, sigla: 'Ter' },
+    { valor: 3, sigla: 'Qua' },
+    { valor: 4, sigla: 'Qui' },
+    { valor: 5, sigla: 'Sex' },
+    { valor: 6, sigla: 'Sáb' },
+    { valor: 7, sigla: 'Dom' }
+  ];
   private cnpjService = inject(CnpjService);
   private titularSyncSub?: Subscription;
 
@@ -316,6 +336,26 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.fotoItems = [];
   }
 
+  diaMarcado(valor: number): boolean {
+    return this.diasSelecionados().includes(valor);
+  }
+
+  alternarDia(valor: number, evento: Event): void {
+    const marcado = (evento.target as HTMLInputElement).checked;
+    const proximo = new Set(this.diasSelecionados());
+    if (marcado) proximo.add(valor);
+    else proximo.delete(valor);
+    const dias = [...proximo].sort((a, b) => a - b).join(',');
+    this.form.patchValue({ diasFuncionamento: dias });
+  }
+
+  private diasSelecionados(): number[] {
+    return String(this.form.get('diasFuncionamento')?.value ?? '')
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((item) => item >= 1 && item <= 7);
+  }
+
   private criarFormulario(): void {
     this.form = this.fb.group({
       id: [0],
@@ -335,6 +375,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       tamanho: [null as number | null, [Validators.min(0)]],
       possuiSeguranca: [false],
       possuiBanheiro: [false],
+      horarioAbertura: [''],
+      horarioFechamento: [''],
+      diasFuncionamento: ['1,2,3,4,5'],
       tipoTaxaMensalidade: [null as 'taxa' | 'mensalidade' | null],
       taxaPercentual: [{ value: null as number | null, disabled: true }, [Validators.min(0), Validators.max(100)]],
       mensalidadeValor: [{ value: null as number | null, disabled: true }, [Validators.min(0)]],
@@ -822,9 +865,11 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       return;
     }
     void this.lerContratoBase64()
-      .then((contrato) => {
+      .then(async (contrato) => {
         if (this.salvandoDadosBancarios || this.salvando) return;
-        this.enviarDadosBancarios(raw, contrato);
+        await this.preencherGeolocalizacaoPeloEndereco();
+        const atualizado = this.form.getRawValue() as FormValue;
+        this.enviarDadosBancarios(atualizado, contrato);
       })
       .catch(() => {
         this.toast.error('Não foi possível ler o PDF do contrato.');
@@ -972,6 +1017,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               tamanho: tamanhoNum,
               possuiSeguranca: dto.possuiSeguranca,
               possuiBanheiro: dto.possuiBanheiro,
+              horarioAbertura: horaFormulario(dto.horarioAbertura),
+              horarioFechamento: horaFormulario(dto.horarioFechamento),
+              diasFuncionamento: dto.diasFuncionamento ?? '',
               tipoTaxaMensalidade: dto.tipoTaxaMensalidade,
               taxaPercentual: dto.taxaPercentual,
               mensalidadeValor: dto.mensalidadeValor,
@@ -1103,7 +1151,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.erro = null;
     this.errosCamposSalvar = [];
     void this.lerContratoBase64()
-      .then((contrato) => this.enviarCadastroEstacionamento(stayOnPage, contrato))
+      .then(async (contrato) => {
+        await this.preencherGeolocalizacaoPeloEndereco();
+        this.enviarCadastroEstacionamento(stayOnPage, contrato);
+      })
       .catch(() => {
         this.salvando = false;
         this.toast.error('Não foi possível ler o PDF do contrato.');
@@ -1781,6 +1832,85 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Preenche latitude/longitude a partir do endereço quando o cadastro ainda não tem ponto.
+   * Não substitui uma coordenada já informada no mapa ou no formulário.
+   */
+  private async preencherGeolocalizacaoPeloEndereco(): Promise<void> {
+    if (this.coordenadaFormulario('latitude') != null && this.coordenadaFormulario('longitude') != null) {
+      return;
+    }
+    const raw = this.form.getRawValue() as FormValue;
+    const endereco = escolherEnderecoParaGeocode(raw.enderecos, this.loadedEnderecos);
+    if (!endereco) return;
+    try {
+      const ponto = await firstValueFrom(this.enderecoGeo.buscar(endereco));
+      if (!ponto) {
+        this.toast.warning('Não foi possível obter a localização a partir do endereço.');
+        return;
+      }
+      this.definirGeolocalizacao(ponto);
+    } catch {
+      this.toast.warning('Não foi possível obter a localização a partir do endereço.');
+    }
+  }
+
+  coordenadaFormulario(campo: 'latitude' | 'longitude'): number | null {
+    const bruto = this.form.get(campo)?.value;
+    if (bruto == null || bruto === '') return null;
+    const valor = Number(bruto);
+    return Number.isFinite(valor) ? valor : null;
+  }
+
+  linkGeolocalizacao(): string | null {
+    const latitude = this.coordenadaFormulario('latitude');
+    const longitude = this.coordenadaFormulario('longitude');
+    if (latitude == null || longitude == null || !coordenadaNoBrasil(latitude, longitude)) return null;
+    return linkGoogleMaps(latitude, longitude);
+  }
+
+  definirGeolocalizacao(ponto: { latitude: number; longitude: number }): void {
+    if (!coordenadaNoBrasil(ponto.latitude, ponto.longitude)) {
+      this.toast.warning('A localização precisa estar no Brasil.');
+      return;
+    }
+    this.form.patchValue({
+      latitude: arredondarCoordenada(ponto.latitude),
+      longitude: arredondarCoordenada(ponto.longitude)
+    });
+    this.cdr.markForCheck();
+  }
+
+  usarMinhaGeolocalizacao(): void {
+    if (!navigator.geolocation) {
+      this.toast.warning('Este navegador não informa a localização.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (posicao) => {
+        this.definirGeolocalizacao({
+          latitude: posicao.coords.latitude,
+          longitude: posicao.coords.longitude
+        });
+      },
+      () => this.toast.warning('Não foi possível obter a localização deste dispositivo.')
+    );
+  }
+
+  async compartilharGeolocalizacao(): Promise<void> {
+    const link = this.linkGeolocalizacao();
+    if (!link) {
+      this.toast.warning('Informe um ponto no Brasil para compartilhar.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+      this.toast.success('Link da localização copiado.');
+    } catch {
+      this.toast.warning('Não foi possível copiar o link. Abra o endereço exibido abaixo.');
+    }
+  }
+
   /** Base64 sem prefixo data URL — ASP.NET desserializa em `byte[] Contrato`. */
   private lerContratoBase64(): Promise<string | null> {
     const file = this.contratoPdf;
@@ -1827,4 +1957,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     const doc = errors['documento'];
     return doc && typeof doc === 'object' && 'message' in doc ? String(doc.message) : null;
   }
+}
+
+function horaFormulario(valor: string | null | undefined): string {
+  const match = String(valor ?? '').match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : '';
 }

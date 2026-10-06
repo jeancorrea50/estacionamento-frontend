@@ -11,6 +11,7 @@ import { SignalrDashboardService } from '../services/signalr-dashboard.service';
 import { SignalrNotificationService } from '../services/signalr-notification.service';
 import { PortariaAlertasStore } from '../../features/movimentos/services/portaria-alertas.store';
 import { NotificationBellComponent } from './notification-bell/notification-bell.component';
+import { EstacionamentoMapaAtalhoComponent } from './estacionamento-mapa-atalho/estacionamento-mapa-atalho.component';
 import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
 
@@ -34,6 +35,7 @@ interface AccessContext {
     RouterModule,
     SidebarComponent,
     NotificationBellComponent,
+    EstacionamentoMapaAtalhoComponent,
     AdminEstacionamentoSelectModalComponent,
   ],
   templateUrl: './main-layout.component.html',

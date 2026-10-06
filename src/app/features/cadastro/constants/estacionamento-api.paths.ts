@@ -8,6 +8,8 @@ export const EstacionamentoPaths = {
   obterPorId: (id: number) => `${id}`,
   gravar: '',
   alterar: '',
+  /** GET — pontos dos pátios para o mapa do Brasil. */
+  mapa: 'mapa',
   /** PUT `/api/Estacionamento/conexao` — vínculo multi-tenant (Admin). */
   atualizarConexao: 'conexao',
   /** DELETE `/api/Estacionamento/{id}` */

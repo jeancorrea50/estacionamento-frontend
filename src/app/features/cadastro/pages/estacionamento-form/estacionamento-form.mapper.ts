@@ -45,10 +45,17 @@ export interface FormValue {
   tipoTaxaMensalidade?: 'taxa' | 'mensalidade' | null;
   taxaPercentual?: number | null;
   mensalidadeValor?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   /** Configuração Valores — EstacionamentoConfiguracao via CRUD Estacionamento */
   tipoTarifaAvulsa?: 1 | 2 | null;
   valorAvulso?: number | null;
   minutosToleranciaPermanencia?: number | null;
+  /** HH:mm. Vazio quando o pátio não informou. */
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  /** 1=segunda … 7=domingo, separados por vírgula. */
+  diasFuncionamento?: string | null;
   banco?: string;
   agenciaNumero?: string;
   agenciaDigito?: string;
@@ -70,6 +77,12 @@ export interface FormValue {
 }
 
 /** TipoCobranca no backend: 0 = nenhum, 1 = taxa, 2 = mensalidade (ajustar se o backend usar outros valores). */
+function coordenadaPayload(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const numero = Number(value);
+  return Number.isFinite(numero) ? Math.round(numero * 1e6) / 1e6 : null;
+}
+
 function mapTipoCobranca(tipo: 'taxa' | 'mensalidade' | null | undefined): number {
   if (tipo === 'taxa') return 1;
   if (tipo === 'mensalidade') return 2;
@@ -144,6 +157,12 @@ function buildConfiguracaoValoresPayload(value: FormValue): Record<string, unkno
   };
 }
 
+
+function horaPayload(valor: unknown): string | null {
+  const texto = String(valor ?? '').trim();
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}:00` : null;
+}
 
 function gContaKey(obj: Record<string, unknown>, k: string): string {
   const pascal = k.charAt(0).toUpperCase() + k.slice(1);
@@ -413,6 +432,8 @@ export function montarPayloadEstacionamento(
     tipoCobranca,
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
+    latitude: coordenadaPayload(value.latitude),
+    longitude: coordenadaPayload(value.longitude),
     // Contrato EstacionamentoPostInput/PutInput usa PessoaJuridica (não `pessoa` na raiz).
     pessoaJuridica: pessoa,
     /** Legado — alguns consumidores ainda leem `pessoa`. */
@@ -430,6 +451,9 @@ export function montarPayloadEstacionamento(
      * TipoTarifaAvulsa: 1=Hora, 2=Diaria.
      */
     configuracaoValores: buildConfiguracaoValoresPayload(value),
+    horarioAbertura: horaPayload(value.horarioAbertura),
+    horarioFechamento: horaPayload(value.horarioFechamento),
+    diasFuncionamento: String(value.diasFuncionamento ?? '').trim() || null,
     /** Tenant GtCentral + flag raiz do contrato EstacionamentoPost/PutInput.Ativo */
     ativo: value.ativoTenant ?? value.pessoa?.ativo ?? true,
   };

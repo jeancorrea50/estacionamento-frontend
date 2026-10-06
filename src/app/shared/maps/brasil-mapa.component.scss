@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+.mapa-canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #101114;
+}
+
+:host ::ng-deep .leaflet-container {
+  background: #101114;
+  font-family: inherit;
+}
+
+:host ::ng-deep .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.92) saturate(0.35);
+}
+
+:host ::ng-deep .br-pin {
+  background: transparent;
+  border: 0;
+}
+
+:host ::ng-deep .br-cluster,
+:host ::ng-deep .br-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.28);
+}
+
+:host ::ng-deep .br-dot {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.35);
+}
+
+:host ::ng-deep .br-dot--inativo {
+  background: #71717a;
+  box-shadow: 0 0 0 4px rgba(113, 113, 122, 0.35);
+}
+
+:host ::ng-deep .mapa-popup__linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+:host ::ng-deep .mapa-popup__linha .material-symbols-outlined {
+  width: 18px;
+  font-size: 18px;
+}
+
+:host ::ng-deep .mapa-popup__linha--ok .material-symbols-outlined {
+  color: #4ade80;
+}
+
+:host ::ng-deep .mapa-popup__linha--ausente {
+  opacity: 0.62;
+}
+
+:host ::ng-deep .mapa-popup__linha--ausente .material-symbols-outlined {
+  color: #a1a1aa;
+}
+
+:host ::ng-deep .mapa-popup__linha--alerta .material-symbols-outlined {
+  color: #f87171;
+}
+
+:host ::ng-deep .leaflet-popup-content-wrapper,
+:host ::ng-deep .leaflet-popup-tip {
+  background: #1c1c24;
+  color: #f4f4f5;
+  box-shadow: none;
+}
+
+:host ::ng-deep .leaflet-control-zoom a {
+  background: #24242e;
+  color: #f4f4f5;
+  border-color: #363642;
+}
+
+:host ::ng-deep .leaflet-control-attribution {
+  background: rgba(16, 17, 20, 0.72);
+  color: #a1a1aa;
+}

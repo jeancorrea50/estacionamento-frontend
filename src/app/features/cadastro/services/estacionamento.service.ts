@@ -14,6 +14,7 @@ import {
 } from '../models/estacionamento.dto';
 import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
+import type { PontoMapa } from '../../../shared/maps/ponto-mapa.model';
 
 /** Base da API do backend (dev: /api com proxy; prod: URL completa). */
 const API_BASE = environment.API_BASE_URL;
@@ -40,6 +41,9 @@ export interface EstacionamentoFormValue {
   tamanho: string;
   possuiSeguranca: boolean;
   possuiBanheiro: boolean;
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  diasFuncionamento?: string | null;
   tipoTaxaMensalidade: 'taxa' | 'mensalidade' | null;
   taxaPercentual: number | null;
   mensalidadeValor: number | null;
@@ -83,6 +87,13 @@ export interface EstacionamentoFormValue {
 })
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
+
+  /** GET /api/Estacionamento/mapa — pátios com latitude e longitude. Sem permissão extra. */
+  listarMapa(): Observable<PontoMapa[]> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.mapa}`).pipe(
+      map((body) => normalizarPontosMapa(this.peelApiEnvelope(body)))
+    );
+  }
 
   /** POST /api/Estacionamento (body: EstacionamentoPostInput). */
   gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
@@ -638,11 +649,14 @@ export class EstacionamentoService {
       tamanho: r.tamanhoTerreno ?? '',
       possuiSeguranca: r.possuiSeguranca ?? false,
       possuiBanheiro: r.possuiBanheiro ?? false,
+      horarioAbertura: lerHora(raw['horarioAbertura'] ?? raw['HorarioAbertura']),
+      horarioFechamento: lerHora(raw['horarioFechamento'] ?? raw['HorarioFechamento']),
+      diasFuncionamento: String(raw['diasFuncionamento'] ?? raw['DiasFuncionamento'] ?? '').trim(),
       tipoTaxaMensalidade: tipoTaxa,
       taxaPercentual: r.cobrancaPorcentagem != null ? r.cobrancaPorcentagem : null,
       mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null,
-      latitude: (r as unknown as Record<string, unknown>)['latitude'] as number | null ?? null,
-      longitude: (r as unknown as Record<string, unknown>)['longitude'] as number | null ?? null,
+      latitude: lerNumero(raw['latitude'] ?? raw['Latitude']),
+      longitude: lerNumero(raw['longitude'] ?? raw['Longitude']),
       enderecos: p?.enderecos ?? [],
       banco: String(banco ?? ''),
       agencia: String(agencia ?? ''),
@@ -713,4 +727,75 @@ function mapConfiguracaoValoresFromApi(
     minutosToleranciaPermanencia:
       tolerancia != null && Number.isFinite(tolerancia) ? tolerancia : null
   };
+}
+
+function lerNumero(valor: unknown): number | null {
+  if (valor == null || valor === '') return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function lerBool(valor: unknown): boolean | null {
+  if (valor === true || valor === false) return valor;
+  if (valor === 1 || valor === '1' || valor === 'true') return true;
+  if (valor === 0 || valor === '0' || valor === 'false') return false;
+  return null;
+}
+
+function lerHora(valor: unknown): string | null {
+  if (valor == null || valor === '') return null;
+  const texto = String(valor).trim();
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
+
+function lerTexto(valor: unknown): string | null {
+  const texto = String(valor ?? '').trim();
+  return texto ? texto : null;
+}
+
+function lerTipoTarifa(valor: unknown): 1 | 2 | null {
+  if (valor === 1 || valor === '1' || valor === 'Hora') return 1;
+  if (valor === 2 || valor === '2' || valor === 'Diaria' || valor === 'Diária') return 2;
+  return null;
+}
+
+function normalizarPontosMapa(body: unknown): PontoMapa[] {
+  const lista = Array.isArray(body)
+    ? body
+    : body != null && typeof body === 'object'
+      ? ((body as Record<string, unknown>)['data'] ??
+          (body as Record<string, unknown>)['Data'] ??
+          (body as Record<string, unknown>)['results'] ??
+          (body as Record<string, unknown>)['Results'])
+      : null;
+  if (!Array.isArray(lista)) return [];
+  const pontos: PontoMapa[] = [];
+  for (const item of lista) {
+    if (item == null || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const latitude = lerNumero(row['latitude'] ?? row['Latitude']);
+    const longitude = lerNumero(row['longitude'] ?? row['Longitude']);
+    if (latitude == null || longitude == null) continue;
+    pontos.push({
+      id: Number(row['id'] ?? row['Id'] ?? 0),
+      codExportacao: String(row['codExportacao'] ?? row['CodExportacao'] ?? ''),
+      descricao: String(row['descricao'] ?? row['Descricao'] ?? 'Estacionamento'),
+      cidade: String(row['cidade'] ?? row['Cidade'] ?? ''),
+      estado: String(row['estado'] ?? row['Estado'] ?? ''),
+      latitude,
+      longitude,
+      ativo: lerBool(row['ativo'] ?? row['Ativo']) ?? true,
+      possuiSeguranca: lerBool(row['possuiSeguranca'] ?? row['PossuiSeguranca']),
+      possuiBanheiro: lerBool(row['possuiBanheiro'] ?? row['PossuiBanheiro']),
+      tipoTarifaAvulsa: lerTipoTarifa(row['tipoTarifaAvulsa'] ?? row['TipoTarifaAvulsa']),
+      valorAvulso: lerNumero(row['valorAvulso'] ?? row['ValorAvulso']),
+      minutosTolerancia: lerNumero(row['minutosToleranciaPermanencia'] ?? row['MinutosToleranciaPermanencia']),
+      horarioAbertura: lerHora(row['horarioAbertura'] ?? row['HorarioAbertura']),
+      horarioFechamento: lerHora(row['horarioFechamento'] ?? row['HorarioFechamento']),
+      diasFuncionamento: lerTexto(row['diasFuncionamento'] ?? row['DiasFuncionamento']),
+      timeZoneId: lerTexto(row['timeZoneId'] ?? row['TimeZoneId'])
+    });
+  }
+  return pontos;
 }

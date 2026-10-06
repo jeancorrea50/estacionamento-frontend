@@ -361,6 +361,29 @@
                         <label>Banheiro</label>
                         <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /></label>
                       </div>
+                      <div class="form-row">
+                        <label for="horarioAbertura">Abre</label>
+                        <input id="horarioAbertura" class="field__input" type="time" formControlName="horarioAbertura" />
+                      </div>
+                      <div class="form-row">
+                        <label for="horarioFechamento">Fecha</label>
+                        <input id="horarioFechamento" class="field__input" type="time" formControlName="horarioFechamento" />
+                      </div>
+                      <div class="form-row form-row--dias">
+                        <label>Dias</label>
+                        <div class="dias-funcionamento">
+                          @for (dia of diasSemana; track dia.valor) {
+                            <label>
+                              <input
+                                type="checkbox"
+                                [checked]="diaMarcado(dia.valor)"
+                                (change)="alternarDia(dia.valor, $event)"
+                              />
+                              {{ dia.sigla }}
+                            </label>
+                          }
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div class="complementares-block">
@@ -395,17 +418,46 @@
                       </div>
                     </div>
                   </div>
-                  <div class="complementares-block">
+                  <div class="complementares-block complementares-block--full">
                     <h3 class="card__subtitle">Localização</h3>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="latitude">Latitude</label>
-                        <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                    <div class="geo-layout">
+                      <div class="geo-layout__dados">
+                        <div class="form-compact__body">
+                          <div class="form-row">
+                            <label for="latitude">Latitude</label>
+                            <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                          </div>
+                          <div class="form-row">
+                            <label for="longitude">Longitude</label>
+                            <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
+                          </div>
+                        </div>
+                        <div class="geo-layout__acoes">
+                          <button type="button" class="btn btn-secondary btn--sm" (click)="usarMinhaGeolocalizacao()">
+                            Usar minha localização
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn--sm"
+                            (click)="compartilharGeolocalizacao()"
+                            [disabled]="!linkGeolocalizacao()"
+                          >
+                            Compartilhar link
+                          </button>
+                        </div>
+                        @if (linkGeolocalizacao(); as linkMapa) {
+                          <a class="geo-layout__link" [href]="linkMapa" target="_blank" rel="noopener noreferrer">{{ linkMapa }}</a>
+                        } @else {
+                          <p class="geo-layout__hint">Clique no mapa para marcar o pátio, ou salve o cadastro: a latitude e a longitude são preenchidas pelo endereço quando ainda não houver ponto.</p>
+                        }
                       </div>
-                      <div class="form-row">
-                        <label for="longitude">Longitude</label>
-                        <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
-                      </div>
+                      <app-brasil-mapa
+                        class="geo-layout__mapa"
+                        modo="ponto"
+                        [latitude]="coordenadaFormulario('latitude')"
+                        [longitude]="coordenadaFormulario('longitude')"
+                        (pontoSelecionado)="definirGeolocalizacao($event)"
+                      />
                     </div>
                   </div>
 

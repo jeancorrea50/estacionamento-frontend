@@ -5,7 +5,9 @@ import {
   HubConnectionState,
   HttpTransportType,
   IHttpConnectionOptions,
-  LogLevel
+  IRetryPolicy,
+  LogLevel,
+  RetryContext
 } from '@microsoft/signalr';
 import { Observable, filter } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
@@ -23,11 +25,17 @@ import { AuthService } from './auth.service';
  * URL: `environment.dashboardHubUrl` → `/estac/worker/hubs/movimento/entradasaida`
  * Auth: JWT da sessão (EmpresaId/CodExportacao do pátio) via `accessTokenFactory`.
  * Estado em `signal` — sem Zone.js, só signals notificam a UI a cada evento do hub.
+ *
+ * Conexão sob demanda (Portaria/Dashboard/troca de pátio) — não sobe no constructor,
+ * para não abrir WebSocket em telas que não usam o hub (ex.: Transportadora).
  */
 @Injectable({
   providedIn: 'root'
 })
 export class SignalrDashboardService {
+  private static readonly MAX_RECONNECT_ATTEMPTS = 4;
+  private static readonly RECONNECT_DELAYS_MS = [0, 2000, 5000, 10000] as const;
+
   private readonly auth = inject(AuthService);
   private readonly hubUrl = environment.dashboardHubUrl;
 
@@ -40,7 +48,7 @@ export class SignalrDashboardService {
 
   private hubConnection: HubConnection | null = null;
   private connectPromise: Promise<void> | null = null;
-  /** Evita renegotiate em loop quando o hub está offline (500). */
+  /** Após falha inicial ou esgotamento de reconnect — só libera em nova tentativa explícita. */
   private connectFailed = false;
 
   /** Snapshot atual do dashboard (KPIs). */
@@ -62,10 +70,6 @@ export class SignalrDashboardService {
     this.alertaOperacional
   ).pipe(filter((alerta): alerta is AlertaOperacionalPayload => !!alerta));
 
-  constructor() {
-    void this.connect();
-  }
-
   /** Zera KPIs/monitoramento/alerta (ex.: troca de pátio). */
   clearState(): void {
     this.dashboardSignal.set(null);
@@ -86,7 +90,7 @@ export class SignalrDashboardService {
   }
 
   async connect(): Promise<void> {
-    if (this.isConnected()) {
+    if (this.isBusyOrConnected()) {
       return;
     }
 
@@ -94,8 +98,12 @@ export class SignalrDashboardService {
       return this.connectPromise;
     }
 
+    // Chamada explícita (página / troca de pátio): libera nova onda após falha anterior.
     if (this.connectFailed) {
-      return;
+      this.connectFailed = false;
+      if (!this.hubConnection || this.hubConnection.state === HubConnectionState.Disconnected) {
+        this.hubConnection = null;
+      }
     }
 
     if (!this.hubConnection) {
@@ -114,7 +122,7 @@ export class SignalrDashboardService {
       .catch((error: unknown) => {
         this.connectFailed = true;
         this.connectPromise = null;
-        // Hub offline/500 é esperado em ambientes parciais — não rethrow (evita ERROR no console Angular).
+        // Hub offline/500/1011 é esperado em ambientes parciais — não rethrow (evita ERROR no console Angular).
         this.logWarn('Falha ao conectar no SignalR (hub indisponível).', error);
       });
 
@@ -154,14 +162,39 @@ export class SignalrDashboardService {
 
     return new HubConnectionBuilder()
       .withUrl(this.hubUrl, options)
-      .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(LogLevel.Warning)
+      .withAutomaticReconnect(this.buildRetryPolicy())
+      // Evita spam de Warning do client a cada close 1011 durante reconnect.
+      .configureLogging(LogLevel.Error)
       .build();
+  }
+
+  /**
+   * Política com side-effect: ao esgotar tentativas marca `connectFailed`
+   * para pausar até nova chamada explícita de `connect()` / `reconnectForSession()`.
+   */
+  private buildRetryPolicy(): IRetryPolicy {
+    return {
+      nextRetryDelayInMilliseconds: (retryContext: RetryContext): number | null => {
+        if (retryContext.previousRetryCount >= SignalrDashboardService.MAX_RECONNECT_ATTEMPTS) {
+          this.connectFailed = true;
+          this.logWarn(
+            'Reconexões esgotadas; hub pausado até nova tentativa (tela ou troca de pátio).',
+            retryContext.retryReason ?? 'sem detalhe'
+          );
+          return null;
+        }
+        const delays = SignalrDashboardService.RECONNECT_DELAYS_MS;
+        return delays[Math.min(retryContext.previousRetryCount, delays.length - 1)];
+      }
+    };
   }
 
   private registerLifecycleHandlers(connection: HubConnection): void {
     connection.onreconnecting((error) => {
-      this.logWarn('SignalR reconectando...', error ?? 'sem erro detalhado');
+      this.log('SignalR reconectando...');
+      if (error && !environment.production) {
+        console.debug('[SignalR Dashboard] motivo reconnect:', error);
+      }
     });
 
     connection.onreconnected((connectionId) => {
@@ -170,6 +203,10 @@ export class SignalrDashboardService {
     });
 
     connection.onclose((error) => {
+      if (this.connectFailed) {
+        this.log('SignalR desconectado após esgotar reconexões.');
+        return;
+      }
       this.logWarn('SignalR desconectado.', error ?? 'sem erro detalhado');
     });
   }
@@ -383,8 +420,13 @@ export class SignalrDashboardService {
     return 0;
   }
 
-  private isConnected(): boolean {
-    return this.hubConnection?.state === HubConnectionState.Connected;
+  private isBusyOrConnected(): boolean {
+    const state = this.hubConnection?.state;
+    return (
+      state === HubConnectionState.Connected ||
+      state === HubConnectionState.Connecting ||
+      state === HubConnectionState.Reconnecting
+    );
   }
 
   private log(message: string): void {

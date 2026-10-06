@@ -13,7 +13,7 @@ export class EstSummaryMetricComponent {
   @Input({ required: true }) label!: string;
   @Input({ required: true }) value!: string | number;
   /** Cor do destaque visual (ícone + borda esquerda). */
-  @Input() variant: 'neutral' | 'success' | 'danger' = 'neutral';
+  @Input() variant: 'neutral' | 'success' | 'danger' | 'info' | 'warning' = 'neutral';
   /** Texto auxiliar opcional (ex.: “Nesta página” quando há paginação). */
   @Input() hint: string | null = null;
 }

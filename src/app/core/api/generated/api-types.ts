@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/Estacionamento": {
+    "/api/Agendamento": {
         parameters: {
             query?: never;
             header?: never;
@@ -14,6 +14,797 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    Placa?: string;
+                    MotoristaId?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    SomenteEmAberto?: boolean;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Agendamento.AgendamentoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Agendamento.AgendamentoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Agendamento.AgendamentoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Agendamento.AgendamentoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Agendamento/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Agendamento/{id}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/Agendamento/{id}/confirmar-entrada": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/Agendamento/por-placa/{placa}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    placa: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/opcoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/opcoes/hosts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/opcoes/bancos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    host?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/opcoes/estacionamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/sugerir-nome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    descricao?: string;
+                    ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+                    tipoBanco?: components["schemas"]["Estac.Domain.Models.Enuns.TipoBancoDados"];
+                    ignorarId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/testar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTestarInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTestarInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTestarInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTestarInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/migrar-todos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/{id}/migrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/{id}/excluir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/transferir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTransferirInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTransferirInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTransferirInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.BancoDadosConexaoTransferirInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/transferencias/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/BancoDadosConexao/transferencias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    codExportacao?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/cadastro-central/backfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/ConfiguracaoAgendamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    ConfiguracaoCobrancaId?: number;
+                    TipoJob?: components["schemas"]["Estac.Domain.Models.Enuns.TipoJob"];
+                    ModalidadeCobranca?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeCobranca"];
+                    Ativo?: boolean;
                     Descricao?: string;
                     DataInicial?: string;
                     DataFinal?: string;
@@ -46,10 +837,113 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["EstacionamentoPutInput"];
-                    "application/json": components["schemas"]["EstacionamentoPutInput"];
-                    "text/json": components["schemas"]["EstacionamentoPutInput"];
-                    "application/*+json": components["schemas"]["EstacionamentoPutInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoAgendamentoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoAgendamentoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoAgendamentoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoAgendamentoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/ConfiguracaoAgendamento/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/ConfiguracaoCobranca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusConfiguracaoCobranca"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPutInput"];
                 };
             };
             responses: {
@@ -71,10 +965,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["EstacionamentoPostInput"];
-                    "application/json": components["schemas"]["EstacionamentoPostInput"];
-                    "text/json": components["schemas"]["EstacionamentoPostInput"];
-                    "application/*+json": components["schemas"]["EstacionamentoPostInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPostInput"];
                 };
             };
             responses: {
@@ -93,7 +987,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Estacionamento/{id}": {
+    "/api/financeiro/ConfiguracaoCobranca/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,6 +1036,577 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EntradaSaida": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Placa?: string;
+                    MotoristaId?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    SomenteEmAberto?: boolean;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EntradaSaida/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EntradaSaida/buscar-por-placa/{placa}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    placa: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EntradaSaida/saida": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EntradaSaida/{id}/suspender-permanencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/EntradaSaida/{id}/finalizar-permanencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: {
+                    dataHoraSaida?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/EntradaSaida/valor-estacionamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    entradaSaidaId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EntradaSaida/{id}/recibo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    modo?: components["schemas"]["Estac.Domain.Models.Enuns.ModoRecibo"];
+                    valor?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento/mapa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Id?: number;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    codExportacao?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento/conexao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConexaoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConexaoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConexaoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConexaoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -258,6 +1723,1457 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/EstacionamentoConfiguracao/padroes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EstacionamentoConfiguracao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/EstacionamentoConfiguracao/estacionamento/{estacionamentoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    estacionamentoId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/bancos/{bancoDadosConexaoId}/excluir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    bancoDadosConexaoId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["Estac.Domain.Output.Estacionamento.ExcluirBancoResultado"];
+                        "application/json": components["schemas"]["Estac.Domain.Output.Estacionamento.ExcluirBancoResultado"];
+                        "text/json": components["schemas"]["Estac.Domain.Output.Estacionamento.ExcluirBancoResultado"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    ModalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/visao-geral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    ModalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/inadimplentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/fechamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    Situacao?: components["schemas"]["Estac.Domain.Models.Enuns.SituacaoFechamento"];
+                    Modalidade?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeCobranca"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/estacionamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Id?: number;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/transportadora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Id?: number;
+                    RazaoSocial?: string;
+                    DescricaoPessoa?: string;
+                    Cnpj?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/avulso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAvulsoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAvulsoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAvulsoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAvulsoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/enviar-lembrete-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/enviar-lembrete-whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/historico-cobranca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/vencimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaVencimentoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaVencimentoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaVencimentoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaVencimentoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/acrescimo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/desconto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaValorAjusteInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/acordo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAcordoInadimplenciaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAcordoInadimplenciaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAcordoInadimplenciaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaAcordoInadimplenciaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Fatura/{id}/status-cobranca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaStatusCobrancaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaStatusCobrancaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaStatusCobrancaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Fatura.FaturaStatusCobrancaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Faturamento/elegiveis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    referencia?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/Faturamento/registrar-execucao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Faturamento.RegistrarExecucaoAgendamentoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Faturamento.RegistrarExecucaoAgendamentoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Faturamento.RegistrarExecucaoAgendamentoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Faturamento.RegistrarExecucaoAgendamentoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/FaturaRelatorio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TipoFatura?: components["schemas"]["Estac.Domain.Models.Enuns.TipoFatura"];
+                    PeriodoCampo?: string;
+                    DataVencimentoInicial?: string;
+                    DataVencimentoFinal?: string;
+                    DataPagamentoInicial?: string;
+                    DataPagamentoFinal?: string;
+                    ValorMinimo?: number;
+                    ValorMaximo?: number;
+                    Limite?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    ModalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/FaturaRelatorio/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TipoFatura?: components["schemas"]["Estac.Domain.Models.Enuns.TipoFatura"];
+                    PeriodoCampo?: string;
+                    DataVencimentoInicial?: string;
+                    DataVencimentoFinal?: string;
+                    DataPagamentoInicial?: string;
+                    DataPagamentoFinal?: string;
+                    ValorMinimo?: number;
+                    ValorMaximo?: number;
+                    Limite?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    ModalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/FaturaRelatorio/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TipoFatura?: components["schemas"]["Estac.Domain.Models.Enuns.TipoFatura"];
+                    PeriodoCampo?: string;
+                    DataVencimentoInicial?: string;
+                    DataVencimentoFinal?: string;
+                    DataPagamentoInicial?: string;
+                    DataPagamentoFinal?: string;
+                    ValorMinimo?: number;
+                    ValorMaximo?: number;
+                    Limite?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    ModalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/migracoes/gts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Estacionamento.GtsMigrarInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Estacionamento.GtsMigrarInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Estacionamento.GtsMigrarInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Estacionamento.GtsMigrarInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/migracoes/gts/{bancoDadosConexaoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    bancoDadosConexaoId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["Estac.Domain.Output.Estacionamento.GtsMigracaoPerfilResultado"];
+                        "application/json": components["schemas"]["Estac.Domain.Output.Estacionamento.GtsMigracaoPerfilResultado"];
+                        "text/json": components["schemas"]["Estac.Domain.Output.Estacionamento.GtsMigracaoPerfilResultado"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/importacoes-transportadora/{id}/payload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["Estac.Domain.Integration.Workers.ImportacaoTransportadoraJobPayload"];
+                        "application/json": components["schemas"]["Estac.Domain.Integration.Workers.ImportacaoTransportadoraJobPayload"];
+                        "text/json": components["schemas"]["Estac.Domain.Integration.Workers.ImportacaoTransportadoraJobPayload"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/importacoes-transportadora/{id}/iniciar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/importacoes-transportadora/{id}/executar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/importacoes-transportadora/{id}/falhar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Api.Controllers.Internal.ImportacaoTransportadoraInternalController.ImportacaoTransportadoraFalhaRequest"];
+                    "application/json": components["schemas"]["Estac.Api.Controllers.Internal.ImportacaoTransportadoraInternalController.ImportacaoTransportadoraFalhaRequest"];
+                    "text/json": components["schemas"]["Estac.Api.Controllers.Internal.ImportacaoTransportadoraInternalController.ImportacaoTransportadoraFalhaRequest"];
+                    "application/*+json": components["schemas"]["Estac.Api.Controllers.Internal.ImportacaoTransportadoraInternalController.ImportacaoTransportadoraFalhaRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/Menu/Buscar": {
         parameters: {
             query?: never;
@@ -344,10 +3260,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["MenuCreateInput"];
-                    "application/json": components["schemas"]["MenuCreateInput"];
-                    "text/json": components["schemas"]["MenuCreateInput"];
-                    "application/*+json": components["schemas"]["MenuCreateInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.MenuCreateInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.MenuCreateInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.MenuCreateInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.MenuCreateInput"];
                 };
             };
             responses: {
@@ -383,10 +3299,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["MenuUpdateInput"];
-                    "application/json": components["schemas"]["MenuUpdateInput"];
-                    "text/json": components["schemas"]["MenuUpdateInput"];
-                    "application/*+json": components["schemas"]["MenuUpdateInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.MenuUpdateInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.MenuUpdateInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.MenuUpdateInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.MenuUpdateInput"];
                 };
             };
             responses: {
@@ -458,10 +3374,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["MenuOrganizacaoInput"];
-                    "application/json": components["schemas"]["MenuOrganizacaoInput"];
-                    "text/json": components["schemas"]["MenuOrganizacaoInput"];
-                    "application/*+json": components["schemas"]["MenuOrganizacaoInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.MenuOrganizacaoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.MenuOrganizacaoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.MenuOrganizacaoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.MenuOrganizacaoInput"];
                 };
             };
             responses: {
@@ -561,7 +3477,9 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    Nome?: string;
+                    TransportadoraId?: number;
+                    Cpf?: string;
+                    Inativo?: boolean;
                     Descricao?: string;
                     DataInicial?: string;
                     DataFinal?: string;
@@ -594,10 +3512,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["MotoristaPutInput"];
-                    "application/json": components["schemas"]["MotoristaPutInput"];
-                    "text/json": components["schemas"]["MotoristaPutInput"];
-                    "application/*+json": components["schemas"]["MotoristaPutInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
                 };
             };
             responses: {
@@ -619,10 +3537,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["MotoristaPostInput"];
-                    "application/json": components["schemas"]["MotoristaPostInput"];
-                    "text/json": components["schemas"]["MotoristaPostInput"];
-                    "application/*+json": components["schemas"]["MotoristaPostInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
                 };
             };
             responses: {
@@ -635,6 +3553,41 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Motorista/cpf/{cpf}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cpf: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -695,56 +3648,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/Perfil": {
+    "/api/Motorista/ImportarDados": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["PerfilUpdateInput"];
-                    "application/json": components["schemas"]["PerfilUpdateInput"];
-                    "text/json": components["schemas"]["PerfilUpdateInput"];
-                    "application/*+json": components["schemas"]["PerfilUpdateInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        get?: never;
+        put?: never;
         post: {
             parameters: {
                 query?: never;
@@ -754,10 +3666,12 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["PerfilCreateInput"];
-                    "application/json": components["schemas"]["PerfilCreateInput"];
-                    "text/json": components["schemas"]["PerfilCreateInput"];
-                    "application/*+json": components["schemas"]["PerfilCreateInput"];
+                    "multipart/form-data": {
+                        /** Format: int32 */
+                        transportadoraId?: number;
+                        /** Format: binary */
+                        arquivo?: string;
+                    };
                 };
             };
             responses: {
@@ -776,7 +3690,237 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/Perfil/{id}": {
+    "/api/MovimentacaoRelatorio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    DataSaidaInicial?: string;
+                    DataSaidaFinal?: string;
+                    Faturado?: boolean;
+                    EhExcedente?: boolean;
+                    Avulso?: boolean;
+                    Limite?: number;
+                    Placa?: string;
+                    MotoristaId?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    SomenteEmAberto?: boolean;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/MovimentacaoRelatorio/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    DataSaidaInicial?: string;
+                    DataSaidaFinal?: string;
+                    Faturado?: boolean;
+                    EhExcedente?: boolean;
+                    Avulso?: boolean;
+                    Limite?: number;
+                    Placa?: string;
+                    MotoristaId?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    SomenteEmAberto?: boolean;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/MovimentacaoRelatorio/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    DataSaidaInicial?: string;
+                    DataSaidaFinal?: string;
+                    Faturado?: boolean;
+                    EhExcedente?: boolean;
+                    Avulso?: boolean;
+                    Limite?: number;
+                    Placa?: string;
+                    MotoristaId?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    SomenteEmAberto?: boolean;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Movimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Placa?: string;
+                    MotoristaId?: number;
+                    TransportadoraId?: number;
+                    EstacionamentoId?: number;
+                    SomenteEmAberto?: boolean;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Movimento/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -830,7 +3974,657 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/Perfil/usuario/{usuarioId}": {
+    "/api/Movimento/buscar-por-placa/{placa}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    placa: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Movimento/saida": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Movimento/{id}/suspender-permanencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/Movimento/{id}/finalizar-permanencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: {
+                    dataHoraSaida?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/Movimento/valor-estacionamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    entradaSaidaId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Movimento/{id}/recibo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    modo?: components["schemas"]["Estac.Domain.Models.Enuns.ModoRecibo"];
+                    valor?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/pagamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    FormaPagamento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Financeiro.Pagamento.PagamentoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/pagamento/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/PagamentoRelatorio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    EstacionamentoId?: number;
+                    Limite?: number;
+                    TransportadoraId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    FormaPagamento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/PagamentoRelatorio/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    EstacionamentoId?: number;
+                    Limite?: number;
+                    TransportadoraId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    FormaPagamento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/financeiro/PagamentoRelatorio/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    EstacionamentoId?: number;
+                    Limite?: number;
+                    TransportadoraId?: number;
+                    Status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+                    FormaPagamento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+                    Numero?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Permissao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoUpdateInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoUpdateInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoUpdateInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoUpdateInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoCreateInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoCreateInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoCreateInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.PermissaoCreateInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Permissao/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Permissao/usuario/{usuarioId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -865,6 +4659,341 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/Permissao/usuario/buscarSimplicado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/propagacoes-cadastro-transportadora/{id}/payload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["Estac.Domain.Integration.Workers.PropagacaoCadastroTransportadoraJobPayload"];
+                        "application/json": components["schemas"]["Estac.Domain.Integration.Workers.PropagacaoCadastroTransportadoraJobPayload"];
+                        "text/json": components["schemas"]["Estac.Domain.Integration.Workers.PropagacaoCadastroTransportadoraJobPayload"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/propagacoes-cadastro-transportadora/{id}/iniciar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/propagacoes-cadastro-transportadora/{id}/executar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/propagacoes-cadastro-transportadora/{id}/falhar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Api.Controllers.Internal.PropagacaoCadastroTransportadoraInternalController.PropagacaoCadastroTransportadoraFalhaRequest"];
+                    "application/json": components["schemas"]["Estac.Api.Controllers.Internal.PropagacaoCadastroTransportadoraInternalController.PropagacaoCadastroTransportadoraFalhaRequest"];
+                    "text/json": components["schemas"]["Estac.Api.Controllers.Internal.PropagacaoCadastroTransportadoraInternalController.PropagacaoCadastroTransportadoraFalhaRequest"];
+                    "application/*+json": components["schemas"]["Estac.Api.Controllers.Internal.PropagacaoCadastroTransportadoraInternalController.PropagacaoCadastroTransportadoraFalhaRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/transferencias/{id}/payload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["Estac.Domain.Integration.Workers.TransferenciaBancoJobPayload"];
+                        "application/json": components["schemas"]["Estac.Domain.Integration.Workers.TransferenciaBancoJobPayload"];
+                        "text/json": components["schemas"]["Estac.Domain.Integration.Workers.TransferenciaBancoJobPayload"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/transferencias/{id}/iniciar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/transferencias/{id}/concluir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/transferencias/{id}/falhar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Api.Controllers.Internal.TransferenciaBancoInternalController.TransferenciaBancoFalhaRequest"];
+                    "application/json": components["schemas"]["Estac.Api.Controllers.Internal.TransferenciaBancoInternalController.TransferenciaBancoFalhaRequest"];
+                    "text/json": components["schemas"]["Estac.Api.Controllers.Internal.TransferenciaBancoInternalController.TransferenciaBancoFalhaRequest"];
+                    "application/*+json": components["schemas"]["Estac.Api.Controllers.Internal.TransferenciaBancoInternalController.TransferenciaBancoFalhaRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Transportadora": {
         parameters: {
             query?: never;
@@ -875,8 +5004,9 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    Id?: number;
                     RazaoSocial?: string;
-                    Fantasia?: string;
+                    DescricaoPessoa?: string;
                     Cnpj?: string;
                     Descricao?: string;
                     DataInicial?: string;
@@ -910,10 +5040,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["TransportadoraPutInput"];
-                    "application/json": components["schemas"]["TransportadoraPutInput"];
-                    "text/json": components["schemas"]["TransportadoraPutInput"];
-                    "application/*+json": components["schemas"]["TransportadoraPutInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPutInput"];
                 };
             };
             responses: {
@@ -935,10 +5065,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["TransportadoraPostInput"];
-                    "application/json": components["schemas"]["TransportadoraPostInput"];
-                    "text/json": components["schemas"]["TransportadoraPostInput"];
-                    "application/*+json": components["schemas"]["TransportadoraPostInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Transportadora.TransportadoraPostInput"];
                 };
             };
             responses: {
@@ -951,6 +5081,41 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/cnpj/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cnpj: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1011,6 +5176,761 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Transportadora/ImportarDados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        arquivo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/importacao/consultar/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cnpj: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/importacao/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cnpj: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/importacao/status/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Motorista": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    Cpf?: string;
+                    Inativo?: boolean;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Motorista.MotoristaPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Motorista/cpf/{cpf}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                    cpf: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Motorista/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Motorista/ImportarDados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        arquivo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Veiculo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    TransportadoraId?: number;
+                    Placa?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Veiculo/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Veiculo/ImportarDados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        arquivo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Transportadora/{transportadoraId}/Veiculo/por-placa/{placa}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transportadoraId: number;
+                    placa: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/TransportadoraRelatorio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Ativo?: boolean;
+                    QuantidadeVeiculosMin?: number;
+                    QuantidadeVeiculosMax?: number;
+                    Limite?: number;
+                    Id?: number;
+                    RazaoSocial?: string;
+                    DescricaoPessoa?: string;
+                    Cnpj?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/TransportadoraRelatorio/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Ativo?: boolean;
+                    QuantidadeVeiculosMin?: number;
+                    QuantidadeVeiculosMax?: number;
+                    Limite?: number;
+                    Id?: number;
+                    RazaoSocial?: string;
+                    DescricaoPessoa?: string;
+                    Cnpj?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/TransportadoraRelatorio/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Ativo?: boolean;
+                    QuantidadeVeiculosMin?: number;
+                    QuantidadeVeiculosMax?: number;
+                    Limite?: number;
+                    Id?: number;
+                    RazaoSocial?: string;
+                    DescricaoPessoa?: string;
+                    Cnpj?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/Usuario/Login": {
         parameters: {
             query?: never;
@@ -1029,10 +5949,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["LoginInput"];
-                    "application/json": components["schemas"]["LoginInput"];
-                    "text/json": components["schemas"]["LoginInput"];
-                    "application/*+json": components["schemas"]["LoginInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.LoginInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.LoginInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.LoginInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.LoginInput"];
                 };
             };
             responses: {
@@ -1046,6 +5966,385 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/obterToken": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.ObterTokenInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.ObterTokenInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.ObterTokenInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.ObterTokenInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/confirmar-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.ConfirmarEmailInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.ConfirmarEmailInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.ConfirmarEmailInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.ConfirmarEmailInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/esqueci-senha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.EsqueciSenhaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.EsqueciSenhaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.EsqueciSenhaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.EsqueciSenhaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/redefinir-senha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.RedefinirSenhaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.RedefinirSenhaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.RedefinirSenhaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.RedefinirSenhaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/selecionar-estacionamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.SelecionarEstacionamentoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.SelecionarEstacionamentoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.SelecionarEstacionamentoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.SelecionarEstacionamentoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/meus-estacionamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/opcoes-cadastro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Usuario/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -1069,10 +6368,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["RegisterInput"];
-                    "application/json": components["schemas"]["RegisterInput"];
-                    "text/json": components["schemas"]["RegisterInput"];
-                    "application/*+json": components["schemas"]["RegisterInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Auth.RegisterInput"];
                 };
             };
             responses: {
@@ -1101,6 +6400,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    TransportadoraId?: number;
                     Placa?: string;
                     Descricao?: string;
                     DataInicial?: string;
@@ -1134,10 +6434,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["VeiculoPutInput"];
-                    "application/json": components["schemas"]["VeiculoPutInput"];
-                    "text/json": components["schemas"]["VeiculoPutInput"];
-                    "application/*+json": components["schemas"]["VeiculoPutInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPutInput"];
                 };
             };
             responses: {
@@ -1159,10 +6459,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["VeiculoPostInput"];
-                    "application/json": components["schemas"]["VeiculoPostInput"];
-                    "text/json": components["schemas"]["VeiculoPostInput"];
-                    "application/*+json": components["schemas"]["VeiculoPostInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoPostInput"];
                 };
             };
             responses: {
@@ -1235,6 +6535,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Veiculo/ImportarDados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: int32 */
+                        transportadoraId?: number;
+                        /** Format: binary */
+                        arquivo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Veiculo/por-placa/{placa}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    placa: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/VeiculoModelo": {
         parameters: {
             query?: never;
@@ -1277,10 +6654,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["VeiculoModeloPutInput"];
-                    "application/json": components["schemas"]["VeiculoModeloPutInput"];
-                    "text/json": components["schemas"]["VeiculoModeloPutInput"];
-                    "application/*+json": components["schemas"]["VeiculoModeloPutInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPutInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPutInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPutInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPutInput"];
                 };
             };
             responses: {
@@ -1302,10 +6679,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["VeiculoModeloPostInput"];
-                    "application/json": components["schemas"]["VeiculoModeloPostInput"];
-                    "text/json": components["schemas"]["VeiculoModeloPostInput"];
-                    "application/*+json": components["schemas"]["VeiculoModeloPostInput"];
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPostInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPostInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPostInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.VeiculoModelo.VeiculoModeloPostInput"];
                 };
             };
             responses: {
@@ -1382,195 +6759,102 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ApplicationRole: {
-            /** Format: int32 */
-            id?: number;
-            name?: string | null;
-            normalizedName?: string | null;
-            concurrencyStamp?: string | null;
-            rolePermissions?: components["schemas"]["RolePermission"][] | null;
+        "Estac.Api.Controllers.Internal.ImportacaoTransportadoraInternalController.ImportacaoTransportadoraFalhaRequest": {
+            mensagemErro?: string | null;
         };
-        ContaBancariaInput: {
-            /** Format: int32 */
-            id?: number;
-            descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            /** Format: int32 */
-            EstacionamentoId?: number;
-            readonly titular?: string | null;
-            readonly cpfCnpj?: string | null;
-            readonly banco?: string | null;
-            readonly agencia?: string | null;
-            readonly agenciaDigito?: string | null;
-            readonly conta?: string | null;
-            readonly contaDigito?: string | null;
-            readonly tipoConta?: string | null;
-            readonly ativa?: boolean;
-            readonly chavePix?: string | null;
+        "Estac.Api.Controllers.Internal.PropagacaoCadastroTransportadoraInternalController.PropagacaoCadastroTransportadoraFalhaRequest": {
+            mensagemErro?: string | null;
         };
-        EstacionamentoPostInput: {
-            /** Format: int32 */
-            id?: number;
-            descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            /** Format: int32 */
-            pessoaId?: number;
-            /** Format: int32 */
-            capacidadeVeiculo?: number | null;
-            tamanhoTerreno?: string | null;
-            resposanvelLegal?: string | null;
-            responsavelCpf?: string | null;
-            possuiSeguranca?: boolean | null;
-            possuiBanheiro?: boolean | null;
-            tipoCobranca?: components["schemas"]["TipoCobranca"];
-            /** Format: int32 */
-            cobrancaPorcentagem?: number | null;
-            /** Format: double */
-            cobrancaValor?: number | null;
-            pessoa?: components["schemas"]["PessoaInput"];
-            contaBancaria?: components["schemas"]["ContaBancariaInput"][] | null;
+        "Estac.Api.Controllers.Internal.TransferenciaBancoInternalController.TransferenciaBancoFalhaRequest": {
+            mensagemErro?: string | null;
         };
-        EstacionamentoPutInput: {
-            /** Format: int32 */
-            id?: number;
-            descricao?: string | null;
+        "Estac.Domain.Input.Agendamento.AgendamentoPostInput": {
             /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
+            dataAgendamento?: string;
+            observacao?: string | null;
             /** Format: int32 */
-            pessoaId?: number;
-            /** Format: int32 */
-            capacidadeVeiculo?: number | null;
-            tamanhoTerreno?: string | null;
-            resposanvelLegal?: string | null;
-            responsavelCpf?: string | null;
-            possuiSeguranca?: boolean | null;
-            possuiBanheiro?: boolean | null;
-            tipoCobranca?: components["schemas"]["TipoCobranca"];
-            /** Format: int32 */
-            cobrancaPorcentagem?: number | null;
-            /** Format: double */
-            cobrancaValor?: number | null;
-            pessoa?: components["schemas"]["PessoaInput"];
-            contaBancaria?: components["schemas"]["ContaBancariaInput"][] | null;
+            transportadoraId?: number | null;
+            motorista?: components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaMotoristaInput"];
+            veiculo?: components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaVeiculoInput"];
         };
-        LoginInput: {
+        "Estac.Domain.Input.Auth.ConfirmarEmailInput": {
+            /** Format: int32 */
+            userId: number;
+            token: string;
+        };
+        "Estac.Domain.Input.Auth.EsqueciSenhaInput": {
+            /** Format: email */
+            email: string;
+        };
+        "Estac.Domain.Input.Auth.LoginInput": {
             userName: string;
             password: string;
         };
-        MenuCreateInput: {
+        "Estac.Domain.Input.Auth.MenuCreateInput": {
             /** Format: int32 */
             id?: number;
             nome?: string | null;
-            /** Format: int32 */
-            ordem?: number;
-            ativo?: boolean;
-            rota?: string | null;
-            subMenus?: components["schemas"]["SubMenuCreateInput"][] | null;
-        };
-        MenuOrdemInput: {
-            /** Format: int32 */
-            id?: number;
-            /** Format: int32 */
-            ordem?: number;
-            subMenus?: components["schemas"]["SubMenuOrdemInput"][] | null;
-        };
-        MenuOrganizacaoInput: {
-            menus?: components["schemas"]["MenuOrdemInput"][] | null;
-        };
-        MenuUpdateInput: {
-            /** Format: int32 */
-            id?: number;
-            nome?: string | null;
-            /** Format: int32 */
-            ordem?: number;
-            ativo?: boolean;
-            rota?: string | null;
-            subMenus?: components["schemas"]["SubMenuCreateInput"][] | null;
-        };
-        Module: {
-            /** Format: int32 */
-            id?: number;
             descricao?: string | null;
             /** Format: int32 */
             ordem?: number;
             ativo?: boolean;
             rota?: string | null;
-            selecionado?: boolean;
-            subModules?: components["schemas"]["SubModule"][] | null;
+            exibirNoSidebar?: boolean | null;
+            mostrarSidebar?: boolean | null;
+            subMenus?: components["schemas"]["Estac.Domain.Input.Auth.SubMenuCreateInput"][] | null;
         };
-        ModuloInput: {
+        "Estac.Domain.Input.Auth.MenuOrdemInput": {
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            ordem?: number;
+            subMenus?: components["schemas"]["Estac.Domain.Input.Auth.SubMenuOrdemInput"][] | null;
+        };
+        "Estac.Domain.Input.Auth.MenuOrganizacaoInput": {
+            menus?: components["schemas"]["Estac.Domain.Input.Auth.MenuOrdemInput"][] | null;
+        };
+        "Estac.Domain.Input.Auth.MenuUpdateInput": {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            descricao?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            ativo?: boolean;
+            rota?: string | null;
+            exibirNoSidebar?: boolean | null;
+            mostrarSidebar?: boolean | null;
+            subMenus?: components["schemas"]["Estac.Domain.Input.Auth.SubMenuCreateInput"][] | null;
+        };
+        "Estac.Domain.Input.Auth.ModuloInput": {
             /** Format: int32 */
             menuId?: number;
             selecionado?: boolean;
-            subMenus?: components["schemas"]["SubModuloInput"][] | null;
+            subMenus?: components["schemas"]["Estac.Domain.Input.Auth.SubModuloInput"][] | null;
         };
-        MotoristaPostInput: {
-            /** Format: int32 */
-            id?: number;
-            descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            cnh?: string | null;
-            /** Format: date-time */
-            validadeCNH?: string | null;
-            /** Format: int32 */
-            pessoaId?: number;
-            pessoa?: components["schemas"]["PessoaInput"];
+        "Estac.Domain.Input.Auth.ObterTokenInput": {
+            userName?: string | null;
+            password?: string | null;
+            secret?: string | null;
         };
-        MotoristaPutInput: {
-            /** Format: int32 */
-            id?: number;
-            descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            cnh?: string | null;
-            /** Format: date-time */
-            validadeCNH?: string | null;
-            /** Format: int32 */
-            pessoaId?: number;
-            pessoa?: components["schemas"]["PessoaInput"];
-        };
-        PerfilCreateInput: {
+        "Estac.Domain.Input.Auth.PermissaoCreateInput": {
             /** Format: int32 */
             id?: number;
             nome?: string | null;
-            menus?: components["schemas"]["ModuloInput"][] | null;
+            menus?: components["schemas"]["Estac.Domain.Input.Auth.ModuloInput"][] | null;
         };
-        PerfilUpdateInput: {
-            /** Format: int32 */
-            id?: number;
-            nome?: string | null;
-            menus?: components["schemas"]["ModuloInput"][] | null;
-        };
-        PermissaoInput: {
+        "Estac.Domain.Input.Auth.PermissaoInput": {
             /** Format: int32 */
             permissaoId?: number;
             selecionado?: boolean;
         };
-        Permission: {
-            /** Format: int32 */
-            ordem?: number;
+        "Estac.Domain.Input.Auth.PermissaoUpdateInput": {
             /** Format: int32 */
             id?: number;
-            /** Format: int32 */
-            subModuleId?: number;
-            acao?: string | null;
-            selecionadoPerm?: boolean;
-            subModule?: components["schemas"]["SubModule"];
+            nome?: string | null;
+            menus?: components["schemas"]["Estac.Domain.Input.Auth.ModuloInput"][] | null;
         };
-        PermissionInput: {
+        "Estac.Domain.Input.Auth.PermissionInput": {
             /** Format: int32 */
             ordem?: number;
             /** Format: int32 */
@@ -1578,20 +6862,263 @@ export interface components {
             /** Format: int32 */
             subModuleId?: number;
             descricao?: string | null;
+            acao?: string | null;
         };
-        PessoaContatoInput: {
+        "Estac.Domain.Input.Auth.RedefinirSenhaInput": {
+            /** Format: email */
+            email: string;
+            token: string;
+            newPassword: string;
+            confirmPassword: string;
+        };
+        "Estac.Domain.Input.Auth.RegisterInput": {
+            userName: string;
+            password?: string | null;
+            confirmPassword?: string | null;
+            email?: string | null;
+            /** Format: int32 */
+            estacionamentoId?: number | null;
+            /** Format: int32 */
+            transportadoraId?: number | null;
+            tipoPapel?: components["schemas"]["Estac.Domain.Models.Enuns.TipoPapel"];
+            pessoa?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaUsuarioInput"];
+            perfil?: components["schemas"]["Estac.Domain.Models.Auth.ApplicationRole"];
+        };
+        "Estac.Domain.Input.Auth.SelecionarEstacionamentoInput": {
+            /** Format: int32 */
+            estacionamentoId?: number | null;
+            codExportacao?: string | null;
+            limpar?: boolean;
+        };
+        "Estac.Domain.Input.Auth.SubMenuCreateInput": {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            descricao?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            ativo?: boolean;
+            rota?: string | null;
+            exibirNoSidebar?: boolean | null;
+            mostrarSidebar?: boolean | null;
+            permissions?: components["schemas"]["Estac.Domain.Input.Auth.PermissionInput"][] | null;
+        };
+        "Estac.Domain.Input.Auth.SubMenuOrdemInput": {
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            ordem?: number;
+        };
+        "Estac.Domain.Input.Auth.SubModuloInput": {
+            /** Format: int32 */
+            subMenuId?: number;
+            selecionado?: boolean;
+            permissoes?: components["schemas"]["Estac.Domain.Input.Auth.PermissaoInput"][] | null;
+        };
+        "Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoAgendamentoPutInput": {
+            /** Format: uuid */
+            id?: string;
+            /** Format: date-time */
+            ultimaExecucao?: string;
+            /** Format: date-time */
+            proximaExecucao?: string | null;
+        };
+        "Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPostInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            transportadoraId?: number;
+            status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusConfiguracaoCobranca"];
+            modalidadeCobranca?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeCobranca"];
+            /** Format: int32 */
+            diaFechamento?: number | null;
+            regraFechamento?: components["schemas"]["Estac.Domain.Models.Enuns.RegraFechamento"];
+            /** Format: int32 */
+            prazoVencimentoDias?: number;
+            emailFinanceiro?: string | null;
+            envioAutomaticoEmail?: boolean;
+            gerarFaturaAutomaticamente?: boolean;
+            permitirPagamentoParcial?: boolean;
+            aplicarMulta?: boolean;
+            /** Format: double */
+            multaPercentual?: number;
+            aplicarJuros?: boolean;
+            /** Format: double */
+            jurosPercentual?: number;
+            aplicarDescontoFixo?: boolean;
+            /** Format: double */
+            valorDescontoFixo?: number;
+            aplicarAcrescimoFixo?: boolean;
+            /** Format: double */
+            valorAcrescimoFixo?: number;
+            /** Format: double */
+            valorEstacionamento?: number | null;
+            /** Format: date-time */
+            dataCobranca?: string | null;
+            cobrarLavagem?: boolean;
+            /** Format: double */
+            valorLavagem?: number | null;
+            cobrarPernoite?: boolean;
+            /** Format: double */
+            valorPernoite?: number | null;
+            cobrarServicosExtras?: boolean;
+            /** Format: double */
+            valorServicosExtras?: number | null;
+            considerarBeneficioAbastecimento?: boolean;
+            /** Format: double */
+            valorBeneficioAbastecimento?: number | null;
+            agruparPorPlaca?: boolean;
+            agruparPorPeriodo?: boolean;
+            agruparPorTransportadora?: boolean;
+            /** Format: date-time */
+            dataInicioAcordo?: string | null;
+            /** Format: date-time */
+            dataFimAcordo?: string | null;
+            /** Format: double */
+            custoExcedente?: number | null;
+            tipoCobrancaExcedente?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCobrancaExcedente"];
+            /** Format: int32 */
+            vagasJaneiro?: number | null;
+            /** Format: int32 */
+            vagasFevereiro?: number | null;
+            /** Format: int32 */
+            vagasMarco?: number | null;
+            /** Format: int32 */
+            vagasAbril?: number | null;
+            /** Format: int32 */
+            vagasMaio?: number | null;
+            /** Format: int32 */
+            vagasJunho?: number | null;
+            /** Format: int32 */
+            vagasJulho?: number | null;
+            /** Format: int32 */
+            vagasAgosto?: number | null;
+            /** Format: int32 */
+            vagasSetembro?: number | null;
+            /** Format: int32 */
+            vagasOutubro?: number | null;
+            /** Format: int32 */
+            vagasNovembro?: number | null;
+            /** Format: int32 */
+            vagasDezembro?: number | null;
+        };
+        "Estac.Domain.Input.ConfiguracaoCobranca.ConfiguracaoCobrancaPutInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            transportadoraId?: number;
+            status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusConfiguracaoCobranca"];
+            modalidadeCobranca?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeCobranca"];
+            /** Format: int32 */
+            diaFechamento?: number | null;
+            regraFechamento?: components["schemas"]["Estac.Domain.Models.Enuns.RegraFechamento"];
+            /** Format: int32 */
+            prazoVencimentoDias?: number;
+            emailFinanceiro?: string | null;
+            envioAutomaticoEmail?: boolean;
+            gerarFaturaAutomaticamente?: boolean;
+            permitirPagamentoParcial?: boolean;
+            aplicarMulta?: boolean;
+            /** Format: double */
+            multaPercentual?: number;
+            aplicarJuros?: boolean;
+            /** Format: double */
+            jurosPercentual?: number;
+            aplicarDescontoFixo?: boolean;
+            /** Format: double */
+            valorDescontoFixo?: number;
+            aplicarAcrescimoFixo?: boolean;
+            /** Format: double */
+            valorAcrescimoFixo?: number;
+            /** Format: double */
+            valorEstacionamento?: number | null;
+            /** Format: date-time */
+            dataCobranca?: string | null;
+            cobrarLavagem?: boolean;
+            /** Format: double */
+            valorLavagem?: number | null;
+            cobrarPernoite?: boolean;
+            /** Format: double */
+            valorPernoite?: number | null;
+            cobrarServicosExtras?: boolean;
+            /** Format: double */
+            valorServicosExtras?: number | null;
+            considerarBeneficioAbastecimento?: boolean;
+            /** Format: double */
+            valorBeneficioAbastecimento?: number | null;
+            agruparPorPlaca?: boolean;
+            agruparPorPeriodo?: boolean;
+            agruparPorTransportadora?: boolean;
+            /** Format: date-time */
+            dataInicioAcordo?: string | null;
+            /** Format: date-time */
+            dataFimAcordo?: string | null;
+            /** Format: double */
+            custoExcedente?: number | null;
+            tipoCobrancaExcedente?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCobrancaExcedente"];
+            /** Format: int32 */
+            vagasJaneiro?: number | null;
+            /** Format: int32 */
+            vagasFevereiro?: number | null;
+            /** Format: int32 */
+            vagasMarco?: number | null;
+            /** Format: int32 */
+            vagasAbril?: number | null;
+            /** Format: int32 */
+            vagasMaio?: number | null;
+            /** Format: int32 */
+            vagasJunho?: number | null;
+            /** Format: int32 */
+            vagasJulho?: number | null;
+            /** Format: int32 */
+            vagasAgosto?: number | null;
+            /** Format: int32 */
+            vagasSetembro?: number | null;
+            /** Format: int32 */
+            vagasOutubro?: number | null;
+            /** Format: int32 */
+            vagasNovembro?: number | null;
+            /** Format: int32 */
+            vagasDezembro?: number | null;
+        };
+        "Estac.Domain.Input.ContaBancaria.ContaBancariaInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            estacionamentoId?: number;
+            /** Format: int32 */
+            transportadoraId?: number | null;
+            titular?: string | null;
+            cpfCnpj?: string | null;
+            banco?: string | null;
+            agencia?: string | null;
+            agenciaDigito?: string | null;
+            conta?: string | null;
+            contaDigito?: string | null;
+            tipoConta?: string | null;
+            ativa?: boolean;
+            chavePix?: string | null;
+            tipoChave?: components["schemas"]["Estac.Domain.Models.Enuns.TipoChave"];
+        };
+        "Estac.Domain.Input.Endereco.PessoaEnderecoInput": {
+            /** Format: int32 */
+            id?: number;
             /** Format: int32 */
             pessoaId?: number;
             principal?: boolean;
-            tipoContato?: components["schemas"]["TipoContato"];
-            numero?: string | null;
-            observacao?: string | null;
-        };
-        PessoaEnderecoInput: {
-            /** Format: int32 */
-            pessoaId?: number;
-            principal?: boolean;
-            tipoEndereco?: components["schemas"]["TipoEndereco"];
+            tipoEndereco?: components["schemas"]["Estac.Domain.Models.Enuns.TipoEndereco"];
             cep?: string | null;
             logradouro?: string | null;
             numero?: string | null;
@@ -1600,124 +7127,449 @@ export interface components {
             cidade?: string | null;
             estado?: string | null;
         };
-        PessoaInput: {
+        "Estac.Domain.Input.Estacionamento.BancoDadosConexaoPostInput": {
+            nome: string;
+            descricao?: string | null;
+            tipoBanco?: components["schemas"]["Estac.Domain.Models.Enuns.TipoBancoDados"];
+            ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+            host: string;
+            /** Format: int32 */
+            porta?: number;
+            nomeBanco: string;
+            usuario: string;
+            senha: string;
+            trustServerCertificate?: boolean;
+            encrypt?: boolean;
+            parametrosExtras?: string | null;
+            ativo?: boolean;
+        };
+        "Estac.Domain.Input.Estacionamento.BancoDadosConexaoPutInput": {
+            nome: string;
+            descricao?: string | null;
+            tipoBanco?: components["schemas"]["Estac.Domain.Models.Enuns.TipoBancoDados"];
+            ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+            host: string;
+            /** Format: int32 */
+            porta?: number;
+            nomeBanco: string;
+            usuario: string;
+            trustServerCertificate?: boolean;
+            encrypt?: boolean;
+            parametrosExtras?: string | null;
+            ativo?: boolean;
+            /** Format: int32 */
+            id: number;
+            senha?: string | null;
+        };
+        "Estac.Domain.Input.Estacionamento.BancoDadosConexaoTestarInput": {
+            nome: string;
+            descricao?: string | null;
+            tipoBanco?: components["schemas"]["Estac.Domain.Models.Enuns.TipoBancoDados"];
+            ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+            host: string;
+            /** Format: int32 */
+            porta?: number;
+            nomeBanco: string;
+            usuario: string;
+            trustServerCertificate?: boolean;
+            encrypt?: boolean;
+            parametrosExtras?: string | null;
+            ativo?: boolean;
+            /** Format: int32 */
+            id?: number | null;
+            senha?: string | null;
+        };
+        "Estac.Domain.Input.Estacionamento.BancoDadosConexaoTransferirInput": {
+            /** Format: int32 */
+            bancoDadosConexaoId: number;
+            hostFuturo: string;
+            /** Format: int32 */
+            portaFuturo?: number;
+            nomeBancoFuturo?: string | null;
+            usuarioFuturo: string;
+            senhaFuturo: string;
+            trustServerCertificate?: boolean;
+            encrypt?: boolean;
+            sobrescreverDestinoSeExistir?: boolean;
+        };
+        "Estac.Domain.Input.Estacionamento.EstacionamentoBancoDadosInput": {
+            isolationMode?: components["schemas"]["Estac.Domain.Models.Enuns.IsolationModeEstacionamento"];
+            /** Format: int32 */
+            bancoDadosConexaoId?: number;
+        };
+        "Estac.Domain.Input.Estacionamento.EstacionamentoConexaoPutInput": {
+            codExportacao: string;
+            /** Format: int32 */
+            estacionamentoId?: number | null;
+            isolationMode?: components["schemas"]["Estac.Domain.Models.Enuns.IsolationModeEstacionamento"];
+            /** Format: int32 */
+            bancoDadosConexaoId?: number | null;
+            ativo?: boolean;
+        };
+        "Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPostInput": {
+            timeZoneId?: string | null;
+            /** Format: int32 */
+            estacionamentoId?: number | null;
+            tipoTarifaAvulsa?: components["schemas"]["Estac.Domain.Models.Enuns.TipoTarifaEstacionamento"];
+            /** Format: double */
+            valorAvulso?: number | null;
+            /** Format: int32 */
+            minutosToleranciaPermanencia?: number | null;
+        };
+        "Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoPutInput": {
+            timeZoneId?: string | null;
+            /** Format: int32 */
+            estacionamentoId?: number | null;
+            tipoTarifaAvulsa?: components["schemas"]["Estac.Domain.Models.Enuns.TipoTarifaEstacionamento"];
+            /** Format: double */
+            valorAvulso?: number | null;
+            /** Format: int32 */
+            minutosToleranciaPermanencia?: number | null;
             /** Format: int32 */
             id?: number;
-            descricao?: string | null;
+        };
+        "Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoValoresInput": {
+            tipoTarifaAvulsa?: components["schemas"]["Estac.Domain.Models.Enuns.TipoTarifaEstacionamento"];
+            /** Format: double */
+            valorAvulso?: number | null;
+            /** Format: int32 */
+            minutosToleranciaPermanencia?: number | null;
+        };
+        "Estac.Domain.Input.Estacionamento.EstacionamentoPostInput": {
             /** Format: date-time */
             dataCriacao?: string;
             /** Format: date-time */
             dataAtualizacao?: string | null;
-            tipoPessoa?: components["schemas"]["TipoPessoa"];
-            nomeRazaoSocial?: string | null;
-            nomeFantasia?: string | null;
-            documento?: string | null;
-            email?: string | null;
-            ativo?: boolean;
-            enderecos?: components["schemas"]["PessoaEnderecoInput"][] | null;
-            contatos?: components["schemas"]["PessoaContatoInput"][] | null;
-        };
-        PessoaUsuarioImput: {
-            /** Format: int32 */
-            id?: number;
-            nome?: string | null;
-            documento?: string | null;
-            tipoPessoa?: components["schemas"]["TipoPessoa"];
-        };
-        RegisterInput: {
-            userName: string;
-            password: string;
-            confirmPassword?: string | null;
-            email?: string | null;
-            /** Format: int32 */
-            EstacionamentoId?: number;
-            pessoa?: components["schemas"]["PessoaUsuarioImput"];
-            perfil?: components["schemas"]["ApplicationRole"];
-        };
-        RolePermission: {
-            /** Format: int32 */
-            id?: number;
-            /** Format: int32 */
-            roleId?: number;
-            /** Format: int32 */
-            permissionId?: number | null;
-            /** Format: int32 */
-            subModuleId?: number | null;
-            /** Format: int32 */
-            moduleId?: number | null;
-            role?: components["schemas"]["ApplicationRole"];
-            permission?: components["schemas"]["Permission"];
-            subModule?: components["schemas"]["SubModule"];
-            module?: components["schemas"]["Module"];
-        };
-        SubMenuCreateInput: {
-            /** Format: int32 */
-            id?: number;
-            nome?: string | null;
-            /** Format: int32 */
-            ordem?: number;
-            ativo?: boolean;
-            rota?: string | null;
-            permissions?: components["schemas"]["PermissionInput"][] | null;
-        };
-        SubMenuOrdemInput: {
-            /** Format: int32 */
-            id?: number;
-            /** Format: int32 */
-            ordem?: number;
-        };
-        SubModule: {
             /** Format: int32 */
             id?: number;
             descricao?: string | null;
             /** Format: int32 */
-            ordem?: number;
+            pessoaId?: number;
             /** Format: int32 */
-            moduleId?: number;
-            rota?: string | null;
+            capacidadeVeiculo?: number | null;
+            tamanhoTerreno?: string | null;
+            responsavelLegal?: string | null;
+            responsavelCpf?: string | null;
+            responsavelEmail?: string | null;
+            responsavelTelefone?: string | null;
+            possuiSeguranca?: boolean | null;
+            possuiBanheiro?: boolean | null;
+            tipoCobranca?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCobranca"];
+            /** Format: int32 */
+            cobrancaPorcentagem?: number | null;
+            /** Format: double */
+            cobrancaValor?: number | null;
+            /** Format: byte */
+            contrato?: string | null;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            /** Format: date-span */
+            horarioAbertura?: string | null;
+            /** Format: date-span */
+            horarioFechamento?: string | null;
+            diasFuncionamento?: string | null;
             ativo?: boolean;
-            selecionadoSub?: boolean;
-            module?: components["schemas"]["Module"];
-            permissions?: components["schemas"]["Permission"][] | null;
+            pessoaJuridica?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaEstacionamentoInput"];
+            contaBancaria?: components["schemas"]["Estac.Domain.Input.ContaBancaria.ContaBancariaInput"];
+            codExportacao?: string | null;
+            bancoDados?: components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoBancoDadosInput"];
+            configuracaoValores?: components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoValoresInput"];
         };
-        SubModuloInput: {
-            /** Format: int32 */
-            subMenuId?: number;
-            selecionado?: boolean;
-            permissoes?: components["schemas"]["PermissaoInput"][] | null;
-        };
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        TipoCobranca: 0 | 1 | 2 | 3;
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        TipoContato: 1 | 2 | 3 | 4;
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        TipoEndereco: 1 | 2 | 3 | 4;
-        /**
-         * Format: int32
-         * @enum {integer}
-         */
-        TipoPessoa: 1 | 2;
-        /** Alinhado ao OpenAPI em `/swagger/v1/swagger.json` (Transportadora). */
-        TransportadoraPostInput: {
-            /** Format: int32 — id da transportadora; omitir em cadastro novo quando aplicável */
-            id?: number;
-            pessoaJuridica?: components["schemas"]["PessoaInput"];
-        };
-        TransportadoraPutInput: {
+        "Estac.Domain.Input.Estacionamento.EstacionamentoPutInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
             /** Format: int32 */
             id?: number;
-            pessoaJuridica?: components["schemas"]["PessoaInput"];
+            descricao?: string | null;
+            /** Format: int32 */
+            pessoaId?: number;
+            /** Format: int32 */
+            capacidadeVeiculo?: number | null;
+            tamanhoTerreno?: string | null;
+            responsavelLegal?: string | null;
+            responsavelCpf?: string | null;
+            responsavelEmail?: string | null;
+            responsavelTelefone?: string | null;
+            possuiSeguranca?: boolean | null;
+            possuiBanheiro?: boolean | null;
+            tipoCobranca?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCobranca"];
+            /** Format: int32 */
+            cobrancaPorcentagem?: number | null;
+            /** Format: double */
+            cobrancaValor?: number | null;
+            /** Format: byte */
+            contrato?: string | null;
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            /** Format: date-span */
+            horarioAbertura?: string | null;
+            /** Format: date-span */
+            horarioFechamento?: string | null;
+            diasFuncionamento?: string | null;
+            ativo?: boolean;
+            pessoaJuridica?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaEstacionamentoInput"];
+            contaBancaria?: components["schemas"]["Estac.Domain.Input.ContaBancaria.ContaBancariaInput"];
+            codExportacao?: string | null;
+            bancoDados?: components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoBancoDadosInput"];
+            configuracaoValores?: components["schemas"]["Estac.Domain.Input.Estacionamento.EstacionamentoConfiguracaoValoresInput"];
         };
-        VeiculoDetalheInput: {
+        "Estac.Domain.Input.Estacionamento.GtsMigrarInput": {
+            ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+        };
+        "Estac.Domain.Input.Fatura.FaturaAcordoInadimplenciaInput": {
+            /** Format: double */
+            valorNegociado?: number | null;
+            /** Format: double */
+            valorDesconto?: number | null;
+            /** Format: date-time */
+            novoVencimento?: string | null;
+            modalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+            observacao?: string | null;
+            responsavel?: string | null;
+        };
+        "Estac.Domain.Input.Fatura.FaturaAvulsoInput": {
+            /** Format: int32 */
+            entradaSaidaId?: number;
+            /** Format: double */
+            valor?: number;
+        };
+        "Estac.Domain.Input.Fatura.FaturaPostInput": {
+            /** Format: int32 */
+            transportadoraId?: number;
+            /** Format: int32 */
+            estacionamentoId?: number | null;
+        };
+        "Estac.Domain.Input.Fatura.FaturaPutInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            transportadoraId?: number;
+            /** Format: int32 */
+            estacionamentoId?: number;
+            /** Format: int32 */
+            configuracaoCobrancaId?: number | null;
+            numero?: string | null;
+            status?: components["schemas"]["Estac.Domain.Models.Enuns.StatusFatura"];
+            modalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+            /** Format: double */
+            valorTotal?: number;
+            /** Format: double */
+            valorRecebido?: number;
+            /** Format: double */
+            valorDesconto?: number;
+            /** Format: double */
+            valorAcrescimo?: number;
+            /** Format: double */
+            valorJuros?: number;
+            /** Format: double */
+            valorMulta?: number;
+            /** Format: date-time */
+            dataEmissao?: string;
+            /** Format: date-time */
+            dataVencimento?: string;
+            /** Format: date-time */
+            dataPagamento?: string | null;
+            /** Format: date-time */
+            periodoInicio?: string;
+            /** Format: date-time */
+            periodoFim?: string;
+            emailEnvio?: string | null;
+            observacao?: string | null;
+        };
+        "Estac.Domain.Input.Fatura.FaturaStatusCobrancaInput": {
+            statusCobranca?: components["schemas"]["Estac.Domain.Models.Enuns.StatusCobrancaFatura"];
+        };
+        "Estac.Domain.Input.Fatura.FaturaValorAjusteInput": {
+            /** Format: double */
+            valor?: number;
+        };
+        "Estac.Domain.Input.Fatura.FaturaVencimentoInput": {
+            /** Format: date-time */
+            dataVencimento?: string;
+        };
+        "Estac.Domain.Input.Faturamento.RegistrarExecucaoAgendamentoInput": {
+            /** Format: uuid */
+            configuracaoAgendamentoId?: string;
+            /** Format: date-time */
+            ultimaExecucao?: string;
+            /** Format: date-time */
+            proximaExecucao?: string;
+            entradaSaidaIds?: number[] | null;
+        };
+        "Estac.Domain.Input.Financeiro.Pagamento.PagamentoPostInput": {
+            /** Format: int32 */
+            faturaId?: number;
+            /** Format: double */
+            valorRecebido?: number;
+            /** Format: date-time */
+            dataPagamento?: string;
+            modalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+            observacao?: string | null;
+        };
+        "Estac.Domain.Input.Financeiro.Pagamento.PagamentoPutInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            /** Format: int32 */
+            id?: number;
+            /** Format: double */
+            valorRecebido?: number;
+            /** Format: date-time */
+            dataPagamento?: string;
+            modalidadeRecebimento?: components["schemas"]["Estac.Domain.Models.Enuns.ModalidadeRecebimento"];
+            observacao?: string | null;
+        };
+        "Estac.Domain.Input.Motorista.MotoristaPostInput": {
+            /** Format: int32 */
+            id?: number;
+            cnh?: string | null;
+            /** Format: date-time */
+            validadeCNH?: string | null;
+            /** Format: int32 */
+            pessoaId?: number;
+            /** Format: int32 */
+            transportadoraId?: number | null;
+            pessoaFisica?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaMotoristaInput"];
+        };
+        "Estac.Domain.Input.Motorista.MotoristaPutInput": {
+            /** Format: int32 */
+            id?: number;
+            cnh?: string | null;
+            /** Format: date-time */
+            validadeCNH?: string | null;
+            /** Format: int32 */
+            pessoaId?: number;
+            /** Format: int32 */
+            transportadoraId?: number | null;
+            pessoaFisica?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaMotoristaInput"];
+        };
+        "Estac.Domain.Input.Motorista.MotoristaVinculoInput": {
+            /** Format: int32 */
+            id?: number;
+            principal?: boolean | null;
+        };
+        "Estac.Domain.Input.Movimento.Entrada.EntradaMotoristaInput": {
+            /** Format: int32 */
+            id?: number | null;
+            cpf?: string | null;
+            nome?: string | null;
+        };
+        "Estac.Domain.Input.Movimento.Entrada.EntradaPostInput": {
+            status?: components["schemas"]["Estac.Domain.Models.Enuns.EntradaSaidaStatus"];
+            /** Format: date-time */
+            dataHoraEntrada?: string | null;
+            /** Format: date-time */
+            dataAgendamento?: string | null;
+            observacao?: string | null;
+            motorista?: components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaMotoristaInput"];
+            transportadora?: components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaTransportadoraInput"];
+            veiculo?: components["schemas"]["Estac.Domain.Input.Movimento.Entrada.EntradaVeiculoInput"];
+        };
+        "Estac.Domain.Input.Movimento.Entrada.EntradaTransportadoraInput": {
+            /** Format: int32 */
+            id?: number | null;
+            cnpj?: string | null;
+            razaoSocial?: string | null;
+            responsavelLegal?: string | null;
+            responsavelCpf?: string | null;
+            responsavelEmail?: string | null;
+            responsavelTelefone?: string | null;
+        };
+        "Estac.Domain.Input.Movimento.Entrada.EntradaVeiculoInput": {
+            /** Format: int32 */
+            id?: number | null;
+            placa?: string | null;
+            tipoCarga?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCarga"];
+        };
+        "Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPermanenciaInput": {
+            /** Format: date-time */
+            dataHoraEvento?: string | null;
+            retornarAoPatio?: boolean;
+        };
+        "Estac.Domain.Input.Movimento.EntradaSaida.EntradaSaidaPlacaInput": {
+            placa?: string | null;
+        };
+        "Estac.Domain.Input.Pessoa.PessoaEstacionamentoInput": {
+            nomeRazaoSocial?: string | null;
+            nomeFantasia?: string | null;
+            cnpj?: string | null;
+            ativo?: boolean;
+            enderecos?: components["schemas"]["Estac.Domain.Input.Endereco.PessoaEnderecoInput"][] | null;
+            contatos?: components["schemas"]["Estac.Domain.Input.PessoaContato.PessoaContatoInput"][] | null;
+        };
+        "Estac.Domain.Input.Pessoa.PessoaInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            tipoPessoa?: components["schemas"]["Estac.Domain.Models.Enuns.TipoPessoa"];
+            nomeRazaoSocial?: string | null;
+            descricao?: string | null;
+            cnpj?: string | null;
+            ativo?: boolean;
+            enderecos?: components["schemas"]["Estac.Domain.Input.Endereco.PessoaEnderecoInput"][] | null;
+            contatos?: components["schemas"]["Estac.Domain.Input.PessoaContato.PessoaContatoInput"][] | null;
+        };
+        "Estac.Domain.Input.Pessoa.PessoaMotoristaInput": {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            cpf?: string | null;
+            ativo?: boolean;
+            enderecos?: components["schemas"]["Estac.Domain.Input.Endereco.PessoaEnderecoInput"][] | null;
+            contatos?: components["schemas"]["Estac.Domain.Input.PessoaContato.PessoaContatoInput"][] | null;
+        };
+        "Estac.Domain.Input.Pessoa.PessoaUsuarioInput": {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            cpf?: string | null;
+            tipoPessoa?: components["schemas"]["Estac.Domain.Models.Enuns.TipoPessoa"];
+        };
+        "Estac.Domain.Input.PessoaContato.PessoaContatoInput": {
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            pessoaId?: number;
+            descricao?: string | null;
+            cpf?: string | null;
+            telefone?: string | null;
+            email?: string | null;
+            principal?: boolean;
+            observacao?: string | null;
+        };
+        "Estac.Domain.Input.Transportadora.TransportadoraPostInput": {
+            /** Format: int32 */
+            id?: number;
+            responsavelLegal?: string | null;
+            responsavelCpf?: string | null;
+            responsavelEmail?: string | null;
+            responsavelTelefone?: string | null;
+            pessoaJuridica?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaInput"];
+            contaBancaria?: components["schemas"]["Estac.Domain.Input.ContaBancaria.ContaBancariaInput"];
+        };
+        "Estac.Domain.Input.Transportadora.TransportadoraPutInput": {
+            /** Format: int32 */
+            id?: number;
+            responsavelLegal?: string | null;
+            responsavelCpf?: string | null;
+            responsavelEmail?: string | null;
+            responsavelTelefone?: string | null;
+            pessoaJuridica?: components["schemas"]["Estac.Domain.Input.Pessoa.PessoaInput"];
+            contaBancaria?: components["schemas"]["Estac.Domain.Input.ContaBancaria.ContaBancariaInput"];
+        };
+        "Estac.Domain.Input.Veiculo.VeiculoDetalheInput": {
             uf?: string | null;
             nomeProprietario?: string | null;
             cpfCnpjProprietario?: string | null;
@@ -1737,87 +7589,338 @@ export interface components {
             veiculoTerceiro?: boolean;
             observacoes?: string | null;
         };
-        VeiculoMarca: {
+        "Estac.Domain.Input.Veiculo.VeiculoMarcaInput": {
             /** Format: int32 */
             id?: number;
             descricao?: string | null;
         };
-        VeiculoMarcaInput: {
+        "Estac.Domain.Input.Veiculo.VeiculoModeloInput": {
             /** Format: int32 */
             id?: number;
             descricao?: string | null;
+            marca?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoMarcaInput"];
         };
-        VeiculoModeloInput: {
+        "Estac.Domain.Input.Veiculo.VeiculoPostInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
             /** Format: int32 */
             id?: number;
-            descricao?: string | null;
+            placa?: string | null;
             /** Format: int32 */
-            veiculoMarcaId?: number | null;
-            veiculoMarca?: components["schemas"]["VeiculoMarcaInput"];
+            ano?: number | null;
+            ativo?: boolean;
+            cor?: string | null;
+            tipoCarga?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCarga"];
+            /** Format: int32 */
+            transportadoraId?: number | null;
+            veiculoDetalhe?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoDetalheInput"];
+            modelo?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoModeloInput"];
+            marca?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoMarcaInput"];
+            motoristas?: components["schemas"]["Estac.Domain.Input.Motorista.MotoristaVinculoInput"][] | null;
         };
-        VeiculoModeloPostInput: {
+        "Estac.Domain.Input.Veiculo.VeiculoPutInput": {
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
             /** Format: int32 */
             id?: number;
-            descricao?: string | null;
+            placa?: string | null;
+            /** Format: int32 */
+            ano?: number | null;
+            ativo?: boolean;
+            cor?: string | null;
+            tipoCarga?: components["schemas"]["Estac.Domain.Models.Enuns.TipoCarga"];
+            /** Format: int32 */
+            transportadoraId?: number | null;
+            veiculoDetalhe?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoDetalheInput"];
+            modelo?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoModeloInput"];
+            marca?: components["schemas"]["Estac.Domain.Input.Veiculo.VeiculoMarcaInput"];
+            motoristas?: components["schemas"]["Estac.Domain.Input.Motorista.MotoristaVinculoInput"][] | null;
+        };
+        "Estac.Domain.Input.VeiculoModelo.VeiculoModeloPostInput": {
             /** Format: date-time */
             dataCriacao?: string;
             /** Format: date-time */
             dataAtualizacao?: string | null;
             /** Format: int32 */
             veiculoMarcaId?: number;
-            veiculoMarca?: components["schemas"]["VeiculoMarca"];
+            veiculoMarca?: components["schemas"]["Estac.Domain.Models.VeiculoMarca"];
         };
-        VeiculoModeloPutInput: {
-            /** Format: int32 */
-            id?: number;
-            descricao?: string | null;
+        "Estac.Domain.Input.VeiculoModelo.VeiculoModeloPutInput": {
             /** Format: date-time */
             dataCriacao?: string;
             /** Format: date-time */
             dataAtualizacao?: string | null;
             /** Format: int32 */
             veiculoMarcaId?: number;
-            veiculoMarca?: components["schemas"]["VeiculoMarca"];
+            veiculoMarca?: components["schemas"]["Estac.Domain.Models.VeiculoMarca"];
         };
-        VeiculoPostInput: {
+        "Estac.Domain.Integration.Workers.ImportacaoTransportadoraJobPayload": {
+            /** Format: int64 */
+            importacaoId?: number;
+            cnpj?: string | null;
+            codExportacaoDestino?: string | null;
+            /** Format: int32 */
+            estacionamentoIdDestino?: number;
+            /** Format: int32 */
+            solicitadoPorUsuarioId?: number | null;
+            nomeRazaoSocial?: string | null;
+        };
+        "Estac.Domain.Integration.Workers.PropagacaoCadastroTransportadoraJobPayload": {
+            /** Format: int64 */
+            propagacaoId?: number;
+            cnpj?: string | null;
+            nomeRazaoSocial?: string | null;
+            codExportacaoOrigem?: string | null;
+            /** Format: int32 */
+            estacionamentoIdOrigem?: number;
+            /** Format: int32 */
+            solicitadoPorUsuarioId?: number | null;
+            usuarioIdsNotificacao?: number[] | null;
+            /** Format: int32 */
+            destinosOk?: number;
+            /** Format: int32 */
+            destinosFalha?: number;
+        };
+        "Estac.Domain.Integration.Workers.TransferenciaBancoJobPayload": {
+            /** Format: int64 */
+            transferenciaId?: number;
+            /** Format: int32 */
+            bancoDadosConexaoId?: number;
+            codExportacao?: string | null;
+            /** Format: int32 */
+            estacionamentoId?: number;
+            sourceConnectionString?: string | null;
+            sourceDatabaseName?: string | null;
+            targetHost?: string | null;
+            /** Format: int32 */
+            targetPorta?: number;
+            targetDatabaseName?: string | null;
+            targetUsuario?: string | null;
+            targetSenha?: string | null;
+            targetTrustServerCertificate?: boolean;
+            targetEncrypt?: boolean;
+            sobrescreverDestinoSeExistir?: boolean;
+        };
+        "Estac.Domain.Models.Auth.ApplicationRole": {
+            /** Format: int32 */
+            id?: number;
+            name?: string | null;
+            normalizedName?: string | null;
+            concurrencyStamp?: string | null;
+            /** Format: int32 */
+            empresaId?: number | null;
+            padrao?: boolean;
+            rolePermissions?: components["schemas"]["Estac.Domain.Models.Auth.RolePermission"][] | null;
+        };
+        "Estac.Domain.Models.Auth.Module": {
             /** Format: int32 */
             id?: number;
             descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            placa?: string | null;
             /** Format: int32 */
-            ano?: number | null;
+            ordem?: number;
             ativo?: boolean;
-            cor?: string | null;
-            /** Format: int32 */
-            veiculoMarcaId?: number | null;
-            /** Format: int32 */
-            veiculoDetalheId?: number | null;
-            veiculoDetalhe?: components["schemas"]["VeiculoDetalheInput"];
-            veiculoModelo?: components["schemas"]["VeiculoModeloInput"];
+            rota?: string | null;
+            selecionado?: boolean;
+            subModules?: components["schemas"]["Estac.Domain.Models.Auth.SubModule"][] | null;
         };
-        VeiculoPutInput: {
+        "Estac.Domain.Models.Auth.Permission": {
+            /** Format: int32 */
+            ordem?: number;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            subModuleId?: number;
+            acao?: string | null;
+            selecionadoPerm?: boolean;
+            subModule?: components["schemas"]["Estac.Domain.Models.Auth.SubModule"];
+        };
+        "Estac.Domain.Models.Auth.RolePermission": {
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            roleId?: number;
+            /** Format: int32 */
+            permissionId?: number | null;
+            /** Format: int32 */
+            subModuleId?: number | null;
+            /** Format: int32 */
+            moduleId?: number | null;
+            role?: components["schemas"]["Estac.Domain.Models.Auth.ApplicationRole"];
+            permission?: components["schemas"]["Estac.Domain.Models.Auth.Permission"];
+            subModule?: components["schemas"]["Estac.Domain.Models.Auth.SubModule"];
+            module?: components["schemas"]["Estac.Domain.Models.Auth.Module"];
+        };
+        "Estac.Domain.Models.Auth.SubModule": {
             /** Format: int32 */
             id?: number;
             descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            placa?: string | null;
             /** Format: int32 */
-            ano?: number | null;
+            ordem?: number;
+            /** Format: int32 */
+            moduleId?: number;
+            rota?: string | null;
             ativo?: boolean;
-            cor?: string | null;
+            selecionadoSub?: boolean;
+            module?: components["schemas"]["Estac.Domain.Models.Auth.Module"];
+            permissions?: components["schemas"]["Estac.Domain.Models.Auth.Permission"][] | null;
+        };
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.AmbienteBancoDados": 1 | 2 | 3;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.EntradaSaidaStatus": 0 | 1 | 2 | 3 | 4;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.IsolationModeEstacionamento": 1 | 2;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.ModalidadeCobranca": 1 | 2 | 3 | 4 | 5 | 6;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.ModalidadeRecebimento": 1 | 2 | 3 | 4;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.ModoRecibo": 1 | 2;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.RegraFechamento": 1 | 2;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.SituacaoFechamento": 1 | 2 | 3 | 4 | 5;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.StatusCobrancaFatura": 0 | 1 | 2 | 3 | 4 | 5 | 6;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.StatusConfiguracaoCobranca": 1 | 2;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.StatusFatura": 1 | 2 | 3 | 4 | 5 | 6;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoBancoDados": 1 | 2 | 3 | 4;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoCarga": 1 | 2 | 3 | 4 | 5;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoChave": 1 | 2 | 3 | 4 | 5;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoCobranca": 0 | 1 | 2 | 3;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoCobrancaExcedente": 1 | 2 | 3 | 4;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoEndereco": 1 | 2 | 3 | 4;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoFatura": 1 | 2;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoJob": 1;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoPapel": 0 | 1 | 2 | 3 | 4;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoPessoa": 1 | 2;
+        /**
+         * Format: int32
+         * @enum {integer}
+         */
+        "Estac.Domain.Models.Enuns.TipoTarifaEstacionamento": 1 | 2;
+        "Estac.Domain.Models.VeiculoMarca": {
             /** Format: int32 */
-            veiculoMarcaId?: number | null;
+            id?: number;
+            descricao?: string | null;
+        };
+        "Estac.Domain.Output.Estacionamento.ExcluirBancoResultado": {
             /** Format: int32 */
-            veiculoDetalheId?: number | null;
-            veiculoDetalhe?: components["schemas"]["VeiculoDetalheInput"];
-            veiculoModelo?: components["schemas"]["VeiculoModeloInput"];
+            bancoDadosConexaoId?: number;
+            nome?: string | null;
+            host?: string | null;
+            nomeBanco?: string | null;
+            ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+            sucesso?: boolean;
+            mensagem?: string | null;
+            bancoExcluidoNoServidor?: boolean;
+            perfilExcluido?: boolean;
+            perfilDesativado?: boolean;
+            /** Format: int32 */
+            tenantsDesvinculados?: number;
+            /** Format: int32 */
+            transportadorasDesvinculadas?: number;
+            /** Format: int32 */
+            motoristasDesvinculados?: number;
+            /** Format: int32 */
+            veiculosDesvinculados?: number;
+            /** Format: int32 */
+            transferenciasRemovidas?: number;
+            /** Format: int32 */
+            importacoesRemovidas?: number;
+            /** Format: int32 */
+            migrationsRemovidas?: number;
+        };
+        "Estac.Domain.Output.Estacionamento.GtsMigracaoPerfilResultado": {
+            /** Format: int32 */
+            bancoDadosConexaoId?: number;
+            nome?: string | null;
+            host?: string | null;
+            nomeBanco?: string | null;
+            ambiente?: components["schemas"]["Estac.Domain.Models.Enuns.AmbienteBancoDados"];
+            sucesso?: boolean;
+            mensagem?: string | null;
+            migrationsAplicadas?: string[] | null;
+            migrationsPendentesAntes?: string[] | null;
         };
     };
     responses: never;

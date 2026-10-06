@@ -1,9 +1,14 @@
 import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatTelefone } from '../../directives/telefone-format.directive';
 import type { TransportadoraListItemDTO } from '../../models/transportadora.dto';
+import {
+  isStatusConvitePendente,
+  STATUS_CADASTRO_TRANSPORTADORA_LABEL,
+} from '../../models/convite-transportadora.models';
 
 export interface TransportadoraViewDialogData {
   item: TransportadoraListItemDTO;
@@ -12,7 +17,7 @@ export interface TransportadoraViewDialogData {
 @Component({
   selector: 'app-transportadora-view-dialog',
   standalone: true,
-  imports: [MatDialogModule],
+  imports: [CommonModule, MatDialogModule],
   template: `
     <div class="trn-view">
       <header class="trn-view__header">
@@ -54,8 +59,12 @@ export interface TransportadoraViewDialogData {
             <dd>{{ frotaExibicao }}</dd>
           </div>
           <div class="trn-view__row">
+            <dt>Responsável</dt>
+            <dd>{{ data.item.responsavelNome?.trim() ? data.item.responsavelNome : '—' }}</dd>
+          </div>
+          <div class="trn-view__row">
             <dt>Status</dt>
-            <dd>{{ data.item.ativo ? 'Ativa' : 'Inativa' }}</dd>
+            <dd>{{ statusLabel }}</dd>
           </div>
         </dl>
       </mat-dialog-content>
@@ -64,9 +73,11 @@ export interface TransportadoraViewDialogData {
         <button type="button" class="trn-view__btn trn-view__btn--secondary" (click)="ref.close()">
           Fechar
         </button>
-        <button type="button" class="trn-view__btn trn-view__btn--primary" (click)="ref.close('edit')">
-          Editar Cadastro
-        </button>
+        @if (podeEditar) {
+          <button type="button" class="trn-view__btn trn-view__btn--primary" (click)="ref.close('edit')">
+            Editar Cadastro
+          </button>
+        }
       </footer>
     </div>
   `,
@@ -245,6 +256,16 @@ export interface TransportadoraViewDialogData {
 export class TransportadoraViewDialogComponent {
   readonly ref = inject(MatDialogRef<TransportadoraViewDialogComponent, void | 'edit'>);
   readonly data = inject<TransportadoraViewDialogData>(MAT_DIALOG_DATA);
+
+  get statusLabel(): string {
+    const st = this.data.item.statusCadastro ?? (this.data.item.ativo ? 'Ativa' : 'Inativa');
+    return STATUS_CADASTRO_TRANSPORTADORA_LABEL[st] ?? st;
+  }
+
+  get podeEditar(): boolean {
+    const st = this.data.item.statusCadastro ?? (this.data.item.ativo ? 'Ativa' : 'Inativa');
+    return !isStatusConvitePendente(st);
+  }
 
   get emailExibicao(): string {
     const email = String(this.data.item.email ?? '').trim();

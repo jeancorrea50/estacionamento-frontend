@@ -102,6 +102,7 @@ function collectStaticRoutes(): void {
     '/app/cadastro/transportadora',
     '/app/cadastro/estacionamento',
     '/app/cadastro/motorista',
+    '/cadastro-transportadora',
   ];
   for (const route of extras) {
     addRoute(route);

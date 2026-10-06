@@ -123,7 +123,7 @@
         <app-camera-preview />
       </aside>
     </section>
-    } @else {
+  } @else {
     <section class="dashboard-kpis">
       <article class="kpi-card">
         <p class="kpi-card__label">Entradas Hoje</p>
@@ -239,7 +239,7 @@
           <section class="card historico-card">
             <header class="historico-card__header">
               <h2>Movimentos de entrada e saída</h2>
-            </header>
+        </header>
             <div
               class="table-wrap historico-table-wrap"
               tabindex="0"
@@ -750,7 +750,7 @@
               {{
                 permanenciaProcessandoId() === registroRapidoEntradaId ? 'Retomando...' : 'Retomar'
               }}
-            </button>
+          </button>
           }
           <button
             class="btn btn-success"
@@ -761,7 +761,7 @@
             {{ processandoRegistroRapido() ? 'Registrando...' : 'Confirmar entrada' }}
           </button>
         </footer>
-      </div>
+        </div>
     </div>
   }
 
@@ -794,7 +794,7 @@
         <div class="es-modal__toolbar">
           <label class="es-modal__search">
             <span class="material-symbols-outlined es-modal__search-ico" aria-hidden="true">search</span>
-            <input
+        <input
               class="input-control"
               type="search"
               placeholder="Buscar por placa, motorista ou transportadora..."
@@ -835,7 +835,7 @@
                 {{ chip.label }} <span class="es-chip__count">{{ chip.count }}</span>
               </button>
             }
-          </div>
+      </div>
         }
 
         <div class="es-modal__body es-modal__body--table">
@@ -844,36 +844,36 @@
           } @else {
             <div class="table-wrap es-modal__table-wrap">
               <table class="data-table es-saida-table">
-                <thead>
-                  <tr>
+          <thead>
+            <tr>
                     <th scope="col">Placa</th>
                     <th scope="col">Motorista</th>
                     <th scope="col">Transportadora</th>
                     <th scope="col">Horário de entrada</th>
                     <th scope="col">Tempo no pátio</th>
                     <th scope="col" class="col-acoes">Ação</th>
-                  </tr>
-                </thead>
-                <tbody>
+            </tr>
+          </thead>
+          <tbody>
                   @for (item of saidaModalPaginaItens(); track item.id) {
                     <tr
                       [class.es-saida-table__row--selected]="saidaModalSelecionadoId() === item.id"
                       (click)="selecionarLinhaSaida(item.id)"
                     >
-                      <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
-                      <td>
+                <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                <td>
                         <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista || '—' }}</span>
-                      </td>
-                      <td>
-                        <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                </td>
+                <td>
+                  <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
                           item.nomeTransportadora || '—'
-                        }}</span>
-                      </td>
+                  }}</span>
+                </td>
                       <td>{{ item.dataHoraEntrada ? (item.dataHoraEntrada | date: 'HH:mm') : '—' }}</td>
                       <td>{{ tempoNoPatioDesde(item.dataHoraEntrada) }}</td>
                       <td class="acoes-cell es-saida-table__acoes">
-                        <button
-                          type="button"
+                  <button
+                    type="button"
                           class="btn btn-warning btn--sm"
                           [disabled]="!canGravar || permanenciaProcessandoId() === item.id"
                           (click)="$event.stopPropagation(); suspenderOuRetomarDoModalSaida(item)"
@@ -885,25 +885,25 @@
                                 ? 'Retomar'
                                 : 'Suspender'
                           }}
-                        </button>
-                        <button
-                          type="button"
+                  </button>
+                  <button
+                    type="button"
                           class="btn btn-danger btn--sm"
                           [disabled]="!canGravar"
                           (click)="$event.stopPropagation(); darSaidaDoModal(item)"
                         >
                           Dar saída
-                        </button>
-                      </td>
-                    </tr>
+                  </button>
+                </td>
+              </tr>
                   } @empty {
                     <tr>
                       <td colspan="6">Nenhum veículo em aberto encontrado.</td>
                     </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+            }
+          </tbody>
+        </table>
+      </div>
           }
         </div>
 
@@ -914,9 +914,9 @@
           </span>
           @if (saidaModalTotalPaginas() > 1) {
             <nav class="es-modal__pager" aria-label="Paginação de veículos em aberto">
-              <button
+            <button
                 type="button"
-                class="btn btn-secondary btn--sm"
+              class="btn btn-secondary btn--sm"
                 [disabled]="saidaModalPagina() <= 1"
                 (click)="irPaginaSaida(saidaModalPagina() - 1)"
               >
@@ -924,25 +924,25 @@
               </button>
               @for (p of saidaModalPaginasVisiveis(); track p) {
                 <button
-                  type="button"
+              type="button"
                   class="btn btn--sm"
                   [class.btn-primary]="p === saidaModalPagina()"
                   [class.btn-secondary]="p !== saidaModalPagina()"
                   (click)="irPaginaSaida(p)"
                 >
                   {{ p }}
-                </button>
+            </button>
               }
-              <button
-                type="button"
+            <button
+              type="button"
                 class="btn btn-secondary btn--sm"
                 [disabled]="saidaModalPagina() >= saidaModalTotalPaginas()"
                 (click)="irPaginaSaida(saidaModalPagina() + 1)"
-              >
+            >
                 &gt;
-              </button>
-            </nav>
-          }
+            </button>
+        </nav>
+      }
         </footer>
       </div>
     </div>

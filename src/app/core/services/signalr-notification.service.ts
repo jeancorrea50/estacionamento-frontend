@@ -5,7 +5,9 @@ import {
   HubConnectionBuilder,
   HubConnectionState,
   HttpTransportType,
+  IRetryPolicy,
   LogLevel,
+  RetryContext,
 } from '@microsoft/signalr';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -25,6 +27,9 @@ import type { NotificacaoDto } from '../models/notificacao.models';
  */
 @Injectable({ providedIn: 'root' })
 export class SignalrNotificationService {
+  private static readonly MAX_RECONNECT_ATTEMPTS = 4;
+  private static readonly RECONNECT_DELAYS_MS = [0, 2000, 5000, 10000] as const;
+
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
@@ -37,6 +42,7 @@ export class SignalrNotificationService {
   private connectPromise: Promise<void> | null = null;
   private listaFalhouOnce = false;
   private hubFalhouOnce = false;
+  private reconnectEsgotado = false;
 
   readonly itens = this.itensSignal.asReadonly();
   readonly panelOpen = this.panelOpenSignal.asReadonly();
@@ -44,8 +50,16 @@ export class SignalrNotificationService {
 
   async connect(): Promise<void> {
     if (!this.auth.isAdmin()) return;
-    if (this.isConnected()) return;
+    if (this.isBusyOrConnected()) return;
     if (this.connectPromise) return this.connectPromise;
+
+    if (this.reconnectEsgotado || this.hubFalhouOnce) {
+      this.reconnectEsgotado = false;
+      this.hubFalhouOnce = false;
+      if (!this.hubConnection || this.hubConnection.state === HubConnectionState.Disconnected) {
+        this.hubConnection = null;
+      }
+    }
 
     await this.carregarLista();
 
@@ -57,13 +71,15 @@ export class SignalrNotificationService {
     this.connectPromise = this.hubConnection
       .start()
       .then(() => {
+        this.hubFalhouOnce = false;
+        this.reconnectEsgotado = false;
         if (!environment.production) {
-          console.log('[NotificationHub] conectado:', this.hubUrl);
+          console.info('[NotificationHub] conectado:', this.hubUrl);
         }
       })
       .catch((err) => {
-        if (!environment.production && !this.hubFalhouOnce) {
-          this.hubFalhouOnce = true;
+        this.hubFalhouOnce = true;
+        if (!environment.production) {
           console.warn('[NotificationHub] falha ao conectar:', err);
         }
         this.connectPromise = null;
@@ -82,7 +98,13 @@ export class SignalrNotificationService {
   }
 
   togglePanel(): void {
+    const opening = !this.panelOpenSignal();
     this.panelOpenSignal.update((v) => !v);
+    // Reabre tentativa se o hub tiver pausado após falhas (layout só chama connect no init).
+    if (opening) {
+      void this.connect();
+      void this.carregarLista();
+    }
   }
 
   closePanel(): void {
@@ -138,9 +160,28 @@ export class SignalrNotificationService {
           HttpTransportType.LongPolling,
         withCredentials: false,
       })
-      .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(LogLevel.Warning)
+      .withAutomaticReconnect(this.buildRetryPolicy())
+      .configureLogging(LogLevel.Error)
       .build();
+  }
+
+  private buildRetryPolicy(): IRetryPolicy {
+    return {
+      nextRetryDelayInMilliseconds: (retryContext: RetryContext): number | null => {
+        if (retryContext.previousRetryCount >= SignalrNotificationService.MAX_RECONNECT_ATTEMPTS) {
+          this.reconnectEsgotado = true;
+          if (!environment.production) {
+            console.warn(
+              '[NotificationHub] reconexões esgotadas; hub pausado até nova tentativa.',
+              retryContext.retryReason ?? 'sem detalhe'
+            );
+          }
+          return null;
+        }
+        const delays = SignalrNotificationService.RECONNECT_DELAYS_MS;
+        return delays[Math.min(retryContext.previousRetryCount, delays.length - 1)];
+      },
+    };
   }
 
   private registerHandlers(connection: HubConnection): void {
@@ -163,11 +204,17 @@ export class SignalrNotificationService {
     });
 
     connection.onreconnected(() => {
+      this.reconnectEsgotado = false;
       void this.carregarLista();
     });
   }
 
-  private isConnected(): boolean {
-    return this.hubConnection?.state === HubConnectionState.Connected;
+  private isBusyOrConnected(): boolean {
+    const state = this.hubConnection?.state;
+    return (
+      state === HubConnectionState.Connected ||
+      state === HubConnectionState.Connecting ||
+      state === HubConnectionState.Reconnecting
+    );
   }
 }

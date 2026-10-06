@@ -25,6 +25,15 @@ import { routeAccessGuard } from './core/guards/route-access.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
 
 export const routes: Routes = [
+	// Convite público (sem layout admin; sem exigir login do estacionamento)
+	{
+		path: 'cadastro-transportadora/:token',
+		loadComponent: () =>
+			import('./features/cadastro/pages/cadastro-transportadora-publico-page/cadastro-transportadora-publico-page.component').then(
+				(m) => m.CadastroTransportadoraPublicoPageComponent
+			),
+	},
+
 	// 1. ROTA RAIZ: se autenticado → /app/dashboard; senão → login
 	{
 		path: '',

@@ -25,6 +25,12 @@ function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
   );
 }
 
+/** Onboarding público por token de convite (sem Bearer). */
+function isPublicConviteTransportadoraRoute(req: HttpRequest<unknown>): boolean {
+  const u = req.url.toLowerCase();
+  return u.includes('/transportadora/convite/publico/');
+}
+
 function readSessionEstacionamento(): SessionEstacionamento | null {
   try {
     const raw = sessionStorage.getItem(SESSION_ESTACIONAMENTO_KEY);
@@ -49,7 +55,9 @@ function readSessionEstacionamento(): SessionEstacionamento | null {
  * Preferência: estacionamento de sessão (Admin) → claims do JWT.
  */
 export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
-  if (isExternalApi(req) || isPublicAuthUsuarioRoute(req)) return next(req);
+  if (isExternalApi(req) || isPublicAuthUsuarioRoute(req) || isPublicConviteTransportadoraRoute(req)) {
+    return next(req);
+  }
 
   const platformId = inject(PLATFORM_ID);
   let raw: string | null = null;

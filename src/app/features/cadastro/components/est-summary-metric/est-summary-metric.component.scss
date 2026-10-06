@@ -69,4 +69,16 @@
     color: color-mix(in srgb, var(--danger, #f87171) 90%, var(--text));
     border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 35%, transparent);
   }
+
+  &--info .est-metric__icon {
+    background: color-mix(in srgb, #3b82f6 14%, transparent);
+    color: #60a5fa;
+    border: 1px solid color-mix(in srgb, #3b82f6 35%, transparent);
+  }
+
+  &--warning .est-metric__icon {
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+    color: #fbbf24;
+    border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+  }
 }

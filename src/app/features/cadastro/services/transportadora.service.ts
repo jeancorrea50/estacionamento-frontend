@@ -10,6 +10,7 @@ import {
   TransportadoraObterPorIdResultDTO,
   TransportadoraContatoComplementarDTO
 } from '../models/transportadora.dto';
+import { parseStatusCadastroTransportadora } from '../models/convite-transportadora.models';
 import {
   ImportacaoTransportadoraConsulta,
   ImportacaoTransportadoraStatus
@@ -475,6 +476,21 @@ export class TransportadoraService {
         'VeiculosCount'
       ),
       dataAtualizacao: dataRaw || null,
+      statusCadastro: (() => {
+        const parsed = parseStatusCadastroTransportadora(
+          get('statusCadastro') ?? get('StatusCadastro') ?? get('statusConvite') ?? get('StatusConvite')
+        );
+        if (parsed) return parsed;
+        return ativoVal() ? 'Ativa' : 'Inativa';
+      })(),
+      progressoCadastro: (() => {
+        const n = firstNum('progressoCadastro', 'ProgressoCadastro', 'progresso', 'Progresso');
+        if (n == null) return null;
+        return Math.max(0, Math.min(100, Math.trunc(n)));
+      })(),
+      responsavelNome:
+        firstStr('responsavelNome', 'ResponsavelNome', 'responsavelLegal', 'ResponsavelLegal') || null,
+      conviteId: firstNum('conviteId', 'ConviteId', 'inviteId', 'InviteId'),
     };
   }
 

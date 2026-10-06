@@ -99,6 +99,11 @@ function isPasswordResetPublicRequest(req: HttpRequest<unknown>): boolean {
   return u.includes('auth/usuario/esqueci-senha') || u.includes('auth/usuario/redefinir-senha');
 }
 
+/** Convite de transportadora: UI (modal/lista/página pública) trata a mensagem. */
+function isConviteTransportadoraRequest(req: HttpRequest<unknown>): boolean {
+  return req.url.toLowerCase().includes('/transportadora/convite');
+}
+
 /** Cadastro de usuário: a tela (modal) exibe a mensagem; evita toast duplicado. */
 function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
   const u = req.url.toLowerCase();
@@ -179,7 +184,8 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         apiError.status === 401 &&
         !isLoginRequest(req) &&
         !isConfirmarEmailRequest(req) &&
-        !isPasswordResetPublicRequest(req);
+        !isPasswordResetPublicRequest(req) &&
+        !isConviteTransportadoraRequest(req);
 
       if (isUnauthorized) {
         // Injector evita dependência circular AuthService ↔ HttpClient.
@@ -195,6 +201,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         isBrasilApiCnpjRequest(req) ||
         isConfirmarEmailRequest(req) ||
         isPasswordResetPublicRequest(req) ||
+        isConviteTransportadoraRequest(req) ||
         isUsuarioRegisterRequest(req) ||
         isSugerirNomeBancoGet(req) ||
         isMotoristaWriteRequest(req) ||

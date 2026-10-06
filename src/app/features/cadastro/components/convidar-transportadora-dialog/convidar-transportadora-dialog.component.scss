@@ -1,0 +1,208 @@
+.convite-dlg {
+  --cv-surface: #252530;
+  --cv-border: #363642;
+  --cv-text: #f1f1f5;
+  --cv-muted: #92929f;
+  --cv-input: #1c1c24;
+  --cv-primary: #3b82f6;
+  min-width: min(100%, 440px);
+  max-width: 520px;
+  padding: 1.35rem 1.4rem 1.25rem;
+  color: var(--cv-text);
+  background: var(--cv-surface);
+  box-sizing: border-box;
+}
+
+.convite-dlg__header {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  margin-bottom: 1.15rem;
+}
+
+.convite-dlg__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--cv-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cv-primary) 40%, transparent);
+  color: #93c5fd;
+
+  .material-symbols-outlined {
+    font-size: 22px;
+  }
+}
+
+.convite-dlg__title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.convite-dlg__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--cv-muted);
+}
+
+.convite-dlg__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.convite-dlg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.convite-dlg__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--cv-muted) 90%, var(--cv-text));
+}
+
+.convite-dlg__input-wrap {
+  position: relative;
+  display: block;
+}
+
+.convite-dlg__field-ico {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--cv-muted);
+  pointer-events: none;
+}
+
+.convite-dlg__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.85rem 0.7rem 2.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--cv-border);
+  background: var(--cv-input);
+  color: var(--cv-text);
+  font-size: 0.875rem;
+  outline: none;
+
+  &::placeholder {
+    color: color-mix(in srgb, var(--cv-muted) 80%, transparent);
+  }
+
+  &:focus {
+    border-color: color-mix(in srgb, var(--cv-primary) 70%, var(--cv-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cv-primary) 22%, transparent);
+  }
+
+  &[aria-invalid='true'] {
+    border-color: color-mix(in srgb, #ef4444 70%, var(--cv-border));
+  }
+}
+
+.convite-dlg__error {
+  color: #f87171;
+  font-size: 0.75rem;
+}
+
+.convite-dlg__info {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cv-primary) 42%, var(--cv-border));
+  background: color-mix(in srgb, var(--cv-primary) 10%, transparent);
+  color: #bfdbfe;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+
+  .material-symbols-outlined {
+    font-size: 18px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.convite-dlg__banner {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, #ef4444 14%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 40%, transparent);
+  color: #fecaca;
+  font-size: 0.8125rem;
+}
+
+.convite-dlg__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.convite-dlg__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+.convite-dlg__btn--ghost {
+  background: color-mix(in srgb, #3f3f4a 80%, transparent);
+  border-color: var(--cv-border);
+  color: var(--cv-text);
+}
+
+.convite-dlg__btn--primary {
+  background: var(--cv-primary);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+}
+
+@media (max-width: 520px) {
+  .convite-dlg {
+    padding: 1.1rem;
+  }
+
+  .convite-dlg__actions {
+    flex-direction: column-reverse;
+
+    .convite-dlg__btn {
+      width: 100%;
+    }
+  }
+}

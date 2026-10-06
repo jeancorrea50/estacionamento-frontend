@@ -1,8 +1,11 @@
 import type { components } from '../../../core/api/generated/api-types';
+import type { StatusCadastroTransportadora } from './convite-transportadora.models';
 
-/** Contrato Swagger: POST/PUT `/api/Transportadora` */
-export type TransportadoraPostInput = components['schemas']['TransportadoraPostInput'];
-export type TransportadoraPutInput = components['schemas']['TransportadoraPutInput'];
+/** Contrato Swagger: POST/PUT `/api/Transportadora` (nomes FQN do OpenAPI vivo). */
+export type TransportadoraPostInput =
+  components['schemas']['Estac.Domain.Input.Transportadora.TransportadoraPostInput'];
+export type TransportadoraPutInput =
+  components['schemas']['Estac.Domain.Input.Transportadora.TransportadoraPutInput'];
 
 /** Resposta paginada genérica da API */
 export interface PagedResultDTO<T> {
@@ -35,6 +38,13 @@ export interface TransportadoraListItemDTO {
   quantidadeVeiculos?: number | null;
   /** ISO ou string da API para coluna Atualização (`dataAtualizacao`). */
   dataAtualizacao?: string | null;
+  /** Status de onboarding/convite (quando a API projetar). */
+  statusCadastro?: StatusCadastroTransportadora | null;
+  /** 0–100 do cadastro via convite. */
+  progressoCadastro?: number | null;
+  responsavelNome?: string | null;
+  /** Id do convite para reenviar/cancelar (quando pendente). */
+  conviteId?: number | null;
 }
 
 /** Endereço no formulário de transportadora */

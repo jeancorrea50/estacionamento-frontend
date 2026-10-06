@@ -1,6 +1,23 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
-/** CPF: obrigatório e com exatamente 11 dígitos (ignora máscara). */
+/** Algoritmo oficial dos dígitos verificadores do CPF. */
+export function isCpfChecksumValid(digits: string): boolean {
+  const d = String(digits ?? '').replace(/\D/g, '');
+  if (d.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(d[i]) * (10 - i);
+  let rev = (sum * 10) % 11;
+  if (rev === 10) rev = 0;
+  if (rev !== Number(d[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += Number(d[i]) * (11 - i);
+  rev = (sum * 10) % 11;
+  if (rev === 10) rev = 0;
+  return rev === Number(d[10]);
+}
+
+/** CPF: obrigatório, 11 dígitos e checksum válido (ignora máscara). */
 export function cpfCompletoValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const digits = String(control.value ?? '').replace(/\D/g, '');
@@ -13,6 +30,9 @@ export function cpfCompletoValidator(): ValidatorFn {
           message: 'CPF deve ter 11 dígitos'
         }
       };
+    }
+    if (!isCpfChecksumValid(digits)) {
+      return { cpfInvalido: { message: 'CPF inválido' } };
     }
     return null;
   };

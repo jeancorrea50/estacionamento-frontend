@@ -30,7 +30,7 @@
         </div>
         <div class="est-dash-hero__copy">
           <h1 id="trn-dash-title" class="est-dash-hero__title">Cadastro Transportadora</h1>
-          <p class="est-dash-hero__subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
+          <p class="est-dash-hero__subtitle">Gerencie as transportadoras que utilizam o estacionamento.</p>
         </div>
       </header>
 
@@ -106,9 +106,23 @@
                 [hint]="resumoListaPaginaHint"
               />
               <app-est-summary-metric
-                icon="cancel"
-                label="Inativas"
-                [value]="countInativasPagina"
+                icon="send"
+                label="Convites enviados"
+                [value]="countConvitesEnviadosPagina"
+                variant="info"
+                [hint]="resumoListaPaginaHint"
+              />
+              <app-est-summary-metric
+                icon="pending"
+                label="Em andamento"
+                [value]="countEmAndamentoPagina"
+                variant="warning"
+                [hint]="resumoListaPaginaHint"
+              />
+              <app-est-summary-metric
+                icon="schedule"
+                label="Pendentes"
+                [value]="countPendentesPagina"
                 variant="danger"
                 [hint]="resumoListaPaginaHint"
               />
@@ -121,13 +135,9 @@
                     <tr>
                       <th scope="col">ID</th>
                       <th scope="col">Razão social</th>
-                      <th scope="col">Nome fantasia</th>
-                      <th scope="col">CNPJ</th>
-                      <th scope="col">E-mail</th>
-                      <th scope="col">Telefone</th>
-                      <th scope="col">Atualização</th>
-                      <th scope="col">Frota</th>
+                      <th scope="col">Nome do responsável</th>
                       <th scope="col">Status</th>
+                      <th scope="col">Atualização</th>
                       <th scope="col" class="trn-table__th-acoes">Ações</th>
                     </tr>
                   </thead>
@@ -135,25 +145,12 @@
                     @for (item of transportadoraList; track item.id) {
                       <tr class="trn-table__row">
                         <td>{{ item.id }}</td>
-                        <td>{{ item.razaoSocial }}</td>
-                        <td>{{ item.nomeFantasia || '—' }}</td>
-                        <td>{{ formatCnpjList(item.cnpj) }}</td>
-                        <td>{{ item.email.trim() ? item.email : '—' }}</td>
-                        <td>{{ formatTelefoneLista(item.telefone) }}</td>
-                        <td>{{ formatDataAtualizacaoLista(item.dataAtualizacao) }}</td>
-                        <td class="trn-cell-frota">
-                          @if (item.quantidadeVeiculos != null && item.quantidadeVeiculos >= 0) {
-                            <span class="trn-frota-pill">
-                              <span class="material-symbols-outlined trn-frota-pill__ico" aria-hidden="true">local_shipping</span>
-                              {{ item.quantidadeVeiculos }}
-                            </span>
-                          } @else {
-                            —
-                          }
-                        </td>
+                        <td>{{ item.razaoSocial.trim() ? item.razaoSocial : '—' }}</td>
+                        <td>{{ item.responsavelNome?.trim() ? item.responsavelNome : '—' }}</td>
                         <td>
-                          <app-est-status-pill-estacionamento [ativo]="item.ativo" />
+                          <app-trn-status-cadastro-pill [status]="resolveStatus(item)" />
                         </td>
+                        <td>{{ formatDataAtualizacaoLista(item.dataAtualizacao) }}</td>
                         <td class="trn-table__acoes">
                           <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para transportadora ' + item.id">
                             <button
@@ -165,23 +162,44 @@
                             >
                               <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
                             </button>
-                            <a
-                              class="trn-act-btn trn-act-btn--accent"
-                              [routerLink]="[transportadorasRoute, 'editar', item.id]"
-                              title="Editar"
-                              aria-label="Editar transportadora"
-                            >
-                              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                            </a>
-                            <button
-                              type="button"
-                              class="trn-act-btn trn-act-btn--danger"
-                              title="Excluir"
-                              aria-label="Excluir transportadora"
-                              (click)="excluirTransportadoraLista(item)"
-                            >
-                              <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                            </button>
+                            @if (isConvitePendente(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--accent"
+                                title="Reenviar convite"
+                                aria-label="Reenviar convite"
+                                (click)="reenviarConvite(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Cancelar convite"
+                                aria-label="Cancelar convite"
+                                (click)="cancelarConvite(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                              </button>
+                            } @else {
+                              <a
+                                class="trn-act-btn trn-act-btn--accent"
+                                [routerLink]="[transportadorasRoute, 'editar', item.id]"
+                                title="Editar"
+                                aria-label="Editar transportadora"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                              </a>
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Excluir"
+                                aria-label="Excluir transportadora"
+                                (click)="excluirTransportadoraLista(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                              </button>
+                            }
                           </div>
                         </td>
                       </tr>

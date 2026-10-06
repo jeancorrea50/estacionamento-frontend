@@ -2266,6 +2266,21 @@ html.theme-dark .trn-view-dialog-panel {
   color: var(--trn-view-dialog-text) !important;
 }
 
+/* Modal Convidar Transportadora */
+.trn-convite-dialog-panel .mat-mdc-dialog-surface,
+.trn-convite-dialog-panel .mdc-dialog__surface {
+  background: #252530 !important;
+  color: #f1f1f5 !important;
+  border: 1px solid #363642 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35) !important;
+  overflow: hidden;
+}
+
+.trn-convite-dialog-panel app-convidar-transportadora-dialog {
+  display: block;
+}
+
 html.theme-dark .cdk-overlay-backdrop.cdk-overlay-backdrop-showing {
   background: rgba(0, 0, 0, 0.55);
 }

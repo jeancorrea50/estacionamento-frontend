@@ -35,8 +35,14 @@ import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/
 import { CadastroConfirmDialogComponent } from '../../components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
-import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
+import { TrnStatusCadastroPillComponent } from '../../components/trn-status-cadastro-pill/trn-status-cadastro-pill.component';
 import { TransportadoraViewDialogComponent } from '../../components/transportadora-view-dialog/transportadora-view-dialog.component';
+import { ConvidarTransportadoraDialogComponent } from '../../components/convidar-transportadora-dialog/convidar-transportadora-dialog.component';
+import { ConviteTransportadoraService } from '../../services/convite-transportadora.service';
+import {
+  isStatusConvitePendente,
+  type StatusCadastroTransportadora,
+} from '../../models/convite-transportadora.models';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta, stripPlacaAlnum } from '../../utils/placa-br';
 import { splitMarcaModelo } from '../../utils/marca-modelo';
 import { parseTipoCarga, TIPO_CARGA_OPCOES, tipoCargaLabel } from '../../../../shared/models/tipo-carga';
@@ -60,7 +66,7 @@ type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasi
     PlacaFormatDirective,
     ModalBuscaMotoristaComponent,
     EstSummaryMetricComponent,
-    EstStatusPillEstacionamentoComponent,
+    TrnStatusCadastroPillComponent,
     MatDialogModule,
   ],
   templateUrl: './cadastro-transportadora-page.component.html',
@@ -70,6 +76,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   protected readonly transportadorasRoute = CADASTRO_TRANSPORTADORAS_ROUTE;
 
   private transportadoraService = inject(TransportadoraService);
+  private conviteService = inject(ConviteTransportadoraService);
   private veiculoService = inject(VeiculoService);
   private viacep = inject(ViacepService);
   private cnpjService = inject(CnpjService);
@@ -656,15 +663,31 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   get countAtivasPagina(): number {
-    return this.transportadoraList.filter((i) => i.ativo).length;
+    return this.transportadoraList.filter((i) => this.resolveStatus(i) === 'Ativa').length;
   }
 
-  get countInativasPagina(): number {
-    return this.transportadoraList.filter((i) => !i.ativo).length;
+  get countConvitesEnviadosPagina(): number {
+    return this.transportadoraList.filter((i) => this.resolveStatus(i) === 'ConviteEnviado').length;
+  }
+
+  get countEmAndamentoPagina(): number {
+    return this.transportadoraList.filter((i) => this.resolveStatus(i) === 'CadastroEmAndamento').length;
+  }
+
+  get countPendentesPagina(): number {
+    return this.transportadoraList.filter((i) => this.resolveStatus(i) === 'AguardandoConclusao').length;
   }
 
   get resumoListaPaginaHint(): string | null {
     return this.totalPaginasLista > 1 ? 'Nesta página' : null;
+  }
+
+  resolveStatus(item: TransportadoraListItemDTO): StatusCadastroTransportadora {
+    return item.statusCadastro ?? (item.ativo ? 'Ativa' : 'Inativa');
+  }
+
+  isConvitePendente(item: TransportadoraListItemDTO): boolean {
+    return isStatusConvitePendente(this.resolveStatus(item));
   }
 
   onTamanhoPaginaListaChange(size: number | string): void {
@@ -737,45 +760,58 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     return base;
   }
 
+  /** Abre modal de convite (substitui o formulário completo no + Novo). */
   novoTransportadora(): void {
     if (this.somentePropriaTransportadora) {
       this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
       return;
     }
-    this.listView = false;
-    this.transportadoraId = null;
-    this.transportadoraMergeRaw = null;
-    this.contatosComplementares.clear();
-    this.transportadoraForm.reset({
-      id: null,
-      pessoa: {
-        razaoSocial: '',
-        nomeFantasia: '',
-        cnpj: '',
-        inscricaoEstadual: '',
-        ativo: true
-      },
-      responsavelLegal: {
-        nome: '',
-        cpf: '',
-        telefone: '',
-        email: '',
-        cargo: ''
-      },
-      endereco: {
-        cep: '',
-        logradouro: '',
-        numero: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-        complemento: ''
+    const ref = this.dialog.open(ConvidarTransportadoraDialogComponent, {
+      width: '520px',
+      maxWidth: '96vw',
+      panelClass: 'trn-convite-dialog-panel',
+      autoFocus: 'first-tabbable',
+      restoreFocus: true,
+    });
+    ref.afterClosed().subscribe((enviado) => {
+      if (enviado) {
+        this.toast.success('Convite enviado com sucesso.');
+        this.carregarLista();
       }
     });
-    this.erroForm = null;
-    this.cnpjError = null;
-    this.veiculos = [];
-    this.condutores = [];
+  }
+
+  reenviarConvite(item: TransportadoraListItemDTO): void {
+    const id = item.conviteId ?? item.id;
+    if (!id || id <= 0) {
+      this.toast.error('Convite não encontrado para reenvio.');
+      return;
+    }
+    this.conviteService.reenviar(id).subscribe((res) => {
+      if (res.ok) {
+        this.toast.success(res.message ?? 'Convite reenviado.');
+        this.carregarLista();
+      } else {
+        this.toast.error(res.message ?? 'Falha ao reenviar convite.');
+      }
+    });
+  }
+
+  cancelarConvite(item: TransportadoraListItemDTO): void {
+    const id = item.conviteId ?? item.id;
+    if (!id || id <= 0) {
+      this.toast.error('Convite não encontrado.');
+      return;
+    }
+    if (!confirm('Cancelar este convite? O link enviado deixará de ser válido.')) return;
+    this.conviteService.cancelar(id).subscribe((res) => {
+      if (res.ok) {
+        this.toast.success(res.message ?? 'Convite cancelado.');
+        this.carregarLista();
+      } else {
+        this.toast.error(res.message ?? 'Falha ao cancelar convite.');
+      }
+    });
   }
 
   /** Preenche o formulário a partir do GET /api/Transportadora/{id} (rota `editar/:id` ou recarga). */

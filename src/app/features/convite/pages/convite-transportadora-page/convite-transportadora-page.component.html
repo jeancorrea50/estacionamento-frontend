@@ -1,4 +1,4 @@
-﻿<div class="cv-shell">
+<div class="cv-shell">
   <div class="cv-bg" aria-hidden="true"></div>
 
   <header class="cv-top">
@@ -157,8 +157,11 @@
                 <input type="email" formControlName="email" />
               </label>
               <label class="cv-field">
-                <span>Telefone</span>
-                <input formControlName="telefone" inputmode="tel" />
+                <span>Celular (DDI +55) *</span>
+                <span class="cv-phone">
+                  <span class="cv-phone__ddi">+55</span>
+                  <input formControlName="telefone" appTelefoneFormat inputmode="tel" placeholder="(00) 00000-0000" />
+                </span>
               </label>
               <label class="cv-field">
                 <span>Data de nascimento</span>

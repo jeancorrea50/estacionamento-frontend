@@ -72,19 +72,23 @@
 
       <label class="convite-dlg__field">
         <span class="convite-dlg__label">Celular (WhatsApp / SMS) *</span>
-        <span class="convite-dlg__input-wrap">
-          <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">smartphone</span>
-          <input
-            type="tel"
-            class="convite-dlg__input"
-            formControlName="responsavelTelefone"
-            appTelefoneFormat
-            placeholder="(00) 00000-0000"
-            inputmode="tel"
-            autocomplete="tel"
-            [attr.aria-invalid]="!!fieldError('responsavelTelefone')"
-          />
+        <span class="convite-dlg__phone" [attr.aria-invalid]="!!fieldError('responsavelTelefone')">
+          <span class="convite-dlg__ddi" title="DDI Brasil">+55</span>
+          <span class="convite-dlg__input-wrap convite-dlg__input-wrap--phone">
+            <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">smartphone</span>
+            <input
+              type="tel"
+              class="convite-dlg__input"
+              formControlName="responsavelTelefone"
+              appTelefoneFormat
+              placeholder="(00) 00000-0000"
+              inputmode="tel"
+              autocomplete="tel"
+              [attr.aria-invalid]="!!fieldError('responsavelTelefone')"
+            />
+          </span>
         </span>
+        <small class="convite-dlg__hint">Padrão BR: DDI +55, DDD (2 dígitos) e número com 9.</small>
         @if (fieldError('responsavelTelefone'); as err) {
           <small class="convite-dlg__error">{{ err }}</small>
         }

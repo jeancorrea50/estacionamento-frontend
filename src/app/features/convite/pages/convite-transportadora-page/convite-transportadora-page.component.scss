@@ -1,4 +1,4 @@
-﻿:host {
+:host {
   display: block;
   min-height: 100vh;
   min-height: 100dvh;
@@ -420,3 +420,29 @@ button.cv-step:disabled {
   }
 }
 
+
+.cv-phone {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.cv-phone__ddi {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  padding: 0 0.65rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--cv-border);
+  background: #1e293b;
+  color: #93c5fd;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.cv-phone input {
+  flex: 1;
+  min-width: 0;
+}

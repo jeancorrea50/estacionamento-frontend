@@ -118,7 +118,7 @@ export class ConvidarTransportadoraDialogComponent {
     if (c.errors['cpfIncompleto']) return 'CPF deve ter 11 dígitos.';
     if (c.errors['cpfInvalido']) return 'CPF inválido.';
     if (c.errors['celularIncompleto'] || c.errors['telefoneIncompleto'])
-      return 'Informe o celular com DDD (11 dígitos).';
+      return 'Informe DDD + número (11 dígitos). O DDI +55 é fixo.';
     if (c.errors['celularInvalido']) return 'Celular deve ter o 9 após o DDD.';
     return 'Valor inválido.';
   }

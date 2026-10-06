@@ -252,3 +252,40 @@
     }
   }
 }
+
+.convite-dlg__phone {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.convite-dlg__ddi {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  padding: 0 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--cv-border);
+  background: color-mix(in srgb, var(--cv-primary) 14%, var(--cv-input));
+  color: #93c5fd;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.convite-dlg__input-wrap--phone {
+  flex: 1;
+  min-width: 0;
+}
+
+.convite-dlg__hint {
+  color: var(--cv-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.convite-dlg__phone[aria-invalid='true'] .convite-dlg__ddi {
+  border-color: color-mix(in srgb, #ef4444 70%, var(--cv-border));
+}

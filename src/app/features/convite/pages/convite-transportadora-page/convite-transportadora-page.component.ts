@@ -9,13 +9,18 @@ import {
   ConviteTransportadoraApiService,
   ConviteTransportadoraDto,
 } from '../../services/convite-transportadora-api.service';
+import {
+  TelefoneFormatDirective,
+  formatTelefone,
+} from '../../../cadastro/directives/telefone-format.directive';
+import { celularCompletoValidator } from '../../../cadastro/validators/cpf-celular.validator';
 
 type StepKey = 1 | 2 | 3 | 4;
 
 @Component({
   selector: 'app-convite-transportadora-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, TelefoneFormatDirective],
   templateUrl: './convite-transportadora-page.component.html',
   styleUrls: ['./convite-transportadora-page.component.scss'],
 })
@@ -56,7 +61,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     nome: ['', Validators.required],
     cpf: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    telefone: [''],
+    telefone: ['', [Validators.required, celularCompletoValidator()]],
     dataNascimento: [''],
     nomeMae: [''],
   });
@@ -251,7 +256,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
         nome: v.nome!.trim(),
         cpf: v.cpf!.trim(),
         email: v.email!.trim(),
-        telefone: v.telefone?.trim() || undefined,
+        telefone: String(v.telefone ?? '').replace(/\D/g, '') || undefined,
         dataNascimento: v.dataNascimento || null,
         nomeMae: v.nomeMae?.trim() || undefined,
       })
@@ -350,7 +355,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
       nome: c.responsavelNome ?? '',
       cpf: c.responsavelCpf ?? '',
       email: c.responsavelEmail || c.emailConvidado || '',
-      telefone: c.responsavelTelefone ?? '',
+      telefone: formatTelefone(String(c.responsavelTelefone ?? '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')),
       dataNascimento: c.responsavelDataNascimento
         ? String(c.responsavelDataNascimento).slice(0, 10)
         : '',

@@ -13,13 +13,16 @@ import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/api/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/api/interceptors/error.interceptor';
+import { mutationThrottleInterceptor } from './core/api/interceptors/mutation-throttle.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    provideHttpClient(
+      withInterceptors([authInterceptor, mutationThrottleInterceptor, errorInterceptor])
+    ),
     /** Angular Material + PrimeNG (ripple, overlays, etc.) */
     provideAnimationsAsync(),
     providePrimeNG({

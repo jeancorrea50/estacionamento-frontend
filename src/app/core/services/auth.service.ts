@@ -170,8 +170,31 @@ export class AuthService {
   }
 
   private getLoginErrorMessage(err: unknown): string {
+    const gatewayFallback: Record<number, string> = {
+      0: 'Sem conexão. Verifique sua rede.',
+      400: 'Usuário ou senha inválido.',
+      401: 'Usuário ou senha inválidos.',
+      502: 'Servidor indisponível no momento. Tente novamente em instantes.',
+      503: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+      504: 'Tempo esgotado ao contactar o servidor. Tente novamente.',
+    };
+
+    const looksLikeHtml = (text: string): boolean => {
+      const s = text.trim().toLowerCase();
+      return (
+        s.startsWith('<!doctype') ||
+        s.startsWith('<html') ||
+        s.includes('bad gateway') ||
+        s.includes('nginx/') ||
+        s.length > 280
+      );
+    };
+
     if (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string') {
-      return (err as ApiError).message.trim();
+      const msg = (err as ApiError).message.trim();
+      if (msg && !looksLikeHtml(msg)) return msg;
+      const status = (err as ApiError).status;
+      if (typeof status === 'number' && gatewayFallback[status]) return gatewayFallback[status];
     }
     if (err instanceof HttpErrorResponse) {
       const body = err.error;
@@ -179,18 +202,13 @@ export class AuthService {
         const b = body as { notifications?: string[]; message?: string; title?: string };
         if (Array.isArray(b.notifications) && b.notifications.length > 0) {
           const text = b.notifications.filter((n): n is string => typeof n === 'string').join(' ').trim();
-          if (text) return text;
+          if (text && !looksLikeHtml(text)) return text;
         }
         const msg = b.message ?? b.title;
-        if (typeof msg === 'string' && msg.trim()) return msg.trim();
+        if (typeof msg === 'string' && msg.trim() && !looksLikeHtml(msg)) return msg.trim();
       }
-      if (typeof body === 'string' && body.trim()) return body.trim();
-      const fallback: Record<number, string> = {
-        401: 'Usuário ou senha inválidos.',
-        400: 'Usuário ou senha inválido.',
-        0: 'Sem conexão. Verifique sua rede.'
-      };
-      return fallback[err.status] ?? `Erro na requisição (${err.status ?? 0}).`;
+      if (typeof body === 'string' && body.trim() && !looksLikeHtml(body)) return body.trim();
+      return gatewayFallback[err.status] ?? `Erro na requisição (${err.status ?? 0}).`;
     }
     return 'Usuário ou senha inválidos.';
   }

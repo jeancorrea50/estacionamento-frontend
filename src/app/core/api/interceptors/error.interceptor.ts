@@ -35,9 +35,35 @@ function parseFieldErrors(errors: Record<string, string[]> | string[]): Record<s
   return undefined;
 }
 
+/** Corpo HTML (nginx 502/etc.) não deve ir para o toast. */
+function isHtmlOrGatewayBody(raw: string): boolean {
+  const s = raw.trim().toLowerCase();
+  return (
+    s.startsWith('<!doctype') ||
+    s.startsWith('<html') ||
+    s.includes('<center><h1>') ||
+    s.includes('bad gateway') ||
+    s.includes('nginx/')
+  );
+}
+
+function sanitizeErrorMessage(candidate: string | undefined, status: number, fallback: string): string {
+  const text = (candidate ?? '').trim();
+  if (!text) return fallback;
+  if (isHtmlOrGatewayBody(text)) {
+    return DEFAULT_MESSAGES[status] ?? fallback;
+  }
+  // Evita toast gigante com página HTML truncada.
+  if (text.length > 280) {
+    return DEFAULT_MESSAGES[status] ?? fallback;
+  }
+  return text;
+}
+
 function toApiError(res: HttpErrorResponse): ApiError {
   const status = res.status;
-  let message = DEFAULT_MESSAGES[status] ?? `Erro na requisição (${status}).`;
+  const fallback = DEFAULT_MESSAGES[status] ?? `Erro na requisição (${status}).`;
+  let message = fallback;
   let fieldErrors: Record<string, string[]> | undefined;
 
   const body = res.error;
@@ -46,9 +72,9 @@ function toApiError(res: HttpErrorResponse): ApiError {
     const nRaw = b.notifications ?? b.Notifications;
     if (Array.isArray(nRaw) && nRaw.length > 0) {
       const fromNotifications = nRaw.filter((n): n is string => typeof n === 'string').join(' ').trim();
-      if (fromNotifications) message = fromNotifications;
+      if (fromNotifications) message = sanitizeErrorMessage(fromNotifications, status, fallback);
     } else if (typeof nRaw === 'string' && nRaw.trim()) {
-      message = nRaw.trim();
+      message = sanitizeErrorMessage(nRaw, status, fallback);
     } else {
       const msg =
         b.message ??
@@ -57,7 +83,9 @@ function toApiError(res: HttpErrorResponse): ApiError {
         (b as { Message?: string }).Message ??
         (b as { Title?: string }).Title ??
         (b as { Erro?: string }).Erro;
-      if (typeof msg === 'string' && msg.trim()) message = msg.trim();
+      if (typeof msg === 'string' && msg.trim()) {
+        message = sanitizeErrorMessage(msg, status, fallback);
+      }
     }
     if (b.errors) fieldErrors = parseFieldErrors(b.errors as Record<string, string[]> | string[]);
     if (fieldErrors && Object.keys(fieldErrors).length > 0) {
@@ -65,14 +93,14 @@ function toApiError(res: HttpErrorResponse): ApiError {
         .flat()
         .filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
       const generic =
-        message === DEFAULT_MESSAGES[status] ||
+        message === fallback ||
         /validation error|requisição inválida|one or more validation/i.test(message);
       if (flat.length > 0 && generic) {
-        message = flat.join(' ');
+        message = sanitizeErrorMessage(flat.join(' '), status, fallback);
       }
     }
   } else if (typeof body === 'string' && body.trim()) {
-    message = body.trim();
+    message = sanitizeErrorMessage(body, status, fallback);
   }
 
   return { message, status, fieldErrors };
@@ -85,7 +113,11 @@ function isLoginRequest(req: HttpRequest<unknown>): boolean {
 
 /** Consulta CNPJ (BrasilAPI direta): mensagem de erro é exibida no próprio campo do formulário. */
 function isBrasilApiCnpjRequest(req: HttpRequest<unknown>): boolean {
-  return req.url.includes('brasilapi.com.br') || req.url.includes('nominatim.openstreetmap.org');
+  return (
+    req.url.includes('brasilapi.com.br') ||
+    req.url.includes('nominatim.openstreetmap.org') ||
+    req.url.includes('router.project-osrm.org')
+  );
 }
 
 /** ViaCEP: feedback na própria tela (ex.: "Cep não encontrado!"), sem toast genérico. */

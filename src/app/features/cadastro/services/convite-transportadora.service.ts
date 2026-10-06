@@ -41,6 +41,7 @@ export class ConviteTransportadoraService {
       responsavelNome: input.responsavelNome.trim(),
       responsavelCpf: input.responsavelCpf.replace(/\D/g, ''),
       responsavelEmail: email,
+      responsavelTelefone: (input.responsavelTelefone ?? '').replace(/\D/g, '') || undefined,
       diasExpiracao: 7,
     };
     return this.http.post<unknown>(CONVITE_AUTH, body).pipe(
@@ -146,7 +147,15 @@ export class ConviteTransportadoraService {
                 ''
             ),
             linkConviteFrontend: url,
-            emailEnviado: false,
+            emailEnviado:
+              peeled['emailEnviado'] === true ||
+              peeled['EmailEnviado'] === true ||
+              envelope['emailEnviado'] === true,
+            urlWhatsApp: (peeled['urlWhatsApp'] ?? peeled['UrlWhatsApp'] ?? null) as string | null,
+            urlSms: (peeled['urlSms'] ?? peeled['UrlSms'] ?? null) as string | null,
+            mensagemCompartilhamento: (peeled['mensagemCompartilhamento'] ??
+              peeled['MensagemCompartilhamento'] ??
+              null) as string | null,
             expiresAt: (peeled['dataExpiracao'] ?? peeled['DataExpiracao'] ?? peeled['expiresAt'] ?? null) as
               | string
               | null,

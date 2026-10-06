@@ -35,11 +35,13 @@ export const STATUS_CADASTRO_TRANSPORTADORA_LABEL: Record<StatusCadastroTranspor
   Inativa: 'Inativa',
 };
 
-/** POST `/api/Transportadora/convite` */
+/** POST criar convite */
 export interface CriarConviteTransportadoraInput {
   responsavelNome: string;
   responsavelCpf: string;
   responsavelEmail: string;
+  /** Telefone com DDD — usado nos links WhatsApp/SMS. */
+  responsavelTelefone?: string;
 }
 
 /** Resposta de criar/reenviar (envelope `result` ou corpo direto). */
@@ -52,6 +54,11 @@ export interface ConviteTransportadoraResult {
   /** Link absoluto ou path SPA; em dev a API pode devolver para testes. */
   linkConviteFrontend?: string | null;
   emailEnviado?: boolean;
+  /** wa.me com mensagem e link "Cadastrar Transportadora". */
+  urlWhatsApp?: string | null;
+  /** sms: com mensagem e link embutidos. */
+  urlSms?: string | null;
+  mensagemCompartilhamento?: string | null;
   expiresAt?: string | null;
   transportadoraId?: number | null;
   mensagem?: string | null;

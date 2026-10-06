@@ -6,93 +6,166 @@
     <div class="convite-dlg__titles">
       <h2 id="convite-dlg-title" class="convite-dlg__title">Convidar Transportadora</h2>
       <p class="convite-dlg__subtitle">
-        O responsável receberá um link seguro para concluir o cadastro da transportadora, frota e
-        motoristas.
+        Enviaremos o e-mail com o botão <strong>Cadastrar Transportadora</strong> e você poderá
+        compartilhar o mesmo link por WhatsApp e SMS.
       </p>
     </div>
   </header>
 
-  <form class="convite-dlg__form" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
-    <label class="convite-dlg__field">
-      <span class="convite-dlg__label">Nome completo do responsável *</span>
-      <span class="convite-dlg__input-wrap">
-        <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">person</span>
-        <input
-          type="text"
-          class="convite-dlg__input"
-          formControlName="responsavelNome"
-          placeholder="Ex.: João Silva de Oliveira"
-          autocomplete="name"
-          [attr.aria-invalid]="!!fieldError('responsavelNome')"
-        />
-      </span>
-      @if (fieldError('responsavelNome'); as err) {
-        <small class="convite-dlg__error">{{ err }}</small>
-      }
-    </label>
-
-    <label class="convite-dlg__field">
-      <span class="convite-dlg__label">CPF do responsável *</span>
-      <span class="convite-dlg__input-wrap">
-        <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">badge</span>
-        <input
-          type="text"
-          class="convite-dlg__input"
-          formControlName="responsavelCpf"
-          appCpfFormat
-          placeholder="000.000.000-00"
-          inputmode="numeric"
-          autocomplete="off"
-          [attr.aria-invalid]="!!fieldError('responsavelCpf')"
-        />
-      </span>
-      @if (fieldError('responsavelCpf'); as err) {
-        <small class="convite-dlg__error">{{ err }}</small>
-      }
-    </label>
-
-    <label class="convite-dlg__field">
-      <span class="convite-dlg__label">E-mail do responsável *</span>
-      <span class="convite-dlg__input-wrap">
-        <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">mail</span>
-        <input
-          type="email"
-          class="convite-dlg__input"
-          formControlName="responsavelEmail"
-          placeholder="exemplo@empresa.com"
-          autocomplete="email"
-          [attr.aria-invalid]="!!fieldError('responsavelEmail')"
-        />
-      </span>
-      @if (fieldError('responsavelEmail'); as err) {
-        <small class="convite-dlg__error">{{ err }}</small>
-      }
-    </label>
-
-    <div class="convite-dlg__info" role="note">
-      <span class="material-symbols-outlined" aria-hidden="true">info</span>
-      <p>
-        O responsável receberá um link seguro para concluir o cadastro da transportadora, frota e
-        motoristas.
-      </p>
-    </div>
-
-    @if (erro(); as msg) {
-      <p class="convite-dlg__banner" role="alert">{{ msg }}</p>
-    }
-
-    <footer class="convite-dlg__actions">
-      <button type="button" class="convite-dlg__btn convite-dlg__btn--ghost" (click)="cancelar()" [disabled]="enviando()">
-        Cancelar
-      </button>
-      <button type="submit" class="convite-dlg__btn convite-dlg__btn--primary" [disabled]="enviando() || form.invalid">
-        @if (enviando()) {
-          Enviando…
-        } @else {
-          <span class="material-symbols-outlined" aria-hidden="true">send</span>
-          Enviar convite
+  @if (!resultado()) {
+    <form class="convite-dlg__form" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+      <label class="convite-dlg__field">
+        <span class="convite-dlg__label">Nome completo do responsável *</span>
+        <span class="convite-dlg__input-wrap">
+          <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">person</span>
+          <input
+            type="text"
+            class="convite-dlg__input"
+            formControlName="responsavelNome"
+            placeholder="Ex.: João Silva de Oliveira"
+            autocomplete="name"
+            [attr.aria-invalid]="!!fieldError('responsavelNome')"
+          />
+        </span>
+        @if (fieldError('responsavelNome'); as err) {
+          <small class="convite-dlg__error">{{ err }}</small>
         }
-      </button>
-    </footer>
-  </form>
+      </label>
+
+      <label class="convite-dlg__field">
+        <span class="convite-dlg__label">CPF do responsável *</span>
+        <span class="convite-dlg__input-wrap">
+          <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">badge</span>
+          <input
+            type="text"
+            class="convite-dlg__input"
+            formControlName="responsavelCpf"
+            appCpfFormat
+            placeholder="000.000.000-00"
+            inputmode="numeric"
+            autocomplete="off"
+            [attr.aria-invalid]="!!fieldError('responsavelCpf')"
+          />
+        </span>
+        @if (fieldError('responsavelCpf'); as err) {
+          <small class="convite-dlg__error">{{ err }}</small>
+        }
+      </label>
+
+      <label class="convite-dlg__field">
+        <span class="convite-dlg__label">E-mail do responsável *</span>
+        <span class="convite-dlg__input-wrap">
+          <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">mail</span>
+          <input
+            type="email"
+            class="convite-dlg__input"
+            formControlName="responsavelEmail"
+            placeholder="exemplo@empresa.com"
+            autocomplete="email"
+            [attr.aria-invalid]="!!fieldError('responsavelEmail')"
+          />
+        </span>
+        @if (fieldError('responsavelEmail'); as err) {
+          <small class="convite-dlg__error">{{ err }}</small>
+        }
+      </label>
+
+      <label class="convite-dlg__field">
+        <span class="convite-dlg__label">Celular (WhatsApp / SMS) *</span>
+        <span class="convite-dlg__input-wrap">
+          <span class="material-symbols-outlined convite-dlg__field-ico" aria-hidden="true">smartphone</span>
+          <input
+            type="tel"
+            class="convite-dlg__input"
+            formControlName="responsavelTelefone"
+            appTelefoneFormat
+            placeholder="(00) 00000-0000"
+            inputmode="tel"
+            autocomplete="tel"
+            [attr.aria-invalid]="!!fieldError('responsavelTelefone')"
+          />
+        </span>
+        @if (fieldError('responsavelTelefone'); as err) {
+          <small class="convite-dlg__error">{{ err }}</small>
+        }
+      </label>
+
+      <div class="convite-dlg__info" role="note">
+        <span class="material-symbols-outlined" aria-hidden="true">info</span>
+        <p>
+          O e-mail leva o botão <strong>Cadastrar Transportadora</strong> com o link do convite.
+          WhatsApp e SMS abrem o app com a mensagem e o mesmo link prontos para enviar.
+        </p>
+      </div>
+
+      @if (erro(); as msg) {
+        <p class="convite-dlg__banner" role="alert">{{ msg }}</p>
+      }
+
+      <footer class="convite-dlg__actions">
+        <button type="button" class="convite-dlg__btn convite-dlg__btn--ghost" (click)="cancelar()" [disabled]="enviando()">
+          Cancelar
+        </button>
+        <button type="submit" class="convite-dlg__btn convite-dlg__btn--primary" [disabled]="enviando() || form.invalid">
+          @if (enviando()) {
+            Enviando…
+          } @else {
+            <span class="material-symbols-outlined" aria-hidden="true">send</span>
+            Gerar e enviar
+          }
+        </button>
+      </footer>
+    </form>
+  } @else {
+    <div class="convite-dlg__share">
+      @if (sucesso(); as ok) {
+        <p class="convite-dlg__banner convite-dlg__banner--ok" role="status">{{ ok }}</p>
+      }
+      @if (erro(); as msg) {
+        <p class="convite-dlg__banner" role="alert">{{ msg }}</p>
+      }
+
+      @if (resultado()?.linkConviteFrontend; as link) {
+        <label class="convite-dlg__field">
+          <span class="convite-dlg__label">Link do cadastro</span>
+          <input class="convite-dlg__input convite-dlg__input--readonly" [value]="link" readonly (focus)="$any($event.target).select()" />
+        </label>
+      }
+
+      <div class="convite-dlg__channels" aria-label="Canais de envio">
+        <button type="button" class="convite-dlg__btn convite-dlg__btn--mail" disabled title="E-mail já disparado pelo servidor">
+          <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+          {{ resultado()?.emailEnviado ? 'E-mail enviado' : 'E-mail (falhou)' }}
+        </button>
+        <button
+          type="button"
+          class="convite-dlg__btn convite-dlg__btn--wa"
+          (click)="abrirWhatsApp()"
+          [disabled]="!resultado()?.urlWhatsApp"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">chat</span>
+          WhatsApp
+        </button>
+        <button
+          type="button"
+          class="convite-dlg__btn convite-dlg__btn--sms"
+          (click)="abrirSms()"
+          [disabled]="!resultado()?.urlSms"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">sms</span>
+          SMS
+        </button>
+        <button type="button" class="convite-dlg__btn convite-dlg__btn--ghost" (click)="copiarLink()" [disabled]="!resultado()?.linkConviteFrontend">
+          <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+          Copiar link
+        </button>
+      </div>
+
+      <footer class="convite-dlg__actions">
+        <button type="button" class="convite-dlg__btn convite-dlg__btn--primary" (click)="cancelar()">
+          Concluir
+        </button>
+      </footer>
+    </div>
+  }
 </div>

@@ -1,4 +1,4 @@
-<div class="cv-shell">
+﻿<div class="cv-shell">
   <div class="cv-bg" aria-hidden="true"></div>
 
   <header class="cv-top">
@@ -9,7 +9,11 @@
         <small>Convite do estacionamento</small>
       </div>
     </div>
-    <a routerLink="/" class="cv-link-login">Já tenho conta → Entrar</a>
+    @if (concluido) {
+      <a routerLink="/" class="cv-link-login">Entrar no sistema →</a>
+    } @else {
+      <span class="cv-link-login cv-link-login--muted">Conclua todas as etapas para entrar</span>
+    }
   </header>
 
   <main class="cv-main">
@@ -28,11 +32,14 @@
     } @else {
       <section class="cv-stepper" aria-label="Etapas do cadastro">
         @for (s of steps; track s.key) {
-          <div
+          <button
+            type="button"
             class="cv-step"
             [class.cv-step--done]="isDone(s.key)"
             [class.cv-step--active]="isActive(s.key)"
             [class.cv-step--todo]="!isDone(s.key) && !isActive(s.key)"
+            [disabled]="concluido || (!isDone(s.key) && !isActive(s.key) && s.key > (convite?.etapaAtual ?? 1))"
+            (click)="irParaEtapa(s.key)"
           >
             <div class="cv-step__circle">
               @if (isDone(s.key) || concluido) {
@@ -45,7 +52,7 @@
             @if (s.key < 4) {
               <div class="cv-step__line" [class.cv-step__line--done]="isDone(s.key)"></div>
             }
-          </div>
+          </button>
         }
       </section>
 
@@ -62,14 +69,23 @@
             <span class="material-symbols-outlined">verified</span>
           </div>
           <h1>Tudo pronto!</h1>
-          <p>Sua transportadora e seu usuário foram criados. Use o login com o usuário e a senha definidos.</p>
+          <p>
+            Sua transportadora e seu usuário (perfil <strong>Transportadora</strong>) foram criados.
+            Use o login com o usuário e a senha definidos.
+          </p>
           <a routerLink="/" class="cv-btn cv-btn--primary cv-btn--lg">Entrar no sistema</a>
         </div>
       } @else {
         <div class="cv-card">
           @if (step === 1) {
             <h1 class="cv-title">Usuário e senha</h1>
-            <p class="cv-sub">Crie o acesso que você usará para entrar no sistema.</p>
+            <p class="cv-sub">
+              @if (convite?.possuiSenha) {
+                Senha já salva — deixe em branco para manter, ou digite uma nova.
+              } @else {
+                Crie o acesso que você usará para entrar no sistema (perfil Transportadora).
+              }
+            </p>
             <form class="cv-form" [formGroup]="acessoForm" (ngSubmit)="avancar()">
               <label class="cv-field">
                 <span>Usuário *</span>
@@ -80,12 +96,46 @@
                 <input type="email" formControlName="email" autocomplete="email" />
               </label>
               <label class="cv-field">
-                <span>Senha *</span>
-                <input type="password" formControlName="password" autocomplete="new-password" />
+                <span>{{ convite?.possuiSenha ? 'Nova senha (opcional)' : 'Senha *' }}</span>
+                <span class="cv-field__pwd">
+                  <input
+                    [type]="showPassword ? 'text' : 'password'"
+                    formControlName="password"
+                    autocomplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    class="cv-field__eye"
+                    (click)="togglePassword()"
+                    [attr.aria-label]="showPassword ? 'Ocultar senha' : 'Mostrar senha'"
+                    [attr.aria-pressed]="showPassword"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">
+                      {{ showPassword ? 'visibility_off' : 'visibility' }}
+                    </span>
+                  </button>
+                </span>
               </label>
               <label class="cv-field">
-                <span>Confirmar senha *</span>
-                <input type="password" formControlName="confirmPassword" autocomplete="new-password" />
+                <span>{{ convite?.possuiSenha ? 'Confirmar nova senha' : 'Confirmar senha *' }}</span>
+                <span class="cv-field__pwd">
+                  <input
+                    [type]="showConfirmPassword ? 'text' : 'password'"
+                    formControlName="confirmPassword"
+                    autocomplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    class="cv-field__eye"
+                    (click)="toggleConfirmPassword()"
+                    [attr.aria-label]="showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'"
+                    [attr.aria-pressed]="showConfirmPassword"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">
+                      {{ showConfirmPassword ? 'visibility_off' : 'visibility' }}
+                    </span>
+                  </button>
+                </span>
               </label>
             </form>
           }

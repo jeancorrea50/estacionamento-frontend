@@ -147,6 +147,29 @@
   font-size: 0.8125rem;
 }
 
+.convite-dlg__banner--ok {
+  background: color-mix(in srgb, #22c55e 14%, transparent);
+  border-color: color-mix(in srgb, #22c55e 40%, transparent);
+  color: #bbf7d0;
+}
+
+.convite-dlg__share {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.convite-dlg__input--readonly {
+  font-size: 0.78rem;
+  color: #93c5fd;
+}
+
+.convite-dlg__channels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
 .convite-dlg__actions {
   display: flex;
   justify-content: flex-end;
@@ -186,6 +209,29 @@
 
 .convite-dlg__btn--primary {
   background: var(--cv-primary);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+}
+
+.convite-dlg__btn--mail {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.convite-dlg__btn--wa {
+  background: #16a34a;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+}
+
+.convite-dlg__btn--sms {
+  background: #0d9488;
   color: #fff;
 
   &:hover:not(:disabled) {

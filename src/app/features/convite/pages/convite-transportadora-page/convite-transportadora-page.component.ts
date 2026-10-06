@@ -32,8 +32,11 @@ export class ConviteTransportadoraPageComponent implements OnInit {
   errorMessage: string | null = null;
   successMessage: string | null = null;
   convite: ConviteTransportadoraDto | null = null;
+  /** Etapa em que o usuário parou (vem de etapaAtual do backend). */
   step: StepKey = 1;
   concluido = false;
+  showPassword = false;
+  showConfirmPassword = false;
 
   readonly steps: { key: StepKey; label: string; icon: string }[] = [
     { key: 1, label: 'Acesso', icon: 'person' },
@@ -45,8 +48,8 @@ export class ConviteTransportadoraPageComponent implements OnInit {
   acessoForm = this.fb.group({
     userName: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    confirmPassword: ['', [Validators.required]],
+    password: ['', [Validators.minLength(6)]],
+    confirmPassword: [''],
   });
 
   responsavelForm = this.fb.group({
@@ -90,21 +93,15 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     this.errorMessage = null;
     this.api
       .obterPorToken(this.token)
-      .pipe(finalize(() => {
-        this.loading = false;
-        this.cdr.markForCheck();
-      }))
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.markForCheck();
+        })
+      )
       .subscribe({
         next: (c) => {
-          this.convite = c;
-          if (c.status === 'Concluido' || c.etapaAtual >= 5) {
-            this.concluido = true;
-            this.step = 4;
-            this.successMessage = 'Cadastro já concluído. Você pode entrar no sistema.';
-            return;
-          }
-          this.preencherForms(c);
-          this.step = this.resolverStep(c.etapaAtual) as StepKey;
+          this.aplicarConvite(c);
         },
         error: (err) => {
           this.errorMessage = this.msgErro(err, 'Não foi possível abrir o convite.');
@@ -112,13 +109,43 @@ export class ConviteTransportadoraPageComponent implements OnInit {
       });
   }
 
+  /** Sempre alinha a UI com etapaAtual do backend. */
+  private aplicarConvite(c: ConviteTransportadoraDto): void {
+    this.convite = c;
+    if (c.status === 'Concluido' || c.etapaAtual >= 5) {
+      this.concluido = true;
+      this.step = 4;
+      this.successMessage = 'Cadastro já concluído. Você já pode entrar no sistema.';
+      this.preencherForms(c);
+      return;
+    }
+    this.concluido = false;
+    this.preencherForms(c);
+    this.step = this.resolverStep(c.etapaAtual);
+    this.ajustarValidadoresSenha();
+    this.successMessage = null;
+  }
+
   isDone(s: StepKey): boolean {
     if (this.concluido) return true;
-    return this.step > s;
+    const etapa = this.convite?.etapaAtual ?? this.step;
+    // etapaAtual = próxima a preencher → etapas menores já foram concluídas
+    return etapa > s;
   }
 
   isActive(s: StepKey): boolean {
     return !this.concluido && this.step === s;
+  }
+
+  /** Permite voltar só até etapas já concluídas ou a atual. */
+  irParaEtapa(s: StepKey): void {
+    if (this.concluido || this.saving) return;
+    const max = this.resolverStep(this.convite?.etapaAtual ?? 1);
+    if (s <= max) {
+      this.step = s;
+      this.errorMessage = null;
+      this.ajustarValidadoresSenha();
+    }
   }
 
   avancar(): void {
@@ -133,54 +160,82 @@ export class ConviteTransportadoraPageComponent implements OnInit {
   voltar(): void {
     if (this.step > 1 && !this.concluido) {
       this.step = (this.step - 1) as StepKey;
+      this.ajustarValidadoresSenha();
     }
+  }
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPassword(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
   buscarCep(): void {
     const cep = String(this.enderecoForm.value.cep ?? '').replace(/\D/g, '');
     if (cep.length !== 8) return;
-    this.http.get<{ logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean }>(
-      `${environment.viacepBaseUrl}/${cep}/json/`
-    ).subscribe({
-      next: (r) => {
-        if (r?.erro) return;
-        this.enderecoForm.patchValue({
-          logradouro: r.logradouro ?? '',
-          bairro: r.bairro ?? '',
-          cidade: r.localidade ?? '',
-          estado: r.uf ?? '',
-        });
-        this.cdr.markForCheck();
-      },
-    });
+    this.http
+      .get<{ logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean }>(
+        `${environment.viacepBaseUrl}/${cep}/json/`
+      )
+      .subscribe({
+        next: (r) => {
+          if (r?.erro) return;
+          this.enderecoForm.patchValue({
+            logradouro: r.logradouro ?? '',
+            bairro: r.bairro ?? '',
+            cidade: r.localidade ?? '',
+            estado: r.uf ?? '',
+          });
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   private salvarAcesso(): void {
+    this.ajustarValidadoresSenha();
     if (this.acessoForm.invalid) {
       this.acessoForm.markAllAsTouched();
       return;
     }
     const v = this.acessoForm.getRawValue();
-    if (v.password !== v.confirmPassword) {
+    const senha = (v.password ?? '').trim();
+    const conf = (v.confirmPassword ?? '').trim();
+    const jaTemSenha = !!this.convite?.possuiSenha;
+
+    if (!senha && !jaTemSenha) {
+      this.errorMessage = 'Informe a senha.';
+      return;
+    }
+    if (senha && senha !== conf) {
       this.errorMessage = 'As senhas não conferem.';
       return;
     }
+
     this.saving = true;
     this.api
       .salvarAcesso(this.token, {
         userName: v.userName!.trim(),
         email: v.email!.trim(),
-        password: v.password!,
-        confirmPassword: v.confirmPassword!,
+        password: senha,
+        confirmPassword: senha ? conf : '',
       })
-      .pipe(finalize(() => { this.saving = false; this.cdr.markForCheck(); }))
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        })
+      )
       .subscribe({
         next: (c) => {
-          this.convite = c;
-          this.step = 2;
-          this.successMessage = 'Acesso salvo!';
+          this.aplicarConvite(c);
+          this.step = this.resolverStep(c.etapaAtual);
+          this.successMessage = 'Acesso salvo! Continue de onde parou.';
         },
-        error: (err) => { this.errorMessage = this.msgErro(err); },
+        error: (err) => {
+          this.errorMessage = this.msgErro(err);
+        },
       });
   }
 
@@ -200,14 +255,21 @@ export class ConviteTransportadoraPageComponent implements OnInit {
         dataNascimento: v.dataNascimento || null,
         nomeMae: v.nomeMae?.trim() || undefined,
       })
-      .pipe(finalize(() => { this.saving = false; this.cdr.markForCheck(); }))
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        })
+      )
       .subscribe({
         next: (c) => {
-          this.convite = c;
-          this.step = 3;
+          this.aplicarConvite(c);
+          this.step = this.resolverStep(c.etapaAtual);
           this.successMessage = 'Responsável salvo!';
         },
-        error: (err) => { this.errorMessage = this.msgErro(err); },
+        error: (err) => {
+          this.errorMessage = this.msgErro(err);
+        },
       });
   }
 
@@ -225,14 +287,21 @@ export class ConviteTransportadoraPageComponent implements OnInit {
         cnpj: v.cnpj!.trim(),
         inscricaoEstadual: v.inscricaoEstadual?.trim() || undefined,
       })
-      .pipe(finalize(() => { this.saving = false; this.cdr.markForCheck(); }))
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        })
+      )
       .subscribe({
         next: (c) => {
-          this.convite = c;
-          this.step = 4;
+          this.aplicarConvite(c);
+          this.step = this.resolverStep(c.etapaAtual);
           this.successMessage = 'Empresa salva!';
         },
-        error: (err) => { this.errorMessage = this.msgErro(err); },
+        error: (err) => {
+          this.errorMessage = this.msgErro(err);
+        },
       });
   }
 
@@ -253,14 +322,20 @@ export class ConviteTransportadoraPageComponent implements OnInit {
         cidade: v.cidade!.trim(),
         estado: v.estado!.trim().toUpperCase(),
       })
-      .pipe(finalize(() => { this.saving = false; this.cdr.markForCheck(); }))
+      .pipe(
+        finalize(() => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        })
+      )
       .subscribe({
         next: (c) => {
-          this.convite = c;
-          this.concluido = true;
+          this.aplicarConvite(c);
           this.successMessage = 'Cadastro concluído! Você já pode entrar no sistema.';
         },
-        error: (err) => { this.errorMessage = this.msgErro(err); },
+        error: (err) => {
+          this.errorMessage = this.msgErro(err);
+        },
       });
   }
 
@@ -268,6 +343,8 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     this.acessoForm.patchValue({
       userName: c.userName ?? '',
       email: c.emailAcesso || c.emailConvidado || '',
+      password: '',
+      confirmPassword: '',
     });
     this.responsavelForm.patchValue({
       nome: c.responsavelNome ?? '',
@@ -296,17 +373,40 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     });
   }
 
-  private resolverStep(etapa: number): number {
-    if (etapa <= 1) return 1;
-    if (etapa === 2) return 2;
-    if (etapa === 3) return 3;
-    if (etapa >= 4) return 4;
+  /**
+   * etapaAtual do backend = próxima etapa a preencher (1..4) ou 5 = concluído.
+   */
+  private resolverStep(etapa: number): StepKey {
+    const n = Number(etapa);
+    if (!Number.isFinite(n) || n <= 1) return 1;
+    if (n === 2) return 2;
+    if (n === 3) return 3;
+    if (n >= 4) return 4;
     return 1;
+  }
+
+  private ajustarValidadoresSenha(): void {
+    const jaTem = !!this.convite?.possuiSenha;
+    const pass = this.acessoForm.controls.password;
+    const conf = this.acessoForm.controls.confirmPassword;
+    if (jaTem) {
+      pass.clearValidators();
+      pass.addValidators([Validators.minLength(6)]);
+      conf.clearValidators();
+    } else {
+      pass.setValidators([Validators.required, Validators.minLength(6)]);
+      conf.setValidators([Validators.required]);
+    }
+    pass.updateValueAndValidity({ emitEvent: false });
+    conf.updateValueAndValidity({ emitEvent: false });
   }
 
   private msgErro(err: unknown, fallback = 'Não foi possível salvar.'): string {
     if (err && typeof err === 'object') {
-      const e = err as { message?: string; error?: { errors?: string[]; message?: string; userMessage?: string } };
+      const e = err as {
+        message?: string;
+        error?: { errors?: string[]; message?: string; userMessage?: string };
+      };
       if (e.message) return e.message;
       const api = e.error;
       if (api?.userMessage) return api.userMessage;

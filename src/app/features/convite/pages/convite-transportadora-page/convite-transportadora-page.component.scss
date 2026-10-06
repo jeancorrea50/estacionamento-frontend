@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-height: 100vh;
   min-height: 100dvh;
@@ -223,6 +223,59 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
+.cv-field__pwd {
+  position: relative;
+  display: block;
+}
+
+.cv-field__pwd input {
+  padding-right: 3rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cv-field__eye {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--cv-muted);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.cv-field__eye:hover {
+  color: var(--cv-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cv-link-login--muted {
+  color: var(--cv-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+button.cv-step {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+button.cv-step:disabled {
+  cursor: default;
+}
+
 .cv-row {
   display: flex;
   gap: 0.75rem;
@@ -366,3 +419,4 @@
     width: 100%;
   }
 }
+

@@ -2,9 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { finalize } from 'rxjs';
-import { environment } from '../../../../../environments/environment';
 import {
   ConviteTransportadoraApiService,
   ConviteTransportadoraDto,
@@ -13,14 +11,26 @@ import {
   TelefoneFormatDirective,
   formatTelefone,
 } from '../../../cadastro/directives/telefone-format.directive';
-import { celularCompletoValidator } from '../../../cadastro/validators/cpf-celular.validator';
+import { CpfFormatDirective, formatCpf } from '../../../cadastro/directives/cpf-format.directive';
+import { CnpjFormatDirective, formatCnpj } from '../../../cadastro/directives/cnpj-format.directive';
+import { CepFormatDirective, formatCep } from '../../../cadastro/directives/cep-format.directive';
+import { celularCompletoValidator, cpfCompletoValidator } from '../../../cadastro/validators/cpf-celular.validator';
+import { ViacepService } from '../../../cadastro/services/viacep.service';
 
 type StepKey = 1 | 2 | 3 | 4;
 
 @Component({
   selector: 'app-convite-transportadora-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, TelefoneFormatDirective],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    TelefoneFormatDirective,
+    CpfFormatDirective,
+    CnpjFormatDirective,
+    CepFormatDirective,
+  ],
   templateUrl: './convite-transportadora-page.component.html',
   styleUrls: ['./convite-transportadora-page.component.scss'],
 })
@@ -28,8 +38,10 @@ export class ConviteTransportadoraPageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(ConviteTransportadoraApiService);
   private fb = inject(FormBuilder);
-  private http = inject(HttpClient);
+  private viacep = inject(ViacepService);
   private cdr = inject(ChangeDetectorRef);
+
+  buscandoCep = false;
 
   token = '';
   loading = true;
@@ -59,7 +71,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
 
   responsavelForm = this.fb.group({
     nome: ['', Validators.required],
-    cpf: ['', Validators.required],
+    cpf: ['', [Validators.required, cpfCompletoValidator()]],
     email: ['', [Validators.required, Validators.email]],
     telefone: ['', [Validators.required, celularCompletoValidator()]],
     dataNascimento: [''],
@@ -179,22 +191,34 @@ export class ConviteTransportadoraPageComponent implements OnInit {
 
   buscarCep(): void {
     const cep = String(this.enderecoForm.value.cep ?? '').replace(/\D/g, '');
-    if (cep.length !== 8) return;
-    this.http
-      .get<{ logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean }>(
-        `${environment.viacepBaseUrl}/${cep}/json/`
-      )
-      .subscribe({
-        next: (r) => {
-          if (r?.erro) return;
-          this.enderecoForm.patchValue({
-            logradouro: r.logradouro ?? '',
-            bairro: r.bairro ?? '',
-            cidade: r.localidade ?? '',
-            estado: r.uf ?? '',
-          });
+    this.errorMessage = null;
+    this.successMessage = null;
+    if (cep.length !== 8) {
+      this.errorMessage = 'Informe um CEP com 8 dígitos.';
+      this.cdr.markForCheck();
+      return;
+    }
+    this.buscandoCep = true;
+    this.viacep
+      .buscarPorCep(cep)
+      .pipe(
+        finalize(() => {
+          this.buscandoCep = false;
           this.cdr.markForCheck();
-        },
+        })
+      )
+      .subscribe((end) => {
+        if (!end) {
+          this.errorMessage = 'Cep não encontrado!';
+          return;
+        }
+        this.enderecoForm.patchValue({
+          logradouro: end.logradouro,
+          bairro: end.bairro,
+          cidade: end.cidade,
+          estado: (end.estado ?? '').toUpperCase(),
+        });
+        this.successMessage = 'Endereço preenchido pelo CEP.';
       });
   }
 
@@ -222,7 +246,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     this.api
       .salvarAcesso(this.token, {
         userName: v.userName!.trim(),
-        email: v.email!.trim(),
+        email: v.email!.trim().toLowerCase(),
         password: senha,
         confirmPassword: senha ? conf : '',
       })
@@ -254,8 +278,8 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     this.api
       .salvarResponsavel(this.token, {
         nome: v.nome!.trim(),
-        cpf: v.cpf!.trim(),
-        email: v.email!.trim(),
+        cpf: String(v.cpf ?? '').replace(/\D/g, ''),
+        email: v.email!.trim().toLowerCase(),
         telefone: String(v.telefone ?? '').replace(/\D/g, '') || undefined,
         dataNascimento: v.dataNascimento || null,
         nomeMae: v.nomeMae?.trim() || undefined,
@@ -289,7 +313,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
       .salvarEmpresa(this.token, {
         razaoSocial: v.razaoSocial!.trim(),
         nomeFantasia: v.nomeFantasia!.trim(),
-        cnpj: v.cnpj!.trim(),
+        cnpj: String(v.cnpj ?? '').replace(/\D/g, ''),
         inscricaoEstadual: v.inscricaoEstadual?.trim() || undefined,
       })
       .pipe(
@@ -319,7 +343,7 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     this.saving = true;
     this.api
       .salvarEndereco(this.token, {
-        cep: v.cep!.trim(),
+        cep: String(v.cep ?? '').replace(/\D/g, ''),
         logradouro: v.logradouro!.trim(),
         numero: v.numero!.trim(),
         complemento: v.complemento?.trim() || undefined,
@@ -353,9 +377,13 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     });
     this.responsavelForm.patchValue({
       nome: c.responsavelNome ?? '',
-      cpf: c.responsavelCpf ?? '',
-      email: c.responsavelEmail || c.emailConvidado || '',
-      telefone: formatTelefone(String(c.responsavelTelefone ?? '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')),
+      cpf: formatCpf(String(c.responsavelCpf ?? '')),
+      email: (c.responsavelEmail || c.emailConvidado || '').toLowerCase(),
+      telefone: formatTelefone(
+        String(c.responsavelTelefone ?? '')
+          .replace(/\D/g, '')
+          .replace(/^55(?=\d{10,11}$)/, '')
+      ),
       dataNascimento: c.responsavelDataNascimento
         ? String(c.responsavelDataNascimento).slice(0, 10)
         : '',
@@ -364,17 +392,17 @@ export class ConviteTransportadoraPageComponent implements OnInit {
     this.empresaForm.patchValue({
       razaoSocial: c.razaoSocial ?? '',
       nomeFantasia: c.nomeFantasia ?? '',
-      cnpj: c.cnpj ?? '',
+      cnpj: formatCnpj(String(c.cnpj ?? '')),
       inscricaoEstadual: c.inscricaoEstadual ?? '',
     });
     this.enderecoForm.patchValue({
-      cep: c.cep ?? '',
+      cep: formatCep(String(c.cep ?? '')),
       logradouro: c.logradouro ?? '',
       numero: c.numero ?? '',
       complemento: c.complemento ?? '',
       bairro: c.bairro ?? '',
       cidade: c.cidade ?? '',
-      estado: c.estado ?? '',
+      estado: (c.estado ?? '').toUpperCase(),
     });
   }
 

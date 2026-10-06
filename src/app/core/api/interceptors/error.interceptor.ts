@@ -88,6 +88,12 @@ function isBrasilApiCnpjRequest(req: HttpRequest<unknown>): boolean {
   return req.url.includes('brasilapi.com.br') || req.url.includes('nominatim.openstreetmap.org');
 }
 
+/** ViaCEP: feedback na própria tela (ex.: "Cep não encontrado!"), sem toast genérico. */
+function isViaCepRequest(req: HttpRequest<unknown>): boolean {
+  const u = req.url.toLowerCase();
+  return u.includes('viacep.com.br') || u.includes('/viacep/');
+}
+
 /** Confirmação de e-mail: feedback na própria página. */
 function isConfirmarEmailRequest(req: HttpRequest<unknown>): boolean {
   return req.url.toLowerCase().includes('auth/usuario/confirmar-email');
@@ -204,6 +210,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
       const skipToast =
         isLoginRequest(req) ||
         isBrasilApiCnpjRequest(req) ||
+        isViaCepRequest(req) ||
         isConfirmarEmailRequest(req) ||
         isPasswordResetPublicRequest(req) ||
         isConviteTransportadoraRequest(req) ||

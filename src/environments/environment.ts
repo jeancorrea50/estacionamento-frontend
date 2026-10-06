@@ -15,6 +15,6 @@ export const environment = {
     username: 'teste.admin',
     password: 'GTS@12345'
   },
-  viacepBaseUrl: '/viacep',
+  viacepBaseUrl: '/viacep/ws',
   brasilApiBaseUrl: 'https://brasilapi.com.br'
 };

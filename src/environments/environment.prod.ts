@@ -23,6 +23,6 @@ export const environment = {
     username: '',
     password: '',
   },
-  viacepBaseUrl: 'https://viacep.com.br',
+  viacepBaseUrl: 'https://viacep.com.br/ws',
   brasilApiBaseUrl: 'https://brasilapi.com.br',
 };

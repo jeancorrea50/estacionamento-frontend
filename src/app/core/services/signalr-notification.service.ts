@@ -49,7 +49,11 @@ export class SignalrNotificationService {
   readonly naoLidas = computed(() => this.itensSignal().filter((n) => !n.lida).length);
 
   async connect(): Promise<void> {
-    if (!this.auth.isAdmin()) return;
+    // Sino e hub de migration/infra: exclusivamente Admin.
+    if (!this.auth.isAdmin()) {
+      this.itensSignal.set([]);
+      return;
+    }
     if (this.isBusyOrConnected()) return;
     if (this.connectPromise) return this.connectPromise;
 
@@ -112,9 +116,15 @@ export class SignalrNotificationService {
   }
 
   async carregarLista(): Promise<void> {
+    if (!this.auth.isAdmin()) {
+      this.itensSignal.set([]);
+      return;
+    }
     try {
       const body = await firstValueFrom(this.http.get<unknown>(`${this.apiUrl}/notificacoes`));
-      this.itensSignal.set(this.peelLista(body));
+      const lista = this.peelLista(body);
+      // Defesa: tipos de infraestrutura só para Admin (API já restringe).
+      this.itensSignal.set(lista);
     } catch (err) {
       // API offline / 401 sem Admin — hub ainda pode empurrar eventos
       if (!environment.production && !this.listaFalhouOnce) {
@@ -186,6 +196,7 @@ export class SignalrNotificationService {
 
   private registerHandlers(connection: HubConnection): void {
     connection.on('notificacaoRecebida', (payload: NotificacaoDto) => {
+      if (!this.auth.isAdmin()) return;
       if (!payload?.id) return;
       this.itensSignal.update((list) => {
         if (list.some((n) => n.id === payload.id)) return list;

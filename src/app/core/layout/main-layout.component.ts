@@ -95,6 +95,11 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.themeService.theme$.subscribe((t) => this.themeMode.set(t.mode));
   }
 
+  /** Sino de notificações (migrations/infra) — somente Admin. */
+  isAdminUser(): boolean {
+    return this.authService.isAdmin();
+  }
+
   ngOnInit(): void {
     this.loadLoggedUserContext();
     this.refreshSessionEstacionamentoLabel();
@@ -104,7 +109,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     if (this.authService.needsEstacionamentoSelection()) {
       this.showEstacionamentoModal.set(true);
     }
-    if (this.authService.isAdmin()) {
+    if (this.isAdminUser()) {
       void this.notificationHub.connect();
     }
     this.routerSub = this.router.events.pipe(

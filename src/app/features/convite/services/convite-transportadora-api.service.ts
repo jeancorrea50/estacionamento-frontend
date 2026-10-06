@@ -47,6 +47,14 @@ export interface ConviteTransportadoraDto {
   estado?: string;
 }
 
+export interface PagedResultConviteTransportadora {
+  results: ConviteTransportadoraDto[];
+  currentPage: number;
+  pageCount: number;
+  pageSize: number;
+  rowCount: number;
+}
+
 interface ApiEnvelope<T> {
   success?: boolean;
   Success?: boolean;
@@ -144,12 +152,22 @@ export class ConviteTransportadoraApiService {
     );
   }
 
-  listar(): Observable<ConviteTransportadoraDto[]> {
-    return this.http.get<unknown>(AUTH).pipe(
-      map((body) => {
-        const peeled = this.peelPayload(body);
-        return Array.isArray(peeled) ? peeled.map((x) => this.normalize(x)) : [];
-      }),
+  listar(params?: {
+    NumeroPagina?: number;
+    TamanhoPagina?: number;
+    Status?: string;
+    Busca?: string;
+  }): Observable<PagedResultConviteTransportadora> {
+    const page = params?.NumeroPagina && params.NumeroPagina > 0 ? params.NumeroPagina : 1;
+    const size = params?.TamanhoPagina && params.TamanhoPagina > 0 ? params.TamanhoPagina : 10;
+    const query = new URLSearchParams();
+    query.set('NumeroPagina', String(page));
+    query.set('TamanhoPagina', String(size));
+    if (params?.Status?.trim()) query.set('Status', params.Status.trim());
+    if (params?.Busca?.trim()) query.set('Busca', params.Busca.trim());
+
+    return this.http.get<unknown>(`${AUTH}?${query.toString()}`).pipe(
+      map((body) => this.normalizePaged(body, page, size)),
       catchError((e) => this.rethrow(e))
     );
   }
@@ -193,6 +211,47 @@ export class ConviteTransportadoraApiService {
       throw { message: Array.isArray(err) ? err.join(' ') : String(err), raw: body };
     }
     return this.normalize(data);
+  }
+
+  private normalizePaged(
+    body: unknown,
+    fallbackPage: number,
+    fallbackSize: number
+  ): PagedResultConviteTransportadora {
+    const peeled = this.peelPayload(body);
+    // Compat: resposta antiga era array puro.
+    if (Array.isArray(peeled)) {
+      const results = peeled.map((x) => this.normalize(x as Record<string, unknown>));
+      return {
+        results,
+        currentPage: 1,
+        pageCount: 1,
+        pageSize: results.length || fallbackSize,
+        rowCount: results.length,
+      };
+    }
+
+    const r = (peeled && typeof peeled === 'object' ? peeled : {}) as Record<string, unknown>;
+    const rawList =
+      (r['results'] as unknown) ??
+      (r['Results'] as unknown) ??
+      (r['itens'] as unknown) ??
+      (r['Items'] as unknown) ??
+      [];
+    const list = Array.isArray(rawList) ? rawList : [];
+    const currentPage = Number(r['currentPage'] ?? r['CurrentPage'] ?? fallbackPage) || fallbackPage;
+    const pageSize = Number(r['pageSize'] ?? r['PageSize'] ?? fallbackSize) || fallbackSize;
+    const rowCount = Number(r['rowCount'] ?? r['RowCount'] ?? list.length) || 0;
+    const pageCount =
+      Number(r['pageCount'] ?? r['PageCount'] ?? Math.ceil(rowCount / Math.max(pageSize, 1))) || 0;
+
+    return {
+      results: list.map((x) => this.normalize(x as Record<string, unknown>)),
+      currentPage,
+      pageCount,
+      pageSize,
+      rowCount,
+    };
   }
 
   private peelPayload(body: unknown): unknown {

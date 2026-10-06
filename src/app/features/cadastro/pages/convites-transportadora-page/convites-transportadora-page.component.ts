@@ -1,5 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
@@ -14,7 +15,7 @@ type StepKey = 1 | 2 | 3 | 4;
 @Component({
   selector: 'app-convites-transportadora-page',
   standalone: true,
-  imports: [CommonModule, DatePipe, MatSnackBarModule, RouterLink],
+  imports: [CommonModule, DatePipe, FormsModule, MatSnackBarModule, RouterLink],
   templateUrl: './convites-transportadora-page.component.html',
   styleUrls: ['./convites-transportadora-page.component.scss'],
 })
@@ -27,6 +28,24 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
   readonly reenviandoId = signal<number | null>(null);
   readonly cancelandoId = signal<number | null>(null);
   readonly itens = signal<ConviteTransportadoraDto[]>([]);
+  readonly totalCount = signal(0);
+  readonly pageCount = signal(0);
+  readonly detalhe = signal<ConviteTransportadoraDto | null>(null);
+
+  numeroPagina = 1;
+  tamanhoPagina = 10;
+  readonly opcoesTamanhoPagina = [5, 10, 20, 50];
+  busca = '';
+  statusFiltro = '';
+
+  readonly statusOpcoes = [
+    { value: '', label: 'Todos' },
+    { value: 'Pendente', label: 'Convite enviado' },
+    { value: 'EmAndamento', label: 'Em andamento' },
+    { value: 'Concluido', label: 'Concluído' },
+    { value: 'Expirado', label: 'Expirado' },
+    { value: 'Cancelado', label: 'Cancelado' },
+  ];
 
   readonly steps: { key: StepKey; label: string; icon: string }[] = [
     { key: 1, label: 'Acesso', icon: 'person' },
@@ -35,17 +54,51 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
     { key: 4, label: 'Endereço', icon: 'home' },
   ];
 
+  get totalPaginas(): number {
+    return Math.max(1, this.pageCount() || Math.ceil(this.totalCount() / Math.max(this.tamanhoPagina, 1)));
+  }
+
+  get intervaloExibicao(): { de: number; ate: number } {
+    const total = this.totalCount();
+    if (total === 0) return { de: 0, ate: 0 };
+    const de = (this.numeroPagina - 1) * this.tamanhoPagina + 1;
+    const ate = Math.min(this.numeroPagina * this.tamanhoPagina, total);
+    return { de, ate };
+  }
+
   ngOnInit(): void {
     this.carregar();
   }
 
-  carregar(): void {
+  @HostListener('document:keydown.escape')
+  onEsc(): void {
+    if (this.detalhe()) this.fecharDetalhe();
+  }
+
+  carregar(resetPage = false): void {
+    if (resetPage) this.numeroPagina = 1;
     this.loading.set(true);
     this.api
-      .listar()
+      .listar({
+        NumeroPagina: this.numeroPagina,
+        TamanhoPagina: this.tamanhoPagina,
+        Status: this.statusFiltro || undefined,
+        Busca: this.busca.trim() || undefined,
+      })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (lista) => this.itens.set(lista),
+        next: (page) => {
+          this.itens.set(page.results);
+          this.totalCount.set(page.rowCount);
+          this.pageCount.set(page.pageCount);
+          this.numeroPagina = page.currentPage || this.numeroPagina;
+          this.tamanhoPagina = page.pageSize || this.tamanhoPagina;
+          const aberto = this.detalhe();
+          if (aberto) {
+            const atualizado = page.results.find((x) => x.id === aberto.id);
+            if (atualizado) this.detalhe.set(atualizado);
+          }
+        },
         error: (err: { message?: string } | unknown) => {
           const msg =
             err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
@@ -54,6 +107,38 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
           this.snack.open(msg, 'Fechar', { duration: 5000 });
         },
       });
+  }
+
+  buscar(): void {
+    this.carregar(true);
+  }
+
+  limparFiltros(): void {
+    this.busca = '';
+    this.statusFiltro = '';
+    this.carregar(true);
+  }
+
+  onTamanhoPaginaChange(value: number | string): void {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.tamanhoPagina = n;
+    this.carregar(true);
+  }
+
+  irParaPagina(pagina: number): void {
+    const dest = Math.min(Math.max(1, pagina), this.totalPaginas);
+    if (dest === this.numeroPagina) return;
+    this.numeroPagina = dest;
+    this.carregar();
+  }
+
+  abrirDetalhe(c: ConviteTransportadoraDto): void {
+    this.detalhe.set(c);
+  }
+
+  fecharDetalhe(): void {
+    this.detalhe.set(null);
   }
 
   isDone(etapaAtual: number, key: StepKey, status: string): boolean {
@@ -98,6 +183,12 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
     return step ? `Etapa ${etapaAtual}: ${step.label}` : `Etapa ${etapaAtual}`;
   }
 
+  progressoPercent(c: ConviteTransportadoraDto): number {
+    if (this.isConcluido(c.status)) return 100;
+    const etapa = Math.min(Math.max(c.etapaAtual || 1, 1), 4);
+    return Math.round(((etapa - 1) / 4) * 100);
+  }
+
   reenviar(c: ConviteTransportadoraDto): void {
     if (!this.podeReenviar(c) || this.reenviandoId() != null) return;
     this.reenviandoId.set(c.id);
@@ -106,9 +197,7 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
       .pipe(finalize(() => this.reenviandoId.set(null)))
       .subscribe({
         next: (atualizado) => {
-          this.itens.update((lista) =>
-            lista.map((x) => (x.id === atualizado.id ? { ...x, ...atualizado } : x))
-          );
+          this.patchItem(atualizado);
           const etapa = atualizado.etapaAtual ?? c.etapaAtual;
           const emailOk = atualizado.emailEnviado;
           this.snack.open(
@@ -140,9 +229,7 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
       .pipe(finalize(() => this.cancelandoId.set(null)))
       .subscribe({
         next: (atualizado) => {
-          this.itens.update((lista) =>
-            lista.map((x) => (x.id === atualizado.id ? { ...x, ...atualizado } : x))
-          );
+          this.patchItem(atualizado);
           this.snack.open('Convite cancelado.', 'Fechar', { duration: 3500 });
         },
         error: (err: { message?: string } | unknown) => {
@@ -180,5 +267,15 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
 
   trackById(_: number, c: ConviteTransportadoraDto): number {
     return c.id;
+  }
+
+  private patchItem(atualizado: ConviteTransportadoraDto): void {
+    this.itens.update((lista) =>
+      lista.map((x) => (x.id === atualizado.id ? { ...x, ...atualizado } : x))
+    );
+    const aberto = this.detalhe();
+    if (aberto?.id === atualizado.id) {
+      this.detalhe.set({ ...aberto, ...atualizado });
+    }
   }
 }

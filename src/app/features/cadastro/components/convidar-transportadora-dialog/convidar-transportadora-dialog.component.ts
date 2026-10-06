@@ -34,7 +34,7 @@ export class ConvidarTransportadoraDialogComponent {
   readonly erro = signal<string | null>(null);
   readonly sucesso = signal<string | null>(null);
   readonly resultado = signal<ConviteTransportadoraResult | null>(null);
-  /** Celular digitado no formulário (para montar WA/SMS se a API não devolver). */
+  /** Celular digitado no formulário (para montar WhatsApp se a API não devolver). */
   private telefoneInformado = '';
 
   readonly form = this.fb.nonNullable.group({
@@ -45,7 +45,6 @@ export class ConvidarTransportadoraDialogComponent {
   });
 
   readonly podeWhatsApp = computed(() => !!this.resolveWhatsAppUrl());
-  readonly podeSms = computed(() => !!this.resolveSmsUrl());
 
   cancelar(): void {
     if (this.enviando()) return;
@@ -78,9 +77,9 @@ export class ConvidarTransportadoraDialogComponent {
           this.resultado.set(this.enrichShareLinks(res.data, v.responsavelTelefone));
           this.sucesso.set(
             res.data.emailEnviado
-              ? 'E-mail enviado com o botão Cadastrar Transportadora. Compartilhe também por WhatsApp ou SMS.'
+              ? 'E-mail enviado com o botão Cadastrar Transportadora. Compartilhe também por WhatsApp.'
               : (res.message ??
-                'Convite criado. O e-mail pode ter falhado — use WhatsApp ou SMS abaixo.')
+                'Convite criado. O e-mail pode ter falhado — use WhatsApp ou copie o link abaixo.')
           );
         },
         error: () => {
@@ -99,37 +98,15 @@ export class ConvidarTransportadoraDialogComponent {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 
-  abrirSms(): void {
-    this.erro.set(null);
-    const url = this.resolveSmsUrl();
-    const msg = this.mensagemShare();
-    if (!url) {
-      this.erro.set('SMS indisponível — verifique o celular informado.');
-      return;
-    }
-
-    // Disparo via <a> é mais confiável que location.href em alguns browsers.
-    const a = document.createElement('a');
-    a.href = url;
-    a.rel = 'noopener';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // Fallback desktop: se o app de SMS não abrir, copia a mensagem.
-    window.setTimeout(() => {
-      void this.copiarTexto(
-        msg,
-        'App de SMS aberto (ou mensagem copiada — cole no SMS se o app não abriu).'
-      );
-    }, 400);
-  }
-
   async copiarLink(): Promise<void> {
     const link = this.resultado()?.linkConviteFrontend;
     if (!link) return;
-    await this.copiarTexto(link, 'Link copiado! Envie para o responsável.');
+    try {
+      await navigator.clipboard.writeText(link);
+      this.sucesso.set('Link copiado! Envie para o responsável.');
+    } catch {
+      this.erro.set('Não foi possível copiar. Selecione o link manualmente.');
+    }
   }
 
   fieldError(
@@ -151,57 +128,28 @@ export class ConvidarTransportadoraDialogComponent {
   private resolveWhatsAppUrl(): string | null {
     const r = this.resultado();
     if (r?.urlWhatsApp?.trim()) return r.urlWhatsApp.trim();
-    const built = this.buildShareUrls(r?.linkConviteFrontend, this.telefoneInformado);
-    return built.urlWhatsApp;
-  }
-
-  private resolveSmsUrl(): string | null {
-    const r = this.resultado();
-    if (r?.urlSms?.trim()) return this.normalizeSmsUrl(r.urlSms.trim());
-    const built = this.buildShareUrls(r?.linkConviteFrontend, this.telefoneInformado);
-    return built.urlSms;
-  }
-
-  private mensagemShare(): string {
-    const r = this.resultado();
-    if (r?.mensagemCompartilhamento?.trim()) return r.mensagemCompartilhamento.trim();
-    const link = r?.linkConviteFrontend ?? '';
-    const nome = r?.responsavelNome?.trim() || 'responsável';
-    return `Olá, ${nome}!\n\nVocê foi convidado(a) a cadastrar sua transportadora no GTS Sistema.\nToque no link abaixo para abrir o cadastro:\n\n${link}\n\nCadastrar Transportadora`;
+    const built = this.buildWhatsAppUrl(r?.linkConviteFrontend, this.telefoneInformado);
+    return built;
   }
 
   private enrichShareLinks(
     data: ConviteTransportadoraResult,
     telefoneRaw: string
   ): ConviteTransportadoraResult {
-    const built = this.buildShareUrls(data.linkConviteFrontend, telefoneRaw, data.mensagemCompartilhamento);
+    const wa = data.urlWhatsApp?.trim() || this.buildWhatsAppUrl(data.linkConviteFrontend, telefoneRaw);
     return {
       ...data,
-      urlWhatsApp: data.urlWhatsApp?.trim() || built.urlWhatsApp,
-      urlSms: data.urlSms?.trim() ? this.normalizeSmsUrl(data.urlSms.trim()) : built.urlSms,
-      mensagemCompartilhamento: data.mensagemCompartilhamento ?? built.mensagem,
+      urlWhatsApp: wa,
+      urlSms: null,
     };
   }
 
-  private buildShareUrls(
-    link: string | null | undefined,
-    telefoneRaw: string,
-    mensagemExistente?: string | null
-  ): { urlWhatsApp: string | null; urlSms: string | null; mensagem: string } {
+  private buildWhatsAppUrl(link: string | null | undefined, telefoneRaw: string): string | null {
     const linkTrim = (link ?? '').trim();
     const tel = this.normalizePhoneBr(telefoneRaw);
-    const mensagem =
-      (mensagemExistente ?? '').trim() ||
-      `Olá!\n\nVocê foi convidado(a) a cadastrar sua transportadora no GTS Sistema.\n\n${linkTrim}\n\nCadastrar Transportadora`;
-    if (!linkTrim || !tel) {
-      return { urlWhatsApp: null, urlSms: null, mensagem };
-    }
-    const texto = encodeURIComponent(mensagem);
-    return {
-      urlWhatsApp: `https://wa.me/${tel}?text=${texto}`,
-      urlSms: `sms:+${tel}?&body=${texto}`,
-      mensagem,
-    };
+    if (!linkTrim || !tel) return null;
+    const mensagem = `Olá!\n\nVocê foi convidado(a) a cadastrar sua transportadora no GTS Sistema.\n\n${linkTrim}\n\nCadastrar Transportadora`;
+    return `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
   }
 
   private normalizePhoneBr(raw: string): string | null {
@@ -209,31 +157,5 @@ export class ConvidarTransportadoraDialogComponent {
     if (digits.length < 10) return null;
     if (!digits.startsWith('55') && digits.length <= 11) digits = `55${digits}`;
     return digits;
-  }
-
-  /** Garante +DDI e query híbrida (?&body=) para Android/iOS. */
-  private normalizeSmsUrl(url: string): string {
-    try {
-      if (!url.toLowerCase().startsWith('sms:')) return url;
-      const rest = url.slice(4);
-      const qIdx = rest.search(/[?&]/);
-      const phonePart = (qIdx >= 0 ? rest.slice(0, qIdx) : rest).replace(/[^\d+]/g, '');
-      const phone = phonePart.startsWith('+') ? phonePart : `+${phonePart.replace(/^\+/, '')}`;
-      let body = '';
-      const bodyMatch = rest.match(/[?&]body=([^&]*)/);
-      if (bodyMatch) body = bodyMatch[1] ?? '';
-      return body ? `sms:${phone}?&body=${body}` : `sms:${phone}`;
-    } catch {
-      return url;
-    }
-  }
-
-  private async copiarTexto(texto: string, okMsg: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(texto);
-      this.sucesso.set(okMsg);
-    } catch {
-      this.erro.set('Não foi possível copiar. Selecione o texto manualmente.');
-    }
   }
 }

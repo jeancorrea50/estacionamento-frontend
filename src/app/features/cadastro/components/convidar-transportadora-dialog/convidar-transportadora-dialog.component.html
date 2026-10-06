@@ -7,7 +7,7 @@
       <h2 id="convite-dlg-title" class="convite-dlg__title">Convidar Transportadora</h2>
       <p class="convite-dlg__subtitle">
         Enviaremos o e-mail com o botão <strong>Cadastrar Transportadora</strong> e você poderá
-        compartilhar o mesmo link por WhatsApp e SMS.
+        compartilhar o mesmo link por WhatsApp.
       </p>
     </div>
   </header>
@@ -71,7 +71,7 @@
       </label>
 
       <label class="convite-dlg__field">
-        <span class="convite-dlg__label">Celular (WhatsApp / SMS) *</span>
+        <span class="convite-dlg__label">Celular (WhatsApp) *</span>
         <span class="convite-dlg__phone" [attr.aria-invalid]="!!fieldError('responsavelTelefone')">
           <span class="convite-dlg__ddi" title="DDI Brasil">+55</span>
           <span class="convite-dlg__input-wrap convite-dlg__input-wrap--phone">
@@ -98,7 +98,7 @@
         <span class="material-symbols-outlined" aria-hidden="true">info</span>
         <p>
           O e-mail leva o botão <strong>Cadastrar Transportadora</strong> com o link do convite.
-          WhatsApp e SMS abrem o app com a mensagem e o mesmo link prontos para enviar.
+          O WhatsApp abre o app com a mensagem e o mesmo link prontos para enviar.
         </p>
       </div>
 
@@ -149,15 +149,6 @@
         >
           <span class="material-symbols-outlined" aria-hidden="true">chat</span>
           WhatsApp
-        </button>
-        <button
-          type="button"
-          class="convite-dlg__btn convite-dlg__btn--sms"
-          (click)="abrirSms()"
-          [disabled]="!podeSms()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">sms</span>
-          SMS
         </button>
         <button type="button" class="convite-dlg__btn convite-dlg__btn--ghost" (click)="copiarLink()" [disabled]="!resultado()?.linkConviteFrontend">
           <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>

@@ -449,14 +449,66 @@
   flex-shrink: 0;
 }
 
-.form-grid {
-  display: grid;
-  gap: 0 2rem;
-  margin-bottom: 1rem;
+.form-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.form-grid--basic {
+.form-section-card {
+  padding: 1rem 1.15rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+}
+
+.form-section-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0.85rem;
+}
+
+.form-section-card__head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.pessoa-fisica-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border-subtle));
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pessoa-fisica-chip .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0 1.25rem;
+  margin-bottom: 0;
+}
+
+.form-grid--basic,
+.form-grid--2 {
   grid-template-columns: 1fr 1fr;
+}
+
+.form-group--full {
+  grid-column: 1 / -1;
 }
 
 .form-column {
@@ -956,13 +1008,18 @@
     font-size: 0.85rem;
   }
 
-  .form-grid--basic {
+  .form-grid--basic,
+  .form-grid--2 {
     grid-template-columns: 1fr;
   }
 
   .form-column--right {
     padding-left: 0;
     border-left: none;
+  }
+
+  .form-section-card__head {
+    flex-wrap: wrap;
   }
 
   .modal-body {

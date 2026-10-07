@@ -121,8 +121,14 @@
 
   <div class="sidebar-footer">
     <p class="version" [class.hidden]="isCollapsed()">v1.0.0</p>
-    <button type="button" class="logout-btn" (click)="logout()" [title]="isCollapsed() ? 'Sair' : ''">
-      <span class="material-symbols-outlined icon">logout</span>
+    <button
+      type="button"
+      class="logout-btn"
+      (click)="logout()"
+      title="Sair do sistema"
+      aria-label="Sair do sistema"
+    >
+      <span class="material-symbols-outlined icon" aria-hidden="true">logout</span>
       <span class="label" [class.hidden]="isCollapsed()">Sair</span>
     </button>
   </div>

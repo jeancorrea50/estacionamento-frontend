@@ -3,6 +3,31 @@
   width: 100%;
   height: 100%;
   min-height: 220px;
+  --mapa-bg: #101114;
+  --mapa-popup-bg: #1c1c24;
+  --mapa-popup-fg: #f4f4f5;
+  --mapa-ctrl-bg: #24242e;
+  --mapa-ctrl-fg: #f4f4f5;
+  --mapa-ctrl-border: #363642;
+  --mapa-attr-bg: rgba(16, 17, 20, 0.72);
+  --mapa-attr-fg: #a1a1aa;
+  --mapa-ok: #4ade80;
+  --mapa-muted: #a1a1aa;
+  --mapa-err: #f87171;
+}
+
+:host-context(html.theme-light) {
+  --mapa-bg: #e8eef5;
+  --mapa-popup-bg: #ffffff;
+  --mapa-popup-fg: #0f172a;
+  --mapa-ctrl-bg: #ffffff;
+  --mapa-ctrl-fg: #0f172a;
+  --mapa-ctrl-border: #dce3ec;
+  --mapa-attr-bg: rgba(255, 255, 255, 0.88);
+  --mapa-attr-fg: #64748b;
+  --mapa-ok: #15803d;
+  --mapa-muted: #64748b;
+  --mapa-err: #b91c1c;
 }
 
 .mapa-canvas {
@@ -11,16 +36,20 @@
   min-height: 220px;
   border-radius: 12px;
   overflow: hidden;
-  background: #101114;
+  background: var(--mapa-bg);
 }
 
 :host ::ng-deep .leaflet-container {
-  background: #101114;
+  background: var(--mapa-bg);
   font-family: inherit;
 }
 
 :host ::ng-deep .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.92) saturate(0.35);
+}
+
+:host-context(html.theme-light) ::ng-deep .leaflet-tile-pane {
+  filter: none;
 }
 
 :host ::ng-deep .br-pin {
@@ -83,7 +112,7 @@
 }
 
 :host ::ng-deep .mapa-popup__linha--ok .material-symbols-outlined {
-  color: #4ade80;
+  color: var(--mapa-ok);
 }
 
 :host ::ng-deep .mapa-popup__linha--ausente {
@@ -91,27 +120,27 @@
 }
 
 :host ::ng-deep .mapa-popup__linha--ausente .material-symbols-outlined {
-  color: #a1a1aa;
+  color: var(--mapa-muted);
 }
 
 :host ::ng-deep .mapa-popup__linha--alerta .material-symbols-outlined {
-  color: #f87171;
+  color: var(--mapa-err);
 }
 
 :host ::ng-deep .leaflet-popup-content-wrapper,
 :host ::ng-deep .leaflet-popup-tip {
-  background: #1c1c24;
-  color: #f4f4f5;
+  background: var(--mapa-popup-bg);
+  color: var(--mapa-popup-fg);
   box-shadow: none;
 }
 
 :host ::ng-deep .leaflet-control-zoom a {
-  background: #24242e;
-  color: #f4f4f5;
-  border-color: #363642;
+  background: var(--mapa-ctrl-bg);
+  color: var(--mapa-ctrl-fg);
+  border-color: var(--mapa-ctrl-border);
 }
 
 :host ::ng-deep .leaflet-control-attribution {
-  background: rgba(16, 17, 20, 0.72);
-  color: #a1a1aa;
+  background: var(--mapa-attr-bg);
+  color: var(--mapa-attr-fg);
 }

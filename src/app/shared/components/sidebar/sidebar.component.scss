@@ -578,40 +578,55 @@
   width: 100%;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-sm, 8px);
-  padding: 8px 12px;
-  min-height: 38px;
-  border-radius: 999px;
-  border: none;
-  background: color-mix(in srgb, var(--danger, #f44336) 14%, transparent);
-  color: color-mix(in srgb, var(--danger, #f44336) 85%, var(--text));
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #dc2626 55%, #7f1d1d);
+  background: #dc2626;
+  color: #ffffff;
   cursor: pointer;
   font-family: inherit;
-  font-weight: var(--font-weight-section, 600);
+  font-weight: 700;
   font-size: var(--font-body, 14px);
-  transition: background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+  transition: background 0.22s ease, box-shadow 0.22s ease, transform 0.15s ease;
 
   &:hover {
-    background: color-mix(in srgb, var(--danger, #f44336) 22%, transparent);
+    background: #b91c1c;
+    box-shadow: 0 3px 12px rgba(185, 28, 28, 0.4);
+  }
+
+  &:active {
+    background: #991b1b;
+    transform: translateY(1px);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--danger, #f44336);
+    outline: 2px solid #fecaca;
     outline-offset: 2px;
   }
 
   .icon {
-    font-size: 1rem;
-    min-width: 20px;
+    font-size: 1.15rem;
+    min-width: 22px;
+    color: #ffffff;
   }
 
   .label {
-    flex: 1;
-    text-align: left;
+    flex: 0 1 auto;
+    text-align: center;
+    color: #ffffff;
 
     &.hidden {
       opacity: 0;
       visibility: hidden;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
     }
   }
 }
@@ -806,11 +821,17 @@
   }
 
   .logout-btn {
-    background: color-mix(in srgb, var(--danger) 12%, var(--dark-hover, #323240));
-    color: var(--danger);
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #b91c1c;
 
     &:hover {
-      background: color-mix(in srgb, var(--danger) 18%, var(--dark-hover-strong, #3a3a48));
+      background: #b91c1c;
+    }
+
+    .icon,
+    .label {
+      color: #ffffff;
     }
   }
 
@@ -963,19 +984,22 @@
   }
 
   .logout-btn {
-    background: rgba(255, 255, 255, 0.14);
+    background: #dc2626;
     color: #ffffff;
+    border-color: #b91c1c;
+    box-shadow: 0 2px 10px rgba(127, 29, 29, 0.45);
 
-    .icon {
-      color: inherit;
+    .icon,
+    .label {
+      color: #ffffff;
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.22);
+      background: #b91c1c;
     }
 
     &:focus-visible {
-      outline-color: #ffffff;
+      outline-color: #fecaca;
     }
   }
 

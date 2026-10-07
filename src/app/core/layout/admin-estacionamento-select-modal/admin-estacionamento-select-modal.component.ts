@@ -69,8 +69,12 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
       const codCompact = cod.replace(/[\s\-]/g, '');
       const idStr = String(o.id);
 
+      const cidade = (o.cidade ?? '').toLowerCase();
+      const bairro = (o.bairro ?? '').toLowerCase();
+      const estado = (o.estado ?? '').toLowerCase();
       if (fantasia.includes(qLower) || razao.includes(qLower)) return true;
       if (nome.includes(qLower) || label.includes(qLower)) return true;
+      if (cidade.includes(qLower) || bairro.includes(qLower) || estado.includes(qLower)) return true;
       if (idStr === q || idStr.includes(q)) return true;
       if (qDigits.length >= 3 && cnpj.includes(qDigits)) return true;
       if (cod.includes(qLower) || codCompact.includes(qCompact)) return true;
@@ -237,7 +241,7 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
     const desc = String(opt.ambienteDescricao ?? '').trim();
     if (desc) return desc;
     if (opt.ambiente === 1) return 'Desenvolvimento';
-    if (opt.ambiente === 2) return 'Hotfix';
+    if (opt.ambiente === 2) return 'Homologação';
     if (opt.ambiente === 3) return 'Produção';
     return '—';
   }

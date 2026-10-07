@@ -20,8 +20,11 @@ export interface LookupOption {
   fantasia?: string | null;
   /** Razão social (endpoint: nomeRazaoSocial). */
   razaoSocial?: string | null;
+  cidade?: string | null;
+  bairro?: string | null;
+  estado?: string | null;
   codExportacao?: string | null;
-  /** Ambiente do perfil de conexão (1=Dev, 2=Hotfix, 3=Produção). */
+  /** Ambiente do perfil de conexão (1=Dev, 2=Homologação, 3=Produção). */
   ambiente?: number | null;
   ambienteDescricao?: string | null;
 }
@@ -168,10 +171,13 @@ export class EstacionamentoLookupService {
       (ambiente === 1
         ? 'Desenvolvimento'
         : ambiente === 2
-          ? 'Hotfix'
+          ? 'Homologação'
           : ambiente === 3
             ? 'Produção'
             : null);
+    const cidade = String(row['cidade'] ?? row['Cidade'] ?? row['cidadeCatalogo'] ?? row['CidadeCatalogo'] ?? '').trim();
+    const bairro = String(row['bairro'] ?? row['Bairro'] ?? row['bairroCatalogo'] ?? row['BairroCatalogo'] ?? '').trim();
+    const estado = String(row['estado'] ?? row['Estado'] ?? row['estadoCatalogo'] ?? row['EstadoCatalogo'] ?? '').trim();
     return {
       id,
       nome: nomePrincipal || null,
@@ -179,6 +185,9 @@ export class EstacionamentoLookupService {
       razaoSocial: razaoSocial || null,
       label: nomePrincipal ? `${nomePrincipal} — ${cnpj || '-'}` : String(id),
       cnpj,
+      cidade: cidade || null,
+      bairro: bairro || null,
+      estado: estado || null,
       codExportacao,
       ambiente: Number.isFinite(ambiente as number) ? (ambiente as number) : null,
       ambienteDescricao,

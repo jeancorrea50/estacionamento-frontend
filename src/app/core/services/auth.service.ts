@@ -667,7 +667,12 @@ export class AuthService {
       nome?: string | null;
       fantasia?: string | null;
       razaoSocial?: string | null;
+      cidade?: string | null;
+      bairro?: string | null;
+      estado?: string | null;
       codExportacao?: string | null;
+      ambiente?: number | null;
+      ambienteDescricao?: string | null;
     }>
   > {
     const url = `${environment.API_BASE_URL}/auth/Usuario/meus-estacionamentos`;
@@ -684,7 +689,24 @@ export class AuthService {
             const fantasia = String(o['fantasia'] ?? o['Fantasia'] ?? '').trim();
             const razaoSocial = String(o['nomeRazaoSocial'] ?? o['NomeRazaoSocial'] ?? '').trim();
             const cnpj = String(o['cnpjEstacionamento'] ?? o['CnpjEstacionamento'] ?? '').trim();
+            const cidade = String(o['cidade'] ?? o['Cidade'] ?? '').trim();
+            const bairro = String(o['bairro'] ?? o['Bairro'] ?? '').trim();
+            const estado = String(o['estado'] ?? o['Estado'] ?? '').trim();
             const codExportacao = String(o['codExportacao'] ?? o['CodExportacao'] ?? '').trim();
+            const ambienteRaw = o['ambiente'] ?? o['Ambiente'];
+            const ambiente =
+              ambienteRaw === null || ambienteRaw === undefined || ambienteRaw === ''
+                ? null
+                : Number(ambienteRaw);
+            const ambienteDescricao =
+              String(o['ambienteDescricao'] ?? o['AmbienteDescricao'] ?? '').trim() ||
+              (ambiente === 1
+                ? 'Desenvolvimento'
+                : ambiente === 2
+                  ? 'Homologação'
+                  : ambiente === 3
+                    ? 'Produção'
+                    : null);
             const nome = fantasia || razaoSocial || `Estacionamento #${id}`;
             return {
               id: Math.trunc(id),
@@ -693,7 +715,12 @@ export class AuthService {
               nome,
               fantasia: fantasia || null,
               razaoSocial: razaoSocial || null,
+              cidade: cidade || null,
+              bairro: bairro || null,
+              estado: estado || null,
               codExportacao: codExportacao || null,
+              ambiente: Number.isFinite(ambiente as number) ? (ambiente as number) : null,
+              ambienteDescricao,
             };
           })
           .filter((x): x is NonNullable<typeof x> => x != null);

@@ -10,18 +10,7 @@
       <div class="aes-modal__badge" aria-hidden="true">
         <span class="material-symbols-outlined">apartment</span>
       </div>
-      <div class="aes-modal__titles">
-        <h2 id="aes-title">Escolher estacionamento</h2>
-        <p class="aes-modal__sub">
-          @if (isTransportadora) {
-            Sessão da transportadora. Selecione o pátio para ver os movimentos desta empresa. A escolha é
-            obrigatória.
-          } @else {
-            Sessão de administrador. Selecione o pátio para carregar os dados operacionais. A escolha é
-            obrigatória.
-          }
-        </p>
-      </div>
+      <h2 id="aes-title">Escolher estacionamento</h2>
     </header>
 
     <div class="aes-modal__body">
@@ -46,62 +35,50 @@
           </div>
         </div>
       } @else {
-        <div class="aes-search" role="search">
-          <span class="material-symbols-outlined aes-search__icon" aria-hidden="true">search</span>
-          <input
-            #searchInput
-            class="aes-search__input"
-            type="search"
-            [ngModel]="filtro()"
-            (ngModelChange)="onFiltroChange($event)"
-            (keydown)="onListaKeydown($event)"
-            placeholder="Buscar por código de exportação, fantasia, razão social ou CNPJ..."
-            autocomplete="off"
-            aria-label="Pesquisar estacionamento"
-          />
-          @if (filtro()) {
-            <button type="button" class="aes-search__clear" (click)="limparFiltro()" aria-label="Limpar busca">
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          }
-        </div>
-
-        <div class="aes-hints" aria-hidden="true">
-          <span class="aes-chip">Código exportação</span>
-          <span class="aes-chip">Fantasia</span>
-          <span class="aes-chip">Razão social</span>
-          <span class="aes-chip">CNPJ</span>
-          <span class="aes-chip">Ambiente</span>
-        </div>
-
-        <div class="aes-meta">
-          <span>
+        <div class="aes-toolbar">
+          <div class="aes-search" role="search">
+            <span class="material-symbols-outlined aes-search__icon" aria-hidden="true">search</span>
+            <input
+              #searchInput
+              class="aes-search__input"
+              type="search"
+              [ngModel]="filtro()"
+              (ngModelChange)="onFiltroChange($event)"
+              (keydown)="onListaKeydown($event)"
+              placeholder="Buscar..."
+              autocomplete="off"
+              aria-label="Pesquisar estacionamento"
+            />
+            @if (filtro()) {
+              <button type="button" class="aes-search__clear" (click)="limparFiltro()" aria-label="Limpar busca">
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+              </button>
+            }
+          </div>
+          <span class="aes-meta">
             {{ opcoesFiltradas().length }}
             {{ opcoesFiltradas().length === 1 ? 'resultado' : 'resultados' }}
           </span>
-          @if (selectedOption(); as sel) {
-            <span class="aes-meta__sel">
-              Selecionado: {{ sel.fantasia || sel.razaoSocial || sel.nome || sel.label }}
-            </span>
-          }
         </div>
 
-        <div class="aes-table-wrap">
-          <table class="aes-table" role="listbox" aria-label="Estacionamentos">
+        <div class="table-wrap aes-table-wrap">
+          <table class="data-table" role="listbox" aria-label="Estacionamentos">
             <thead>
               <tr>
-                <th scope="col" class="aes-th--fantasia">Fantasia</th>
-                <th scope="col" class="aes-th--razao">Razão social</th>
-                <th scope="col" class="aes-th--cnpj">CNPJ</th>
-                <th scope="col" class="aes-th--cod">Cód. exportação</th>
-                <th scope="col" class="aes-th--ambiente">Ambiente</th>
-                <th scope="col" class="aes-table__check" aria-hidden="true"></th>
+                <th scope="col">Fantasia</th>
+                <th scope="col">Razão social</th>
+                <th scope="col">CNPJ</th>
+                <th scope="col">Cidade</th>
+                <th scope="col">Bairro</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Cód. exportação</th>
+                <th scope="col">Ambiente</th>
+                <th scope="col" class="aes-col-check" aria-hidden="true"></th>
               </tr>
             </thead>
             <tbody>
               @for (o of opcoesFiltradas(); track trackById($index, o); let i = $index) {
                 <tr
-                  class="aes-row"
                   role="option"
                   tabindex="0"
                   [class.aes-row--selected]="selectedId() === o.id"
@@ -111,21 +88,18 @@
                   (dblclick)="selecionarEConfirmar(o)"
                   (keydown)="onListaKeydown($event)"
                 >
-                  <td class="aes-cell aes-cell--fantasia" [attr.title]="o.fantasia || ''">
-                    {{ displayText(o.fantasia) }}
-                  </td>
-                  <td class="aes-cell aes-cell--razao" [attr.title]="o.razaoSocial || ''">
-                    {{ displayText(o.razaoSocial) }}
-                  </td>
-                  <td class="aes-cell aes-cell--cnpj" [attr.title]="formatCnpj(o.cnpj)">
-                    {{ formatCnpj(o.cnpj) }}
-                  </td>
-                  <td class="aes-cell aes-cell--cod">
+                  <td [attr.title]="o.fantasia || ''">{{ displayText(o.fantasia) }}</td>
+                  <td [attr.title]="o.razaoSocial || ''">{{ displayText(o.razaoSocial) }}</td>
+                  <td class="aes-cell-nowrap" [attr.title]="formatCnpj(o.cnpj)">{{ formatCnpj(o.cnpj) }}</td>
+                  <td [attr.title]="o.cidade || ''">{{ displayText(o.cidade) }}</td>
+                  <td [attr.title]="o.bairro || ''">{{ displayText(o.bairro) }}</td>
+                  <td>{{ displayText(o.estado) }}</td>
+                  <td>
                     <code class="aes-cod" [attr.title]="o.codExportacao || ''">
                       {{ firstCodDigits(o.codExportacao) }}
                     </code>
                   </td>
-                  <td class="aes-cell aes-cell--ambiente">
+                  <td>
                     <span
                       class="aes-ambiente"
                       [class.aes-ambiente--dev]="o.ambiente === 1"
@@ -135,7 +109,7 @@
                       {{ ambienteLabel(o) }}
                     </span>
                   </td>
-                  <td class="aes-cell aes-cell--check">
+                  <td class="aes-col-check">
                     @if (selectedId() === o.id) {
                       <span class="material-symbols-outlined aes-check" aria-hidden="true">check_circle</span>
                     }
@@ -143,7 +117,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td class="aes-empty" colspan="6">Nenhum estacionamento corresponde à busca.</td>
+                  <td class="aes-empty" colspan="9">Nenhum estacionamento corresponde à busca.</td>
                 </tr>
               }
             </tbody>
@@ -153,7 +127,6 @@
     </div>
 
     <footer class="aes-modal__footer">
-      <p class="aes-tip">Dica: digite o GUID do código de exportação para achar rápido. Enter confirma.</p>
       <button
         type="button"
         class="aes-btn aes-btn--primary"

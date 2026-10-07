@@ -310,32 +310,33 @@ export class MenuAdminService {
       };
     };
 
-    const nextSessionMenus: SessionMenuAccess[] = latestMenus
+    const nextSessionMenus: SessionMenuAccess[] = [];
+    const sortedMenus = latestMenus
       .filter((menu) => menu.ativo !== false)
-      .sort((a, b) => a.ordem - b.ordem)
-      .map((menu) => {
-        const subMenus: SessionSubMenuAccess[] = (menu.subMenus ?? [])
-          .filter((sub) => sub.ativo !== false)
-          .sort((a, b) => a.ordem - b.ordem)
-          .map(mapAdminSubToSession)
-          .filter((sub): sub is SessionSubMenuAccess => sub != null);
+      .sort((a, b) => a.ordem - b.ordem);
 
-        const menuSelecionado = selectedMenuIds.has(menu.id) || subMenus.length > 0;
-        if (!menuSelecionado) return null;
+    for (const menu of sortedMenus) {
+      const subMenus: SessionSubMenuAccess[] = (menu.subMenus ?? [])
+        .filter((sub) => sub.ativo !== false)
+        .sort((a, b) => a.ordem - b.ordem)
+        .map(mapAdminSubToSession)
+        .filter((sub): sub is SessionSubMenuAccess => sub != null);
 
-        return {
-          id: menu.id,
-          descricao: menu.nome,
-          icone: menu.icone,
-          rota: menu.rota,
-          ativo: menu.ativo,
-          exibirNoSidebar: menu.exibirNoSidebar !== false,
-          selecionado: true,
-          ordem: menu.ordem,
-          subMenus,
-        };
-      })
-      .filter((menu): menu is SessionMenuAccess => menu != null);
+      const menuSelecionado = selectedMenuIds.has(menu.id) || subMenus.length > 0;
+      if (!menuSelecionado) continue;
+
+      nextSessionMenus.push({
+        id: menu.id,
+        descricao: menu.nome,
+        icone: menu.icone,
+        rota: menu.rota,
+        ativo: menu.ativo,
+        exibirNoSidebar: menu.exibirNoSidebar !== false,
+        selecionado: true,
+        ordem: menu.ordem,
+        subMenus,
+      });
+    }
 
     if (nextSessionMenus.length > 0) {
       this.sessionAccess.setMenus(nextSessionMenus);

@@ -1,17 +1,20 @@
 /**
- * Desenvolvimento: usar backend HTTPS local na porta oficial da API.
+ * Desenvolvimento (`ng serve` :4200).
+ * Paths /estac/* iguais à produção; `proxy.conf.json` encaminha a https://gtsistema.com.
  */
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:44317',
-  API_BASE_URL: 'https://localhost:44317/api',
+  apiUrl: '/estac',
+  API_BASE_URL: '/estac/api',
+  REPORT_BASE_URL: '/estac/report/api',
+  dashboardHubUrl: '/estac/worker/hubs/movimento/entradasaida',
+  notificationApiUrl: '/estac/notification/api',
+  notificationHubUrl: '/estac/notification/hubs/notificacao',
   emergencyAdmin: {
     enabled: true,
     username: 'teste.admin',
     password: 'GTS@12345'
   },
-  /** Base URL ViaCEP: em dev usa proxy /viacep. */
-  viacepBaseUrl: '/viacep',
-  /** Base URL BrasilAPI (CNPJ): consulta direta na BrasilAPI. */
+  viacepBaseUrl: '/viacep/ws',
   brasilApiBaseUrl: 'https://brasilapi.com.br'
 };

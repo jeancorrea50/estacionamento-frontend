@@ -1,6 +1,9 @@
 import type { MenuAdmin, MenuPermissionRow, SubMenuAdmin } from '../models/menu-admin.model';
 import type { MenuCreateInput, MenuUpdateInput, PermissionInput, SubMenuCreateInput } from './menu-api.types';
+import { flattenSubMenus, nestSubMenusByRoute, walkSubMenus } from './menu-tree.util';
 import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
+import { normalizeLegacyAppRoute } from '../../../core/utils/app-route-normalizer';
+import { readBoolProp, resolveExibirNoSidebar } from './menu-sidebar-visibility';
 
 function getProp(row: Record<string, unknown>, k: string): unknown {
   return row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
@@ -47,13 +50,24 @@ function mapSubMenuRow(row: Record<string, unknown>, fallbackOrdem: number): Sub
   const Ativo = getProp(row, 'Ativo');
   const nome = nomeOuDescricao(row);
   const rawRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
-  const rotaApi = rawRota == null ? null : String(rawRota);
+  const rotaApi = rawRota == null ? null : String(rawRota).trim();
+  // Quando a API já devolve rota, preserva o cadastro do servidor (não reescreve pelo slug legado).
+  const rota = rotaApi
+    ? normalizeLegacyAppRoute(rotaApi) ?? rotaApi
+    : resolveAppRouteFromNome(nome, null);
+  const fromApi = readBoolProp(row as Record<string, unknown>, [
+    'exibirNoSidebar',
+    'mostrarSidebar',
+    'exibeSidebar',
+    'sidebar',
+  ]);
   return {
     id,
     nome,
     ordem: Number(getProp(row, 'ordem')) ?? fallbackOrdem,
-    rota: resolveAppRouteFromNome(nome, rotaApi),
+    rota,
     ativo: ativo !== false && Ativo !== false,
+    exibirNoSidebar: resolveExibirNoSidebar({ id, kind: 'sub', rota, fromApi }),
     permissions,
   };
 }
@@ -72,6 +86,17 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
   const Ativo = getProp(row, 'Ativo');
   const nomeMenu = nomeOuDescricao(row);
   const rawIcone = getProp(row, 'icone') ?? getProp(row, 'Icone');
+  const rawMenuRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
+  const rotaApi = rawMenuRota == null ? null : String(rawMenuRota).trim();
+  const rota = rotaApi
+    ? normalizeLegacyAppRoute(rotaApi) ?? rotaApi
+    : resolveAppRouteFromNome(nomeMenu, null);
+  const fromApi = readBoolProp(row as Record<string, unknown>, [
+    'exibirNoSidebar',
+    'mostrarSidebar',
+    'exibeSidebar',
+    'sidebar',
+  ]);
   return {
     id,
     nome: nomeMenu,
@@ -80,8 +105,10 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
       nomeMenu,
       rawIcone == null ? null : String(rawIcone)
     ),
+    rota,
     ativo: ativo !== false && Ativo !== false,
-    subMenus: subs,
+    exibirNoSidebar: resolveExibirNoSidebar({ id, kind: 'menu', rota, fromApi }),
+    subMenus: nestSubMenusByRoute(subs),
     existeNoServidor: true,
   };
 }
@@ -96,21 +123,25 @@ export function computeNextIdFromMenus(menus: MenuAdmin[]): number {
   let max = 0;
   for (const m of menus) {
     max = Math.max(max, m.id);
-    for (const s of m.subMenus) {
+    walkSubMenus(m.subMenus ?? [], (s) => {
       max = Math.max(max, s.id);
       for (const p of s.permissions) max = Math.max(max, p.id);
-    }
+    });
   }
   return max + 1;
 }
 
 function toPermissionInput(p: MenuPermissionRow): PermissionInput {
   return {
-    id: p.id,
+    id: p.id > 0 ? p.id : 0,
     ordem: p.ordem,
-    subModuleId: p.subModuleId,
-    descricao: p.acao,
+    subModuleId: p.subModuleId > 0 ? p.subModuleId : 0,
+    descricao: String(p.acao ?? '').trim().toLowerCase(),
   };
+}
+
+function sidebarPayload(exibir: boolean): Pick<SubMenuCreateInput, 'exibirNoSidebar' | 'mostrarSidebar'> {
+  return { exibirNoSidebar: exibir, mostrarSidebar: exibir };
 }
 
 /** Payload para **Alterar** — mantém ids do servidor/front sincronizados. */
@@ -119,16 +150,22 @@ function toSubMenuInputForUpdate(
   options?: { includePermissions?: boolean }
 ): SubMenuCreateInput {
   const includePermissions = options?.includePermissions === true;
-  return {
+  const base: SubMenuCreateInput = {
     id: s.id,
     nome: s.nome,
     descricao: s.nome,
     ordem: s.ordem,
-    permissions: includePermissions ? s.permissions.map(toPermissionInput) : undefined,
-    rota: s.rota,
-    ativo: s.ativo,
-    isAtivo: s.ativo,
-    isActive: s.ativo,
+    rota:
+      normalizeLegacyAppRoute(s.rota?.trim() || null) ||
+      s.rota?.trim() ||
+      resolveAppRouteFromNome(s.nome, null),
+    ativo: s.ativo !== false,
+    ...sidebarPayload(s.exibirNoSidebar !== false),
+  };
+  if (!includePermissions) return base;
+  return {
+    ...base,
+    permissions: (s.permissions ?? []).map(toPermissionInput),
   };
 }
 
@@ -136,21 +173,24 @@ function toSubMenuInputForUpdate(
  * Payload para **Gravar** (criação) — ids zerados para o AutoMapper tratar como novo registro.
  */
 function toSubMenuInputForInsert(s: SubMenuAdmin): SubMenuCreateInput {
+  const rota =
+    normalizeLegacyAppRoute(s.rota?.trim() || null) ||
+    s.rota?.trim() ||
+    resolveAppRouteFromNome(s.nome, null);
   return {
     id: 0,
     nome: s.nome,
     descricao: s.nome,
     ordem: s.ordem,
-    permissions: s.permissions.map((p, i) => ({
+    permissions: (s.permissions ?? []).map((p, i) => ({
       id: 0,
       ordem: p.ordem ?? i,
       subModuleId: 0,
-      descricao: p.acao,
+      descricao: String(p.acao ?? '').trim().toLowerCase(),
     })),
-    rota: s.rota,
-    ativo: s.ativo,
-    isAtivo: s.ativo,
-    isActive: s.ativo,
+    rota,
+    ativo: s.ativo !== false,
+    ...sidebarPayload(s.exibirNoSidebar !== false),
   };
 }
 
@@ -161,29 +201,106 @@ export function menuAdminToCreateInput(m: MenuAdmin): MenuCreateInput {
     nome: m.nome,
     descricao: m.nome,
     ordem: m.ordem,
+    rota: m.rota?.trim() ? m.rota.trim() : undefined,
     ativo: m.ativo,
-    subMenus: m.subMenus.map(toSubMenuInputForInsert),
+    ...sidebarPayload(m.exibirNoSidebar !== false),
+    subMenus: flattenSubMenus(m.subMenus).map(toSubMenuInputForInsert),
   };
 }
 
 export function menuAdminToUpdateInput(
   m: MenuAdmin,
-  options?: { includePermissions?: boolean; permissionSubMenuId?: number }
+  options?: { includePermissions?: boolean; permissionSubMenuId?: number; permissionSubMenuNome?: string }
 ): MenuUpdateInput {
   const includePermissions = options?.includePermissions === true;
   const permissionSubMenuId = options?.permissionSubMenuId;
+  const permissionSubMenuNome = options?.permissionSubMenuNome?.trim().toLowerCase() ?? '';
+
+  const shouldIncludePermissions = (sub: SubMenuAdmin): boolean => {
+    if (!includePermissions) return false;
+    if (permissionSubMenuId == null && !permissionSubMenuNome) return true;
+    if (permissionSubMenuId != null) {
+      if (permissionSubMenuId === sub.id) return true;
+      if (permissionSubMenuId === 0 && sub.id === 0 && permissionSubMenuNome) {
+        return sub.nome.trim().toLowerCase() === permissionSubMenuNome;
+      }
+      return false;
+    }
+    return sub.nome.trim().toLowerCase() === permissionSubMenuNome;
+  };
+
   return {
     id: m.id,
     nome: m.nome,
     descricao: m.nome,
     ordem: m.ordem,
-    ativo: m.ativo,
-    subMenus: m.subMenus.map((s) =>
+    rota: m.rota?.trim() ? m.rota.trim() : undefined,
+    ativo: m.ativo !== false,
+    ...sidebarPayload(m.exibirNoSidebar !== false),
+    subMenus: flattenSubMenus(m.subMenus).map((s) =>
       toSubMenuInputForUpdate(s, {
-        includePermissions:
-          includePermissions &&
-          (permissionSubMenuId == null || permissionSubMenuId === s.id),
+        includePermissions: shouldIncludePermissions(s),
       })
     ),
   };
+}
+
+/**
+ * PUT Alterar enviando o menu pai completo + **somente** o submenu alvo (criação ou edição).
+ * Preserva nome/rota/ordem do módulo no backend e evita duplicar submenus existentes.
+ */
+export function menuAdminToAlterarSubMenuOnlyInput(
+  menu: MenuAdmin,
+  sub: SubMenuAdmin,
+  options?: { includePermissions?: boolean }
+): MenuUpdateInput {
+  if (menu.id <= 0) {
+    throw new Error('menuId inválido para Alterar submenu.');
+  }
+
+  const includePermissions = options?.includePermissions !== false;
+  const isNew = sub.id <= 0;
+  const subInput = isNew
+    ? toSubMenuInputForInsert(sub)
+    : toSubMenuInputForUpdate(sub, { includePermissions });
+
+  return {
+    id: menu.id,
+    nome: menu.nome,
+    descricao: menu.nome,
+    ordem: menu.ordem,
+    rota: menu.rota?.trim() ? menu.rota.trim() : undefined,
+    ativo: menu.ativo !== false,
+    ...sidebarPayload(menu.exibirNoSidebar !== false),
+    subMenus: [subInput],
+  };
+}
+
+/** Valida submenu antes de persistir no backend (contrato mínimo do Alterar). */
+export function validateSubMenuAlterarPayload(sub: SubMenuAdmin): string | null {
+  const nome = sub.nome?.trim();
+  if (!nome) return 'Nome do submenu é obrigatório.';
+
+  const rotaRaw = sub.rota?.trim();
+  const rota = rotaRaw ? normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw : '';
+  if (!rota || !rota.startsWith('/app/')) {
+    return 'Rota inválida. Use o padrão /app/...';
+  }
+
+  const permissions = (sub.permissions ?? [])
+    .map((p) => String(p.acao ?? '').trim())
+    .filter(Boolean);
+  if (permissions.length === 0) {
+    return 'O submenu precisa de ao menos uma permissão.';
+  }
+
+  const hasVisualizar = permissions.some((acao) => {
+    const normalized = acao.toLowerCase();
+    return normalized.includes('visualizar');
+  });
+  if (!hasVisualizar) {
+    return 'Informe ao menos uma permissão contendo "visualizar".';
+  }
+
+  return null;
 }

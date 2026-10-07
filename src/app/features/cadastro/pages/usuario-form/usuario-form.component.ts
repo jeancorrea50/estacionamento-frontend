@@ -182,7 +182,7 @@ export class UsuarioFormComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving = false;
-        this.router.navigate(['/app/configuracoes/usuarios']);
+        this.router.navigate(['/app/administracao/usuario']);
         this.cdr.markForCheck();
       },
       error: () => {

@@ -1,17 +1,13 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, catchError, map } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { AcessosUsuariosService, UsuarioListItem } from '../../cadastro/services/acessos-usuarios.service';
 import { AcessosPerfisService, ApplicationRole } from '../../cadastro/services/acessos-perfis.service';
-import {
-  UsuarioGerenciamentoItem,
-  GerenciamentoFiltros,
-  TipoVinculo
-} from '../models/gerenciamento.types';
+import { UsuarioGerenciamentoItem, GerenciamentoFiltros } from '../models/gerenciamento.types';
+import type { UsuarioDetalheOutput, UsuarioCadastroOpcoes } from '../../../core/api/types/usuario-api.types';
+import { EstacionamentoLookupService, LookupOption } from '../../cadastro/services/estacionamento-lookup.service';
 
 /**
- * Service central para a tela de Gerenciamento.
- * Reutiliza AcessosUsuariosService e AcessosPerfisService.
- * Quando o backend expuser listagem/filtro de usuários com vínculo, ajustar buscar().
+ * Orquestra listagem, CRUD e perfis da tela de Acessos (Gerenciamento).
  */
 @Injectable({
   providedIn: 'root'
@@ -19,73 +15,103 @@ import {
 export class GerenciamentoService {
   constructor(
     private usuariosService: AcessosUsuariosService,
-    private perfisService: AcessosPerfisService
+    private perfisService: AcessosPerfisService,
+    private EstacionamentoLookup: EstacionamentoLookupService
   ) {}
 
-  /**
-   * Busca usuários para a listagem. Aceita filtros; termo de busca é montado a partir deles.
-   * Se o backend não tiver endpoint, retorna array vazio para não quebrar a tela.
-   */
+  /** GET /api/auth/Usuario + filtros em memória. */
   buscar(filtros: GerenciamentoFiltros): Observable<UsuarioGerenciamentoItem[]> {
-    const termo = [
-      filtros.nomeUsuario?.trim(),
-      filtros.cnpj?.trim(),
-      filtros.razaoSocial?.trim()
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
-    return this.usuariosService.buscar(termo || undefined).pipe(
-      map((body) => this.normalizeList(body, filtros)),
-      catchError(() => of([]))
+    return forkJoin({
+      usuariosBody: this.usuariosService.buscar(),
+      estacionamentos: this.EstacionamentoLookup.list().pipe(catchError(() => of([] as LookupOption[])))
+    }).pipe(
+      map(({ usuariosBody, estacionamentos }) => this.normalizeList(usuariosBody, filtros, estacionamentos))
     );
   }
 
-  /** Lista perfis para selects. */
   getPerfis(): Observable<ApplicationRole[]> {
-    return this.perfisService.buscar().pipe(
+    return this.perfisService.buscarSimplicadoUsuario().pipe(
       map((body) => this.normalizePerfis(body)),
       catchError(() => of([]))
     );
   }
 
-  /** Gravar novo usuário. Delega ao AcessosUsuariosService (Register/Gravar quando existir). */
+  obterDetalhe(id: string): Observable<UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }> {
+    return this.usuariosService.obterPorId(id) as Observable<
+      UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpf?: string }
+    >;
+  }
+
+  obterOpcoesCadastro(): Observable<UsuarioCadastroOpcoes> {
+    return this.usuariosService.obterOpcoesCadastro();
+  }
+
   gravar(dto: unknown): Observable<unknown> {
     return this.usuariosService.gravar(dto);
   }
 
-  /** Alterar usuário existente. */
   alterar(dto: unknown): Observable<unknown> {
     return this.usuariosService.alterar(dto);
   }
 
-  /** Ativar/inativar usuário. Quando o backend expuser, implementar PATCH/PUT. */
-  ativarInativar(_id: string, _ativo: boolean): Observable<unknown> {
-    return of(null);
-  }
-
-  /** Redefinir senha. Quando o backend expuser, implementar. */
-  redefinirSenha(_id: string): Observable<unknown> {
-    return of(null);
+  excluir(id: string): Observable<unknown> {
+    return this.usuariosService.delete(id);
   }
 
   private normalizeList(
     body: unknown,
-    filtros: GerenciamentoFiltros
+    filtros: GerenciamentoFiltros,
+    estacionamentos: LookupOption[]
   ): UsuarioGerenciamentoItem[] {
+    const estMap = new Map<number, string>();
+    for (const e of estacionamentos) {
+      if (typeof e.id === 'number' && Number.isFinite(e.id)) {
+        estMap.set(e.id, e.label);
+      }
+    }
     const raw = this.normalizeListRaw(body);
-    return raw.map((item) => this.toGerenciamentoItem(item)).filter((item) => {
-      if (filtros.tipo && item.tipo !== filtros.tipo) return false;
-      if (filtros.perfilId && (item as { perfilId?: string }).perfilId !== filtros.perfilId)
+    return raw
+      .map((item) => this.toGerenciamentoItem(item, estMap))
+      .filter((item) => this.passaFiltros(item, filtros));
+  }
+
+  private passaFiltros(
+    item: UsuarioGerenciamentoItem,
+    filtros: GerenciamentoFiltros
+  ): boolean {
+    const termo = (filtros.nomeOuEmail ?? '').trim().toLowerCase();
+    if (termo) {
+      const partes = [item.nome, item.userName, item.email, item.emailOuLogin].filter(
+        (s): s is string => typeof s === 'string' && s.trim() !== ''
+      );
+      const ok = partes.some((p) => p.toLowerCase().includes(termo));
+      if (!ok) {
         return false;
-      if (filtros.status === 'ativo' && !item.ativo) return false;
-      if (filtros.status === 'inativo' && item.ativo) return false;
-      return true;
-    });
+      }
+    }
+    const pn = (filtros.perfilNome ?? '').trim().toLowerCase();
+    if (pn) {
+      const role = (item.perfil ?? '').trim().toLowerCase();
+      if (!role) {
+        return false;
+      }
+      if (role !== pn && !role.includes(pn)) {
+        return false;
+      }
+    }
+    const st = filtros.statusFiltro ?? '';
+    if (st === 'ativo') {
+      if (item.ativo === false) return false;
+    } else if (st === 'inativo') {
+      if (item.ativo !== false) return false;
+    }
+    return true;
   }
 
   private normalizeListRaw(body: unknown): UsuarioListItem[] {
-    if (Array.isArray(body)) return body as UsuarioListItem[];
+    if (Array.isArray(body)) {
+      return body as UsuarioListItem[];
+    }
     if (body && typeof body === 'object' && 'result' in body) {
       const r = (body as { result?: unknown }).result;
       return Array.isArray(r) ? (r as UsuarioListItem[]) : [];
@@ -97,35 +123,65 @@ export class GerenciamentoService {
     return [];
   }
 
-  private toGerenciamentoItem(item: UsuarioListItem): UsuarioGerenciamentoItem {
-    const ext = item as UsuarioListItem & {
-      empresaVinculada?: string;
-      tipo?: string;
-      cnpj?: string;
-      ultimoAcesso?: string;
-      dataCriacao?: string;
-      estacionamentoId?: number;
-      transportadoraId?: number;
+  /** Lista pode vir com `EstacionamentoId` (PascalCase) ou `estacionamentoId` (camelCase) conforme serialização JSON. */
+  private toGerenciamentoItem(item: UsuarioListItem, estMap: Map<number, string>): UsuarioGerenciamentoItem {
+    const rawItem = item as UsuarioListItem & {
+      estacionamentoId?: number | null;
+      estacionamento?: string | null;
+      Estacionamento?: string | null;
+      transportadoraId?: number | null;
+      TransportadoraId?: number | null;
+      transportadora?: string | null;
+      Transportadora?: string | null;
+      cpf?: string | null;
+      Cpf?: string | null;
+      emailConfirmed?: boolean;
+      EmailConfirmed?: boolean;
     };
+    const EstacionamentoId = item.EstacionamentoId ?? rawItem.estacionamentoId ?? null;
+    const estacionamentoDaApi = String(
+      rawItem.estacionamento ?? rawItem.Estacionamento ?? ''
+    ).trim();
+    const EstacionamentoNome =
+      estacionamentoDaApi ||
+      (typeof EstacionamentoId === 'number' && EstacionamentoId > 0
+        ? estMap.get(EstacionamentoId) ?? null
+        : null);
+    const transportadoraId = rawItem.transportadoraId ?? rawItem.TransportadoraId ?? null;
+    const transportadoraNome = String(
+      rawItem.transportadora ?? rawItem.Transportadora ?? ''
+    ).trim();
+    const cpf = String(rawItem.cpf ?? rawItem.Cpf ?? item.cpf ?? '').trim();
     return {
       id: item.id,
-      nome: item.nome ?? null,
-      emailOuLogin: item.emailOuLogin ?? null,
-      empresaVinculada: ext.empresaVinculada ?? null,
-      tipo: (ext.tipo as TipoVinculo) ?? null,
-      cnpj: ext.cnpj ?? null,
-      perfil: item.perfil ?? null,
-      permissoesResumo: null,
+      userName: item.userName,
+      nome: item.nome,
+      cpf: cpf || null,
+      email: item.email,
+      emailOuLogin: (item.emailOuLogin ?? item.email ?? item.userName) as string,
+      perfil: item.perfil ?? item.role ?? null,
+      EstacionamentoId,
+      EstacionamentoNome,
+      transportadoraId,
+      transportadoraNome: transportadoraNome || null,
       ativo: item.ativo ?? true,
-      ultimoAcesso: ext.ultimoAcesso ?? null,
-      dataCriacao: ext.dataCriacao ?? null,
-      estacionamentoId: ext.estacionamentoId ?? null,
-      transportadoraId: ext.transportadoraId ?? null
+      emailConfirmed: this.toOptionalBoolean(
+        rawItem.emailConfirmed ?? rawItem.EmailConfirmed ?? item.emailConfirmed
+      )
     };
   }
 
+  private toOptionalBoolean(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') return value;
+    if (value === 1 || value === '1' || value === 'true') return true;
+    if (value === 0 || value === '0' || value === 'false') return false;
+    return undefined;
+  }
+
   private normalizePerfis(body: unknown): ApplicationRole[] {
-    if (Array.isArray(body)) return body as ApplicationRole[];
+    if (Array.isArray(body)) {
+      return body as ApplicationRole[];
+    }
     if (body && typeof body === 'object' && 'result' in body) {
       const r = (body as { result?: unknown }).result;
       return Array.isArray(r) ? (r as ApplicationRole[]) : [];

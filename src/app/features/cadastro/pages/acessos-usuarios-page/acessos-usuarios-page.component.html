@@ -84,14 +84,14 @@
             />
           </div>
           <div class="form-group">
-            <label for="u-cpfcnpj">CPF ou CNPJ</label>
+            <label for="u-cpf">CPF</label>
             <input
-              id="u-cpfcnpj"
+              id="u-cpf"
               type="text"
               class="input-control"
-              [(ngModel)]="form.cpfCnpj"
-              placeholder="CPF ou CNPJ"
-              maxlength="18"
+              [(ngModel)]="form.cpf"
+              placeholder="000.000.000-00"
+              maxlength="14"
             />
           </div>
           @if (!isEdit()) {
@@ -123,59 +123,61 @@
               (ngModelChange)="onPerfilChange()"
             >
               <option value="">Selecione</option>
-              @for (p of perfisList; track p.id ?? p.name) {
-                <option [value]="p.id ?? p.name">{{ p.name ?? p.id }}</option>
+              @for (p of perfisList; track p.id ?? p.perfilId ?? p.name ?? p.perfil ?? p.nome ?? p.normalizedName) {
+                <option [value]="perfilDisplayValue(p)">
+                  {{ perfilDisplayValue(p) }}
+                </option>
               }
             </select>
           </div>
         </div>
 
         @if (showEstacionamentoField) {
-          <div class="form-group estacionamento-combo-wrap">
-            <label for="u-estacionamento" class="estacionamento-combo__label">Estacionamento</label>
-            <div class="estacionamento-combo">
-              <div class="estacionamento-combo__input-wrap">
+          <div class="form-group Estacionamento-combo-wrap">
+            <label for="u-Estacionamento" class="Estacionamento-combo__label">Estacionamento</label>
+            <div class="Estacionamento-combo">
+              <div class="Estacionamento-combo__input-wrap">
                 <input
-                  id="u-estacionamento"
+                  id="u-Estacionamento"
                   type="text"
-                  class="input-control estacionamento-combo__input"
-                  [value]="estacionamentoDisplay"
+                  class="input-control Estacionamento-combo__input"
+                  [value]="EstacionamentoDisplay"
                   (focus)="onEstacionamentoFocus()"
                   (input)="onEstacionamentoInput($event)"
                   (blur)="onEstacionamentoBlur()"
                   placeholder="Digite para filtrar ou selecione"
                   autocomplete="off"
                 />
-                @if (form.estacionamentoId != null && form.estacionamentoId !== 0 && !estacionamentoDropdownOpen()) {
-                  <button type="button" class="estacionamento-combo__clear" (click)="clearEstacionamento(); $event.preventDefault()" aria-label="Limpar">×</button>
+                @if (form.EstacionamentoId != null && form.EstacionamentoId !== 0 && !EstacionamentoDropdownOpen()) {
+                  <button type="button" class="Estacionamento-combo__clear" (click)="clearEstacionamento(); $event.preventDefault()" aria-label="Limpar">×</button>
                 }
                 <button
                   type="button"
-                  class="estacionamento-combo__trigger"
+                  class="Estacionamento-combo__trigger"
                   (mousedown)="toggleEstacionamentoDropdown($event)"
-                  [attr.aria-expanded]="estacionamentoDropdownOpen()"
-                  aria-label="Abrir lista de estacionamentos"
+                  [attr.aria-expanded]="EstacionamentoDropdownOpen()"
+                  aria-label="Abrir lista de Estacionamentos"
                 >
-                  @if (estacionamentoLoading()) {
-                    <span class="estacionamento-combo__spinner">...</span>
+                  @if (EstacionamentoLoading()) {
+                    <span class="Estacionamento-combo__spinner">...</span>
                   } @else {
-                    <span class="material-symbols-outlined estacionamento-combo__chevron">expand_more</span>
+                    <span class="material-symbols-outlined Estacionamento-combo__chevron">expand_more</span>
                   }
                 </button>
               </div>
-              @if (estacionamentoDropdownOpen()) {
-                <ul class="estacionamento-combo__list" role="listbox">
-                  @for (opt of estacionamentoFiltrados; track opt.id) {
+              @if (EstacionamentoDropdownOpen()) {
+                <ul class="Estacionamento-combo__list" role="listbox">
+                  @for (opt of EstacionamentoFiltrados; track opt.id) {
                     <li
                       role="option"
-                      class="estacionamento-combo__item"
+                      class="Estacionamento-combo__item"
                       (mousedown)="selectEstacionamento(opt); $event.preventDefault()"
                     >
                       {{ opt.label }}
                     </li>
                   }
-                  @if (estacionamentoFiltrados.length === 0 && !estacionamentoLoading()) {
-                    <li class="estacionamento-combo__item estacionamento-combo__item--empty">Nenhum estacionamento encontrado</li>
+                  @if (EstacionamentoFiltrados.length === 0 && !EstacionamentoLoading()) {
+                    <li class="Estacionamento-combo__item Estacionamento-combo__item--empty">Nenhum Estacionamento encontrado</li>
                   }
                 </ul>
               }

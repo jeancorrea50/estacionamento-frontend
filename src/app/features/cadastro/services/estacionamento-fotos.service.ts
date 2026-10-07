@@ -5,7 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
 
 const API_BASE = environment.API_BASE_URL;
-const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
+const Estacionamento = `${API_BASE}/Estacionamento`;
 
 /**
  * Item de foto retornado pelo backend (BuscarFotos).
@@ -35,7 +35,7 @@ type BuscarFotosRaw =
   | { result?: FotoBackendItem[] | string[]; data?: FotoBackendItem[] | string[]; fotos?: FotoBackendItem[] | string[] };
 
 /**
- * Serviço para operações de fotos do estacionamento na Azure.
+ * Serviço para operações de fotos do Estacionamento na Azure.
  * Endpoints alinhados ao Swagger: BuscarFotos/buscar-fotos/{id}, UploadFotos/upload-fotos, DeletarFotos/deletar-fotos/{fotoId}.
  */
 @Injectable({
@@ -45,15 +45,15 @@ export class EstacionamentoFotosService {
   constructor(private http: HttpClient) {}
 
   /**
-   * GET /api/Estacionamento/BuscarFotos/buscar-fotos/{id}
-   * Lista fotos do estacionamento. Retorna itens com id (quando o backend envia) para permitir DeletarFotos.
+   * GET /api/Estacionamento/buscar-fotos/{id}
+   * Lista fotos do Estacionamento. Retorna itens com id (quando o backend envia) para permitir DeletarFotos.
    */
-  buscarFotos(estacionamentoId: number | string): Observable<FotoItem[]> {
-    const id = Number(estacionamentoId);
+  buscarFotos(EstacionamentoId: number | string): Observable<FotoItem[]> {
+    const id = Number(EstacionamentoId);
     if (!Number.isFinite(id)) {
       return of([]);
     }
-    return this.http.get<BuscarFotosRaw>(`${ESTACIONAMENTO}/${EstacionamentoPaths.buscarFotos(id)}`).pipe(
+    return this.http.get<BuscarFotosRaw>(`${Estacionamento}/${EstacionamentoPaths.buscarFotos(id)}`).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscarFotosResponse(body)),
       catchError(() => of([]))
@@ -65,12 +65,12 @@ export class EstacionamentoFotosService {
    * multipart/form-data: EstacionamentoId, Fotos (arquivos).
    */
   uploadFotos(
-    estacionamentoId: number | string,
+    EstacionamentoId: number | string,
     files: FileList | File[]
   ): Observable<unknown> {
-    const id = Number(estacionamentoId);
+    const id = Number(EstacionamentoId);
     if (!Number.isFinite(id)) {
-      return throwError(() => new Error('ID do estacionamento inválido'));
+      return throwError(() => new Error('ID do Estacionamento inválido'));
     }
     const fileList = Array.isArray(files) ? files : Array.from(files);
     if (fileList.length === 0) {
@@ -81,7 +81,7 @@ export class EstacionamentoFotosService {
     fileList.forEach((file, index) => {
       form.append('Fotos', file, file.name || `foto-${index}`);
     });
-    return this.http.post<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.uploadFotos}`, form).pipe(
+    return this.http.post<unknown>(`${Estacionamento}/${EstacionamentoPaths.uploadFotos}`, form).pipe(
       timeout(60000),
       catchError((err) => throwError(() => err))
     );
@@ -95,7 +95,7 @@ export class EstacionamentoFotosService {
     if (!Number.isFinite(id)) {
       return throwError(() => new Error('ID da foto inválido'));
     }
-    return this.http.delete<void>(`${ESTACIONAMENTO}/${EstacionamentoPaths.deletarFoto(id)}`).pipe(
+    return this.http.delete<void>(`${Estacionamento}/${EstacionamentoPaths.deletarFoto(id)}`).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );

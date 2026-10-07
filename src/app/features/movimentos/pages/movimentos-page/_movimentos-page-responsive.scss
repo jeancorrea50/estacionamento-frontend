@@ -1,0 +1,82 @@
+@media (max-width: 768px) {
+  .page-header {
+    padding: 16px 24px 16px;
+  }
+
+  .page-content {
+    padding: 16px 24px;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filtros-grid--single {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .filtros-acoes {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .filtros-acoes .btn {
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+
+  .historico-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 960px) {
+  .operacao-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .movimento-aside {
+    order: 2;
+    position: static;
+    top: auto;
+  }
+
+  .operacao-layout__main {
+    order: 1;
+  }
+
+  .portaria-acoes,
+  .portaria-cta {
+    grid-template-columns: 1fr;
+  }
+
+  .portaria-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .portaria-layout__cameras {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-content {
+    padding: 12px 14px;
+  }
+
+  .historico-card__header h2 {
+    font-size: 0.9375rem;
+  }
+}

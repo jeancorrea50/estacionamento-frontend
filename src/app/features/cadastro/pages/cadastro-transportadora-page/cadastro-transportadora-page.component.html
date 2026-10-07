@@ -1,77 +1,236 @@
+<div class="cadastro-transportadora-shell">
 <div class="page-container">
-  <header class="page-header">
-    <div class="page-header__row page-header__row--1">
-      <div class="page-header__title-wrap">
-        <h1 class="page-title">Cadastro Transportadora</h1>
-        <p class="page-subtitle">Cadastro e gestão da transportadora, frota e condutores</p>
-      </div>
-      @if (activeTab === 'cadastro' && !listView) {
-        <div class="page-header__actions">
-          <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
+  @if (!listView) {
+    <header class="page-header page-header-card estacao-page-header">
+      <div class="estacao-page-header__row estacao-page-header__row--top">
+        <div class="estacao-page-header__titles">
+          <h1 class="page-title">Cadastro Transportadora</h1>
+          <p class="page-subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
         </div>
-      }
-    </div>
-    <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
+        <div class="page-header__actions estacao-page-header__actions">
+          <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
+          @if (activeTab === 'cadastro') {
+            <button type="button" class="btn btn-primary" (click)="salvarTransportadora()" [disabled]="salvando">Salvar</button>
+          }
+        </div>
+      </div>
+      <nav class="tabs estacao-tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
         <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
-        @if (!listView) {
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'condutores'" [attr.aria-selected]="activeTab === 'condutores'" (click)="setTab('condutores')">Condutores</button>
-        }
+        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
+        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'motoristas'" [attr.aria-selected]="activeTab === 'motoristas'" (click)="setTab('motoristas')">Motoristas</button>
       </nav>
-    </div>
-  </header>
+    </header>
+  }
 
-  <div class="page-content">
+  <div class="page-content" [class.trn-page-content--dashboard]="listView">
+    @if (listView) {
+      <header class="est-dash-hero trn-dash-hero" aria-labelledby="trn-dash-title">
+        <div class="est-dash-hero__icon trn-dash-hero__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">local_shipping</span>
+        </div>
+        <div class="est-dash-hero__copy">
+          <h1 id="trn-dash-title" class="est-dash-hero__title">Cadastro Transportadora</h1>
+          <p class="est-dash-hero__subtitle">Gerencie as transportadoras que utilizam o estacionamento.</p>
+        </div>
+      </header>
+
+      <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
+        <div class="est-dash-filter__select-wrap">
+          <select class="est-dash-filter__select input-control trn-dash-filter__select" [(ngModel)]="campoBusca" aria-label="Tipo de busca">
+            <option value="geral">Busca geral</option>
+            <option value="cnpj">CNPJ</option>
+            <option value="razaoSocial">Razão social</option>
+            <option value="nomeFantasia">Nome fantasia</option>
+            <option value="email">E-mail</option>
+            <option value="id">ID</option>
+          </select>
+        </div>
+        <label class="est-dash-filter__search">
+          <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
+          <input
+            type="text"
+            class="est-dash-filter__search-input"
+            [placeholder]="searchPlaceholder"
+            [(ngModel)]="termoBusca"
+            (keyup.enter)="onBuscar()"
+            autocomplete="off"
+            aria-label="Termo de busca"
+          />
+        </label>
+        <button
+          type="button"
+          class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar"
+          (click)="onBuscar()"
+          aria-label="Buscar transportadoras"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          <span class="est-dash-btn__text">Buscar</span>
+        </button>
+        <button
+          type="button"
+          class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
+          (click)="downloadModeloTransportadora()"
+          [disabled]="baixandoModelo"
+          [attr.aria-label]="baixandoModelo ? 'Baixando modelo' : 'Download modelo'"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">download</span>
+          <span class="est-dash-btn__text">{{ baixandoModelo ? 'Baixando…' : 'Download modelo' }}</span>
+        </button>
+        <button
+          type="button"
+          class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
+          (click)="abrirImportarDados()"
+          aria-label="Importar dados"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+          <span class="est-dash-btn__text">Importar dados</span>
+        </button>
+        @if (!somentePropriaTransportadora) {
+          <button
+            type="button"
+            class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
+            (click)="abrirModalConvite()"
+            aria-label="Convidar transportadora"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+            <span class="est-dash-btn__text">Convidar</span>
+          </button>
+          <button
+            type="button"
+            class="est-dash-btn est-dash-btn--primary"
+            (click)="novoTransportadora()"
+            aria-label="Nova transportadora"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            <span class="est-dash-btn__text">Novo</span>
+          </button>
+        }
+      </section>
+    }
+
     @switch (activeTab) {
       @case ('cadastro') {
         @if (listView) {
-          <div class="tab-panel">
-            <div class="page-header__actions" style="margin-bottom: 12px;">
-              <select class="search-input input-control" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
-                <option value="geral">Busca geral</option>
-                <option value="cnpj">CNPJ</option>
-                <option value="razaoSocial">Razão social</option>
-                <option value="nomeFantasia">Nome fantasia</option>
-                <option value="email">E-mail</option>
-                <option value="id">ID</option>
-              </select>
-              <input type="text" class="search-input input-control" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
-              <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
-              <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
-            </div>
-            @if (erroList) {
+          @if (erroList) {
+            <div class="trn-list-banner trn-list-banner--error" role="alert">
               <p class="error-msg">{{ erroList }}</p>
-            }
-            @if (loadingList) {
-              <p class="loading-msg">Carregando...</p>
-            } @else if (!jaBuscou) {
-              <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
-            } @else {
-              <div class="table-wrap">
-                <table class="data-table">
+            </div>
+          }
+          @if (loadingList) {
+            <p class="loading-msg trn-loading">Carregando...</p>
+          }
+
+          @if (jaBuscou && !loadingList && !erroList) {
+            <div class="trn-list-metrics" aria-label="Resumo da consulta">
+              <app-est-summary-metric
+                icon="groups"
+                label="Total"
+                [value]="totalCount"
+                variant="neutral"
+              />
+              <app-est-summary-metric
+                icon="check_circle"
+                label="Ativas"
+                [value]="countAtivasPagina"
+                variant="success"
+                [hint]="resumoListaPaginaHint"
+              />
+              <app-est-summary-metric
+                icon="send"
+                label="Convites enviados"
+                [value]="countConvitesEnviadosPagina"
+                variant="info"
+                [hint]="resumoListaPaginaHint"
+              />
+              <app-est-summary-metric
+                icon="pending"
+                label="Em andamento"
+                [value]="countEmAndamentoPagina"
+                variant="warning"
+                [hint]="resumoListaPaginaHint"
+              />
+              <app-est-summary-metric
+                icon="schedule"
+                label="Pendentes"
+                [value]="countPendentesPagina"
+                variant="danger"
+                [hint]="resumoListaPaginaHint"
+              />
+            </div>
+
+            <div class="trn-list-table-card">
+              <div class="trn-list-table-scroll">
+                <table class="data-table trn-table">
                   <thead>
                     <tr>
-                      <th>Id</th>
-                      <th>Razão Social</th>
-                      <th>Nome Fantasia</th>
-                      <th>CNPJ</th>
-                      <th>E-mail</th>
-                      <th>Ativo</th>
-                      <th>Ações</th>
+                      <th scope="col">ID</th>
+                      <th scope="col">Razão social</th>
+                      <th scope="col">Nome do responsável</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Atualização</th>
+                      <th scope="col" class="trn-table__th-acoes">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     @for (item of transportadoraList; track item.id) {
-                      <tr>
+                      <tr class="trn-table__row">
                         <td>{{ item.id }}</td>
-                        <td>{{ item.razaoSocial }}</td>
-                        <td>{{ item.nomeFantasia }}</td>
-                        <td>{{ formatCnpjList(item.cnpj) }}</td>
-                        <td>{{ item.email }}</td>
-                        <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                        <td>{{ item.razaoSocial.trim() ? item.razaoSocial : '—' }}</td>
+                        <td>{{ item.responsavelNome?.trim() ? item.responsavelNome : '—' }}</td>
                         <td>
-                          <button type="button" class="btn btn-primary btn--sm" (click)="editarTransportadora(item)">Editar</button>
+                          <app-trn-status-cadastro-pill [status]="resolveStatus(item)" />
+                        </td>
+                        <td>{{ formatDataAtualizacaoLista(item.dataAtualizacao) }}</td>
+                        <td class="trn-table__acoes">
+                          <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para transportadora ' + item.id">
+                            <button
+                              type="button"
+                              class="trn-act-btn"
+                              title="Visualizar"
+                              aria-label="Visualizar transportadora"
+                              (click)="visualizarTransportadora(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                            </button>
+                            @if (isConvitePendente(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--accent"
+                                title="Reenviar convite"
+                                aria-label="Reenviar convite"
+                                (click)="reenviarConvite(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                              </button>
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Cancelar convite"
+                                aria-label="Cancelar convite"
+                                (click)="cancelarConvite(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                              </button>
+                            } @else {
+                              <a
+                                class="trn-act-btn trn-act-btn--accent"
+                                [routerLink]="[transportadorasRoute, 'editar', item.id]"
+                                title="Editar"
+                                aria-label="Editar transportadora"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                              </a>
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Excluir"
+                                aria-label="Excluir transportadora"
+                                (click)="excluirTransportadoraLista(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                              </button>
+                            }
+                          </div>
                         </td>
                       </tr>
                     }
@@ -79,182 +238,407 @@
                 </table>
               </div>
               @if (transportadoraList.length === 0) {
-                <p class="empty-msg">Nenhuma transportadora encontrada.</p>
+                <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+                  <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
+                  <p class="empty-msg">Nenhuma transportadora encontrada.</p>
+                </div>
               }
-            }
-          </div>
+            </div>
+
+            <footer class="trn-list-footer">
+              <p class="trn-list-footer__info">
+                Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+                <strong>{{ totalCount }}</strong>
+                {{ totalCount === 1 ? 'transportadora' : 'transportadoras' }}
+              </p>
+              <div class="trn-list-footer__right">
+                <label class="trn-page-size">
+                  <span class="trn-page-size__label">Linhas por página</span>
+                  <select
+                    class="trn-page-size__select input-control"
+                    [ngModel]="tamanhoPaginaLista"
+                    (ngModelChange)="onTamanhoPaginaListaChange($event)"
+                    aria-label="Linhas por página"
+                  >
+                    @for (opt of opcoesTamanhoPaginaLista; track opt) {
+                      <option [ngValue]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                </label>
+                <div class="trn-footer-pager" aria-label="Paginação">
+                  <button type="button" class="trn-foot-page" [disabled]="numeroPagina <= 1 || totalCount === 0" (click)="irPrimeiraPaginaLista()" aria-label="Primeira página">
+                    <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+                  </button>
+                  <button type="button" class="trn-foot-page" [disabled]="numeroPagina <= 1 || totalCount === 0" (click)="irParaPaginaLista(numeroPagina - 1)" aria-label="Página anterior">
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                  </button>
+                  <span class="trn-foot-current" aria-current="page">{{ totalCount === 0 ? 0 : numeroPagina }}</span>
+                  <button
+                    type="button"
+                    class="trn-foot-page"
+                    [disabled]="numeroPagina >= totalPaginasLista || totalCount === 0"
+                    (click)="irParaPaginaLista(numeroPagina + 1)"
+                    aria-label="Próxima página"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="trn-foot-page"
+                    [disabled]="numeroPagina >= totalPaginasLista || totalCount === 0"
+                    (click)="irUltimaPaginaLista()"
+                    aria-label="Última página"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+                  </button>
+                </div>
+              </div>
+            </footer>
+          }
+
+          @if (!jaBuscou && !loadingList && !erroList) {
+            <div class="empty-state empty-state--compact trn-before-search">
+              <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
+              <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
+            </div>
+          }
         } @else {
           <div class="tab-panel tab-panel--form">
-            <div class="container container--form">
-              @if (erroForm) {
-                <p class="error-banner">{{ erroForm }}</p>
-              }
-              <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact">
-                <input type="hidden" formControlName="id" />
+            <div class="cadastro-module-form-wrapper est-cadastro">
+              <div class="est-cadastro__container">
+                @if (erroForm) {
+                  <p class="error-banner">{{ erroForm }}</p>
+                }
+                <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact cadastro-transportadora-form">
+                  <input type="hidden" formControlName="id" />
 
-                <div class="layout-grid">
-                  <section class="card card--span-5">
-                    <div class="card__header">
-                      <h2 class="card__title">Dados da transportadora</h2>
-                      <p class="card__description">Campos obrigatórios marcados com *</p>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="cnpj">CNPJ <span class="required">*</span></label>
-                        <div class="form-row__input">
-                          <input
-                            id="cnpj"
-                            class="field__input"
-                            type="text"
-                            formControlName="cnpj"
-                            placeholder="00.000.000/0001-00"
-                            maxlength="18"
-                            appCnpjFormat
-                            (blur)="onCnpjBlur()"
-                          />
-                          @if (cnpjLoading) {
-                            <span class="field__hint cnpj-loading">Buscando dados do CNPJ...</span>
+                  <div class="est-page-grid">
+                    <div class="est-page-grid__main">
+                      <div class="cadastro-stack">
+                        <section class="card card--cadastro-section est-card">
+                          <div class="est-card__head">
+                            <span class="est-card__icon material-symbols-outlined" aria-hidden="true">local_shipping</span>
+                            <div>
+                              <h2 class="card__title est-card__title">Dados da Transportadora</h2>
+                              <p class="card__description est-card__lede">Pessoa jurídica. Obrigatórios com <span class="required">*</span></p>
+                            </div>
+                          </div>
+                          <div class="est-card__body" formGroupName="pessoa">
+                            <div class="est-field-grid est-field-grid--3">
+                              <div class="est-field">
+                                <label class="est-field__label" for="cnpj-trans">CNPJ <span class="required">*</span></label>
+                                <div class="form-row__input">
+                                  <input
+                                    id="cnpj-trans"
+                                    class="field__input est-field__control"
+                                    type="text"
+                                    formControlName="cnpj"
+                                    placeholder="00.000.000/0001-00"
+                                    maxlength="18"
+                                    appCnpjFormat
+                                    (blur)="onCnpjBlur()"
+                                  />
+                                  @if (cnpjLoading) {
+                                    <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
+                                  }
+                                  @if (cnpjSuccess) {
+                                    <span class="field__hint cnpj-success">{{ cnpjSuccess }}</span>
+                                  }
+                                  @if (cnpjError) {
+                                    <span class="field__error">{{ cnpjError }}</span>
+                                  }
+                                  @if (transportadoraForm.get('pessoa.cnpj')?.invalid && transportadoraForm.get('pessoa.cnpj')?.touched && !cnpjError) {
+                                    <span class="field__error">CNPJ obrigatório.</span>
+                                  }
+                                </div>
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="razaoSocial">Razão social <span class="required">*</span></label>
+                                <div class="form-row__input">
+                                  <input id="razaoSocial" class="field__input est-field__control" type="text" formControlName="razaoSocial" placeholder="Razão social" />
+                                  @if (transportadoraForm.get('pessoa.razaoSocial')?.invalid && transportadoraForm.get('pessoa.razaoSocial')?.touched) {
+                                    <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                                  }
+                                </div>
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="nomeFantasia">Nome fantasia</label>
+                                <input id="nomeFantasia" class="field__input est-field__control" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
+                              </div>
+                            </div>
+                            <div class="est-field-grid est-field-grid--2">
+                              <div class="est-field">
+                                <label class="est-field__label" for="inscricaoEstadual">Inscrição estadual</label>
+                                <input id="inscricaoEstadual" class="field__input est-field__control" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
+                              </div>
+                            </div>
+                            @if (importacaoRedeLoading) {
+                              <p class="field__hint importacao-rede-hint">Verificando cadastro na rede GTS…</p>
+                            }
+                            @if (importacaoRede?.podeImportar) {
+                              <div class="importacao-rede-banner" role="status">
+                                <div class="importacao-rede-banner__text">
+                                  <strong>Encontrada na rede</strong>
+                                  <span>
+                                    {{ importacaoRede?.nomeRazaoSocial || 'Transportadora' }}
+                                    @if (importacaoRede?.bancoOrigemNome) {
+                                      · origem {{ importacaoRede?.bancoOrigemNome }}
+                                    }
+                                    · ~{{ importacaoRede?.estimativaMotoristas || 0 }} motoristas,
+                                    ~{{ importacaoRede?.estimativaVeiculos || 0 }} veículos
+                                  </span>
+                                  <span class="importacao-rede-banner__msg">{{ importacaoRede?.mensagem }}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  class="btn btn--primary"
+                                  [disabled]="importacaoEnfileirando"
+                                  (click)="importarDaRede()"
+                                >
+                                  @if (importacaoEnfileirando) {
+                                    Enfileirando…
+                                  } @else {
+                                    Importar da rede
+                                  }
+                                </button>
+                              </div>
+                            } @else if (importacaoRede?.existeNoTenantAtual) {
+                              <p class="field__hint importacao-rede-hint">{{ importacaoRede?.mensagem }}</p>
+                            } @else if (importacaoRede?.existeNoCentral && !importacaoRede?.podeImportar) {
+                              <p class="field__hint importacao-rede-hint">{{ importacaoRede?.mensagem }}</p>
+                            }
+                            <div class="est-field est-field--status-row">
+                              <span class="est-field__label">Status</span>
+                              <label class="est-switch">
+                                <input type="checkbox" formControlName="ativo" />
+                                <span class="est-switch__track"></span>
+                                <span class="est-switch__text">
+                                  @if (transportadoraForm.get('pessoa.ativo')?.value) {
+                                    Ativo
+                                  } @else {
+                                    Inativo
+                                  }
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        </section>
+
+                        <section class="card card--cadastro-section est-card" formGroupName="responsavelLegal">
+                          <div class="est-card__head">
+                            <span class="est-card__icon material-symbols-outlined" aria-hidden="true">badge</span>
+                            <div>
+                              <h2 class="card__title est-card__title">Pessoa responsável</h2>
+                              <p class="card__description est-card__lede">Responsável legal (PF).</p>
+                            </div>
+                          </div>
+                          <div class="est-card__body">
+                            <div class="est-field-grid est-field-grid--2">
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-nome">Nome completo</label>
+                                <input id="rl-nome" class="field__input est-field__control" type="text" formControlName="nome" placeholder="Nome do responsável" />
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-cpf">CPF</label>
+                                <input id="rl-cpf" class="field__input est-field__control" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                              </div>
+                            </div>
+                            <div class="est-field-grid est-field-grid--2">
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-email">E-mail</label>
+                                <div class="form-row__input">
+                                  <input id="rl-email" class="field__input est-field__control" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                                  @if (transportadoraForm.get('responsavelLegal.email')?.invalid && transportadoraForm.get('responsavelLegal.email')?.touched) {
+                                    <span class="field__error">E-mail inválido.</span>
+                                  }
+                                </div>
+                              </div>
+                              <div class="est-field">
+                                <label class="est-field__label" for="rl-tel">Telefone</label>
+                                <input id="rl-tel" class="field__input est-field__control" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
+                              </div>
+                            </div>
+                          </div>
+                        </section>
+
+                        <section class="card card--cadastro-section card--accordion card--complementares" [class.card--open]="complementaresOpen">
+                          <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
+                            <h2 class="card__title">Endereço</h2>
+                            <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
+                          </button>
+                          @if (complementaresOpen) {
+                            <div class="card__body complementares-body" formGroupName="endereco">
+                              <div class="form-compact__body">
+                                <div class="form-row form-row--cep">
+                                  <label for="cep">CEP</label>
+                                  <div class="field__group field__group--cep">
+                                    <input id="cep" class="field__input est-field__control" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
+                                    <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                                  </div>
+                                </div>
+                                <div class="form-row">
+                                  <label for="logradouro">Logradouro</label>
+                                  <input id="logradouro" class="field__input est-field__control" type="text" formControlName="logradouro" placeholder="Rua, Av." />
+                                </div>
+                                <div class="form-row">
+                                  <label for="numero">Número</label>
+                                  <input id="numero" class="field__input est-field__control" type="text" formControlName="numero" placeholder="Nº" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="complemento">Complemento</label>
+                                  <input id="complemento" class="field__input est-field__control" type="text" formControlName="complemento" placeholder="Opcional" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="bairro">Bairro</label>
+                                  <input id="bairro" class="field__input est-field__control" type="text" formControlName="bairro" placeholder="Bairro" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="cidade">Cidade</label>
+                                  <input id="cidade" class="field__input est-field__control" type="text" formControlName="cidade" placeholder="Cidade" />
+                                </div>
+                                <div class="form-row">
+                                  <label for="estado">Estado</label>
+                                  <input id="estado" class="field__input est-field__control" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
+                                </div>
+                              </div>
+                            </div>
                           }
-                          @if (cnpjError) {
-                            <span class="field__error">{{ cnpjError }}</span>
+                        </section>
+
+                        <section class="card card--cadastro-section card--accordion card--contatos" [class.card--open]="contatosOpen">
+                          <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
+                            <h2 class="card__title">Contatos complementares</h2>
+                            <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
+                          </button>
+                          @if (contatosOpen) {
+                            <div class="card__body contatos-body">
+                              <div formArrayName="contatosComplementares" class="form-compact__body form-compact__body--contatos-list">
+                                @for (ctrl of contatosComplementares.controls; track $index) {
+                                  <div class="est-contato-complementar-block" [formGroupName]="$index">
+                                    <div class="est-contato-complementar-block__toolbar">
+                                      <span class="est-contato-complementar-block__title">
+                                        Contato complementar
+                                        @if (contatosComplementares.length > 1) {
+                                          <span class="est-contato-complementar-block__n">&nbsp;{{ $index + 1 }}</span>
+                                        }
+                                      </span>
+                                      <button type="button" class="btn btn-danger btn--outline btn--sm" (click)="removerContatoComplementar($index)">Remover</button>
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-nome-' + $index">Nome</label>
+                                      <input [id]="'cc-nome-' + $index" class="field__input est-field__control" type="text" formControlName="nome" placeholder="Nome" />
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-cpf-' + $index">CPF</label>
+                                      <input [id]="'cc-cpf-' + $index" class="field__input est-field__control" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-tel-' + $index">Telefone</label>
+                                      <input [id]="'cc-tel-' + $index" class="field__input est-field__control" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
+                                    </div>
+                                    <div class="form-row">
+                                      <label [attr.for]="'cc-email-' + $index">E-mail</label>
+                                      <div class="form-row__input">
+                                        <input [id]="'cc-email-' + $index" class="field__input est-field__control" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                                        @if (ctrl.get('email')?.invalid && ctrl.get('email')?.touched) {
+                                          <span class="field__error">E-mail inválido.</span>
+                                        }
+                                      </div>
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                              <div class="contatos-add-footer">
+                                <button type="button" class="btn btn-secondary btn--outline contatos-add-btn" (click)="adicionarContatoComplementar()">
+                                  <span class="material-symbols-outlined contatos-add-btn__icon" aria-hidden="true">add</span>
+                                  Adicionar contato complementar
+                                </button>
+                              </div>
+                            </div>
                           }
-                          @if (transportadoraForm.get('cnpj')?.invalid && transportadoraForm.get('cnpj')?.touched && !cnpjError) {
-                            <span class="field__error">CNPJ obrigatório.</span>
+                        </section>
+                      </div>
+
+                      @if (transportadoraForm.invalid) {
+                        <p class="form-invalid-hint" role="alert">
+                          Corrija os campos destacados em vermelho para habilitar o botão Salvar.
+                        </p>
+                      }
+
+                      <footer class="cadastro-form-footer">
+                        <div class="cadastro-form-footer__left">
+                          @if (transportadoraForm.get('id')?.value) {
+                            <button type="button" class="btn btn-danger btn--outline" (click)="excluirTransportadora()">Excluir</button>
                           }
                         </div>
-                      </div>
-                      <div class="form-row">
-                        <label for="razaoSocial">Razão Social <span class="required">*</span></label>
-                        <div class="form-row__input">
-                          <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
-                          @if (transportadoraForm.get('razaoSocial')?.invalid && transportadoraForm.get('razaoSocial')?.touched) {
-                            <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                        <div class="cadastro-form-footer__right">
+                          <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
+                          <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar' }}</button>
+                        </div>
+                      </footer>
+                    </div>
+
+                    <aside class="est-aside" aria-label="Resumo do cadastro">
+                      <div class="est-aside-card">
+                        <div
+                          class="est-aside__status"
+                          [class.est-aside__status--inactive]="!transportadoraForm.get('pessoa.ativo')?.value"
+                        >
+                          <span class="material-symbols-outlined est-aside__status-icon" aria-hidden="true">check_circle</span>
+                          @if (transportadoraForm.get('pessoa.ativo')?.value) {
+                            <span>Cadastro ativo</span>
+                          } @else {
+                            <span>Cadastro inativo</span>
                           }
                         </div>
-                      </div>
-                      <div class="form-row">
-                        <label for="nomeFantasia">Nome Fantasia</label>
-                        <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Nome Fantasia" />
-                      </div>
-                      <div class="form-row">
-                        <label for="inscricaoEstadual">Inscrição Estadual</label>
-                        <input id="inscricaoEstadual" class="field__input" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
-                      </div>
-                      <div class="form-row">
-                        <label for="email">E-mail</label>
-                        <input id="email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                      </div>
-                      <div class="form-row">
-                        <label for="telefone">Telefone</label>
-                        <input id="telefone" class="field__input" type="text" formControlName="telefone" placeholder="(00) 0000-0000" appTelefoneFormat />
-                      </div>
-                      <div class="form-row form-row--checkbox">
-                        <label>Status</label>
-                        <label class="field__label--checkbox">
-                          <input type="checkbox" formControlName="ativo" />
-                          Ativo
-                        </label>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="card card--span-7">
-                    <div class="card__header">
-                      <h2 class="card__title">Responsável principal</h2>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="responsavelNome">Nome completo</label>
-                        <input id="responsavelNome" class="field__input" type="text" formControlName="responsavelNome" placeholder="Nome do responsável" />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelCpf">CPF</label>
-                        <input id="responsavelCpf" class="field__input" type="text" formControlName="responsavelCpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelCelular">Celular</label>
-                        <input id="responsavelCelular" class="field__input" type="text" formControlName="responsavelCelular" placeholder="(00) 00000-0000" appTelefoneFormat />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelEmail">E-mail</label>
-                        <input id="responsavelEmail" class="field__input" type="email" formControlName="responsavelEmail" placeholder="email@exemplo.com" />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelCargo">Cargo / Função</label>
-                        <input id="responsavelCargo" class="field__input" type="text" formControlName="responsavelCargo" placeholder="Ex.: Gerente" />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="card card--span-5">
-                    <div class="card__header">
-                      <h2 class="card__title">Acessos</h2>
-                      <p class="card__description card__description--small">Acesso criado pelo admin. Tipo: Unidade única.</p>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="tipoAcesso">Tipo de acesso</label>
-                        <input id="tipoAcesso" class="field__input field__input--readonly" type="text" formControlName="tipoAcesso" placeholder="Unidade única" readonly />
-                      </div>
-                      <div class="form-row">
-                        <label for="observacaoInterna">Observação interna</label>
-                        <input id="observacaoInterna" class="field__input" type="text" formControlName="observacaoInterna" placeholder="Opcional" />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="card card--span-7" formGroupName="endereco">
-                    <div class="card__header">
-                      <h2 class="card__title">Endereço</h2>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row form-row--cep">
-                        <label for="cep">CEP</label>
-                        <div class="field__group field__group--cep">
-                          <input id="cep" class="field__input" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
-                          <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                        <div class="est-aside__progress-block">
+                          <div class="est-aside__progress-head">
+                            <span class="est-aside__progress-label">Preenchimento</span>
+                            <span class="est-aside__progress-value">{{ cadastroFillProgressPercent }}%</span>
+                          </div>
+                          <div class="est-aside__progress-track" role="progressbar" [attr.aria-valuenow]="cadastroFillProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                            <div class="est-aside__progress-fill" [style.width.%]="cadastroFillProgressPercent"></div>
+                          </div>
+                          <p class="est-aside__progress-hint">Complete os obrigatórios e o endereço para concluir o cadastro.</p>
+                        </div>
+                        <div class="est-aside__block">
+                          <h3 class="est-aside__block-title">Informações principais</h3>
+                          <ul class="est-aside__list">
+                            <li>
+                              <span class="est-aside__k">CNPJ</span>
+                              <span class="est-aside__v">{{ resumoCnpjFormatado() || '—' }}</span>
+                            </li>
+                            <li>
+                              <span class="est-aside__k">Razão social</span>
+                              <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.razaoSocial')?.value || '—' }}</span>
+                            </li>
+                            <li>
+                              <span class="est-aside__k">Nome fantasia</span>
+                              <span class="est-aside__v est-aside__v--clamp">{{ transportadoraForm.get('pessoa.nomeFantasia')?.value || '—' }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div class="est-aside__tip" role="note">
+                          <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">lightbulb</span>
+                          @let reqPendentes = cadastroObrigatoriosPendentesLabels;
+                          <div class="est-aside__tip-body">
+                            @if (reqPendentes.length === 0) {
+                              <p class="est-aside__tip-ok">Todos os obrigatórios desta etapa estão preenchidos.</p>
+                            } @else {
+                              <p class="est-aside__tip-lead">Ainda falta:</p>
+                              <ul class="est-aside__tip-list">
+                                @for (item of reqPendentes; track item) {
+                                  <li>{{ item }}</li>
+                                }
+                              </ul>
+                            }
+                          </div>
                         </div>
                       </div>
-                      <div class="form-row">
-                        <label for="logradouro">Logradouro</label>
-                        <input id="logradouro" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, Av." />
-                      </div>
-                      <div class="form-row">
-                        <label for="numero">Número</label>
-                        <input id="numero" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
-                      </div>
-                      <div class="form-row">
-                        <label for="complemento">Complemento</label>
-                        <input id="complemento" class="field__input" type="text" formControlName="complemento" placeholder="Opcional" />
-                      </div>
-                      <div class="form-row">
-                        <label for="bairro">Bairro</label>
-                        <input id="bairro" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
-                      </div>
-                      <div class="form-row">
-                        <label for="cidade">Cidade</label>
-                        <input id="cidade" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
-                      </div>
-                      <div class="form-row">
-                        <label for="estado">Estado</label>
-                        <input id="estado" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
-                      </div>
-                    </div>
-                  </section>
-                </div>
-
-                <div class="form-actions-bar">
-                  <div class="form-actions-bar__left">
-                    @if (transportadoraForm.get('id')?.value) {
-                      <button type="button" class="btn btn-danger btn--outline" (click)="excluirTransportadora()">Excluir</button>
-                    }
+                    </aside>
                   </div>
-                  <div class="form-actions-bar__right">
-                    <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar tudo' }}</button>
-                  </div>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         }
@@ -262,11 +646,12 @@
 
       @case ('frota') {
         <div class="tab-panel frota-panel">
-          <div class="frota-actions">
+          <div class="tab-toolbar">
+            <div class="tab-toolbar__actions">
             <button
               type="button"
               class="btn btn-primary"
-              (click)="abrirNovoVeiculo()"
+              (click)="abrirNovoVeiculo($event)"
             >
               Cadastrar frota
             </button>
@@ -278,52 +663,112 @@
             >
               Importar frota
             </button>
+            </div>
+            @if (transportadoraId == null) {
+              <p class="tab-toolbar__hint frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar veículos nesta aba. Cada veículo é enviado em uma requisição própria para a API.</p>
+            }
           </div>
-
-          @if (transportadoraId == null) {
-            <p class="frota-hint">Você já pode cadastrar as placas. Ao salvar a transportadora, a frota pendente será enviada junto.</p>
-          }
 
           @if (transportadoraId != null || veiculos.length > 0) {
             @if (loadingVeiculos) {
               <p class="loading-msg">Carregando frota...</p>
             } @else {
-              <section class="card frota-list-card">
+              <section class="card list-card frota-list-card">
                 <div class="card__header">
                   <h2 class="card__title">Frota cadastrada</h2>
-                  <p class="card__description">
-                    {{ transportadoraId != null ? 'Veículos vinculados a esta transportadora.' : 'Veículos pendentes para salvar junto com a transportadora.' }}
-                  </p>
+                  <p class="card__description">Veículos vinculados a esta transportadora.</p>
                 </div>
                 <div class="table-wrap">
-                  <table class="data-table">
+                  <table class="data-table frota-data-table">
                     <thead>
                       <tr>
+                        <th class="frota-expand-col" aria-label="Expandir motoristas"></th>
                         <th>Placa</th>
                         <th>Marca / Modelo</th>
                         <th>Cor</th>
                         <th>Ano</th>
-                        <th>Tipo</th>
-                        <th>Centro custo</th>
+                        <th>Tipo carga</th>
                         <th>Status</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       @for (v of veiculos; track v.id) {
-                        <tr>
-                          <td>{{ v.placa }}</td>
+                        <tr [class.frota-row--expanded]="isFrotaLinhaExpandida(v.id)">
+                          <td class="frota-expand-col">
+                            <button
+                              type="button"
+                              class="frota-expand-btn"
+                              [attr.aria-expanded]="isFrotaLinhaExpandida(v.id)"
+                              [attr.aria-label]="isFrotaLinhaExpandida(v.id) ? 'Ocultar motoristas' : 'Ver motoristas vinculados'"
+                              (click)="toggleFrotaLinhaExpandida(v, $event)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">
+                                {{ isFrotaLinhaExpandida(v.id) ? 'expand_less' : 'expand_more' }}
+                              </span>
+                            </button>
+                          </td>
+                          <td>{{ formatPlacaFrotaGrid(v.placa) }}</td>
                           <td>{{ v.marcaModelo }}</td>
                           <td>{{ v.cor ?? '—' }}</td>
                           <td>{{ v.anoFabricacao ?? v.anoModelo ?? '—' }}</td>
-                          <td>{{ v.tipoVeiculo ?? '—' }}</td>
-                          <td>{{ v.centroCusto ?? '—' }}</td>
-                          <td>{{ v.ativo ? 'Ativo' : 'Inativo' }}</td>
+                          <td>{{ labelTipoCarga(v.tipoCarga) }}</td>
                           <td>
-                            <button type="button" class="btn btn-primary btn--sm" (click)="editarVeiculo(v)">Editar</button>
-                            <button type="button" class="btn btn-secondary btn--sm" (click)="excluirVeiculo(v)">Excluir</button>
+                            <span class="status-pill" [class.status-pill--inactive]="!v.ativo">{{ v.ativo ? 'Ativo' : 'Inativo' }}</span>
+                          </td>
+                          <td class="table-cell--actions">
+                            <div class="table-actions">
+                              <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v, $event)">Editar</button>
+                              <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirVeiculo(v)">Excluir</button>
+                            </div>
                           </td>
                         </tr>
+                        @if (isFrotaLinhaExpandida(v.id)) {
+                          <tr class="frota-row-detail">
+                            <td colspan="8">
+                              <div class="frota-motoristas-expand">
+                                <div class="frota-motoristas-expand__header">
+                                  <h3 class="frota-motoristas-expand__title">Motoristas vinculados</h3>
+                                  @if (isFrotaExpandLoading(v.id)) {
+                                    <span class="frota-motoristas-expand__loading">Carregando…</span>
+                                  }
+                                </div>
+                                @if ((v.motoristas?.length ?? 0) === 0 && !isFrotaExpandLoading(v.id)) {
+                                  <p class="frota-motoristas-expand__empty">Nenhum motorista vinculado a este veículo.</p>
+                                } @else if ((v.motoristas?.length ?? 0) > 0) {
+                                  <div class="table-wrap frota-motoristas-expand__table-wrap">
+                                    <table class="data-table frota-motoristas-expand__table" aria-label="Motoristas do veículo">
+                                      <thead>
+                                        <tr>
+                                          <th>Nome</th>
+                                          <th>CPF</th>
+                                          <th>Motorista principal</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        @for (m of v.motoristas; track m.id) {
+                                          <tr>
+                                            <td>{{ m.nome || '—' }}</td>
+                                            <td>{{ formatCpfCondutor(m.cpf ?? '') }}</td>
+                                            <td>
+                                              @if (m.principal === true) {
+                                                <span class="status-pill">Sim</span>
+                                              } @else if (m.principal === false) {
+                                                <span class="status-pill status-pill--inactive">Não</span>
+                                              } @else {
+                                                <span class="frota-motoristas-expand__dash">—</span>
+                                              }
+                                            </td>
+                                          </tr>
+                                        }
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                }
+                              </div>
+                            </td>
+                          </tr>
+                        }
                       }
                     </tbody>
                   </table>
@@ -340,67 +785,85 @@
         </div>
       }
 
-      @case ('condutores') {
-        <div class="tab-panel">
-          <!-- TODO: integrar com endpoint de Condutor quando disponível no backend. Estrutura pronta com mock. -->
-          <div class="page-header__actions" style="margin-bottom: 12px;">
-            <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar condutor</button>
-            <button
-              type="button"
-              class="btn btn-secondary"
-              [disabled]="transportadoraId == null"
-              (click)="abrirImportarCondutores()"
-            >
-              Importar Condutores
-            </button>
+      @case ('motoristas') {
+        <div class="tab-panel motoristas-panel">
+          <div class="tab-toolbar">
+            <div class="tab-toolbar__actions">
+              <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar motorista</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="transportadoraId == null"
+                (click)="abrirImportarCondutores()"
+              >
+                Importar motoristas
+              </button>
+            </div>
+            @if (transportadoraId == null) {
+              <p class="tab-toolbar__hint frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar motoristas nesta aba. Cada motorista é enviado em uma requisição própria para a API.</p>
+            }
           </div>
-          @if (transportadoraId == null) {
-            <p class="frota-hint">Você já pode adicionar condutores e continuar o preenchimento antes de salvar a transportadora.</p>
-          }
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CPF</th>
-                  <th>Celular</th>
-                  <th>E-mail</th>
-                  <th>CNH</th>
-                  <th>Categoria</th>
-                  <th>Venc. CNH</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (c of condutoresMock; track c.id) {
-                  <tr>
-                    <td>{{ c.nomeCompleto }}</td>
-                    <td>{{ formatCpfCondutor(c.cpf) }}</td>
-                    <td>{{ c.celular || '—' }}</td>
-                    <td>{{ c.email || '—' }}</td>
-                    <td>{{ c.cnh || '—' }}</td>
-                    <td>{{ c.categoriaCnh || '—' }}</td>
-                    <td>{{ c.vencimentoCnh || '—' }}</td>
-                    <td>{{ c.ativo ? 'Ativo' : 'Inativo' }}</td>
-                    <td>
-                      <button type="button" class="btn btn-primary btn--sm" (click)="editarCondutor(c)">Editar</button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          @if (condutoresMock.length === 0) {
-            <p class="empty-msg">Nenhum condutor cadastrado. (Dados mockados — integração com backend quando endpoint estiver disponível.)</p>
-          }
+          <section class="card list-card motoristas-list-card">
+            <div class="card__header">
+              <h2 class="card__title">Motoristas cadastrados</h2>
+              <p class="card__description">Condutores vinculados a esta transportadora.</p>
+            </div>
+            @if (loadingCondutores) {
+              <p class="loading-msg loading-msg--card">Carregando motoristas...</p>
+            } @else {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>CPF</th>
+                      <th>Telefone</th>
+                      <th>E-mail</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of condutores; track c.id) {
+                      <tr>
+                        <td>{{ c.nomeCompleto }}</td>
+                        <td>{{ formatCpfCondutor(c.cpf) }}</td>
+                        <td>{{ formatTelefoneCondutor(c.celular) }}</td>
+                        <td>{{ c.email || '—' }}</td>
+                        <td>
+                          <span class="status-pill" [class.status-pill--inactive]="!c.ativo">{{ c.ativo ? 'Ativo' : 'Inativo' }}</span>
+                        </td>
+                        <td class="table-cell--actions">
+                          <div class="table-actions">
+                            <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarCondutor(c)">Editar</button>
+                            <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirCondutor(c)">Excluir</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (condutores.length === 0) {
+                <div class="frota-empty">
+                  <p class="frota-empty__text">Nenhum motorista cadastrado.</p>
+                  <p class="frota-empty__hint">Use <strong>Adicionar motorista</strong> ou <strong>Importar motoristas</strong> para começar.</p>
+                </div>
+              }
+            }
+          </section>
         </div>
       }
     }
   </div>
+</div>
 
-  @if (showVeiculoForm) {
-    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalFrota()" role="presentation">
+@if (showVeiculoForm) {
+    <div
+      class="modal-overlay modal-overlay--frota"
+      (click)="onBackdropVeiculoClick($event)"
+      role="presentation"
+    >
       <div
         class="modal-content modal-content--frota"
         role="dialog"
@@ -408,84 +871,214 @@
         aria-labelledby="modal-frota-title"
         (click)="$event.stopPropagation()"
       >
-        <div class="modal-header">
-          <h2 id="modal-frota-title">{{ veiculoEditId ? 'Editar veículo' : 'Cadastrar frota' }}</h2>
+        <div class="modal-header modal-header--frota">
+          <div class="modal-header__main">
+            <span class="modal-header__icon-wrap" aria-hidden="true">
+              <span class="material-symbols-outlined">local_shipping</span>
+            </span>
+            <h2 id="modal-frota-title">{{ veiculoEditId ? 'Editar veículo' : 'Cadastrar frota' }}</h2>
+          </div>
           <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalFrota()">&times;</button>
         </div>
-        <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
-          <div class="modal-body modal-body--frota-compact">
+        <div class="frota-modal-topbar" role="tablist" aria-label="Seções do cadastro de frota">
+          <button
+            type="button"
+            class="frota-modal-tab"
+            [class.frota-modal-tab--active]="modalFrotaTabAtual === 'veiculo'"
+            [attr.aria-selected]="modalFrotaTabAtual === 'veiculo'"
+            role="tab"
+            (click)="setModalFrotaTab('veiculo')"
+          >
+            Veículo
+          </button>
+          <button
+            type="button"
+            class="frota-modal-tab"
+            [class.frota-modal-tab--active]="modalFrotaTabAtual === 'motoristasVinculados'"
+            [attr.aria-selected]="modalFrotaTabAtual === 'motoristasVinculados'"
+            role="tab"
+            (click)="setModalFrotaTab('motoristasVinculados')"
+          >
+            Motoristas vinculados
+          </button>
+        </div>
+        <form [formGroup]="veiculoForm" novalidate>
+          <div class="modal-body modal-body--frota">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Este veículo ficará pendente e será salvo junto quando você salvar a transportadora na aba <strong>Cadastro</strong>.</p>
+              <p class="modal-frota-hint" role="alert">
+                <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                <span>Salve primeiro o cadastro da transportadora na aba <strong>Cadastro</strong>. Depois disso, use <strong>Salvar veículo</strong> para enviar apenas os dados do veículo à API.</span>
+              </p>
             }
-            <div class="form-row">
-              <label for="frota-placa">Placa <span class="required">*</span></label>
-              <input
-                id="frota-placa"
-                type="text"
-                class="input-control"
-                placeholder="Ex.: ABC1D23"
-                maxlength="7"
-                formControlName="placa"
-                (input)="formatarPlacaFrota($any($event.target).value)"
-                (blur)="onPlacaBlur()"
-              />
+            <div class="frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'veiculo'">
+              <div class="frota-modal-grid">
+                <div class="frota-modal-grid__col">
+                  <div class="form-row">
+                    <label for="frota-placa">Placa <span class="required">*</span></label>
+                    <input
+                      id="frota-placa"
+                      type="text"
+                      class="input-control"
+                      placeholder="Ex.: ABC-1D23"
+                      maxlength="8"
+                      formControlName="placa"
+                      autocomplete="off"
+                      spellcheck="false"
+                      appPlacaFormat
+                      (input)="formatarPlacaFrota($any($event.target).value)"
+                      (blur)="onPlacaBlur()"
+                    />
+                    @if (veiculoForm.get('placa')?.value && !placaFrotaValida) {
+                      <span class="field-hint field-hint--warn">Informe a placa completa no padrão Mercosul (ex.: ABC-1D23).</span>
+                    }
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-marca">Marca</label>
+                    <input id="frota-marca" type="text" class="input-control" formControlName="marca" placeholder="Ex.: Volvo" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-cor">Cor do veículo</label>
+                    <input id="frota-cor" type="text" class="input-control" formControlName="cor" placeholder="Opcional" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-ano-mod">Ano Modelo</label>
+                    <input id="frota-ano-mod" type="number" class="input-control" formControlName="anoModelo" placeholder="Ex.: 2023" min="1900" max="2100" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-eixos">Quantidade eixos</label>
+                    <select id="frota-eixos" class="input-control input-control--select" formControlName="quantidadeEixos">
+                      <option value="">Selecione</option>
+                      @for (n of eixosOpcoes; track n) {
+                        <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="frota-modal-grid__col">
+                  <div class="form-row">
+                    <label for="frota-modelo">Modelo</label>
+                    <input id="frota-modelo" type="text" class="input-control" formControlName="modelo" placeholder="Ex.: FH 540" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-ano-fab">Ano Fabricação</label>
+                    <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" placeholder="Ex.: 2022" min="1900" max="2100" />
+                  </div>
+                  <div class="form-row">
+                    <label for="frota-tipo-carga">Tipo de carga</label>
+                    <select id="frota-tipo-carga" class="input-control input-control--select" formControlName="tipoCarga">
+                      <option [ngValue]="null">Selecione</option>
+                      @for (o of tipoCargaOpcoes; track o.value) {
+                        <option [ngValue]="o.value">{{ o.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="form-row">
-              <label for="frota-condutor">Condutor</label>
-              <select id="frota-condutor" class="input-control input-control--select" formControlName="condutorId">
-                <option [ngValue]="null">Selecione</option>
-                @for (c of condutoresMock; track c.id) {
-                  <option [ngValue]="c.id">{{ c.nomeCompleto }}</option>
+            <section class="frota-vinculos frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'motoristasVinculados'">
+                <div class="frota-vinculos__header">
+                  <h3>Motoristas vinculados</h3>
+                </div>
+                <div class="frota-vinculos__toolbar">
+                  <div class="frota-vinculos__busca">
+                    <div class="frota-vinculo-busca-row">
+                      <input
+                        type="text"
+                        readonly
+                        class="input-control frota-vinculos-busca-input"
+                        (click)="abrirBuscaMotoristaFrota('vinculo')"
+                        (keydown.enter)="$event.preventDefault(); abrirBuscaMotoristaFrota('vinculo')"
+                        placeholder="Clique ou use a lupa para abrir a busca paginada"
+                        aria-label="Abrir busca de motorista"
+                      />
+                      <button type="button" class="btn btn-secondary frota-vinculo-busca-btn" (click)="abrirBuscaMotoristaFrota('vinculo')" title="Abrir busca de motorista">
+                        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                      </button>
+                    </div>
+                    <p class="frota-vinculos__search-hint">O campo de busca abre uma janela com a lista paginada para selecionar o motorista.</p>
+                  </div>
+                </div>
+                @if (motoristasVinculadosFrota.length === 0) {
+                  <p class="frota-vinculos__empty">Nenhum motorista vinculado neste veículo.</p>
+                } @else {
+                  <div class="table-wrap frota-vinculos-table-wrap">
+                    <table class="data-table" aria-label="Motoristas vinculados ao veículo">
+                      <thead>
+                        <tr>
+                          <th>Motorista</th>
+                          <th>CNH</th>
+                          <th>Validade CNH</th>
+                          <th>Principal</th>
+                          <th class="table-cell--actions">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (m of motoristasVinculadosFrota; track m.id) {
+                          <tr>
+                            <td>
+                              <span class="frota-vinculo-grid__motorista">
+                                <span class="frota-vinculo-item__avatar" aria-hidden="true">{{ motoristaIniciais(m.nome) }}</span>
+                                <span>{{ m.nome }}</span>
+                              </span>
+                            </td>
+                            <td>
+                              @if (m.cnh) {
+                                {{ m.cnh }}
+                              } @else {
+                                <span class="frota-vinculos__cell-muted">—</span>
+                              }
+                            </td>
+                            <td>
+                              @if (m.validadeCnh) {
+                                {{ m.validadeCnh }}
+                              } @else {
+                                <span class="frota-vinculos__cell-muted">—</span>
+                              }
+                            </td>
+                            <td>
+                              @if (m.principal) {
+                                <span class="frota-vinculo-item__badge">Principal</span>
+                              } @else {
+                                <span class="frota-vinculos__cell-muted">—</span>
+                              }
+                            </td>
+                            <td class="table-cell--actions">
+                              <div class="table-actions">
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary btn--sm"
+                                  [disabled]="m.principal"
+                                  (click)="definirVinculoPrincipal(m.id)"
+                                >
+                                  Definir principal
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn btn-secondary btn--sm btn--table-action-danger"
+                                  (click)="removerVinculoMotorista(m.id)"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 }
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="frota-marca">Marca</label>
-              <input id="frota-marca" type="text" class="input-control" formControlName="marca" placeholder="Ex.: Volvo" />
-            </div>
-            <div class="form-row">
-              <label for="frota-modelo">Modelo</label>
-              <input id="frota-modelo" type="text" class="input-control" formControlName="modelo" placeholder="Ex.: FH 540" />
-            </div>
-            <div class="form-row">
-              <label for="frota-cor">Cor do veículo</label>
-              <input id="frota-cor" type="text" class="input-control" formControlName="cor" placeholder="Opcional" />
-            </div>
-            <div class="form-row">
-              <label for="frota-ano-fab">Ano Fabricação</label>
-              <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" placeholder="Ex.: 2022" min="1900" max="2100" />
-            </div>
-            <div class="form-row">
-              <label for="frota-ano-mod">Ano Modelo</label>
-              <input id="frota-ano-mod" type="number" class="input-control" formControlName="anoModelo" placeholder="Ex.: 2023" min="1900" max="2100" />
-            </div>
-            <div class="form-row">
-              <label for="frota-tipo">Tipo de veículo</label>
-              <input id="frota-tipo" type="text" class="input-control" formControlName="tipoVeiculo" placeholder="Ex.: Cavalo mecânico" />
-            </div>
-            <div class="form-row">
-              <label for="frota-eixos">Quantidade eixos</label>
-              <select id="frota-eixos" class="input-control input-control--select" formControlName="quantidadeEixos">
-                <option value="">Selecione</option>
-                @for (n of eixosOpcoes; track n) {
-                  <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
-                }
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="frota-peso">Veículo Leve/Pesado</label>
-              <select id="frota-peso" class="input-control input-control--select" formControlName="tipoPeso">
-                <option value="">Selecione</option>
-                @for (o of tipoPesoOpcoes; track o.value) {
-                  <option [value]="o.value">{{ o.label }}</option>
-                }
-              </select>
-            </div>
+              </section>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="veiculoForm.invalid || salvandoVeiculo">
-              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar frota' }}
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!placaFrotaValida || salvandoVeiculo"
+              (click)="salvarVeiculo()"
+            >
+              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
             </button>
           </div>
         </form>
@@ -503,37 +1096,87 @@
         (click)="$event.stopPropagation()"
       >
         <div class="modal-header">
-          <h2 id="modal-condutor-title">{{ condutorEditId ? 'Editar condutor' : 'Novo condutor' }}</h2>
+          <h2 id="modal-condutor-title">{{ condutorEditId ? 'Editar motorista' : 'Novo motorista' }}</h2>
           <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalCondutor()">&times;</button>
         </div>
-        <form [formGroup]="condutorForm" (ngSubmit)="salvarCondutor()">
+        <form [formGroup]="motoristaForm" (ngSubmit)="salvarMotorista()">
           <div class="modal-body modal-body--frota-compact">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Você pode cadastrar condutores agora. Eles permanecem na tela durante o preenchimento.</p>
+              <p class="modal-frota-hint" role="alert">Salve primeiro o cadastro da transportadora na aba <strong>Cadastro</strong>. Depois disso, use <strong>Salvar motorista</strong> para enviar apenas os dados do motorista à API.</p>
+            }
+            <div class="form-row">
+              <label for="cond-cpf">CPF <span class="required">*</span></label>
+              <input
+                id="cond-cpf"
+                type="text"
+                class="input-control"
+                formControlName="cpf"
+                placeholder="000.000.000-00"
+                maxlength="14"
+                inputmode="numeric"
+                autocomplete="off"
+                appCpfFormat
+                (blur)="onCpfMotoristaBlur()"
+              />
+              @if (motoristaCpfBuscando) {
+                <span class="field-hint">Consultando CPF no banco...</span>
+              }
+              @if (motoristaForm.get('cpf')?.invalid && motoristaForm.get('cpf')?.touched) {
+                <span class="field__error">
+                  @if (motoristaForm.get('cpf')?.errors?.['required']) {
+                    CPF obrigatório.
+                  } @else {
+                    Informe o CPF completo (11 dígitos).
+                  }
+                </span>
+              }
+            </div>
+            @if (motoristaJaCadastradoEncontrado) {
+              <p class="modal-frota-hint" role="status">
+                @if (motoristaJaVinculadoNesta) {
+                  Motorista já cadastrado e vinculado a esta transportadora. Os dados foram carregados — você pode editar e salvar.
+                } @else if (motoristaAceitouVinculo && motoristaVinculoOutraTransportadora) {
+                  Motorista já cadastrado em outra transportadora. Ao salvar, o vínculo anterior será desfeito e este motorista passará a esta transportadora.
+                } @else if (motoristaAceitouVinculo) {
+                  Motorista já cadastrado. Ao salvar, será vinculado a esta transportadora.
+                } @else {
+                  Motorista já cadastrado.
+                  <button type="button" class="link-action" (click)="reperguntarVinculoMotorista()">
+                    Confirmar vínculo
+                  </button>
+                }
+              </p>
             }
             <div class="form-row">
               <label for="cond-nome">Nome completo <span class="required">*</span></label>
               <input id="cond-nome" type="text" class="input-control" formControlName="nomeCompleto" placeholder="Nome completo" />
             </div>
             <div class="form-row">
-              <label for="cond-cpf">CPF <span class="required">*</span></label>
-              <input id="cond-cpf" type="text" class="input-control" formControlName="cpf" placeholder="000.000.000-00" appCpfFormat />
-            </div>
-            <div class="form-row">
-              <label for="cond-celular">Celular</label>
-              <input id="cond-celular" type="text" class="input-control" formControlName="celular" placeholder="(00) 00000-0000" appTelefoneFormat />
-            </div>
-            <div class="form-row">
               <label for="cond-email">E-mail</label>
               <input id="cond-email" type="email" class="input-control" formControlName="email" placeholder="E-mail" />
             </div>
             <div class="form-row">
-              <label for="cond-cnh">CNH</label>
-              <input id="cond-cnh" type="text" class="input-control" formControlName="cnh" placeholder="Número da CNH" />
+              <label for="cond-celular">Celular</label>
+              <input
+                id="cond-celular"
+                type="text"
+                class="input-control"
+                formControlName="celular"
+                placeholder="(00) 90000-0000"
+                inputmode="tel"
+                autocomplete="tel"
+                maxlength="15"
+                appTelefoneFormat
+              />
+              @if (motoristaForm.get('celular')?.invalid && motoristaForm.get('celular')?.touched) {
+                <span class="field__error">
+                  Informe o celular completo com DDD e o 9 (11 dígitos).
+                </span>
+              }
             </div>
             <div class="form-row">
-              <label for="cond-categoria">Categoria CNH</label>
-              <input id="cond-categoria" type="text" class="input-control" formControlName="categoriaCnh" placeholder="Ex.: B, E" />
+              <label for="cond-cnh">CNH</label>
+              <input id="cond-cnh" type="text" class="input-control" formControlName="cnh" placeholder="Número da CNH" />
             </div>
             <div class="form-row">
               <label for="cond-venc">Vencimento CNH</label>
@@ -549,9 +1192,41 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid">Salvar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
+              {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
+            </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  @if (showImportarDados) {
+    <div class="modal-overlay" (click)="fecharImportarDados()" role="dialog" aria-modal="true" aria-labelledby="importar-dados-title">
+      <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2 id="importar-dados-title" class="modal__title">Importar transportadoras</h2>
+          <button type="button" class="modal__close" (click)="fecharImportarDados()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__description">
+            Selecione o Excel do modelo padrão (dados da transportadora, responsável, endereço e contatos complementares).
+            A primeira linha deve conter o cabeçalho. Use <strong>Download modelo</strong> para obter o arquivo.
+          </p>
+          <div class="importacao-actions">
+            <input type="file" #fileDadosInput accept=".xlsx,.xls" (change)="onFileDadosChange($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileDadosInput.click()">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarDadosExcel()" [disabled]="!fileDados || importandoDados">
+              {{ importandoDados ? 'Importando…' : 'Importar' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloTransportadora()" [disabled]="baixandoModelo">
+              Baixar modelo
+            </button>
+          </div>
+          @if (fileDados) {
+            <p class="file-name">Arquivo: {{ fileDados.name }}</p>
+          }
+        </div>
       </div>
     </div>
   }
@@ -564,12 +1239,16 @@
           <button type="button" class="modal__close" (click)="fecharImportarFrota()" aria-label="Fechar">&times;</button>
         </div>
         <div class="modal__body">
-          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Placa</strong>, <strong>Marca/Modelo</strong>, Cor, Ano Fab/Mod, Tipo de veículo, Centro de custo, Status. A primeira linha deve conter o cabeçalho.</p>
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx) com as colunas: <strong>Placa</strong>, Modelo, Marca, AnoFabricacao, Cor, TipoCarga, AnoModelo, QuantidadeEixos, Ativo. A frota será vinculada à transportadora aberta. A primeira linha deve conter o cabeçalho.</p>
           <div class="importacao-actions">
-            <input type="file" #fileFrotaInput accept=".xlsx,.xls,.csv" (change)="onFileFrotaChange($event)" style="display: none;" />
-            <button type="button" class="btn btn-secondary" (click)="fileFrotaInput.click()">Selecionar arquivo</button>
-            <button type="button" class="btn btn-primary" (click)="importarFrota()" [disabled]="!fileFrota">Importar</button>
-            <button type="button" class="btn btn-secondary" (click)="downloadModeloFrota()">Baixar modelo</button>
+            <input type="file" #fileFrotaInput accept=".xlsx,.xls" (change)="onFileFrotaChange($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileFrotaInput.click()" [disabled]="importandoFrota">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarFrota()" [disabled]="!fileFrota || importandoFrota">
+              {{ importandoFrota ? 'Importando…' : 'Importar' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloFrota()" [disabled]="baixandoModeloFrota">
+              {{ baixandoModeloFrota ? 'Baixando…' : 'Baixar modelo' }}
+            </button>
           </div>
           @if (fileFrota) {
             <p class="file-name">Arquivo: {{ fileFrota.name }}</p>
@@ -583,16 +1262,20 @@
     <div class="modal-overlay" (click)="fecharImportarCondutores()" role="dialog" aria-modal="true" aria-labelledby="importar-condutores-title">
       <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
         <div class="modal__header">
-          <h2 id="importar-condutores-title" class="modal__title">Importar condutores</h2>
+          <h2 id="importar-condutores-title" class="modal__title">Importar motoristas</h2>
           <button type="button" class="modal__close" (click)="fecharImportarCondutores()" aria-label="Fechar">&times;</button>
         </div>
         <div class="modal__body">
-          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Nome</strong>, <strong>CPF</strong>, Celular, E-mail, CNH, Categoria CNH, Venc. CNH, Ativo. A primeira linha deve conter o cabeçalho.</p>
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx) com as colunas: <strong>NomeCompleto</strong>, <strong>Cpf</strong>, Email, Celular, Cnh, VencimentoCnh, Ativo. Os motoristas serão vinculados à transportadora aberta. A primeira linha deve conter o cabeçalho.</p>
           <div class="importacao-actions">
-            <input type="file" #fileCondutoresInput accept=".xlsx,.xls,.csv" (change)="onFileCondutores($event)" style="display: none;" />
-            <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()">Selecionar arquivo</button>
-            <button type="button" class="btn btn-primary" (click)="importarCondutores()" [disabled]="!fileCondutores">Importar</button>
-            <button type="button" class="btn btn-secondary" (click)="downloadModeloCondutores()">Baixar modelo</button>
+            <input type="file" #fileCondutoresInput accept=".xlsx,.xls" (change)="onFileCondutores($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()" [disabled]="importandoCondutores">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarCondutores()" [disabled]="!fileCondutores || importandoCondutores">
+              {{ importandoCondutores ? 'Importando…' : 'Importar' }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloCondutores()" [disabled]="baixandoModeloCondutores">
+              {{ baixandoModeloCondutores ? 'Baixando…' : 'Baixar modelo' }}
+            </button>
           </div>
           @if (fileCondutores) {
             <p class="file-name">Arquivo: {{ fileCondutores.name }}</p>
@@ -601,4 +1284,12 @@
       </div>
     </div>
   }
+
+<app-modal-busca-motorista
+  [aberto]="frotaMotoristaModalAberto"
+  [termoCampo]="termoCampoModalBuscaMotorista"
+  [transportadoraId]="transportadoraId ?? undefined"
+  (fechar)="frotaMotoristaModalAberto = false"
+  (itemSelecionado)="onFrotaMotoristaSelecionado($event)"
+/>
 </div>

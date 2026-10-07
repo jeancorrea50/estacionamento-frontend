@@ -1,649 +1,2689 @@
-import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ActivatedRoute, Router } from '@angular/router';
+import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
+import { MovimentoService } from '../../entrada-saida/movimento.service';
+import { PATIO_ENTRADA_SAIDA_ROUTE } from '../../../patio/patio-rotas';
 import {
-  PlacaTransportadoraLookupService,
-  DadosVeiculoCadastro,
-} from '../../services/placa-transportadora-lookup.service';
+  EntradaSaidaFiltro,
+  EntradaSaidaOutput,
+  EntradaSaidaPagedResult,
+  EntradaSaidaSearchOutput,
+  EntradaSaidaSuspensaoOutput,
+  EntradaSaidaStatus,
+  entradaSaidaStatusLabel,
+  ModoRecibo,
+  parseEntradaSaidaStatus,
+  TipoTarifaEstacionamento
+} from '../../models/entrada-saida.models';
+import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
+import { ApiError } from '../../../../core/api/models';
+import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
+import {
+  TelefoneFormatDirective,
+  formatTelefone
+} from '../../../cadastro/directives/telefone-format.directive';
+import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
+import { MotoristaService } from '../../../cadastro/services/motorista.service';
+import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
+import { Subject, forkJoin, map, of, throwError } from 'rxjs';
+import { catchError, finalize, takeUntil } from 'rxjs/operators';
+import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
+import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
+import { PortariaAlertasStore } from '../../services/portaria-alertas.store';
+import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
+import {
+  datetimeLocalInputToApiIso,
+  toDateTimeLocalInputValue,
+  toLocalIsoDateTime
+} from '../../../../shared/utils/local-iso-datetime';
+import { mapBuscarPorPlacaParaRegistroRapido, extrairMotoristasVinculados } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
+import { EntradaSaidaMotoristaVinculoItem } from '../../models/entrada-saida-buscar-por-placa.models';
+import {
+  mapearTipoCargaParaEnum as toTipoCargaEnum,
+  TIPO_CARGA_LABELS,
+  tipoCargaLabel
+} from '../../../../shared/models/tipo-carga';
+import {
+  formatarBrl,
+  parseBrl
+} from '../../../financeiro/pages/faturamento-page/config-cobranca/config-cobranca-moeda.util';
+import {
+  calcularQuantidadeUnidades,
+  calcularTotalDiarias
+} from '../../utils/calcular-diarias';
+import { MovimentosFiltrosPanelComponent } from './movimentos-filtros-panel/movimentos-filtros-panel.component';
+import {
+  MovimentosFiltrosAvancados,
+  criarDataHoje,
+  criarFiltrosAvancadosVazios,
+  toIsoDate,
+  toIsoDateTimeEnd,
+  toIsoDateTimeStart
+} from './movimentos-filtros.util';
+import { MovimentacaoRelatorioService } from '../../../patio/services/movimentacao-relatorio.service';
+import type { MovimentacaoRelatorioFiltro } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio.types';
 
-export type MovimentosTab = 'operacao' | 'historico';
+type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
+type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
+type MovimentosViewMode = 'portaria' | 'operacao';
+type FiltroResumoChip = 'noPatio' | 'suspensos' | 'entradasHoje' | 'agendados' | 'todos';
+type MovimentosListaSortCol =
+  | 'placa'
+  | 'motorista'
+  | 'transportadora'
+  | 'entrada'
+  | 'saida'
+  | 'status'
+  | 'acordo';
 
-export interface EntradaForm {
-  placa: string;
-  modeloVeiculo: string;
-  anoFabricacao: string;
-  quantidadeEixos: string;
-  transportadora: string;
-  condutor: string;
-  cpf: string;
-  observacao: string;
-}
-
-/** Período em que a contagem ficou suspensa (ex.: 14:00 até 16:00). */
-export interface SuspensaoPeriodo {
-  inicio: string;
-  fim: string | null;
-}
-
-export interface VeiculoEmAndamento {
-  placa: string;
-  dataHoraEntrada: string;
-  transportadora: string;
-  condutor: string;
-  cpf: string;
-  status: string;
-  modeloVeiculo: string;
-  anoFabricacao: string;
-  quantidadeEixos: string;
-  suspensoes?: SuspensaoPeriodo[];
-  /** Indica se a entrada foi agendada (filtro "Agendados"). */
-  agendado?: boolean;
-}
-
-/** Filtro rápido da tabela "Em andamento" pelos chips de resumo. */
-export type FiltroResumoMovimentos = 'todos' | 'noPatio' | 'suspensos' | 'entradasHoje' | 'agendados';
-
-export interface MovimentoHistorico {
+/** Item do hub `movimentacaoAtualizada` já normalizado para a UI. */
+interface MovimentacaoTempoRealVm {
+  /** Guid do hub (ou fallback estável por índice). */
+  id: string;
+  horario: string;
+  /** Epoch ms para ordenação (mais recente primeiro). */
+  horarioSortMs: number;
   placa: string;
   motorista: string;
-  cpf: string;
   transportadora: string;
-  dataEntrada: string;
-  dataSaida: string;
-  valor: string;
-  tempoEstacionado?: string;
-  /** Status final do movimento (ex.: Finalizado, Com suspensão). */
-  statusFinal?: string;
+  status: StatusMonitoramento;
+  statusLabel: string;
+  dataHoraEntrada: string;
+  dataHoraSaida: string | null;
 }
 
-export type FiltroPeriodoHistorico = 'todos' | 'hoje' | 'semana' | 'mes';
+interface MonitoramentoItemVm {
+  id: string;
+  data: string;
+  horario: string;
+  placa: string;
+  motorista: string;
+  transportadora: string;
+  status: StatusMonitoramento;
+}
+
+interface AlertaItemVm {
+  id: string;
+  titulo: string;
+  descricao: string;
+  tempoRelativo: string;
+}
 
 @Component({
   selector: 'app-movimentos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CameraPreviewComponent, TelefoneFormatDirective, MovimentosFiltrosPanelComponent],
   templateUrl: './movimentos-page.component.html',
-  styleUrls: ['./movimentos-page.component.scss'],
+  styleUrls: ['./movimentos-page.component.scss']
 })
 export class MovimentosPageComponent implements OnInit, OnDestroy {
-  private placaTransportadoraLookup = inject(PlacaTransportadoraLookupService);
+  private readonly entradaSaidaService = inject(EntradaSaidaService);
+  private readonly movimentoService = inject(MovimentoService);
+  private readonly signalrDashboardService = inject(SignalrDashboardService);
+  private readonly portariaAlertas = inject(PortariaAlertasStore);
+  private readonly transportadoraService = inject(TransportadoraService);
+  private readonly motoristaService = inject(MotoristaService);
+  private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+  private readonly sessionAccess = inject(SessionAccessService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly movimentacaoRelatorio = inject(MovimentacaoRelatorioService);
 
-  activeTab: MovimentosTab = 'operacao';
-  entradaModalOpen = false;
-  entradaForm: EntradaForm = this.getEntradaFormVazio();
-  emAndamento: VeiculoEmAndamento[] = [];
-  historicoMovimentos: MovimentoHistorico[] = [];
-  filtroPlaca = '';
-  /** Filtro ativo dos chips de resumo (No pátio, Suspensos, etc.). */
-  filtroResumo: FiltroResumoMovimentos = 'todos';
-  private buscandoTransportadora = false;
-
-  /** Aba Histórico: busca por placa. */
-  filtroPlacaHistorico = '';
-  /** Aba Histórico: período (hoje, semana, mês, todos). */
-  filtroPeriodoHistorico: FiltroPeriodoHistorico = 'mes';
-  /** Aba Histórico: status (todos ou valor do statusFinal). */
-  filtroStatusHistorico = '';
-  /** Aba Histórico: movimento selecionado para ver detalhes (modal). */
-  detalheMovimento: MovimentoHistorico | null = null;
-  /** Aba Histórico: chave da linha cujo menu de ações está aberto (placa|dataSaida). */
-  menuAbertoKey: string | null = null;
-  /** Movimento cujo menu está aberto (para renderizar dropdown fora da tabela). */
-  movimentoMenuAberto: MovimentoHistorico | null = null;
-  /** Posição do dropdown (fixed) para não ser cortado pelo overflow da tabela. */
-  dropdownPos: { top: number; left: number } | null = null;
-
-  /** Resumo da aba Histórico (mock). Substituir por backend quando disponível. */
-  readonly resumoHistorico = {
-    movimentosHoje: 24,
-    saidasHoje: 18,
-    suspensoes: 5,
-    tempoMedio: '2h 15min',
-    faturamento: 'R$ 12.450,00',
-  };
-
-  /** Atualizado a cada 1 s para o tempo de permanência contar automaticamente. */
-  tickAtualizacao = 0;
-  private intervalId: ReturnType<typeof setInterval> | null = null;
-
-  /** Ordenação da tabela "Em andamento agora". */
-  ordenarColuna: keyof VeiculoEmAndamento | null = null;
-  ordenarDirecao: 'asc' | 'desc' = 'asc';
-
-  /** Opções de quantidade de eixos (2 a 9) para o select. */
-  readonly eixosOpcoes = [2, 3, 4, 5, 6, 7, 8, 9];
-
-  /** Resumo operacional (mock). Substituir por chamada ao backend quando disponível. */
-  readonly resumoOperacional = {
-    noPatioAgora: 18,
-    suspensos: 3,
-    entradasHoje: 42,
-    agendadosHoje: 11,
-  };
-
-  /** Alterna o filtro: se clicar no já selecionado, desmarca e mostra todos. */
-  setFiltroResumo(f: FiltroResumoMovimentos): void {
-    this.filtroResumo = this.filtroResumo === f ? 'todos' : f;
+  /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
+  private get service(): EntradaSaidaService {
+    return this.viewMode() === 'operacao' ? this.movimentoService : this.entradaSaidaService;
   }
 
-  /** Lista em andamento filtrada pelo chip de resumo (antes do filtro de placa). */
-  get emAndamentoPorResumo(): VeiculoEmAndamento[] {
-    const lista = this.emAndamento;
-    switch (this.filtroResumo) {
-      case 'noPatio':
-        return lista.filter((v) => v.status === 'Em pátio');
-      case 'suspensos':
-        return lista.filter((v) => v.status === 'Suspenso');
-      case 'entradasHoje': {
-        const hoje = this.hojeStr();
-        return lista.filter((v) => (v.dataHoraEntrada || '').slice(0, 10) === hoje);
-      }
-      case 'agendados':
-        return lista.filter((v) => v.agendado === true);
-      default:
-        return lista;
+  /** Acesso derivado do payload `menus` do login (não do claim JWT `permission`). */
+  get canVisualizar(): boolean {
+    return this.sessionAccess.canAccessRoute(this.router.url);
+  }
+
+  /**
+   * Perfil Transportadora: consulta + recibo apenas (sem Suspender/Saída/registro operacional).
+   */
+  get podeAcoesOperacionaisPatio(): boolean {
+    return !this.auth.isTransportadoraRole();
+  }
+
+  get isPerfilTransportadora(): boolean {
+    return this.auth.isTransportadoraRole();
+  }
+
+  get canGravar(): boolean {
+    return this.canVisualizar && this.podeAcoesOperacionaisPatio;
+  }
+
+  get canAlterar(): boolean {
+    return this.canVisualizar && this.podeAcoesOperacionaisPatio;
+  }
+
+  get canExcluir(): boolean {
+    return this.canVisualizar && this.podeAcoesOperacionaisPatio;
+  }
+
+  private readonly viewMode = signal<MovimentosViewMode>('portaria');
+  readonly isOperacaoView = computed(() => this.viewMode() === 'operacao');
+  readonly isPortariaView = computed(() => this.viewMode() === 'portaria');
+
+  readonly filtroResumoChip = signal<FiltroResumoChip>('noPatio');
+  readonly resumoMovimentoId = signal<number | null>(null);
+  readonly resumoDetalhe = signal<EntradaSaidaOutput | null>(null);
+  readonly resumoLoading = signal(false);
+  readonly suspensaoHistoricoPorMovimento = signal<Record<number, EntradaSaidaSuspensaoOutput[]>>({});
+  readonly permanenciaProcessandoId = signal<number | null>(null);
+  readonly sortCol = signal<MovimentosListaSortCol>('entrada');
+  readonly sortDir = signal<'Asc' | 'Desc'>('Desc');
+
+  readonly registrosLista = computed(() => this.ordenarRegistros(this.registros()));
+
+  readonly registrosExibidos = computed(() => {
+    const items = this.registros();
+    const chip = this.filtroResumoChip();
+    const excedente = this.filtrosAvancados().excedente;
+    let filtered = items;
+    if (chip === 'suspensos') {
+      filtered = items.filter((item) => this.estaSuspenso(item));
+    } else if (chip === 'agendados') {
+      filtered = items.filter(
+        (item) => parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado
+      );
+    } else if (chip === 'entradasHoje') {
+      filtered = items.filter((item) => this.isEntradaHoje(item.dataHoraEntrada));
     }
-  }
+    // Fallback local se a API ainda não filtrar por ehExcedente.
+    if (excedente === 'sim') {
+      filtered = filtered.filter((item) => item.ehExcedente === true);
+    } else if (excedente === 'nao') {
+      filtered = filtered.filter((item) => item.ehExcedente !== true);
+    }
+    return this.ordenarRegistros(filtered);
+  });
 
-  private hojeStr(): string {
-    const d = new Date();
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const ano = d.getFullYear();
-    return `${dia}/${mes}/${ano}`;
-  }
+  readonly suspensosVisiveis = computed(
+    () => this.registros().filter((item) => this.estaSuspenso(item)).length
+  );
 
-  /** Título da tabela "Em andamento" conforme o filtro ativo. */
-  get tituloTabelaEmAndamento(): string {
-    const t: Record<FiltroResumoMovimentos, string> = {
-      todos: 'Em andamento agora',
-      noPatio: 'No pátio',
-      suspensos: 'Suspensos',
-      entradasHoje: 'Entradas hoje',
-      agendados: 'Agendados',
-    };
-    return t[this.filtroResumo];
-  }
+  readonly agendadosVisiveis = computed(
+    () =>
+      this.registros().filter(
+        (item) => parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado
+      ).length
+  );
+
+  /** Limite para textos livres no registro rápido (nome, razão social, observação etc.). */
+  readonly registroRapidoMaxTexto = 100;
+  /** Limite visual para telefone com máscara BR `(00) 00000-0000` (15 caracteres). */
+  readonly registroRapidoMaxTelefone = 15;
+
+  /** KPIs e monitoramento reativos ao hub (zoneless). */
+  private readonly dashboardTempoReal = this.signalrDashboardService.dashboardAtualizado;
+  /**
+   * Snapshot HTTP do pátio da sessão (JWT / X-Empresa-Id).
+   * Usado quando o hub não envia itens escopados (broadcast global).
+   */
+  private readonly monitoramentoHttpSeed = signal<MovimentacaoTempoRealVm[]>([]);
+  private readonly cancelarMonitoramentoPortaria$ = new Subject<void>();
+  /** Lista ao vivo da portaria: com pátio selecionado, HTTP do pátio é a fonte da verdade (hub não mistura outros pátios). */
+  private readonly movimentacoesTempoReal = computed(() => {
+    const sessionId = this.auth.resolveEstacionamentoId();
+    const fromHttp = this.monitoramentoHttpSeed();
+
+    if (this.isPortariaView() && sessionId != null && sessionId > 0) {
+      return fromHttp;
+    }
+
+    const fromHub = this.signalrDashboardService
+      .movimentacoes()
+      .map((item, index) => this.mapMovimentacaoHubParaVm(item, index))
+      .filter((item): item is MovimentacaoTempoRealVm => item != null);
+
+    const byId = new Map<string, MovimentacaoTempoRealVm>();
+    for (const item of fromHttp) {
+      byId.set(item.id, item);
+    }
+    for (const item of fromHub) {
+      byId.set(item.id, item);
+    }
+
+    return [...byId.values()].sort((a, b) => b.horarioSortMs - a.horarioSortMs);
+  });
+
+  filtro = { descricao: '', somenteEmAberto: true };
+  /** Filtros avançados do painel (AND com busca rápida / chips). */
+  readonly filtrosAvancados = signal<MovimentosFiltrosAvancados>(criarFiltrosAvancadosVazios());
+
+  /** Histórico via HTTP `/EntradaSaida` — signals para UI zoneless atualizar ao clicar Buscar. */
+  readonly registros = signal<EntradaSaidaSearchOutput[]>([]);
+  readonly numeroPagina = signal(1);
+  readonly tamanhoPagina = signal(20);
+  readonly totalCount = signal(0);
+  readonly loading = signal(false);
+  /** Exportação PDF/Excel via MovimentacaoRelatorio. */
+  readonly exportando = signal(false);
+  readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.totalCount() / this.tamanhoPagina()))
+  );
+
+  permanenciaOpen = signal(false);
+  permanenciaAcao: PermanenciaAcao = 'suspender';
+  registroSelecionado = signal<EntradaSaidaOutput | null>(null);
+  permanenciaDataHora = '';
+  /** Valor unitário (hora ou diária — config ou digitado). */
+  saidaValorDiaria = signal<number | null>(null);
+  /** Valor unitário formatado pt-BR. */
+  saidaValorDiariaTexto = signal('');
+  /** Quantidade de unidades cobradas (horas ou diárias). */
+  saidaQuantidadeDiarias = signal(1);
+  /** Tipo de tarifa da cobrança: 1=Hora, 2=Diaria. */
+  saidaTipoTarifa = signal<TipoTarifaEstacionamento | null>(null);
+  /** Tipo de cobrança exibido (Avulso | Faturado). */
+  saidaTipoCobranca = signal('Avulso');
+  /** Total do recibo = unitário × quantidade. */
+  saidaValor = signal<number | null>(null);
+  saidaValorBloqueado = signal(false);
+  saidaValorLoading = signal(false);
+  saidaProcessando = signal(false);
+  /** Quando true, total veio de FaturaItem e não deve ser recalculado pela data. */
+  private saidaValorFixoDaFatura = false;
+
+  readonly saidaLabelValorUnitario = computed(() =>
+    this.saidaTipoTarifa() === 1 ? 'Valor da hora' : 'Valor da diária'
+  );
+  readonly saidaLabelQuantidade = computed(() =>
+    this.saidaTipoTarifa() === 1 ? 'Quantidade de horas' : 'Quantidade de diárias'
+  );
+  readonly saidaLabelTipoTarifa = computed(() => {
+    const tipo = this.saidaTipoTarifa();
+    if (tipo === 1) return 'Por hora';
+    if (tipo === 2) return 'Por diária';
+    return null;
+  });
+  readonly saidaHintCobranca = computed(() => {
+    const unidade = this.saidaTipoTarifa() === 1 ? 'hora' : 'diária';
+    const plural = this.saidaTipoTarifa() === 1 ? 'horas' : 'dias';
+    if (this.saidaValorBloqueado()) {
+      return `Tarifa por ${unidade} definida pela configuração. O total é ${unidade} × ${plural} desde a entrada.`;
+    }
+    return `Informe o valor da ${unidade}. O total (${unidade} × ${plural}) será enviado no recibo.`;
+  });
+  /** Pré-visualização do recibo PDF (object URL sanitizado). */
+  readonly reciboPreviewOpen = signal(false);
+  readonly reciboPreviewUrl = signal<SafeResourceUrl | null>(null);
+  readonly reciboPreviewFileName = signal('recibo.pdf');
+  private reciboPreviewBlob: Blob | null = null;
+  private reciboPreviewObjectUrl: string | null = null;
+  /** Confirmação "imprimir recibo?" centralizada na tabela de histórico. */
+  readonly reciboConfirmOpen = signal(false);
+  readonly reciboConfirmMensagem = signal('Deseja visualizar o recibo agora?');
+  private reciboConfirmResolver: ((aceitar: boolean) => void) | null = null;
+  /** Id do movimento com download de recibo em andamento. */
+  readonly reciboBaixandoId = signal<number | null>(null);
+  /** Id/transportadora do movimento em aberto no registro rápido (para recibo). */
+  registroRapidoEntradaId = 0;
+  private registroRapidoTransportadoraId = 0;
+  processandoRegistroRapido = signal(false);
+  buscandoPlacaRegistroRapido = false;
+  camposBloqueadosPorPlaca = false;
+  existeEntradaEmAbertoPorPlaca = false;
+  /** Movimento em aberto da placa consultada está com permanência suspensa. */
+  registroRapidoSuspenso = false;
+  alertaAcordoRegistroRapido = '';
+  alertaAcordoExcedente = false;
+  buscandoMotoristaPorCpf = false;
+  motoristaAutoPreenchidoPorCpf = false;
+  buscandoTransportadoraPorCnpj = false;
+  transportadoraAutoPreenchidaPorCnpj = false;
+  /** Modal: escolher motorista quando a placa tem mais de um vínculo. */
+  readonly showSelecionarMotoristaPlaca = signal(false);
+  motoristasVinculadosPlaca: EntradaSaidaMotoristaVinculoItem[] = [];
+  private entradaPendenteSelecaoMotorista: EntradaSaidaOutput | null = null;
+  private ultimaConsultaCpfRegistroRapido = '';
+  private consultaCpfSequencia = 0;
+  private ultimaConsultaCnpjRegistroRapido = '';
+  private consultaCnpjSequencia = 0;
+  private ultimaPlacaConsultadaRegistroRapido = '';
+  /** Cancela GET valor-estacionamento ao fechar/reabrir o modal (evita corrida). */
+  private readonly cancelarValorEstacionamento$ = new Subject<void>();
+  /** Cancela busca de veículos em aberto no modal de saída. */
+  private readonly cancelarSaidaModalLista$ = new Subject<void>();
+  registroRapido = {
+    placa: '',
+    motorista: '',
+    motoristaCpf: '',
+    transportadoraRazaoSocial: '',
+    transportadoraCnpj: '',
+    transportadoraResponsavelNome: '',
+    transportadoraResponsavelTelefone: '',
+    tipoCarga: '',
+    observacao: ''
+  };
+
+  /** Opções do enum `TipoCarga` do backend (Seca, Refrigerada, …). */
+  readonly tipoCargaOpcoes = TIPO_CARGA_LABELS;
+
+  /** Modal portaria: registrar entrada. */
+  readonly entradaModalOpen = signal(false);
+  /** Modal portaria: lista de veículos em aberto para saída. */
+  readonly saidaModalOpen = signal(false);
+  readonly saidaModalLoading = signal(false);
+  readonly saidaModalItens = signal<EntradaSaidaSearchOutput[]>([]);
+  readonly saidaModalPagina = signal(1);
+  readonly saidaModalPageSize = 10;
+  readonly saidaModalSelecionadoId = signal<number | null>(null);
+  readonly saidaModalFiltroTipo = signal<string | null>(null);
+  readonly saidaFiltrosVisiveis = signal(true);
+  readonly saidaModalBusca = signal('');
+
+  readonly saidaModalFiltrados = computed(() => {
+    const qRaw = this.saidaModalBusca().trim();
+    const q = qRaw.toLowerCase();
+    const qPlaca = normalizePlaca(qRaw);
+    const tipo = this.saidaModalFiltroTipo();
+    return this.saidaModalItens().filter((item) => {
+      if (tipo) {
+        const key = this.chaveTipoVeiculoSaida(item);
+        if (key !== tipo) return false;
+      }
+      if (!q) return true;
+      const placaNorm = normalizePlaca(item.placaVeiculo);
+      if (qPlaca && placaNorm.includes(qPlaca)) return true;
+      const hay = [item.placaVeiculo, item.nomeMotorista, item.nomeTransportadora, item.tipoVeiculo]
+        .map((v) => String(v ?? '').toLowerCase())
+        .join(' ');
+      return hay.includes(q);
+    });
+  });
+
+  /** Itens após busca textual (sem chip de tipo) — base dos contadores. */
+  readonly saidaModalAposBusca = computed(() => {
+    const qRaw = this.saidaModalBusca().trim();
+    const q = qRaw.toLowerCase();
+    const qPlaca = normalizePlaca(qRaw);
+    if (!q) return this.saidaModalItens();
+    return this.saidaModalItens().filter((item) => {
+      const placaNorm = normalizePlaca(item.placaVeiculo);
+      if (qPlaca && placaNorm.includes(qPlaca)) return true;
+      const hay = [item.placaVeiculo, item.nomeMotorista, item.nomeTransportadora, item.tipoVeiculo]
+        .map((v) => String(v ?? '').toLowerCase())
+        .join(' ');
+      return hay.includes(q);
+    });
+  });
+
+  readonly saidaModalTotalFiltrado = computed(() => this.saidaModalFiltrados().length);
+
+  readonly saidaModalTotalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.saidaModalTotalFiltrado() / this.saidaModalPageSize))
+  );
+
+  readonly saidaModalPaginaItens = computed(() => {
+    const page = this.saidaModalPagina();
+    const size = this.saidaModalPageSize;
+    const start = (page - 1) * size;
+    return this.saidaModalFiltrados().slice(start, start + size);
+  });
+
+  readonly saidaModalMostrandoDe = computed(() => {
+    if (this.saidaModalTotalFiltrado() === 0) return 0;
+    return (this.saidaModalPagina() - 1) * this.saidaModalPageSize + 1;
+  });
+
+  readonly saidaModalMostrandoAte = computed(() =>
+    Math.min(this.saidaModalPagina() * this.saidaModalPageSize, this.saidaModalTotalFiltrado())
+  );
+
+  readonly saidaModalChips = computed(() => {
+    const counts = new Map<string, { label: string; count: number }>();
+    for (const item of this.saidaModalAposBusca()) {
+      const key = this.chaveTipoVeiculoSaida(item);
+      if (!key) continue;
+      const label = this.labelTipoVeiculoSaida(item) || key;
+      const cur = counts.get(key);
+      if (cur) cur.count += 1;
+      else counts.set(key, { label, count: 1 });
+    }
+    return [...counts.entries()]
+      .map(([key, v]) => ({ key, label: v.label, count: v.count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'));
+  });
+
+  readonly saidaModalTotalBusca = computed(() => this.saidaModalAposBusca().length);
+
+  readonly saidaModalPaginasVisiveis = computed(() => {
+    const total = this.saidaModalTotalPaginas();
+    const current = this.saidaModalPagina();
+    const pages: number[] = [];
+    const window = 4;
+    let start = Math.max(1, current - Math.floor(window / 2));
+    let end = Math.min(total, start + window - 1);
+    start = Math.max(1, end - window + 1);
+    for (let p = start; p <= end; p++) pages.push(p);
+    return pages;
+  });
 
   ngOnInit(): void {
-    this.intervalId = setInterval(() => {
-      this.tickAtualizacao++;
-    }, 1_000);
+    const dataView = this.route.snapshot.data['movimentosView'] as MovimentosViewMode | undefined;
+    if (dataView === 'operacao' || dataView === 'portaria') {
+      this.viewMode.set(dataView);
+    }
+    if (!this.canVisualizar) return;
+    void this.signalrDashboardService.connect();
+    if (this.viewMode() === 'operacao') {
+      this.aplicarFiltroResumo('noPatio');
+    } else {
+      this.carregarMonitoramentoDoPatio();
+    }
   }
 
   ngOnDestroy(): void {
-    if (this.intervalId != null) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
+    this.cancelarValorEstacionamento$.next();
+    this.cancelarValorEstacionamento$.complete();
+    this.cancelarSaidaModalLista$.next();
+    this.cancelarSaidaModalLista$.complete();
+    this.cancelarMonitoramentoPortaria$.next();
+    this.cancelarMonitoramentoPortaria$.complete();
+    this.fecharReciboConfirm(false);
+    this.fecharPreviewRecibo();
   }
 
-  setActiveTab(tab: MovimentosTab): void {
-    this.activeTab = tab;
-  }
-
-  /**
-   * Tempo de permanência até agora (descontando períodos suspensos).
-   * Usado na coluna "Tempo de permanência" da tabela Em andamento.
-   */
-  tempoPermanenciaAgora(item: VeiculoEmAndamento): string {
-    const entradaMs = this.parseDataHoraToMs(item.dataHoraEntrada);
-    const agoraMs = Date.now();
-    if (entradaMs == null || agoraMs <= entradaMs) return '—';
-
-    let totalMs = agoraMs - entradaMs;
-    const suspensoes = item.suspensoes ?? [];
-    for (const s of suspensoes) {
-      const ini = this.parseDataHoraToMs(s.inicio);
-      if (ini == null) continue;
-      const fimMs = s.fim === null ? agoraMs : this.parseDataHoraToMs(s.fim);
-      if (fimMs != null && fimMs > ini) totalMs -= fimMs - ini;
-    }
-
-    if (totalMs <= 0) return '—';
-    const minutos = Math.round(totalMs / 60000);
-    if (minutos < 60) return `${minutos} min`;
-    const h = Math.floor(minutos / 60);
-    const m = minutos % 60;
-    return m > 0 ? `${h}h ${m}min` : `${h}h`;
-  }
-
-  openEntradaModal(): void {
-    this.entradaForm = this.getEntradaFormVazio();
-    this.entradaModalOpen = true;
-  }
-
-  closeEntradaModal(): void {
-    this.entradaModalOpen = false;
-  }
-
-  /** Formata placa: só letras e números, maiúsculo, máx. 7 caracteres. */
-  formatarPlaca(value: string): void {
-    this.entradaForm.placa = (value || '')
-      .replace(/[^A-Za-z0-9]/g, '')
-      .toUpperCase()
-      .slice(0, 7);
-  }
-
-  /** Formata CPF: 000.000.000-00 (11 dígitos). */
-  formatarCpf(value: string): void {
-    const digits = (value || '').replace(/\D/g, '').slice(0, 11);
-    this.entradaForm.cpf =
-      digits.length <= 3
-        ? digits
-        : digits.length <= 6
-          ? `${digits.slice(0, 3)}.${digits.slice(3)}`
-          : digits.length <= 9
-            ? `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
-            : `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  }
-
-  /**
-   * Ao sair do campo Placa, busca no backend se a placa está vinculada
-   * a alguma transportadora cadastrada. Se tiver cadastro, preenche transportadora
-   * e dados do veículo (modelo, ano e eixos); se não, mantém em branco.
-   */
-  buscarTransportadoraPorPlaca(): void {
-    const placa = (this.entradaForm.placa || '').trim();
-    if (!placa || this.buscandoTransportadora) return;
-    this.buscandoTransportadora = true;
-    this.placaTransportadoraLookup.getDadosVeiculoPorPlaca(placa).subscribe({
-      next: (dados: DadosVeiculoCadastro | null) => {
-        if (dados) {
-          this.entradaForm.transportadora = dados.transportadora ?? '';
-          this.entradaForm.modeloVeiculo = dados.modeloVeiculo ?? '';
-          this.entradaForm.anoFabricacao = dados.anoFabricacao ?? '';
-          this.entradaForm.quantidadeEixos = dados.quantidadeEixos ?? '';
-        }
-        this.buscandoTransportadora = false;
-      },
-      error: () => {
-        this.buscandoTransportadora = false;
-      },
-    });
-  }
-
-  registrarEntrada(): void {
-    const f = this.entradaForm;
-    if (!f.placa?.trim()) return;
-    this.emAndamento = [
-      ...this.emAndamento,
-      {
-        placa: f.placa.trim(),
-        dataHoraEntrada: this.formatarDataHora(new Date()),
-        transportadora: f.transportadora?.trim() || '—',
-        condutor: f.condutor?.trim() || '—',
-        cpf: f.cpf?.trim() || '—',
-        status: 'Em pátio',
-        modeloVeiculo: f.modeloVeiculo?.trim() || '—',
-        anoFabricacao: f.anoFabricacao?.trim() || '—',
-        quantidadeEixos: f.quantidadeEixos?.trim() || '—',
-        suspensoes: [],
-        agendado: false,
-      },
-    ];
-    this.entradaForm = this.getEntradaFormVazio();
-    this.closeEntradaModal();
-  }
-
-  /** Suspende a contagem do veículo (para a contagem até retomar). */
-  suspender(item: VeiculoEmAndamento): void {
-    const agora = this.formatarDataHora(new Date());
-    this.emAndamento = this.emAndamento.map((v) =>
-      v.placa === item.placa && v.dataHoraEntrada === item.dataHoraEntrada
-        ? {
-            ...v,
-            status: 'Suspenso',
-            suspensoes: [...(v.suspensoes ?? []), { inicio: agora, fim: null }],
-          }
-        : v
-    );
-  }
-
-  /** Retoma a contagem do veículo (encerra o período de suspensão). */
-  retomar(item: VeiculoEmAndamento): void {
-    const agora = this.formatarDataHora(new Date());
-    const suspensoes = [...(item.suspensoes ?? [])];
-    const lastIndex = suspensoes.length - 1;
-    if (lastIndex >= 0 && suspensoes[lastIndex].fim === null) {
-      suspensoes[lastIndex] = { ...suspensoes[lastIndex], fim: agora };
-    }
-    this.emAndamento = this.emAndamento.map((v) =>
-      v.placa === item.placa && v.dataHoraEntrada === item.dataHoraEntrada
-        ? { ...v, status: 'Em pátio', suspensoes }
-        : v
-    );
-  }
-
-  registrarSaida(item: VeiculoEmAndamento): void {
-    const agora = this.formatarDataHora(new Date());
-    const tempoEstacionado = this.calcularTempoEstacionado(item, agora);
-    this.historicoMovimentos = [
-      ...this.historicoMovimentos,
-      {
-        placa: item.placa,
-        motorista: item.condutor,
-        cpf: item.cpf,
-        transportadora: item.transportadora,
-        dataEntrada: item.dataHoraEntrada,
-        dataSaida: agora,
-        valor: '—',
-        tempoEstacionado,
-        statusFinal: (item.suspensoes?.length ?? 0) > 0 ? 'Com suspensão' : 'Finalizado',
-      },
-    ];
-    this.emAndamento = this.emAndamento.filter(
-      (v) => v.placa !== item.placa || v.dataHoraEntrada !== item.dataHoraEntrada
-    );
-  }
-
-  /** Calcula o tempo efetivamente estacionado (entrada → saída, descontando suspensões). */
-  private calcularTempoEstacionado(item: VeiculoEmAndamento, dataSaida: string): string {
-    const entradaMs = this.parseDataHoraToMs(item.dataHoraEntrada);
-    const saidaMs = this.parseDataHoraToMs(dataSaida);
-    if (entradaMs == null || saidaMs == null || saidaMs <= entradaMs) return '—';
-
-    let totalMs = saidaMs - entradaMs;
-    const suspensoes = item.suspensoes ?? [];
-    for (const s of suspensoes) {
-      if (s.fim == null) continue;
-      const ini = this.parseDataHoraToMs(s.inicio);
-      const fim = this.parseDataHoraToMs(s.fim);
-      if (ini != null && fim != null && fim > ini) totalMs -= fim - ini;
-    }
-
-    if (totalMs <= 0) return '—';
-    const minutos = Math.round(totalMs / 60000);
-    if (minutos < 60) return `${minutos} min`;
-    const h = Math.floor(minutos / 60);
-    const m = minutos % 60;
-    return m > 0 ? `${h}h ${m}min` : `${h}h`;
-  }
-
-  /** Converte "dd/MM/yyyy HH:mm" para timestamp (ms). */
-  private parseDataHoraToMs(str: string): number | null {
-    if (!str || !str.trim()) return null;
-    const parts = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})/);
-    if (!parts) return null;
-    const [, dia, mes, ano, h, min] = parts;
-    const d = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1, parseInt(dia, 10), parseInt(h, 10), parseInt(min, 10), 0, 0);
-    return isNaN(d.getTime()) ? null : d.getTime();
-  }
-
-  /** Lista "Em andamento" filtrada por resumo (chip) e depois por placa. */
-  get emAndamentoFiltrado(): VeiculoEmAndamento[] {
-    const base = this.emAndamentoPorResumo;
-    const termo = (this.filtroPlaca || '').trim().toUpperCase();
-    if (!termo) return base;
-    return base.filter((v) => v.placa.toUpperCase().includes(termo));
-  }
-
-  /** Lista "Em andamento" filtrada e ordenada pela coluna selecionada. */
-  get emAndamentoOrdenado(): VeiculoEmAndamento[] {
-    const lista = [...this.emAndamentoFiltrado];
-    const col = this.ordenarColuna;
-    if (!col) return lista;
-    const dir = this.ordenarDirecao === 'asc' ? 1 : -1;
-    lista.sort((a, b) => {
-      const va = String(a[col] ?? '').trim().toLowerCase();
-      const vb = String(b[col] ?? '').trim().toLowerCase();
-      return dir * va.localeCompare(vb, undefined, { numeric: true });
-    });
-    return lista;
-  }
-
-  /** Alterna ordenação ao clicar no cabeçalho da coluna. */
-  ordenarPor(col: keyof VeiculoEmAndamento): void {
-    if (this.ordenarColuna === col) {
-      this.ordenarDirecao = this.ordenarDirecao === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.ordenarColuna = col;
-      this.ordenarDirecao = 'asc';
-    }
-  }
-
-  /** Indica se a coluna está ordenada e em qual direção (para ícone no th). */
-  ordenacaoColuna(col: keyof VeiculoEmAndamento): 'asc' | 'desc' | null {
-    if (this.ordenarColuna !== col) return null;
-    return this.ordenarDirecao;
-  }
-
-  /** Última suspensão do item (a em aberto quando status é Suspenso). */
-  ultimaSuspensao(item: VeiculoEmAndamento): SuspensaoPeriodo | null {
-    const list = item.suspensoes ?? [];
-    return list.length > 0 ? list[list.length - 1] : null;
-  }
-
-  /** Lista do histórico filtrada por placa, período e status. */
-  get historicoFiltrado(): MovimentoHistorico[] {
-    let lista = this.historicoMovimentos;
-    const termo = (this.filtroPlacaHistorico || '').trim().toUpperCase();
-    if (termo) {
-      lista = lista.filter((m) => m.placa.toUpperCase().includes(termo));
-    }
-    if (this.filtroPeriodoHistorico !== 'todos') {
-      const now = new Date();
-      const hojeStr = this.hojeStr();
-      lista = lista.filter((m) => {
-        const dataStr = (m.dataSaida || '').slice(0, 10);
-        if (!dataStr) return false;
-        if (this.filtroPeriodoHistorico === 'hoje') return dataStr === hojeStr;
-        if (this.filtroPeriodoHistorico === 'semana') {
-          const ms = this.parseDataSaidaToMs(m.dataSaida);
-          if (ms == null) return false;
-          const semanaAtras = now.getTime() - 7 * 24 * 60 * 60 * 1000;
-          return ms >= semanaAtras;
-        }
-        if (this.filtroPeriodoHistorico === 'mes') {
-          const [d, mo, y] = dataStr.split('/').map((x) => parseInt(x, 10));
-          return mo === now.getMonth() + 1 && y === now.getFullYear();
-        }
-        return true;
-      });
-    }
-    if ((this.filtroStatusHistorico || '').trim()) {
-      const status = this.filtroStatusHistorico.trim();
-      lista = lista.filter((m) => (m.statusFinal || 'Finalizado') === status);
-    }
-    return lista;
-  }
-
-  /** Opções de status para o filtro da aba Histórico. */
-  get opcoesStatusHistorico(): string[] {
-    const set = new Set<string>(['Finalizado', 'Com suspensão']);
-    this.historicoMovimentos.forEach((m) => {
-      if (m.statusFinal) set.add(m.statusFinal);
-    });
-    return ['', ...Array.from(set)];
-  }
-
-  private parseDataSaidaToMs(str: string): number | null {
-    if (!str || !str.trim()) return null;
-    const parts = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (!parts) return null;
-    const [, dia, mes, ano] = parts;
-    const d = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1, parseInt(dia, 10), 0, 0, 0, 0);
-    return isNaN(d.getTime()) ? null : d.getTime();
-  }
-
-  openDetalheMovimento(m: MovimentoHistorico): void {
-    this.detalheMovimento = m;
-  }
-
-  closeDetalheMovimento(): void {
-    this.detalheMovimento = null;
-  }
-
-  /** Fecha o menu de ações ao clicar fora. */
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event): void {
-    const target = event.target as HTMLElement;
-    if (target.closest?.('.historico-menu-wrap') || target.closest?.('.historico-dropdown-fixed')) return;
-    this.closeMenuAcoes();
-  }
-
-  /** Chave única da linha para controlar qual menu está aberto. */
-  menuKey(m: MovimentoHistorico): string {
-    return `${m.placa}|${m.dataSaida}`;
-  }
-
-  isMenuAberto(m: MovimentoHistorico): boolean {
-    return this.menuAbertoKey === this.menuKey(m);
-  }
-
-  toggleMenuAcoes(m: MovimentoHistorico, event: Event): void {
-    event.stopPropagation();
-    const key = this.menuKey(m);
-    if (this.menuAbertoKey === key) {
-      this.closeMenuAcoes();
+  buscar(): void {
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.loading.set(false);
+      this.handleApiError(
+        { message: 'Selecione o estacionamento da sessão antes de consultar movimentações.' } as ApiError,
+        'Selecione o estacionamento da sessão antes de consultar movimentações.'
+      );
       return;
     }
-    const el = (event.currentTarget as HTMLElement);
-    const rect = el.getBoundingClientRect();
-    const dropdownWidth = 180;
-    this.dropdownPos = {
-      top: rect.bottom + 4,
-      left: Math.max(8, rect.right - dropdownWidth),
+
+    this.loading.set(true);
+    const col = this.sortCol();
+    const transportadoraSessao = this.auth.isTransportadoraRole()
+      ? this.auth.resolveTransportadoraId()
+      : null;
+    const avancados = this.filtrosAvancados();
+    const placaRapida = this.filtro.descricao.trim();
+    const placaAvancada = avancados.placa.trim();
+    const placaRaw = placaAvancada || placaRapida;
+    const placa = placaRaw ? formatPlacaDisplay(normalizePlaca(placaRaw)) : undefined;
+    const transportadoraId =
+      transportadoraSessao != null && transportadoraSessao > 0
+        ? transportadoraSessao
+        : avancados.transportadoraId != null && avancados.transportadoraId > 0
+          ? avancados.transportadoraId
+          : undefined;
+
+    const filtroBusca: EntradaSaidaFiltro = {
+      placa: placa || undefined,
+      somenteEmAberto: this.filtro.somenteEmAberto,
+      motoristaId:
+        avancados.motoristaId != null && avancados.motoristaId > 0
+          ? avancados.motoristaId
+          : undefined,
+      transportadoraId,
+      estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
+      dataInicial: avancados.periodoAtivo
+        ? toIsoDateTimeStart(avancados.dataInicio)
+        : undefined,
+      dataFinal: avancados.periodoAtivo
+        ? toIsoDateTimeEnd(avancados.dataFim)
+        : undefined,
+      numeroPagina: this.numeroPagina(),
+      tamanhoPagina: this.tamanhoPagina(),
+      propriedade: this.mapSortColToPropriedade(col),
+      sort: this.sortDir()
     };
-    this.movimentoMenuAberto = m;
-    this.menuAbertoKey = key;
+
+    this.service.buscar(filtroBusca).subscribe({
+      next: (paged) => this.applyPagedResult(paged),
+      error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar movimentos.')
+    });
   }
 
-  closeMenuAcoes(): void {
-    this.menuAbertoKey = null;
-    this.movimentoMenuAberto = null;
-    this.dropdownPos = null;
+  ordenarPor(col: MovimentosListaSortCol): void {
+    if (this.sortCol() === col) {
+      this.sortDir.set(this.sortDir() === 'Asc' ? 'Desc' : 'Asc');
+    } else {
+      this.sortCol.set(col);
+      this.sortDir.set('Asc');
+    }
+    this.numeroPagina.set(1);
+    this.buscar();
   }
 
-  acaoVerDetalhes(m: MovimentoHistorico): void {
-    this.closeMenuAcoes();
-    this.openDetalheMovimento(m);
+  sortIndicador(col: MovimentosListaSortCol): string {
+    if (this.sortCol() !== col) return '';
+    return this.sortDir() === 'Asc' ? '↑' : '↓';
   }
 
-  /** Abre janela de impressão com comprovante do movimento. */
-  imprimirComprovante(m: MovimentoHistorico): void {
-    this.closeMenuAcoes();
-    const titulo = 'Comprovante de movimento';
-    const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <title>${titulo}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; color: #1e293b; padding: 24px; max-width: 480px; margin: 0 auto; }
-    h1 { font-size: 1.25rem; margin: 0 0 20px 0; color: #0f172a; border-bottom: 2px solid #3B82F6; padding-bottom: 8px; }
-    dl { margin: 0; }
-    .row { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
-    .row:last-child { border-bottom: none; }
-    dt { margin: 0; font-weight: 500; color: #64748b; }
-    dd { margin: 0; font-weight: 600; color: #0f172a; text-align: right; }
-    .footer { margin-top: 24px; font-size: 0.75rem; color: #94a3b8; }
-    @media print { body { padding: 16px; } }
-  </style>
-</head>
-<body>
-  <h1>${titulo}</h1>
-  <dl>
-    <div class="row"><dt>Placa</dt><dd>${this.escapeHtml(m.placa)}</dd></div>
-    <div class="row"><dt>Motorista</dt><dd>${this.escapeHtml(m.motorista)}</dd></div>
-    <div class="row"><dt>CPF</dt><dd>${this.escapeHtml(m.cpf)}</dd></div>
-    <div class="row"><dt>Transportadora</dt><dd>${this.escapeHtml(m.transportadora)}</dd></div>
-    <div class="row"><dt>Data de entrada</dt><dd>${this.escapeHtml(m.dataEntrada)}</dd></div>
-    <div class="row"><dt>Data de saída</dt><dd>${this.escapeHtml(m.dataSaida)}</dd></div>
-    <div class="row"><dt>Tempo estacionado</dt><dd>${this.escapeHtml(m.tempoEstacionado ?? '—')}</dd></div>
-    <div class="row"><dt>Status final</dt><dd>${this.escapeHtml(m.statusFinal ?? 'Finalizado')}</dd></div>
-    <div class="row"><dt>Valor</dt><dd>${this.escapeHtml(m.valor)}</dd></div>
-  </dl>
-  <p class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')}.</p>
-  <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };<\/script>
-</body>
-</html>`;
-    const w = window.open('', '_blank');
-    if (w) {
-      w.document.write(html);
-      w.document.close();
+  abrirNovo(): void {
+    if (this.isOperacaoView()) {
+      void this.router.navigate([PATIO_ENTRADA_SAIDA_ROUTE]);
+      return;
+    }
+    this.toast.success('Use o bloco "Registro Rápido de Movimentação" nesta tela para novos registros.');
+  }
+
+  aplicarFiltroResumo(chip: FiltroResumoChip): void {
+    this.filtroResumoChip.set(chip);
+    if (chip === 'noPatio') {
+      this.filtro.somenteEmAberto = true;
+    } else if (chip === 'suspensos') {
+      this.filtro.somenteEmAberto = true;
+    } else {
+      this.filtro.somenteEmAberto = false;
+    }
+    this.numeroPagina.set(1);
+    this.buscar();
+  }
+
+  isFiltroResumoAtivo(chip: FiltroResumoChip): boolean {
+    return this.filtroResumoChip() === chip;
+  }
+
+  selecionarMovimento(item: EntradaSaidaSearchOutput): void {
+    if (!item?.id) return;
+    this.resumoMovimentoId.set(item.id);
+    this.resumoLoading.set(true);
+    this.resumoDetalhe.set(null);
+    this.service.getById(item.id).subscribe({
+      next: (detalhe) => {
+        this.resumoLoading.set(false);
+        if (!detalhe?.id) {
+          this.toast.error('Não foi possível carregar o movimento.');
+          return;
+        }
+        this.resumoDetalhe.set(detalhe);
+      },
+      error: (err: ApiError) => {
+        this.resumoLoading.set(false);
+        this.handleApiError(err, 'Erro ao carregar resumo do movimento.');
+      }
+    });
+  }
+
+  isMovimentoSelecionado(id: number): boolean {
+    return this.resumoMovimentoId() === id;
+  }
+
+  nomeMotoristaDetalhe(d: EntradaSaidaOutput | null): string {
+    if (!d) return '—';
+    const m = d.motorista;
+    if (Array.isArray(m)) {
+      return m[0]?.nome?.trim() || '—';
+    }
+    if (m && typeof m === 'object') {
+      const nome = (m as { nome?: string }).nome;
+      if (nome?.trim()) return nome.trim();
+    }
+    return '—';
+  }
+
+  nomeTransportadoraDetalhe(d: EntradaSaidaOutput | null): string {
+    if (!d) return '—';
+    const t = d.transportadora;
+    if (t && typeof t === 'object') {
+      const razao =
+        (t as { razaoSocial?: string }).razaoSocial ??
+        (t as { RazaoSocial?: string }).RazaoSocial;
+      if (razao?.trim()) return razao.trim();
+    }
+    return '—';
+  }
+
+  formatarDataHora(raw: string | null | undefined): string {
+    if (!raw?.trim()) return '—';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  placaDetalhe(d: EntradaSaidaOutput | null): string {
+    if (!d) return '—';
+    const v = d.veiculo;
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      const placa = (v as { placa?: string; Placa?: string }).placa ?? (v as { Placa?: string }).Placa;
+      if (placa?.trim()) return this.formatarPlaca(placa);
+    }
+    const search = this.registros().find((r) => r.id === d.id);
+    if (search) return this.formatarPlaca(search.placaVeiculo);
+    return '—';
+  }
+
+  resumoItemLista(): EntradaSaidaSearchOutput | null {
+    const id = this.resumoMovimentoId();
+    if (!id) return null;
+    return this.registros().find((r) => r.id === id) ?? null;
+  }
+
+  onAplicarFiltrosAvancados(filtros: MovimentosFiltrosAvancados): void {
+    const placaNorm = filtros.placa.trim()
+      ? formatPlacaDisplay(normalizePlaca(filtros.placa))
+      : '';
+    this.filtrosAvancados.set({ ...filtros, placa: placaNorm });
+    // Uma fonte de verdade: painel aplicado espelha a busca rápida de placa.
+    this.filtro.descricao = placaNorm;
+    this.numeroPagina.set(1);
+    this.buscar();
+  }
+
+  onLimparFiltrosAvancados(): void {
+    this.filtrosAvancados.set(criarFiltrosAvancadosVazios());
+    this.filtro.descricao = '';
+    this.numeroPagina.set(1);
+    this.buscar();
+  }
+
+  exportarPdf(): void {
+    this.exportarFiltro('pdf');
+  }
+
+  exportarExcel(): void {
+    this.exportarFiltro('excel');
+  }
+
+  private exportarFiltro(tipo: 'pdf' | 'excel'): void {
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.toast.error('Selecione o estacionamento da sessão antes de exportar.');
+      return;
+    }
+
+    this.exportando.set(true);
+    const filtro = this.montarFiltroExportacao();
+    const req$ =
+      tipo === 'pdf'
+        ? this.movimentacaoRelatorio.baixarPdf(filtro)
+        : this.movimentacaoRelatorio.baixarExcel(filtro);
+    const ext = tipo === 'pdf' ? 'pdf' : 'xlsx';
+
+    req$.pipe(finalize(() => this.exportando.set(false))).subscribe({
+      next: (blob) => this.downloadBlob(blob, `movimentacoes.${ext}`),
+      error: () => this.toast.error(`Falha ao gerar ${tipo.toUpperCase()}.`)
+    });
+  }
+
+  /** Mapeia filtros da tela para o contrato de MovimentacaoRelatorio. */
+  private montarFiltroExportacao(): MovimentacaoRelatorioFiltro {
+    const avancados = this.filtrosAvancados();
+    const placaRapida = this.filtro.descricao.trim();
+    const placaAvancada = avancados.placa.trim();
+    const placaRaw = placaAvancada || placaRapida;
+    const placa = placaRaw ? formatPlacaDisplay(normalizePlaca(placaRaw)) : null;
+
+    const transportadoraSessao = this.auth.isTransportadoraRole()
+      ? this.auth.resolveTransportadoraId()
+      : null;
+    const transportadoraId =
+      transportadoraSessao != null && transportadoraSessao > 0
+        ? transportadoraSessao
+        : avancados.transportadoraId != null && avancados.transportadoraId > 0
+          ? avancados.transportadoraId
+          : null;
+
+    let dataInicial: string | null = avancados.periodoAtivo
+      ? toIsoDate(avancados.dataInicio)
+      : null;
+    let dataFinal: string | null = avancados.periodoAtivo
+      ? toIsoDate(avancados.dataFim)
+      : null;
+
+    const chip = this.filtroResumoChip();
+    if (chip === 'entradasHoje' && !avancados.periodoAtivo) {
+      const hoje = toIsoDate(criarDataHoje());
+      dataInicial = hoje;
+      dataFinal = hoje;
+    }
+
+    // Relatório exige janela de datas; sem isso o backend usa default estreito
+    // (ex.: só hoje) e o PDF/Excel fica bem menor que a lista da tela.
+    if (!dataInicial || !dataFinal) {
+      const hoje = criarDataHoje();
+      dataInicial = toIsoDate(new Date(hoje.getFullYear() - 5, 0, 1));
+      dataFinal = toIsoDate(hoje);
+    }
+
+    let status: number | null = null;
+    if (chip === 'suspensos') status = EntradaSaidaStatus.Suspenso;
+    else if (chip === 'agendados') status = EntradaSaidaStatus.Agendado;
+    else if (chip === 'noPatio') status = EntradaSaidaStatus.Entrada;
+
+    let ehExcedente: boolean | null = null;
+    if (avancados.excedente === 'sim') ehExcedente = true;
+    else if (avancados.excedente === 'nao') ehExcedente = false;
+
+    return {
+      dataInicial,
+      dataFinal,
+      placa,
+      transportadoraId,
+      status,
+      ehExcedente,
+      limite: Math.max(this.totalCount() || 0, 1000)
+    };
+  }
+
+  onMotoristaCpfInput(value: string): void {
+    const masked = this.aplicarMascaraCpf(value);
+    this.registroRapido.motoristaCpf = masked;
+    const cpfDigits = masked.replace(/\D/g, '');
+
+    if (this.motoristaAutoPreenchidoPorCpf && cpfDigits !== this.ultimaConsultaCpfRegistroRapido) {
+      this.motoristaAutoPreenchidoPorCpf = false;
+      this.registroRapido.motorista = '';
+    }
+
+    if (!this.cpfPossui11Digitos(cpfDigits)) {
+      this.ultimaConsultaCpfRegistroRapido = '';
+      return;
+    }
+
+    if (cpfDigits === this.ultimaConsultaCpfRegistroRapido) {
+      return;
+    }
+
+    this.ultimaConsultaCpfRegistroRapido = cpfDigits;
+    this.buscarMotoristaPorCpfRegistroRapido(cpfDigits);
+  }
+
+  onTransportadoraCnpjInput(value: string): void {
+    const masked = this.aplicarMascaraCnpj(value);
+    this.registroRapido.transportadoraCnpj = masked;
+    const cnpjDigits = masked.replace(/\D/g, '');
+
+    if (this.transportadoraAutoPreenchidaPorCnpj && cnpjDigits !== this.ultimaConsultaCnpjRegistroRapido) {
+      this.transportadoraAutoPreenchidaPorCnpj = false;
+      this.limparCamposDetalheTransportadoraRegistroRapido();
+    }
+
+    if (!this.cnpjPossui14Digitos(cnpjDigits)) {
+      this.ultimaConsultaCnpjRegistroRapido = '';
+      return;
+    }
+
+    if (cnpjDigits === this.ultimaConsultaCnpjRegistroRapido) {
+      return;
+    }
+
+    this.ultimaConsultaCnpjRegistroRapido = cnpjDigits;
+    this.buscarTransportadoraPorCnpjRegistroRapido(cnpjDigits);
+  }
+
+  onRegistroRapidoPlacaInput(value: string): void {
+    const placaFormatada = formatPlacaDisplay(normalizePlaca(value));
+    this.registroRapido.placa = placaFormatada;
+    this.camposBloqueadosPorPlaca = false;
+    this.existeEntradaEmAbertoPorPlaca = false;
+    const placaNorm = normalizePlaca(placaFormatada);
+    if (!placaCompleta(placaNorm)) {
+      this.ultimaPlacaConsultadaRegistroRapido = '';
+      this.limparCamposVinculadosPlacaRegistroRapido();
+      return;
+    }
+    if (this.ultimaPlacaConsultadaRegistroRapido === placaNorm) {
+      return;
+    }
+    this.ultimaPlacaConsultadaRegistroRapido = placaNorm;
+    this.buscarDadosRegistroRapidoPorPlaca(placaNorm);
+  }
+
+  abrirEditar(id: number): void {
+    if (!this.canAlterar) return;
+    void this.router.navigate([String(id)], { relativeTo: this.route.parent });
+  }
+
+  /** Suspende ou retorna ao pátio imediatamente, com data/hora atual (sem modal). */
+  executarSuspensaoOuRetorno(item: EntradaSaidaSearchOutput): void {
+    if (!this.podeAcoesOperacionaisPatio) {
+      this.toast.error('Perfil Transportadora não pode suspender ou retornar movimentos.');
+      return;
+    }
+    if (!item?.id || item.id <= 0) {
+      this.toast.error('Registro sem id válido para atualizar permanência.');
+      return;
+    }
+    if (item.dataHoraSaida) return;
+
+    const retornar = this.estaSuspenso(item);
+    const isoNow = toLocalIsoDateTime();
+    this.permanenciaProcessandoId.set(item.id);
+
+    const request$ = retornar
+      ? this.service.finalizarPermanencia(item.id, isoNow)
+      : this.service.suspenderPermanencia(item.id, {
+          retornarAoPatio: false,
+          dataHoraEvento: isoNow
+        });
+
+    request$
+      .pipe(finalize(() => this.permanenciaProcessandoId.set(null)))
+      .subscribe({
+        next: () => {
+          this.toast.success(
+            retornar ? 'Retorno ao pátio realizado.' : 'Permanência suspensa com sucesso.'
+          );
+          const placa = item.placaVeiculo?.trim() || 'não informada';
+          const transportadora = item.nomeTransportadora?.trim() || '—';
+          this.portariaAlertas.push({
+            id: `${retornar ? 'retorno' : 'suspensao'}-${item.id}-${Date.now()}`,
+            titulo: retornar ? 'Retorno ao pátio' : 'Permanência suspensa',
+            descricao: `Placa ${placa} - ${transportadora}`
+          });
+          this.buscar();
+          this.carregarMonitoramentoDoPatio();
+          if (this.saidaModalOpen()) {
+            this.carregarVeiculosEmAbertoSaida();
+          }
+          if (this.registroRapidoEntradaId === item.id) {
+            this.registroRapidoSuspenso = !retornar;
+          }
+          if (this.resumoMovimentoId() === item.id) {
+            this.selecionarMovimento(item);
+          }
+        },
+        error: (err: ApiError) =>
+          this.handleApiError(
+            err,
+            retornar ? 'Erro ao finalizar suspensão.' : 'Erro ao atualizar permanência.'
+          )
+      });
+  }
+
+  historicoSuspensoes(id: number): EntradaSaidaSuspensaoOutput[] {
+    return this.suspensaoHistoricoPorMovimento()[id] ?? [];
+  }
+
+  formatarResumoSuspensao(s: EntradaSaidaSuspensaoOutput): string {
+    const inicio = this.formatarDataHoraCurta(s.dataHoraInicioSuspensao);
+    if (!s.dataHoraFimSuspensao) {
+      return `Suspenso desde ${inicio} (em andamento)`;
+    }
+    const fim = this.formatarDataHoraCurta(s.dataHoraFimSuspensao);
+    const duracao = this.formatarMinutos(s.tempoSuspensaoMinutos);
+    return `Suspenso ${inicio} → ${fim} (${duracao})`;
+  }
+
+  formatarDataHoraCurta(raw: string | null | undefined): string {
+    if (!raw?.trim()) return '—';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  resumoStatusTexto(d: EntradaSaidaOutput): string {
+    if (d.finalizado) return 'Movimento finalizado';
+    if (d.permanenciaSuspensa) return 'Permanência suspensa';
+    return 'Em aberto no pátio';
+  }
+
+  resumoStatusIcon(d: EntradaSaidaOutput): string {
+    if (d.finalizado) return 'check_circle';
+    if (d.permanenciaSuspensa) return 'pause_circle';
+    return 'local_parking';
+  }
+
+  resumoPermanenciaPercent(d: EntradaSaidaOutput): number {
+    const min = d.tempoPermanenciaMinutos ?? 0;
+    if (min <= 0) return 0;
+    return Math.min(100, Math.round((min / (24 * 60)) * 100));
+  }
+
+  resumoPermanenciaHint(d: EntradaSaidaOutput): string {
+    if (d.finalizado) {
+      return 'Saída registrada. O tempo total inclui permanência e suspensões.';
+    }
+    if (d.permanenciaSuspensa) {
+      if (!this.podeAcoesOperacionaisPatio) {
+        return 'Suspensão ativa neste movimento.';
+      }
+      return 'Suspensão ativa. Use Retornar para voltar ao pátio.';
+    }
+    return 'Veículo em permanência no pátio.';
+  }
+
+  resumoTipTexto(d: EntradaSaidaOutput): string {
+    if (d.finalizado) {
+      return 'Este movimento já possui saída registrada.';
+    }
+    if (!this.podeAcoesOperacionaisPatio) {
+      return 'Use o botão Recibo na lista para visualizar o comprovante deste movimento.';
+    }
+    if (d.permanenciaSuspensa) {
+      const total = d.suspensoes?.length ?? 0;
+      return total > 0
+        ? `${total} suspensão(ões) registrada(s) neste movimento.`
+        : 'Permanência suspensa sem histórico anterior.';
+    }
+    return 'Use Suspender ou Saída para ações operacionais neste movimento.';
+  }
+
+  abrirPermanencia(item: EntradaSaidaSearchOutput, acao: PermanenciaAcao = 'finalizar'): void {
+    if (acao === 'suspender' || acao === 'retornar') {
+      this.executarSuspensaoOuRetorno(item);
+      return;
+    }
+    if (!this.podeAcoesOperacionaisPatio) {
+      this.toast.error('Perfil Transportadora não pode registrar saída.');
+      return;
+    }
+    if (!item?.id || item.id <= 0) {
+      this.toast.error('Registro sem id válido para registrar saída.');
+      return;
+    }
+    this.permanenciaAcao = 'finalizar';
+    this.permanenciaDataHora = toDateTimeLocalInputValue();
+    this.resetSaidaValorState();
+    this.service.getById(item.id).subscribe({
+      next: (detalhe) => {
+        if (!detalhe?.id) {
+          this.toast.error('Não foi possível carregar o registro selecionado.');
+          return;
+        }
+        this.registroSelecionado.set(detalhe);
+        this.permanenciaDataHora = toDateTimeLocalInputValue();
+        this.permanenciaOpen.set(true);
+        this.carregarValorEstacionamentoParaSaida(detalhe.id);
+      },
+      error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.')
+    });
+  }
+
+  fecharPermanencia(): void {
+    this.permanenciaOpen.set(false);
+    this.resetSaidaValorState();
+  }
+
+  confirmarPermanencia(): void {
+    const item = this.registroSelecionado();
+    if (!item?.id || item.id <= 0) {
+      this.toast.error('Registro sem id válido para atualizar permanência.');
+      return;
+    }
+    this.confirmarSaidaComRecibo(item);
+  }
+
+  excluir(item: EntradaSaidaSearchOutput): void {
+    if (!this.canExcluir || !confirm(`Excluir o registro da placa ${item.placaVeiculo}?`)) return;
+    this.service.excluir(item.id).subscribe({
+      next: () => {
+        this.toast.success('Registro excluído.');
+        this.buscar();
+      },
+      error: (err: ApiError) => this.handleApiError(err, 'Erro ao excluir registro.')
+    });
+  }
+
+  irParaPagina(pagina: number): void {
+    const p = Math.min(this.totalPaginas(), Math.max(1, pagina));
+    if (p === this.numeroPagina()) return;
+    this.numeroPagina.set(p);
+    this.buscar();
+  }
+
+  statusLabel(item: EntradaSaidaSearchOutput): string {
+    const fromStatus = entradaSaidaStatusLabel(item.status);
+    if (fromStatus) return fromStatus;
+    return item.dataHoraSaida ? 'Saida' : 'Entrada';
+  }
+
+  ehStatusSaida(item: EntradaSaidaSearchOutput): boolean {
+    return (
+      !!item.dataHoraSaida ||
+      parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Saida
+    );
+  }
+
+  /** KPIs só do evento SignalR `dashboard` / `dashboardAtualizado` (sem cálculo local). */
+  readonly entradasHoje = computed(() => {
+    const value = this.dashboardTempoReal()?.['entradasHoje'];
+    return typeof value === 'number' ? value : 0;
+  });
+
+  readonly saidasHoje = computed(() => {
+    const value = this.dashboardTempoReal()?.['saidasHoje'];
+    return typeof value === 'number' ? value : 0;
+  });
+
+  readonly emAberto = computed(() => {
+    const value = this.dashboardTempoReal()?.['emAberto'];
+    return typeof value === 'number' ? value : 0;
+  });
+
+  readonly tempoMedioPatio = computed(() => {
+    const rawValue = this.dashboardTempoReal()?.['tempoMedioPatio'];
+    if (typeof rawValue !== 'string') {
+      return '00h 00m';
+    }
+    const raw = rawValue.trim();
+    if (!raw) {
+      return '00h 00m';
+    }
+    const parts = raw.split(':');
+    if (parts.length >= 2) {
+      return `${parts[0].padStart(2, '0')}h ${parts[1].padStart(2, '0')}m`;
+    }
+    return raw.includes('h') ? raw : `${raw}m`;
+  });
+
+  readonly monitoramentoItens = computed((): MonitoramentoItemVm[] =>
+    this.movimentacoesTempoReal()
+      .slice(0, 5)
+      .map((item) => ({
+        id: item.id,
+        data: this.formatarDataMonitoramento(item.dataHoraSaida || item.dataHoraEntrada),
+        horario: item.horario,
+        placa: item.placa || '—',
+        motorista: item.motorista || '—',
+        transportadora: item.transportadora || '—',
+        status: item.status
+      }))
+  );
+
+  readonly ultimosAlertas = computed((): AlertaItemVm[] => {
+    const locais = this.portariaAlertas.items().map((alerta) => ({
+      id: alerta.id,
+      titulo: alerta.titulo,
+      descricao: alerta.descricao,
+      tempoRelativo: this.tempoRelativo(new Date(alerta.createdAtMs).toISOString()),
+      sortMs: alerta.createdAtMs
+    }));
+
+    const doFeed = this.movimentacoesTempoReal().map((item) => ({
+      id: `feed-${item.id}`,
+      titulo: this.tituloAlertaMonitoramento(item),
+      descricao: `Placa ${item.placa || 'não informada'} - ${item.transportadora || '—'}`,
+      tempoRelativo: this.tempoRelativo(item.dataHoraSaida || item.dataHoraEntrada),
+      sortMs: item.horarioSortMs
+    }));
+
+    const byId = new Map<string, (typeof locais)[number]>();
+    for (const item of doFeed) {
+      byId.set(item.id, item);
+    }
+    for (const item of locais) {
+      byId.set(item.id, item);
+    }
+
+    return [...byId.values()]
+      .sort((a, b) => b.sortMs - a.sortMs)
+      .slice(0, 5)
+      .map(({ id, titulo, descricao, tempoRelativo }) => ({ id, titulo, descricao, tempoRelativo }));
+  });
+
+  private tituloAlertaMonitoramento(item: MovimentacaoTempoRealVm): string {
+    const label = (item.statusLabel || '').trim();
+    const normalized = label
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    if (item.status === 'saida' || normalized.includes('saida')) {
+      return 'Saída registrada com sucesso';
+    }
+    if (normalized.includes('suspens')) {
+      return 'Permanência suspensa';
+    }
+    if (normalized.includes('agend')) {
+      return 'Agendamento registrado';
+    }
+    if (item.status === 'entrada' || normalized.includes('entrada')) {
+      return 'Entrada registrada';
+    }
+    return label || 'Movimentação em andamento';
+  }
+
+  classeStatusMonitoramento(status: StatusMonitoramento): string {
+    if (status === 'saida') return 'status-dot status-dot--saida';
+    if (status === 'aberto') return 'status-dot status-dot--aberto';
+    return 'status-dot status-dot--entrada';
+  }
+
+  /**
+   * Registro rápido de entrada: valida campos obrigatórios preenchidos e envia POST `/EntradaSaida`.
+   */
+  abrirRegistroEntradaRapida(): void {
+    if (!this.canGravar || this.processandoRegistroRapido()) return;
+    const erroObrigatorios = this.mensagemValidacaoCamposObrigatoriosEntrada();
+    if (erroObrigatorios) {
+      this.toast.error(erroObrigatorios);
+      return;
+    }
+    if (this.alertaAcordoExcedente && this.alertaAcordoRegistroRapido) {
+      const detalhe = this.alertaAcordoRegistroRapido;
+      if (!confirm(`${detalhe}\n\nDeseja registrar a entrada mesmo assim?`)) return;
+    }
+    this.processandoRegistroRapido.set(true);
+    this.postEntradaSaidaAposValidacao();
+  }
+
+  abrirModalEntrada(): void {
+    if (!this.canGravar || this.processandoRegistroRapido()) return;
+    this.limparRegistroRapido();
+    this.entradaModalOpen.set(true);
+  }
+
+  fecharModalEntrada(): void {
+    if (this.processandoRegistroRapido()) return;
+    this.entradaModalOpen.set(false);
+  }
+
+  confirmarEntradaModal(): void {
+    this.abrirRegistroEntradaRapida();
+  }
+
+  abrirModalSaida(): void {
+    if (!this.canGravar || this.processandoRegistroRapido()) return;
+    this.saidaModalBusca.set('');
+    this.saidaModalFiltroTipo.set(null);
+    this.saidaModalPagina.set(1);
+    this.saidaModalSelecionadoId.set(null);
+    this.saidaFiltrosVisiveis.set(true);
+    this.saidaModalOpen.set(true);
+    this.carregarVeiculosEmAbertoSaida();
+  }
+
+  fecharModalSaida(): void {
+    this.saidaModalOpen.set(false);
+  }
+
+  alternarFiltrosSaida(): void {
+    this.saidaFiltrosVisiveis.update((v) => !v);
+  }
+
+  onSaidaModalBuscaChange(valor: string): void {
+    this.saidaModalBusca.set(valor);
+    this.saidaModalPagina.set(1);
+  }
+
+  aplicarFiltroTipoSaida(tipo: string | null): void {
+    this.saidaModalFiltroTipo.set(tipo);
+    this.saidaModalPagina.set(1);
+  }
+
+  irPaginaSaida(pagina: number): void {
+    const total = this.saidaModalTotalPaginas();
+    const next = Math.min(total, Math.max(1, pagina));
+    this.saidaModalPagina.set(next);
+  }
+
+  selecionarLinhaSaida(id: number): void {
+    this.saidaModalSelecionadoId.set(id);
+  }
+
+  darSaidaDoModal(item: EntradaSaidaSearchOutput): void {
+    if (!this.canGravar) return;
+    this.saidaModalSelecionadoId.set(item.id);
+    this.saidaModalOpen.set(false);
+    this.abrirPermanencia(item, 'finalizar');
+  }
+
+  suspenderOuRetomarDoModalSaida(item: EntradaSaidaSearchOutput): void {
+    if (!this.canGravar) return;
+    this.saidaModalSelecionadoId.set(item.id);
+    this.executarSuspensaoOuRetorno(item);
+  }
+
+  /** Retoma permanência do movimento em aberto detectado pela placa no modal de entrada. */
+  retomarDoModalEntrada(): void {
+    if (!this.canGravar || !this.registroRapidoSuspenso || this.registroRapidoEntradaId <= 0) return;
+    const item: EntradaSaidaSearchOutput = {
+      id: this.registroRapidoEntradaId,
+      descricao: '',
+      motoristaId: 0,
+      nomeMotorista: String(this.registroRapido.motorista ?? ''),
+      transportadoraId: this.registroRapidoTransportadoraId,
+      nomeTransportadora: String(this.registroRapido.transportadoraRazaoSocial ?? ''),
+      veiculoId: 0,
+      placaVeiculo: normalizePlaca(this.registroRapido.placa),
+      dataHoraEntrada: '',
+      dataHoraSaida: null,
+      status: EntradaSaidaStatus.Suspenso
+    };
+    this.executarSuspensaoOuRetorno(item);
+  }
+
+  tempoNoPatioDesde(dataHoraEntrada: string | null | undefined): string {
+    if (!dataHoraEntrada) return '—';
+    const inicio = new Date(dataHoraEntrada).getTime();
+    if (!Number.isFinite(inicio)) return '—';
+    const minutos = Math.max(0, Math.floor((Date.now() - inicio) / 60_000));
+    return this.formatarMinutos(minutos);
+  }
+
+  private carregarVeiculosEmAbertoSaida(): void {
+    if (this.auth.needsEstacionamentoSelection()) {
+      this.toast.error('Selecione o estacionamento da sessão antes de consultar veículos em aberto.');
+      this.saidaModalItens.set([]);
+      return;
+    }
+    this.cancelarSaidaModalLista$.next();
+    this.saidaModalLoading.set(true);
+    const pageSize = 100;
+    const carregarPagina = (
+      pagina: number,
+      acumulado: EntradaSaidaSearchOutput[]
+    ): void => {
+      this.entradaSaidaService
+        .buscar({
+          somenteEmAberto: true,
+          estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
+          numeroPagina: pagina,
+          tamanhoPagina: pageSize,
+          propriedade: 'DataHoraEntrada',
+          sort: 'Desc'
+        })
+        .pipe(takeUntil(this.cancelarSaidaModalLista$))
+        .subscribe({
+          next: (page) => {
+            const lote = (page.items ?? [])
+              .filter((item) => !item.dataHoraSaida)
+              .filter((item) => this.itemPertenceAoPatioSessao(item));
+            const todos = [...acumulado, ...lote];
+            const total = Number(page.totalCount) || todos.length;
+            const temMais = todos.length < total && lote.length > 0;
+            if (temMais && pagina < 50) {
+              carregarPagina(pagina + 1, todos);
+              return;
+            }
+            this.saidaModalItens.set(todos);
+            this.saidaModalPagina.set(1);
+            this.saidaModalLoading.set(false);
+          },
+          error: (err: ApiError) => {
+            this.saidaModalItens.set([]);
+            this.saidaModalLoading.set(false);
+            this.toast.error(err?.message ?? 'Erro ao carregar veículos em aberto.');
+          }
+        });
+    };
+    carregarPagina(1, []);
+  }
+
+  private chaveTipoVeiculoSaida(item: EntradaSaidaSearchOutput): string | null {
+    const tipo = String(item.tipoVeiculo ?? '').trim();
+    if (tipo) return tipo.toLowerCase();
+    const carga = item.tipoCarga;
+    if (carga == null || carga === '') return null;
+    return `carga:${String(carga).toLowerCase()}`;
+  }
+
+  private labelTipoVeiculoSaida(item: EntradaSaidaSearchOutput): string | null {
+    const tipo = String(item.tipoVeiculo ?? '').trim();
+    if (tipo) return tipo;
+    if (item.tipoCarga == null || item.tipoCarga === '') return null;
+    return tipoCargaLabel(item.tipoCarga) ?? String(item.tipoCarga);
+  }
+
+  /** POST `EntradaSaida` — chamado somente após `mensagemValidacaoCamposObrigatoriosEntrada()` retornar null. */
+  private postEntradaSaidaAposValidacao(): void {
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+    this.montarPayloadEntradaSaidaAtualizado().subscribe({
+      next: (payload) => {
+        this.service.create(payload).subscribe({
+          next: (criado) => {
+            this.processandoRegistroRapido.set(false);
+            // Confirmação imediata no retorno do POST (antes de buscar/limpar).
+            void this.ofertarReciboAposOperacao({
+              id: criado?.id ?? 0,
+              modo: ModoRecibo.Entrada,
+              placa: placaNorm,
+              mensagem: 'Entrada registrada. Deseja visualizar o recibo de entrada?'
+            });
+            this.toast.success('Entrada registrada com sucesso.');
+            this.entradaModalOpen.set(false);
+            this.buscar();
+            this.carregarMonitoramentoDoPatio();
+            this.limparRegistroRapido();
+          },
+          error: (err: ApiError) => {
+            this.processandoRegistroRapido.set(false);
+            this.toast.error(err?.message ?? 'Erro ao registrar entrada.');
+          }
+        });
+      },
+      error: () => {
+        this.processandoRegistroRapido.set(false);
+        this.toast.error('Erro ao montar payload de entrada.');
+      }
+    });
+  }
+
+  private montarPayloadEntradaSaidaAtualizado() {
+    const cpfDigits = String(this.registroRapido.motoristaCpf ?? '').replace(/\D/g, '');
+    const cnpjDigits = String(this.registroRapido.transportadoraCnpj ?? '').replace(/\D/g, '');
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+
+    const motorista$ =
+      this.cpfPossui11Digitos(cpfDigits) && this.registroRapidoTransportadoraId > 0
+        ? this.motoristaService.obterPorCpf(cpfDigits, this.registroRapidoTransportadoraId)
+        : of(null);
+    const transportadora$ = this.cnpjPossui14Digitos(cnpjDigits)
+      ? this.transportadoraService.obterTransportadoraPorCnpj(cnpjDigits)
+      : of(null);
+
+    return forkJoin({ motorista: motorista$, transportadora: transportadora$ }).pipe(
+      map(({ motorista, transportadora }) => ({
+        status: EntradaSaidaStatus.Entrada,
+        dataHoraEntrada: toLocalIsoDateTime(),
+        observacao: this.observacaoParaApi(this.registroRapido.observacao),
+        motorista: {
+          id: Number(motorista?.id) > 0 ? Number(motorista?.id) : undefined,
+          cpf: cpfDigits || undefined,
+          nome: String(this.registroRapido.motorista ?? '').trim() || undefined
+        },
+        transportadora: {
+          id: Number(transportadora?.id) > 0 ? Number(transportadora?.id) : undefined,
+          cnpj: cnpjDigits || undefined,
+          razaoSocial: String(this.registroRapido.transportadoraRazaoSocial ?? '').trim() || undefined,
+          responsavelLegal:
+            String(this.registroRapido.transportadoraResponsavelNome ?? '').trim() || undefined,
+          responsavelTelefone: this.telefoneSomenteDigitosParaApi(
+            this.registroRapido.transportadoraResponsavelTelefone
+          )
+        },
+        veiculo: {
+          placa: placaNorm || undefined,
+          tipoCarga: toTipoCargaEnum(this.registroRapido.tipoCarga)
+        }
+      } satisfies EntradaSaidaPostInput))
+    );
+  }
+
+  registrarSaidaRapida(): void {
+    if (!this.canGravar || this.processandoRegistroRapido()) return;
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+    if (!placaCompleta(placaNorm)) {
+      this.toast.error('Informe uma placa válida para registrar saída.');
+      return;
+    }
+    const id = this.registroRapidoEntradaId;
+    if (id > 0) {
+      this.abrirPermanencia(
+        {
+          id,
+          descricao: '',
+          motoristaId: 0,
+          nomeMotorista: '',
+          transportadoraId: this.registroRapidoTransportadoraId,
+          nomeTransportadora: '',
+          veiculoId: 0,
+          placaVeiculo: placaNorm,
+          dataHoraEntrada: '',
+          dataHoraSaida: null,
+          avulso: true
+        },
+        'finalizar'
+      );
+      return;
+    }
+    this.processandoRegistroRapido.set(true);
+    this.service.saida(placaNorm).subscribe({
+      next: () => {
+        this.processandoRegistroRapido.set(false);
+        this.toast.success('Saída registrada com sucesso.');
+        this.buscar();
+        this.carregarMonitoramentoDoPatio();
+        this.limparRegistroRapido();
+      },
+      error: (err: ApiError) => {
+        this.processandoRegistroRapido.set(false);
+        this.toast.error(err?.message ?? 'Erro ao registrar saída.');
+      }
+    });
+  }
+
+  limparRegistroRapido(): void {
+    this.registroRapido = {
+      placa: '',
+      motorista: '',
+      motoristaCpf: '',
+      transportadoraRazaoSocial: '',
+      transportadoraCnpj: '',
+      transportadoraResponsavelNome: '',
+      transportadoraResponsavelTelefone: '',
+      tipoCarga: '',
+      observacao: ''
+    };
+    this.buscandoMotoristaPorCpf = false;
+    this.motoristaAutoPreenchidoPorCpf = false;
+    this.ultimaConsultaCpfRegistroRapido = '';
+    this.consultaCpfSequencia++;
+    this.buscandoTransportadoraPorCnpj = false;
+    this.transportadoraAutoPreenchidaPorCnpj = false;
+    this.ultimaConsultaCnpjRegistroRapido = '';
+    this.consultaCnpjSequencia++;
+    this.ultimaPlacaConsultadaRegistroRapido = '';
+    this.camposBloqueadosPorPlaca = false;
+    this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoSuspenso = false;
+    this.alertaAcordoRegistroRapido = '';
+    this.alertaAcordoExcedente = false;
+    this.registroRapidoEntradaId = 0;
+    this.registroRapidoTransportadoraId = 0;
+    this.fecharSelecionarMotoristaPlaca();
+  }
+
+  private aplicarAlertaAcordoRegistroRapido(campos: {
+    acordoMensagem: string;
+    acordoEntradaGeraExcedente: boolean;
+  }): void {
+    this.alertaAcordoRegistroRapido = campos.acordoMensagem?.trim() || '';
+    this.alertaAcordoExcedente = !!campos.acordoEntradaGeraExcedente;
+  }
+
+  formatarMinutos(minutos?: number | null): string {
+    if (minutos == null || minutos <= 0) return '0 min';
+    if (minutos < 60) return `${minutos} min`;
+    const h = Math.floor(minutos / 60);
+    const m = minutos % 60;
+    return m ? `${h}h ${m}min` : `${h}h`;
+  }
+
+  /** Exibe placa com hífen (ABC-1234 / ABC-1D23). */
+  formatarPlaca(placa: string | null | undefined): string {
+    return formatPlacaDisplay(placa) || '—';
+  }
+
+  podeSuspenderOuRetornar(): boolean {
+    const registro = this.registroSelecionado();
+    if (!registro) return false;
+    return !registro.finalizado;
+  }
+
+  podeFinalizar(): boolean {
+    const registro = this.registroSelecionado();
+    if (!registro) return false;
+    if (registro.finalizado) return false;
+    if (this.saidaValorLoading() || this.saidaProcessando()) return false;
+    const valor = this.saidaValor();
+    return valor != null && Number.isFinite(valor) && valor >= 0;
+  }
+
+  onPermanenciaDataHoraChange(value: string): void {
+    this.permanenciaDataHora = value;
+    if (this.permanenciaAcao === 'finalizar') {
+      this.recalcularCobrancaSaida();
     }
   }
 
-  private escapeHtml(s: string): string {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  onSaidaValorDiariaChange(raw: string | number | null): void {
+    if (this.saidaValorBloqueado()) return;
+    const texto = raw == null ? '' : String(raw);
+    this.saidaValorDiariaTexto.set(texto);
+    const n = parseBrl(texto);
+    this.saidaValorDiaria.set(n != null && n >= 0 ? n : null);
+    this.recalcularCobrancaSaida();
   }
 
-  exportarHistorico(): void {
-    const rows = this.historicoFiltrado;
-    const headers = [
-      'Placa',
-      'Motorista',
-      'CPF',
-      'Transportadora',
-      'DataEntrada',
-      'DataSaida',
-      'TempoEstacionado',
-      'StatusFinal',
-      'Valor',
-    ];
-    const csvLines = [
-      headers.join(';'),
-      ...rows.map((m) =>
-        [
-          this.escapeCsv(m.placa),
-          this.escapeCsv(m.motorista),
-          this.escapeCsv(m.cpf),
-          this.escapeCsv(m.transportadora),
-          this.escapeCsv(m.dataEntrada),
-          this.escapeCsv(m.dataSaida),
-          this.escapeCsv(m.tempoEstacionado ?? '—'),
-          this.escapeCsv(m.statusFinal ?? 'Finalizado'),
-          this.escapeCsv(m.valor),
-        ].join(';')
-      ),
-    ];
-    const content = '\uFEFF' + csvLines.join('\n');
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  onSaidaValorDiariaBlur(): void {
+    if (this.saidaValorBloqueado()) return;
+    const n = this.saidaValorDiaria();
+    this.saidaValorDiariaTexto.set(n != null ? formatarBrl(n) : '');
+  }
+
+  formatarMoeda(valor: number | null | undefined): string {
+    if (valor == null || !Number.isFinite(valor)) return '—';
+    return formatarBrl(valor);
+  }
+
+  formatarDataHoraEntrada(registro: EntradaSaidaOutput | null | undefined): string {
+    const raw = registro?.dataHoraEntrada?.trim();
+    if (!raw) return '—';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  /** Recibo disponível com id válido: entrada (ticket) ou saída (com valor). */
+  podeVisualizarRecibo(item: EntradaSaidaSearchOutput): boolean {
+    return !!item?.id && item.id > 0;
+  }
+
+  /** Mantido como alias para templates/testes legados. */
+  podeBaixarRecibo(item: EntradaSaidaSearchOutput): boolean {
+    return this.podeVisualizarRecibo(item);
+  }
+
+  reciboEmCarregamento(): boolean {
+    return this.reciboBaixandoId() != null;
+  }
+
+  abrirReciboHistorico(item: EntradaSaidaSearchOutput): void {
+    if (!this.podeVisualizarRecibo(item) || this.reciboEmCarregamento()) return;
+    if (!item?.id || item.id <= 0) {
+      this.toast.error('Registro sem id válido para gerar o recibo.');
+      return;
+    }
+
+    const placa = item.placaVeiculo || String(item.id);
+    const temSaida = !!item.dataHoraSaida;
+
+    // Sem saída: ticket de entrada (sem valor).
+    if (!temSaida) {
+      this.visualizarRecibo({
+        id: item.id,
+        modo: ModoRecibo.Entrada,
+        placa
+      });
+      return;
+    }
+
+    // Com saída: recibo com valor de estacionamento.
+    this.reciboBaixandoId.set(item.id);
+    this.service
+      .obterValorEstacionamento(item.id)
+      .pipe(catchError((err: ApiError) => this.tratarErroValorEstacionamento(err, item.id)))
+      .subscribe({
+        next: (res) => {
+          this.reciboBaixandoId.set(null);
+          const valor =
+            res.valor != null && Number.isFinite(Number(res.valor))
+              ? Math.round(Number(res.valor) * 100) / 100
+              : null;
+          if (valor == null) {
+            this.toast.error(
+              'Não há valor de estacionamento disponível para gerar o recibo.'
+            );
+            return;
+          }
+          this.visualizarRecibo({
+            id: item.id,
+            modo: ModoRecibo.Saida,
+            valor,
+            placa
+          });
+        },
+        error: (err: ApiError) => {
+          this.reciboBaixandoId.set(null);
+          this.handleApiError(err, 'Erro ao consultar valor do estacionamento.');
+        }
+      });
+  }
+
+  /** @deprecated Use {@link abrirReciboHistorico}. */
+  baixarReciboHistorico(item: EntradaSaidaSearchOutput): void {
+    this.abrirReciboHistorico(item);
+  }
+
+  aceitarReciboConfirm(): void {
+    this.fecharReciboConfirm(true);
+  }
+
+  recusarReciboConfirm(): void {
+    this.fecharReciboConfirm(false);
+  }
+
+  private fecharReciboConfirm(aceitar: boolean): void {
+    this.reciboConfirmOpen.set(false);
+    const resolver = this.reciboConfirmResolver;
+    this.reciboConfirmResolver = null;
+    resolver?.(aceitar);
+  }
+
+  private perguntarImprimirRecibo(mensagem: string): Promise<boolean> {
+    if (this.reciboConfirmResolver) {
+      this.reciboConfirmResolver(false);
+      this.reciboConfirmResolver = null;
+    }
+    this.reciboConfirmMensagem.set(mensagem);
+    this.reciboConfirmOpen.set(true);
+    return new Promise<boolean>((resolve) => {
+      this.reciboConfirmResolver = resolve;
+    });
+  }
+
+  /**
+   * Pergunta imediatamente; só resolve id / chama recibo se o usuário aceitar.
+   */
+  private async ofertarReciboAposOperacao(opts: {
+    id: number;
+    modo: ModoRecibo;
+    valor?: number | null;
+    placa: string;
+    mensagem: string;
+  }): Promise<void> {
+    const aceitar = await this.perguntarImprimirRecibo(opts.mensagem);
+    if (!aceitar) return;
+
+    let id = opts.id;
+    if ((!id || id <= 0) && opts.placa) {
+      id = await this.resolverIdMovimentoPorPlaca(opts.placa);
+    }
+    this.visualizarRecibo({
+      id,
+      modo: opts.modo,
+      valor: opts.valor,
+      placa: opts.placa
+    });
+  }
+
+  private visualizarRecibo(opts: {
+    id: number;
+    modo: ModoRecibo;
+    valor?: number | null;
+    placa: string;
+  }): void {
+    const id = opts.id;
+    if (!id || id <= 0) {
+      this.toast.error('Não foi possível identificar o movimento para gerar o recibo.');
+      return;
+    }
+
+    this.reciboBaixandoId.set(id);
+    this.service
+      .baixarRecibo(id, opts.modo, opts.modo === ModoRecibo.Saida ? opts.valor : null)
+      .pipe(finalize(() => this.reciboBaixandoId.set(null)))
+      .subscribe({
+        next: (blob) => {
+          const prefixo = opts.modo === ModoRecibo.Entrada ? 'ticket-entrada' : 'recibo';
+          this.abrirPreviewRecibo(blob, `${prefixo}-${opts.placa || id}.pdf`);
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Falha ao gerar o recibo PDF.')
+      });
+  }
+
+  private resolverIdMovimentoPorPlaca(placa: string): Promise<number> {
+    return new Promise((resolve) => {
+      this.service
+        .buscar({
+          placa,
+          somenteEmAberto: true,
+          estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
+          numeroPagina: 1,
+          tamanhoPagina: 1
+        })
+        .subscribe({
+          next: (paged) => {
+            const item = (paged.items ?? []).find((row) => this.itemPertenceAoPatioSessao(row));
+            resolve(item?.id ?? 0);
+          },
+          error: () => resolve(0)
+        });
+    });
+  }
+
+  fecharPreviewRecibo(): void {
+    if (this.reciboPreviewObjectUrl) {
+      URL.revokeObjectURL(this.reciboPreviewObjectUrl);
+      this.reciboPreviewObjectUrl = null;
+    }
+    this.reciboPreviewBlob = null;
+    this.reciboPreviewUrl.set(null);
+    this.reciboPreviewOpen.set(false);
+  }
+
+  baixarReciboDaPreview(): void {
+    const blob = this.reciboPreviewBlob;
+    if (!blob) {
+      this.toast.error('Recibo indisponível para download.');
+      return;
+    }
+    this.downloadBlob(blob, this.reciboPreviewFileName());
+  }
+
+  imprimirReciboDaPreview(): void {
+    const blob = this.reciboPreviewBlob;
+    if (!blob) {
+      this.toast.error('Recibo indisponível para impressão.');
+      return;
+    }
+
+    // URL própria da impressão: sobrevive ao fechar o modal (não usa o object URL do iframe).
+    const printUrl = URL.createObjectURL(blob);
+    const printWin = window.open(printUrl, '_blank');
+    if (!printWin) {
+      URL.revokeObjectURL(printUrl);
+      const frame = document.getElementById('recibo-preview-iframe') as HTMLIFrameElement | null;
+      if (frame?.contentWindow) {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+          return;
+        } catch {
+          /* fallthrough */
+        }
+      }
+      this.toast.error('Permita pop-ups para imprimir o recibo, ou use Download.');
+      return;
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(printUrl), 60_000);
+
+    const tentarPrint = (): void => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {
+        /* Visualizador nativo: o usuário pode imprimir pelo menu da aba. */
+      }
+    };
+    try {
+      printWin.addEventListener('load', tentarPrint);
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(tentarPrint, 400);
+  }
+
+  estaSuspenso(item: EntradaSaidaSearchOutput | EntradaSaidaOutput | null | undefined): boolean {
+    if (!item) return false;
+    if ('permanenciaSuspensa' in item && typeof item.permanenciaSuspensa === 'boolean') {
+      return item.permanenciaSuspensa;
+    }
+    return parseEntradaSaidaStatus((item as EntradaSaidaSearchOutput).status) === EntradaSaidaStatus.Suspenso;
+  }
+
+  placaSelecionada(): string {
+    const veiculo = this.registroSelecionado()?.veiculo as
+      | { placa?: string; Placa?: string }
+      | undefined;
+    return veiculo?.placa ?? veiculo?.Placa ?? '—';
+  }
+
+  private finalizarAcaoPermanencia(msg: string): void {
+    this.toast.success(msg);
+    this.permanenciaOpen.set(false);
+    this.resetSaidaValorState();
+    this.buscar();
+    const resumoId = this.resumoMovimentoId();
+    if (resumoId) {
+      const item = this.registros().find((r) => r.id === resumoId);
+      if (item) {
+        this.selecionarMovimento(item);
+      }
+    }
+  }
+
+  private isEntradaHoje(dataHora: string | null | undefined): boolean {
+    if (!dataHora?.trim()) return false;
+    const d = new Date(dataHora);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  }
+
+  private confirmarSaidaComRecibo(item: EntradaSaidaOutput): void {
+    const placa = this.placaSelecionada();
+    if (!placa || placa === '—') {
+      this.toast.error('Placa não encontrada para registrar a saída.');
+      return;
+    }
+    const valor = this.saidaValor();
+    if (valor == null || !Number.isFinite(valor) || valor < 0) {
+      this.toast.error(
+        this.saidaTipoTarifa() === 1
+          ? 'Informe o valor da hora para calcular o total do recibo.'
+          : 'Informe o valor da diária para calcular o total do recibo.'
+      );
+      return;
+    }
+    if (this.saidaProcessando()) return;
+
+    this.saidaProcessando.set(true);
+    this.service
+      .saida(placa)
+      .pipe(finalize(() => this.saidaProcessando.set(false)))
+      .subscribe({
+        next: () => {
+          void this.ofertarReciboAposOperacao({
+            id: item.id,
+            modo: ModoRecibo.Saida,
+            valor,
+            placa,
+            mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
+          });
+          this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
+          this.limparRegistroRapido();
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
+      });
+  }
+
+  private carregarValorEstacionamentoParaSaida(entradaSaidaId: number): void {
+    this.cancelarValorEstacionamento$.next();
+    if (!entradaSaidaId || entradaSaidaId <= 0) {
+      this.aplicarValorEstacionamento(null, false);
+      return;
+    }
+    this.saidaValorLoading.set(true);
+    this.service
+      .obterValorEstacionamento(entradaSaidaId)
+      .pipe(
+        takeUntil(this.cancelarValorEstacionamento$),
+        catchError((err: ApiError) => this.tratarErroValorEstacionamento(err, entradaSaidaId)),
+        finalize(() => this.saidaValorLoading.set(false))
+      )
+      .subscribe({
+        next: (res) => this.aplicarRespostaValorEstacionamento(res),
+        error: (err: ApiError) => {
+          this.aplicarValorEstacionamento(null, false);
+          this.handleApiError(err, 'Erro ao consultar valor do estacionamento.');
+        }
+      });
+  }
+
+  /** 404/204 = sem config ativa (editável). Demais erros sobem para toast. */
+  private tratarErroValorEstacionamento(err: ApiError, entradaSaidaId: number) {
+    if (err?.status === 404 || err?.status === 204) {
+      return of({
+        entradaSaidaId,
+        estacionamentoId: 0,
+        transportadoraId: null,
+        configuracaoCobrancaId: null,
+        valor: null as number | null,
+        origem: 'Indisponivel',
+        valorUnitario: null as number | null,
+        quantidadeUnidades: null as number | null,
+        tipoTarifa: null as TipoTarifaEstacionamento | null,
+        tipoCobranca: 'Avulso'
+      });
+    }
+    return throwError(() => err);
+  }
+
+  private aplicarRespostaValorEstacionamento(res: {
+    valor: number | null;
+    valorUnitario: number | null;
+    quantidadeUnidades: number | null;
+    tipoTarifa: TipoTarifaEstacionamento | null;
+    tipoCobranca?: string;
+    origem: string;
+  }): void {
+    this.saidaValorFixoDaFatura = false;
+    this.saidaTipoTarifa.set(res.tipoTarifa === 1 || res.tipoTarifa === 2 ? res.tipoTarifa : 2);
+    this.saidaTipoCobranca.set(res.tipoCobranca?.trim() || 'Avulso');
+
+    const valorTotal =
+      res.valor != null && Number.isFinite(Number(res.valor))
+        ? Math.round(Number(res.valor) * 100) / 100
+        : null;
+    const unitario =
+      res.valorUnitario != null && Number.isFinite(Number(res.valorUnitario))
+        ? Math.round(Number(res.valorUnitario) * 100) / 100
+        : null;
+    const qtdApi =
+      res.quantidadeUnidades != null &&
+      Number.isFinite(Number(res.quantidadeUnidades)) &&
+      Number(res.quantidadeUnidades) >= 0
+        ? Math.trunc(Number(res.quantidadeUnidades))
+        : null;
+    const origemFaturaItem = String(res.origem ?? '').toLowerCase() === 'faturaitem';
+
+    if (unitario != null) {
+      this.aplicarValorEstacionamento(unitario, true);
+      if (qtdApi != null) {
+        this.saidaQuantidadeDiarias.set(qtdApi);
+        this.saidaValor.set(valorTotal ?? calcularTotalDiarias(unitario, qtdApi));
+      }
+      return;
+    }
+
+    if (valorTotal != null) {
+      const qtd = qtdApi ?? Math.max(this.saidaQuantidadeDiarias() || 1, 1);
+      const unitarioDerivado =
+        qtd > 0 ? Math.round((valorTotal / qtd) * 100) / 100 : valorTotal;
+      this.saidaValorFixoDaFatura = origemFaturaItem;
+      this.saidaQuantidadeDiarias.set(qtd);
+      this.saidaValorDiaria.set(unitarioDerivado);
+      this.saidaValorDiariaTexto.set(formatarBrl(unitarioDerivado));
+      this.saidaValorBloqueado.set(true);
+      this.saidaValor.set(valorTotal);
+      return;
+    }
+
+    this.aplicarValorEstacionamento(null, false);
+  }
+
+  private aplicarValorEstacionamento(valorUnitario: number | null, bloqueado: boolean): void {
+    this.saidaValorDiaria.set(valorUnitario);
+    this.saidaValorDiariaTexto.set(valorUnitario != null ? formatarBrl(valorUnitario) : '');
+    this.saidaValorBloqueado.set(bloqueado);
+    this.recalcularCobrancaSaida();
+  }
+
+  private recalcularCobrancaSaida(): void {
+    if (this.saidaValorFixoDaFatura) return;
+    const entrada = this.registroSelecionado()?.dataHoraEntrada;
+    const qtd = calcularQuantidadeUnidades(
+      entrada,
+      this.permanenciaDataHora,
+      this.saidaTipoTarifa()
+    );
+    this.saidaQuantidadeDiarias.set(qtd);
+    this.saidaValor.set(calcularTotalDiarias(this.saidaValorDiaria(), qtd));
+  }
+
+  private resetSaidaValorState(): void {
+    this.cancelarValorEstacionamento$.next();
+    this.saidaValorFixoDaFatura = false;
+    this.saidaValorDiaria.set(null);
+    this.saidaValorDiariaTexto.set('');
+    this.saidaQuantidadeDiarias.set(1);
+    this.saidaTipoTarifa.set(null);
+    this.saidaTipoCobranca.set('Avulso');
+    this.saidaValor.set(null);
+    this.saidaValorBloqueado.set(false);
+    this.saidaValorLoading.set(false);
+    this.saidaProcessando.set(false);
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `movimentos-historico-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
     URL.revokeObjectURL(url);
   }
 
-  private escapeCsv(value: string): string {
-    const text = String(value ?? '');
-    if (text.includes(';') || text.includes('"') || text.includes('\n')) {
-      return `"${text.replace(/"/g, '""')}"`;
+  private abrirPreviewRecibo(blob: Blob, fileName: string): void {
+    this.fecharPreviewRecibo();
+    const pdfBlob =
+      blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+    this.reciboPreviewBlob = pdfBlob;
+    this.reciboPreviewObjectUrl = URL.createObjectURL(pdfBlob);
+    this.reciboPreviewFileName.set(fileName);
+    this.reciboPreviewUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(this.reciboPreviewObjectUrl)
+    );
+    this.reciboPreviewOpen.set(true);
+  }
+
+  private applyPagedResult(paged: EntradaSaidaPagedResult<EntradaSaidaSearchOutput>): void {
+    const items = (paged.items ?? []).filter((item) => this.itemPertenceAoPatioSessao(item));
+    this.registros.set(items);
+    this.totalCount.set(paged.totalCount ?? 0);
+    this.numeroPagina.set(paged.numeroPagina ?? 1);
+    this.tamanhoPagina.set(paged.tamanhoPagina ?? 20);
+    this.loading.set(false);
+    this.carregarHistoricosSuspensao(items.map((item) => item.id));
+  }
+
+  private mapSortColToPropriedade(col: MovimentosListaSortCol): string {
+    switch (col) {
+      case 'placa':
+        return 'PlacaVeiculo';
+      case 'motorista':
+        return 'NomeMotorista';
+      case 'transportadora':
+        return 'NomeTransportadora';
+      case 'entrada':
+        return 'DataHoraEntrada';
+      case 'saida':
+        return 'DataHoraSaida';
+      case 'status':
+        return 'Status';
+      case 'acordo':
+        return 'EhExcedente';
+      default:
+        return 'DataHoraEntrada';
     }
-    return text;
   }
 
-  private formatarDataHora(d: Date): string {
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const ano = d.getFullYear();
-    const h = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${dia}/${mes}/${ano} ${h}:${min}`;
+  private ordenarRegistros(items: EntradaSaidaSearchOutput[]): EntradaSaidaSearchOutput[] {
+    const col = this.sortCol();
+    const factor = this.sortDir() === 'Asc' ? 1 : -1;
+    return [...items].sort((a, b) => this.compareRegistrosPorColuna(a, b, col) * factor);
   }
 
-  private getEntradaFormVazio(): EntradaForm {
+  private compareRegistrosPorColuna(
+    a: EntradaSaidaSearchOutput,
+    b: EntradaSaidaSearchOutput,
+    col: MovimentosListaSortCol
+  ): number {
+    switch (col) {
+      case 'placa':
+        return this.compareStrings(
+          normalizePlaca(a.placaVeiculo || ''),
+          normalizePlaca(b.placaVeiculo || '')
+        );
+      case 'motorista':
+        return this.compareStrings(a.nomeMotorista, b.nomeMotorista);
+      case 'transportadora':
+        return this.compareStrings(a.nomeTransportadora, b.nomeTransportadora);
+      case 'entrada':
+        return this.compareDates(a.dataHoraEntrada, b.dataHoraEntrada);
+      case 'saida':
+        return this.compareDatesOptional(a.dataHoraSaida, b.dataHoraSaida);
+      case 'status':
+        return this.statusSortKey(a) - this.statusSortKey(b);
+      case 'acordo':
+        return this.acordoSortKey(a) - this.acordoSortKey(b);
+      default:
+        return this.compareDates(a.dataHoraEntrada, b.dataHoraEntrada);
+    }
+  }
+
+  private compareStrings(a: string, b: string): number {
+    return (a || '').localeCompare(b || '', 'pt-BR', { sensitivity: 'base' });
+  }
+
+  private compareDates(a: string, b: string): number {
+    const msA = Date.parse(a || '');
+    const msB = Date.parse(b || '');
+    const validA = !Number.isNaN(msA);
+    const validB = !Number.isNaN(msB);
+    if (!validA && !validB) return 0;
+    if (!validA) return -1;
+    if (!validB) return 1;
+    return msA - msB;
+  }
+
+  private compareDatesOptional(a?: string | null, b?: string | null): number {
+    const emptyA = !a?.trim();
+    const emptyB = !b?.trim();
+    if (emptyA && emptyB) return 0;
+    if (emptyA) return -1;
+    if (emptyB) return 1;
+    return this.compareDates(a!, b!);
+  }
+
+  private statusSortKey(item: EntradaSaidaSearchOutput): number {
+    const parsed = parseEntradaSaidaStatus(item.status);
+    if (parsed != null) return parsed;
+    return item.dataHoraSaida ? EntradaSaidaStatus.Saida : EntradaSaidaStatus.Entrada;
+  }
+
+  private acordoSortKey(item: EntradaSaidaSearchOutput): number {
+    if (item.ehExcedente) return 2;
+    if (item.acordoCobrancaId) return 1;
+    return 0;
+  }
+
+  private carregarHistoricosSuspensao(ids: number[]): void {
+    const validIds = ids.filter((id) => id > 0);
+    if (!validIds.length) {
+      this.suspensaoHistoricoPorMovimento.set({});
+      return;
+    }
+
+    forkJoin(
+      validIds.map((id) =>
+        this.service.getById(id).pipe(
+          catchError(() => of(null)),
+          map((detalhe) => ({ id, suspensoes: detalhe?.suspensoes ?? [] }))
+        )
+      )
+    ).subscribe((rows) => {
+      const map: Record<number, EntradaSaidaSuspensaoOutput[]> = {};
+      for (const row of rows) {
+        if (row.suspensoes.length) {
+          map[row.id] = row.suspensoes;
+        }
+      }
+      this.suspensaoHistoricoPorMovimento.set(map);
+    });
+  }
+
+  private handleApiError(err: ApiError, fallback: string, extra?: () => void): void {
+    this.loading.set(false);
+    extra?.();
+    this.toast.error(err?.message ?? fallback);
+  }
+
+  private formatarHorario(valor: string | null | undefined): string {
+    if (!valor?.trim()) return '--:--';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private formatarDataMonitoramento(valor: string | null | undefined): string {
+    if (!valor?.trim()) return '--/--/--';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return '--/--/--';
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    });
+  }
+
+  private tempoRelativo(valor: string | null | undefined): string {
+    if (!valor?.trim()) return 'agora';
+    const d = new Date(valor);
+    if (Number.isNaN(d.getTime())) return 'agora';
+    const diffMs = Math.max(0, Date.now() - d.getTime());
+    const minutos = Math.floor(diffMs / 60000);
+    if (minutos < 1) return 'agora';
+    if (minutos < 60) return `${minutos} min atrás`;
+    const horas = Math.floor(minutos / 60);
+    return `${horas} h atrás`;
+  }
+
+  private buscarDadosRegistroRapidoPorPlaca(placaNorm: string): void {
+    this.buscandoPlacaRegistroRapido = true;
+    this.service.obterPorPlaca(placaNorm).subscribe({
+      next: (entrada) => {
+        this.buscandoPlacaRegistroRapido = false;
+        const placaAtualNorm = normalizePlaca(this.registroRapido.placa);
+        if (placaAtualNorm !== placaNorm) {
+          return;
+        }
+        if (!entrada) {
+          this.limparCamposVinculadosPlacaRegistroRapido();
+          return;
+        }
+        this.aplicarRespostaEntradaPorPlacaNaTela(entrada);
+      },
+      error: () => {
+        this.buscandoPlacaRegistroRapido = false;
+        this.limparCamposVinculadosPlacaRegistroRapido();
+      }
+    });
+  }
+
+  private aplicarMascaraCpf(value: string | null | undefined): string {
+    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+
+  /**
+   * Valida todos os campos obrigatórios do registro rápido.
+   * Só retorna null quando pode chamar `postEntradaSaidaAposValidacao` (POST EntradaSaida).
+   * Ordem da primeira falha: placa, motorista e CPF.
+   */
+  private mensagemValidacaoCamposObrigatoriosEntrada(): string | null {
+    const placaNorm = normalizePlaca(this.registroRapido.placa);
+    if (!placaCompleta(placaNorm)) {
+      return 'Informe uma placa válida.';
+    }
+    if (!String(this.registroRapido.motorista ?? '').trim()) {
+      return 'Informe o nome do motorista.';
+    }
+    if (!this.cpfPossui11Digitos(this.registroRapido.motoristaCpf)) {
+      return 'Informe o CPF completo do motorista (11 dígitos).';
+    }
+    return null;
+  }
+
+  private cpfPossui11Digitos(valor: string | null | undefined): boolean {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    return digits.length === 11;
+  }
+
+  /** Telefone BR com DDD obrigatório: 10 dígitos (fixo) ou 11 (celular com 9). */
+  private telefoneResponsavelValido(valor: string | null | undefined): boolean {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    return digits.length === 10 || digits.length === 11;
+  }
+
+  /** Somente dígitos para envio à API (sem máscara). */
+  private telefoneSomenteDigitosParaApi(valor: string | null | undefined): string | undefined {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    if (digits.length !== 10 && digits.length !== 11) return undefined;
+    return digits;
+  }
+
+  /** Validação do CNPJ no registro rápido (14 dígitos numéricos). */
+  private cnpjPossui14Digitos(valor: string | null | undefined): boolean {
+    const digits = String(valor ?? '').replace(/\D/g, '');
+    return digits.length === 14;
+  }
+
+  private aplicarMascaraCnpj(value: string | null | undefined): string {
+    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    }
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  }
+
+  private buscarTransportadoraPorCnpjRegistroRapido(cnpjDigits: string): void {
+    const seq = ++this.consultaCnpjSequencia;
+    this.buscandoTransportadoraPorCnpj = true;
+    this.transportadoraService.obterTransportadoraPorCnpj(cnpjDigits).subscribe({
+      next: (dto) => {
+        if (seq !== this.consultaCnpjSequencia) return;
+        this.buscandoTransportadoraPorCnpj = false;
+        const cnpjAtual = String(this.registroRapido.transportadoraCnpj ?? '').replace(/\D/g, '');
+        if (cnpjAtual !== cnpjDigits) return;
+        if (!dto) {
+          this.transportadoraAutoPreenchidaPorCnpj = false;
+          return;
+        }
+        this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
+          dto.nomeFantasia || dto.razaoSocial || ''
+        );
+        this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(dto.responsavelNome ?? '');
+        this.registroRapido.transportadoraResponsavelTelefone = this.formatarTelefoneRegistroRapido(
+          dto.responsavelCelular ?? dto.telefone ?? ''
+        );
+        this.transportadoraAutoPreenchidaPorCnpj = true;
+      },
+      error: () => {
+        if (seq !== this.consultaCnpjSequencia) return;
+        this.buscandoTransportadoraPorCnpj = false;
+        this.transportadoraAutoPreenchidaPorCnpj = false;
+      }
+    });
+  }
+
+  private buscarMotoristaPorCpfRegistroRapido(cpfDigits: string): void {
+    const seq = ++this.consultaCpfSequencia;
+    const tid = this.registroRapidoTransportadoraId;
+    if (!(tid > 0)) {
+      this.buscandoMotoristaPorCpf = false;
+      this.motoristaAutoPreenchidoPorCpf = false;
+      return;
+    }
+    this.buscandoMotoristaPorCpf = true;
+    this.motoristaService.obterPorCpf(cpfDigits, tid).subscribe({
+      next: (dto) => {
+        if (seq !== this.consultaCpfSequencia) return;
+        this.buscandoMotoristaPorCpf = false;
+        const cpfAtual = String(this.registroRapido.motoristaCpf ?? '').replace(/\D/g, '');
+        if (cpfAtual !== cpfDigits) return;
+        if (!dto) {
+          this.motoristaAutoPreenchidoPorCpf = false;
+          return;
+        }
+        this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(dto.cpf || cpfDigits);
+        this.registroRapido.motorista = this.encurtarTextoLivre(dto.nomeCompleto ?? '');
+        this.motoristaAutoPreenchidoPorCpf = true;
+      },
+      error: () => {
+        if (seq !== this.consultaCpfSequencia) return;
+        this.buscandoMotoristaPorCpf = false;
+        this.motoristaAutoPreenchidoPorCpf = false;
+      }
+    });
+  }
+
+  private limparCamposVinculadosPlacaRegistroRapido(): void {
+    this.registroRapido.motorista = '';
+    this.registroRapido.motoristaCpf = '';
+    this.motoristaAutoPreenchidoPorCpf = false;
+    this.ultimaConsultaCpfRegistroRapido = '';
+    this.consultaCpfSequencia++;
+    this.registroRapido.transportadoraRazaoSocial = '';
+    this.registroRapido.transportadoraCnpj = '';
+    this.registroRapido.transportadoraResponsavelNome = '';
+    this.registroRapido.transportadoraResponsavelTelefone = '';
+    this.registroRapido.tipoCarga = '';
+    this.transportadoraAutoPreenchidaPorCnpj = false;
+    this.ultimaConsultaCnpjRegistroRapido = '';
+    this.consultaCnpjSequencia++;
+    this.camposBloqueadosPorPlaca = false;
+    this.existeEntradaEmAbertoPorPlaca = false;
+    this.registroRapidoSuspenso = false;
+    this.alertaAcordoRegistroRapido = '';
+    this.alertaAcordoExcedente = false;
+    this.registroRapidoEntradaId = 0;
+    this.registroRapidoTransportadoraId = 0;
+    this.fecharSelecionarMotoristaPlaca();
+  }
+
+  private limparCamposDetalheTransportadoraRegistroRapido(): void {
+    this.registroRapido.transportadoraRazaoSocial = '';
+    this.registroRapido.transportadoraResponsavelNome = '';
+    this.registroRapido.transportadoraResponsavelTelefone = '';
+  }
+
+  private aplicarRespostaEntradaPorPlacaNaTela(entrada: EntradaSaidaOutput): void {
+    const motoristas = extrairMotoristasVinculados(entrada);
+    if (motoristas.length > 1) {
+      this.aplicarCamposPlacaExcetoMotorista(entrada);
+      this.entradaPendenteSelecaoMotorista = entrada;
+      this.motoristasVinculadosPlaca = motoristas;
+      this.showSelecionarMotoristaPlaca.set(true);
+      return;
+    }
+
+    this.aplicarRespostaEntradaPorPlacaComMotorista(entrada, motoristas[0] ?? null);
+  }
+
+  /** Preenche veículo/transportadora/status sem sobrescrever motorista (aguardando seleção). */
+  private aplicarCamposPlacaExcetoMotorista(entrada: EntradaSaidaOutput): void {
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada, null);
+    if (campos.placa) {
+      this.registroRapido.placa = campos.placa;
+    }
+    this.registroRapido.motorista = '';
+    this.registroRapido.motoristaCpf = '';
+    this.motoristaAutoPreenchidoPorCpf = false;
+    if (campos.transportadoraRazaoSocial) {
+      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
+        campos.transportadoraRazaoSocial
+      );
+    }
+    if (String(campos.transportadoraCnpj).replace(/\D/g, '').length > 0) {
+      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(campos.transportadoraCnpj);
+    }
+    if (campos.transportadoraResponsavelNome) {
+      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(
+        campos.transportadoraResponsavelNome
+      );
+    }
+    if (campos.transportadoraResponsavelTelefone) {
+      this.registroRapido.transportadoraResponsavelTelefone = campos.transportadoraResponsavelTelefone;
+    }
+    if (campos.tipoCargaLabel) {
+      this.registroRapido.tipoCarga = campos.tipoCargaLabel;
+    }
+    this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.registroRapidoSuspenso = campos.existeEntradaEmAberto && this.estaSuspenso(entrada);
+    this.aplicarAlertaAcordoRegistroRapido(campos);
+    this.camposBloqueadosPorPlaca = true;
+    this.registroRapidoEntradaId =
+      campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;
+    this.registroRapidoTransportadoraId =
+      entrada.transportadoraId > 0
+        ? entrada.transportadoraId
+        : Number(entrada.transportadora?.id ?? 0) || 0;
+  }
+
+  private aplicarRespostaEntradaPorPlacaComMotorista(
+    entrada: EntradaSaidaOutput,
+    motorista: EntradaSaidaMotoristaVinculoItem | null
+  ): void {
+    const campos = mapBuscarPorPlacaParaRegistroRapido(entrada, motorista);
+    if (campos.placa) {
+      this.registroRapido.placa = campos.placa;
+    }
+    if (campos.motoristaNome) {
+      this.registroRapido.motorista = this.encurtarTextoLivre(campos.motoristaNome);
+      this.motoristaAutoPreenchidoPorCpf = true;
+    } else {
+      this.registroRapido.motorista = '';
+      this.motoristaAutoPreenchidoPorCpf = false;
+    }
+    if (campos.motoristaCpf) {
+      this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(campos.motoristaCpf);
+      this.ultimaConsultaCpfRegistroRapido = String(campos.motoristaCpf).replace(/\D/g, '');
+    } else {
+      this.registroRapido.motoristaCpf = '';
+      this.ultimaConsultaCpfRegistroRapido = '';
+    }
+    if (campos.transportadoraRazaoSocial) {
+      this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
+        campos.transportadoraRazaoSocial
+      );
+    }
+    if (String(campos.transportadoraCnpj).replace(/\D/g, '').length > 0) {
+      this.registroRapido.transportadoraCnpj = this.aplicarMascaraCnpj(campos.transportadoraCnpj);
+    }
+    if (campos.transportadoraResponsavelNome) {
+      this.registroRapido.transportadoraResponsavelNome = this.encurtarTextoLivre(
+        campos.transportadoraResponsavelNome
+      );
+    }
+    if (campos.transportadoraResponsavelTelefone) {
+      this.registroRapido.transportadoraResponsavelTelefone = campos.transportadoraResponsavelTelefone;
+    }
+    if (campos.tipoCargaLabel) {
+      this.registroRapido.tipoCarga = campos.tipoCargaLabel;
+    }
+    this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.registroRapidoSuspenso = campos.existeEntradaEmAberto && this.estaSuspenso(entrada);
+    this.aplicarAlertaAcordoRegistroRapido(campos);
+    this.camposBloqueadosPorPlaca = true;
+    this.registroRapidoEntradaId =
+      campos.existeEntradaEmAberto && entrada.id > 0 ? entrada.id : 0;
+    this.registroRapidoTransportadoraId =
+      entrada.transportadoraId > 0
+        ? entrada.transportadoraId
+        : Number(entrada.transportadora?.id ?? 0) || 0;
+  }
+
+  selecionarMotoristaVinculadoPlaca(item: EntradaSaidaMotoristaVinculoItem): void {
+    const entrada = this.entradaPendenteSelecaoMotorista;
+    this.fecharSelecionarMotoristaPlaca();
+    if (!entrada) return;
+    this.aplicarRespostaEntradaPorPlacaComMotorista(entrada, item);
+  }
+
+  fecharSelecionarMotoristaPlaca(): void {
+    this.showSelecionarMotoristaPlaca.set(false);
+    this.motoristasVinculadosPlaca = [];
+    this.entradaPendenteSelecaoMotorista = null;
+  }
+
+  formatarCpfListaMotorista(cpf: string | null | undefined): string {
+    return this.aplicarMascaraCpf(cpf) || '—';
+  }
+
+  formatarPrincipalListaMotorista(principal: boolean | null | undefined): string {
+    if (principal === true) return 'Sim';
+    if (principal === false) return 'Não';
+    return '—';
+  }
+
+  private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {
+    return formatTelefone(String(valor ?? ''));
+  }
+
+  private encurtarTextoLivre(valor: string | null | undefined): string {
+    return this.cortarAte(String(valor ?? ''), this.registroRapidoMaxTexto);
+  }
+
+  private cortarAte(texto: string, max: number): string {
+    if (texto.length <= max) return texto;
+    return texto.slice(0, max);
+  }
+
+  private observacaoParaApi(observacao: string | undefined): string | undefined {
+    const t = observacao?.trim();
+    if (!t) return undefined;
+    return this.cortarAte(t, this.registroRapidoMaxTexto);
+  }
+
+  private toIsoOrUndefined(value: string | null | undefined): string | undefined {
+    const iso = datetimeLocalInputToApiIso(value);
+    return iso || undefined;
+  }
+
+  /**
+   * Carrega monitoramento/alertas via HTTP no escopo do pátio (JWT + EstacionamentoId).
+   * Na portaria Admin/Transportadora esta lista é a fonte da verdade (não usa hub cruzado).
+   */
+  private carregarMonitoramentoDoPatio(): void {
+    if (!this.isPortariaView() || this.auth.needsEstacionamentoSelection()) {
+      this.monitoramentoHttpSeed.set([]);
+      return;
+    }
+
+    const hoje = criarDataHoje();
+    this.cancelarMonitoramentoPortaria$.next();
+    this.entradaSaidaService
+      .buscar({
+        numeroPagina: 1,
+        tamanhoPagina: 10,
+        estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
+        dataInicial: toIsoDateTimeStart(hoje),
+        dataFinal: toIsoDateTimeEnd(hoje),
+        propriedade: 'DataHoraEntrada',
+        sort: 'Desc'
+      })
+      .pipe(takeUntil(this.cancelarMonitoramentoPortaria$))
+      .subscribe({
+        next: (paged) => {
+          const mapped = (paged.items ?? [])
+            .filter((item) => this.itemPertenceAoPatioSessao(item))
+            .map((item, index) => this.mapSearchItemParaMonitoramento(item, index))
+            .filter((item): item is MovimentacaoTempoRealVm => item != null)
+            .sort((a, b) => b.horarioSortMs - a.horarioSortMs);
+          this.monitoramentoHttpSeed.set(mapped);
+        },
+        error: () => {
+          this.monitoramentoHttpSeed.set([]);
+        }
+      });
+  }
+
+  /** EstacionamentoId da sessão (Admin/Transportadora) ou do vínculo fixo. */
+  private estacionamentoIdDaSessao(): number | null {
+    const id = this.auth.resolveEstacionamentoId();
+    return id != null && id > 0 ? id : null;
+  }
+
+  /** Defesa no client quando a API ainda devolve itens de outro pátio. */
+  private itemPertenceAoPatioSessao(item: EntradaSaidaSearchOutput): boolean {
+    const sessionId = this.estacionamentoIdDaSessao();
+    if (sessionId == null) return true;
+    const itemId = item.estacionamentoId;
+    if (itemId == null || itemId <= 0) {
+      // Sem campo no DTO: confia no filtro da query/JWT.
+      return true;
+    }
+    return itemId === sessionId;
+  }
+
+  private mapSearchItemParaMonitoramento(
+    item: EntradaSaidaSearchOutput,
+    index: number
+  ): MovimentacaoTempoRealVm | null {
+    if (!item) return null;
+    const saidaIso = item.dataHoraSaida?.trim() || null;
+    const entradaIso = item.dataHoraEntrada?.trim() || '';
+    const statusLabel = entradaSaidaStatusLabel(parseEntradaSaidaStatus(item.status)) || '';
+    const status = this.mapStatusHubParaMonitoramento(statusLabel, !!saidaIso);
+    const sortIso = saidaIso || entradaIso;
+    const horarioSortMs = sortIso ? Date.parse(sortIso) : 0;
+
     return {
-      placa: '',
-      modeloVeiculo: '',
-      anoFabricacao: '',
-      quantidadeEixos: '',
-      transportadora: '',
-      condutor: '',
-      cpf: '',
-      observacao: '',
+      id: String(item.id || `${item.placaVeiculo || 'item'}-${entradaIso || index}`),
+      horario: this.formatarHorario(saidaIso || entradaIso),
+      horarioSortMs: Number.isNaN(horarioSortMs) ? 0 : horarioSortMs,
+      placa: item.placaVeiculo?.trim() || '—',
+      motorista: item.nomeMotorista?.trim() || '—',
+      transportadora: item.nomeTransportadora?.trim() || '—',
+      status,
+      statusLabel:
+        statusLabel || (status === 'saida' ? 'Saída' : status === 'aberto' ? 'Aberto' : 'Entrada'),
+      dataHoraEntrada: entradaIso,
+      dataHoraSaida: saidaIso
     };
+  }
+
+  private mapMovimentacaoHubParaVm(
+    source: MovimentacaoAtualizadaItem | unknown,
+    index: number
+  ): MovimentacaoTempoRealVm | null {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      return null;
+    }
+
+    const row = source as Record<string, unknown>;
+
+    const asText = (value: unknown): string => {
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+      return '';
+    };
+
+    const pickText = (...keys: string[]): string => {
+      for (const key of keys) {
+        const direct = asText(row[key] ?? row[key.charAt(0).toUpperCase() + key.slice(1)]);
+        if (direct) return direct;
+
+        const nested = row[key];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          const obj = nested as Record<string, unknown>;
+          const nestedText =
+            asText(obj['nome']) ||
+            asText(obj['Nome']) ||
+            asText(obj['placa']) ||
+            asText(obj['Placa']) ||
+            asText(obj['razaoSocial']) ||
+            asText(obj['RazaoSocial']) ||
+            asText(obj['descricao']) ||
+            asText(obj['Descricao']);
+          if (nestedText) return nestedText;
+        }
+      }
+      return '';
+    };
+
+    const horarioIso = pickText('horario', 'dataHoraEntrada', 'entradaEm', 'dataEntrada');
+    const saidaIso = pickText('dataHoraSaida', 'saidaEm', 'dataSaida') || null;
+    const statusLabel = pickText('status', 'statusDescricao', 'Situacao', 'situacao');
+    const status = this.mapStatusHubParaMonitoramento(statusLabel, !!saidaIso);
+    const sortIso = saidaIso || horarioIso;
+    const horarioSortMs = sortIso ? Date.parse(sortIso) : 0;
+
+    // Backend envia Guid em `id` — não converter para number (NaN quebrava o track do @for).
+    const id =
+      pickText('id', 'entradaSaidaId', 'movimentacaoId') ||
+      `${pickText('veiculo', 'placa') || 'item'}-${horarioIso || index}`;
+
+    return {
+      id,
+      horario: this.formatarHorario(horarioIso),
+      horarioSortMs: Number.isNaN(horarioSortMs) ? 0 : horarioSortMs,
+      placa: pickText('veiculo', 'placa', 'placaVeiculo') || '—',
+      motorista: pickText('motorista', 'nomeMotorista', 'motoristaNome') || '—',
+      transportadora:
+        pickText('transportadora', 'nomeTransportadora', 'razaoSocial', 'nomeFantasia') || '—',
+      status,
+      statusLabel:
+        statusLabel || (status === 'saida' ? 'Saída' : status === 'aberto' ? 'Aberto' : 'Entrada'),
+      dataHoraEntrada: horarioIso,
+      dataHoraSaida: saidaIso
+    };
+  }
+
+  private mapStatusHubParaMonitoramento(
+    statusLabel: string,
+    temSaida: boolean
+  ): StatusMonitoramento {
+    const parsed = parseEntradaSaidaStatus(statusLabel);
+    if (parsed === EntradaSaidaStatus.Saida || parsed === EntradaSaidaStatus.Cancelado) {
+      return 'saida';
+    }
+    if (parsed === EntradaSaidaStatus.Agendado || parsed === EntradaSaidaStatus.Suspenso) {
+      return 'aberto';
+    }
+    if (parsed === EntradaSaidaStatus.Entrada) {
+      return 'entrada';
+    }
+
+    const normalized = statusLabel
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+
+    if (temSaida || normalized.includes('saida')) return 'saida';
+    if (normalized.includes('agend') || normalized.includes('aberto') || normalized.includes('patio')) {
+      return 'aberto';
+    }
+    if (normalized.includes('entrada')) return 'entrada';
+    return temSaida ? 'saida' : 'entrada';
   }
 }

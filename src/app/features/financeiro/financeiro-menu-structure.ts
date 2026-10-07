@@ -1,0 +1,90 @@
+/**
+ * Estrutura plana (nível API) do menu Financeiro → Faturamento/Pagamento → abas.
+ * O frontend recompõe a árvore visual com `nestSubMenusByRoute`.
+ */
+import type { MenuSubItem } from '../cadastro/constants/menu-structure';
+import {
+  FATURAMENTO_CONFIG_LABEL,
+  FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_RELATORIO_LABEL,
+  FATURAMENTO_RELATORIO_ROUTE,
+  FATURAMENTO_ROUTE,
+  FATURAMENTO_TABS,
+  FINANCEIRO_ROUTE,
+  PAGAMENTOS_RELATORIO_LABEL,
+  PAGAMENTOS_RELATORIO_ROUTE,
+  PAGAMENTOS_ROUTE,
+} from './faturamento-rotas';
+import { defaultExibirNoSidebar } from '../gerenciamento/services/menu-sidebar-visibility';
+
+export interface FinanceiroFlatSubMenuDef {
+  nome: string;
+  rota: string;
+  exibirNoSidebar: boolean;
+}
+
+/**
+ * Telas do Faturamento — permissões independentes (não herdam seleção do pai).
+ * Sidebar pode aninhar por rota; seed/permissões usam lista plana.
+ */
+export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
+  {
+    id: 'sub-faturamento',
+    label: 'Faturamento',
+    route: FATURAMENTO_ROUTE,
+  },
+  ...FATURAMENTO_TABS.map((t) => ({
+    id: `sub-faturamento-${t.id}`,
+    label: t.label,
+    route: t.route,
+  })),
+  {
+    id: 'sub-faturamento-cobranca',
+    label: FATURAMENTO_CONFIG_LABEL,
+    route: FATURAMENTO_CONFIG_ROUTE,
+  },
+  {
+    id: 'sub-faturamento-relatorio',
+    label: FATURAMENTO_RELATORIO_LABEL,
+    route: FATURAMENTO_RELATORIO_ROUTE,
+  },
+];
+
+/** Definição canônica do módulo Financeiro para seed/admin/permissões. */
+export const FINANCEIRO_MENU_TREE: MenuSubItem[] = [
+  ...FINANCEIRO_FATURAMENTO_CHILDREN,
+  {
+    id: 'sub-pagamentos',
+    label: 'Pagamento',
+    route: PAGAMENTOS_ROUTE,
+  },
+  {
+    id: 'sub-pagamentos-relatorio',
+    label: PAGAMENTOS_RELATORIO_LABEL,
+    route: PAGAMENTOS_RELATORIO_ROUTE,
+  },
+];
+
+export function flattenFinanceiroMenuTree(items: MenuSubItem[] = FINANCEIRO_MENU_TREE): FinanceiroFlatSubMenuDef[] {
+  const out: FinanceiroFlatSubMenuDef[] = [];
+
+  const walk = (nodes: MenuSubItem[]) => {
+    for (const node of nodes) {
+      out.push({
+        nome: node.label,
+        rota: node.route,
+        exibirNoSidebar: defaultExibirNoSidebar(node.route),
+      });
+      if (node.children?.length) {
+        walk(node.children);
+      }
+    }
+  };
+
+  walk(items);
+  return out;
+}
+
+export function getFinanceiroMenuRoute(): string {
+  return FINANCEIRO_ROUTE;
+}

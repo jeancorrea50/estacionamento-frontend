@@ -1,0 +1,155 @@
+<div class="pub-page">
+  <div class="pub-card" role="main">
+    <header class="pub-card__header">
+      <div class="pub-card__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">local_shipping</span>
+      </div>
+      <div>
+        <h1 class="pub-card__title">Cadastro da Transportadora</h1>
+        <p class="pub-card__subtitle">
+          Complete os dados da empresa. Frota e motoristas poderão ser gerenciados após o acesso.
+        </p>
+      </div>
+    </header>
+
+    @if (state() === 'loading') {
+      <p class="pub-msg">Validando convite…</p>
+    }
+
+    @if (state() === 'invalid' || state() === 'expired' || state() === 'error') {
+      <div class="pub-banner pub-banner--error" role="alert">
+        <p>{{ message() }}</p>
+        <a routerLink="/" class="pub-link">Ir para o login</a>
+      </div>
+    }
+
+    @if (state() === 'done') {
+      <div class="pub-banner pub-banner--ok" role="status">
+        <p>{{ message() || 'Cadastro concluído.' }}</p>
+        <a routerLink="/" class="pub-link">Ir para o login</a>
+      </div>
+    }
+
+    @if (state() === 'ready') {
+      @if (convite(); as c) {
+        <div class="pub-meta">
+          <span>Status: {{ statusLabel[c.status] }}</span>
+          @if (c.estacionamentoNome) {
+            <span>Pátio: {{ c.estacionamentoNome }}</span>
+          }
+        </div>
+      }
+
+      <form class="pub-form" [formGroup]="form" (ngSubmit)="concluir()" novalidate>
+        <section class="pub-section">
+          <h2>Empresa</h2>
+          <div class="pub-grid">
+            <label class="pub-field pub-field--full">
+              <span>Razão social *</span>
+              <input formControlName="razaoSocial" autocomplete="organization" />
+            </label>
+            <label class="pub-field">
+              <span>Nome fantasia</span>
+              <input formControlName="nomeFantasia" />
+            </label>
+            <label class="pub-field">
+              <span>CNPJ *</span>
+              <input formControlName="cnpj" appCnpjFormat inputmode="numeric" />
+            </label>
+            <label class="pub-field">
+              <span>Inscrição estadual</span>
+              <input formControlName="inscricaoEstadual" />
+            </label>
+            <label class="pub-field">
+              <span>E-mail da empresa</span>
+              <input type="email" formControlName="email" />
+            </label>
+            <label class="pub-field">
+              <span>Telefone</span>
+              <input formControlName="telefone" />
+            </label>
+          </div>
+        </section>
+
+        <section class="pub-section">
+          <h2>Responsável</h2>
+          <div class="pub-grid">
+            <label class="pub-field pub-field--full">
+              <span>Nome completo *</span>
+              <input formControlName="responsavelNome" autocomplete="name" />
+            </label>
+            <label class="pub-field">
+              <span>CPF *</span>
+              <input formControlName="responsavelCpf" appCpfFormat inputmode="numeric" />
+            </label>
+            <label class="pub-field">
+              <span>E-mail *</span>
+              <input type="email" formControlName="responsavelEmail" autocomplete="email" />
+            </label>
+            <label class="pub-field">
+              <span>Telefone</span>
+              <input formControlName="responsavelTelefone" />
+            </label>
+          </div>
+        </section>
+
+        <section class="pub-section">
+          <h2>Endereço</h2>
+          <div class="pub-grid">
+            <label class="pub-field">
+              <span>CEP</span>
+              <input formControlName="cep" />
+            </label>
+            <label class="pub-field pub-field--wide">
+              <span>Logradouro</span>
+              <input formControlName="logradouro" />
+            </label>
+            <label class="pub-field">
+              <span>Número</span>
+              <input formControlName="numero" />
+            </label>
+            <label class="pub-field">
+              <span>Complemento</span>
+              <input formControlName="complemento" />
+            </label>
+            <label class="pub-field">
+              <span>Bairro</span>
+              <input formControlName="bairro" />
+            </label>
+            <label class="pub-field">
+              <span>Cidade</span>
+              <input formControlName="cidade" />
+            </label>
+            <label class="pub-field">
+              <span>UF</span>
+              <input formControlName="estado" maxlength="2" />
+            </label>
+          </div>
+        </section>
+
+        <p class="pub-hint">
+          Frota e motoristas são cadastrados pela própria transportadora após a conclusão e o acesso ao
+          sistema.
+        </p>
+
+        @if (message()) {
+          <p class="pub-banner pub-banner--info" role="status">{{ message() }}</p>
+        }
+
+        <footer class="pub-actions">
+          <button
+            type="button"
+            class="pub-btn pub-btn--ghost"
+            (click)="salvarRascunho()"
+            [disabled]="salvando() || concluindo()"
+          >
+            {{ salvando() ? 'Salvando…' : 'Salvar e continuar depois' }}
+          </button>
+          <button type="submit" class="pub-btn pub-btn--primary" [disabled]="concluindo() || salvando() || form.invalid">
+            {{ concluindo() ? 'Concluindo…' : 'Concluir cadastro' }}
+          </button>
+        </footer>
+      </form>
+    }
+  </div>
+</div>

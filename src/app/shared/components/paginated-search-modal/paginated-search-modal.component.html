@@ -1,0 +1,65 @@
+@if (aberto()) {
+  <div class="modal-overlay" (click)="fechar.emit()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>{{ titulo() }}</h2>
+      <div class="busca-topo">
+        <input
+          class="input-control"
+          [ngModel]="termoLocal()"
+          (ngModelChange)="termoLocal.set($event)"
+          [placeholder]="placeholder()"
+          (keydown.enter)="onPesquisar()"
+        />
+        <button class="btn btn-secondary" type="button" (click)="onPesquisar()">Pesquisar</button>
+      </div>
+
+      @if (loading()) {
+        <p class="loading-msg">Carregando...</p>
+      } @else {
+        @if (itens().length > 0) {
+          <div class="lista-head" [style.grid-template-columns]="gridCols()">
+            <span>{{ coluna1Label() }}</span>
+            <span>{{ coluna2Label() }}</span>
+            <span>{{ coluna3Label() }}</span>
+            @if (mostrarColuna4()) {
+              <span>{{ coluna4Label() }}</span>
+            }
+            @if (mostrarColuna5()) {
+              <span>{{ coluna5Label() }}</span>
+            }
+          </div>
+        }
+        <div class="lista">
+          @for (item of itens(); track item.id) {
+            <button class="linha" type="button" (click)="onSelecionar(item)" [style.grid-template-columns]="gridCols()">
+              <span class="linha__col linha__col--titulo">{{ item.titulo }}</span>
+              <span class="linha__col">{{ item.campo2 ?? item.subtitulo ?? '—' }}</span>
+              <span class="linha__col">{{ item.campo3 ?? '—' }}</span>
+              @if (mostrarColuna4()) {
+                <span class="linha__col">{{ item.campo4 ?? '—' }}</span>
+              }
+              @if (mostrarColuna5()) {
+                <span class="linha__col">{{ item.campo5 ?? '—' }}</span>
+              }
+            </button>
+          }
+        </div>
+        @if (itens().length === 0) {
+          <p class="empty-msg">Nenhum resultado encontrado.</p>
+        }
+      }
+
+      <div class="paginacao">
+        <span>Página {{ numeroPagina() }} de {{ paginaTotal() }} ({{ totalCount() }} registros)</span>
+        <div class="paginacao__acoes">
+          <button class="btn btn-secondary btn--sm" type="button" [disabled]="numeroPagina() <= 1" (click)="mudarPagina.emit(numeroPagina() - 1)">Anterior</button>
+          <button class="btn btn-secondary btn--sm" type="button" [disabled]="numeroPagina() >= paginaTotal()" (click)="mudarPagina.emit(numeroPagina() + 1)">Próxima</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" (click)="fechar.emit()">Fechar</button>
+      </div>
+    </div>
+  </div>
+}

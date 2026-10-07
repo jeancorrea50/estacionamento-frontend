@@ -1,0 +1,365 @@
+/* Modal de seleção de estacionamento — tokens do tema + grid padrão (.table-wrap / .data-table). */
+
+.aes-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg, #0f172a) 72%, #000 28%);
+  backdrop-filter: blur(6px);
+}
+
+.aes-modal {
+  --aes-fg: var(--text, var(--text-primary, #f8fafc));
+  --aes-fg-muted: var(--muted, var(--text-secondary, #94a3b8));
+  --aes-fg-soft: var(--text-muted, var(--muted, #64748b));
+  --aes-surface: var(--surface, var(--color-bg-card, #1a243a));
+  --aes-surface-2: var(--surface-2, var(--color-bg-card-secondary, #151d30));
+  --aes-border: var(--border-subtle, var(--border, rgba(255, 255, 255, 0.1)));
+  --aes-accent: var(--primary, var(--accent, #3b82f6));
+  --aes-accent-soft: color-mix(in srgb, var(--aes-accent) 18%, transparent);
+  --aes-btn-bg: var(--btn-primary-bg, var(--aes-accent));
+  --aes-btn-bg-hover: var(--btn-primary-bg-hover, var(--aes-accent));
+  --aes-btn-fg: var(--btn-primary-text, #ffffff);
+  --aes-input-bg: var(--color-bg-input, color-mix(in srgb, var(--aes-surface-2) 90%, #000 10%));
+  --aes-shadow: 0 24px 64px color-mix(in srgb, #000 45%, transparent);
+
+  width: min(1280px, 100%);
+  max-height: min(92vh, 780px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg, 16px);
+  background: var(--aes-surface);
+  color: var(--aes-fg);
+  border: 1px solid var(--aes-border);
+  box-shadow: var(--aes-shadow);
+  overflow: hidden;
+}
+
+.aes-modal__header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--aes-border);
+}
+
+.aes-modal__badge {
+  flex: 0 0 auto;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--aes-accent-soft);
+  color: var(--aes-accent);
+}
+
+.aes-modal__badge .material-symbols-outlined {
+  font-size: 1.3rem;
+}
+
+.aes-modal__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--aes-fg);
+}
+
+.aes-modal__body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  flex: 1;
+}
+
+.aes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.aes-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.aes-search__icon {
+  position: absolute;
+  left: 0.7rem;
+  color: var(--aes-fg-soft);
+  font-size: 1.15rem;
+  pointer-events: none;
+}
+
+.aes-search__input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 2.4rem 0.55rem 2.4rem;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--aes-border);
+  background: var(--aes-input-bg);
+  color: var(--aes-fg);
+  font-size: var(--font-body, 14px);
+  outline: none;
+}
+
+.aes-search__input::placeholder {
+  color: var(--aes-fg-soft);
+}
+
+.aes-search__input:focus {
+  border-color: var(--focus, var(--aes-accent));
+  box-shadow: var(--focus-ring, 0 0 0 3px color-mix(in srgb, var(--aes-accent) 22%, transparent));
+}
+
+.aes-search__clear {
+  position: absolute;
+  right: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--aes-fg-soft);
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.aes-search__clear:hover {
+  background: color-mix(in srgb, var(--aes-fg) 8%, transparent);
+  color: var(--aes-fg);
+}
+
+.aes-meta {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  color: var(--aes-fg-muted);
+  white-space: nowrap;
+}
+
+.aes-table-wrap {
+  flex: 1;
+  min-height: 240px;
+  max-height: 460px;
+}
+
+.aes-table-wrap .data-table {
+  min-width: 1100px;
+}
+
+.aes-table-wrap .data-table tbody tr {
+  cursor: pointer;
+}
+
+.aes-table-wrap .data-table tbody tr.aes-row--active,
+.aes-table-wrap .data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--aes-accent) 10%, transparent);
+}
+
+.aes-table-wrap .data-table tbody tr.aes-row--selected {
+  background: color-mix(in srgb, var(--aes-accent) 16%, transparent);
+}
+
+.aes-cell-nowrap {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.aes-col-check {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.aes-cod {
+  display: inline-block;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--aes-accent);
+  background: var(--aes-accent-soft);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--aes-accent) 22%, transparent);
+}
+
+.aes-ambiente {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aes-fg) 8%, transparent);
+  color: var(--aes-fg-muted);
+  white-space: nowrap;
+}
+
+.aes-ambiente--dev {
+  background: color-mix(in srgb, var(--aes-accent) 18%, transparent);
+  color: var(--aes-accent);
+}
+
+.aes-ambiente--hot {
+  background: color-mix(in srgb, var(--warning, #ea580c) 18%, transparent);
+  color: var(--warning, #ea580c);
+}
+
+.aes-ambiente--prod {
+  background: color-mix(in srgb, var(--success, #16a34a) 18%, transparent);
+  color: var(--success, #16a34a);
+}
+
+.aes-check {
+  color: var(--aes-accent);
+  font-size: 1.15rem;
+  vertical-align: middle;
+}
+
+.aes-empty {
+  padding: 2rem 1rem !important;
+  text-align: center;
+  color: var(--aes-fg-muted);
+  border-bottom: none !important;
+}
+
+.aes-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--aes-fg-muted);
+}
+
+.aes-state p {
+  margin: 0;
+  color: var(--aes-fg);
+}
+
+.aes-state--error {
+  color: var(--danger, #dc2626);
+}
+
+.aes-state--error p {
+  color: var(--danger, #dc2626);
+}
+
+.aes-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.aes-spinner {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--aes-fg) 15%, transparent);
+  border-top-color: var(--aes-accent);
+  animation: aes-spin 0.7s linear infinite;
+}
+
+@keyframes aes-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.aes-modal__footer {
+  padding: 0.85rem 1.25rem 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-top: 1px solid var(--aes-border);
+}
+
+.aes-btn {
+  min-height: 2.45rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.92rem;
+}
+
+.aes-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.aes-btn--primary {
+  background: var(--aes-btn-bg);
+  color: var(--aes-btn-fg);
+}
+
+.aes-btn--primary:hover:not(:disabled) {
+  background: var(--aes-btn-bg-hover);
+  filter: brightness(1.03);
+}
+
+.aes-btn--ghost {
+  background: color-mix(in srgb, var(--aes-fg) 8%, transparent);
+  color: var(--aes-fg);
+  border: 1px solid var(--aes-border);
+}
+
+.aes-btn--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--aes-fg) 12%, transparent);
+}
+
+:host-context(html.theme-light) .aes-overlay {
+  background: color-mix(in srgb, #0f172a 42%, transparent);
+}
+
+:host-context(html.theme-light) .aes-modal {
+  --aes-fg: var(--text, #111827);
+  --aes-fg-muted: var(--muted, #6b7280);
+  --aes-fg-soft: var(--text-muted, #9ca3af);
+  --aes-surface: var(--surface, #ffffff);
+  --aes-surface-2: var(--surface-2, #f9fafb);
+  --aes-border: var(--border-subtle, #e5e7eb);
+  --aes-input-bg: var(--color-bg-input, #ffffff);
+  --aes-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+}
+
+:host-context(html.theme-dark) .aes-modal {
+  --aes-fg: var(--text, #f8fafc);
+  --aes-fg-muted: var(--muted, #cbd5e1);
+  --aes-fg-soft: var(--text-muted, #94a3b8);
+  --aes-surface: var(--surface, #1a243a);
+  --aes-surface-2: var(--surface-2, #151d30);
+  --aes-border: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  --aes-input-bg: color-mix(in srgb, var(--aes-surface-2) 86%, #000 14%);
+}
+
+@media (max-width: 760px) {
+  .aes-modal {
+    width: min(100%, 100vw - 1rem);
+  }
+
+  .aes-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aes-meta {
+    text-align: right;
+  }
+}

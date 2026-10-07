@@ -1,11 +1,52 @@
 /**
- * Estrutura do menu da aplicação (menu > módulos > submenus).
- * Usada na tela de Permissões para exibir e vincular permissões por item.
+ * Árvore FIXA da sidebar (fonte única de estrutura).
+ * O login só filtra o que o usuário pode ver — não redefine hierarquia/ordem.
  */
+import {
+  FATURAMENTO_CONFIG_LABEL,
+  FATURAMENTO_CONFIG_ROUTE,
+  FATURAMENTO_RELATORIO_LABEL,
+  FATURAMENTO_RELATORIO_ROUTE,
+  FATURAMENTO_ROUTE,
+  FINANCEIRO_ROUTE,
+  PAGAMENTOS_RELATORIO_LABEL,
+  PAGAMENTOS_RELATORIO_ROUTE,
+  PAGAMENTOS_ROUTE,
+} from '../../financeiro/faturamento-rotas';
+import {
+  CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
+  CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
+  CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
+  CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+  CADASTRO_TRANSPORTADORAS_ROUTE,
+  CADASTRO_VEICULOS_ROUTE,
+} from '../cadastro-rotas';
+import {
+  PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+  PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+  PATIO_MOVIMENTACOES_ROUTE,
+  PATIO_ROUTE,
+} from '../../patio/patio-rotas';
+import { AGENDAMENTO_ROUTE } from '../../agendamento/agendamento-rotas';
+import {
+  ADMINISTRACAO_ROUTE,
+  ADMINISTRACAO_USUARIO_ROUTE,
+  ADMINISTRACAO_PERMISSAO_ROUTE,
+} from '../../administracao/administracao-rotas';
+import { ECOSSISTEMA_LABEL, ECOSSISTEMA_ROUTE } from '../../ecossistema/ecossistema-rotas';
+import {
+  REDE_CREDENCIADA_LABEL,
+  REDE_CREDENCIADA_ROUTE,
+} from '../../rede-credenciada/rede-credenciada-rotas';
+
 export interface MenuSubItem {
   id: string;
   label: string;
   route: string;
+  children?: MenuSubItem[];
 }
 
 export interface MenuNode {
@@ -16,19 +57,94 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
-/** Estrutura completa do menu (espelha a sidebar). */
+/** Estrutura completa e fixa do menu lateral. */
 export const MENU_STRUCTURE: MenuNode[] = [
-  { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
-  { id: 'menu-movimentos', label: 'Movimentos', route: '/app/movimentos', icon: 'swap_horiz' },
-  { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
-  { id: 'menu-financeiro', label: 'Financeiro', route: '/app/financeiro', icon: 'payments' },
   {
-    id: 'menu-configuracoes',
-    label: 'Configurações',
-    route: '/app/configuracoes',
-    icon: 'settings',
+    id: 'menu-patio',
+    label: 'Pátio',
+    route: PATIO_ROUTE,
+    icon: 'local_parking',
     children: [
-      { id: 'sub-usuarios', label: 'Usuários', route: '/app/configuracoes/usuarios' },
+      {
+        id: 'sub-movimentacoes',
+        label: 'Movimentações',
+        route: PATIO_MOVIMENTACOES_ROUTE,
+      },
+      {
+        id: 'sub-movimentacoes-relatorio',
+        label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+        route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+      },
+      { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
+    ],
+  },
+  {
+    id: 'menu-agendamento',
+    label: 'Agendamento',
+    route: AGENDAMENTO_ROUTE,
+    icon: 'calendar_month',
+  },
+  {
+    id: 'menu-rede-credenciada',
+    label: REDE_CREDENCIADA_LABEL,
+    route: REDE_CREDENCIADA_ROUTE,
+    icon: 'map',
+  },
+  {
+    id: 'menu-financeiro',
+    label: 'Financeiro',
+    route: FINANCEIRO_ROUTE,
+    icon: 'payments',
+    children: [
+      { id: 'sub-faturamento', label: 'Faturamento', route: FATURAMENTO_ROUTE },
+      {
+        id: 'sub-faturamento-cobranca',
+        label: FATURAMENTO_CONFIG_LABEL,
+        route: FATURAMENTO_CONFIG_ROUTE,
+      },
+      {
+        id: 'sub-faturamento-relatorio',
+        label: FATURAMENTO_RELATORIO_LABEL,
+        route: FATURAMENTO_RELATORIO_ROUTE,
+      },
+      { id: 'sub-pagamentos', label: 'Pagamento', route: PAGAMENTOS_ROUTE },
+      {
+        id: 'sub-pagamentos-relatorio',
+        label: PAGAMENTOS_RELATORIO_LABEL,
+        route: PAGAMENTOS_RELATORIO_ROUTE,
+      },
+    ],
+  },
+  {
+    id: 'menu-cadastro',
+    label: 'Cadastro',
+    route: CADASTRO_ROUTE,
+    icon: 'local_shipping',
+    children: [
+      { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
+      { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
+      { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
+      {
+        id: 'sub-transportadoras-convites',
+        label: CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
+        route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
+      },
+      {
+        id: 'sub-transportadoras-relatorio',
+        label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
+        route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+      },
+    ],
+  },
+  {
+    id: 'menu-administracao',
+    label: 'Administração',
+    route: ADMINISTRACAO_ROUTE,
+    icon: 'manage_accounts',
+    children: [
+      { id: 'sub-usuario', label: 'Usuário', route: ADMINISTRACAO_USUARIO_ROUTE },
+      { id: 'sub-permissao', label: 'Permissão', route: ADMINISTRACAO_PERMISSAO_ROUTE },
+      { id: 'sub-ecossistema', label: ECOSSISTEMA_LABEL, route: ECOSSISTEMA_ROUTE },
     ],
   },
   {
@@ -37,31 +153,38 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: '/app/gerenciamento',
     icon: 'admin_panel_settings',
     children: [
-      { id: 'sub-acessos', label: 'Acessos', route: '/app/gerenciamento' },
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
-      { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
+      { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
+      { id: 'sub-estacionamento', label: 'Estacionamento', route: '/app/gerenciamento/estacionamento' },
+      { id: 'sub-horario', label: 'Horário', route: '/app/gerenciamento/horario' },
     ],
   },
   {
-    id: 'menu-cadastro',
-    label: 'Cadastro',
-    route: '/app/cadastro',
-    icon: 'playlist_add',
+    id: 'menu-configuracoes',
+    label: 'Configurações',
+    route: '/app/configuracoes',
+    icon: 'settings',
     children: [
-      { id: 'sub-estacionamento', label: 'Estacionamento', route: '/app/cadastro/estacionamento' },
-      { id: 'sub-transportadora', label: 'Transportadora', route: '/app/cadastro/transportadora' },
+      { id: 'sub-parametros', label: 'Parâmetros', route: '/app/configuracoes/parametros' },
     ],
   },
 ];
+
+function collectSubMenuIds(subs: MenuSubItem[], ids: string[]): void {
+  for (const sub of subs) {
+    ids.push(sub.id);
+    if (sub.children?.length) {
+      collectSubMenuIds(sub.children, ids);
+    }
+  }
+}
 
 /** Todos os nós (menu ou submenu) que podem ter permissões vinculadas. */
 export function getAllMenuNodeIds(): string[] {
   const ids: string[] = [];
   for (const node of MENU_STRUCTURE) {
     if (node.children?.length) {
-      for (const sub of node.children) {
-        ids.push(sub.id);
-      }
+      collectSubMenuIds(node.children, ids);
     } else {
       ids.push(node.id);
     }

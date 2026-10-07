@@ -1,0 +1,321 @@
+/** Contratos alinhados a `/api/financeiro/Fatura`. */
+
+export enum StatusFatura {
+  AguardandoEnvio = 1,
+  EmAberto = 2,
+  Parcial = 3,
+  Pago = 4,
+  Vencido = 5,
+  Cancelada = 6
+}
+
+export enum ModalidadeRecebimento {
+  Pix = 1,
+  Boleto = 2,
+  Transferencia = 3,
+  Cartao = 4
+}
+
+/** Alinhado a `Estac.Domain.Models.Enuns.TipoFatura`. */
+export enum TipoFatura {
+  Avulso = 1,
+  Cobranca = 2
+}
+
+export interface FaturaFilter {
+  transportadoraId?: number;
+  estacionamentoId?: number;
+  status?: StatusFatura;
+  modalidadeRecebimento?: ModalidadeRecebimento;
+  numero?: string;
+  descricao?: string;
+  dataInicial?: string;
+  dataFinal?: string;
+  numeroPagina: number;
+  tamanhoPagina: number;
+  propriedade?: string;
+  sort?: string;
+}
+
+export interface FaturaSearchOutput {
+  id: number;
+  numero: string;
+  transportadoraId: number;
+  transportadoraNome: string;
+  estacionamentoId: number;
+  estacionamentoNome: string;
+  tipoFatura: TipoFatura;
+  status: StatusFatura;
+  modalidadeRecebimento: ModalidadeRecebimento | null;
+  valorTotal: number;
+  valorRecebido: number;
+  valorEmAberto: number;
+  dataEmissao: string;
+  dataVencimento: string;
+  dataPagamento: string | null;
+}
+
+export interface FaturaOutput {
+  id: number;
+  dataCriacao?: string;
+  dataAtualizacao?: string | null;
+  transportadoraId: number;
+  transportadoraNome: string;
+  estacionamentoId: number;
+  estacionamentoNome: string;
+  configuracaoCobrancaId: number | null;
+  numero: string;
+  tipoFatura: TipoFatura;
+  status: StatusFatura;
+  modalidadeRecebimento: ModalidadeRecebimento | null;
+  valorTotal: number;
+  valorRecebido: number;
+  valorEmAberto: number;
+  valorDesconto: number;
+  valorAcrescimo: number;
+  valorJuros: number;
+  valorMulta: number;
+  dataEmissao: string;
+  dataVencimento: string;
+  dataPagamento: string | null;
+  periodoInicio: string;
+  periodoFim: string;
+  emailEnvio: string | null;
+  observacao: string | null;
+  itens?: FaturaItemOutput[];
+  valorTotalExcedente?: number;
+}
+
+export interface FaturaItemOutput {
+  id: number;
+  entradaSaidaId: number;
+  placa: string;
+  dataHoraEntrada: string;
+  dataHoraSaida: string;
+  tempoPermanenciaMinutos: number;
+  valorEstacionamento: number;
+  valorLavagem: number;
+  valorPernoite: number;
+  valorServicosExtras: number;
+  valorExcedente: number;
+  valorBeneficioAbastecimento: number;
+  valorTotal: number;
+  descricao: string | null;
+  ehExcedente: boolean;
+}
+
+/** POST `/api/financeiro/Fatura` — `estacionamentoId` obrigatório na prática (claim EmpresaId). */
+export interface FaturaPostInput {
+  transportadoraId: number;
+  estacionamentoId?: number | null;
+}
+
+export interface FaturaPutInput {
+  id: number;
+  dataCriacao?: string;
+  dataAtualizacao?: string | null;
+  transportadoraId: number;
+  estacionamentoId: number;
+  configuracaoCobrancaId?: number | null;
+  numero?: string | null;
+  status: StatusFatura;
+  modalidadeRecebimento?: ModalidadeRecebimento | null;
+  valorTotal: number;
+  valorRecebido: number;
+  valorDesconto: number;
+  valorAcrescimo: number;
+  valorJuros: number;
+  valorMulta: number;
+  dataEmissao: string;
+  dataVencimento: string;
+  dataPagamento?: string | null;
+  periodoInicio: string;
+  periodoFim: string;
+  emailEnvio?: string | null;
+  observacao?: string | null;
+}
+
+export interface FaturaPagedResult {
+  items: FaturaSearchOutput[];
+  totalCount: number;
+  numeroPagina: number;
+  tamanhoPagina: number;
+}
+
+/** GET `/api/financeiro/Fatura/visao-geral` — dashboard da aba Visão Geral. */
+export interface FaturaVisaoGeralOutput {
+  totalAReceber: number;
+  recebido: number;
+  emAberto: number;
+  vencido: number;
+  aVencer: number;
+  faturasEmitidas: number;
+  faturasVencidas: number;
+  transportadorasFaturadas: number;
+  cobrancasPendentes: number;
+  faturasPorStatus: FaturaStatusResumoOutput[];
+  recebimentosPorModalidade: FaturaModalidadeResumoOutput[];
+  evolucaoFaturamento: FaturaEvolucaoMensalOutput[];
+}
+
+export interface FaturaStatusResumoOutput {
+  status: StatusFatura;
+  quantidade: number;
+  valor: number;
+}
+
+export interface FaturaModalidadeResumoOutput {
+  modalidade: ModalidadeRecebimento;
+  quantidade: number;
+  valor: number;
+}
+
+export interface FaturaEvolucaoMensalOutput {
+  ano: number;
+  mes: number;
+  valor: number;
+}
+
+/** GET `/api/financeiro/Fatura/inadimplentes` — query. */
+export interface FaturaInadimplentesFilter {
+  transportadoraId?: number;
+  numero?: string;
+  descricao?: string;
+  dataInicial?: string;
+  dataFinal?: string;
+  numeroPagina: number;
+  tamanhoPagina: number;
+  propriedade?: string;
+  sort?: string;
+}
+
+export interface ResumoInadimplentesOutput {
+  totalVencido: number;
+  faturasVencidas: number;
+  transportadorasInadimplentes: number;
+  acordosRealizados: number;
+}
+
+export interface FaturaInadimplenteItemOutput {
+  id: number;
+  numero: string;
+  transportadoraId: number;
+  transportadoraNome: string;
+  tipoFatura: TipoFatura;
+  status: StatusFatura;
+  valorTotal: number;
+  valorRecebido: number;
+  valorEmAberto: number;
+  dataVencimento: string;
+  diasEmAtraso: number;
+  quantidadeMovimentos: number;
+  ultimaCobranca: string | null;
+  statusCobranca: string | null;
+  emailFinanceiro?: string | null;
+  contato?: string | null;
+  valorDesconto?: number;
+  valorAcrescimo?: number;
+}
+
+/** StatusCobrancaFatura no backend. */
+export enum StatusCobrancaFatura {
+  NaoEnviada = 0,
+  Enviada = 1,
+  Reenviada = 2,
+  FalhaNoEnvio = 3,
+  EmNegociacao = 4,
+  AcordoRealizado = 5,
+  SemRetorno = 6
+}
+
+export interface HistoricoCobrancaItemOutput {
+  id: number;
+  dataEnvio: string;
+  modalidade: number;
+  modalidadeLabel: string;
+  destinatario: string;
+  assunto: string | null;
+  descricao: string | null;
+  sucesso: boolean;
+  mensagemErro: string | null;
+  resultado: string;
+}
+
+export interface FaturaWhatsAppCobrancaOutput {
+  faturaId: number;
+  destinatario: string;
+  mensagem: string;
+  url: string;
+  dataEnvio: string;
+}
+
+export interface FaturaAcordoInadimplenciaInput {
+  valorNegociado?: number | null;
+  valorDesconto?: number | null;
+  novoVencimento?: string | null;
+  modalidadeRecebimento?: number | null;
+  observacao?: string | null;
+  responsavel?: string | null;
+}
+
+export interface FaturaInadimplentesOutput {
+  resumo: ResumoInadimplentesOutput;
+  itens: {
+    items: FaturaInadimplenteItemOutput[];
+    totalCount: number;
+    numeroPagina: number;
+    tamanhoPagina: number;
+  };
+}
+
+/** GET `/api/financeiro/Fatura/fechamentos` — query. */
+export enum SituacaoFechamento {
+  ProntoParaFaturar = 1,
+  EmAndamento = 2,
+  ComDivergencia = 3,
+  Faturado = 4,
+  Cancelado = 5
+}
+
+export interface FaturaFechamentosFilter {
+  transportadoraId?: number;
+  situacao?: SituacaoFechamento;
+  modalidade?: number;
+  descricao?: string;
+  dataInicial?: string;
+  dataFinal?: string;
+  numeroPagina: number;
+  tamanhoPagina: number;
+  propriedade?: string;
+  sort?: string;
+}
+
+export interface ResumoFechamentosOutput {
+  fechamentosDisponiveis: number;
+  prontosParaFaturar: number;
+  valorEstimadoTotal: number;
+  comDivergencia: number;
+}
+
+export interface FaturaFechamentoItemOutput {
+  transportadoraId: number;
+  transportadoraNome: string;
+  configuracaoCobrancaId: number | null;
+  modalidade: number | null;
+  periodoInicio: string | null;
+  periodoFim: string | null;
+  quantidadeMovimentos: number;
+  valorEstimado: number;
+  quantidadeDivergencias: number;
+  situacao: SituacaoFechamento;
+}
+
+export interface FaturaFechamentosOutput {
+  resumo: ResumoFechamentosOutput;
+  itens: {
+    items: FaturaFechamentoItemOutput[];
+    totalCount: number;
+    numeroPagina: number;
+    tamanhoPagina: number;
+  };
+}

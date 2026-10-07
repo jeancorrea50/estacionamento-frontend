@@ -1,0 +1,10 @@
+node_modules
+dist
+.angular
+test-results
+tests
+.git
+.github
+.cursor
+npm-debug.log*
+yarn-error.log*

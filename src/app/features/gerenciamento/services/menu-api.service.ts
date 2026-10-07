@@ -3,8 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, defer, from, firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { MenuAdminService } from './menu-admin.service';
-import type { MenuAdminState } from '../models/menu-admin.model';
-import { computeNextIdFromMenus, mapBuscarResponseToMenuAdmins } from './menu-api.mapper';
+import type { MenuAdmin, MenuAdminState } from '../models/menu-admin.model';
+import {
+  computeNextIdFromMenus,
+  mapBuscarResponseToMenuAdmins,
+  menuAdminToUpdateInput,
+} from './menu-api.mapper';
 import type {
   MenuCreateInput,
   MenuFilterInput,
@@ -96,14 +100,65 @@ export class MenuApiService {
     const menusSorted = [...snap.menus].sort((a, b) => a.ordem - b.ordem);
     const menus: OrganizarMenusInput['menus'] = [];
     for (const m of menusSorted) {
-      if (m.id <= 0) continue;
+      // Só menus realmente persistidos no backend (evita entity null no Find/Update).
+      if (m.id <= 0 || m.existeNoServidor === false) continue;
       const subMenus = [...m.subMenus]
         .filter((s) => s.id > 0)
         .sort((a, b) => a.ordem - b.ordem)
-        .map((s) => ({ id: s.id, ordem: s.ordem }));
-      menus.push({ id: m.id, ordem: m.ordem, subMenus });
+        .map((s, idx) => ({ id: s.id, ordem: Number.isFinite(s.ordem) ? s.ordem : idx }));
+      menus.push({
+        id: m.id,
+        ordem: Number.isFinite(m.ordem) ? m.ordem : menus.length,
+        subMenus,
+      });
     }
     return { menus };
+  }
+
+  private buildCompositionSignature(menus: MenuAdmin[]): Map<number, string> {
+    const map = new Map<number, string>();
+    for (const menu of menus) {
+      if (menu.id <= 0) continue;
+      const signature = [...menu.subMenus]
+        .filter((sub) => sub.id > 0)
+        .sort((a, b) => a.ordem - b.ordem)
+        .map((sub) => `${sub.id}:${sub.ordem}`)
+        .join('|');
+      map.set(menu.id, signature);
+    }
+    return map;
+  }
+
+  private getMenusWithServerSubMenusOnly(menus: MenuAdmin[]): MenuAdmin[] {
+    return menus
+      .filter((menu) => menu.id > 0 && menu.existeNoServidor !== false)
+      .map((menu) => ({
+        ...menu,
+        subMenus: menu.subMenus
+          .filter((sub) => sub.id > 0)
+          .sort((a, b) => a.ordem - b.ordem)
+          .map((sub, idx) => ({ ...sub, ordem: idx })),
+      }));
+  }
+
+  private async persistCompositionByAlterarFallback(
+    desiredMenus: MenuAdmin[],
+    currentMenus: MenuAdmin[]
+  ): Promise<void> {
+    const desiredMap = this.buildCompositionSignature(desiredMenus);
+    const currentMap = this.buildCompositionSignature(currentMenus);
+    const changedMenuIds = [...desiredMap.keys()].filter(
+      (menuId) => desiredMap.get(menuId) !== currentMap.get(menuId)
+    );
+    if (changedMenuIds.length === 0) return;
+
+    // Fallback para backends onde OrganizarMenus só reordena e não troca pai de submenu.
+    for (const menuId of changedMenuIds) {
+      const menu = desiredMenus.find((m) => m.id === menuId);
+      if (!menu) continue;
+      const dto = menuAdminToUpdateInput(menu);
+      await firstValueFrom(this.alterar(dto));
+    }
   }
 
   private async organizarOrdemNoBackend(): Promise<void> {
@@ -114,9 +169,13 @@ export class MenuApiService {
         'Nenhum menu com id do servidor para organizar. Sincronize com Buscar ou crie menus antes.'
       );
     }
+    const desiredMenus = this.getMenusWithServerSubMenusOnly(snap.menus);
     await firstValueFrom(this.organizarMenus(payload));
-    const raw = await firstValueFrom(this.buscar());
-    const menus = mapBuscarResponseToMenuAdmins(raw);
+    let raw = await firstValueFrom(this.buscar());
+    let menus = mapBuscarResponseToMenuAdmins(raw);
+    await this.persistCompositionByAlterarFallback(desiredMenus, menus);
+    raw = await firstValueFrom(this.buscar());
+    menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.menuAdmin.replaceMenusHidratar(menus, nextId);
   }

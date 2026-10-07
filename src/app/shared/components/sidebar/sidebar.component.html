@@ -21,17 +21,24 @@
   <nav class="sidebar-nav">
     <ul class="menu">
       @for (item of menuItems(); track item.label + item.route) {
-      <li>
+      <li
+        class="menu-li"
+        (mouseenter)="onRailItemEnter(item, $event)"
+        (mouseleave)="onRailItemLeave()"
+      >
         @if (item.children?.length) {
           <div class="menu-group">
             <button
               type="button"
               class="menu-item menu-item-parent"
               [class.active]="isActive(item.route)"
-              (click)="toggleMenu(item.route)"
-              [attr.aria-expanded]="isMenuExpanded(item.route)"
+              (click)="onParentClick(item, $event)"
+              [attr.aria-expanded]="isParentExpanded(item)"
+              [attr.aria-haspopup]="item.children?.length ? 'menu' : null"
             >
-              <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+              <span class="menu-item__icon" aria-hidden="true">
+                <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+              </span>
               <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
               <span class="material-symbols-outlined icon chevron" [class.hidden]="isCollapsed()">
                 {{ isMenuExpanded(item.route) ? 'expand_less' : 'expand_more' }}
@@ -40,15 +47,42 @@
             @if (isMenuExpanded(item.route) && !isCollapsed()) {
               <ul class="submenu">
                 @for (sub of item.children; track sub.route) {
-                  <li>
-                    <a
-                      [routerLink]="sub.route"
-                      class="menu-item submenu-item"
-                      routerLinkActive="active"
-                      [routerLinkActiveOptions]="{ exact: false }"
-                    >
-                      <span class="label">{{ sub.label }}</span>
-                    </a>
+                  <li [class.submenu-li--nested]="!!sub.children?.length">
+                    @if (sub.children?.length) {
+                      <div class="submenu-group">
+                        <a
+                          [routerLink]="sub.route"
+                          class="menu-item submenu-item submenu-item--branch"
+                          routerLinkActive="active"
+                          [routerLinkActiveOptions]="{ exact: false }"
+                        >
+                          <span class="label">{{ sub.label }}</span>
+                        </a>
+                        <ul class="submenu submenu--nested">
+                          @for (nest of sub.children; track nest.route) {
+                            <li>
+                              <a
+                                [routerLink]="nest.route"
+                                class="menu-item submenu-item submenu-item--nested"
+                                routerLinkActive="active"
+                                [routerLinkActiveOptions]="{ exact: false }"
+                              >
+                                <span class="label">{{ nest.label }}</span>
+                              </a>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    } @else {
+                      <a
+                        [routerLink]="sub.route"
+                        class="menu-item submenu-item"
+                        routerLinkActive="active"
+                        [routerLinkActiveOptions]="{ exact: false }"
+                      >
+                        <span class="label">{{ sub.label }}</span>
+                      </a>
+                    }
                   </li>
                 }
               </ul>
@@ -62,7 +96,9 @@
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: false }"
           >
-            <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+            <span class="menu-item__icon" aria-hidden="true">
+              <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+            </span>
             <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
           </a>
         }
@@ -71,11 +107,92 @@
     </ul>
   </nav>
 
+  @if (!isCollapsed()) {
+    <section class="sidebar-security-card" aria-label="Segurança">
+      <span class="sidebar-security-card__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">verified_user</span>
+      </span>
+      <div class="sidebar-security-card__copy">
+        <p class="sidebar-security-card__title">Segurança</p>
+        <p class="sidebar-security-card__desc">Suas informações estão protegidas.</p>
+      </div>
+    </section>
+  }
+
   <div class="sidebar-footer">
     <p class="version" [class.hidden]="isCollapsed()">v1.0.0</p>
-    <button class="logout-btn" (click)="logout()" [title]="isCollapsed() ? 'Logout' : ''">
-      <span class="material-symbols-outlined icon">logout</span>
+    <button
+      type="button"
+      class="logout-btn"
+      (click)="logout()"
+      title="Sair do sistema"
+      aria-label="Sair do sistema"
+    >
+      <span class="material-symbols-outlined icon" aria-hidden="true">logout</span>
       <span class="label" [class.hidden]="isCollapsed()">Sair</span>
     </button>
   </div>
 </aside>
+
+@if (canShowRailFlyout() && railFlyout(); as fly) {
+  <div
+    class="rail-flyout"
+    [class.rail-flyout--menu]="!!fly.item.children?.length"
+    role="menu"
+    [attr.aria-label]="fly.item.label"
+    [style.top.px]="fly.top"
+    (mouseenter)="onFlyoutEnter()"
+    (mouseleave)="onFlyoutLeave()"
+  >
+    <p class="rail-flyout__title">{{ fly.item.label }}</p>
+    @if (fly.item.children?.length) {
+      <ul class="rail-flyout__list">
+        @for (sub of fly.item.children; track sub.route) {
+          <li>
+            @if (sub.children?.length) {
+              <div class="rail-flyout__group">
+                <a
+                  [routerLink]="sub.route"
+                  class="rail-flyout__link rail-flyout__link--branch"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: false }"
+                  role="menuitem"
+                  (click)="onFlyoutNavigate()"
+                >
+                  {{ sub.label }}
+                </a>
+                <ul class="rail-flyout__nested">
+                  @for (nest of sub.children; track nest.route) {
+                    <li>
+                      <a
+                        [routerLink]="nest.route"
+                        class="rail-flyout__link rail-flyout__link--nested"
+                        routerLinkActive="active"
+                        [routerLinkActiveOptions]="{ exact: false }"
+                        role="menuitem"
+                        (click)="onFlyoutNavigate()"
+                      >
+                        {{ nest.label }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else {
+              <a
+                [routerLink]="sub.route"
+                class="rail-flyout__link"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: false }"
+                role="menuitem"
+                (click)="onFlyoutNavigate()"
+              >
+                {{ sub.label }}
+              </a>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

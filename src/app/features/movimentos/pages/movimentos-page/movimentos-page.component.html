@@ -1,498 +1,1229 @@
 <div class="page-container">
-  <header class="page-header dk-page-header">
-    <div class="page-header__row page-header__row--1">
-      <div class="page-header__title-wrap">
-        <h1 class="page-title dk-page-title">Movimentos</h1>
-        <p class="page-subtitle dk-page-subtitle">Central de operação (entrada e saída).</p>
-      </div>
-      <span class="page-header__badge">Em desenvolvimento</span>
-    </div>
-    <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas de Movimentos">
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          [class.tab--active]="activeTab === 'operacao'"
-          [attr.aria-selected]="activeTab === 'operacao'"
-          (click)="setActiveTab('operacao')"
-        >
-          Operação
-        </button>
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          [class.tab--active]="activeTab === 'historico'"
-          [attr.aria-selected]="activeTab === 'historico'"
-          (click)="setActiveTab('historico')"
-        >
-          Histórico
-        </button>
-      </nav>
-    </div>
-  </header>
+  @if (!canVisualizar) {
+    <p class="empty-msg">Sem permissão para visualizar Entrada/Saída.</p>
+  } @else {
+    @if (isPortariaView()) {
+    <section class="portaria-layout" aria-label="Operação de entrada e saída">
+      <div class="portaria-layout__main">
+        <header class="dashboard-card portaria-hero">
+          <h1 class="portaria-hero__title">Entrada e Saída</h1>
+          <p class="portaria-hero__sub">Controle operacional de entradas e saídas no pátio.</p>
+        </header>
 
-  <div class="page-content">
-    @switch (activeTab) {
-      @case ('operacao') {
-        <div class="operacao">
-          <div class="operacao-actions dk-action-bar">
-            <div class="operacao-actions__entrada">
-              <button type="button" class="btn btn-primary" (click)="openEntradaModal()">Entrada</button>
-            </div>
-            <section class="resumo-operacional" aria-label="Filtros rápidos">
-              <div class="resumo-chips">
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--noPatio"
-                  [class.resumo-chip--active]="filtroResumo === 'noPatio'"
-                  (click)="setFiltroResumo('noPatio')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.noPatioAgora }}</span>
-                  <span class="resumo-chip__label">No pátio</span>
-                </button>
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--suspensos"
-                  [class.resumo-chip--active]="filtroResumo === 'suspensos'"
-                  (click)="setFiltroResumo('suspensos')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.suspensos }}</span>
-                  <span class="resumo-chip__label">Suspensos</span>
-                </button>
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--entradasHoje"
-                  [class.resumo-chip--active]="filtroResumo === 'entradasHoje'"
-                  (click)="setFiltroResumo('entradasHoje')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.entradasHoje }}</span>
-                  <span class="resumo-chip__label">Entradas hoje</span>
-                </button>
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--agendados"
-                  [class.resumo-chip--active]="filtroResumo === 'agendados'"
-                  (click)="setFiltroResumo('agendados')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.agendadosHoje }}</span>
-                  <span class="resumo-chip__label">Agendados</span>
-                </button>
-              </div>
-            </section>
-            <div class="operacao-actions__busca operacao-busca">
-              <input
-                type="text"
-                class="input-control operacao-busca__input"
-                placeholder="Buscar por placa"
-                [(ngModel)]="filtroPlaca"
-              />
-            </div>
+        <section class="dashboard-kpis dashboard-kpis--portaria" aria-label="Indicadores do dia">
+          <article class="kpi-card">
+            <p class="kpi-card__label">Entradas Hoje</p>
+            <p class="kpi-card__valor">{{ entradasHoje() }}</p>
+          </article>
+          <article class="kpi-card">
+            <p class="kpi-card__label">Saídas Hoje</p>
+            <p class="kpi-card__valor">{{ saidasHoje() }}</p>
+          </article>
+        </section>
+
+        @if (podeAcoesOperacionaisPatio) {
+          <div class="portaria-cta" role="group" aria-label="Ações de entrada e saída">
+            <button
+              type="button"
+              class="portaria-cta__btn portaria-cta__btn--entrada"
+              [disabled]="!canGravar || processandoRegistroRapido()"
+              (click)="abrirModalEntrada()"
+            >
+              <span class="portaria-cta__ico" aria-hidden="true">
+                <span class="material-symbols-outlined">login</span>
+              </span>
+              <span class="portaria-cta__text">
+                <span class="portaria-cta__title">Entrada</span>
+                <span class="portaria-cta__sub">Registrar entrada de veículo</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              class="portaria-cta__btn portaria-cta__btn--saida"
+              [disabled]="!canGravar || processandoRegistroRapido()"
+              (click)="abrirModalSaida()"
+            >
+              <span class="portaria-cta__ico" aria-hidden="true">
+                <span class="material-symbols-outlined">logout</span>
+              </span>
+              <span class="portaria-cta__text">
+                <span class="portaria-cta__title">Saída</span>
+                <span class="portaria-cta__sub">Registrar saída de veículo</span>
+              </span>
+            </button>
           </div>
-          <section class="card operacao-card operacao-card--full">
-            <h2 class="card__title">{{ tituloTabelaEmAndamento }}</h2>
-            <div class="card__body">
-              <div class="table-wrap dk-table-wrap">
-                <table class="data-table dk-table">
-                  <thead>
-                    <tr>
-                      <th class="th-sortable" (click)="ordenarPor('placa')" role="button" tabindex="0" (keydown.enter)="ordenarPor('placa')">
-                        Placa
-                        @if (ordenacaoColuna('placa'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th class="th-sortable" (click)="ordenarPor('condutor')" role="button" tabindex="0" (keydown.enter)="ordenarPor('condutor')">
-                        Condutor
-                        @if (ordenacaoColuna('condutor'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th class="th-sortable" (click)="ordenarPor('transportadora')" role="button" tabindex="0" (keydown.enter)="ordenarPor('transportadora')">
-                        Transportadora
-                        @if (ordenacaoColuna('transportadora'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th class="th-sortable" (click)="ordenarPor('dataHoraEntrada')" role="button" tabindex="0" (keydown.enter)="ordenarPor('dataHoraEntrada')">
-                        Data e hora de entrada
-                        @if (ordenacaoColuna('dataHoraEntrada'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th>Tempo de permanência</th>
-                      <th class="th-sortable" (click)="ordenarPor('status')" role="button" tabindex="0" (keydown.enter)="ordenarPor('status')">
-                        Status
-                        @if (ordenacaoColuna('status'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (item of emAndamentoOrdenado; track item.placa + item.dataHoraEntrada) {
-                      <tr>
-                        <td>{{ item.placa }}</td>
-                        <td>{{ item.condutor }}</td>
-                        <td>{{ item.transportadora }}</td>
-                        <td>{{ item.dataHoraEntrada }}</td>
-                        <td><span [attr.aria-hidden]="true" [attr.data-tick]="tickAtualizacao"></span>{{ tempoPermanenciaAgora(item) }}</td>
-                        <td>{{ item.status }}</td>
-                        <td class="acoes-cell">
-                          @if (item.status === 'Suspenso') {
-                            <button type="button" class="btn btn-primary btn--sm" (click)="retomar(item)">
-                              Retomar
-                            </button>
-                          } @else {
-                            <button type="button" class="btn btn-warning btn--sm" (click)="suspender(item)">
-                              Suspender
-                            </button>
-                          }
-                          <button type="button" class="btn btn-danger btn--sm" (click)="registrarSaida(item)">
-                            Saída
-                          </button>
-                        </td>
-                      </tr>
-                      @if ((item.suspensoes?.length ?? 0) > 0) {
-                        <tr class="suspensao-detalhe">
-                          <td [attr.colspan]="7">
-                            <div class="suspensao-historico" aria-label="Histórico de suspensões">
-                              <div class="suspensao-campos">
-                                @for (susp of item.suspensoes ?? []; track $index) {
-                                  <div class="suspensao-campo">
-                                    <span class="suspensao-campo__label">Suspensão</span>
-                                    <span class="suspensao-campo__valor">{{ susp.inicio }}</span>
-                                    <span class="suspensao-campo__label">Retorno</span>
-                                    <span class="suspensao-campo__valor">{{ susp.fim ?? '—' }}</span>
-                                  </div>
-                                }
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      }
-                    }
-                  </tbody>
-                </table>
-              </div>
-              @if (emAndamentoOrdenado.length === 0) {
-                <p class="empty-msg">
-                  @if (filtroPlaca.trim()) {
-                    Nenhum veículo encontrado com essa placa.
-                  } @else if (filtroResumo !== 'todos') {
-                    Nenhum registro para este filtro.
-                  } @else {
-                    Nenhum veículo em andamento no momento.
-                  }
-                </p>
+        }
+
+        <article class="dashboard-card dashboard-card--alertas">
+          <header class="dashboard-card__header">
+            <h2>Últimos Alertas</h2>
+            <button type="button" class="portaria-link" disabled title="Em breve">Ver todos &gt;</button>
+          </header>
+          @if (ultimosAlertas().length === 0) {
+            <div class="portaria-empty" role="status">
+              <span class="material-symbols-outlined portaria-empty__ico" aria-hidden="true">notifications</span>
+              <p class="portaria-empty__title">Nenhum alerta recente.</p>
+              <p class="portaria-empty__sub">Os alertas de eventos na portaria aparecerão aqui.</p>
+            </div>
+          } @else {
+            <ul class="alert-list">
+              @for (alerta of ultimosAlertas(); track alerta.id) {
+                <li class="alert-list__item">
+                  <span class="alert-list__title">{{ alerta.titulo }}</span>
+                  <span class="alert-list__sep" aria-hidden="true">·</span>
+                  <span class="alert-list__desc">{{ alerta.descricao }}</span>
+                  <span class="alert-list__time">{{ alerta.tempoRelativo }}</span>
+                </li>
               }
-            </div>
-          </section>
-        </div>
-      }
-      @case ('historico') {
-        <div class="historico">
-          <div class="historico-actions dk-action-bar">
-            <div class="historico-actions__busca">
-              <input
-                type="text"
-                class="input-control historico-busca__input"
-                placeholder="Buscar por placa"
-                [(ngModel)]="filtroPlacaHistorico"
-              />
-            </div>
-            <div class="historico-actions__filtros">
-              <select
-                class="input-control historico-select"
-                [(ngModel)]="filtroPeriodoHistorico"
-              >
-                <option value="hoje">Hoje</option>
-                <option value="semana">Última semana</option>
-                <option value="mes">Este mês</option>
-                <option value="todos">Todos</option>
-              </select>
-              <select
-                class="input-control historico-select"
-                [(ngModel)]="filtroStatusHistorico"
-              >
-                <option value="">Todos os status</option>
-                @for (s of opcoesStatusHistorico; track s) {
-                  @if (s) {
-                    <option [value]="s">{{ s }}</option>
+            </ul>
+          }
+        </article>
+
+        <article class="dashboard-card dashboard-card--monitoramento">
+          <header class="dashboard-card__header">
+            <h2>Monitoramento em Tempo Real</h2>
+          </header>
+          <div class="monitor-table-wrap">
+            @if (monitoramentoItens().length === 0) {
+              <div class="portaria-empty" role="status">
+                <span class="material-symbols-outlined portaria-empty__ico" aria-hidden="true">inventory_2</span>
+                <p class="portaria-empty__title">Sem dados de monitoramento no momento.</p>
+              </div>
+            } @else {
+              <table class="monitor-table">
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Horário</th>
+                    <th>Veículo</th>
+                    <th>Motorista</th>
+                    <th>Transportadora</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of monitoramentoItens(); track item.id) {
+                    <tr>
+                      <td><span [class]="classeStatusMonitoramento(item.status)"></span></td>
+                      <td>{{ item.data }}</td>
+                      <td>{{ item.horario }}</td>
+                      <td>{{ item.placa }}</td>
+                      <td>{{ item.motorista }}</td>
+                      <td>{{ item.transportadora }}</td>
+                    </tr>
                   }
-                }
-              </select>
-            </div>
-            <div class="historico-actions__export">
-              <button type="button" class="btn btn-secondary historico-btn-export" (click)="exportarHistorico()">
-                Exportar
+                </tbody>
+              </table>
+            }
+          </div>
+        </article>
+      </div>
+
+      <aside class="portaria-layout__cameras dashboard-card dashboard-card--cameras" aria-label="Câmeras da Portaria">
+        <app-camera-preview />
+      </aside>
+    </section>
+  } @else {
+    <section class="dashboard-kpis">
+      <article class="kpi-card">
+        <p class="kpi-card__label">Entradas Hoje</p>
+        <p class="kpi-card__valor">{{ entradasHoje() }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__label">Saídas Hoje</p>
+        <p class="kpi-card__valor">{{ saidasHoje() }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__label">Em Aberto</p>
+        <p class="kpi-card__valor">{{ emAberto() }}</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__label">Tempo Médio no Pátio</p>
+        <p class="kpi-card__valor">{{ tempoMedioPatio() }}</p>
+      </article>
+    </section>
+    }
+
+    @if (isOperacaoView()) {
+      <section class="card operacao-toolbar operacao-toolbar--compact" aria-label="Filtros e busca">
+        <div class="operacao-actions">
+          <div class="operacao-actions__chips">
+            <div class="resumo-chips">
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--noPatio"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('noPatio')"
+                (click)="aplicarFiltroResumo('noPatio')"
+              >
+                <span class="resumo-chip__valor">{{ emAberto() }}</span>
+                <span class="resumo-chip__label">No pátio</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--suspensos"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('suspensos')"
+                (click)="aplicarFiltroResumo('suspensos')"
+              >
+                <span class="resumo-chip__valor">{{ suspensosVisiveis() }}</span>
+                <span class="resumo-chip__label">Suspensos</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--entradasHoje"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('entradasHoje')"
+                (click)="aplicarFiltroResumo('entradasHoje')"
+              >
+                <span class="resumo-chip__valor">{{ entradasHoje() }}</span>
+                <span class="resumo-chip__label">Entradas hoje</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip resumo-chip--agendados"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('agendados')"
+                (click)="aplicarFiltroResumo('agendados')"
+              >
+                <span class="resumo-chip__valor">{{ agendadosVisiveis() }}</span>
+                <span class="resumo-chip__label">Agendados</span>
+              </button>
+              <button
+                type="button"
+                class="resumo-chip"
+                [class.resumo-chip--active]="isFiltroResumoAtivo('todos')"
+                (click)="aplicarFiltroResumo('todos')"
+              >
+                <span class="resumo-chip__valor">{{ totalCount() }}</span>
+                <span class="resumo-chip__label">Todos</span>
               </button>
             </div>
           </div>
+          <form class="operacao-actions__busca operacao-busca" (submit)="$event.preventDefault(); buscar()">
+            <app-movimentos-filtros-panel
+              [aplicados]="filtrosAvancados()"
+              [ocultarTransportadora]="isPerfilTransportadora"
+              (aplicar)="onAplicarFiltrosAvancados($event)"
+              (limpar)="onLimparFiltrosAvancados()"
+            />
+            <label class="operacao-busca__check">
+              <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" [ngModelOptions]="{ standalone: true }" />
+              <span>Em aberto</span>
+            </label>
+            <button class="btn btn-primary btn--sm operacao-busca__btn" type="submit">Buscar</button>
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm operacao-busca__export"
+              (click)="exportarPdf()"
+              [disabled]="loading() || exportando()"
+              title="Exportar resultado do filtro em PDF"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+              PDF
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm operacao-busca__export"
+              (click)="exportarExcel()"
+              [disabled]="loading() || exportando()"
+              title="Exportar resultado do filtro em Excel"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+              Excel
+            </button>
+          </form>
+        </div>
+      </section>
+    }
 
-          <section class="historico-resumo" aria-label="Resumo do histórico">
-            <div class="historico-chips">
-              <div class="historico-chip historico-chip--movimentosHoje">
-                <span class="historico-chip__valor">{{ resumoHistorico.movimentosHoje }}</span>
-                <span class="historico-chip__label">Movimentos hoje</span>
-              </div>
-              <div class="historico-chip historico-chip--saidasHoje">
-                <span class="historico-chip__valor">{{ resumoHistorico.saidasHoje }}</span>
-                <span class="historico-chip__label">Saídas hoje</span>
-              </div>
-              <div class="historico-chip historico-chip--suspensoes">
-                <span class="historico-chip__valor">{{ resumoHistorico.suspensoes }}</span>
-                <span class="historico-chip__label">Suspensões</span>
-              </div>
-              <div class="historico-chip historico-chip--tempoMedio">
-                <span class="historico-chip__valor">{{ resumoHistorico.tempoMedio }}</span>
-                <span class="historico-chip__label">Tempo médio</span>
-              </div>
-              <div class="historico-chip historico-chip--faturamento">
-                <span class="historico-chip__valor">{{ resumoHistorico.faturamento }}</span>
-                <span class="historico-chip__label">Faturamento</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="card operacao-card operacao-card--full">
-            <h2 class="card__title">Histórico de movimentos</h2>
-            <div class="card__body">
-              <div class="table-wrap dk-table-wrap">
-                <table class="data-table dk-table historico-table">
-                  <thead>
-                    <tr>
-                      <th>Placa</th>
-                      <th>Motorista</th>
-                      <th>Transportadora</th>
-                      <th>Data de entrada</th>
-                      <th>Data de saída</th>
-                      <th>Tempo estacionado</th>
-                      <th>Status final</th>
-                      <th>Valor</th>
-                      <th>Ações</th>
+    @if (isOperacaoView()) {
+      <div class="operacao-layout">
+        <div class="operacao-layout__main">
+          <section class="card historico-card">
+            <header class="historico-card__header">
+              <h2>Movimentos de entrada e saída</h2>
+        </header>
+            <div
+              class="table-wrap historico-table-wrap"
+              tabindex="0"
+              aria-label="Movimentos — role para o lado para ver todas as colunas"
+            >
+              <table class="data-table historico-table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('placa')">
+                        Placa
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('placa') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('motorista')">
+                        Motorista
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('motorista') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('transportadora')">
+                        Transportadora
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('transportadora') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('entrada')">
+                        Entrada
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('entrada') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('saida')">
+                        Saída
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('saida') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('status')">
+                        Status
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('status') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" class="data-table__sort-btn" (click)="ordenarPor('acordo')">
+                        Acordo
+                        <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('acordo') }}</span>
+                      </button>
+                    </th>
+                    <th scope="col" class="col-acoes">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of registrosExibidos(); track item.id) {
+                    <tr
+                      class="historico-row historico-row--clickable"
+                      [class.historico-row--excedente]="item.ehExcedente"
+                      [class.historico-row--selected]="isMovimentoSelecionado(item.id)"
+                      (click)="selecionarMovimento(item)"
+                    >
+                      <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
+                      </td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                          item.nomeTransportadora
+                        }}</span>
+                      </td>
+                      <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
+                      <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
+                      <td>
+                        <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
+                          {{ statusLabel(item) }}
+                        </span>
+                      </td>
+                      <td>
+                        @if (item.ehExcedente) {
+                          <span class="status-pill status-pill--excedente" title="Entrada acima das vagas do acordo">
+                            Excedente
+                          </span>
+                        } @else if (item.acordoCobrancaId) {
+                          <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td class="acoes-cell">
+                        @if (podeAcoesOperacionaisPatio) {
+                          <button
+                            class="btn btn-warning btn--sm"
+                            type="button"
+                            [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
+                            (click)="$event.stopPropagation(); executarSuspensaoOuRetorno(item)"
+                          >
+                            {{
+                              permanenciaProcessandoId() === item.id
+                                ? '...'
+                                : estaSuspenso(item)
+                                  ? 'Retornar'
+                                  : 'Suspender'
+                            }}
+                          </button>
+                          <button
+                            class="btn btn-danger btn--sm"
+                            type="button"
+                            [disabled]="!!item.dataHoraSaida"
+                            (click)="$event.stopPropagation(); abrirPermanencia(item, 'finalizar')"
+                          >
+                            Saída
+                          </button>
+                        }
+                        <button
+                          class="btn btn-secondary btn--sm"
+                          type="button"
+                          [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
+                          [title]="item.dataHoraSaida ? 'Visualizar recibo de saída (PDF)' : 'Visualizar recibo de entrada (PDF)'"
+                          (click)="$event.stopPropagation(); abrirReciboHistorico(item)"
+                        >
+                          {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (m of historicoFiltrado; track m.placa + m.dataSaida) {
-                      <tr class="historico-row">
-                        <td>{{ m.placa }}</td>
-                        <td>{{ m.motorista }}</td>
-                        <td>{{ m.transportadora }}</td>
-                        <td>{{ m.dataEntrada }}</td>
-                        <td>{{ m.dataSaida }}</td>
-                        <td>{{ m.tempoEstacionado ?? '—' }}</td>
-                        <td>{{ m.statusFinal ?? 'Finalizado' }}</td>
-                        <td>{{ m.valor }}</td>
-                        <td class="acoes-cell" (click)="$event.stopPropagation()">
-                          <div class="historico-menu-wrap" (click)="$event.stopPropagation()">
-                            <button
-                              type="button"
-                              class="historico-menu-btn"
-                              [attr.aria-expanded]="isMenuAberto(m)"
-                              aria-haspopup="true"
-                              aria-label="Abrir menu de ações"
-                              (click)="toggleMenuAcoes(m, $event); $event.stopPropagation()"
-                            >
-                              <svg class="historico-menu-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                                <circle cx="8" cy="3" r="1.25"/>
-                                <circle cx="8" cy="8" r="1.25"/>
-                                <circle cx="8" cy="13" r="1.25"/>
-                              </svg>
-                            </button>
+                    @if (historicoSuspensoes(item.id).length) {
+                      <tr class="suspensao-detalhe">
+                        <td colspan="8">
+                          <div class="suspensao-historico suspensao-historico--inline">
+                            @for (suspensao of historicoSuspensoes(item.id); track suspensao.id) {
+                              <p class="suspensao-historico__linha">{{ formatarResumoSuspensao(suspensao) }}</p>
+                            }
                           </div>
                         </td>
                       </tr>
                     }
-                  </tbody>
-                </table>
-              </div>
-              @if (historicoFiltrado.length === 0) {
-                <p class="empty-msg">
-                  @if (filtroPlacaHistorico.trim() || filtroStatusHistorico.trim()) {
-                    Nenhum movimento encontrado para os filtros aplicados.
-                  } @else {
-                    Nenhum movimento registrado no período.
                   }
-                </p>
+                </tbody>
+              </table>
+            </div>
+
+            @if (loading()) {
+              <p class="loading-msg">Carregando...</p>
+            } @else if (registrosExibidos().length === 0) {
+              <p class="empty-msg">Nenhum movimento encontrado.</p>
+            }
+
+            @if (totalPaginas() > 1) {
+              <nav class="paginacao" aria-label="Paginação">
+                <span class="paginacao__info">
+                  Página {{ numeroPagina() }} de {{ totalPaginas() }} ({{ totalCount() }} registro(s))
+                </span>
+                <div class="paginacao__btns">
+                  <button
+                    class="btn btn-secondary btn--sm"
+                    type="button"
+                    [disabled]="numeroPagina() <= 1"
+                    (click)="irParaPagina(numeroPagina() - 1)"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    class="btn btn-secondary btn--sm"
+                    type="button"
+                    [disabled]="numeroPagina() >= totalPaginas()"
+                    (click)="irParaPagina(numeroPagina() + 1)"
+                  >
+                    Próxima
+                  </button>
+                </div>
+              </nav>
+            }
+          </section>
+        </div>
+
+        <aside class="est-aside movimento-aside" aria-label="Resumo do movimento">
+          @if (resumoLoading()) {
+            <div class="est-aside-card">
+              <p class="movimento-aside__placeholder" role="status">Carregando resumo...</p>
+            </div>
+          } @else if (resumoDetalhe(); as detalhe) {
+            <div class="est-aside-card">
+              <div
+                class="est-aside__status movimento-aside__status"
+                [class.est-aside__status--inactive]="detalhe.finalizado"
+                [class.movimento-aside__status--suspenso]="detalhe.permanenciaSuspensa && !detalhe.finalizado"
+              >
+                <span
+                  class="material-symbols-outlined est-aside__status-icon"
+                  aria-hidden="true"
+                >{{ resumoStatusIcon(detalhe) }}</span>
+                <span>{{ resumoStatusTexto(detalhe) }}</span>
+              </div>
+
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Permanência no pátio</span>
+                  <span class="est-aside__progress-value">{{ formatarMinutos(detalhe.tempoPermanenciaMinutos) }}</span>
+                </div>
+                <div
+                  class="est-aside__progress-track"
+                  role="progressbar"
+                  [attr.aria-valuenow]="resumoPermanenciaPercent(detalhe)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <div
+                    class="est-aside__progress-fill"
+                    [style.width.%]="resumoPermanenciaPercent(detalhe)"
+                  ></div>
+                </div>
+                <p class="est-aside__progress-hint">{{ resumoPermanenciaHint(detalhe) }}</p>
+              </div>
+
+              <div class="est-aside__block">
+                <h3 class="est-aside__block-title">Informações principais</h3>
+                <ul class="est-aside__list">
+                  <li>
+                    <span class="est-aside__k">Placa</span>
+                    <span class="est-aside__v">{{ placaDetalhe(detalhe) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Motorista</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ nomeMotoristaDetalhe(detalhe) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Transportadora</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ nomeTransportadoraDetalhe(detalhe) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Entrada</span>
+                    <span class="est-aside__v">{{ formatarDataHora(detalhe.dataHoraEntrada) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Saída</span>
+                    <span class="est-aside__v">{{ formatarDataHora(detalhe.dataHoraSaida) }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Suspensão total</span>
+                    <span class="est-aside__v">{{ formatarMinutos(detalhe.tempoTotalSuspensaoMinutos) }}</span>
+                  </li>
+                  @if (detalhe.observacao?.trim()) {
+                    <li>
+                      <span class="est-aside__k">Observação</span>
+                      <span class="est-aside__v est-aside__v--clamp">{{ detalhe.observacao }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+
+              @if (detalhe.suspensoes.length) {
+                <div class="est-aside__block">
+                  <h3 class="est-aside__block-title">Histórico de suspensões</h3>
+                  <ul class="movimento-aside__suspensao-list">
+                    @for (suspensao of detalhe.suspensoes; track suspensao.id) {
+                      <li class="movimento-aside__suspensao-item">
+                        {{ formatarResumoSuspensao(suspensao) }}
+                      </li>
+                    }
+                  </ul>
+                </div>
               }
+
+              @if (podeAcoesOperacionaisPatio && resumoItemLista(); as itemLista) {
+                <div class="movimento-aside__actions">
+                  <button
+                    class="btn btn-warning btn--sm"
+                    type="button"
+                    [disabled]="!!itemLista.dataHoraSaida || permanenciaProcessandoId() === itemLista.id"
+                    (click)="executarSuspensaoOuRetorno(itemLista)"
+                  >
+                    {{
+                      permanenciaProcessandoId() === itemLista.id
+                        ? '...'
+                        : estaSuspenso(itemLista)
+                          ? 'Retornar'
+                          : 'Suspender'
+                    }}
+                  </button>
+                  <button
+                    class="btn btn-danger btn--sm"
+                    type="button"
+                    [disabled]="!!itemLista.dataHoraSaida"
+                    (click)="abrirPermanencia(itemLista, 'finalizar')"
+                  >
+                    Registrar saída
+                  </button>
+                </div>
+              }
+
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">lightbulb</span>
+                <div class="est-aside__tip-body">
+                  <p class="est-aside__tip-ok">{{ resumoTipTexto(detalhe) }}</p>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="est-aside-card">
+              <p class="movimento-aside__placeholder">
+                Selecione um movimento na lista para ver o resumo.
+              </p>
+            </div>
+          }
+        </aside>
+      </div>
+    }
+  }
+
+  @if (entradaModalOpen()) {
+    <div
+      class="modal-overlay es-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="entradaModalTitle"
+      (click)="fecharModalEntrada()"
+    >
+      <div class="modal-content es-modal es-modal--entrada" (click)="$event.stopPropagation()">
+        <header class="es-modal__header">
+          <div class="es-modal__header-main">
+            <span class="es-modal__header-ico es-modal__header-ico--entrada" aria-hidden="true">
+              <span class="material-symbols-outlined">local_shipping</span>
+            </span>
+            <div>
+              <h2 id="entradaModalTitle" class="es-modal__title">Registrar Entrada</h2>
+              <p class="es-modal__subtitle">
+                Preencha os dados para registrar a entrada do veículo no pátio.
+              </p>
+            </div>
+          </div>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalEntrada()">
+            ×
+          </button>
+        </header>
+
+        <div class="es-modal__body">
+          <section class="registro-section registro-section--motorista" aria-labelledby="entrada-sec-veiculo">
+            <h3 id="entrada-sec-veiculo" class="registro-section__title">Dados do Veículo e Motorista</h3>
+            <div class="registro-grid">
+              <label class="field">
+                <span>Placa do veículo <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="ABC-1D23"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.placa"
+                  (ngModelChange)="onRegistroRapidoPlacaInput($event)"
+                  maxlength="8"
+                  autocomplete="off"
+                  spellcheck="false"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>CPF do motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="000.000.000-00"
+                  maxlength="14"
+                  required
+                  aria-required="true"
+                  [ngModel]="registroRapido.motoristaCpf"
+                  (ngModelChange)="onMotoristaCpfInput($event)"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Motorista <abbr class="field__req" title="Obrigatório">*</abbr></span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome"
+                  required
+                  aria-required="true"
+                  [(ngModel)]="registroRapido.motorista"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoMotoristaPorCpf || motoristaAutoPreenchidoPorCpf"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Tipo de carga</span>
+                <select
+                  class="input-control input-control--select"
+                  [(ngModel)]="registroRapido.tipoCarga"
+                  [disabled]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">Selecione...</option>
+                  @for (opcao of tipoCargaOpcoes; track opcao) {
+                    <option [value]="opcao">{{ opcao }}</option>
+                  }
+                </select>
+              </label>
             </div>
           </section>
 
-          @if (movimentoMenuAberto && dropdownPos) {
-            <div
-              class="historico-dropdown historico-dropdown-fixed"
-              role="menu"
-              [style.top.px]="dropdownPos.top"
-              [style.left.px]="dropdownPos.left"
-            >
-              <button type="button" class="historico-dropdown-item" role="menuitem" (click)="acaoVerDetalhes(movimentoMenuAberto)">
-                Ver detalhes
-              </button>
-              <button type="button" class="historico-dropdown-item" role="menuitem" (click)="imprimirComprovante(movimentoMenuAberto)">
-                Imprimir comprovante
-              </button>
+          <section class="registro-section registro-section--transportadora" aria-labelledby="entrada-sec-transp">
+            <h3 id="entrada-sec-transp" class="registro-section__title">Dados da Transportadora</h3>
+            <div class="registro-grid">
+              <label class="field">
+                <span>CNPJ</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  placeholder="00.000.000/0000-00"
+                  maxlength="18"
+                  [ngModel]="registroRapido.transportadoraCnpj"
+                  (ngModelChange)="onTransportadoraCnpjInput($event)"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Razão social</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Razão social"
+                  [(ngModel)]="registroRapido.transportadoraRazaoSocial"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Nome do responsável</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  placeholder="Nome do responsável"
+                  [(ngModel)]="registroRapido.transportadoraResponsavelNome"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
+                <span>Telefone do responsável</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="tel"
+                  autocomplete="off"
+                  placeholder="(00) 00000-0000"
+                  appTelefoneFormat
+                  [(ngModel)]="registroRapido.transportadoraResponsavelTelefone"
+                  [readonly]="buscandoPlacaRegistroRapido || camposBloqueadosPorPlaca || buscandoTransportadoraPorCnpj || transportadoraAutoPreenchidaPorCnpj"
+                  [attr.maxlength]="registroRapidoMaxTelefone"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
             </div>
+          </section>
+
+          <section class="registro-section registro-section--extras" aria-labelledby="entrada-sec-obs">
+            <h3 id="entrada-sec-obs" class="registro-section__title">Observação</h3>
+            <div class="registro-grid">
+              <label class="field field--full">
+                <span>Observação opcional</span>
+                <textarea
+                  class="input-control es-modal__textarea"
+                  rows="3"
+                  placeholder="Observação opcional"
+                  [(ngModel)]="registroRapido.observacao"
+                  [readonly]="camposBloqueadosPorPlaca"
+                  [attr.maxlength]="registroRapidoMaxTexto"
+                  [ngModelOptions]="{ standalone: true }"
+                ></textarea>
+              </label>
+            </div>
+          </section>
+
+          @if (alertaAcordoRegistroRapido) {
+            <p class="registro-acordo-alerta" [class.registro-acordo-alerta--excedente]="alertaAcordoExcedente">
+              {{ alertaAcordoRegistroRapido }}
+            </p>
+          }
+          @if (existeEntradaEmAbertoPorPlaca && registroRapidoSuspenso) {
+            <p class="registro-acordo-alerta registro-acordo-alerta--suspenso" role="status">
+              Esta placa possui permanência suspensa. Use Retomar para devolver o veículo ao pátio.
+            </p>
+          } @else if (existeEntradaEmAbertoPorPlaca) {
+            <p class="registro-acordo-alerta" role="status">
+              Já existe entrada em aberto para esta placa. Não é possível registrar outra entrada.
+            </p>
           }
         </div>
-      }
-    }
-  </div>
 
-  @if (entradaModalOpen) {
-    <div class="modal-overlay dk-modal-overlay" (click)="closeEntradaModal()" role="presentation">
-      <div
-        class="modal-content dk-modal-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-entrada-title"
-        (click)="$event.stopPropagation()"
-      >
-        <div class="modal-header dk-modal-header">
-          <h2 id="modal-entrada-title">Entrada (Check-in)</h2>
-        </div>
-        <div class="modal-body dk-modal-body">
-          <div class="form-group">
-            <label for="modal-op-placa">Placa</label>
-            <input
-              id="modal-op-placa"
-              type="text"
-              class="input-control"
-              placeholder="Ex.: ABC1D23"
-              maxlength="7"
-              [ngModel]="entradaForm.placa"
-              (ngModelChange)="formatarPlaca($event)"
-              (blur)="buscarTransportadoraPorPlaca()"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-modelo">Modelo do veículo</label>
-            <input
-              id="modal-op-modelo"
-              type="text"
-              class="input-control"
-              placeholder="Modelo do veículo"
-              [(ngModel)]="entradaForm.modeloVeiculo"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-ano">Ano fabricação</label>
-            <input
-              id="modal-op-ano"
-              type="text"
-              class="input-control"
-              placeholder="Ex.: 2020"
-              maxlength="4"
-              [(ngModel)]="entradaForm.anoFabricacao"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-eixos">Quantos eixos</label>
-            <select
-              id="modal-op-eixos"
-              class="input-control input-control--select"
-              [(ngModel)]="entradaForm.quantidadeEixos"
+        <footer class="es-modal__footer">
+          <button class="btn btn-secondary" type="button" [disabled]="processandoRegistroRapido()" (click)="fecharModalEntrada()">
+            Cancelar
+          </button>
+          @if (registroRapidoSuspenso && registroRapidoEntradaId > 0) {
+            <button
+              class="btn btn-warning"
+              type="button"
+              [disabled]="!canGravar || permanenciaProcessandoId() === registroRapidoEntradaId"
+              (click)="retomarDoModalEntrada()"
             >
-              <option value="">Selecione</option>
-              @for (n of eixosOpcoes; track n) {
-                <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
-              }
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="modal-op-transportadora">Transportadora</label>
-            <input id="modal-op-transportadora" type="text" class="input-control" placeholder="Transportadora" [(ngModel)]="entradaForm.transportadora" />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-condutor">Condutor</label>
-            <input id="modal-op-condutor" type="text" class="input-control" placeholder="Nome do condutor" [(ngModel)]="entradaForm.condutor" />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-cpf">CPF</label>
-            <input
-              id="modal-op-cpf"
-              type="text"
-              class="input-control"
-              placeholder="000.000.000-00"
-              [ngModel]="entradaForm.cpf"
-              (ngModelChange)="formatarCpf($event)"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-obs">Observação</label>
-            <input id="modal-op-obs" type="text" class="input-control" placeholder="Observação (opcional)" [(ngModel)]="entradaForm.observacao" />
-          </div>
+              {{
+                permanenciaProcessandoId() === registroRapidoEntradaId ? 'Retomando...' : 'Retomar'
+              }}
+          </button>
+          }
+          <button
+            class="btn btn-success"
+            type="button"
+            [disabled]="!canGravar || processandoRegistroRapido() || existeEntradaEmAbertoPorPlaca"
+            (click)="confirmarEntradaModal()"
+          >
+            {{ processandoRegistroRapido() ? 'Registrando...' : 'Confirmar entrada' }}
+          </button>
+        </footer>
         </div>
-        <div class="modal-footer dk-modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeEntradaModal()">Fechar</button>
-          <button type="button" class="btn btn-primary" (click)="registrarEntrada()" [disabled]="!entradaForm.placa.trim()">
-            Registrar entrada
+    </div>
+  }
+
+  @if (saidaModalOpen()) {
+    <div
+      class="modal-overlay es-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="saidaModalTitle"
+      (click)="fecharModalSaida()"
+    >
+      <div class="modal-content es-modal es-modal--saida-lista" (click)="$event.stopPropagation()">
+        <header class="es-modal__header">
+          <div class="es-modal__header-main">
+            <span class="es-modal__header-ico es-modal__header-ico--saida" aria-hidden="true">
+              <span class="material-symbols-outlined">logout</span>
+            </span>
+            <div>
+              <h2 id="saidaModalTitle" class="es-modal__title">Veículos em aberto para saída</h2>
+              <p class="es-modal__subtitle">
+                Selecione um veículo da lista abaixo para registrar a saída.
+              </p>
+            </div>
+          </div>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalSaida()">
+            ×
+          </button>
+        </header>
+
+        <div class="es-modal__toolbar">
+          <label class="es-modal__search">
+            <span class="material-symbols-outlined es-modal__search-ico" aria-hidden="true">search</span>
+        <input
+              class="input-control"
+              type="search"
+              placeholder="Buscar por placa, motorista ou transportadora..."
+              [ngModel]="saidaModalBusca()"
+              (ngModelChange)="onSaidaModalBuscaChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+              aria-label="Buscar veículos em aberto"
+            />
+          </label>
+          <button
+            type="button"
+            class="btn btn-secondary btn--sm"
+            [class.btn--active]="saidaFiltrosVisiveis()"
+            (click)="alternarFiltrosSaida()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
+            Filtros
+          </button>
+        </div>
+
+        @if (saidaFiltrosVisiveis()) {
+          <div class="es-modal__chips" role="group" aria-label="Filtros por tipo">
+            <button
+              type="button"
+              class="es-chip"
+              [class.es-chip--active]="saidaModalFiltroTipo() === null"
+              (click)="aplicarFiltroTipoSaida(null)"
+            >
+              Todos <span class="es-chip__count">{{ saidaModalTotalBusca() }}</span>
+            </button>
+            @for (chip of saidaModalChips(); track chip.key) {
+              <button
+                type="button"
+                class="es-chip"
+                [class.es-chip--active]="saidaModalFiltroTipo() === chip.key"
+                (click)="aplicarFiltroTipoSaida(chip.key)"
+              >
+                {{ chip.label }} <span class="es-chip__count">{{ chip.count }}</span>
+              </button>
+            }
+      </div>
+        }
+
+        <div class="es-modal__body es-modal__body--table">
+          @if (saidaModalLoading()) {
+            <p class="loading-msg">Carregando veículos em aberto...</p>
+          } @else {
+            <div class="table-wrap es-modal__table-wrap">
+              <table class="data-table es-saida-table">
+          <thead>
+            <tr>
+                    <th scope="col">Placa</th>
+                    <th scope="col">Motorista</th>
+                    <th scope="col">Transportadora</th>
+                    <th scope="col">Horário de entrada</th>
+                    <th scope="col">Tempo no pátio</th>
+                    <th scope="col" class="col-acoes">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+                  @for (item of saidaModalPaginaItens(); track item.id) {
+                    <tr
+                      [class.es-saida-table__row--selected]="saidaModalSelecionadoId() === item.id"
+                      (click)="selecionarLinhaSaida(item.id)"
+                    >
+                <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                <td>
+                        <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista || '—' }}</span>
+                </td>
+                <td>
+                  <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
+                          item.nomeTransportadora || '—'
+                  }}</span>
+                </td>
+                      <td>{{ item.dataHoraEntrada ? (item.dataHoraEntrada | date: 'HH:mm') : '—' }}</td>
+                      <td>{{ tempoNoPatioDesde(item.dataHoraEntrada) }}</td>
+                      <td class="acoes-cell es-saida-table__acoes">
+                  <button
+                    type="button"
+                          class="btn btn-warning btn--sm"
+                          [disabled]="!canGravar || permanenciaProcessandoId() === item.id"
+                          (click)="$event.stopPropagation(); suspenderOuRetomarDoModalSaida(item)"
+                        >
+                          {{
+                            permanenciaProcessandoId() === item.id
+                              ? '...'
+                              : estaSuspenso(item)
+                                ? 'Retomar'
+                                : 'Suspender'
+                          }}
+                  </button>
+                  <button
+                    type="button"
+                          class="btn btn-danger btn--sm"
+                          [disabled]="!canGravar"
+                          (click)="$event.stopPropagation(); darSaidaDoModal(item)"
+                        >
+                          Dar saída
+                  </button>
+                </td>
+              </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6">Nenhum veículo em aberto encontrado.</td>
+                    </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+          }
+        </div>
+
+        <footer class="es-modal__footer es-modal__footer--between">
+          <span class="es-modal__pager-info">
+            Mostrando {{ saidaModalMostrandoDe() }} a {{ saidaModalMostrandoAte() }} de
+            {{ saidaModalTotalFiltrado() }} veículos em aberto
+          </span>
+          @if (saidaModalTotalPaginas() > 1) {
+            <nav class="es-modal__pager" aria-label="Paginação de veículos em aberto">
+            <button
+                type="button"
+              class="btn btn-secondary btn--sm"
+                [disabled]="saidaModalPagina() <= 1"
+                (click)="irPaginaSaida(saidaModalPagina() - 1)"
+              >
+                &lt;
+              </button>
+              @for (p of saidaModalPaginasVisiveis(); track p) {
+                <button
+              type="button"
+                  class="btn btn--sm"
+                  [class.btn-primary]="p === saidaModalPagina()"
+                  [class.btn-secondary]="p !== saidaModalPagina()"
+                  (click)="irPaginaSaida(p)"
+                >
+                  {{ p }}
+            </button>
+              }
+            <button
+              type="button"
+                class="btn btn-secondary btn--sm"
+                [disabled]="saidaModalPagina() >= saidaModalTotalPaginas()"
+                (click)="irPaginaSaida(saidaModalPagina() + 1)"
+            >
+                &gt;
+            </button>
+        </nav>
+      }
+        </footer>
+      </div>
+    </div>
+  }
+
+  @if (reciboConfirmOpen()) {
+    <div
+      class="modal-overlay recibo-confirm-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reciboConfirmTitle"
+    >
+      <div class="modal-content recibo-confirm-dialog" (click)="$event.stopPropagation()">
+        <h3 id="reciboConfirmTitle">Imprimir recibo</h3>
+        <p>{{ reciboConfirmMensagem() }}</p>
+        <div class="recibo-confirm-dialog__actions">
+          <button class="btn btn-secondary" type="button" (click)="recusarReciboConfirm()">
+            Não
+          </button>
+          <button class="btn btn-primary" type="button" (click)="aceitarReciboConfirm()">
+            Sim, visualizar
           </button>
         </div>
       </div>
     </div>
   }
 
-  @if (detalheMovimento) {
-    <div class="modal-overlay dk-modal-overlay" (click)="closeDetalheMovimento()" role="presentation">
+  @if (permanenciaOpen() && registroSelecionado(); as registroModal) {
+    <div class="modal-overlay" (click)="fecharPermanencia()">
       <div
-        class="modal-content dk-modal-content modal-content--detalhe"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-detalhe-title"
+        class="modal-content"
+        [class.modal-content--saida]="permanenciaAcao === 'finalizar'"
         (click)="$event.stopPropagation()"
       >
-        <div class="modal-header dk-modal-header">
-          <h2 id="modal-detalhe-title">Detalhes do movimento</h2>
-          <button type="button" class="modal-close" aria-label="Fechar" (click)="closeDetalheMovimento()">&times;</button>
+        @if (permanenciaAcao === 'finalizar') {
+          <header class="saida-modal__header">
+            <h2 class="saida-modal__title">Registrar saída</h2>
+            <div class="saida-modal__identidade">
+              <p class="saida-modal__placa" aria-label="Placa do veículo">
+                <span class="saida-modal__placa-label">Placa:</span>
+                <span class="saida-modal__placa-valor">{{ formatarPlaca(placaSelecionada()) }}</span>
+              </p>
+              <span
+                class="saida-modal__status"
+                [class.saida-modal__status--aberto]="!registroModal.finalizado && !registroModal.permanenciaSuspensa"
+                [class.saida-modal__status--suspenso]="registroModal.permanenciaSuspensa && !registroModal.finalizado"
+                [class.saida-modal__status--finalizado]="registroModal.finalizado"
+              >
+                {{
+                  registroModal.finalizado
+                    ? 'Finalizado'
+                    : registroModal.permanenciaSuspensa
+                      ? 'Suspenso'
+                      : 'Em aberto'
+                }}
+              </span>
+            </div>
+          </header>
+
+          <section class="saida-modal__tempo" aria-label="Controle de tempo">
+            <div class="saida-modal__tempo-grid">
+              <div class="saida-modal__tempo-item">
+                <span class="saida-modal__label">Data/hora de entrada</span>
+                <strong class="saida-modal__tempo-valor">{{
+                  formatarDataHoraEntrada(registroModal)
+                }}</strong>
+              </div>
+              <div class="saida-modal__tempo-item">
+                <label class="saida-modal__label" for="permanenciaDataHora">Data/hora de saída</label>
+                <input
+                  id="permanenciaDataHora"
+                  class="input-control saida-modal__datetime"
+                  type="datetime-local"
+                  [ngModel]="permanenciaDataHora"
+                  (ngModelChange)="onPermanenciaDataHoraChange($event)"
+                  [disabled]="saidaProcessando()"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="saida-modal__valores" aria-label="Resumo da cobrança">
+            @if (saidaValorLoading()) {
+              <p class="modal-hint" role="status">Consultando valor da configuração de cobrança...</p>
+            }
+
+            <div class="saida-modal__cupom">
+              @if (saidaLabelTipoTarifa() || saidaTipoCobranca()) {
+                <div class="saida-modal__cupom-meta" aria-label="Tipo de cobrança">
+                  @if (saidaLabelTipoTarifa(); as tipoLabel) {
+                    <span class="saida-modal__meta-pill">{{ tipoLabel }}</span>
+                  }
+                  <span class="saida-modal__meta-pill saida-modal__meta-pill--muted">{{
+                    saidaTipoCobranca()
+                  }}</span>
+                </div>
+              }
+
+              <div class="saida-modal__cupom-linha saida-modal__cupom-linha--diaria">
+                <label class="saida-modal__label" for="saidaValorDiaria">{{
+                  saidaLabelValorUnitario()
+                }}</label>
+                <div class="modal-money saida-modal__money">
+                  <span class="modal-money__prefix" aria-hidden="true">R$</span>
+                  <input
+                    id="saidaValorDiaria"
+                    class="input-control modal-money__input"
+                    type="text"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    placeholder="0,00"
+                    [ngModel]="saidaValorDiariaTexto()"
+                    (ngModelChange)="onSaidaValorDiariaChange($event)"
+                    (blur)="onSaidaValorDiariaBlur()"
+                    [disabled]="saidaValorBloqueado() || saidaValorLoading() || saidaProcessando()"
+                    [attr.aria-describedby]="
+                      saidaValorBloqueado() ? 'saidaValorHint' : 'saidaValorCalcHint'
+                    "
+                  />
+                </div>
+              </div>
+
+              <div class="saida-modal__cupom-linha saida-modal__cupom-linha--quantidade">
+                <span class="saida-modal__label">{{ saidaLabelQuantidade() }}:</span>
+                <strong class="saida-modal__cupom-valor">{{ saidaQuantidadeDiarias() }}</strong>
+              </div>
+
+              <div class="saida-modal__cupom-linha saida-modal__cupom-linha--total">
+                <span>Total do recibo</span>
+                <strong class="saida-modal__total">R$ {{ formatarMoeda(saidaValor()) }}</strong>
+              </div>
+            </div>
+
+            @if (saidaValorBloqueado()) {
+              <p id="saidaValorHint" class="modal-hint">
+                {{ saidaHintCobranca() }}
+              </p>
+            } @else if (!saidaValorLoading()) {
+              <p id="saidaValorCalcHint" class="modal-hint">
+                {{ saidaHintCobranca() }}
+              </p>
+            }
+          </section>
+
+          <div class="modal-actions saida-modal__actions">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="saidaProcessando()"
+              (click)="fecharPermanencia()"
+            >
+              Cancelar
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              [disabled]="saidaProcessando() || !podeFinalizar()"
+              (click)="confirmarPermanencia()"
+            >
+              {{ saidaProcessando() ? 'Processando...' : 'Confirmar' }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (reciboPreviewOpen() && reciboPreviewUrl(); as previewUrl) {
+    <div
+      class="modal-overlay recibo-preview-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reciboPreviewTitle"
+      (click)="fecharPreviewRecibo()"
+    >
+      <div class="modal-content recibo-preview-modal" (click)="$event.stopPropagation()">
+        <div class="recibo-preview-modal__header">
+          <h2 id="reciboPreviewTitle">Pré-visualização do recibo</h2>
+          <button
+            type="button"
+            class="modal-close"
+            aria-label="Fechar pré-visualização"
+            (click)="fecharPreviewRecibo()"
+          >
+            ×
+          </button>
         </div>
-        <div class="modal-body dk-modal-body detalhe-body">
-          <dl class="detalhe-list">
-            <div class="detalhe-item">
-              <dt>Placa</dt>
-              <dd>{{ detalheMovimento.placa }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Motorista</dt>
-              <dd>{{ detalheMovimento.motorista }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>CPF</dt>
-              <dd>{{ detalheMovimento.cpf }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Transportadora</dt>
-              <dd>{{ detalheMovimento.transportadora }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Data de entrada</dt>
-              <dd>{{ detalheMovimento.dataEntrada }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Data de saída</dt>
-              <dd>{{ detalheMovimento.dataSaida }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Tempo estacionado</dt>
-              <dd>{{ detalheMovimento.tempoEstacionado ?? '—' }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Status final</dt>
-              <dd>{{ detalheMovimento.statusFinal ?? 'Finalizado' }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Valor</dt>
-              <dd>{{ detalheMovimento.valor }}</dd>
-            </div>
-          </dl>
-        </div>
-        <div class="modal-footer dk-modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="imprimirComprovante(detalheMovimento)">Imprimir</button>
-          <button type="button" class="btn btn-secondary" (click)="closeDetalheMovimento()">Fechar</button>
+        <iframe
+          id="recibo-preview-iframe"
+          class="recibo-preview-modal__frame"
+          title="Pré-visualização do recibo PDF"
+          [src]="previewUrl"
+        ></iframe>
+        <div class="modal-actions recibo-preview-modal__actions">
+          <button class="btn btn-secondary" type="button" (click)="fecharPreviewRecibo()">
+            Fechar
+          </button>
+          <button class="btn btn-secondary" type="button" (click)="imprimirReciboDaPreview()">
+            Imprimir
+          </button>
+          <button class="btn btn-primary" type="button" (click)="baixarReciboDaPreview()">
+            Download
+          </button>
         </div>
       </div>
     </div>
   }
+
+  @if (showSelecionarMotoristaPlaca()) {
+    <div
+      class="modal-overlay"
+      (click)="fecharSelecionarMotoristaPlaca()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="selecionar-motorista-placa-title"
+    >
+      <div class="modal-content modal-content--selecionar-motorista" (click)="$event.stopPropagation()">
+        <header class="selecionar-motorista__header">
+          <h2 id="selecionar-motorista-placa-title" class="selecionar-motorista__title">
+            Selecionar motorista do veículo
+          </h2>
+          <button
+            type="button"
+            class="modal-close"
+            (click)="fecharSelecionarMotoristaPlaca()"
+            aria-label="Fechar"
+          >
+            &times;
+          </button>
+        </header>
+        <p class="selecionar-motorista__hint">
+          Esta placa possui {{ motoristasVinculadosPlaca.length }} motoristas vinculados. Selecione
+          qual motorista deve constar nesta entrada:
+        </p>
+        <div class="selecionar-motorista__grid-wrap">
+          <table class="selecionar-motorista__grid">
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Nome</th>
+                <th scope="col">CPF</th>
+                <th scope="col">Principal</th>
+                <th scope="col">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of motoristasVinculadosPlaca; track m.id ?? m.cpf ?? m.nome) {
+                <tr [class.selecionar-motorista__row--principal]="m.principal === true">
+                  <td>{{ m.id ?? '—' }}</td>
+                  <td>
+                    <span class="selecionar-motorista__nome">{{ m.nome || 'Motorista' }}</span>
+                  </td>
+                  <td>{{ formatarCpfListaMotorista(m.cpf) }}</td>
+                  <td>
+                    @if (m.principal === true) {
+                      <span class="selecionar-motorista__badge">Principal</span>
+                    } @else {
+                      {{ formatarPrincipalListaMotorista(m.principal) }}
+                    }
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn--sm"
+                      (click)="selecionarMotoristaVinculadoPlaca(m)"
+                    >
+                      Selecionar
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="fecharSelecionarMotoristaPlaca()">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
 </div>

@@ -10,8 +10,9 @@ import {
 import {
   EstacionamentoFormStepService,
   EstacionamentoFormStep,
-  ESTACIONAMENTO_STEP_LABELS
+  Estacionamento_STEP_LABELS
 } from './services/estacionamento-form-step.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-estacionamento-layout',
@@ -22,12 +23,13 @@ import {
 })
 export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
-  private stepService = inject(EstacionamentoFormStepService);
+  readonly stepService = inject(EstacionamentoFormStepService);
   readonly toolbar = inject(EstacionamentoToolbarService);
+  readonly isAdmin = inject(AuthService).isAdmin();
 
   /** True quando a rota é novo ou editar (formulário com stepper). */
   showStepper = signal(false);
-  readonly stepLabels = ESTACIONAMENTO_STEP_LABELS;
+  readonly stepLabels = Estacionamento_STEP_LABELS;
   private sub: { unsubscribe: () => void } | null = null;
 
   ngOnInit(): void {
@@ -35,6 +37,9 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
     this.sub = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe(() => this.updateShowStepper());
+    if (!this.showStepper()) {
+      this.onBuscar();
+    }
   }
 
   ngOnDestroy(): void {
@@ -63,13 +68,13 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
       case 'nomeRazaoSocial':
         return 'Digite o nome / razão social';
       case 'descricao':
-        return 'Digite a descrição';
+        return 'Digite o nome fantasia';
       case 'email':
         return 'Digite o e-mail';
       case 'id':
         return 'Digite o ID';
       default:
-        return 'Pesquise';
+        return 'Pesquisar por nome, razão social ou CNPJ';
     }
   }
 
@@ -85,5 +90,10 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
     if (step === 1 || step === 2 || step === 3) {
       this.stepService.setStep(step);
     }
+  }
+
+  /** Salvar no cabeçalho: delega ao formulário (Cadastro ou Dados Bancários). */
+  onHeaderSalvar(): void {
+    this.stepService.requestSaveFromHeader();
   }
 }

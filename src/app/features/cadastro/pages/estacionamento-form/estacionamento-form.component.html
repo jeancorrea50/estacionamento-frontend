@@ -1,65 +1,108 @@
-<div class="page">
-  <header class="header">
-    <div class="container header__inner">
-      <h1 class="header__title">{{ id ? 'Editar' : 'Novo' }} Estacionamento</h1>
-      <a class="btn btn--secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
-    </div>
-  </header>
-
-  <div class="page__content">
-    <div class="container">
+<div class="estacionamento-form-wrapper est-cadastro">
+  <div class="est-cadastro__container">
       @if (loading) {
         <p class="loading">Carregando...</p>
       } @else {
         @if (erro) {
           <p class="error-banner">{{ erro }}</p>
+          @if (errosCamposSalvar.length > 0) {
+            <ul class="error-banner__list">
+              @for (msg of errosCamposSalvar; track msg) {
+                <li>{{ msg }}</li>
+              }
+            </ul>
+          }
         }
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form form-compact">
+        <form [formGroup]="form" (ngSubmit)="onFormSubmit($event)" class="form form-compact">
           <input type="hidden" formControlName="id" />
           <input type="hidden" formControlName="pessoaId" />
 
           @if (currentStep === 1) {
-          <div class="layout-grid">
-            <section class="card card--span-5">
-            <div class="card__header">
-              <h2 class="card__title">Estacionamento</h2>
-              <p class="card__description">Campos obrigatórios marcados com *</p>
-            </div>
-            <div class="form-compact__body">
-              <div class="form-row">
-                <label for="descricao">Nome do Estacionamento <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="descricao"
-                    class="field__input"
-                    type="text"
-                    formControlName="descricao"
-                    placeholder="Nome do Estacionamento"
-                  />
-                  @if (form.get('descricao')?.invalid && form.get('descricao')?.touched) {
-                    <span class="field__error">
-                      @if (form.get('descricao')?.errors?.['required']) { Nome obrigatório. }
-                      @if (form.get('descricao')?.errors?.['minlength']) { Mín. 2 caracteres. }
-                    </span>
-                  }
-                </div>
+          <div class="est-page-grid">
+            <div class="est-page-grid__main">
+          <div class="cadastro-stack">
+            <section class="card card--cadastro-section est-card">
+            <div class="est-card__head">
+              <span class="est-card__icon material-symbols-outlined" aria-hidden="true">apartment</span>
+              <div>
+                <h2 class="card__title est-card__title">Dados do Estacionamento</h2>
+                <p class="card__description est-card__lede">Pessoa jurídica e contrato. Obrigatórios com <span class="required">*</span></p>
               </div>
             </div>
-            <h3 class="card__subtitle">Contrato</h3>
-            <div class="form-compact__body">
-              <div class="form-row form-row--file">
-                <label>Anexar PDF (contrato)</label>
-                <div class="form-row__input">
-                  <div class="file-upload">
+            <div class="est-card__body" formGroupName="pessoa">
+              <div class="est-field-grid est-field-grid--3">
+                <div class="est-field">
+                  <label class="est-field__label" for="cnpj">CNPJ <span class="required">*</span></label>
+                  <input
+                    id="cnpj"
+                    class="field__input est-field__control"
+                    type="text"
+                    formControlName="cnpj"
+                    placeholder="00.000.000/0001-00"
+                    maxlength="18"
+                    appCnpjFormat
+                    (blur)="onCnpjBlur()"
+                  />
+                  @if (cnpjLoading) {
+                    <span class="field__hint cnpj-loading">Consultando dados do CNPJ...</span>
+                  }
+                  @if (cnpjSuccess) {
+                    <span class="field__hint cnpj-success">{{ cnpjSuccess }}</span>
+                  }
+                  @if (cnpjError) {
+                    <span class="field__error">{{ cnpjError }}</span>
+                  }
+                  @if (form.get('pessoa.cnpj')?.invalid && form.get('pessoa.cnpj')?.touched && !cnpjError) {
+                    <span class="field__error">{{ cnpjErrorMessage }}</span>
+                  }
+                </div>
+                <div class="est-field">
+                  <label class="est-field__label" for="nomeRazaoSocial">Razão social <span class="required">*</span></label>
+                  <input
+                    id="nomeRazaoSocial"
+                    class="field__input est-field__control"
+                    type="text"
+                    formControlName="nomeRazaoSocial"
+                    placeholder="Razão social"
+                  />
+                  @if (form.get('pessoa.nomeRazaoSocial')?.invalid && form.get('pessoa.nomeRazaoSocial')?.touched) {
+                    <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                  }
+                </div>
+                <div class="est-field">
+                  <label class="est-field__label" for="nomeFantasia">Nome fantasia</label>
+                  <input id="nomeFantasia" class="field__input est-field__control" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
+                </div>
+              </div>
+              <div class="est-field-grid est-field-grid--2 est-field-grid--align-end">
+                <div class="est-field est-field--status-row">
+                  <span class="est-field__label">Status</span>
+                  <label class="est-switch">
+                    <input type="checkbox" formControlName="ativo" />
+                    <span class="est-switch__track"></span>
+                    <span class="est-switch__text">
+                      @if (form.get('pessoa.ativo')?.value) {
+                        Ativo
+                      } @else {
+                        Inativo
+                      }
+                    </span>
+                  </label>
+                </div>
+                <div class="est-field est-field--file">
+                  <label class="est-field__label" for="contrato-pdf-est">Contrato / PDF</label>
+                  <div class="file-upload est-file-upload">
                     <input
+                      id="contrato-pdf-est"
                       type="file"
                       class="file-upload__input"
                       accept=".pdf,application/pdf"
                       (change)="onContratoPdfChange($event)"
                       #contratoPdfInput
                     />
-                    <button type="button" class="file-upload__btn" (click)="contratoPdfInput.click()">
+                    <button type="button" class="file-upload__btn est-btn-upload" (click)="contratoPdfInput.click()">
+                      <span class="material-symbols-outlined" aria-hidden="true">attach_file</span>
                       {{ contratoPdf ? contratoPdf.name : 'Selecionar PDF' }}
                     </button>
                     @if (contratoPdf) {
@@ -74,91 +117,227 @@
                 </div>
               </div>
             </div>
-          </section>
-
-            <section class="card card--span-7" formGroupName="pessoa">
-              <div class="card__header">
-                <h2 class="card__title">Pessoa (responsável)</h2>
-                <p class="card__description">Campos obrigatórios marcados com *</p>
-              </div>
-              <div class="form-compact__body">
-              <div class="form-row">
-                <label for="nomeRazaoSocial">Razão Social <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="nomeRazaoSocial"
-                    class="field__input"
-                    type="text"
-                    formControlName="nomeRazaoSocial"
-                    placeholder="Razão Social"
-                  />
-                  @if (form.get('pessoa.nomeRazaoSocial')?.invalid && form.get('pessoa.nomeRazaoSocial')?.touched) {
-                    <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
-                  }
-                </div>
-              </div>
-              <div class="form-row">
-                <label for="nomeFantasia">Nome Fantasia</label>
-                <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
-              </div>
-              <div class="form-row">
-                <label for="documento">CNPJ <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="documento"
-                    class="field__input"
-                    type="text"
-                    formControlName="documento"
-                    placeholder="00.000.000/0001-00"
-                    maxlength="18"
-                    appCnpjFormat
-                    (blur)="onDocumentoCnpjBlur()"
-                  />
-                  @if (cnpjLoading) {
-                    <span class="field__hint cnpj-loading">Buscando dados do CNPJ...</span>
-                  }
-                  @if (cnpjError) {
-                    <span class="field__error">{{ cnpjError }}</span>
-                  }
-                  @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched && !cnpjError) {
-                    <span class="field__error">{{ documentoErrorMessage }}</span>
-                  }
-                </div>
-              </div>
-              <div class="form-row">
-                <label for="email">E-mail <span class="required">*</span></label>
-                <div class="form-row__input">
-                  <input
-                    id="email"
-                    class="field__input"
-                    type="email"
-                    formControlName="email"
-                    placeholder="email@exemplo.com"
-                  />
-                  @if (form.get('pessoa.email')?.invalid && form.get('pessoa.email')?.touched) {
-                    <span class="field__error">
-                      @if (form.get('pessoa.email')?.errors?.['required']) { Obrigatório. }
-                      @if (form.get('pessoa.email')?.errors?.['email']) { E-mail inválido. }
-                    </span>
-                  }
-                </div>
-              </div>
-              <div class="form-row form-row--checkbox">
-                <label>Status</label>
-                <label class="field__label--checkbox">
-                  <input type="checkbox" formControlName="ativo" />
-                  Ativo
-                </label>
-              </div>
-            </div>
             </section>
-          </div>
 
-          <div class="complementares-contatos-row">
-          <section class="card card--accordion card--complementares" [class.card--open]="complementaresOpen">
+            @if (isAdmin) {
+            <section class="card card--cadastro-section est-card">
+              <div class="est-card__head">
+                <span class="est-card__icon material-symbols-outlined" aria-hidden="true">database</span>
+                <div>
+                  <h2 class="card__title est-card__title">Conexão / Multi-tenant</h2>
+                  <p class="card__description est-card__lede">
+                    @if (id != null) {
+                      Somente visualização — estes dados não podem ser alterados na edição.
+                    } @else {
+                      Dados sincronizados com GtCentral (CodExportacao e perfil de banco).
+                    }
+                  </p>
+                </div>
+              </div>
+              <div class="est-card__body" [class.est-card__body--readonly]="id != null">
+                <div class="est-field-grid est-field-grid--2">
+                  <div class="est-field">
+                    <label class="est-field__label" for="codExportacao">Cod. exportação</label>
+                    <input
+                      id="codExportacao"
+                      class="field__input est-field__control"
+                      type="text"
+                      formControlName="codExportacao"
+                      maxlength="36"
+                      readonly
+                    />
+                    <p class="est-field__hint">
+                      @if (id != null) {
+                        Somente leitura.
+                      } @else {
+                        GUID gerado automaticamente (não editável).
+                      }
+                    </p>
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="isolationMode">Isolamento</label>
+                    <select id="isolationMode" class="field__input est-field__control" formControlName="isolationMode">
+                      <option [ngValue]="1">Shared (compartilhado)</option>
+                      <option [ngValue]="2">Dedicated (exige conexão)</option>
+                    </select>
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="bancoDadosConexaoId">
+                      Perfil de conexão
+                      @if (id == null) {
+                        *
+                      }
+                    </label>
+                    <select
+                      id="bancoDadosConexaoId"
+                      class="field__input est-field__control"
+                      formControlName="bancoDadosConexaoId"
+                    >
+                      <option [ngValue]="null">Selecione uma conexão</option>
+                      @for (c of conexoesOpcoes; track c.id) {
+                        <option [ngValue]="c.id">{{ c.label || c.nome }}</option>
+                      }
+                    </select>
+                    @if (id == null && form.get('bancoDadosConexaoId')?.touched && form.get('bancoDadosConexaoId')?.invalid) {
+                      <p class="est-field__error">Selecione um perfil de conexão.</p>
+                    }
+                  </div>
+                  <div class="est-field est-field--status-row">
+                    <span class="est-field__label">Tenant ativo</span>
+                    <label class="est-switch est-switch--locked">
+                      <input type="checkbox" formControlName="ativoTenant" />
+                      <span class="est-switch__track"></span>
+                      <span class="est-switch__text">Ativo no GtCentral</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+            }
+
+            @if (isAdmin) {
+            <section class="card card--cadastro-section est-card">
+              <div class="est-card__head">
+                <span class="est-card__icon material-symbols-outlined" aria-hidden="true">payments</span>
+                <div>
+                  <h2 class="card__title est-card__title">Configuração Valores</h2>
+                  <p class="card__description est-card__lede">
+                    Tarifa avulsa: Hora (1) ou Diária (2), valor (R$) e tolerância (0–1440 min).
+                    Diferente da taxa/mensalidade em Dados complementares.
+                  </p>
+                </div>
+              </div>
+              <div class="est-card__body">
+                <div class="est-field-grid est-field-grid--3">
+                  <div class="est-field">
+                    <label class="est-field__label" for="tipoTarifaAvulsa">Cobrança avulsa</label>
+                    <select
+                      id="tipoTarifaAvulsa"
+                      class="field__input est-field__control"
+                      formControlName="tipoTarifaAvulsa"
+                    >
+                      <option [ngValue]="null">Selecione</option>
+                      <option [ngValue]="1">Por hora</option>
+                      <option [ngValue]="2">Diária</option>
+                    </select>
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="valorAvulso">Valor (R$)</label>
+                    <div class="field__input-wrap">
+                      <span class="field__prefix">R$</span>
+                      <input
+                        id="valorAvulso"
+                        class="field__input est-field__control"
+                        type="number"
+                        formControlName="valorAvulso"
+                        min="0"
+                        step="0.01"
+                        placeholder="0,00"
+                      />
+                    </div>
+                    @if (form.get('valorAvulso')?.invalid && form.get('valorAvulso')?.touched) {
+                      <span class="field__error">Valor não pode ser negativo.</span>
+                    }
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="minutosToleranciaPermanencia">Tolerância (min)</label>
+                    <input
+                      id="minutosToleranciaPermanencia"
+                      class="field__input est-field__control"
+                      type="number"
+                      formControlName="minutosToleranciaPermanencia"
+                      min="0"
+                      max="1440"
+                      step="1"
+                      placeholder="Ex: 15"
+                    />
+                    @if (form.get('minutosToleranciaPermanencia')?.invalid && form.get('minutosToleranciaPermanencia')?.touched) {
+                      <span class="field__error">Informe entre 0 e 1440 minutos.</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </section>
+            }
+
+            <section class="card card--cadastro-section est-card">
+              <div class="est-card__head">
+                <span class="est-card__icon material-symbols-outlined" aria-hidden="true">badge</span>
+                <div>
+                  <h2 class="card__title est-card__title">Pessoa responsável</h2>
+                  <p class="card__description est-card__lede">Responsável legal (PF). Campos com <span class="required">*</span></p>
+                </div>
+              </div>
+              <div class="est-card__body">
+                <div class="est-field-grid est-field-grid--2">
+                  <div class="est-field">
+                    <label class="est-field__label" for="responsavelLegalNome">Nome completo <span class="required">*</span></label>
+                    <input
+                      id="responsavelLegalNome"
+                      class="field__input est-field__control"
+                      type="text"
+                      formControlName="responsavelLegalNome"
+                      placeholder="Nome completo"
+                    />
+                    @if (form.get('responsavelLegalNome')?.invalid && form.get('responsavelLegalNome')?.touched) {
+                      <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                    }
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="responsavelLegalCpf">CPF <span class="required">*</span></label>
+                    <input
+                      id="responsavelLegalCpf"
+                      class="field__input est-field__control"
+                      type="text"
+                      formControlName="responsavelLegalCpf"
+                      appCpfFormat
+                      maxlength="14"
+                      placeholder="000.000.000-00"
+                    />
+                    @if (form.get('responsavelLegalCpf')?.invalid && form.get('responsavelLegalCpf')?.touched) {
+                      <span class="field__error">CPF obrigatório com 11 dígitos.</span>
+                    }
+                  </div>
+                </div>
+                <div class="est-field-grid est-field-grid--2">
+                  <div class="est-field">
+                    <label class="est-field__label" for="responsavelLegalEmail">E-mail <span class="required">*</span></label>
+                    <input
+                      id="responsavelLegalEmail"
+                      class="field__input est-field__control"
+                      type="email"
+                      formControlName="responsavelLegalEmail"
+                      placeholder="email@exemplo.com"
+                    />
+                    @if (form.get('responsavelLegalEmail')?.invalid && form.get('responsavelLegalEmail')?.touched) {
+                      <span class="field__error">
+                        @if (form.get('responsavelLegalEmail')?.errors?.['required']) { Obrigatório. }
+                        @if (form.get('responsavelLegalEmail')?.errors?.['email']) { E-mail inválido. }
+                      </span>
+                    }
+                  </div>
+                  <div class="est-field">
+                    <label class="est-field__label" for="contatoTelefone">Telefone <span class="required">*</span></label>
+                    <input
+                      id="contatoTelefone"
+                      class="field__input est-field__control"
+                      type="tel"
+                      formControlName="contatoTelefone"
+                      appTelefoneFormat
+                      placeholder="(00) 00000-0000"
+                    />
+                    @if (form.get('contatoTelefone')?.invalid && form.get('contatoTelefone')?.touched) {
+                      <span class="field__error">Informe um telefone com DDD (mín. 10 dígitos).</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </section>
+
+          <section class="card card--cadastro-section card--accordion card--complementares" [class.card--open]="complementaresOpen">
             <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
               <h2 class="card__title">Dados complementares</h2>
-              <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
+              <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
             </button>
             @if (complementaresOpen) {
               <div class="card__body complementares-body">
@@ -181,6 +360,29 @@
                       <div class="form-row form-row--checkbox">
                         <label>Banheiro</label>
                         <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /></label>
+                      </div>
+                      <div class="form-row">
+                        <label for="horarioAbertura">Abre</label>
+                        <input id="horarioAbertura" class="field__input" type="time" formControlName="horarioAbertura" />
+                      </div>
+                      <div class="form-row">
+                        <label for="horarioFechamento">Fecha</label>
+                        <input id="horarioFechamento" class="field__input" type="time" formControlName="horarioFechamento" />
+                      </div>
+                      <div class="form-row form-row--dias">
+                        <label>Dias</label>
+                        <div class="dias-funcionamento">
+                          @for (dia of diasSemana; track dia.valor) {
+                            <label>
+                              <input
+                                type="checkbox"
+                                [checked]="diaMarcado(dia.valor)"
+                                (change)="alternarDia(dia.valor, $event)"
+                              />
+                              {{ dia.sigla }}
+                            </label>
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -216,17 +418,46 @@
                       </div>
                     </div>
                   </div>
-                  <div class="complementares-block">
+                  <div class="complementares-block complementares-block--full">
                     <h3 class="card__subtitle">Localização</h3>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="latitude">Latitude</label>
-                        <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                    <div class="geo-layout">
+                      <div class="geo-layout__dados">
+                        <div class="form-compact__body">
+                          <div class="form-row">
+                            <label for="latitude">Latitude</label>
+                            <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                          </div>
+                          <div class="form-row">
+                            <label for="longitude">Longitude</label>
+                            <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
+                          </div>
+                        </div>
+                        <div class="geo-layout__acoes">
+                          <button type="button" class="btn btn-secondary btn--sm" (click)="usarMinhaGeolocalizacao()">
+                            Usar minha localização
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn--sm"
+                            (click)="compartilharGeolocalizacao()"
+                            [disabled]="!linkGeolocalizacao()"
+                          >
+                            Compartilhar link
+                          </button>
+                        </div>
+                        @if (linkGeolocalizacao(); as linkMapa) {
+                          <a class="geo-layout__link" [href]="linkMapa" target="_blank" rel="noopener noreferrer">{{ linkMapa }}</a>
+                        } @else {
+                          <p class="geo-layout__hint">Clique no mapa para marcar o pátio, ou salve o cadastro: a latitude e a longitude são preenchidas pelo endereço quando ainda não houver ponto.</p>
+                        }
                       </div>
-                      <div class="form-row">
-                        <label for="longitude">Longitude</label>
-                        <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
-                      </div>
+                      <app-brasil-mapa
+                        class="geo-layout__mapa"
+                        modo="ponto"
+                        [latitude]="coordenadaFormulario('latitude')"
+                        [longitude]="coordenadaFormulario('longitude')"
+                        (pontoSelecionado)="definirGeolocalizacao($event)"
+                      />
                     </div>
                   </div>
 
@@ -235,7 +466,7 @@
                     <div class="enderecos-actions">
                       <button
                         type="button"
-                        class="btn btn--secondary btn--sm"
+                        class="btn btn-secondary btn--sm"
                         (click)="adicionarEndereco()"
                         aria-label="Adicionar endereço"
                       >
@@ -250,7 +481,7 @@
                             <span class="endereco-block__title">Endereço {{ $index + 1 }}</span>
                             <button
                               type="button"
-                              class="btn btn--ghost btn--sm"
+                              class="btn btn-danger btn--outline btn--sm"
                               (click)="removerEndereco($index)"
                               aria-label="Remover endereço"
                             >
@@ -311,81 +542,32 @@
             }
           </section>
 
-          <section class="card card--accordion card--contatos" [class.card--open]="contatosOpen">
+          <section class="card card--cadastro-section card--accordion card--contatos" [class.card--open]="contatosOpen">
             <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
-              <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
-              <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
+              <h2 class="card__title">Contatos complementares</h2>
+              <span class="material-symbols-outlined card__chevron" aria-hidden="true">expand_more</span>
             </button>
             @if (contatosOpen) {
               <div class="card__body contatos-body">
-                <div class="contatos-block">
-                  <h3 class="card__subtitle">Responsável legal</h3>
-                  <div class="form-compact__body">
-                    <div class="form-row">
-                      <label for="responsavelLegalNome">Nome</label>
-                      <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" placeholder="Nome do responsável" />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelLegalCpf">CPF</label>
-                      <input
-                        id="responsavelLegalCpf"
-                        class="field__input"
-                        type="text"
-                        formControlName="responsavelLegalCpf"
-                        appCpfFormat
-                        maxlength="14"
-                        placeholder="000.000.000-00"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label for="contatoTelefone">Telefone</label>
-                      <input
-                        id="contatoTelefone"
-                        class="field__input"
-                        type="tel"
-                        formControlName="contatoTelefone"
-                        appTelefoneFormat
-                        placeholder="(00) 00000-0000"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelLegalEmail">E-mail</label>
-                      <input id="responsavelLegalEmail" class="field__input" type="email" formControlName="responsavelLegalEmail" placeholder="email@exemplo.com" />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="contatos-complementares-actions">
-                  <button
-                    type="button"
-                    class="btn btn--secondary btn--sm contatos-add-btn"
-                    (click)="adicionarContatoComplementar()"
-                    [disabled]="!podeAdicionarContatoComplementar"
-                    aria-label="Adicionar contato complementar"
-                  >
-                    <span class="material-symbols-outlined contatos-add-btn__icon">add</span>
-                    Adicionar contato complementar
-                  </button>
-                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
-                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
-                  }
-                </div>
-
-                <div formArrayName="contatosComplementares">
-                @for (item of contatosComplementaresArray.controls; track $index) {
-                  <div class="contatos-block contatos-block--complementar" [formGroupName]="$index">
-                    <div class="contatos-block__header">
-                      <h3 class="card__subtitle">Contato complementar {{ $index + 1 }}</h3>
-                      <button
-                        type="button"
-                        class="btn btn--ghost btn--sm"
-                        (click)="removerContatoComplementar($index)"
-                        aria-label="Remover contato complementar"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                    <div class="form-compact__body">
+                <div formArrayName="contatosComplementares" class="form-compact__body form-compact__body--contatos-list">
+                  @for (item of contatosComplementaresArray.controls; track $index) {
+                    <div class="est-contato-complementar-block" [formGroupName]="$index">
+                      <div class="est-contato-complementar-block__toolbar">
+                        <span class="est-contato-complementar-block__title">
+                          Contato complementar
+                          @if (contatosComplementaresArray.length > 1) {
+                            <span class="est-contato-complementar-block__n">&nbsp;{{ $index + 1 }}</span>
+                          }
+                        </span>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn--outline btn--sm"
+                          (click)="removerContatoComplementar($index)"
+                          aria-label="Remover contato complementar"
+                        >
+                          Remover
+                        </button>
+                      </div>
                       <div class="form-row">
                         <label [attr.for]="'compNome' + $index">Nome</label>
                         <input [id]="'compNome' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
@@ -418,17 +600,98 @@
                         <input [id]="'compEmail' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
                       </div>
                     </div>
-                  </div>
-                }
+                  }
+                </div>
+                <div class="contatos-add-footer">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--outline contatos-add-btn"
+                    (click)="adicionarContatoComplementar()"
+                    [disabled]="!podeAdicionarContatoComplementar"
+                    aria-label="Adicionar contato complementar"
+                  >
+                    <span class="material-symbols-outlined contatos-add-btn__icon" aria-hidden="true">add</span>
+                    Adicionar contato complementar
+                  </button>
+                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
+                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
+                  }
                 </div>
               </div>
             }
           </section>
           </div>
+          </div>
+          <aside class="est-aside" aria-label="Resumo do cadastro">
+            <div class="est-aside-card">
+              <div
+                class="est-aside__status"
+                [class.est-aside__status--inactive]="!form.get('pessoa.ativo')?.value"
+              >
+                <span class="material-symbols-outlined est-aside__status-icon" aria-hidden="true">check_circle</span>
+                @if (form.get('pessoa.ativo')?.value) {
+                  <span>Cadastro ativo</span>
+                } @else {
+                  <span>Cadastro inativo</span>
+                }
+              </div>
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Preenchimento</span>
+                  <span class="est-aside__progress-value">{{ cadastroFillProgressPercent }}%</span>
+                </div>
+                <div class="est-aside__progress-track" role="progressbar" [attr.aria-valuenow]="cadastroFillProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                  <div class="est-aside__progress-fill" [style.width.%]="cadastroFillProgressPercent"></div>
+                </div>
+                <p class="est-aside__progress-hint">Complete os obrigatórios e o endereço principal para avançar.</p>
+              </div>
+              <div class="est-aside__block">
+                <h3 class="est-aside__block-title">Informações principais</h3>
+                <ul class="est-aside__list">
+                  <li>
+                    <span class="est-aside__k">CNPJ</span>
+                    <span class="est-aside__v">{{ resumoCnpjFormatado() || '—' }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Razão social</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ form.get('pessoa.nomeRazaoSocial')?.value || '—' }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">Nome fantasia</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ form.get('pessoa.nomeFantasia')?.value || '—' }}</span>
+                  </li>
+                  <li>
+                    <span class="est-aside__k">E-mail</span>
+                    <span class="est-aside__v est-aside__v--clamp">{{ form.get('responsavelLegalEmail')?.value || '—' }}</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">lightbulb</span>
+                @let reqPendentes = cadastroObrigatoriosPendentesLabels;
+                <div class="est-aside__tip-body">
+                  @if (reqPendentes.length === 0) {
+                    <p class="est-aside__tip-ok">Todos os obrigatórios desta etapa estão preenchidos.</p>
+                  } @else {
+                    <p class="est-aside__tip-lead">Ainda falta:</p>
+                    <ul class="est-aside__tip-list">
+                      @for (item of reqPendentes; track item) {
+                        <li>{{ item }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+            </div>
+          </aside>
+          </div>
           }
 
           @if (currentStep === 2) {
-          <section class="card card--dados-bancarios">
+          <div class="est-page-grid">
+          <div class="est-page-grid__main">
+          <div class="cadastro-stack">
+          <section class="card card--cadastro-section card--dados-bancarios est-card">
             <div class="card__header card__header--row">
               <div class="card__header-text">
                 <h2 class="card__title">Dados Bancários</h2>
@@ -465,7 +728,7 @@
                     </div>
                   </div>
                 </div>
-                <button type="button" class="btn btn--secondary btn--sm titular-usar-responsavel" (click)="usarTitularDoResponsavel()">
+                <button type="button" class="btn btn-secondary btn--sm titular-usar-responsavel" (click)="usarTitularDoResponsavel()">
                   Usar titular do responsável
                 </button>
               </div>
@@ -506,6 +769,8 @@
                         <li
                           role="option"
                           class="banco-combo__item"
+                          [class.banco-combo__item--selected]="form.get('banco')?.value === bancoToOption(b)"
+                          [attr.aria-selected]="form.get('banco')?.value === bancoToOption(b) ? 'true' : 'false'"
                           (mousedown)="selecionarBanco(bancoToOption(b)); $event.preventDefault()"
                         >
                           {{ bancoToOption(b) }}
@@ -600,6 +865,8 @@
                         <li
                           role="option"
                           class="tipo-conta-combo__item"
+                          [class.tipo-conta-combo__item--selected]="form.get('tipoConta')?.value === op.value"
+                          [attr.aria-selected]="form.get('tipoConta')?.value === op.value ? 'true' : 'false'"
                           (mousedown)="selecionarTipoConta(op.value); $event.preventDefault()"
                         >
                           {{ op.label }}
@@ -613,18 +880,64 @@
                 </div>
               </div>
               <div class="form-row">
+                <label for="tipoChave">Tipo da chave PIX</label>
+                <select id="tipoChave" class="field__input" formControlName="tipoChave">
+                  <option [ngValue]="null">Selecione</option>
+                  <option [ngValue]="1">CPF</option>
+                  <option [ngValue]="2">CNPJ</option>
+                  <option [ngValue]="3">E-mail</option>
+                  <option [ngValue]="4">Telefone</option>
+                  <option [ngValue]="5">Aleatória (UUID)</option>
+                </select>
+              </div>
+              <div class="form-row">
                 <label for="chavePix">Chave PIX</label>
-                <input id="chavePix" class="field__input" type="text" formControlName="chavePix" placeholder="E-mail, CPF/CNPJ ou telefone" />
+                <input
+                  id="chavePix"
+                  class="field__input"
+                  type="text"
+                  formControlName="chavePix"
+                  [placeholder]="chavePixPlaceholder"
+                  [attr.maxlength]="chavePixMaxLength"
+                  [attr.inputmode]="chavePixInputMode"
+                  autocomplete="off"
+                  (input)="onChavePixInput($event)"
+                />
               </div>
             </div>
           </section>
+          </div>
+          </div>
+          <aside class="est-aside est-aside--bank" aria-label="Resumo dados bancários">
+            <div class="est-aside-card">
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Etapa</span>
+                  <span class="est-aside__progress-value">Dados Bancários</span>
+                </div>
+                <p class="est-aside__progress-hint">Opcional — preencha se houver repasse. Salvar grava apenas esta aba.</p>
+              </div>
+              <div class="est-aside__block">
+                <h3 class="est-aside__block-title">Titular da conta</h3>
+                <p class="est-aside__para">{{ form.get('titularRazaoSocial')?.value || '—' }}</p>
+              </div>
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">account_balance</span>
+                <p>Use o botão Salvar nesta etapa para persistir banco e PIX sem alterar o cadastro principal.</p>
+              </div>
+            </div>
+          </aside>
+          </div>
           }
 
           @if (currentStep === 3) {
-          <section class="card">
+          <div class="est-page-grid">
+          <div class="est-page-grid__main">
+          <div class="cadastro-stack">
+          <section class="card card--cadastro-section est-card">
             <div class="card__header">
               <h2 class="card__title">Fotos</h2>
-              <p class="card__description">Imagem do estacionamento (opcional). Máximo {{ maxFotos }} fotos. Listagem, envio e remoção via backend (Azure).</p>
+              <p class="card__description">Imagem do Estacionamento (opcional). Máximo {{ maxFotos }} fotos. Listagem, envio e remoção via backend (Azure).</p>
             </div>
             <div class="form-grid">
               <div class="field field--full">
@@ -707,6 +1020,24 @@
               </div>
             </div>
           </section>
+          </div>
+          </div>
+          <aside class="est-aside est-aside--fotos" aria-label="Resumo de fotos">
+            <div class="est-aside-card">
+              <div class="est-aside__progress-block">
+                <div class="est-aside__progress-head">
+                  <span class="est-aside__progress-label">Galeria</span>
+                  <span class="est-aside__progress-value">{{ fotoItems.length }} / {{ maxFotos }}</span>
+                </div>
+                <p class="est-aside__progress-hint">Envie até {{ maxFotos }} imagens. É necessário cadastro salvo com ID.</p>
+              </div>
+              <div class="est-aside__tip" role="note">
+                <span class="material-symbols-outlined est-aside__tip-icon" aria-hidden="true">photo_camera</span>
+                <p>Use JPEG, PNG ou WebP. Cada arquivo até 5 MB.</p>
+              </div>
+            </div>
+          </aside>
+          </div>
           @if (fotoAmpliadaUrl) {
             <div class="foto-ampliada" role="dialog" aria-modal="true" aria-label="Foto em tamanho maior">
               <div class="foto-ampliada__backdrop" (click)="fecharFotoAmpliada()"></div>
@@ -718,29 +1049,38 @@
           }
           }
 
-        @if (form.invalid && (currentStep === 1 || currentStep === 2)) {
+        @if (form.invalid && currentStep === 1) {
           <p class="form-invalid-hint" role="alert">
             Corrija os campos destacados em vermelho para habilitar o botão Salvar.
           </p>
         }
+        @if (bankTabInvalid && currentStep === 2) {
+          <p class="form-invalid-hint" role="alert">
+            Preencha corretamente o titular da conta ou use o titular do responsável.
+          </p>
+        }
         <footer class="actions">
           @if (currentStep === 1) {
-            <button type="button" class="btn btn--secondary" (click)="cancelar()">Cancelar</button>
-            <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
+            <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+            <button type="button" class="btn btn-primary" (click)="proximoStep()">Próximo</button>
           }
           @if (currentStep === 2) {
-            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
-            <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
-            <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">
-              {{ salvando ? 'Salvando...' : 'Salvar' }}
+            <button type="button" class="btn btn-secondary" (click)="stepAnterior()">Anterior</button>
+            <button type="button" class="btn btn-primary" (click)="proximoStep()">Próximo</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="salvarDadosBancarios()"
+              [disabled]="salvandoDadosBancarios || bankTabInvalid"
+            >
+              {{ salvandoDadosBancarios ? 'Salvando...' : 'Salvar' }}
             </button>
           }
           @if (currentStep === 3) {
-            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
+            <button type="button" class="btn btn-secondary" (click)="stepAnterior()">Anterior</button>
           }
         </footer>
         </form>
       }
     </div>
-  </div>
 </div>

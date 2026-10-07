@@ -7,11 +7,15 @@ import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
+import { FinanceiroMenuSeedService } from '../../services/financeiro-menu-seed.service';
+import { EcossistemaMenuSeedService } from '../../services/ecossistema-menu-seed.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
   mapBuscarResponseToMenuAdmins,
+  menuAdminToAlterarSubMenuOnlyInput,
   menuAdminToUpdateInput,
+  validateSubMenuAlterarPayload,
 } from '../../services/menu-api.mapper';
 import {
   MenuAdmin,
@@ -22,9 +26,18 @@ import {
 import {
   buildFullAcaoPermissao,
   hasMatchingPermissionAcao,
+  permissionListHasVisualizar,
   permissionRowMatchesUi,
   slugSubModuloNome,
 } from '../../services/menu-permission-acao';
+import {
+  defaultExibirNoSidebar,
+  rememberSidebarVisibility,
+} from '../../services/menu-sidebar-visibility';
+import { getSpaRouteValidationMessage, listInvalidSpaRoutesInMenus, listRegisteredSpaRoutes } from '../../../../core/utils/spa-route-registry';
+import { unwrapServiceResult } from '../../../../core/api/utils/service-result.util';
+import { normalizeLegacyAppRoute } from '../../../../core/utils/app-route-normalizer';
+import { findSubMenuById } from '../../services/menu-tree.util';
 
 @Component({
   selector: 'app-menu-admin-page',
@@ -36,8 +49,13 @@ import {
 export class MenuAdminPageComponent implements OnInit {
   protected readonly admin = inject(MenuAdminService);
   private readonly menuApi = inject(MenuApiService);
+  private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
+  private readonly ecossistemaMenuSeed = inject(EcossistemaMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
+
+  /** Rotas conhecidas do SPA — autocomplete e validação antes de salvar no banco. */
+  protected readonly rotasSpaConhecidas = listRegisteredSpaRoutes();
 
   /** Carregamento inicial da lista (GET Buscar). */
   protected readonly carregandoLista = signal(false);
@@ -52,6 +70,13 @@ export class MenuAdminPageComponent implements OnInit {
   protected readonly salvandoSubModal = signal(false);
   /** DELETE em andamento para menu/submenu. */
   protected readonly excluindoKey = signal<string | null>(null);
+
+  /**
+   * Evita loop seed→Alterar→Buscar→seed quando o alinhamento ainda reporta diff.
+   * Após um ciclo de mutação do seed, o próximo apply só hidrata a lista.
+   */
+  private skipNextFinanceiroSeed = false;
+  private skipNextEcossistemaSeed = false;
 
   ngOnInit(): void {
     this.carregarMenusDoBackend();
@@ -82,6 +107,46 @@ export class MenuAdminPageComponent implements OnInit {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
+
+    if (this.skipNextFinanceiroSeed) {
+      this.skipNextFinanceiroSeed = false;
+    } else {
+      this.financeiroMenuSeed.ensureFinanceiroMenuStructure(menus).subscribe({
+        next: (result) => {
+          if (result.created > 0 || result.updatedRoutes > 0) {
+            const parts: string[] = [];
+            if (result.created > 0) {
+              parts.push(`${result.created} submenu(s) criado(s)`);
+            }
+            if (result.updatedRoutes > 0) {
+              parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
+            }
+            this.toast.success(`Financeiro: ${parts.join('; ')}.`);
+            this.skipNextFinanceiroSeed = true;
+            this.refreshMenusAfterMutation();
+          }
+        },
+      });
+    }
+
+    if (this.skipNextEcossistemaSeed) {
+      this.skipNextEcossistemaSeed = false;
+      return;
+    }
+
+    this.ecossistemaMenuSeed.ensureEcossistemaSubMenu(menus).subscribe({
+      next: (result) => {
+        if (result.created || result.updatedRoute) {
+          this.toast.success(
+            result.created
+              ? 'Administração: submenu Ecossistema publicado no servidor.'
+              : 'Administração: rota do Ecossistema alinhada no servidor.'
+          );
+          this.skipNextEcossistemaSeed = true;
+          this.refreshMenusAfterMutation();
+        }
+      },
+    });
   }
 
   /** Atualiza lista após Gravar/Alterar sem bloquear a tela com o spinner inicial. */
@@ -104,6 +169,11 @@ export class MenuAdminPageComponent implements OnInit {
       : e?.error?.message ?? e?.message ?? fallback;
   }
 
+  /** IDs das listas de submenu — conecta arrastar entre menus diferentes (OrganizarMenus no Salvar). */
+  protected submenuDropListConnections(): string[] {
+    return this.admin.menus().map((m) => `submenu-drop-${m.id}`);
+  }
+
   /** Accordion: menus expandidos */
   protected readonly expandedMenuIds = signal<Set<number>>(new Set());
 
@@ -112,15 +182,19 @@ export class MenuAdminPageComponent implements OnInit {
   protected readonly menuEditId = signal<number | null>(null);
   protected menuFormNome = '';
   protected menuFormIcon = '';
+  protected menuFormRota = '';
   protected menuFormAtivo = true;
+  protected menuFormExibirNoSidebar = true;
 
   /** Modal submenu */
   protected readonly subModalOpen = signal(false);
   protected readonly subModalMenuId = signal<number | null>(null);
+  protected readonly subModalParentSubId = signal<number | null>(null);
   protected readonly subEditId = signal<number | null>(null);
   protected subFormNome = '';
   protected subFormRota = '';
   protected subFormAtivo = true;
+  protected subFormExibirNoSidebar = true;
   protected subFormRotaManualOverride = false;
   protected subFormPermissoesSelecionadas: string[] = [];
   protected subFormPermissoesCustomizadas: string[] = [];
@@ -145,7 +219,9 @@ export class MenuAdminPageComponent implements OnInit {
     this.menuEditId.set(null);
     this.menuFormNome = '';
     this.menuFormIcon = 'menu';
+    this.menuFormRota = '';
     this.menuFormAtivo = true;
+    this.menuFormExibirNoSidebar = true;
     this.menuModalOpen.set(true);
   }
 
@@ -153,8 +229,22 @@ export class MenuAdminPageComponent implements OnInit {
     this.menuEditId.set(m.id);
     this.menuFormNome = m.nome;
     this.menuFormIcon = m.icone;
+    this.menuFormRota = m.rota ?? '';
     this.menuFormAtivo = m.ativo;
+    this.menuFormExibirNoSidebar = m.exibirNoSidebar !== false;
     this.menuModalOpen.set(true);
+  }
+
+  /** Normaliza rota do menu-módulo (`/app/...`). */
+  private normalizeMenuModuleRoute(raw: string, nomeFallback: string): string {
+    const route = raw.trim();
+    if (!route) {
+      const seg = this.slugifyRouteSegment(nomeFallback);
+      return seg ? `/app/${seg}` : '/app';
+    }
+    if (route.startsWith('/app/')) return route.replace(/\/+$/, '') || '/app';
+    if (route.startsWith('/')) return `/app${route}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
+    return `/app/${route}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
   }
 
   protected salvarMenu(): void {
@@ -163,6 +253,12 @@ export class MenuAdminPageComponent implements OnInit {
     if (this.salvandoMenuModal()) return;
     const id = this.menuEditId();
     const icone = this.menuFormIcon.trim() || 'menu';
+    const rota = this.normalizeMenuModuleRoute(this.menuFormRota, nome);
+    const spaError = getSpaRouteValidationMessage(rota);
+    if (spaError) {
+      this.toast.error(spaError);
+      return;
+    }
 
     if (id == null) {
       const dto: MenuCreateInput = {
@@ -170,8 +266,11 @@ export class MenuAdminPageComponent implements OnInit {
         nome,
         descricao: nome,
         ordem: this.admin.menus().length,
+        rota,
         ativo: true,
-        subMenus: null,
+        exibirNoSidebar: this.menuFormExibirNoSidebar,
+        mostrarSidebar: this.menuFormExibirNoSidebar,
+        subMenus: [],
       };
       this.salvandoMenuModal.set(true);
       this.menuApi
@@ -193,19 +292,41 @@ export class MenuAdminPageComponent implements OnInit {
 
     /** Id temporário/local (sem registro no servidor): só estado local. */
     if (id <= 0) {
-      this.admin.updateMenu(id, { nome, icone, ativo: this.menuFormAtivo });
+      this.admin.updateMenu(id, {
+        nome,
+        icone,
+        rota,
+        ativo: this.menuFormAtivo,
+        exibirNoSidebar: this.menuFormExibirNoSidebar,
+      });
       this.menuModalOpen.set(false);
       return;
     }
 
-    /** Qualquer menu com id vindo do Buscar deve usar PUT Alterar (nome, ícone, ativo, submenus). */
-    const atualizado: MenuAdmin = { ...m, nome, icone, ativo: this.menuFormAtivo };
+    /** Qualquer menu com id vindo do Buscar deve usar PUT Alterar (nome, ícone, rota, ativo, submenus). */
+    const atualizado: MenuAdmin = {
+      ...m,
+      nome,
+      icone,
+      rota,
+      ativo: this.menuFormAtivo,
+      exibirNoSidebar: this.menuFormExibirNoSidebar,
+    };
+    rememberSidebarVisibility('menu', id, this.menuFormExibirNoSidebar);
     this.salvandoMenuModal.set(true);
     this.menuApi
       .alterar(menuAdminToUpdateInput(atualizado))
       .pipe(finalize(() => this.salvandoMenuModal.set(false)))
       .subscribe({
         next: () => {
+          // Mantém preferência local mesmo se o backend ainda não gravar o campo.
+          this.admin.updateMenu(id, {
+            nome,
+            icone,
+            rota,
+            ativo: this.menuFormAtivo,
+            exibirNoSidebar: this.menuFormExibirNoSidebar,
+          });
           this.menuModalOpen.set(false);
           this.toast.success('Menu atualizado no servidor.');
           this.refreshMenusAfterMutation();
@@ -249,14 +370,16 @@ export class MenuAdminPageComponent implements OnInit {
   }
 
   // ——— Submenu modal ———
-  protected openNovoSubmenu(menuId: number): void {
+  protected openNovoSubmenu(menuId: number, parentSubId: number | null = null): void {
     this.subModalMenuId.set(menuId);
+    this.subModalParentSubId.set(parentSubId);
     this.subEditId.set(null);
     this.subFormNome = '';
-    this.subFormRota = this.buildSubmenuBaseRoute(menuId);
+    this.subFormRota = this.buildSubmenuBaseRoute(menuId, parentSubId);
     this.subFormAtivo = true;
+    this.subFormExibirNoSidebar = defaultExibirNoSidebar(this.subFormRota);
     this.subFormRotaManualOverride = false;
-    this.subFormPermissoesSelecionadas = [];
+    this.subFormPermissoesSelecionadas = ['visualizar'];
     this.subFormPermissoesCustomizadas = [];
     this.novaPermissaoCustom = '';
     this.subPermissoesOriginais = [];
@@ -265,10 +388,12 @@ export class MenuAdminPageComponent implements OnInit {
 
   protected openEditSub(menuId: number, s: SubMenuAdmin): void {
     this.subModalMenuId.set(menuId);
+    this.subModalParentSubId.set(null);
     this.subEditId.set(s.id);
     this.subFormNome = s.nome;
     this.subFormRota = s.rota;
     this.subFormAtivo = s.ativo;
+    this.subFormExibirNoSidebar = s.exibirNoSidebar !== false;
     this.subFormRotaManualOverride = false;
     this.subPermissoesOriginais = s.permissions.map((p) => ({ ...p }));
     this.subFormPermissoesSelecionadas = this.acoes.filter((acao) =>
@@ -464,20 +589,29 @@ export class MenuAdminPageComponent implements OnInit {
       .replace(/^-+|-+$/g, '');
   }
 
-  private buildSubmenuRoute(menuId: number, nome: string): string {
-    const base = this.buildSubmenuBaseRoute(menuId).replace(/\/+$/, '');
+  private buildSubmenuRoute(menuId: number, nome: string, parentSubId: number | null = null): string {
+    const base = this.buildSubmenuBaseRoute(menuId, parentSubId).replace(/\/+$/, '');
     const subSeg = this.slugifyRouteSegment(nome) || 'submenu';
     return `${base}/${subSeg}`.replace(/\/{2,}/g, '/');
   }
 
-  private buildSubmenuBaseRoute(menuId: number): string {
+  private buildSubmenuBaseRoute(menuId: number, parentSubId: number | null = null): string {
     const snap = this.admin.getSnapshot();
     const menu = snap.menus.find((x) => x.id === menuId);
+    if (parentSubId != null && menu) {
+      const found = findSubMenuById(menu.subMenus, parentSubId);
+      if (found?.sub.rota?.trim()) {
+        return `${found.sub.rota.replace(/\/+$/, '')}/`;
+      }
+    }
+    const menuRota = menu?.rota?.trim();
     const firstSubRoute = menu?.subMenus.find((s) => s.rota?.startsWith('/app/'))?.rota ?? '';
     let base = '/app';
     if (firstSubRoute) {
       const idx = firstSubRoute.lastIndexOf('/');
       base = idx > 0 ? firstSubRoute.slice(0, idx) : '/app';
+    } else if (menuRota && menuRota.startsWith('/app')) {
+      base = menuRota.replace(/\/+$/, '');
     } else if (menu?.nome) {
       const menuSeg = this.slugifyRouteSegment(menu.nome);
       if (menuSeg) base = `/app/${menuSeg}`;
@@ -491,51 +625,30 @@ export class MenuAdminPageComponent implements OnInit {
     if (menuId == null) return;
     if (this.subFormRotaManualOverride) return;
     const nome = value.trim();
+    const parentSubId = this.subModalParentSubId();
     this.subFormRota = nome
-      ? this.buildSubmenuRoute(menuId, nome)
-      : this.buildSubmenuBaseRoute(menuId);
+      ? this.buildSubmenuRoute(menuId, nome, parentSubId)
+      : this.buildSubmenuBaseRoute(menuId, parentSubId);
   }
 
   protected onSubmenuRotaChange(_value: string): void {
     this.subFormRotaManualOverride = true;
+    if (this.subEditId() === null) {
+      this.subFormExibirNoSidebar = defaultExibirNoSidebar(this.subFormRota);
+    }
   }
 
-  private normalizeSubRoute(rawRoute: string, menuId: number, nome: string): string {
+  private normalizeSubRoute(
+    rawRoute: string,
+    menuId: number,
+    nome: string,
+    parentSubId: number | null = null
+  ): string {
     const route = rawRoute.trim();
-    if (!route) return this.buildSubmenuRoute(menuId, nome);
+    if (!route) return this.buildSubmenuRoute(menuId, nome, parentSubId);
     if (route.startsWith('/app/')) return route;
     if (route.startsWith('/')) return `/app${route}`.replace(/\/{2,}/g, '/');
     return `/app/${route}`.replace(/\/{2,}/g, '/');
-  }
-
-  /**
-   * Criação de submenu em menu já existente:
-   * backend atualizado passou a aceitar melhor via POST Gravar.
-   */
-  private buildGravarPayloadFromMenu(menu: MenuAdmin): MenuCreateInput {
-    return {
-      id: menu.id > 0 ? menu.id : 0,
-      nome: menu.nome,
-      descricao: menu.nome,
-      ordem: menu.ordem,
-      ativo: menu.ativo,
-      subMenus: menu.subMenus.map((s) => ({
-        id: s.id > 0 ? s.id : 0,
-        nome: s.nome,
-        descricao: s.nome,
-        ordem: s.ordem,
-        rota: s.rota,
-        ativo: s.ativo,
-        isAtivo: s.ativo,
-        isActive: s.ativo,
-        permissions: (s.permissions ?? []).map((p, i) => ({
-          ordem: p.ordem ?? i,
-          id: p.id > 0 ? p.id : 0,
-          subModuleId: s.id > 0 ? s.id : 0,
-          descricao: p.acao,
-        })),
-      })),
-    };
   }
 
   protected salvarSub(): void {
@@ -544,7 +657,25 @@ export class MenuAdminPageComponent implements OnInit {
     if (menuId == null) return;
     const nome = this.subFormNome.trim();
     if (!nome) return;
-    const rota = this.normalizeSubRoute(this.subFormRota, menuId, nome);
+    if (
+      !permissionListHasVisualizar([
+        ...this.subFormPermissoesSelecionadas,
+        ...this.subFormPermissoesCustomizadas,
+      ])
+    ) {
+      this.toast.error('Informe ao menos uma permissão contendo "visualizar".');
+      return;
+    }
+    const parentSubId = this.subModalParentSubId();
+    const rota =
+      normalizeLegacyAppRoute(
+        this.normalizeSubRoute(this.subFormRota, menuId, nome, parentSubId)
+      ) ?? this.normalizeSubRoute(this.subFormRota, menuId, nome, parentSubId);
+    const spaError = getSpaRouteValidationMessage(rota);
+    if (spaError) {
+      this.toast.error(spaError);
+      return;
+    }
     const sid = this.subEditId();
     if (sid == null) {
       const snap = this.admin.getSnapshot();
@@ -552,12 +683,14 @@ export class MenuAdminPageComponent implements OnInit {
       if (!menu) return;
 
       if (menuId > 0) {
+        const ordem = this.computeNextSubOrdem(menu, parentSubId);
         const novoSub: SubMenuAdmin = {
           id: 0,
           nome,
-          ordem: menu.subMenus.length,
+          ordem,
           rota,
           ativo: this.subFormAtivo,
+          exibirNoSidebar: this.subFormExibirNoSidebar,
           permissions: this.buildPermissionRowsForSubmenu(
             0,
             nome,
@@ -566,14 +699,44 @@ export class MenuAdminPageComponent implements OnInit {
             []
           ),
         };
-        const menuComNovoSub: MenuAdmin = { ...menu, subMenus: [...menu.subMenus, novoSub] };
-        const payload = this.buildGravarPayloadFromMenu(menuComNovoSub);
+        const validationError = validateSubMenuAlterarPayload(novoSub);
+        if (validationError) {
+          this.toast.error(validationError);
+          return;
+        }
         this.salvandoSubModal.set(true);
         this.menuApi
-          .gravar(payload)
+          .alterar(menuAdminToAlterarSubMenuOnlyInput(menu, novoSub, { includePermissions: true }))
           .pipe(finalize(() => this.salvandoSubModal.set(false)))
           .subscribe({
-            next: () => {
+            next: (body) => {
+              const result = unwrapServiceResult<Record<string, unknown>>(body);
+              const subMenusRaw =
+                (result && (result['subMenus'] ?? result['SubMenus'] ?? result['subModules'] ?? result['SubModules'])) ||
+                [];
+              const lista = Array.isArray(subMenusRaw) ? subMenusRaw : [];
+              const rotaNorm = (rota || '').trim().toLowerCase().replace(/\/+$/, '');
+              const nomeNorm = nome.trim().toLowerCase();
+              const criado = lista.some((row) => {
+                if (!row || typeof row !== 'object') return false;
+                const r = row as Record<string, unknown>;
+                const id = Number(r['id'] ?? r['Id'] ?? 0);
+                const rowNome = String(r['nome'] ?? r['Nome'] ?? r['descricao'] ?? r['Descricao'] ?? '')
+                  .trim()
+                  .toLowerCase();
+                const rowRota = String(r['rota'] ?? r['Rota'] ?? '')
+                  .trim()
+                  .toLowerCase()
+                  .replace(/\/+$/, '');
+                return id > 0 && (rowRota === rotaNorm || rowNome === nomeNorm);
+              });
+              if (!criado) {
+                this.toast.error(
+                  'A API respondeu sucesso, mas o submenu não foi persistido. Confira a rota e tente novamente.'
+                );
+                this.refreshMenusAfterMutation();
+                return;
+              }
               this.subModalOpen.set(false);
               this.toast.success('Submenu criado e publicado no servidor.');
               this.refreshMenusAfterMutation();
@@ -598,9 +761,10 @@ export class MenuAdminPageComponent implements OnInit {
             []
           )
         );
-      }
-      if (!this.subFormAtivo) {
-        if (created) this.admin.updateSubMenu(menuId, created.id, { ativo: false });
+        this.admin.updateSubMenu(menuId, created.id, {
+          ativo: this.subFormAtivo,
+          exibirNoSidebar: this.subFormExibirNoSidebar,
+        });
       }
       this.subModalOpen.set(false);
       return;
@@ -609,47 +773,43 @@ export class MenuAdminPageComponent implements OnInit {
     const snap = this.admin.getSnapshot();
     const menu = snap.menus.find((x) => x.id === menuId);
     if (!menu) return;
-    const subOriginal = menu.subMenus.find((s) => s.id === sid);
-    if (!subOriginal) return;
+    const found = findSubMenuById(menu.subMenus, sid);
+    if (!found) return;
+    const subOriginal = found.sub;
 
-    const atualizado: MenuAdmin = {
-      ...menu,
-      subMenus: menu.subMenus.map((s) =>
-        s.id === sid
-          ? {
-              ...s,
-              nome,
-              rota,
-              ativo: this.subFormAtivo,
-              permissions: this.buildPermissionRowsForSubmenu(
-                sid,
-                nome,
-                this.subFormPermissoesSelecionadas,
-                this.subFormPermissoesCustomizadas,
-                this.subPermissoesOriginais
-              ),
-            }
-          : s
+    const updatedSub: SubMenuAdmin = {
+      ...subOriginal,
+      nome,
+      rota,
+      ativo: this.subFormAtivo,
+      exibirNoSidebar: this.subFormExibirNoSidebar,
+      permissions: this.buildPermissionRowsForSubmenu(
+        sid,
+        nome,
+        this.subFormPermissoesSelecionadas,
+        this.subFormPermissoesCustomizadas,
+        this.subPermissoesOriginais
       ),
     };
+
+    const validationError = validateSubMenuAlterarPayload(updatedSub);
+    if (validationError) {
+      this.toast.error(validationError);
+      return;
+    }
 
     if (menuId <= 0 || sid <= 0) {
       this.admin.updateSubMenu(menuId, sid, {
         nome,
         rota,
         ativo: this.subFormAtivo,
+        exibirNoSidebar: this.subFormExibirNoSidebar,
       });
       this.subModalOpen.set(false);
       return;
     }
 
-    const payloadAlterar = menuAdminToUpdateInput(atualizado, {
-      includePermissions: false,
-      permissionSubMenuId: sid,
-    });
-
-    const nextPermissions =
-      atualizado.subMenus.find((s) => s.id === sid)?.permissions ?? [];
+    const nextPermissions = updatedSub.permissions ?? [];
     const addedPermissions = nextPermissions.filter((p) => p.id <= 0);
     const removedPermissionIds = this.collectRemovedPermissionIds(
       this.subPermissoesOriginais,
@@ -662,9 +822,15 @@ export class MenuAdminPageComponent implements OnInit {
     const hasMetaChanges =
       subOriginal.nome !== nome ||
       subOriginal.rota !== rota ||
-      subOriginal.ativo !== this.subFormAtivo;
+      subOriginal.ativo !== this.subFormAtivo ||
+      subOriginal.exibirNoSidebar !== this.subFormExibirNoSidebar;
+    const nomeMudou = subOriginal.nome.trim() !== nome.trim();
+    const includePermissionsInAlterar =
+      addedPermissions.length > 0 ||
+      updatedExistingPermissions ||
+      (nomeMudou && nextPermissions.length > 0);
     const hasPermissionChanges =
-      addedPermissions.length > 0 || removedPermissionIds.length > 0 || updatedExistingPermissions;
+      includePermissionsInAlterar || removedPermissionIds.length > 0;
 
     if (!hasMetaChanges && !hasPermissionChanges) {
       this.subModalOpen.set(false);
@@ -672,23 +838,20 @@ export class MenuAdminPageComponent implements OnInit {
       return;
     }
 
+    rememberSidebarVisibility('sub', sid, this.subFormExibirNoSidebar);
+
+    // Edição de submenu existente: sempre PUT Alterar (nunca POST Gravar).
     this.salvandoSubModal.set(true);
     this.deleteRemovedPermissions(removedPermissionIds)
       .then(() =>
-        hasMetaChanges || updatedExistingPermissions
+        hasMetaChanges || includePermissionsInAlterar
           ? firstValueFrom(
               this.menuApi.alterar(
-                menuAdminToUpdateInput(atualizado, {
-                  includePermissions: updatedExistingPermissions,
-                  permissionSubMenuId: sid,
+                menuAdminToAlterarSubMenuOnlyInput(menu, updatedSub, {
+                  includePermissions: includePermissionsInAlterar,
                 })
               )
             )
-          : Promise.resolve()
-      )
-      .then(() =>
-        addedPermissions.length > 0
-          ? firstValueFrom(this.menuApi.gravar(this.buildGravarPayloadFromMenu(atualizado)))
           : Promise.resolve()
       )
       .then(() => {
@@ -700,6 +863,14 @@ export class MenuAdminPageComponent implements OnInit {
         // Erro: toast do errorInterceptor.
       })
       .finally(() => this.salvandoSubModal.set(false));
+  }
+
+  private computeNextSubOrdem(menu: MenuAdmin, parentSubId: number | null): number {
+    if (parentSubId != null) {
+      const found = findSubMenuById(menu.subMenus, parentSubId);
+      return found?.sub.subMenus?.length ?? 0;
+    }
+    return menu.subMenus.length;
   }
 
   protected excluirSub(menuId: number, s: SubMenuAdmin): void {
@@ -730,6 +901,15 @@ export class MenuAdminPageComponent implements OnInit {
 
   protected salvarNoBackend(): void {
     if (this.salvandoNoBackend()) return;
+    const invalid = listInvalidSpaRoutesInMenus(this.admin.getSnapshot().menus);
+    if (invalid.length > 0) {
+      const preview = invalid.slice(0, 3).join('; ');
+      const extra = invalid.length > 3 ? ` (+${invalid.length - 3})` : '';
+      this.toast.error(
+        `Há rotas inexistentes no frontend. Corrija antes de salvar: ${preview}${extra}`
+      );
+      return;
+    }
     this.salvandoNoBackend.set(true);
     this.menuApi
       .salvarAlteracoesNoBackend()

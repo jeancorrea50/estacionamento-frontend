@@ -1,58 +1,79 @@
-import { ChangeDetectorRef, Component, NgZone, inject, effect } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, inject, effect } from '@angular/core';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, map, takeUntil } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { EstacionamentoService } from '../../services/estacionamento.service';
 import {
   EstacionamentoSearchField,
-  EstacionamentoToolbarService
+  EstacionamentoToolbarService,
 } from '../../services/estacionamento-toolbar.service';
-import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamento.dto';
+import { EstacionamentoListItemDTO } from '../../models/estacionamento.dto';
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
+import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
+import { EstacionamentoViewDialogComponent } from '../../components/estacionamento-view-dialog/estacionamento-view-dialog.component';
 
-const TAMANHO_PAGINA = 50;
+/** Colunas ordenáveis (mapeadas para `Propriedade` na API). */
+type EstacionamentoListaSortCol =
+  | 'id'
+  | 'descricao'
+  | 'nomeRazaoSocial'
+  | 'cnpj'
+  | 'capacidadeVeiculo'
+  | 'tamanhoTerreno'
+  | 'ativo';
 
 @Component({
   selector: 'app-estacionamento-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    EstSummaryMetricComponent,
+    EstStatusPillEstacionamentoComponent,
+  ],
   templateUrl: './estacionamento-list.component.html',
-  styleUrls: ['./estacionamento-list.component.scss']
+  styleUrls: ['./estacionamento-list.component.scss'],
 })
-export class EstacionamentoListComponent {
-  private estacionamentoService = inject(EstacionamentoService);
+export class EstacionamentoListComponent implements OnDestroy {
+  private EstacionamentoService = inject(EstacionamentoService);
   /** Exposto para o template: `trigger() === 0` = ainda não houve clique em Buscar. */
   readonly toolbar = inject(EstacionamentoToolbarService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
+  private auth = inject(AuthService);
+  private dialog = inject(MatDialog);
+  private router = inject(Router);
+  private readonly cancelarHidratar$ = new Subject<void>();
+  readonly canExcluir = this.auth.isAdmin();
 
   itens: EstacionamentoListItemDTO[] = [];
   /** Só vira true durante GET Buscar; antes do primeiro clique em "Buscar" não há requisição. */
   loading = false;
   erro: string | null = null;
-  /** Durante DELETE /Delete/{id} */
+  /** Durante DELETE /api/Estacionamento/{id} */
   excluindoId: number | null = null;
   numeroPagina = 1;
   totalCount = 0;
-  tamanhoPagina = TAMANHO_PAGINA;
+  tamanhoPagina = 10;
+  readonly opcoesTamanhoPagina: number[] = [10, 25, 50];
+
+  /** Ordenação no backend (`Propriedade` + `Sort`). */
+  sortCol: EstacionamentoListaSortCol | null = null;
+  sortDir: 'Asc' | 'Desc' = 'Asc';
 
   constructor() {
     effect(() => {
-      const t = this.toolbar.trigger();
-      // Gatilho 0 = ainda não clicou em "Buscar" no layout; não chama a API.
-      if (t === 0) {
-        this.ngZone.run(() => {
-          this.loading = false;
-          this.itens = [];
-          this.erro = null;
-          this.totalCount = 0;
-          this.cdr.markForCheck();
-        });
-        return;
-      }
+      this.toolbar.trigger();
       this.buscar();
     });
   }
@@ -62,41 +83,112 @@ export class EstacionamentoListComponent {
     return Math.max(1, Math.ceil(this.totalCount / this.tamanhoPagina));
   }
 
+  /** Intervalo exibido no rodapé (“Mostrando X a Y de Z registros”). */
+  get intervaloExibicao(): { de: number; ate: number } {
+    if (this.totalCount <= 0) {
+      return { de: 0, ate: 0 };
+    }
+    const de = (this.numeroPagina - 1) * this.tamanhoPagina + 1;
+    const ate = Math.min(this.numeroPagina * this.tamanhoPagina, this.totalCount);
+    return { de, ate };
+  }
+
+  /** Contadores derivados da página atual (totais globais só vêm como `totalCount`). */
+  get countAtivosPagina(): number {
+    return this.itens.filter((i) => i.ativo).length;
+  }
+
+  get countInativosPagina(): number {
+    return this.itens.filter((i) => !i.ativo).length;
+  }
+
+  /** Esclarece que ativos/inativos refletem a página quando há várias páginas. */
+  get resumoPaginaHint(): string | null {
+    return this.totalPaginas > 1 ? 'Nesta página' : null;
+  }
+
   carregar(): void {
     const field = this.toolbar.searchField();
     const term = this.normalizeSearchTerm(this.toolbar.searchTerm(), field);
-    const propriedade = this.resolveSearchProperty(field);
+    const filterPropriedade = this.resolveSearchProperty(field);
+    const sortPropriedade = this.sortCol ? this.mapSortColToPropriedade(this.sortCol) : undefined;
+    const propriedade = sortPropriedade ?? filterPropriedade;
+    const sort = sortPropriedade ? this.sortDir : undefined;
     this.loading = true;
     this.erro = null;
-    this.estacionamentoService
-      .buscar({
-        NumeroPagina: this.numeroPagina,
-        TamanhoPagina: this.tamanhoPagina,
-        ...(term ? { Termo: term } : {}),
-        ...(propriedade ? { Propriedade: propriedade } : {})
-      })
-      .subscribe({
-        next: (paged) => {
-          this.ngZone.run(() => {
-            this.itens = paged.items;
-            this.totalCount = paged.totalCount;
-            this.numeroPagina = paged.numeroPagina;
-            this.tamanhoPagina = paged.tamanhoPagina;
-            this.loading = false;
-            this.cdr.markForCheck();
-          });
-        },
-        error: (err: unknown) => {
-          this.ngZone.run(() => {
-            const msg = (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string')
+    this.EstacionamentoService.buscar({
+      NumeroPagina: this.numeroPagina,
+      TamanhoPagina: this.tamanhoPagina,
+      ...(term ? { Termo: term } : {}),
+      ...(propriedade ? { Propriedade: propriedade } : {}),
+      ...(sort ? { Sort: sort } : {}),
+    }).subscribe({
+      next: (paged) => {
+        this.ngZone.run(() => {
+          this.itens = paged.items;
+          this.totalCount = paged.totalCount;
+          this.numeroPagina = paged.numeroPagina;
+          this.tamanhoPagina = paged.tamanhoPagina;
+          this.loading = false;
+          this.hidratarCapacidadeTamanho(paged.items);
+          this.cdr.markForCheck();
+        });
+      },
+      error: (err: unknown) => {
+        this.ngZone.run(() => {
+          const msg =
+            err &&
+            typeof err === 'object' &&
+            'message' in err &&
+            typeof (err as ApiError).message === 'string'
               ? (err as ApiError).message
               : 'Erro ao carregar a lista.';
-            this.erro = msg;
-            this.loading = false;
-            this.cdr.markForCheck();
-          });
-        }
-      });
+          this.erro = msg;
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
+      },
+    });
+  }
+
+  /** Cabeçalho clicável: alterna Asc/Desc na mesma coluna. */
+  ordenarPor(col: EstacionamentoListaSortCol): void {
+    if (this.sortCol === col) {
+      this.sortDir = this.sortDir === 'Asc' ? 'Desc' : 'Asc';
+    } else {
+      this.sortCol = col;
+      this.sortDir = 'Asc';
+    }
+    this.numeroPagina = 1;
+    if (this.toolbar.trigger() > 0) {
+      this.carregar();
+    }
+  }
+
+  sortIndicador(col: EstacionamentoListaSortCol): string {
+    if (this.sortCol !== col) return '';
+    return this.sortDir === 'Asc' ? '↑' : '↓';
+  }
+
+  private mapSortColToPropriedade(col: EstacionamentoListaSortCol): string {
+    switch (col) {
+      case 'id':
+        return 'Id';
+      case 'descricao':
+        return 'Descricao';
+      case 'nomeRazaoSocial':
+        return 'NomeRazaoSocial';
+      case 'cnpj':
+        return 'Documento';
+      case 'capacidadeVeiculo':
+        return 'CapacidadeVeiculo';
+      case 'tamanhoTerreno':
+        return 'TamanhoTerreno';
+      case 'ativo':
+        return 'Ativo';
+      default:
+        return 'Id';
+    }
   }
 
   private resolveSearchProperty(field: EstacionamentoSearchField): string | undefined {
@@ -124,9 +216,68 @@ export class EstacionamentoListComponent {
     return base;
   }
 
+  ngOnDestroy(): void {
+    this.cancelarHidratar$.next();
+    this.cancelarHidratar$.complete();
+  }
+
+  /**
+   * O GET da listagem não projeta capacidade/tamanho (dados do tenant).
+   * O mesmo GET por id usado na edição traz esses campos.
+   */
+  private hidratarCapacidadeTamanho(itens: EstacionamentoListItemDTO[]): void {
+    this.cancelarHidratar$.next();
+    const alvos = itens.filter(
+      (item) =>
+        item.id > 0 &&
+        (item.capacidadeVeiculo == null || !String(item.tamanhoTerreno ?? '').trim())
+    );
+    if (alvos.length === 0) return;
+
+    forkJoin(
+      alvos.map((item) =>
+        this.EstacionamentoService.obterPorId(item.id, item.codExportacao).pipe(
+          map((dto) => ({ id: item.id, cod: item.codExportacao ?? '', dto })),
+          catchError(() => of({ id: item.id, cod: item.codExportacao ?? '', dto: null }))
+        )
+      )
+    )
+      .pipe(takeUntil(this.cancelarHidratar$))
+      .subscribe((results) => {
+        this.ngZone.run(() => {
+          const byKey = new Map(
+            results
+              .filter((row) => row.dto != null)
+              .map((row) => [`${row.id}:${row.cod}`, row.dto!] as const)
+          );
+          this.itens = this.itens.map((item) => {
+            const dto = byKey.get(`${item.id}:${item.codExportacao ?? ''}`);
+            if (!dto) return item;
+            const tamanho = dto.tamanho != null ? String(dto.tamanho).trim() : '';
+            return {
+              ...item,
+              capacidadeVeiculo: dto.capacidadeVeiculos ?? item.capacidadeVeiculo ?? null,
+              tamanhoTerreno: tamanho || item.tamanhoTerreno || ''
+            };
+          });
+          this.cdr.markForCheck();
+        });
+      });
+  }
+
   buscar(): void {
     this.numeroPagina = 1;
     this.carregar();
+  }
+
+  onTamanhoPaginaChange(size: number | string): void {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.tamanhoPagina = n;
+    this.numeroPagina = 1;
+    if (this.toolbar.trigger() > 0) {
+      this.carregar();
+    }
   }
 
   irParaPagina(pagina: number): void {
@@ -136,25 +287,53 @@ export class EstacionamentoListComponent {
     this.carregar();
   }
 
-  tipoPessoaLabel(tipo: TipoPessoa): string {
-    return tipo === 1 ? 'PF' : 'PJ';
+  /** Exibe CNPJ formatado. */
+  formatCnpjItem(item: EstacionamentoListItemDTO): string {
+    const cnpj = String(item.cnpj ?? '').replace(/\D/g, '');
+    if (cnpj.length === 14) return formatCnpj(cnpj);
+    if (cnpj.length === 11) return formatCpf(cnpj);
+    return item.cnpj ?? '';
   }
 
-  /** Exibe documento formatado: CNPJ para PJ, CPF para PF. */
-  formatDocumento(item: EstacionamentoListItemDTO): string {
-    const doc = String(item.documento ?? '').replace(/\D/g, '');
-    if (item.tipoPessoa === 2 && doc.length === 14) return formatCnpj(doc);
-    if (item.tipoPessoa === 1 && doc.length === 11) return formatCpf(doc);
-    return item.documento ?? '';
+  trackEstacionamento(item: EstacionamentoListItemDTO): string {
+    return `${item.id}:${item.codExportacao ?? ''}`;
+  }
+
+  queryEditar(item: EstacionamentoListItemDTO): { codExportacao?: string } {
+    const cod = String(item.codExportacao ?? '').trim();
+    return cod ? { codExportacao: cod } : {};
+  }
+
+  visualizarEstacionamento(item: EstacionamentoListItemDTO): void {
+    if (!item?.id) return;
+    const ref = this.dialog.open(EstacionamentoViewDialogComponent, {
+      width: '480px',
+      maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
+      data: { item }
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') {
+        void this.router.navigate(['/app/cadastro/estacionamento/editar', item.id], {
+          queryParams: this.queryEditar(item)
+        });
+      }
+    });
+  }
+
+  private shouldRetryDeleteWithPessoaId(err: unknown): boolean {
+    const api = err as ApiError | null;
+    const msg = String(api?.message ?? '').toLowerCase();
+    return /pessoa/.test(msg) && /(nao|não)\s*localiz/.test(msg);
   }
 
   excluir(item: EstacionamentoListItemDTO): void {
     const label = item.descricao?.trim() || `Id ${item.id}`;
-    if (!confirm(`Excluir o estacionamento "${label}"? Esta ação não pode ser desfeita.`)) {
+    if (!confirm(`Excluir o Estacionamento "${label}"? Esta ação não pode ser desfeita.`)) {
       return;
     }
     this.excluindoId = item.id;
-    this.estacionamentoService.excluir(item.id).subscribe({
+    this.EstacionamentoService.excluir(item.id).subscribe({
       next: () => {
         this.ngZone.run(() => {
           this.excluindoId = null;
@@ -163,12 +342,49 @@ export class EstacionamentoListComponent {
           this.cdr.markForCheck();
         });
       },
-      error: () => {
-        this.ngZone.run(() => {
-          this.excluindoId = null;
-          this.cdr.markForCheck();
+      error: (err: unknown) => {
+        const pessoaId = Number(item.pessoaId ?? 0) || 0;
+        const podeTentarPessoaId = pessoaId > 0 && pessoaId !== item.id && this.shouldRetryDeleteWithPessoaId(err);
+        if (!podeTentarPessoaId) {
+          this.ngZone.run(() => {
+            const msg =
+              err &&
+              typeof err === 'object' &&
+              'message' in err &&
+              typeof (err as ApiError).message === 'string'
+                ? (err as ApiError).message
+                : 'Não foi possível excluir o estacionamento.';
+            this.toast.error(msg);
+            this.excluindoId = null;
+            this.cdr.markForCheck();
+          });
+          return;
+        }
+        this.EstacionamentoService.excluir(pessoaId).subscribe({
+          next: () => {
+            this.ngZone.run(() => {
+              this.excluindoId = null;
+              this.toast.success('Estacionamento excluído.');
+              this.carregar();
+              this.cdr.markForCheck();
+            });
+          },
+          error: (errPessoa: unknown) => {
+            this.ngZone.run(() => {
+              const msg =
+                errPessoa &&
+                typeof errPessoa === 'object' &&
+                'message' in errPessoa &&
+                typeof (errPessoa as ApiError).message === 'string'
+                  ? (errPessoa as ApiError).message
+                  : 'Não foi possível excluir o estacionamento.';
+              this.toast.error(msg);
+              this.excluindoId = null;
+              this.cdr.markForCheck();
+            });
+          },
         });
-      }
+      },
     });
   }
 }

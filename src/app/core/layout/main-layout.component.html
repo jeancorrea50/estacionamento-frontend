@@ -1,4 +1,9 @@
-<div class="layout" [class.sidebar-collapsed]="sidebarCollapsed" [class.layout--mobile]="isMobile()">
+<div
+  class="layout app-layout"
+  [class.app-layout--movimentos]="isMovimentosRoute()"
+  [class.sidebar-collapsed]="sidebarCollapsed"
+  [class.layout--mobile]="isMobile()"
+>
   @if (isMobile() && mobileMenuOpen()) {
     <div class="sidebar-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
   }
@@ -23,8 +28,45 @@
             <span class="material-symbols-outlined">menu</span>
           </button>
         }
+        @if (canTrocarEstacionamentoSessao()) {
+          <div class="session-estac-panel" title="Estacionamento da sessão">
+            <span class="material-symbols-outlined session-estac-panel__icon" aria-hidden="true">apartment</span>
+            @if (sessionEstacionamento(); as estac) {
+              <div class="session-estac-panel__main">
+                <span class="session-estac-panel__caption">Pátio selecionado</span>
+                <span class="session-estac-panel__name" [attr.title]="estac.razaoSocial">{{ estac.razaoSocial }}</span>
+                <span class="session-estac-panel__cnpj">{{ formatCnpjDisplay(estac.cnpj) }}</span>
+              </div>
+              <button
+                type="button"
+                class="session-estac-panel__trocar"
+                (click)="trocarEstacionamento()"
+                title="Trocar estacionamento da sessão"
+              >
+                Trocar pátio
+              </button>
+            } @else {
+              <div class="session-estac-panel__main">
+                <span class="session-estac-panel__caption">Pátio da sessão</span>
+                <span class="session-estac-panel__name">Nenhum pátio selecionado</span>
+                <span class="session-estac-panel__cnpj">Use o botão ao lado para escolher</span>
+              </div>
+              <button
+                type="button"
+                class="session-estac-panel__trocar"
+                (click)="abrirSelecaoEstacionamento()"
+                title="Selecionar estacionamento da sessão"
+              >
+                Selecionar pátio
+              </button>
+            }
+          </div>
+        }
         <div class="top-bar__spacer"></div>
         <div class="top-bar__right">
+          @if (isAdminUser()) {
+            <app-notification-bell />
+          }
           <div class="user-access-panel" title="Usuário e contexto de acesso">
             <div class="user-access-panel__main">
               <span class="user-access-panel__name">{{ loggedUsername() }}</span>
@@ -55,10 +97,10 @@
             [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
           >
             @if (currentMode() === 'dark') {
-              <span class="material-symbols-outlined theme-switcher__icon">dark_mode</span>
+              <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">light_mode</span>
               <span class="theme-switcher__label">Claro</span>
             } @else {
-              <span class="material-symbols-outlined theme-switcher__icon">light_mode</span>
+              <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">dark_mode</span>
               <span class="theme-switcher__label">Escuro</span>
             }
           </button>
@@ -72,3 +114,10 @@
     </main>
   </div>
 </div>
+
+@if (showEstacionamentoModal()) {
+  <app-admin-estacionamento-select-modal
+    (selected)="onEstacionamentoSelected()"
+    (openEcossistema)="abrirEcossistemaSemPatio()"
+  />
+}

@@ -1,8 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { AUTH_TOKEN_STORAGE_KEY, normalizeBearerValue } from '../auth/auth-token.storage';
+import {
+  SESSION_ESTACIONAMENTO_KEY,
+  type SessionEstacionamento,
+} from '../auth/session-estacionamento';
 import {
   decodeJwtPayload,
   extractJwtPermissionKeys,
@@ -11,9 +15,19 @@ import {
 } from '../auth/jwt.util';
 import { LoggedUser } from './user.service';
 import { PermissionCacheService } from './permission-cache.service';
-import { SessionAccessService, SessionMenuAccess } from './session-access.service';
+import { SessionAccessService, SessionMenuAccess, SessionSubMenuAccess } from './session-access.service';
+import { resolveExibirNoSidebar } from '../../features/gerenciamento/services/menu-sidebar-visibility';
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
+import { mergeServiceResultToRoot, readLoginServiceFailure, unwrapServiceResult } from '../api/utils/service-result.util';
+import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
+import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
+import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
+import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
+import { ToastService } from '../api/services/toast.service';
+
+export type { SessionEstacionamento } from '../auth/session-estacionamento';
+export { SESSION_ESTACIONAMENTO_KEY } from '../auth/session-estacionamento';
 
 export interface LoginRequest {
   userName: string;
@@ -44,13 +58,25 @@ export type LoginResult = { success: true } | { success: false; message: string 
 export class AuthService {
   private readonly LOGGED_USER_KEY = 'loggedUser';
   private readonly TOKEN_KEY = AUTH_TOKEN_STORAGE_KEY;
+  private sessionExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Evita logout/navigate/toast duplicados em rajada de 401. */
+  private endingSession = false;
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private permissionCache: PermissionCacheService,
-    private sessionAccess: SessionAccessService
-  ) {}
+    private sessionAccess: SessionAccessService,
+    private injector: Injector
+  ) {
+    if (this.isLoggedIn()) {
+      if (!this.hasValidSession()) {
+        this.clearLocalSession();
+      } else {
+        this.scheduleSessionExpiryWatch();
+      }
+    }
+  }
 
   /**
    * Faz login via API (POST).
@@ -68,7 +94,19 @@ export class AuthService {
 
     const url = `${environment.API_BASE_URL}/auth/Usuario/Login`;
     return this.http.post<LoginResponse>(url, body).pipe(
-      map((res): LoginResult => this.buildSessionFromLoginResponse(username, res)),
+      map((res): LoginResult => {
+        if (res && typeof res === 'object') {
+          const fail = readLoginServiceFailure(res);
+          if (fail) {
+            return fail;
+          }
+        }
+        const merged =
+          res && typeof res === 'object'
+            ? (mergeServiceResultToRoot(res as Record<string, unknown>) as unknown as LoginResponse)
+            : res;
+        return this.buildSessionFromLoginResponse(username, merged);
+      }),
       catchError((err: unknown) => {
         const message = this.getLoginErrorMessage(err);
         return of({ success: false, message });
@@ -99,6 +137,7 @@ export class AuthService {
     sessionStorage.setItem('welcomeSeen', 'false');
     this.permissionCache.setKeys(permissionKeys);
     this.sessionAccess.clear();
+    this.scheduleSessionExpiryWatch();
 
     return true;
   }
@@ -131,8 +170,31 @@ export class AuthService {
   }
 
   private getLoginErrorMessage(err: unknown): string {
+    const gatewayFallback: Record<number, string> = {
+      0: 'Sem conexão. Verifique sua rede.',
+      400: 'Usuário ou senha inválido.',
+      401: 'Usuário ou senha inválidos.',
+      502: 'Servidor indisponível no momento. Tente novamente em instantes.',
+      503: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+      504: 'Tempo esgotado ao contactar o servidor. Tente novamente.',
+    };
+
+    const looksLikeHtml = (text: string): boolean => {
+      const s = text.trim().toLowerCase();
+      return (
+        s.startsWith('<!doctype') ||
+        s.startsWith('<html') ||
+        s.includes('bad gateway') ||
+        s.includes('nginx/') ||
+        s.length > 280
+      );
+    };
+
     if (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string') {
-      return (err as ApiError).message.trim();
+      const msg = (err as ApiError).message.trim();
+      if (msg && !looksLikeHtml(msg)) return msg;
+      const status = (err as ApiError).status;
+      if (typeof status === 'number' && gatewayFallback[status]) return gatewayFallback[status];
     }
     if (err instanceof HttpErrorResponse) {
       const body = err.error;
@@ -140,18 +202,13 @@ export class AuthService {
         const b = body as { notifications?: string[]; message?: string; title?: string };
         if (Array.isArray(b.notifications) && b.notifications.length > 0) {
           const text = b.notifications.filter((n): n is string => typeof n === 'string').join(' ').trim();
-          if (text) return text;
+          if (text && !looksLikeHtml(text)) return text;
         }
         const msg = b.message ?? b.title;
-        if (typeof msg === 'string' && msg.trim()) return msg.trim();
+        if (typeof msg === 'string' && msg.trim() && !looksLikeHtml(msg)) return msg.trim();
       }
-      if (typeof body === 'string' && body.trim()) return body.trim();
-      const fallback: Record<number, string> = {
-        401: 'Usuário ou senha inválidos.',
-        400: 'Usuário ou senha inválido.',
-        0: 'Sem conexão. Verifique sua rede.'
-      };
-      return fallback[err.status] ?? `Erro na requisição (${err.status ?? 0}).`;
+      if (typeof body === 'string' && body.trim() && !looksLikeHtml(body)) return body.trim();
+      return gatewayFallback[err.status] ?? `Erro na requisição (${err.status ?? 0}).`;
     }
     return 'Usuário ou senha inválidos.';
   }
@@ -192,7 +249,15 @@ export class AuthService {
     const permissionKeys = extractJwtPermissionKeys(payload);
     this.permissionCache.setKeys(permissionKeys);
     const jwtRole = resolveJwtRole(payload);
-    this.sessionAccess.setMenus(extractMenusFromLoginBody(res, jwtRole));
+    const menusFromLogin = extractMenusFromLoginBody(res, jwtRole);
+    const rotaInvalidaMsg = getLoginMenusAppRouteValidationMessage(menusFromLogin);
+    if (rotaInvalidaMsg) {
+      this.permissionCache.clear();
+      return { success: false, message: rotaInvalidaMsg };
+    }
+    // Limpa cache anterior (outro perfil/sessão) e aplica só o que veio no login.
+    this.sessionAccess.clear();
+    this.sessionAccess.setMenus(menusFromLogin);
     if (this.sessionAccess.hasSessionMenus() && !this.sessionAccess.getDefaultRoute()) {
       this.permissionCache.clear();
       this.sessionAccess.clear();
@@ -203,26 +268,140 @@ export class AuthService {
     }
 
     const loggedUser = buildLoggedUserFromJwtClaims(username, payload, permissionKeys);
+    const empresaFromBody = readEstacionamentoIdFromLoginBody(res);
+    if ((!loggedUser.empresaId || loggedUser.empresaId <= 0) && empresaFromBody) {
+      loggedUser.empresaId = empresaFromBody;
+    }
+
+    const codExportacaoLogin =
+      readCodExportacaoFromLoginBody(res) ??
+      getJwtStringClaim(payload, 'CodExportacao', 'codExportacao');
+    const empresaIdSessao =
+      typeof loggedUser.empresaId === 'number' && loggedUser.empresaId > 0
+        ? Math.trunc(loggedUser.empresaId)
+        : null;
+    const precisaSessaoPatio =
+      isAdminPerfil(loggedUser.perfil) || isTransportadoraPerfil(loggedUser.perfil);
+
+    if (precisaSessaoPatio && !empresaIdSessao) {
+      clearSessionEstacionamentoStorage();
+      if (isAdminPerfil(loggedUser.perfil)) {
+        delete loggedUser.empresaId;
+      }
+    }
 
     localStorage.setItem(this.TOKEN_KEY, normalized);
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(loggedUser));
     sessionStorage.setItem('welcomeSeen', 'false');
 
+    // Usa o estacionamento cadastrado no usuário; troca manual fica no topbar.
+    if (precisaSessaoPatio && empresaIdSessao) {
+      this.setSessionEstacionamento({
+        id: empresaIdSessao,
+        nome: null,
+        razaoSocial: null,
+        cnpj: null,
+        codExportacao: codExportacaoLogin,
+      });
+    }
+
+    this.scheduleSessionExpiryWatch();
+
     return { success: true };
+  }
+
+  /**
+   * Sessão com flag de login + JWT presente e ainda não expirado (`exp`).
+   */
+  hasValidSession(): boolean {
+    if (!this.isLoggedIn()) return false;
+    const token = this.getAccessToken();
+    if (!token) return false;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return false;
+    return validateJwtPayload(payload).valid;
+  }
+
+  /**
+   * Encerra a sessão por token inválido/expirado ou 401 da API e volta ao login.
+   */
+  logoutDueToExpiry(message = 'Sessão expirada. Faça login novamente.'): void {
+    if (this.endingSession) return;
+    this.endingSession = true;
+    try {
+      if (this.isLoggedIn() || this.getAccessToken()) {
+        try {
+          this.injector.get(ToastService).error(message);
+        } catch {
+          /* Toast opcional se DI ainda não estiver pronto */
+        }
+      }
+      this.logout();
+    } finally {
+      this.endingSession = false;
+    }
   }
 
   /**
    * Faz logout
    */
   logout(): void {
+    this.clearSessionExpiryWatch();
+    this.clearLocalSession();
+    void this.router.navigate(['/']);
+  }
+
+  private clearLocalSession(): void {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem(this.LOGGED_USER_KEY);
     localStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem('welcomeSeen');
+    clearSessionEstacionamentoStorage();
     this.permissionCache.clear();
     this.sessionAccess.clear();
-    this.router.navigate(['/']);
+  }
+
+  /** Limpa sessão sem toast (ex.: rota de login com token já expirado). */
+  clearLocalSessionForLogin(): void {
+    this.clearSessionExpiryWatch();
+    this.clearLocalSession();
+  }
+
+  private scheduleSessionExpiryWatch(): void {
+    this.clearSessionExpiryWatch();
+    const token = this.getAccessToken();
+    if (!token) return;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return;
+
+    const expRaw = payload['exp'];
+    const exp = typeof expRaw === 'number' ? expRaw : Number(expRaw);
+    if (!Number.isFinite(exp)) return;
+
+    const msUntilExpiry = exp * 1000 - Date.now();
+    if (msUntilExpiry <= 0) {
+      this.logoutDueToExpiry();
+      return;
+    }
+
+    // setTimeout estoura ~24,8 dias; para tokens longos reagendamos.
+    const maxDelay = 2_147_483_647;
+    const delay = Math.min(msUntilExpiry, maxDelay);
+    this.sessionExpiryTimer = setTimeout(() => {
+      if (delay < msUntilExpiry) {
+        this.scheduleSessionExpiryWatch();
+        return;
+      }
+      this.logoutDueToExpiry();
+    }, delay);
+  }
+
+  private clearSessionExpiryWatch(): void {
+    if (this.sessionExpiryTimer != null) {
+      clearTimeout(this.sessionExpiryTimer);
+      this.sessionExpiryTimer = null;
+    }
   }
 
   /**
@@ -249,6 +428,362 @@ export class AuthService {
     }
   }
 
+  /** True se o perfil da sessão é Admin (claim Role do JWT). */
+  isAdmin(): boolean {
+    return isAdminPerfil(this.getLoggedUser()?.perfil);
+  }
+
+  /**
+   * Estacionamento da sessão:
+   * - Admin / Transportadora: seleção obrigatória em sessionStorage
+   * - Demais: claim JWT / loggedUser.empresaId
+   */
+  resolveEstacionamentoId(): number | null {
+    if (this.isAdmin() || this.isTransportadoraRole()) {
+      const sessionId = this.getSessionEstacionamento()?.id;
+      return sessionId && sessionId > 0 ? sessionId : null;
+    }
+
+    const fromUser = this.getLoggedUser()?.empresaId;
+    if (typeof fromUser === 'number' && Number.isFinite(fromUser) && fromUser > 0) {
+      return Math.trunc(fromUser);
+    }
+
+    const token = this.getAccessToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return null;
+    return readEmpresaIdClaim(payload);
+  }
+
+  /** GUID global do pátio (sessão Admin/Transportadora ou claim `CodExportacao`). */
+  resolveCodExportacao(): string | null {
+    if (this.isAdmin() || this.isTransportadoraRole()) {
+      const fromSession = this.getSessionEstacionamento()?.codExportacao?.trim();
+      if (fromSession) return fromSession;
+    }
+
+    const token = this.getAccessToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return null;
+    return getJwtStringClaim(payload, 'CodExportacao', 'codExportacao');
+  }
+
+  /** Admin ou Transportadora logado sem estacionamento de sessão selecionado. */
+  needsEstacionamentoSelection(): boolean {
+    return (this.isAdmin() || this.isTransportadoraRole()) && !this.resolveEstacionamentoId();
+  }
+
+  /** Perfis que operam com pátio de sessão (topbar Trocar pátio). */
+  canTrocarEstacionamentoSessao(): boolean {
+    return this.isAdmin() || this.isTransportadoraRole();
+  }
+
+  /**
+   * Aplica o estacionamento cadastrado (JWT/login) ou, para transportadora,
+   * o único pátio vinculado — sem abrir modal.
+   */
+  bootstrapEstacionamentoSessao(): Observable<{ success: boolean; applied: boolean; message?: string }> {
+    if (!this.canTrocarEstacionamentoSessao()) {
+      return of({ success: true, applied: false });
+    }
+
+    const session = this.getSessionEstacionamento();
+    if (session?.id) {
+      return this.selecionarEstacionamentoSessao({
+        estacionamentoId: session.id,
+        codExportacao: session.codExportacao,
+        nome: session.nome,
+        razaoSocial: session.razaoSocial,
+        cnpj: session.cnpj,
+      }).pipe(map((res) => ({ success: res.success, applied: !!res.success, message: res.message })));
+    }
+
+    const empresaId = this.getLoggedUser()?.empresaId;
+    if (typeof empresaId === 'number' && empresaId > 0) {
+      return this.selecionarEstacionamentoSessao({ estacionamentoId: empresaId }).pipe(
+        map((res) => ({ success: res.success, applied: !!res.success, message: res.message }))
+      );
+    }
+
+    if (!this.isTransportadoraRole()) {
+      return of({ success: true, applied: false });
+    }
+
+    return this.listarMeusEstacionamentos().pipe(
+      catchError(() => of([])),
+      switchMap((rows) => {
+        if (rows.length !== 1) {
+          return of({ success: true, applied: false });
+        }
+        const only = rows[0];
+        return this.selecionarEstacionamentoSessao({
+          estacionamentoId: only.id,
+          codExportacao: only.codExportacao,
+          nome: only.fantasia ?? only.nome,
+          razaoSocial: only.razaoSocial,
+          cnpj: only.cnpj,
+        }).pipe(map((res) => ({ success: res.success, applied: !!res.success, message: res.message })));
+      })
+    );
+  }
+
+  getSessionEstacionamento(): SessionEstacionamento | null {
+    try {
+      const raw = sessionStorage.getItem(SESSION_ESTACIONAMENTO_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as SessionEstacionamento;
+      const id = Number(parsed?.id);
+      if (!Number.isFinite(id) || id <= 0) return null;
+      return {
+        id: Math.trunc(id),
+        nome: typeof parsed.nome === 'string' ? parsed.nome : null,
+        razaoSocial: typeof parsed.razaoSocial === 'string' ? parsed.razaoSocial : null,
+        cnpj: typeof parsed.cnpj === 'string' ? parsed.cnpj : null,
+        codExportacao: typeof parsed.codExportacao === 'string' ? parsed.codExportacao : null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  setSessionEstacionamento(value: SessionEstacionamento): void {
+    const id = Number(value?.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new Error('Estacionamento inválido.');
+    }
+    const payload: SessionEstacionamento = {
+      id: Math.trunc(id),
+      nome: value.nome?.trim() || null,
+      razaoSocial: value.razaoSocial?.trim() || null,
+      cnpj: value.cnpj?.trim() || null,
+      codExportacao: value.codExportacao?.trim() || null,
+    };
+    sessionStorage.setItem(SESSION_ESTACIONAMENTO_KEY, JSON.stringify(payload));
+
+    // Espelha em loggedUser para telas que leem empresaId direto.
+    const user = this.getLoggedUser();
+    if (user) {
+      user.empresaId = payload.id;
+      localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
+    }
+  }
+
+  clearSessionEstacionamento(): void {
+    clearSessionEstacionamentoStorage();
+    if (this.isAdmin() || this.isTransportadoraRole()) {
+      const user = this.getLoggedUser();
+      if (user) {
+        delete user.empresaId;
+        localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
+      }
+    }
+  }
+
+  /**
+   * Admin/Transportadora: pede novo JWT com EmpresaId/CodExportacao do pátio (ou limpa).
+   * Atualiza token + sessionStorage para o CurrentUser do backend refletir a seleção.
+   */
+  selecionarEstacionamentoSessao(input: {
+    estacionamentoId?: number | null;
+    codExportacao?: string | null;
+    limpar?: boolean;
+    nome?: string | null;
+    razaoSocial?: string | null;
+    cnpj?: string | null;
+  }): Observable<{ success: boolean; message?: string }> {
+    const url = `${environment.API_BASE_URL}/auth/Usuario/selecionar-estacionamento`;
+    const body = {
+      estacionamentoId: input.limpar ? null : input.estacionamentoId ?? null,
+      codExportacao: input.limpar ? null : input.codExportacao?.trim() || null,
+      limpar: !!input.limpar,
+    };
+
+    return this.http.post<unknown>(url, body).pipe(
+      map((res) => {
+        const root =
+          res && typeof res === 'object'
+            ? (mergeServiceResultToRoot(res as Record<string, unknown>) as Record<string, unknown>)
+            : null;
+        if (!root) {
+          return { success: false, message: 'Resposta inválida ao selecionar estacionamento.' };
+        }
+
+        const fail = readLoginServiceFailure(root as LoginResponse);
+        if (fail) return fail;
+
+        const token = extractTokenFromLoginBody(root as LoginResponse);
+        if (!token) {
+          return { success: false, message: 'API não retornou novo token da sessão.' };
+        }
+
+        this.applyAccessToken(token);
+
+        if (input.limpar) {
+          this.clearSessionEstacionamento();
+          return { success: true };
+        }
+
+        const estacionamentoId =
+          Number(root['estacionamentoId'] ?? root['EstacionamentoId'] ?? input.estacionamentoId) || 0;
+        const codExportacao = String(
+          root['codExportacao'] ?? root['CodExportacao'] ?? input.codExportacao ?? ''
+        ).trim();
+        const razaoSocial = String(
+          root['nomeRazaoSocial'] ?? root['NomeRazaoSocial'] ?? input.razaoSocial ?? ''
+        ).trim();
+        const fantasia = String(root['fantasia'] ?? root['Fantasia'] ?? input.nome ?? '').trim();
+        const cnpj = String(root['cnpj'] ?? root['Cnpj'] ?? input.cnpj ?? '').trim();
+
+        if (estacionamentoId > 0) {
+          this.setSessionEstacionamento({
+            id: estacionamentoId,
+            nome: fantasia || razaoSocial || `Estacionamento #${estacionamentoId}`,
+            razaoSocial: razaoSocial || null,
+            cnpj: cnpj || null,
+            codExportacao: codExportacao || null,
+          });
+        }
+
+        return { success: true };
+      }),
+      catchError((err: unknown) => {
+        const message = this.getLoginErrorMessage(err);
+        return of({ success: false, message });
+      })
+    );
+  }
+
+  /**
+   * Transportadora: pátios onde o CNPJ da transportadora está cadastrado.
+   * Formato compatível com LookupOption do modal de seleção.
+   */
+  listarMeusEstacionamentos(): Observable<
+    Array<{
+      id: number;
+      label: string;
+      cnpj: string;
+      nome?: string | null;
+      fantasia?: string | null;
+      razaoSocial?: string | null;
+      cidade?: string | null;
+      bairro?: string | null;
+      estado?: string | null;
+      codExportacao?: string | null;
+      ambiente?: number | null;
+      ambienteDescricao?: string | null;
+    }>
+  > {
+    const url = `${environment.API_BASE_URL}/auth/Usuario/meus-estacionamentos`;
+    return this.http.get<unknown>(url).pipe(
+      map((body) => {
+        const raw = unwrapServiceResult<unknown>(body);
+        const rows = Array.isArray(raw) ? raw : [];
+        return rows
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const o = item as Record<string, unknown>;
+            const id = Number(o['estacionamentoId'] ?? o['EstacionamentoId'] ?? 0);
+            if (!Number.isFinite(id) || id <= 0) return null;
+            const fantasia = String(o['fantasia'] ?? o['Fantasia'] ?? '').trim();
+            const razaoSocial = String(o['nomeRazaoSocial'] ?? o['NomeRazaoSocial'] ?? '').trim();
+            const cnpj = String(o['cnpjEstacionamento'] ?? o['CnpjEstacionamento'] ?? '').trim();
+            const cidade = String(o['cidade'] ?? o['Cidade'] ?? '').trim();
+            const bairro = String(o['bairro'] ?? o['Bairro'] ?? '').trim();
+            const estado = String(o['estado'] ?? o['Estado'] ?? '').trim();
+            const codExportacao = String(o['codExportacao'] ?? o['CodExportacao'] ?? '').trim();
+            const ambienteRaw = o['ambiente'] ?? o['Ambiente'];
+            const ambiente =
+              ambienteRaw === null || ambienteRaw === undefined || ambienteRaw === ''
+                ? null
+                : Number(ambienteRaw);
+            const ambienteDescricao =
+              String(o['ambienteDescricao'] ?? o['AmbienteDescricao'] ?? '').trim() ||
+              (ambiente === 1
+                ? 'Desenvolvimento'
+                : ambiente === 2
+                  ? 'Homologação'
+                  : ambiente === 3
+                    ? 'Produção'
+                    : null);
+            const nome = fantasia || razaoSocial || `Estacionamento #${id}`;
+            return {
+              id: Math.trunc(id),
+              label: nome,
+              cnpj,
+              nome,
+              fantasia: fantasia || null,
+              razaoSocial: razaoSocial || null,
+              cidade: cidade || null,
+              bairro: bairro || null,
+              estado: estado || null,
+              codExportacao: codExportacao || null,
+              ambiente: Number.isFinite(ambiente as number) ? (ambiente as number) : null,
+              ambienteDescricao,
+            };
+          })
+          .filter((x): x is NonNullable<typeof x> => x != null);
+      }),
+      catchError(() => of([]))
+    );
+  }
+
+  /** Substitui o Bearer atual e espelha EmpresaId / TransportadoraId no loggedUser. */
+  private applyAccessToken(token: string): void {
+    const normalized = normalizeBearerValue(token);
+    localStorage.setItem(this.TOKEN_KEY, normalized);
+
+    const payload = decodeJwtPayload(normalized);
+    const user = this.getLoggedUser();
+    if (user && payload) {
+      const empresaId = readEmpresaIdClaim(payload);
+      if (empresaId && empresaId > 0) {
+        user.empresaId = empresaId;
+      } else if (this.isAdmin() || this.isTransportadoraRole()) {
+        delete user.empresaId;
+      }
+
+      const transportadoraId = readTransportadoraIdClaim(payload);
+      if (transportadoraId && transportadoraId > 0) {
+        user.transportadoraId = transportadoraId;
+      } else {
+        delete user.transportadoraId;
+      }
+
+      localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(user));
+    }
+
+    this.scheduleSessionExpiryWatch();
+  }
+
+  isEstacionamentoRole(): boolean {
+    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
+    return perfil === 'estacionamento';
+  }
+
+  /** Perfil de usuário vinculado a uma transportadora (claim Role). */
+  isTransportadoraRole(): boolean {
+    const perfil = (this.getLoggedUser()?.perfil ?? '').trim().toLowerCase();
+    return perfil.includes('transportadora');
+  }
+
+  /**
+   * Transportadora da sessão: `loggedUser.transportadoraId` ou claim JWT `TransportadoraId`.
+   */
+  resolveTransportadoraId(): number | null {
+    const fromUser = this.getLoggedUser()?.transportadoraId;
+    if (typeof fromUser === 'number' && Number.isFinite(fromUser) && fromUser > 0) {
+      return Math.trunc(fromUser);
+    }
+
+    const token = this.getAccessToken();
+    if (!token) return null;
+    const payload = decodeJwtPayload(normalizeBearerValue(token));
+    if (!payload) return null;
+    return readTransportadoraIdClaim(payload);
+  }
+
   /**
    * Verifica se a tela de boas-vindas já foi vista
    */
@@ -257,13 +792,10 @@ export class AuthService {
   }
 
   /**
-   * Rota padrão da sessão logada com base no menu autorizado recebido no login.
+   * Rota padrão pós-login: tela vazia (sem abrir menu/submenu).
    */
   getDefaultAuthorizedRoute(): string {
-    const sessionRoute = this.sessionAccess.getDefaultRoute();
-    if (sessionRoute) return sessionRoute;
-    if (this.sessionAccess.hasSessionMenus()) return '/';
-    return '/app/dashboard';
+    return '/app/inicio';
   }
 
   /**
@@ -271,6 +803,63 @@ export class AuthService {
    */
   markWelcomeAsSeen(): void {
     sessionStorage.setItem('welcomeSeen', 'true');
+  }
+}
+
+function isAdminPerfil(perfil: string | null | undefined): boolean {
+  const p = (perfil ?? '').trim().toLowerCase();
+  return (
+    p === 'admin' ||
+    p === 'administrator' ||
+    p === 'administrador' ||
+    p === 'adm'
+  );
+}
+
+function isTransportadoraPerfil(perfil: string | null | undefined): boolean {
+  return (perfil ?? '').trim().toLowerCase().includes('transportadora');
+}
+
+function collectJwtRoles(payload: Record<string, unknown>): string[] {
+  const keys = [
+    'role',
+    'Role',
+    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+  ];
+  const out: string[] = [];
+  for (const key of keys) {
+    const raw = payload[key];
+    if (typeof raw === 'string' && raw.trim()) {
+      out.push(raw.trim());
+      continue;
+    }
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        if (typeof item === 'string' && item.trim()) out.push(item.trim());
+      }
+    }
+  }
+  return Array.from(new Set(out));
+}
+
+function resolveJwtRole(payload: Record<string, unknown>): string | null {
+  const roles = collectJwtRoles(payload);
+  if (!roles.length) return null;
+
+  // Preferir papel de negócio (JWT pode trazer ["Api","Admin"] na claim Role).
+  const admin = roles.find((r) => isAdminPerfil(r));
+  if (admin) return admin;
+
+  const skip = new Set(['api', 'apiinterna', 'api_interna']);
+  const business = roles.find((r) => !skip.has(r.trim().toLowerCase()));
+  return business ?? roles[0];
+}
+
+function clearSessionEstacionamentoStorage(): void {
+  try {
+    sessionStorage.removeItem(SESSION_ESTACIONAMENTO_KEY);
+  } catch {
+    /* ignore */
   }
 }
 
@@ -345,12 +934,13 @@ function buildLoggedUserFromJwtClaims(
   const email = getJwtStringClaim(payload, 'email', 'Email');
   const nameId = getJwtStringClaim(payload, 'nameid', 'nameId', 'sub');
   const role = resolveJwtRole(payload);
+  const empresaId = readEmpresaIdClaim(payload);
+  const transportadoraId = readTransportadoraIdClaim(payload);
 
   const displayName = uniqueName ?? fallbackUsername;
   const perfil = role ?? 'Operador';
 
-  const roleLower = perfil.toLowerCase();
-  const isAdmin = roleLower === 'admin' || roleLower === 'administrator';
+  const isAdmin = isAdminPerfil(perfil);
   const hasConfigInPermissions = permissionKeys.some((k) => /config/i.test(k));
 
   return {
@@ -359,6 +949,8 @@ function buildLoggedUserFromJwtClaims(
     permissionKeys,
     email: email ?? undefined,
     nameId: nameId ?? undefined,
+    empresaId: empresaId ?? undefined,
+    transportadoraId: transportadoraId ?? undefined,
     permissoes: {
       acessoConfiguracoes: isAdmin || hasConfigInPermissions,
       verHome: true,
@@ -366,20 +958,67 @@ function buildLoggedUserFromJwtClaims(
   };
 }
 
-function resolveJwtRole(payload: Record<string, unknown>): string | null {
-  const claimRole =
-    payload['role'] ??
-    payload['Role'] ??
-    payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-  if (typeof claimRole === 'string' && claimRole.trim()) {
-    return claimRole.trim();
+/** Claim `EmpresaId` do JWT (= EstacionamentoId do vínculo do usuário). */
+function readEmpresaIdClaim(payload: Record<string, unknown>): number | null {
+  const raw =
+    payload['EmpresaId'] ??
+    payload['empresaId'] ??
+    payload['EstacionamentoId'] ??
+    payload['estacionamentoId'];
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
   }
-  if (Array.isArray(claimRole) && claimRole.length > 0) {
-    const first = claimRole[0];
-    if (typeof first === 'string' && first.trim()) {
-      return first.trim();
-    }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n);
   }
+  return null;
+}
+
+/** Claim `TransportadoraId` do JWT (usuário vinculado a transportadora). */
+function readTransportadoraIdClaim(payload: Record<string, unknown>): number | null {
+  const raw = payload['TransportadoraId'] ?? payload['transportadoraId'];
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n);
+  }
+  return null;
+}
+
+/** `EstacionamentoId` / `estacionamentoId` no body do login (UsuarioAcessOutput). */
+function readEstacionamentoIdFromLoginBody(res: LoginResponse): number | null {
+  const root = res as Record<string, unknown>;
+  const raw =
+    root['estacionamentoId'] ??
+    root['EstacionamentoId'] ??
+    (root['result'] && typeof root['result'] === 'object'
+      ? (root['result'] as Record<string, unknown>)['estacionamentoId'] ??
+        (root['result'] as Record<string, unknown>)['EstacionamentoId']
+      : null);
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.trunc(raw);
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return Math.trunc(n);
+  }
+  return null;
+}
+
+/** `CodExportacao` no body do login (UsuarioAcessOutput). */
+function readCodExportacaoFromLoginBody(res: LoginResponse): string | null {
+  const root = res as Record<string, unknown>;
+  const raw =
+    root['codExportacao'] ??
+    root['CodExportacao'] ??
+    (root['result'] && typeof root['result'] === 'object'
+      ? (root['result'] as Record<string, unknown>)['codExportacao'] ??
+        (root['result'] as Record<string, unknown>)['CodExportacao']
+      : null);
+  if (typeof raw === 'string' && raw.trim()) return raw.trim();
   return null;
 }
 
@@ -405,46 +1044,87 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
     if (!Array.isArray(candidate)) continue;
     return candidate
       .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-      .map((menu) => ({
-        id: toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']),
-        descricao:
+      .map((menu) => {
+        const id = toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']) ?? 0;
+        const rotaRaw = toStringValue(menu['rota']) ?? toStringValue(menu['route']);
+        const rota = normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw;
+        const descricaoRaw =
           toStringValue(menu['descricao']) ??
           toStringValue(menu['nome']) ??
-          toStringValue(menu['menuDescricao']),
-        icone: toStringValue(menu['icone']),
-        rota: toStringValue(menu['rota']) ?? toStringValue(menu['route']),
-        ativo: toBoolean(menu['ativo'] ?? menu['isActive']),
-        selecionado: toBoolean(menu['selecionado'] ?? menu['selected']),
-        ordem: toNumber(menu['ordem'] ?? menu['menuOrdem']),
-        subMenus: mapSubMenus(
-          menu['subMenus'] ??
-            menu['submenus'] ??
-            menu['submodules'] ??
-            menu['subModules'] ??
-            menu['subMenusDto']
-        ),
-      }));
+          toStringValue(menu['menuDescricao']);
+        const fromApi = toBoolean(
+          menu['exibirNoSidebar'] ?? menu['mostrarSidebar'] ?? menu['exibeSidebar'] ?? menu['sidebar']
+        );
+        return {
+          id,
+          descricao: formatAppMenuDisplayLabel(descricaoRaw ?? '', rota),
+          icone: toStringValue(menu['icone']),
+          rota,
+          ativo: toBoolean(menu['ativo'] ?? menu['isActive']),
+          exibirNoSidebar: resolveExibirNoSidebar({
+            id,
+            kind: 'menu',
+            rota,
+            fromApi: fromApi === null ? undefined : fromApi,
+          }),
+          // Login só devolve menus do RolePermission → tratados como concedidos.
+          selecionado: toBoolean(menu['selecionado'] ?? menu['selected']) ?? true,
+          ordem: toNumber(menu['ordem'] ?? menu['menuOrdem']),
+          subMenus: mapSubMenus(
+            menu['subMenus'] ??
+              menu['submenus'] ??
+              menu['submodules'] ??
+              menu['subModules'] ??
+              menu['subMenusDto']
+          ),
+        };
+      });
   }
 
   return [];
 }
 
-function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
+function mapSubMenus(value: unknown): SessionSubMenuAccess[] {
   if (!Array.isArray(value)) return [];
-  return value
+  const mapped = value
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-    .map((sub) => ({
-      id: toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']),
-      descricao:
-        toStringValue(sub['descricao']) ??
-        toStringValue(sub['nome']) ??
-        toStringValue(sub['subDescricao']) ??
-        toStringValue(sub['subNome']),
-      rota: toStringValue(sub['rota']) ?? toStringValue(sub['subRota']),
-      ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
-      selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
-      ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
-    }));
+    .map((sub) => mapSubMenuEntry(sub));
+  return nestSubMenusByRouteGeneric(mapped);
+}
+
+function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
+  const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
+  const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
+  const rota = normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw;
+  const fromApi = toBoolean(
+    sub['exibirNoSidebar'] ?? sub['mostrarSidebar'] ?? sub['exibeSidebar'] ?? sub['sidebar']
+  );
+  const nestedRaw =
+    sub['subMenus'] ??
+    sub['submenus'] ??
+    sub['subModules'] ??
+    sub['subModulesDto'] ??
+    sub['SubMenus'];
+  const nestedFlat = Array.isArray(nestedRaw) ? mapSubMenus(nestedRaw) : [];
+  return {
+    id,
+    descricao:
+      toStringValue(sub['descricao']) ??
+      toStringValue(sub['nome']) ??
+      toStringValue(sub['subDescricao']) ??
+      toStringValue(sub['subNome']),
+    rota,
+    ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
+    exibirNoSidebar: resolveExibirNoSidebar({
+      id,
+      kind: 'sub',
+      rota,
+      fromApi: fromApi === null ? undefined : fromApi,
+    }),
+    selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']) ?? true,
+    ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
+    subMenus: nestedFlat.length ? nestedFlat : undefined,
+  };
 }
 
 function tryExtractProfileMenus(value: unknown, jwtRole?: string | null): unknown[] | null {

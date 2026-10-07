@@ -102,6 +102,8 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   acessos: '/app/administracao/usuario',
   admin: '/app/gerenciamento/menu',
   administracao: '/app/administracao',
+  ecossistema: '/app/administracao/ecossistema',
+  'mapa funcional': '/app/administracao/ecossistema',
   /** Alias legado — redireciona para Permissão */
   perfil: '/app/administracao/permissao',
   bancodados: '/app/gerenciamento/bancoDados',

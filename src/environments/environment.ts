@@ -1,6 +1,6 @@
 /**
  * Desenvolvimento (`ng serve` :4200).
- * Paths /estac/* iguais à produção; `proxy.conf.json` encaminha à VPS (ou API local em 44317).
+ * Paths /estac/* iguais à produção; `proxy.conf.json` encaminha a https://gtsistema.com.
  */
 export const environment = {
   production: false,

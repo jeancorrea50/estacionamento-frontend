@@ -158,6 +158,12 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Atalho quando o lookup de pátios falha: abre o mapa sem sessão operacional. */
+  abrirEcossistemaSemPatio(): void {
+    this.showEstacionamentoModal.set(false);
+    void this.router.navigateByUrl('/app/administracao/ecossistema');
+  }
+
   trocarEstacionamento(): void {
     if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) return;
     this.authService.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
@@ -212,8 +218,16 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');
     const redeCredenciada = url.includes('/rede-credenciada');
+    const ecossistema = url.includes('/administracao/ecossistema');
     this.isFullWidthContent.set(
-      movimentos || estacionamento || transportadora || financeiro || acessos || gerenciamento || redeCredenciada
+      movimentos ||
+        estacionamento ||
+        transportadora ||
+        financeiro ||
+        acessos ||
+        gerenciamento ||
+        redeCredenciada ||
+        ecossistema
     );
   }
 

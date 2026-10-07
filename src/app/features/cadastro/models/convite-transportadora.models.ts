@@ -1,20 +1,23 @@
 /**
- * Contrato mínimo do módulo Convite de Transportadora (front ↔ backend).
+ * Contrato do módulo Convite de Transportadora (Swagger GTS API).
  *
- * Endpoints autenticados (JWT + EmpresaId do pátio convidante):
- * - POST   `/api/Transportadora/convite`                    → criar + enviar e-mail
- * - POST   `/api/Transportadora/convite/{id}/reenviar`      → reenviar e-mail
- * - POST   `/api/Transportadora/convite/{id}/cancelar`      → cancelar convite
+ * Autenticados (JWT + pátio da sessão):
+ * - POST `/api/ConviteTransportadora`                 → criar + enviar e-mail
+ * - GET  `/api/ConviteTransportadora`                 → listagem paginada
+ * - POST `/api/ConviteTransportadora/{id}/reenviar`
+ * - POST `/api/ConviteTransportadora/{id}/cancelar`
  *
- * Endpoints públicos (AllowAnonymous, sem Bearer):
- * - GET    `/api/Transportadora/convite/publico/{token}`
- * - PUT    `/api/Transportadora/convite/publico/{token}/rascunho`
- * - POST   `/api/Transportadora/convite/publico/{token}/concluir`
+ * Públicos (AllowAnonymous):
+ * - GET `/api/public/convite-transportadora/{token}`
+ * - PUT `/api/public/convite-transportadora/{token}/etapa/acesso`
+ * - PUT `/api/public/convite-transportadora/{token}/etapa/responsavel`
+ * - PUT `/api/public/convite-transportadora/{token}/etapa/empresa`
+ * - PUT `/api/public/convite-transportadora/{token}/etapa/endereco`
  *
- * A listagem `GET /api/Transportadora` deve projetar `statusCadastro`, `progressoCadastro`,
- * `responsavelNome` e `conviteId` quando o registro for (ou tiver) convite.
+ * Status no wire da API de convite: Pendente | EmAndamento | Concluido | Expirado | Cancelado.
+ * Na listagem de transportadoras, o front normaliza para StatusCadastroTransportadora.
  *
- * SPA pública: `/cadastro-transportadora/:token`
+ * SPA pública: `/convite/transportadora/:token` (alias legado `/cadastro-transportadora/:token`)
  */
 
 /** Status de onboarding — valores estáveis no wire; labels na UI. */
@@ -35,13 +38,13 @@ export const STATUS_CADASTRO_TRANSPORTADORA_LABEL: Record<StatusCadastroTranspor
   Inativa: 'Inativa',
 };
 
-/** POST criar convite */
+/** POST criar convite — campos alinhados a ConviteTransportadoraCriarInput. */
 export interface CriarConviteTransportadoraInput {
   responsavelNome: string;
   responsavelCpf: string;
   responsavelEmail: string;
-  /** Telefone com DDD — usado no link WhatsApp. */
-  responsavelTelefone?: string;
+  /** Obrigatório na API (`responsavelTelefone`, minLength 1). DDD + número. */
+  responsavelTelefone: string;
 }
 
 /** Resposta de criar/reenviar (envelope `result` ou corpo direto). */
@@ -139,20 +142,35 @@ export function parseStatusCadastroTransportadora(raw: unknown): StatusCadastroT
   const aliases: Record<string, StatusCadastroTransportadora> = {
     ConviteEnviado: 'ConviteEnviado',
     conviteenviado: 'ConviteEnviado',
+    /** Status da API `/api/ConviteTransportadora`. */
+    Pendente: 'ConviteEnviado',
+    pendente: 'ConviteEnviado',
     CadastroEmAndamento: 'CadastroEmAndamento',
     cadastroemandamento: 'CadastroEmAndamento',
+    EmAndamento: 'CadastroEmAndamento',
+    emandamento: 'CadastroEmAndamento',
     AguardandoConclusao: 'AguardandoConclusao',
     aguardandoconclusao: 'AguardandoConclusao',
     Ativa: 'Ativa',
     ativa: 'Ativa',
     Ativo: 'Ativa',
     ativo: 'Ativa',
+    Concluido: 'Ativa',
+    concluido: 'Ativa',
     ConviteExpirado: 'ConviteExpirado',
     conviteexpirado: 'ConviteExpirado',
+    Expirado: 'ConviteExpirado',
+    expirado: 'ConviteExpirado',
     Inativa: 'Inativa',
     inativa: 'Inativa',
     Inativo: 'Inativa',
     inativo: 'Inativa',
+    /**
+     * Convite cancelado não implica transportadora inativa na grade.
+     * Mantém rótulo de “convite expirado/encerrado” para ações de reenvio não aparecerem como Ativa.
+     */
+    Cancelado: 'ConviteExpirado',
+    cancelado: 'ConviteExpirado',
   };
   return aliases[normalized] ?? aliases[s] ?? null;
 }

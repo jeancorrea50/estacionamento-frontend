@@ -1041,6 +1041,346 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ConviteTransportadora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    Status?: string;
+                    Busca?: string;
+                    Descricao?: string;
+                    DataInicial?: string;
+                    DataFinal?: string;
+                    NumeroPagina?: number;
+                    TamanhoPagina?: number;
+                    Propriedade?: string;
+                    Sort?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraCriarInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraCriarInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraCriarInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraCriarInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ConviteTransportadora/{id}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ConviteTransportadora/{id}/reenviar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/convite-transportadora/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/convite-transportadora/{token}/etapa/acesso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaAcessoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaAcessoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaAcessoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaAcessoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/convite-transportadora/{token}/etapa/responsavel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaResponsavelInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaResponsavelInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaResponsavelInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaResponsavelInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/convite-transportadora/{token}/etapa/empresa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEmpresaInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEmpresaInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEmpresaInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEmpresaInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/convite-transportadora/{token}/etapa/endereco": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEnderecoInput"];
+                    "application/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEnderecoInput"];
+                    "text/json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEnderecoInput"];
+                    "application/*+json": components["schemas"]["Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEnderecoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/EntradaSaida": {
         parameters: {
             query?: never;
@@ -7111,6 +7451,52 @@ export interface components {
             ativa?: boolean;
             chavePix?: string | null;
             tipoChave?: components["schemas"]["Estac.Domain.Models.Enuns.TipoChave"];
+        };
+        "Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraCriarInput": {
+            /** Format: email */
+            emailConvidado: string;
+            clientUrl?: string | null;
+            responsavelNome: string;
+            responsavelCpf?: string | null;
+            responsavelEmail?: string | null;
+            responsavelTelefone: string;
+            /** Format: date-time */
+            responsavelDataNascimento?: string | null;
+            responsavelNomeMae?: string | null;
+            /** Format: int32 */
+            diasExpiracao?: number | null;
+        };
+        "Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaAcessoInput": {
+            userName: string;
+            /** Format: email */
+            email: string;
+            password?: string | null;
+            confirmPassword?: string | null;
+        };
+        "Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEmpresaInput": {
+            razaoSocial: string;
+            nomeFantasia: string;
+            cnpj: string;
+            inscricaoEstadual?: string | null;
+        };
+        "Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaEnderecoInput": {
+            cep: string;
+            logradouro: string;
+            numero: string;
+            complemento?: string | null;
+            bairro: string;
+            cidade: string;
+            estado: string;
+        };
+        "Estac.Domain.Input.ConviteTransportadora.ConviteTransportadoraEtapaResponsavelInput": {
+            nome: string;
+            cpf: string;
+            /** Format: email */
+            email: string;
+            telefone?: string | null;
+            /** Format: date-time */
+            dataNascimento?: string | null;
+            nomeMae?: string | null;
         };
         "Estac.Domain.Input.Endereco.PessoaEnderecoInput": {
             /** Format: int32 */

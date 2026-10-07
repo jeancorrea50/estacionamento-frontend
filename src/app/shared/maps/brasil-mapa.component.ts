@@ -10,7 +10,7 @@ import {
   SimpleChanges,
   ViewChild
 } from '@angular/core';
-import type { Map as LeafletMap, Marker } from 'leaflet';
+import type { LeafletMouseEvent, Map as LeafletMap, Marker } from 'leaflet';
 import * as LeafletNamespace from 'leaflet';
 import {
   BRASIL_LAT_MAX,
@@ -99,7 +99,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       mapa.on('moveend', () => this.conterNoBrasil());
       void this.aplicarMascaraBrasil(mapa);
     } else {
-      mapa.on('click', (evento) => {
+      mapa.on('click', (evento: LeafletMouseEvent) => {
         const latitude = arredondarCoordenada(evento.latlng.lat);
         const longitude = arredondarCoordenada(evento.latlng.lng);
         if (!coordenadaNoBrasil(latitude, longitude)) return;

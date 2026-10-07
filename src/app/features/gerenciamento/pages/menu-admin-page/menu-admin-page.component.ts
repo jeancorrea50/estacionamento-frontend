@@ -8,6 +8,7 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
 import { FinanceiroMenuSeedService } from '../../services/financeiro-menu-seed.service';
+import { EcossistemaMenuSeedService } from '../../services/ecossistema-menu-seed.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
@@ -49,6 +50,7 @@ export class MenuAdminPageComponent implements OnInit {
   protected readonly admin = inject(MenuAdminService);
   private readonly menuApi = inject(MenuApiService);
   private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
+  private readonly ecossistemaMenuSeed = inject(EcossistemaMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -74,6 +76,7 @@ export class MenuAdminPageComponent implements OnInit {
    * Após um ciclo de mutação do seed, o próximo apply só hidrata a lista.
    */
   private skipNextFinanceiroSeed = false;
+  private skipNextEcossistemaSeed = false;
 
   ngOnInit(): void {
     this.carregarMenusDoBackend();
@@ -107,21 +110,39 @@ export class MenuAdminPageComponent implements OnInit {
 
     if (this.skipNextFinanceiroSeed) {
       this.skipNextFinanceiroSeed = false;
+    } else {
+      this.financeiroMenuSeed.ensureFinanceiroMenuStructure(menus).subscribe({
+        next: (result) => {
+          if (result.created > 0 || result.updatedRoutes > 0) {
+            const parts: string[] = [];
+            if (result.created > 0) {
+              parts.push(`${result.created} submenu(s) criado(s)`);
+            }
+            if (result.updatedRoutes > 0) {
+              parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
+            }
+            this.toast.success(`Financeiro: ${parts.join('; ')}.`);
+            this.skipNextFinanceiroSeed = true;
+            this.refreshMenusAfterMutation();
+          }
+        },
+      });
+    }
+
+    if (this.skipNextEcossistemaSeed) {
+      this.skipNextEcossistemaSeed = false;
       return;
     }
 
-    this.financeiroMenuSeed.ensureFinanceiroMenuStructure(menus).subscribe({
+    this.ecossistemaMenuSeed.ensureEcossistemaSubMenu(menus).subscribe({
       next: (result) => {
-        if (result.created > 0 || result.updatedRoutes > 0) {
-          const parts: string[] = [];
-          if (result.created > 0) {
-            parts.push(`${result.created} submenu(s) criado(s)`);
-          }
-          if (result.updatedRoutes > 0) {
-            parts.push(`${result.updatedRoutes} rota(s) alinhada(s)`);
-          }
-          this.toast.success(`Financeiro: ${parts.join('; ')}.`);
-          this.skipNextFinanceiroSeed = true;
+        if (result.created || result.updatedRoute) {
+          this.toast.success(
+            result.created
+              ? 'Administração: submenu Ecossistema publicado no servidor.'
+              : 'Administração: rota do Ecossistema alinhada no servidor.'
+          );
+          this.skipNextEcossistemaSeed = true;
           this.refreshMenusAfterMutation();
         }
       },

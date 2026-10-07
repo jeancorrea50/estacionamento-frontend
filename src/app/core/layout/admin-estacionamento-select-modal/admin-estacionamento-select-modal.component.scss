@@ -372,6 +372,14 @@
   color: var(--danger, #dc2626);
 }
 
+.aes-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
 .aes-spinner {
   width: 1.6rem;
   height: 1.6rem;

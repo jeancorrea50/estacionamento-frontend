@@ -134,19 +134,37 @@ export class ConviteTransportadoraApiService {
     );
   }
 
-  /** Autenticado — estacionamento. */
+  /**
+   * Autenticado — POST `/api/ConviteTransportadora`.
+   * Contrato: emailConvidado, responsavelNome e responsavelTelefone são obrigatórios.
+   */
   criar(body: {
     emailConvidado: string;
     clientUrl?: string;
     responsavelNome: string;
     responsavelCpf?: string;
     responsavelEmail?: string;
-    responsavelTelefone?: string;
+    responsavelTelefone: string;
     responsavelDataNascimento?: string | null;
     responsavelNomeMae?: string;
     diasExpiracao?: number;
   }): Observable<ConviteTransportadoraDto> {
-    return this.http.post<unknown>(AUTH, body).pipe(
+    const telefone = String(body.responsavelTelefone ?? '').replace(/\D/g, '');
+    if (!telefone) {
+      return throwError(() => ({ message: 'responsavelTelefone é obrigatório.' }));
+    }
+    const payload = {
+      ...body,
+      emailConvidado: body.emailConvidado.trim().toLowerCase(),
+      responsavelNome: body.responsavelNome.trim(),
+      responsavelTelefone: telefone,
+      responsavelEmail: body.responsavelEmail?.trim().toLowerCase() || undefined,
+      responsavelCpf: body.responsavelCpf?.replace(/\D/g, '') || undefined,
+      clientUrl:
+        body.clientUrl ??
+        (typeof window !== 'undefined' ? window.location.origin : undefined),
+    };
+    return this.http.post<unknown>(AUTH, payload).pipe(
       map((b) => this.unwrap(b)),
       catchError((e) => this.rethrow(e))
     );

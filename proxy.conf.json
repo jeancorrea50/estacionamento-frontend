@@ -1,33 +1,33 @@
 {
   "/estac/worker": {
-    "target": "http://108.174.145.123",
-    "secure": false,
+    "target": "https://gtsistema.com",
+    "secure": true,
     "changeOrigin": true,
     "ws": true,
     "logLevel": "warn"
   },
   "/estac/notification": {
-    "target": "http://108.174.145.123",
-    "secure": false,
+    "target": "https://gtsistema.com",
+    "secure": true,
     "changeOrigin": true,
     "ws": true,
     "logLevel": "warn"
   },
   "/estac/report": {
-    "target": "http://108.174.145.123",
-    "secure": false,
+    "target": "https://gtsistema.com",
+    "secure": true,
     "changeOrigin": true,
     "logLevel": "warn"
   },
   "/estac": {
-    "target": "http://108.174.145.123",
-    "secure": false,
+    "target": "https://gtsistema.com",
+    "secure": true,
     "changeOrigin": true,
     "logLevel": "warn"
   },
   "/api": {
-    "target": "http://108.174.145.123",
-    "secure": false,
+    "target": "https://gtsistema.com",
+    "secure": true,
     "changeOrigin": true,
     "logLevel": "warn",
     "pathRewrite": {

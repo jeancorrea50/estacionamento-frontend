@@ -116,5 +116,8 @@
 </div>
 
 @if (showEstacionamentoModal()) {
-  <app-admin-estacionamento-select-modal (selected)="onEstacionamentoSelected()" />
+  <app-admin-estacionamento-select-modal
+    (selected)="onEstacionamentoSelected()"
+    (openEcossistema)="abrirEcossistemaSemPatio()"
+  />
 }

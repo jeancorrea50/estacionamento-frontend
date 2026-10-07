@@ -32,16 +32,20 @@ export interface ConviteOperacaoResult {
 export class ConviteTransportadoraService {
   private readonly http = inject(HttpClient);
 
-  /** POST `/api/ConviteTransportadora` */
+  /** POST `/api/ConviteTransportadora` — body = ConviteTransportadoraCriarInput. */
   criar(input: CriarConviteTransportadoraInput): Observable<ConviteOperacaoResult> {
     const email = input.responsavelEmail.trim().toLowerCase();
+    const telefone = String(input.responsavelTelefone ?? '').replace(/\D/g, '');
+    if (!telefone) {
+      return of({ ok: false, message: 'Informe o celular do responsável (obrigatório na API).' });
+    }
     const body = {
       emailConvidado: email,
       clientUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
       responsavelNome: input.responsavelNome.trim(),
-      responsavelCpf: input.responsavelCpf.replace(/\D/g, ''),
+      responsavelCpf: input.responsavelCpf.replace(/\D/g, '') || undefined,
       responsavelEmail: email,
-      responsavelTelefone: (input.responsavelTelefone ?? '').replace(/\D/g, '') || undefined,
+      responsavelTelefone: telefone,
       diasExpiracao: 7,
     };
     return this.http.post<unknown>(CONVITE_AUTH, body).pipe(

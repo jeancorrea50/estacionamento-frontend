@@ -34,9 +34,16 @@
         <div class="aes-state aes-state--error">
           <span class="material-symbols-outlined" aria-hidden="true">error</span>
           <p>{{ erro() }}</p>
-          <button type="button" class="aes-btn aes-btn--ghost" (click)="carregar()">
-            Tentar novamente
-          </button>
+          <div class="aes-state__actions">
+            <button type="button" class="aes-btn aes-btn--ghost" (click)="carregar()">
+              Tentar novamente
+            </button>
+            @if (!isTransportadora) {
+              <button type="button" class="aes-btn aes-btn--ghost" (click)="abrirEcossistema()">
+                Abrir Ecossistema
+              </button>
+            }
+          </div>
         </div>
       } @else {
         <div class="aes-search" role="search">

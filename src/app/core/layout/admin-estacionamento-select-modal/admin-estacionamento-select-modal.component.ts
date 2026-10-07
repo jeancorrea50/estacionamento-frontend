@@ -38,6 +38,8 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
   private readonly toast = inject(ToastService);
 
   @Output() readonly selected = new EventEmitter<number>();
+  /** Permite abrir o mapa Ecossistema sem pátio quando a API de lookup está indisponível. */
+  @Output() readonly openEcossistema = new EventEmitter<void>();
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -113,11 +115,26 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
           );
         }
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false);
-        this.erro.set('Não foi possível carregar os estacionamentos.');
+        const status = Number((err as { status?: number })?.status);
+        if (status === 0 || Number.isNaN(status)) {
+          this.erro.set(
+            'Sem resposta da API (rede/proxy). Confira se o backend está no ar e se o ng serve usa proxy.conf.json → /estac.'
+          );
+          return;
+        }
+        if (status === 401 || status === 403) {
+          this.erro.set('Sem permissão para listar estacionamentos. Faça login novamente.');
+          return;
+        }
+        this.erro.set(`Não foi possível carregar os estacionamentos (HTTP ${status}).`);
       },
     });
+  }
+
+  abrirEcossistema(): void {
+    this.openEcossistema.emit();
   }
 
   onFiltroChange(value: string): void {

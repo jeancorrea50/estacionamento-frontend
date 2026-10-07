@@ -804,11 +804,75 @@ label {
   font-size: var(--font-caption, 12px);
 }
 
-/* Tabelas em mobile: scroll horizontal suave (toque) */
+/* Tabelas / toolbars dash em mobile: scroll-x e empilhamento sem cortar ações */
 @media (max-width: 768px) {
-  .table-wrap {
+  .table-wrap,
+  .table-wrapper,
+  .dk-table-wrap,
+  .trn-list-table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+  }
+
+  .table-wrap .data-table,
+  .table-wrapper .data-table,
+  .dk-table-wrap .dk-table,
+  .trn-list-table-scroll .data-table,
+  .trn-list-table-scroll .trn-table {
+    min-width: 720px;
+  }
+
+  .est-dash-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .est-dash-filter__search,
+  .est-dash-filter__select-wrap,
+  .est-dash-filter__select {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .est-dash-filter__actions,
+  .ag-dash-filter__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .est-dash-btn {
+    min-height: 44px;
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .est-dash-btn--primary {
+    flex: 1 1 100%;
+  }
+
+  /* Texto longo de ação secundária: esconde no estreito (ícone + aria-label no HTML). */
+  .est-dash-btn--compact-sm .est-dash-btn__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .est-dash-btn--compact-sm {
+    flex: 0 0 auto;
+    min-width: 44px;
+    padding-inline: 12px;
   }
 }
 

@@ -11,11 +11,23 @@
         class="rede__btn"
         (click)="usarMinhaLocalizacao()"
         [disabled]="obtendoLocalizacao()"
+        [attr.aria-label]="obtendoLocalizacao() ? 'Obtendo localização' : 'Usar minha localização'"
       >
         <span class="material-symbols-outlined" aria-hidden="true">my_location</span>
-        {{ obtendoLocalizacao() ? 'Localizando…' : 'Usar minha localização' }}
+        <span class="rede__btn-text--long">{{
+          obtendoLocalizacao() ? 'Localizando…' : 'Usar minha localização'
+        }}</span>
+        <span class="rede__btn-text--short" aria-hidden="true">{{
+          obtendoLocalizacao() ? 'GPS…' : 'GPS'
+        }}</span>
       </button>
-      <button type="button" class="rede__btn" (click)="recarregar()" [disabled]="carregando()">
+      <button
+        type="button"
+        class="rede__btn"
+        (click)="recarregar()"
+        [disabled]="carregando()"
+        aria-label="Atualizar mapa"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
         Atualizar
       </button>

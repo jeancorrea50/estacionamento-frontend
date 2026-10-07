@@ -1860,18 +1860,21 @@ html.theme-dark .estacao-tabs .tab.tab--active {
     padding: 0 0 12px;
   }
 
-
   .page-header__row--2 {
     margin-top: 0;
   }
 
   .tabs {
     width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
   }
 
   .tab {
-    flex: 1;
-    min-width: 0;
+    flex: 1 0 auto;
+    min-width: max-content;
+    min-height: 44px;
   }
 
   .search-input {
@@ -1882,16 +1885,46 @@ html.theme-dark .estacao-tabs .tab.tab--active {
     font-size: 1.25rem;
   }
 
+  .est-dash-filter {
+    gap: 8px;
+  }
+
+  .est-dash-btn--primary {
+    order: 10;
+    flex: 1 1 100%;
+  }
+
+  .trn-dash-btn-buscar {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .tab-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
   .tab-toolbar__actions {
     width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .tab-toolbar__actions .btn {
-    flex: 1 1 180px;
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
   }
 
-  .table-wrap {
+  .table-wrap,
+  .trn-list-table-scroll {
     border-radius: var(--radius-md);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trn-table {
+    min-width: 880px;
   }
 
   .data-table th,
@@ -1900,11 +1933,9 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   }
 
   .table-actions {
-    min-width: 184px;
+    min-width: 160px;
   }
-}
 
-@media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -1912,5 +1943,40 @@ html.theme-dark .estacao-tabs .tab.tab--active {
   .field--full,
   .field--cep {
     grid-column: 1 / -1;
+  }
+
+  .cadastro-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .cadastro-form-footer__left,
+  .cadastro-form-footer__right {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cadastro-form-footer__right {
+    flex-direction: column-reverse;
+  }
+
+  .cadastro-form-footer .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .modal-content {
+    width: min(100%, 100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+    margin: env(safe-area-inset-top) auto env(safe-area-inset-bottom);
+  }
+
+  .modal-content--frota,
+  .modal-content--condutor {
+    max-width: 100%;
   }
 }

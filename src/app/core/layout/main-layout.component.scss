@@ -373,14 +373,39 @@
 }
 
 @media (max-width: 768px) {
+  .layout.layout--mobile {
+    overflow-x: hidden;
+  }
+
   .layout.layout--mobile .layout-right {
     margin-left: 0;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
   }
 
   .top-bar {
     padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .top-bar__inner {
+    gap: 8px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+    min-width: 0;
+  }
+
+  .top-bar__spacer {
+    flex: 1 1 auto;
+    min-width: 4px;
+  }
+
+  .top-bar__right {
+    flex-shrink: 0;
+    gap: 6px;
+    min-width: 0;
   }
 
   .top-bar__link-label {
@@ -391,8 +416,13 @@
   .theme-switcher__btn {
     min-width: 44px;
     min-height: 44px;
-    padding: 0 12px;
+    padding: 0 10px;
     justify-content: center;
+  }
+
+  .theme-switcher__btn:focus-visible {
+    outline: 2px solid var(--focus, #5b7cff);
+    outline-offset: 2px;
   }
 
   .theme-switcher__label {
@@ -403,6 +433,7 @@
     padding: 0;
     border: none;
     background: transparent;
+    min-width: 0;
   }
 
   .user-access-panel__switcher,
@@ -410,27 +441,58 @@
     display: none;
   }
 
+  .user-access-panel__main {
+    min-width: 0;
+  }
+
   .user-access-panel__name {
-    max-width: 120px;
+    max-width: min(96px, 22vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .user-access-panel__tipo {
-    max-width: 140px;
+    max-width: min(110px, 26vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .session-estac-panel {
-    max-width: min(220px, 42vw);
-    padding: 4px 8px;
-    gap: 6px;
+    max-width: min(160px, 38vw);
+    padding: 4px 6px;
+    gap: 4px;
+    min-width: 0;
   }
 
-  .session-estac-panel__caption {
+  .session-estac-panel__caption,
+  .session-estac-panel__cnpj {
     display: none;
   }
 
+  .session-estac-panel__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.78rem;
+  }
+
   .session-estac-panel__trocar {
-    padding: 0.25rem 0.4rem;
-    font-size: 0.7rem;
+    padding: 0.25rem 0.35rem;
+    font-size: 0.65rem;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+
+  .main-content {
+    overflow-x: hidden;
+  }
+
+  .content-container {
+    padding-left: max(var(--content-padding-mobile, 14px), env(safe-area-inset-left));
+    padding-right: max(var(--content-padding-mobile, 14px), env(safe-area-inset-right));
+    padding-bottom: max(var(--space-xl, 20px), env(safe-area-inset-bottom));
   }
 }
 

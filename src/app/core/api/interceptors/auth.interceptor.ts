@@ -8,7 +8,12 @@ import { decodeJwtPayload, getJwtStringClaim } from '../../auth/jwt.util';
 
 /** Requisições para APIs externas (ex.: BrasilAPI) não devem receber o token do backend. */
 function isExternalApi(req: HttpRequest<unknown>): boolean {
-  return req.url.includes('brasilapi.com.br') || req.url.includes('viacep.com.br') || req.url.includes('nominatim.openstreetmap.org');
+  return (
+    req.url.includes('brasilapi.com.br') ||
+    req.url.includes('viacep.com.br') ||
+    req.url.includes('nominatim.openstreetmap.org') ||
+    req.url.includes('router.project-osrm.org')
+  );
 }
 
 /**

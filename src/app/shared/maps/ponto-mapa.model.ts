@@ -48,8 +48,68 @@ export function linkGoogleMaps(latitude: number, longitude: number): string {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
+/** Link de rota no Google Maps (origem → destino), quando houver posição do usuário. */
+export function linkGoogleMapsRota(origem: CoordenadaMapa, destino: CoordenadaMapa): string {
+  const oLat = arredondarCoordenada(origem.latitude);
+  const oLng = arredondarCoordenada(origem.longitude);
+  const dLat = arredondarCoordenada(destino.latitude);
+  const dLng = arredondarCoordenada(destino.longitude);
+  return `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=driving`;
+}
+
 export function arredondarCoordenada(valor: number): number {
   return Math.round(valor * 1e6) / 1e6;
+}
+
+export interface CoordenadaMapa {
+  latitude: number;
+  longitude: number;
+}
+
+export interface PontoMapaComDistancia extends PontoMapa {
+  /** Distância em linha reta (km) até a origem do usuário. */
+  distanciaKm: number;
+}
+
+const RAIO_TERRA_KM = 6371;
+
+/** Distância em linha reta entre dois pontos (km), fórmula de Haversine. */
+export function distanciaKmHaversine(a: CoordenadaMapa, b: CoordenadaMapa): number {
+  const lat1 = (a.latitude * Math.PI) / 180;
+  const lat2 = (b.latitude * Math.PI) / 180;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLng = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return RAIO_TERRA_KM * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+/**
+ * Filtra pátios dentro do raio (km) e ordena do mais próximo ao mais longe.
+ * `raioKm` null/undefined/≤0 = sem corte de raio (apenas ordena quando há origem).
+ */
+export function filtrarPontosPorProximidade(
+  pontos: PontoMapa[],
+  origem: CoordenadaMapa | null | undefined,
+  raioKm?: number | null
+): PontoMapaComDistancia[] {
+  if (!origem || !Number.isFinite(origem.latitude) || !Number.isFinite(origem.longitude)) {
+    return pontos.map((ponto) => ({ ...ponto, distanciaKm: Number.POSITIVE_INFINITY }));
+  }
+  const limite = raioKm != null && Number.isFinite(raioKm) && raioKm > 0 ? raioKm : null;
+  const comDistancia = pontos.map((ponto) => ({
+    ...ponto,
+    distanciaKm: distanciaKmHaversine(origem, ponto)
+  }));
+  const filtrados = limite == null ? comDistancia : comDistancia.filter((p) => p.distanciaKm <= limite);
+  return filtrados.sort((a, b) => a.distanciaKm - b.distanciaKm);
+}
+
+/** Formata km para exibição (ex.: 1,2 km / 850 m). */
+export function formatarDistanciaKm(km: number): string {
+  if (!Number.isFinite(km)) return '—';
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toLocaleString('pt-BR', { maximumFractionDigits: km < 10 ? 1 : 0 })} km`;
 }
 
 const MOEDA = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });

@@ -2,10 +2,19 @@
   <header class="rede__header">
     <div class="rede__titulo">
       <h1>Rede credenciada</h1>
-      <p>Mapa dos estacionamentos com localização cadastrada no Brasil.</p>
+      <p>Mapa dos estacionamentos próximos a você, com estimativa de tempo e distância.</p>
     </div>
     <div class="rede__meta">
       <span class="rede__badge">{{ pontosVisiveis().length }} no mapa</span>
+      <button
+        type="button"
+        class="rede__btn"
+        (click)="usarMinhaLocalizacao()"
+        [disabled]="obtendoLocalizacao()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">my_location</span>
+        {{ obtendoLocalizacao() ? 'Localizando…' : 'Usar minha localização' }}
+      </button>
       <button type="button" class="rede__btn" (click)="recarregar()" [disabled]="carregando()">
         <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
         Atualizar
@@ -44,6 +53,18 @@
       </select>
     </label>
     <label class="rede__campo">
+      <span>Raio</span>
+      <select
+        [ngModel]="raioKm() === null ? 'todos' : '' + raioKm()"
+        (ngModelChange)="atualizarRaio($event)"
+        [disabled]="!posicaoUsuario()"
+      >
+        @for (item of raiosDisponiveis; track item.label) {
+          <option [value]="item.valor === null ? 'todos' : item.valor">{{ item.label }}</option>
+        }
+      </select>
+    </label>
+    <label class="rede__campo">
       <span>Status</span>
       <select [ngModel]="status()" (ngModelChange)="atualizarStatus($event)">
         <option value="todos">Todos</option>
@@ -76,12 +97,20 @@
         <option value="sem">Sem cobrança</option>
       </select>
     </label>
-    @if (temFiltro()) {
+    @if (temFiltroTexto() || (posicaoUsuario() && raioKm() !== 50)) {
       <button type="button" class="rede__btn rede__btn--ghost" (click)="limparFiltros()">Limpar filtros</button>
     }
   </div>
 
   <div class="rede__status-wrap" aria-live="polite">
+    @if (avisoGeo()) {
+      <p class="rede__status rede__status--aviso">{{ avisoGeo() }}</p>
+    }
+    @if (posicaoUsuario() && raioKm() != null) {
+      <p class="rede__status">
+        Mostrando pátios em até {{ raioKm() }} km da sua localização (mais próximos primeiro).
+      </p>
+    }
     @if (carregando()) {
       <p class="rede__status">Carregando localizações...</p>
     } @else if (erro()) {
@@ -89,7 +118,13 @@
     } @else if (!pontos().length) {
       <p class="rede__status">Nenhum estacionamento com localização cadastrada.</p>
     } @else if (!pontosVisiveis().length) {
-      <p class="rede__status">Nenhum estacionamento corresponde aos filtros.</p>
+      <p class="rede__status">
+        Nenhum estacionamento corresponde aos filtros
+        @if (posicaoUsuario() && raioKm() != null) {
+          no raio de {{ raioKm() }} km
+        }
+        .
+      </p>
     }
   </div>
 
@@ -100,6 +135,7 @@
         [pontos]="pontosVisiveis()"
         [foco]="focoMapa()"
         [destaqueId]="selecionadoId()"
+        [posicaoUsuario]="posicaoUsuario()"
         (patioClicado)="onPatioClicado($event)"
       />
     </div>
@@ -128,9 +164,30 @@
                   (click)="selecionar(card.ponto)"
                 >
                   <div class="rede__card-topo">
-                    <strong>{{ card.ponto.descricao }}</strong>
+                    <div class="rede__card-titulo">
+                      <strong>{{ card.ponto.descricao }}</strong>
+                      @if (card.distanciaLinha) {
+                        <span class="rede__dist">{{ card.distanciaLinha }}</span>
+                      }
+                    </div>
                     <span class="rede__card-local">{{ card.local }}</span>
                   </div>
+                  @if (card.rotaCarregando) {
+                    <span class="rede__rota rede__rota--loading">
+                      <span class="material-symbols-outlined" aria-hidden="true">route</span>
+                      Calculando rota…
+                    </span>
+                  } @else if (card.rotaTexto) {
+                    <span class="rede__rota">
+                      <span class="material-symbols-outlined" aria-hidden="true">route</span>
+                      {{ card.rotaTexto }}
+                    </span>
+                  } @else if (posicaoUsuario()) {
+                    <span class="rede__rota rede__rota--hint">
+                      <span class="material-symbols-outlined" aria-hidden="true">route</span>
+                      Selecione para estimar tempo e km
+                    </span>
+                  }
                   <div class="rede__card-detalhes">
                     @for (item of card.detalhes; track item.icone + item.texto) {
                       <span
@@ -150,9 +207,11 @@
                   [href]="card.maps"
                   target="_blank"
                   rel="noopener noreferrer"
-                  [attr.aria-label]="'Abrir ' + card.ponto.descricao + ' no Google Maps (nova aba)'"
+                  [attr.aria-label]="
+                    'Abrir rota para ' + card.ponto.descricao + ' no Google Maps (nova aba)'
+                  "
                 >
-                  Abrir no Google Maps
+                  {{ posicaoUsuario() ? 'Abrir rota no Google Maps' : 'Abrir no Google Maps' }}
                 </a>
               </article>
             </li>

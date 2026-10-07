@@ -129,6 +129,46 @@
   color: #f87171;
 }
 
+.rede__status--aviso {
+  color: #fbbf24;
+}
+
+.rede__card-titulo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rede__dist {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.rede__rota {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #93c5fd;
+}
+
+.rede__rota .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.rede__rota--loading,
+.rede__rota--hint {
+  color: var(--text-secondary, #a1a1aa);
+  font-weight: 500;
+}
+
 .rede__corpo {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);

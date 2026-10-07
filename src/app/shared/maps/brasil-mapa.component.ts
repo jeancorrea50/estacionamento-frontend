@@ -21,6 +21,7 @@ import {
   arredondarCoordenada,
   coordenadaNoBrasil,
   detalhesPontoMapa,
+  type CoordenadaMapa,
   type PontoMapa
 } from './ponto-mapa.model';
 
@@ -52,6 +53,8 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
   @Input() latitude: number | null = null;
   @Input() longitude: number | null = null;
   @Input() destaqueId: number | null = null;
+  /** Posição do usuário (pin distinto no modo brasil). */
+  @Input() posicaoUsuario: CoordenadaMapa | null = null;
   @Output() readonly pontoSelecionado = new EventEmitter<{ latitude: number; longitude: number }>();
   @Output() readonly patioClicado = new EventEmitter<PontoMapa>();
 
@@ -60,6 +63,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
   private mapa: LeafletMap | null = null;
   private marcadores: Marker[] = [];
   private marcadorPonto: Marker | null = null;
+  private marcadorUsuario: Marker | null = null;
   private marcadoresPorId = new Map<number, Marker>();
   private contandoBrasil = false;
 
@@ -107,6 +111,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     this.mapa = mapa;
     this.desenharPontos();
     this.desenharPontoUnico();
+    this.desenharPosicaoUsuario();
     this.aplicarFoco();
     setTimeout(() => {
       mapa.invalidateSize();
@@ -121,6 +126,7 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
       this.desenharPontoUnico();
       if (this.modo === 'ponto') this.enquadrarPonto(this.mapa);
     }
+    if (changes['posicaoUsuario']) this.desenharPosicaoUsuario();
     // Só reenquadra quando o modo de foco muda (evita “teleporte” a cada tecla de filtro).
     if (this.modo === 'brasil' && changes['foco']) this.aplicarFoco();
   }
@@ -128,6 +134,11 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
   atualizarTamanho(): void {
     this.mapa?.invalidateSize();
     this.conterNoBrasil();
+  }
+
+  /** Reaplica o enquadramento atual (brasil ou lista de pontos). */
+  reenquadrar(): void {
+    this.aplicarFoco();
   }
 
   /** Centraliza um pátio e abre o popup após o zoom estabilizar (fora de cluster). */
@@ -231,10 +242,35 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
     this.marcadorPonto = L.marker([this.latitude, this.longitude], { icon: icone }).addTo(this.mapa);
   }
 
+  private desenharPosicaoUsuario(): void {
+    if (!this.mapa || this.modo !== 'brasil') return;
+    const L = leafletApi();
+    this.marcadorUsuario?.remove();
+    this.marcadorUsuario = null;
+    const pos = this.posicaoUsuario;
+    if (!pos || !coordenadaNoBrasil(pos.latitude, pos.longitude)) return;
+    const icone = L.divIcon({
+      className: 'br-pin',
+      html: '<span class="br-dot br-dot--usuario" title="Você está aqui"></span>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+    this.marcadorUsuario = L.marker([pos.latitude, pos.longitude], {
+      icon: icone,
+      zIndexOffset: 800
+    }).addTo(this.mapa);
+    this.marcadorUsuario.bindPopup('<strong>Você está aqui</strong>');
+  }
+
   private aplicarFoco(): void {
     if (!this.mapa || this.modo !== 'brasil') return;
     if (this.foco === 'pontos' && this.pontos.length) {
       this.enquadrarLista(this.pontos);
+      return;
+    }
+    if (this.foco === 'pontos' && this.posicaoUsuario) {
+      this.mapa.setView([this.posicaoUsuario.latitude, this.posicaoUsuario.longitude], 10);
+      this.conterNoBrasil();
       return;
     }
     this.enquadrarBrasil();
@@ -253,17 +289,24 @@ export class BrasilMapaComponent implements AfterViewInit, OnChanges, OnDestroy 
   private enquadrarLista(pontos: PontoMapa[]): void {
     if (!this.mapa) return;
     const validos = pontos.filter((ponto) => coordenadaNoBrasil(ponto.latitude, ponto.longitude));
-    if (!validos.length) {
+    const coords: [number, number][] = validos.map((ponto) => [ponto.latitude, ponto.longitude]);
+    if (
+      this.posicaoUsuario &&
+      coordenadaNoBrasil(this.posicaoUsuario.latitude, this.posicaoUsuario.longitude)
+    ) {
+      coords.push([this.posicaoUsuario.latitude, this.posicaoUsuario.longitude]);
+    }
+    if (!coords.length) {
       this.enquadrarBrasil();
       return;
     }
-    if (validos.length === 1) {
-      this.mapa.setView([validos[0].latitude, validos[0].longitude], 11);
+    if (coords.length === 1) {
+      this.mapa.setView(coords[0], 11);
       this.conterNoBrasil();
       return;
     }
     const L = leafletApi();
-    const limites = L.latLngBounds(validos.map((ponto) => [ponto.latitude, ponto.longitude] as [number, number]));
+    const limites = L.latLngBounds(coords);
     const brasil = L.latLngBounds(BRASIL_VIEW[0], BRASIL_VIEW[1]);
     const recorte = brasil.intersects(limites) ? limites : brasil;
     this.mapa.fitBounds(recorte, { padding: [40, 40], maxZoom: MAX_ZOOM_ENQUADRE });

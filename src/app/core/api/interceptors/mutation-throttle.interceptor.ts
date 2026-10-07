@@ -24,7 +24,8 @@ function isExternalApi(url: string): boolean {
   return (
     u.includes('brasilapi.com.br') ||
     u.includes('viacep.com.br') ||
-    u.includes('nominatim.openstreetmap.org')
+    u.includes('nominatim.openstreetmap.org') ||
+    u.includes('router.project-osrm.org')
   );
 }
 

@@ -271,8 +271,8 @@ export class MenuAdminService {
   }
 
   /**
-   * Reaplica a árvore de menus atual no estado de sessão do usuário, preservando o que já estava selecionado
-   * por id (menu/submenu). Isso mantém o sidebar coerente após mover submenu entre menus no admin.
+   * Reaplica rotas/labels da árvore admin nos menus JÁ concedidos no login.
+   * Não injeta menus/submenus não liberados (evita expandir o sidebar além do perfil).
    */
   private syncSessionMenusWithCurrentTree(latestMenus: MenuAdmin[]): void {
     if (!this.sessionAccess.hasSessionMenus()) return;
@@ -288,16 +288,27 @@ export class MenuAdminService {
       collectSelectedSubMenuIds(menu.subMenus ?? [], selectedSubMenuIds);
     }
 
-    const mapAdminSubToSession = (sub: SubMenuAdmin): SessionSubMenuAccess => ({
-      id: sub.id,
-      descricao: sub.nome,
-      rota: sub.rota,
-      ativo: sub.ativo,
-      exibirNoSidebar: sub.exibirNoSidebar !== false,
-      selecionado: selectedSubMenuIds.has(sub.id),
-      ordem: sub.ordem,
-      subMenus: (sub.subMenus ?? []).map(mapAdminSubToSession),
-    });
+    if (selectedMenuIds.size === 0 && selectedSubMenuIds.size === 0) {
+      return;
+    }
+
+    const mapAdminSubToSession = (sub: SubMenuAdmin): SessionSubMenuAccess | null => {
+      const nested = (sub.subMenus ?? [])
+        .map(mapAdminSubToSession)
+        .filter((child): child is SessionSubMenuAccess => child != null);
+      const selfSelected = selectedSubMenuIds.has(sub.id);
+      if (!selfSelected && nested.length === 0) return null;
+      return {
+        id: sub.id,
+        descricao: sub.nome,
+        rota: sub.rota,
+        ativo: sub.ativo,
+        exibirNoSidebar: sub.exibirNoSidebar !== false,
+        selecionado: selfSelected || nested.length > 0,
+        ordem: sub.ordem,
+        subMenus: nested.length ? nested : undefined,
+      };
+    };
 
     const nextSessionMenus: SessionMenuAccess[] = latestMenus
       .filter((menu) => menu.ativo !== false)
@@ -306,10 +317,11 @@ export class MenuAdminService {
         const subMenus: SessionSubMenuAccess[] = (menu.subMenus ?? [])
           .filter((sub) => sub.ativo !== false)
           .sort((a, b) => a.ordem - b.ordem)
-          .map(mapAdminSubToSession);
+          .map(mapAdminSubToSession)
+          .filter((sub): sub is SessionSubMenuAccess => sub != null);
 
-        const menuSelecionado =
-          selectedMenuIds.has(menu.id) || subMenus.some((sub) => sub.selecionado !== false);
+        const menuSelecionado = selectedMenuIds.has(menu.id) || subMenus.length > 0;
+        if (!menuSelecionado) return null;
 
         return {
           id: menu.id,
@@ -318,13 +330,16 @@ export class MenuAdminService {
           rota: menu.rota,
           ativo: menu.ativo,
           exibirNoSidebar: menu.exibirNoSidebar !== false,
-          selecionado: menuSelecionado,
+          selecionado: true,
           ordem: menu.ordem,
           subMenus,
         };
-      });
+      })
+      .filter((menu): menu is SessionMenuAccess => menu != null);
 
-    this.sessionAccess.setMenus(nextSessionMenus);
+    if (nextSessionMenus.length > 0) {
+      this.sessionAccess.setMenus(nextSessionMenus);
+    }
   }
 
   exportJson(): string {

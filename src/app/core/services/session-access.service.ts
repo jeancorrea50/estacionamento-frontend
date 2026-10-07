@@ -1,13 +1,16 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
 import { CADASTRO_ESTACIONAMENTOS_ROUTE } from '../../features/cadastro/cadastro-rotas';
+import { MENU_STRUCTURE } from '../../features/cadastro/constants/menu-structure';
 import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import {
   formatAppMenuDisplayLabel,
   resolveAppRouteFromNome,
 } from '../../features/gerenciamento/services/menu-route-resolver';
 
-const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v1';
+/** v2: invalida cache antigo que podia expandir menus além do login. */
+const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v2';
+const LEGACY_SESSION_MENUS_KEYS = ['gts-session-menus-v1'] as const;
 
 export interface SessionSubMenuAccess {
   id?: number;
@@ -35,6 +38,20 @@ export interface SessionMenuAccess {
   subMenus?: SessionSubMenuAccess[] | null;
 }
 
+/** Rotas canônicas conhecidas da árvore fixa (para não herdar irmãos por prefixo). */
+const KNOWN_MENU_ROUTES: readonly string[] = (() => {
+  const out = new Set<string>();
+  const walk = (nodes: { route: string; children?: { route: string; children?: { route: string }[] }[] }[]) => {
+    for (const node of nodes) {
+      const r = normalizeRoute(node.route);
+      if (r) out.add(r);
+      if (node.children?.length) walk(node.children);
+    }
+  };
+  walk(MENU_STRUCTURE);
+  return [...out];
+})();
+
 @Injectable({ providedIn: 'root' })
 export class SessionAccessService {
   private readonly menusState = signal<SessionMenuAccess[]>(this.loadMenus());
@@ -47,6 +64,9 @@ export class SessionAccessService {
     const normalized = normalizeMenus(menus);
     this.menusState.set(normalized);
     try {
+      for (const key of LEGACY_SESSION_MENUS_KEYS) {
+        localStorage.removeItem(key);
+      }
       localStorage.setItem(SESSION_MENUS_STORAGE_KEY, JSON.stringify(normalized));
     } catch {
       /* ignore */
@@ -57,6 +77,9 @@ export class SessionAccessService {
     this.menusState.set([]);
     try {
       localStorage.removeItem(SESSION_MENUS_STORAGE_KEY);
+      for (const key of LEGACY_SESSION_MENUS_KEYS) {
+        localStorage.removeItem(key);
+      }
     } catch {
       /* ignore */
     }
@@ -78,7 +101,7 @@ export class SessionAccessService {
     if (current === '/app' || current === '') {
       return true;
     }
-    if (allowed.some((route) => isRouteMatch(current, route))) {
+    if (isAccessGranted(current, allowed)) {
       return true;
     }
     /**
@@ -128,6 +151,8 @@ export class SessionAccessService {
    * Filtra itens da sidebar FIXA pelas rotas permitidas na sessão.
    * Suporta um nível extra de filhos (ex.: Cobrança sob Faturamento).
    * Grupo sem nenhum filho liberado é ocultado.
+   *
+   * Liberar Transportadora NÃO libera Convites/Relatório (irmãos sob o mesmo prefixo).
    */
   filterSidebarItems<
     T extends {
@@ -142,16 +167,7 @@ export class SessionAccessService {
     const allowed = this.allowedRoutes();
     const hasRoute = (route: string): boolean => {
       const normalized = normalizeRoute(route);
-      if (allowed.some((r) => isRouteMatch(normalized, r))) {
-        return true;
-      }
-      /** Mostra o item pai se o login concedeu algum filho dele. */
-      if (
-        allowed.some((r) => {
-          const a = normalizeRoute(r);
-          return a.startsWith(`${normalized}/`);
-        })
-      ) {
+      if (isSidebarRouteVisible(normalized, allowed)) {
         return true;
       }
       /** Estacionamento: login pode vir com rota de Gerenciamento ou Cadastro. */
@@ -214,12 +230,14 @@ export class SessionAccessService {
 
   private loadMenus(): SessionMenuAccess[] {
     try {
+      for (const key of LEGACY_SESSION_MENUS_KEYS) {
+        localStorage.removeItem(key);
+      }
       const raw = localStorage.getItem(SESSION_MENUS_STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as SessionMenuAccess[];
       if (!Array.isArray(parsed)) return [];
       const normalized = normalizeMenus(parsed);
-      // Regrava sessão com rotas canônicas (ex.: financeiro → faturamento) após deploy.
       try {
         localStorage.setItem(SESSION_MENUS_STORAGE_KEY, JSON.stringify(normalized));
       } catch {
@@ -334,13 +352,33 @@ function safeText(value: string | null | undefined): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/** Sidebar: rota exatamente concedida, ou ancestral de uma rota concedida. */
+function isSidebarRouteVisible(route: string, allowed: string[]): boolean {
+  const normalized = normalizeRoute(route);
+  if (!normalized) return false;
+  if (allowed.some((r) => normalizeRoute(r) === normalized)) return true;
+  return allowed.some((r) => normalizeRoute(r).startsWith(`${normalized}/`));
+}
+
 /**
- * Libera a rota atual se for exatamente a concedida ou um filho dela
- * (ex.: `/app/patio/entrada-saida/123` sob `/app/patio/entrada-saida`).
- * Não libera irmãos a partir do pai (ex.: `/app/patio` ≠ liberar entrada-saída).
+ * Acesso: usa a rota de menu conhecida mais específica que cobre a URL.
+ * Assim `/transportadoras` não libera `/transportadoras/convites`.
  */
-function isRouteMatch(current: string, allowed: string): boolean {
-  const normalizedAllowed = normalizeRoute(allowed);
-  if (!normalizedAllowed || normalizedAllowed === '/app') return false;
-  return current === normalizedAllowed || current.startsWith(`${normalizedAllowed}/`);
+function isAccessGranted(current: string, allowed: string[]): boolean {
+  const cur = normalizeRoute(current);
+  if (!cur) return false;
+
+  const allowedNorm = allowed.map(normalizeRoute).filter(Boolean);
+  if (allowedNorm.some((a) => a === cur)) return true;
+
+  const matchingKnown = KNOWN_MENU_ROUTES.filter((k) => cur === k || cur.startsWith(`${k}/`)).sort(
+    (a, b) => b.length - a.length
+  );
+  const bestKnown = matchingKnown[0];
+  if (bestKnown) {
+    return allowedNorm.some((a) => a === bestKnown);
+  }
+
+  // Detalhe/rota dinâmica sob uma concedida (ex.: /transportadoras/42).
+  return allowedNorm.some((a) => cur === a || cur.startsWith(`${a}/`));
 }

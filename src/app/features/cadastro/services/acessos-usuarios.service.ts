@@ -33,6 +33,7 @@ export interface UsuarioListItem {
   transportadora?: string | null;
   Transportadora?: string | null;
   cpf?: string;
+  emailConfirmed?: boolean;
 }
 
 export interface LoginInput {
@@ -75,6 +76,8 @@ export class AcessosUsuariosService {
       Transportadora?: string | null;
       cpf?: string | null;
       Cpf?: string | null;
+      emailConfirmed?: boolean;
+      EmailConfirmed?: boolean;
     };
     return {
       id: u.id != null ? String(u.id) : undefined,
@@ -93,8 +96,16 @@ export class AcessosUsuariosService {
       TransportadoraId: raw.TransportadoraId ?? raw.transportadoraId ?? null,
       transportadora: raw.transportadora ?? raw.Transportadora ?? null,
       Transportadora: raw.Transportadora ?? raw.transportadora ?? null,
-      cpf: ((raw.cpf ?? raw.Cpf ?? undefined) as string | undefined)
+      cpf: ((raw.cpf ?? raw.Cpf ?? undefined) as string | undefined),
+      emailConfirmed: this.toOptionalBoolean(raw.emailConfirmed ?? raw.EmailConfirmed ?? u.emailConfirmed)
     };
+  }
+
+  private toOptionalBoolean(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') return value;
+    if (value === 1 || value === '1' || value === 'true') return true;
+    if (value === 0 || value === '0' || value === 'false') return false;
+    return undefined;
   }
 
   /**

@@ -17,6 +17,8 @@ export interface UsuarioGerenciamentoItem {
   transportadoraId?: number | null;
   transportadoraNome?: string | null;
   ativo?: boolean;
+  /** Identity EmailConfirmed — confirmação de e-mail. */
+  emailConfirmed?: boolean;
 }
 
 export interface GerenciamentoFiltros {

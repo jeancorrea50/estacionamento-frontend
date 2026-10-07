@@ -60,6 +60,19 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     return this.opcoesCadastro?.tiposPapel ?? [];
   }
 
+  /** Admin (TipoPapel.Administrador = 4) pode atribuir qualquer perfil, inclusive Admin. */
+  get podeAtribuirPerfilAdmin(): boolean {
+    return this.opcoesCadastro?.papelLogado === 4;
+  }
+
+  /** Perfis listáveis/atribuíveis conforme o nível do usuário logado. */
+  get perfisDisponiveis(): ApplicationRole[] {
+    if (this.podeAtribuirPerfilAdmin) {
+      return this.perfisList;
+    }
+    return this.perfisList.filter((p) => !this.ehPerfilAdmin(p));
+  }
+
   /** Cadastro de usuário: somente pessoa física. */
   get tiposPessoaDoPapel(): { value: 1 | 2; label: string }[] {
     return [{ value: 1, label: 'Física' }];
@@ -254,9 +267,10 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   get perfisFiltrados(): ApplicationRole[] {
+    const base = this.perfisDisponiveis;
     const termo = this.perfilBuscaTermo.trim().toLowerCase();
-    if (!termo) return this.perfisList;
-    return this.perfisList.filter((p) => {
+    if (!termo) return base;
+    return base.filter((p) => {
       const candidatos = [p.name, p.permissao, p.perfil, p.nome, p.normalizedName, p.id]
         .filter((v): v is string | number => v != null)
         .map((v) => String(v).toLowerCase());
@@ -264,6 +278,14 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private ehPerfilAdmin(p: ApplicationRole | null | undefined): boolean {
+    const nomes = [p?.name, p?.perfil, p?.nome, p?.normalizedName, p?.permissao]
+      .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+      .map((v) => v.trim().toLowerCase());
+    return nomes.some((n) => n === 'admin' || n === 'administrador');
+  }
+
+  /** Lookup sempre na lista completa; a atribuição usa `perfisDisponiveis`. */
   private findPerfilBySelectedValue(value: string | number): ApplicationRole | undefined {
     const selected = String(value ?? '').trim().toLowerCase();
     if (!selected) return undefined;
@@ -273,6 +295,14 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         .map((v) => String(v).trim().toLowerCase());
       return candidates.includes(selected);
     });
+  }
+
+  /** Não-admin não edita usuário com perfil Admin. */
+  podeEditarUsuario(item: UsuarioGerenciamentoItem | null | undefined): boolean {
+    if (!item) return false;
+    if (this.podeAtribuirPerfilAdmin) return true;
+    const nome = String(item.perfil ?? '').trim().toLowerCase();
+    return nome !== 'admin' && nome !== 'administrador';
   }
 
   private resolvePerfilNomeForPayload(selectedValue: string): string | undefined {
@@ -478,6 +508,10 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   abrirEditar(item: UsuarioGerenciamentoItem): void {
     if (!this.canAlterar) {
       this.toast.error('Você não possui permissão para editar usuários (usuario.alterar).');
+      return;
+    }
+    if (!this.podeEditarUsuario(item)) {
+      this.toast.error('Somente Administrador pode editar usuário com perfil Admin.');
       return;
     }
     if (!item.id) {
@@ -864,6 +898,18 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     }
     if (!this.form.perfilId?.toString().trim()) {
       this.saveError.set('Selecione o perfil do usuário.');
+      this.cdr.markForCheck();
+      return;
+    }
+    const perfilSelecionado = this.findPerfilBySelectedValue(this.form.perfilId);
+    const perfilNomeCheck = (this.resolvePerfilNomeForPayload(this.form.perfilId) ?? '').toLowerCase();
+    if (
+      !this.podeAtribuirPerfilAdmin &&
+      (this.ehPerfilAdmin(perfilSelecionado) ||
+        perfilNomeCheck === 'admin' ||
+        perfilNomeCheck === 'administrador')
+    ) {
+      this.saveError.set('Você não pode atribuir o perfil Admin. Apenas Administrador pode usar esse perfil.');
       this.cdr.markForCheck();
       return;
     }

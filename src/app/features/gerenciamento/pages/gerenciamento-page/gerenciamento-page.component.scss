@@ -1352,6 +1352,34 @@
   border-color: var(--usu-border);
 }
 
+.usuarios-email-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid var(--usu-border);
+  white-space: nowrap;
+}
+
+.usuarios-email-chip .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.usuarios-email-chip--ok {
+  color: #36c98f;
+  background: #2a4a3d;
+  border-color: color-mix(in srgb, #36c98f 35%, var(--usu-border));
+}
+
+.usuarios-email-chip--pendente {
+  color: #e0a84a;
+  background: #4a3d2a;
+  border-color: color-mix(in srgb, #e0a84a 35%, var(--usu-border));
+}
+
 .usuarios-acoes.acoes-cell {
   gap: 4px;
   padding: 8px 12px !important;
@@ -1501,6 +1529,18 @@
   background: #eff6ff;
   color: #1d4ed8;
   border-color: #93c5fd;
+}
+
+:host-context(html.theme-light) .usuarios-email-chip--ok {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #6ee7b7;
+}
+
+:host-context(html.theme-light) .usuarios-email-chip--pendente {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fcd34d;
 }
 
 :host-context(html.theme-light) .usuarios-perfil-chip--transport {

@@ -11,6 +11,8 @@ export interface UsuarioOutput {
   EstacionamentoId?: number | null;
   /** Nome do perfil/role. */
   role?: string | null;
+  /** Identity: e-mail confirmado. */
+  emailConfirmed?: boolean;
 }
 
 export interface PessoaUsuarioOutput {

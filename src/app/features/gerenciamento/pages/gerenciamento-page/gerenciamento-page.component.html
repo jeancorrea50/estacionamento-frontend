@@ -75,6 +75,7 @@
                     <th scope="col">Nome</th>
                     <th scope="col">CPF</th>
                     <th scope="col">E-mail</th>
+                    <th scope="col">E-mail conf.</th>
                     <th scope="col">Login</th>
                     <th scope="col">Perfil</th>
                     <th scope="col">Vínculo</th>
@@ -89,6 +90,24 @@
                       </td>
                       <td>{{ item.cpf ?? '—' }}</td>
                       <td class="usuarios-col-email">{{ item.email ?? '—' }}</td>
+                      <td>
+                        @if (item.emailConfirmed === true) {
+                          <span class="usuarios-email-chip usuarios-email-chip--ok" title="E-mail confirmado">
+                            <span class="material-symbols-outlined" aria-hidden="true">mark_email_read</span>
+                            Confirmado
+                          </span>
+                        } @else if (item.emailConfirmed === false) {
+                          <span
+                            class="usuarios-email-chip usuarios-email-chip--pendente"
+                            title="Aguardando confirmação de e-mail"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">mark_email_unread</span>
+                            Pendente
+                          </span>
+                        } @else {
+                          <span class="usuarios-vinculo-empty">—</span>
+                        }
+                      </td>
                       <td>{{ item.userName ?? '—' }}</td>
                       <td>
                         @if (item.perfil) {
@@ -138,7 +157,7 @@
                           type="button"
                           class="usuarios-icon-btn"
                           (click)="abrirEditar(item)"
-                          [disabled]="!canAlterar"
+                          [disabled]="!canAlterar || !podeEditarUsuario(item)"
                           title="Editar"
                           aria-label="Editar usuário"
                         >
@@ -556,6 +575,16 @@
             <dd>{{ itemVer()!.nome ?? '—' }}</dd>
             <dt>E-mail</dt>
             <dd>{{ itemVer()!.email ?? '—' }}</dd>
+            <dt>E-mail confirmado</dt>
+            <dd>
+              {{
+                itemVer()!.emailConfirmed === true
+                  ? 'Sim'
+                  : itemVer()!.emailConfirmed === false
+                    ? 'Não'
+                    : '—'
+              }}
+            </dd>
             <dt>Login</dt>
             <dd>{{ itemVer()!.userName ?? '—' }}</dd>
             <dt>Perfil (role)</dt>
@@ -574,7 +603,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharModalVer()">Fechar</button>
-        @if (canAlterar) {
+        @if (canAlterar && podeEditarUsuario(itemVer())) {
           <button type="button" class="btn btn-primary" (click)="abrirEditar(itemVer()!); fecharModalVer()">Editar</button>
         }
       </div>

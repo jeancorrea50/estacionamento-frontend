@@ -135,6 +135,8 @@ export class GerenciamentoService {
       Transportadora?: string | null;
       cpf?: string | null;
       Cpf?: string | null;
+      emailConfirmed?: boolean;
+      EmailConfirmed?: boolean;
     };
     const EstacionamentoId = item.EstacionamentoId ?? rawItem.estacionamentoId ?? null;
     const estacionamentoDaApi = String(
@@ -162,8 +164,18 @@ export class GerenciamentoService {
       EstacionamentoNome,
       transportadoraId,
       transportadoraNome: transportadoraNome || null,
-      ativo: item.ativo ?? true
+      ativo: item.ativo ?? true,
+      emailConfirmed: this.toOptionalBoolean(
+        rawItem.emailConfirmed ?? rawItem.EmailConfirmed ?? item.emailConfirmed
+      )
     };
+  }
+
+  private toOptionalBoolean(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') return value;
+    if (value === 1 || value === '1' || value === 'true') return true;
+    if (value === 0 || value === '0' || value === 'false') return false;
+    return undefined;
   }
 
   private normalizePerfis(body: unknown): ApplicationRole[] {

@@ -28,22 +28,38 @@
             <span class="material-symbols-outlined">menu</span>
           </button>
         }
-        @if (sessionEstacionamento(); as estac) {
+        @if (canTrocarEstacionamentoSessao()) {
           <div class="session-estac-panel" title="Estacionamento da sessão">
             <span class="material-symbols-outlined session-estac-panel__icon" aria-hidden="true">apartment</span>
-            <div class="session-estac-panel__main">
-              <span class="session-estac-panel__caption">Pátio selecionado</span>
-              <span class="session-estac-panel__name" [attr.title]="estac.razaoSocial">{{ estac.razaoSocial }}</span>
-              <span class="session-estac-panel__cnpj">{{ formatCnpjDisplay(estac.cnpj) }}</span>
-            </div>
-            <button
-              type="button"
-              class="session-estac-panel__trocar"
-              (click)="trocarEstacionamento()"
-              title="Trocar estacionamento da sessão"
-            >
-              Trocar pátio
-            </button>
+            @if (sessionEstacionamento(); as estac) {
+              <div class="session-estac-panel__main">
+                <span class="session-estac-panel__caption">Pátio selecionado</span>
+                <span class="session-estac-panel__name" [attr.title]="estac.razaoSocial">{{ estac.razaoSocial }}</span>
+                <span class="session-estac-panel__cnpj">{{ formatCnpjDisplay(estac.cnpj) }}</span>
+              </div>
+              <button
+                type="button"
+                class="session-estac-panel__trocar"
+                (click)="trocarEstacionamento()"
+                title="Trocar estacionamento da sessão"
+              >
+                Trocar pátio
+              </button>
+            } @else {
+              <div class="session-estac-panel__main">
+                <span class="session-estac-panel__caption">Pátio da sessão</span>
+                <span class="session-estac-panel__name">Nenhum pátio selecionado</span>
+                <span class="session-estac-panel__cnpj">Use o botão ao lado para escolher</span>
+              </div>
+              <button
+                type="button"
+                class="session-estac-panel__trocar"
+                (click)="abrirSelecaoEstacionamento()"
+                title="Selecionar estacionamento da sessão"
+              >
+                Selecionar pátio
+              </button>
+            }
           </div>
         }
         <div class="top-bar__spacer"></div>

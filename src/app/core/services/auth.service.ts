@@ -1,7 +1,7 @@
 import { Injectable, Injector } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { AUTH_TOKEN_STORAGE_KEY, normalizeBearerValue } from '../auth/auth-token.storage';
 import {
   SESSION_ESTACIONAMENTO_KEY,
@@ -271,16 +271,39 @@ export class AuthService {
       loggedUser.empresaId = empresaFromBody;
     }
 
-    // Admin não opera com vínculo fixo: limpa EmpresaId e exige seleção de sessão.
-    if (isAdminPerfil(loggedUser.perfil)) {
-      delete loggedUser.empresaId;
+    const codExportacaoLogin =
+      readCodExportacaoFromLoginBody(res) ??
+      getJwtStringClaim(payload, 'CodExportacao', 'codExportacao');
+    const empresaIdSessao =
+      typeof loggedUser.empresaId === 'number' && loggedUser.empresaId > 0
+        ? Math.trunc(loggedUser.empresaId)
+        : null;
+    const precisaSessaoPatio =
+      isAdminPerfil(loggedUser.perfil) || isTransportadoraPerfil(loggedUser.perfil);
+
+    if (precisaSessaoPatio && !empresaIdSessao) {
       clearSessionEstacionamentoStorage();
+      if (isAdminPerfil(loggedUser.perfil)) {
+        delete loggedUser.empresaId;
+      }
     }
 
     localStorage.setItem(this.TOKEN_KEY, normalized);
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(loggedUser));
     sessionStorage.setItem('welcomeSeen', 'false');
+
+    // Usa o estacionamento cadastrado no usuário; troca manual fica no topbar.
+    if (precisaSessaoPatio && empresaIdSessao) {
+      this.setSessionEstacionamento({
+        id: empresaIdSessao,
+        nome: null,
+        razaoSocial: null,
+        cnpj: null,
+        codExportacao: codExportacaoLogin,
+      });
+    }
+
     this.scheduleSessionExpiryWatch();
 
     return { success: true };
@@ -448,6 +471,60 @@ export class AuthService {
   /** Admin ou Transportadora logado sem estacionamento de sessão selecionado. */
   needsEstacionamentoSelection(): boolean {
     return (this.isAdmin() || this.isTransportadoraRole()) && !this.resolveEstacionamentoId();
+  }
+
+  /** Perfis que operam com pátio de sessão (topbar Trocar pátio). */
+  canTrocarEstacionamentoSessao(): boolean {
+    return this.isAdmin() || this.isTransportadoraRole();
+  }
+
+  /**
+   * Aplica o estacionamento cadastrado (JWT/login) ou, para transportadora,
+   * o único pátio vinculado — sem abrir modal.
+   */
+  bootstrapEstacionamentoSessao(): Observable<{ success: boolean; applied: boolean; message?: string }> {
+    if (!this.canTrocarEstacionamentoSessao()) {
+      return of({ success: true, applied: false });
+    }
+
+    const session = this.getSessionEstacionamento();
+    if (session?.id) {
+      return this.selecionarEstacionamentoSessao({
+        estacionamentoId: session.id,
+        codExportacao: session.codExportacao,
+        nome: session.nome,
+        razaoSocial: session.razaoSocial,
+        cnpj: session.cnpj,
+      }).pipe(map((res) => ({ success: res.success, applied: !!res.success, message: res.message })));
+    }
+
+    const empresaId = this.getLoggedUser()?.empresaId;
+    if (typeof empresaId === 'number' && empresaId > 0) {
+      return this.selecionarEstacionamentoSessao({ estacionamentoId: empresaId }).pipe(
+        map((res) => ({ success: res.success, applied: !!res.success, message: res.message }))
+      );
+    }
+
+    if (!this.isTransportadoraRole()) {
+      return of({ success: true, applied: false });
+    }
+
+    return this.listarMeusEstacionamentos().pipe(
+      catchError(() => of([])),
+      switchMap((rows) => {
+        if (rows.length !== 1) {
+          return of({ success: true, applied: false });
+        }
+        const only = rows[0];
+        return this.selecionarEstacionamentoSessao({
+          estacionamentoId: only.id,
+          codExportacao: only.codExportacao,
+          nome: only.fantasia ?? only.nome,
+          razaoSocial: only.razaoSocial,
+          cnpj: only.cnpj,
+        }).pipe(map((res) => ({ success: res.success, applied: !!res.success, message: res.message })));
+      })
+    );
   }
 
   getSessionEstacionamento(): SessionEstacionamento | null {
@@ -710,6 +787,10 @@ function isAdminPerfil(perfil: string | null | undefined): boolean {
   );
 }
 
+function isTransportadoraPerfil(perfil: string | null | undefined): boolean {
+  return (perfil ?? '').trim().toLowerCase().includes('transportadora');
+}
+
 function collectJwtRoles(payload: Record<string, unknown>): string[] {
   const keys = [
     'role',
@@ -895,6 +976,20 @@ function readEstacionamentoIdFromLoginBody(res: LoginResponse): number | null {
     const n = Number(raw.trim());
     if (Number.isFinite(n) && n > 0) return Math.trunc(n);
   }
+  return null;
+}
+
+/** `CodExportacao` no body do login (UsuarioAcessOutput). */
+function readCodExportacaoFromLoginBody(res: LoginResponse): string | null {
+  const root = res as Record<string, unknown>;
+  const raw =
+    root['codExportacao'] ??
+    root['CodExportacao'] ??
+    (root['result'] && typeof root['result'] === 'object'
+      ? (root['result'] as Record<string, unknown>)['codExportacao'] ??
+        (root['result'] as Record<string, unknown>)['CodExportacao']
+      : null);
+  if (typeof raw === 'string' && raw.trim()) return raw.trim();
   return null;
 }
 

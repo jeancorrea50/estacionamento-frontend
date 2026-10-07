@@ -100,15 +100,17 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     return this.authService.isAdmin();
   }
 
+  canTrocarEstacionamentoSessao(): boolean {
+    return this.authService.canTrocarEstacionamentoSessao();
+  }
+
   ngOnInit(): void {
     this.loadLoggedUserContext();
     this.refreshSessionEstacionamentoLabel();
     this.loadSidebarCollapsed();
     this.checkMobile();
     this.updateFullWidthContent(this.router.url);
-    if (this.authService.needsEstacionamentoSelection()) {
-      this.showEstacionamentoModal.set(true);
-    }
+    this.bootstrapEstacionamentoSessao();
     if (this.isAdminUser()) {
       void this.notificationHub.connect();
     }
@@ -117,10 +119,30 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     ).subscribe((e) => {
       this.mobileMenuOpen.set(false);
       this.updateFullWidthContent(e.urlAfterRedirects ?? e.url);
-      if (this.authService.needsEstacionamentoSelection()) {
-        this.showEstacionamentoModal.set(true);
-      }
     });
+  }
+
+  /** Aplica pátio cadastrado silenciosamente; modal só via Trocar/Selecionar no topbar. */
+  private bootstrapEstacionamentoSessao(): void {
+    if (!this.authService.canTrocarEstacionamentoSessao()) {
+      this.refreshSessionEstacionamentoLabel();
+      return;
+    }
+
+    this.authService.bootstrapEstacionamentoSessao().subscribe({
+      next: (res) => {
+        this.refreshSessionEstacionamentoLabel();
+        if (res.applied) {
+          void this.dashboardHub.reconnectForSession();
+        }
+      },
+      error: () => this.refreshSessionEstacionamentoLabel(),
+    });
+  }
+
+  abrirSelecaoEstacionamento(): void {
+    if (!this.authService.canTrocarEstacionamentoSessao()) return;
+    this.showEstacionamentoModal.set(true);
   }
 
   onEstacionamentoSelected(): void {

@@ -488,9 +488,9 @@
       [class.eco-problema--resolvido]="p.status === 'resolvido'"
     >
       <header>
-        <span class="eco-diag-sev">{{ sevLabel[p.severidade] }}</span>
-        <span class="eco-diag-cat">{{ problemaCatLabel[p.categoria] }}</span>
-        <span class="eco-diag-cat">{{ problemaStatusLabel[p.status] }}</span>
+        <span class="eco-diag-sev">{{ labelSevProblema(p) }}</span>
+        <span class="eco-diag-cat">{{ labelCatProblema(p) }}</span>
+        <span class="eco-diag-cat">{{ labelStatusProblema(p) }}</span>
       </header>
       <strong>{{ p.titulo }}</strong>
       <p>{{ p.descricao }}</p>

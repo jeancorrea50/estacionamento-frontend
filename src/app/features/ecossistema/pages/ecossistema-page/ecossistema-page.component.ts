@@ -596,6 +596,19 @@ export class EcossistemaPageComponent implements OnInit, OnDestroy {
     this.problemaStore.remover(p.id);
   }
 
+  /** Helpers tipados para o ng-template (contexto `let-p` chega como any). */
+  labelSevProblema(p: EcossistemaProblema): string {
+    return this.sevLabel[p.severidade];
+  }
+
+  labelCatProblema(p: EcossistemaProblema): string {
+    return this.problemaCatLabel[p.categoria];
+  }
+
+  labelStatusProblema(p: EcossistemaProblema): string {
+    return this.problemaStatusLabel[p.status];
+  }
+
   private recomputeHighlights(id: string): void {
     this.highlightIds.set(
       this.escopo() === 'diretas' ? highlightDiretas(id) : highlightFluxoCompleto(id)

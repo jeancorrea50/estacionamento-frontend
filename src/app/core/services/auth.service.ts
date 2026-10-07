@@ -255,6 +255,8 @@ export class AuthService {
       this.permissionCache.clear();
       return { success: false, message: rotaInvalidaMsg };
     }
+    // Limpa cache anterior (outro perfil/sessão) e aplica só o que veio no login.
+    this.sessionAccess.clear();
     this.sessionAccess.setMenus(menusFromLogin);
     if (this.sessionAccess.hasSessionMenus() && !this.sessionAccess.getDefaultRoute()) {
       this.permissionCache.clear();
@@ -1038,7 +1040,8 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
             rota,
             fromApi: fromApi === null ? undefined : fromApi,
           }),
-          selecionado: toBoolean(menu['selecionado'] ?? menu['selected']),
+          // Login só devolve menus do RolePermission → tratados como concedidos.
+          selecionado: toBoolean(menu['selecionado'] ?? menu['selected']) ?? true,
           ordem: toNumber(menu['ordem'] ?? menu['menuOrdem']),
           subMenus: mapSubMenus(
             menu['subMenus'] ??
@@ -1091,7 +1094,7 @@ function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
       rota,
       fromApi: fromApi === null ? undefined : fromApi,
     }),
-    selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
+    selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']) ?? true,
     ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
     subMenus: nestedFlat.length ? nestedFlat : undefined,
   };

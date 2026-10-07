@@ -138,4 +138,52 @@ describe('SessionAccessService sidebar filter', () => {
     expect(service.canAccessRoute('/app/cadastro/motoristas')).toBe(false);
     expect(service.canAccessRoute('/app/patio/entrada-saida')).toBe(false);
   });
+
+  it('não libera Convites/Relatório quando o login só tem Transportadora', () => {
+    service.setMenus([
+      {
+        id: 10,
+        descricao: 'Cadastro',
+        ativo: true,
+        ordem: 0,
+        rota: '/app/cadastro',
+        selecionado: true,
+        subMenus: [
+          {
+            id: 11,
+            descricao: 'Transportadora',
+            rota: '/app/cadastro/transportadoras',
+            ativo: true,
+            selecionado: true,
+            ordem: 0,
+          },
+        ],
+      },
+    ]);
+
+    const filtered = service.filterSidebarItems([
+      {
+        label: 'Cadastro',
+        route: '/app/cadastro',
+        children: [
+          { label: 'Transportadora', route: '/app/cadastro/transportadoras' },
+          { label: 'Convites', route: '/app/cadastro/transportadoras/convites' },
+          { label: 'Relatório', route: '/app/cadastro/transportadoras/relatorio' },
+          { label: 'Veículo', route: '/app/cadastro/veiculos' },
+        ],
+      },
+      { label: 'Pátio', route: '/app/patio' },
+      { label: 'Agendamento', route: '/app/agendamento' },
+      { label: 'Rede credenciada', route: '/app/rede-credenciada' },
+    ]);
+
+    expect(filtered.map((i) => i.label)).toEqual(['Cadastro']);
+    expect(filtered[0].children?.map((c) => c.route)).toEqual(['/app/cadastro/transportadoras']);
+    expect(service.canAccessRoute('/app/cadastro/transportadoras')).toBe(true);
+    expect(service.canAccessRoute('/app/cadastro/transportadoras/convites')).toBe(false);
+    expect(service.canAccessRoute('/app/cadastro/transportadoras/relatorio')).toBe(false);
+    expect(service.canAccessRoute('/app/patio')).toBe(false);
+    expect(service.canAccessRoute('/app/agendamento')).toBe(false);
+    expect(service.canAccessRoute('/app/rede-credenciada')).toBe(false);
+  });
 });

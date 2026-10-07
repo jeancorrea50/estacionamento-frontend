@@ -90,8 +90,28 @@ function isGerenciamentoMenuNode(nome: string | null | undefined, rota?: string 
 }
 
 /**
- * Remove Estacionamento de Gerenciamento (legado) — permanece sob Cadastro na API atual.
+ * Remove apenas Estacionamento de Cadastro indevidamente aninhado em Gerenciamento.
+ * Mantém o submenu oficial `/app/gerenciamento/estacionamento` (irmão de Menu).
  */
+function isLegacyCadastroEstacionamentoUnderGerenciamento(sub: {
+  nome?: string | null;
+  rota?: string | null;
+}): boolean {
+  const n = String(sub.rota ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\/+$/, '');
+  if (n === ESTACIONAMENTO_SIDEBAR_ROUTE || n.startsWith(`${ESTACIONAMENTO_SIDEBAR_ROUTE}/`)) {
+    return false;
+  }
+  return (
+    n === '/app/cadastro/estacionamentos' ||
+    n.startsWith('/app/cadastro/estacionamentos/') ||
+    n === '/app/cadastro/estacionamento' ||
+    n.startsWith('/app/cadastro/estacionamento/')
+  );
+}
+
 function promoteEstacionamentoOutOfGerenciamento(menus: MenuAdmin[], nextId: number): {
   menus: MenuAdmin[];
   nextId: number;
@@ -105,7 +125,7 @@ function promoteEstacionamentoOutOfGerenciamento(menus: MenuAdmin[], nextId: num
     }
 
     const kept = (menu.subMenus ?? []).filter(
-      (sub) => !isEstacionamentoMenuNode(sub.nome, sub.rota)
+      (sub) => !isLegacyCadastroEstacionamentoUnderGerenciamento(sub)
     );
     result.push({ ...menu, subMenus: kept });
   }
@@ -273,6 +293,8 @@ export class MenuAdminService {
   /**
    * Reaplica rotas/labels da árvore admin nos menus JÁ concedidos no login.
    * Não injeta menus/submenus não liberados (evita expandir o sidebar além do perfil).
+   * Preserva concessões do login se um submenu sumir temporariamente da árvore admin
+   * (ex.: migração legada), para não derrubar itens da sidebar ao abrir Menu.
    */
   private syncSessionMenusWithCurrentTree(latestMenus: MenuAdmin[]): void {
     if (!this.sessionAccess.hasSessionMenus()) return;
@@ -338,8 +360,64 @@ export class MenuAdminService {
       });
     }
 
+    this.mergePreservedSessionGrants(previous, nextSessionMenus, selectedSubMenuIds);
+
     if (nextSessionMenus.length > 0) {
       this.sessionAccess.setMenus(nextSessionMenus);
+    }
+  }
+
+  /** Mantém submenus do login que não voltaram na árvore admin hidratada. */
+  private mergePreservedSessionGrants(
+    previous: SessionMenuAccess[],
+    nextSessionMenus: SessionMenuAccess[],
+    selectedSubMenuIds: Set<number>
+  ): void {
+    const presentSubIds = new Set<number>();
+    const collectPresent = (subs: SessionSubMenuAccess[]): void => {
+      for (const sub of subs) {
+        if (sub.id != null) presentSubIds.add(sub.id);
+        if (sub.subMenus?.length) collectPresent(sub.subMenus);
+      }
+    };
+    for (const menu of nextSessionMenus) {
+      collectPresent(menu.subMenus ?? []);
+    }
+
+    const cloneSelectedOrphans = (subs: SessionSubMenuAccess[]): SessionSubMenuAccess[] => {
+      const out: SessionSubMenuAccess[] = [];
+      for (const sub of subs) {
+        if (sub.ativo === false || sub.selecionado === false) continue;
+        const nested = cloneSelectedOrphans(sub.subMenus ?? []);
+        const keepSelf =
+          sub.id != null && selectedSubMenuIds.has(sub.id) && !presentSubIds.has(sub.id);
+        if (!keepSelf && nested.length === 0) continue;
+        out.push({
+          ...sub,
+          selecionado: true,
+          subMenus: nested.length ? nested : undefined,
+        });
+        if (sub.id != null) presentSubIds.add(sub.id);
+      }
+      return out;
+    };
+
+    for (const prevMenu of previous) {
+      if (prevMenu.ativo === false || prevMenu.selecionado === false) continue;
+      const orphans = cloneSelectedOrphans(prevMenu.subMenus ?? []);
+      if (orphans.length === 0) continue;
+
+      const target = nextSessionMenus.find((m) => m.id === prevMenu.id);
+      if (target) {
+        target.subMenus = [...(target.subMenus ?? []), ...orphans];
+        continue;
+      }
+
+      nextSessionMenus.push({
+        ...prevMenu,
+        selecionado: true,
+        subMenus: orphans,
+      });
     }
   }
 

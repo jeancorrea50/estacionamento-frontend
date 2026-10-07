@@ -102,16 +102,14 @@ function mapSubMenuToggle(
   subMenuId: number,
   selecionado: boolean
 ): TreeSubMenuNode[] {
-  const toggleBranch = (sub: TreeSubMenuNode): TreeSubMenuNode => ({
-    ...sub,
-    selecionado,
-    permissoes: sub.permissoes.map((permission) => ({ ...permission, selecionado })),
-    subMenus: sub.subMenus?.map(toggleBranch),
-  });
-
+  // Só a tela clicada muda — filhos (Relatório/Convites/etc.) são permissões independentes.
   return subMenus.map((subMenu) => {
     if (subMenu.subMenuId === subMenuId) {
-      return toggleBranch(subMenu);
+      return {
+        ...subMenu,
+        selecionado,
+        permissoes: subMenu.permissoes.map((permission) => ({ ...permission, selecionado })),
+      };
     }
     if (subMenu.subMenus?.length) {
       return { ...subMenu, subMenus: mapSubMenuToggle(subMenu.subMenus, subMenuId, selecionado) };

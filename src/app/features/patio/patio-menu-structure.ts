@@ -1,6 +1,7 @@
 /**
- * Estrutura plana (nível API) do menu Pátio → itens com filhos (ex.: Movimentações → Relatório).
- * O frontend recompõe a árvore visual com `nestSubMenusByRoute`.
+ * Estrutura plana (nível API) do menu Pátio.
+ * Cada tela é permissão independente (Movimentações ≠ Relatório).
+ * A sidebar pode aninhar visualmente por prefixo de rota via `nestSubMenusByRoute`.
  */
 import type { MenuSubItem } from '../cadastro/constants/menu-structure';
 import {
@@ -24,13 +25,11 @@ export const PATIO_MENU_TREE: MenuSubItem[] = [
     id: 'sub-movimentacoes',
     label: 'Movimentações',
     route: PATIO_MOVIMENTACOES_ROUTE,
-    children: [
-      {
-        id: 'sub-movimentacoes-relatorio',
-        label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
-        route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
-      },
-    ],
+  },
+  {
+    id: 'sub-movimentacoes-relatorio',
+    label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+    route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   },
   {
     id: 'sub-entrada-saida',

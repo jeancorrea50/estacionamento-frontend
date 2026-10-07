@@ -1,6 +1,7 @@
 /**
- * Estrutura plana (nível API) do menu Cadastro → itens com filhos (ex.: Transportadora → Relatório).
- * O frontend recompõe a árvore visual com `nestSubMenusByRoute`.
+ * Estrutura plana (nível API) do menu Cadastro.
+ * Cada tela é permissão independente (Transportadora ≠ Relatório ≠ Convites).
+ * A sidebar pode aninhar visualmente por prefixo de rota via `nestSubMenusByRoute`.
  */
 import type { MenuSubItem } from './constants/menu-structure';
 import {
@@ -25,22 +26,16 @@ export interface CadastroFlatSubMenuDef {
 export const CADASTRO_MENU_TREE: MenuSubItem[] = [
   { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
   { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
+  { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
   {
-    id: 'sub-transportadoras',
-    label: 'Transportadora',
-    route: CADASTRO_TRANSPORTADORAS_ROUTE,
-    children: [
-      {
-        id: 'sub-transportadoras-convites',
-        label: CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
-        route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
-      },
-      {
-        id: 'sub-transportadoras-relatorio',
-        label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
-        route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
-      },
-    ],
+    id: 'sub-transportadoras-convites',
+    label: CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
+    route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
+  },
+  {
+    id: 'sub-transportadoras-relatorio',
+    label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
+    route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   },
 ];
 

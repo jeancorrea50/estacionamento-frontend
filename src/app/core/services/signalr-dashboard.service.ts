@@ -163,8 +163,8 @@ export class SignalrDashboardService {
     return new HubConnectionBuilder()
       .withUrl(this.hubUrl, options)
       .withAutomaticReconnect(this.buildRetryPolicy())
-      // Evita spam de Warning do client a cada close 1011 durante reconnect.
-      .configureLogging(LogLevel.Error)
+      // Hub offline/502 no gateway não deve poluir o console do usuário.
+      .configureLogging(LogLevel.None)
       .build();
   }
 

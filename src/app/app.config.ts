@@ -3,7 +3,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { NavigationError, provideRouter, withNavigationErrorHandler } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
@@ -14,12 +14,18 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/api/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/api/interceptors/error.interceptor';
 import { mutationThrottleInterceptor } from './core/api/interceptors/mutation-throttle.interceptor';
+import { recoverFromChunkLoadFailure } from './core/utils/chunk-load-recovery';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(
+      routes,
+      withNavigationErrorHandler((error: NavigationError) => {
+        recoverFromChunkLoadFailure(error.error ?? error);
+      })
+    ),
     provideHttpClient(
       withInterceptors([authInterceptor, mutationThrottleInterceptor, errorInterceptor])
     ),

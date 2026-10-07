@@ -171,7 +171,8 @@ export class SignalrNotificationService {
         withCredentials: false,
       })
       .withAutomaticReconnect(this.buildRetryPolicy())
-      .configureLogging(LogLevel.Error)
+      // Hub offline/502 no gateway não deve poluir o console do usuário.
+      .configureLogging(LogLevel.None)
       .build();
   }
 

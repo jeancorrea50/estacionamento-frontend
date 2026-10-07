@@ -78,4 +78,9 @@ jobs:
              git pull --ff-only origin '${BRANCH}'
              echo '==> docker compose up -d --build'
              docker compose up -d --build
-             docker compose ps"
+             docker compose ps
+             # Após recreate do front, o gateway precisa re-resolver o IP (senão 502 em /).
+             if docker ps -a --format '{{.Names}}' | grep -qx 'estacionamento-gateway'; then
+               echo '==> Restart estacionamento-gateway'
+               docker restart estacionamento-gateway
+             fi"

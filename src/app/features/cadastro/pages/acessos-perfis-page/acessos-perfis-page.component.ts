@@ -24,6 +24,7 @@ import { MenuApiService } from '../../../gerenciamento/services/menu-api.service
 import {
   mapBuscarResponseToMenuAdmins,
 } from '../../../gerenciamento/services/menu-api.mapper';
+import { flattenSubMenus } from '../../../gerenciamento/services/menu-tree.util';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -152,19 +153,27 @@ export class AcessosPerfisPageComponent implements OnInit {
     });
   }
 
-  /** Mantém apenas ids válidos do servidor (evita FK inválida no save do perfil). */
+  /**
+   * Mantém apenas ids válidos do servidor (evita FK inválida no save do perfil).
+   * Achata submenus aninhados por rota: cada tela (Transportadora, Relatório, Convites…)
+   * fica independente na UI de permissões — sem herdar seleção do “pai”.
+   */
   private sanitizeMenuCatalog(menus: MenuAdmin[]): MenuAdmin[] {
     return menus
       .filter((menu) => menu.id > 0)
-      .map((menu) => ({
-        ...menu,
-        subMenus: (menu.subMenus ?? [])
+      .map((menu) => {
+        const flatSubs = flattenSubMenus(menu.subMenus ?? [])
           .filter((sub) => sub.id > 0)
           .map((sub) => ({
             ...sub,
+            subMenus: [],
             permissions: (sub.permissions ?? []).filter((p) => p.id > 0),
-          })),
-      }))
+          }));
+        return {
+          ...menu,
+          subMenus: flatSubs,
+        };
+      })
       .sort((a, b) => a.ordem - b.ordem);
   }
 

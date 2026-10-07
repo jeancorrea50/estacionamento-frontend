@@ -23,8 +23,16 @@ export interface FinanceiroFlatSubMenuDef {
   exibirNoSidebar: boolean;
 }
 
-/** Submenus de 2º nível (Faturamento) com filhos de 3º nível (abas + Cobrança + Relatório). */
+/**
+ * Telas do Faturamento — permissões independentes (não herdam seleção do pai).
+ * Sidebar pode aninhar por rota; seed/permissões usam lista plana.
+ */
 export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
+  {
+    id: 'sub-faturamento',
+    label: 'Faturamento',
+    route: FATURAMENTO_ROUTE,
+  },
   ...FATURAMENTO_TABS.map((t) => ({
     id: `sub-faturamento-${t.id}`,
     label: t.label,
@@ -44,23 +52,16 @@ export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
 
 /** Definição canônica do módulo Financeiro para seed/admin/permissões. */
 export const FINANCEIRO_MENU_TREE: MenuSubItem[] = [
-  {
-    id: 'sub-faturamento',
-    label: 'Faturamento',
-    route: FATURAMENTO_ROUTE,
-    children: FINANCEIRO_FATURAMENTO_CHILDREN,
-  },
+  ...FINANCEIRO_FATURAMENTO_CHILDREN,
   {
     id: 'sub-pagamentos',
     label: 'Pagamento',
     route: PAGAMENTOS_ROUTE,
-    children: [
-      {
-        id: 'sub-pagamentos-relatorio',
-        label: PAGAMENTOS_RELATORIO_LABEL,
-        route: PAGAMENTOS_RELATORIO_ROUTE,
-      },
-    ],
+  },
+  {
+    id: 'sub-pagamentos-relatorio',
+    label: PAGAMENTOS_RELATORIO_LABEL,
+    route: PAGAMENTOS_RELATORIO_ROUTE,
   },
 ];
 

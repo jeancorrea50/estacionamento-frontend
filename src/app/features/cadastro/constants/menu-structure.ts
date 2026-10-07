@@ -69,13 +69,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
         id: 'sub-movimentacoes',
         label: 'Movimentações',
         route: PATIO_MOVIMENTACOES_ROUTE,
-        children: [
-          {
-            id: 'sub-movimentacoes-relatorio',
-            label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
-            route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
-          },
-        ],
+      },
+      {
+        id: 'sub-movimentacoes-relatorio',
+        label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+        route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
       },
       { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
     ],
@@ -98,34 +96,22 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: FINANCEIRO_ROUTE,
     icon: 'payments',
     children: [
+      { id: 'sub-faturamento', label: 'Faturamento', route: FATURAMENTO_ROUTE },
       {
-        id: 'sub-faturamento',
-        label: 'Faturamento',
-        route: FATURAMENTO_ROUTE,
-        children: [
-          {
-            id: 'sub-faturamento-cobranca',
-            label: FATURAMENTO_CONFIG_LABEL,
-            route: FATURAMENTO_CONFIG_ROUTE,
-          },
-          {
-            id: 'sub-faturamento-relatorio',
-            label: FATURAMENTO_RELATORIO_LABEL,
-            route: FATURAMENTO_RELATORIO_ROUTE,
-          },
-        ],
+        id: 'sub-faturamento-cobranca',
+        label: FATURAMENTO_CONFIG_LABEL,
+        route: FATURAMENTO_CONFIG_ROUTE,
       },
       {
-        id: 'sub-pagamentos',
-        label: 'Pagamento',
-        route: PAGAMENTOS_ROUTE,
-        children: [
-          {
-            id: 'sub-pagamentos-relatorio',
-            label: PAGAMENTOS_RELATORIO_LABEL,
-            route: PAGAMENTOS_RELATORIO_ROUTE,
-          },
-        ],
+        id: 'sub-faturamento-relatorio',
+        label: FATURAMENTO_RELATORIO_LABEL,
+        route: FATURAMENTO_RELATORIO_ROUTE,
+      },
+      { id: 'sub-pagamentos', label: 'Pagamento', route: PAGAMENTOS_ROUTE },
+      {
+        id: 'sub-pagamentos-relatorio',
+        label: PAGAMENTOS_RELATORIO_LABEL,
+        route: PAGAMENTOS_RELATORIO_ROUTE,
       },
     ],
   },
@@ -137,22 +123,16 @@ export const MENU_STRUCTURE: MenuNode[] = [
     children: [
       { id: 'sub-veiculos', label: 'Veículo', route: CADASTRO_VEICULOS_ROUTE },
       { id: 'sub-motoristas', label: 'Motorista', route: CADASTRO_MOTORISTAS_ROUTE },
+      { id: 'sub-transportadoras', label: 'Transportadora', route: CADASTRO_TRANSPORTADORAS_ROUTE },
       {
-        id: 'sub-transportadoras',
-        label: 'Transportadora',
-        route: CADASTRO_TRANSPORTADORAS_ROUTE,
-        children: [
-          {
-            id: 'sub-transportadoras-convites',
-            label: CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
-            route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
-          },
-          {
-            id: 'sub-transportadoras-relatorio',
-            label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
-            route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
-          },
-        ],
+        id: 'sub-transportadoras-convites',
+        label: CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
+        route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
+      },
+      {
+        id: 'sub-transportadoras-relatorio',
+        label: CADASTRO_TRANSPORTADORAS_RELATORIO_LABEL,
+        route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
       },
     ],
   },

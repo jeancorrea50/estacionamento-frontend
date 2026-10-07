@@ -22,6 +22,9 @@
   min-height: 100dvh;
   color: var(--cv-text);
   padding: 1rem 1rem 2.5rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  padding-left: max(1rem, env(safe-area-inset-left));
   box-sizing: border-box;
 }
 
@@ -39,57 +42,79 @@
 .cv-main {
   position: relative;
   z-index: 1;
+}
+
+.cv-main {
   max-width: 640px;
   margin: 0 auto;
 }
 
+/* Header full-width: logo à esquerda, tema no canto superior direito. */
 .cv-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  flex-wrap: wrap;
-}
-
-.cv-top__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 1.25rem;
+  min-height: 2.75rem;
 }
 
 .cv-brand {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .cv-brand__logo {
   width: 2.75rem;
   height: 2.75rem;
+  flex-shrink: 0;
   object-fit: contain;
   border-radius: 0.65rem;
   background: color-mix(in srgb, var(--cv-card) 80%, transparent);
   padding: 0.2rem;
 }
 
+.cv-brand__text {
+  min-width: 0;
+}
+
 .cv-brand strong {
   display: block;
   font-size: 1rem;
   color: var(--cv-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cv-brand small {
+  display: block;
   color: var(--cv-muted);
   font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cv-top__hint {
+  flex: 0 1 auto;
+  text-align: right;
+  margin-left: auto;
+  margin-right: 0.25rem;
 }
 
 .cv-theme-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
+  flex-shrink: 0;
+  margin-left: 0.15rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 10px;
   border: 1px solid var(--cv-border);
   background: color-mix(in srgb, var(--cv-card) 90%, transparent);
@@ -100,7 +125,7 @@
 }
 
 .cv-theme-btn .material-symbols-outlined {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
 }
 
 .cv-theme-btn:hover {
@@ -431,6 +456,29 @@
 }
 
 @media (max-width: 640px) {
+  .cv-shell {
+    padding-right: max(0.85rem, env(safe-area-inset-right));
+  }
+
+  /* Mesma linha do logo GTS: tema no canto direito. */
+  .cv-top {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .cv-top__hint {
+    display: none;
+  }
+
+  .cv-theme-btn {
+    margin-left: auto;
+    padding: 0.4rem 0.55rem;
+  }
+
+  .cv-theme-btn__label {
+    display: none;
+  }
+
   .cv-step__label {
     font-size: 0.62rem;
   }

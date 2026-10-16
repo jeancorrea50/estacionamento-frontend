@@ -19,9 +19,14 @@
 .historico-table th:nth-child(1),
 .historico-table td:nth-child(1) {
   width: 8%;
-  min-width: 84px;
+  min-width: 92px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+}
+
+.historico-placa {
+  color: #f8fafc;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 /* Motorista */
@@ -38,38 +43,45 @@
   min-width: 140px;
 }
 
-/* Entrada / Saída */
+/* Entrada / Saída / Tempo no pátio */
 .historico-table th:nth-child(4),
 .historico-table td:nth-child(4),
 .historico-table th:nth-child(5),
-.historico-table td:nth-child(5) {
-  width: 10%;
+.historico-table td:nth-child(5),
+.historico-table th:nth-child(6),
+.historico-table td:nth-child(6) {
+  width: 9%;
   min-width: 104px;
   font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
 }
 
-/* Status */
-.historico-table th:nth-child(6),
-.historico-table td:nth-child(6) {
-  width: 8%;
-  min-width: 76px;
+.historico-tempo {
+  font-weight: 600;
+  color: #e2e8f0;
 }
 
-/* Acordo */
+/* Status */
 .historico-table th:nth-child(7),
 .historico-table td:nth-child(7) {
   width: 8%;
-  min-width: 84px;
+  min-width: 92px;
+}
+
+/* Cobertura */
+.historico-table th:nth-child(8),
+.historico-table td:nth-child(8) {
+  width: 13%;
+  min-width: 148px;
 }
 
 /* Ações — ocupa o restante da largura */
-.historico-table th:nth-child(8),
-.historico-table td:nth-child(8),
+.historico-table th:nth-child(9),
+.historico-table td:nth-child(9),
 .historico-table th.col-acoes,
 .historico-table td.acoes-cell {
   width: 22%;
-  min-width: 220px;
+  min-width: 248px;
   max-width: none;
   overflow: visible;
   text-overflow: clip;
@@ -96,14 +108,34 @@
   white-space: nowrap;
 }
 
+.historico-table .status-pill--patio {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.historico-table .status-pill--suspenso {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.historico-table .status-pill--finalizado {
+  background: rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
 .historico-table .status-pill--excedente {
-  background: rgba(194, 65, 12, 0.18);
-  color: #c2410c;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.5);
 }
 
 .historico-table .status-pill--acordo {
-  background: rgba(37, 99, 235, 0.14);
-  color: #2563eb;
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.45);
 }
 
 .operacao-card--full .data-table tbody tr:hover,
@@ -120,7 +152,11 @@
 }
 
 .historico-row--excedente {
-  background: color-mix(in srgb, #c2410c 6%, transparent);
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+}
+
+.historico-row--excedente td:first-child {
+  box-shadow: inset 3px 0 0 #f97316;
 }
 
 .historico-row--selected {
@@ -261,6 +297,7 @@
   position: fixed;
   margin-top: 0;
   z-index: 1100;
+  transform: translateX(-100%);
 }
 
 .historico-dropdown-item {
@@ -279,8 +316,13 @@
   transition: background 0.15s ease;
 }
 
-.historico-dropdown-item:hover {
+.historico-dropdown-item:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.06);
+}
+
+.historico-dropdown-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .historico-dropdown-item:focus {
@@ -385,13 +427,13 @@
 .operacao-card--full .data-table td,
 .historico-card .data-table th,
 .historico-card .data-table td {
-  padding: 9px 16px;
+  padding: 12px 16px;
   text-align: left;
   border-top: none;
   border-left: none;
   border-right: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
-  line-height: 1.35;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  line-height: 1.4;
 }
 
 .historico-card .data-table th,
@@ -401,11 +443,11 @@
 
 .operacao-card--full .data-table th,
 .historico-card .data-table th {
-  color: var(--muted);
-  font-weight: 600;
+  color: #cbd5e1;
+  font-weight: 700;
   font-size: 0.75rem;
-  background: transparent;
-  letter-spacing: 0.01em;
+  background: rgba(15, 23, 42, 0.55);
+  letter-spacing: 0.02em;
 }
 
 .operacao-card--full .data-table th.th-sortable,
@@ -485,7 +527,7 @@
 
 .operacao-card--full .data-table td,
 .historico-card .data-table td {
-  color: var(--text);
+  color: #e2e8f0;
   font-size: 0.8125rem;
 }
 
@@ -609,7 +651,7 @@
 @media (max-width: 1024px) {
   .historico-table,
   .historico-card .data-table.historico-table {
-    min-width: 720px;
+    min-width: 980px;
   }
 
   .historico-table th:nth-child(2),
@@ -620,6 +662,48 @@
   .historico-table th:nth-child(3),
   .historico-table td:nth-child(3) {
     min-width: 120px;
+  }
+}
+
+:host-context(html.theme-light) {
+  .historico-placa,
+  .historico-tempo,
+  .historico-card .data-table td {
+    color: var(--text);
+  }
+
+  .historico-card .data-table th,
+  .operacao-card--full .data-table th {
+    color: var(--muted);
+    background: color-mix(in srgb, var(--border-subtle) 45%, #fff);
+  }
+
+  .historico-card .data-table th,
+  .historico-card .data-table td,
+  .operacao-card--full .data-table th,
+  .operacao-card--full .data-table td {
+    border-bottom-color: color-mix(in srgb, var(--border, #94a3b8) 55%, transparent);
+  }
+
+  .historico-table .status-pill--patio {
+    color: #166534;
+    background: rgba(22, 163, 74, 0.14);
+  }
+
+  .historico-table .status-pill--suspenso,
+  .historico-table .status-pill--excedente {
+    color: #92400e;
+    background: rgba(245, 158, 11, 0.18);
+  }
+
+  .historico-table .status-pill--acordo {
+    color: #1d4ed8;
+    background: rgba(37, 99, 235, 0.12);
+  }
+
+  .historico-table .status-pill--finalizado {
+    color: #334155;
+    background: rgba(100, 116, 139, 0.14);
   }
 }
 
@@ -635,13 +719,13 @@
 
   .historico-table,
   .historico-card .data-table.historico-table {
-    min-width: 680px;
+    min-width: 920px;
     font-size: 0.75rem;
   }
 
   .historico-card .data-table th,
   .historico-card .data-table td {
-    padding: 5px 6px;
+    padding: 10px 8px;
   }
 
   .historico-card .data-table .acoes-cell .btn {

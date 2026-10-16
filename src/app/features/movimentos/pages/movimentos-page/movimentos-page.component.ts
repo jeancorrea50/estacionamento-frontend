@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -591,6 +591,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   selecionarMovimento(item: EntradaSaidaSearchOutput): void {
     if (!item?.id) return;
+    this.fecharMenuAcoes();
     this.resumoMovimentoId.set(item.id);
     this.resumoLoading.set(true);
     this.resumoDetalhe.set(null);
@@ -1042,6 +1043,68 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     const fromStatus = entradaSaidaStatusLabel(item.status);
     if (fromStatus) return fromStatus;
     return item.dataHoraSaida ? 'Saida' : 'Entrada';
+  }
+
+  /** Rótulo visual da grade. O enum do backend continua em `statusLabel`. */
+  statusTabelaLabel(item: EntradaSaidaSearchOutput): string {
+    if (this.ehStatusSaida(item)) return 'Saída';
+    const status = parseEntradaSaidaStatus(item.status);
+    if (status === EntradaSaidaStatus.Suspenso || this.estaSuspenso(item)) return 'Suspenso';
+    if (status === EntradaSaidaStatus.Agendado) return 'Agendado';
+    if (status === EntradaSaidaStatus.Cancelado) return 'Cancelado';
+    return 'No pátio';
+  }
+
+  statusTabelaClasse(item: EntradaSaidaSearchOutput): string {
+    const label = this.statusTabelaLabel(item);
+    if (label === 'No pátio') return 'status-pill status-pill--patio';
+    if (label === 'Suspenso') return 'status-pill status-pill--suspenso';
+    if (label === 'Saída') return 'status-pill status-pill--finalizado';
+    return 'status-pill';
+  }
+
+  /** Permanência entre entrada e saída, ou até o horário atual se ainda no pátio. */
+  tempoNoPatioItem(item: EntradaSaidaSearchOutput): string {
+    if (!item.dataHoraEntrada) return '—';
+    const inicio = new Date(item.dataHoraEntrada).getTime();
+    if (!Number.isFinite(inicio)) return '—';
+    const fimMs = item.dataHoraSaida ? new Date(item.dataHoraSaida).getTime() : Date.now();
+    if (!Number.isFinite(fimMs)) return this.tempoNoPatioDesde(item.dataHoraEntrada);
+    const minutos = Math.max(0, Math.floor((fimMs - inicio) / 60_000));
+    return this.formatarMinutos(minutos);
+  }
+
+  readonly menuAcoesId = signal<number | null>(null);
+  readonly menuAcoesPos = signal<{ top: number; left: number } | null>(null);
+
+  toggleMenuAcoes(id: number, event: Event): void {
+    event.stopPropagation();
+    if (this.menuAcoesId() === id) {
+      this.fecharMenuAcoes();
+      return;
+    }
+    const alvo = event.currentTarget;
+    if (!(alvo instanceof HTMLElement)) return;
+    const rect = alvo.getBoundingClientRect();
+    this.menuAcoesId.set(id);
+    this.menuAcoesPos.set({ top: rect.bottom + 4, left: rect.right });
+  }
+
+  fecharMenuAcoes(): void {
+    if (this.menuAcoesId() == null) return;
+    this.menuAcoesId.set(null);
+    this.menuAcoesPos.set(null);
+  }
+
+  @HostListener('document:click')
+  onDocumentClickFecharMenuAcoes(): void {
+    this.fecharMenuAcoes();
+  }
+
+  @HostListener('window:scroll')
+  @HostListener('window:resize')
+  onViewportFecharMenuAcoes(): void {
+    this.fecharMenuAcoes();
   }
 
   ehStatusSaida(item: EntradaSaidaSearchOutput): boolean {

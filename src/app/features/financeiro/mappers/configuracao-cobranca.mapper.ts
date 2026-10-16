@@ -437,7 +437,7 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
   const transportadoraNome =
     pickString(row, 'transportadoraNome', 'TransportadoraNome') ||
     (transportadoraRaw && typeof transportadoraRaw === 'object'
-      ? pickString(transportadoraRaw as Record<string, unknown>, 'descricao', 'Descricao', 'razaoSocial', 'RazaoSocial')
+      ? pickString(transportadoraRaw as Record<string, unknown>, 'descricao', 'Descricao')
       : '');
   const estacionamentoNome =
     pickString(row, 'estacionamentoNome', 'EstacionamentoNome') ||

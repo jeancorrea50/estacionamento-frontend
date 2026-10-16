@@ -244,6 +244,7 @@
               class="table-wrap historico-table-wrap"
               tabindex="0"
               aria-label="Movimentos — role para o lado para ver todas as colunas"
+              (scroll)="fecharMenuAcoes()"
             >
               <table class="data-table historico-table">
                 <thead>
@@ -278,6 +279,7 @@
                         <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('saida') }}</span>
                       </button>
                     </th>
+                    <th scope="col">Tempo no pátio</th>
                     <th scope="col">
                       <button type="button" class="data-table__sort-btn" (click)="ordenarPor('status')">
                         Status
@@ -286,7 +288,7 @@
                     </th>
                     <th scope="col">
                       <button type="button" class="data-table__sort-btn" (click)="ordenarPor('acordo')">
-                        Acordo
+                        Cobertura
                         <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('acordo') }}</span>
                       </button>
                     </th>
@@ -301,7 +303,7 @@
                       [class.historico-row--selected]="isMovimentoSelecionado(item.id)"
                       (click)="selecionarMovimento(item)"
                     >
-                      <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
+                      <td class="historico-placa">{{ formatarPlaca(item.placaVeiculo) }}</td>
                       <td>
                         <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
                       </td>
@@ -312,9 +314,10 @@
                       </td>
                       <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
                       <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
+                      <td class="historico-tempo">{{ tempoNoPatioItem(item) }}</td>
                       <td>
-                        <span class="status-pill" [class.status-pill--finalizado]="ehStatusSaida(item)">
-                          {{ statusLabel(item) }}
+                        <span [class]="statusTabelaClasse(item)">
+                          {{ statusTabelaLabel(item) }}
                         </span>
                       </td>
                       <td>
@@ -323,7 +326,7 @@
                             Excedente
                           </span>
                         } @else if (item.acordoCobrancaId) {
-                          <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
+                          <span class="status-pill status-pill--acordo" title="Dentro do acordo">Dentro do acordo</span>
                         } @else {
                           —
                         }
@@ -331,26 +334,12 @@
                       <td class="acoes-cell">
                         @if (podeAcoesOperacionaisPatio) {
                           <button
-                            class="btn btn-warning btn--sm"
-                            type="button"
-                            [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
-                            (click)="$event.stopPropagation(); executarSuspensaoOuRetorno(item)"
-                          >
-                            {{
-                              permanenciaProcessandoId() === item.id
-                                ? '...'
-                                : estaSuspenso(item)
-                                  ? 'Retornar'
-                                  : 'Suspender'
-                            }}
-                          </button>
-                          <button
-                            class="btn btn-danger btn--sm"
+                            class="btn btn-primary btn--sm"
                             type="button"
                             [disabled]="!!item.dataHoraSaida"
                             (click)="$event.stopPropagation(); abrirPermanencia(item, 'finalizar')"
                           >
-                            Saída
+                            Registrar saída
                           </button>
                         }
                         <button
@@ -362,11 +351,49 @@
                         >
                           {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}
                         </button>
+                        @if (podeAcoesOperacionaisPatio) {
+                          <div class="historico-menu-wrap" (click)="$event.stopPropagation()">
+                            <button
+                              type="button"
+                              class="historico-menu-btn"
+                              aria-label="Mais ações"
+                              aria-haspopup="menu"
+                              [attr.aria-expanded]="menuAcoesId() === item.id"
+                              (click)="toggleMenuAcoes(item.id, $event)"
+                            >
+                              <span class="material-symbols-outlined historico-menu-icon" aria-hidden="true">more_vert</span>
+                            </button>
+                            @if (menuAcoesId() === item.id && menuAcoesPos(); as pos) {
+                              <div
+                                class="historico-dropdown historico-dropdown-fixed"
+                                role="menu"
+                                [style.top.px]="pos.top"
+                                [style.left.px]="pos.left"
+                              >
+                                <button
+                                  type="button"
+                                  class="historico-dropdown-item"
+                                  role="menuitem"
+                                  [disabled]="!!item.dataHoraSaida || permanenciaProcessandoId() === item.id"
+                                  (click)="fecharMenuAcoes(); executarSuspensaoOuRetorno(item)"
+                                >
+                                  {{
+                                    permanenciaProcessandoId() === item.id
+                                      ? '...'
+                                      : estaSuspenso(item)
+                                        ? 'Retornar'
+                                        : 'Suspender'
+                                  }}
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        }
                       </td>
                     </tr>
                     @if (historicoSuspensoes(item.id).length) {
                       <tr class="suspensao-detalhe">
-                        <td colspan="8">
+                        <td colspan="9">
                           <div class="suspensao-historico suspensao-historico--inline">
                             @for (suspensao of historicoSuspensoes(item.id); track suspensao.id) {
                               <p class="suspensao-historico__linha">{{ formatarResumoSuspensao(suspensao) }}</p>

@@ -394,7 +394,12 @@ export class ConfigCobrancaFormDialogComponent {
       this.snack.open('Cadastre um e-mail financeiro para testar o envio.', 'Fechar', { duration: 4500 });
       return;
     }
-    this.snack.open(`E-mail de teste enviado para ${mail}.`, 'Fechar', { duration: 4500 });
+    // A API publicada não tem rota de teste. O aviso anterior só simulava o envio.
+    this.snack.open(
+      `Nenhum e-mail foi enviado para ${mail}. A API não expõe envio de teste da configuração de cobrança; o endereço só é gravado ao salvar.`,
+      'Fechar',
+      { duration: 7000 }
+    );
   }
 
   visualizarRegra(): void {

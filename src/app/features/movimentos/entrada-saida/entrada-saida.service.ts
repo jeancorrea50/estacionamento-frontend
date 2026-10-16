@@ -170,6 +170,7 @@ export class EntradaSaidaService {
     if (typeof filtro.motoristaId === 'number') params = params.set('motoristaId', String(filtro.motoristaId));
     if (typeof filtro.transportadoraId === 'number') params = params.set('transportadoraId', String(filtro.transportadoraId));
     if (typeof filtro.somenteEmAberto === 'boolean') params = params.set('somenteEmAberto', String(filtro.somenteEmAberto));
+    if (filtro.status != null) params = params.set('Status', String(filtro.status));
     if (typeof filtro.estacionamentoId === 'number' && filtro.estacionamentoId > 0) {
       params = params.set('EstacionamentoId', String(filtro.estacionamentoId));
     }

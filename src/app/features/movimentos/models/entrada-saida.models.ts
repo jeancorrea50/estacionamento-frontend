@@ -84,6 +84,8 @@ export interface EntradaSaidaFiltro {
   motoristaId?: number;
   transportadoraId?: number;
   somenteEmAberto?: boolean;
+  /** `Status` do GET `/api/EntradaSaida` e `/api/Movimento`. */
+  status?: EntradaSaidaStatus;
   /**
    * Escopo do pátio (Admin/Transportadora).
    * Enviado como `EstacionamentoId` — defesa além do JWT / `X-Empresa-Id`.

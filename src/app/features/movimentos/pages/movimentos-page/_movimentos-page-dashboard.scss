@@ -6,8 +6,104 @@
 }
 
 .dashboard-kpis--portaria {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   margin-bottom: 0;
+}
+
+.kpi-card--trend {
+  display: flex;
+  flex-direction: column;
+  min-height: 118px;
+}
+
+.kpi-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kpi-card__ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+
+  .material-symbols-outlined {
+    font-size: 16px;
+  }
+}
+
+.kpi-card__ico--patio {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
+}
+
+.kpi-card__ico--entrada {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.kpi-card__ico--saida {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.16);
+}
+
+.kpi-card__ico--suspenso {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.kpi-card__ico--agendado {
+  color: #93c5fd;
+  background: rgba(96, 165, 250, 0.16);
+}
+
+.kpi-card__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  min-height: 32px;
+}
+
+.kpi-card__var {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  color: #4ade80;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  .material-symbols-outlined {
+    font-size: 14px;
+  }
+}
+
+.kpi-card__var--down {
+  color: #f87171;
+}
+
+.kpi-card__var--flat {
+  color: var(--muted);
+}
+
+.kpi-card__var-base {
+  margin-left: 4px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.kpi-spark {
+  width: 72px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .kpi-card {
@@ -565,6 +661,10 @@
 @media (max-width: 1200px) {
   .dashboard-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-kpis--portaria {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 
   .dashboard-grid,

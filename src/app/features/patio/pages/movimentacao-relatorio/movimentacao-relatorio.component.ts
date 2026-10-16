@@ -6,6 +6,8 @@ import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
+import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
+import { MovimentacaoRelatorioPdfService } from '../../services/movimentacao-relatorio-pdf.service';
 import { MovimentacaoRelatorioService } from '../../services/movimentacao-relatorio.service';
 import type {
   MovimentacaoRelatorioFiltro,
@@ -23,6 +25,8 @@ import { RELATORIO_BOOL_OPCOES, RELATORIO_MOV_STATUS_OPCOES } from './movimentac
 })
 export class MovimentacaoRelatorioComponent implements OnInit {
   private readonly api = inject(MovimentacaoRelatorioService);
+  private readonly pdfApi = inject(MovimentacaoRelatorioPdfService);
+  private readonly configApi = inject(EstacionamentoConfiguracaoService);
   private readonly transportadoraApi = inject(TransportadoraService);
   private readonly auth = inject(AuthService);
   private readonly snack = inject(MatSnackBar);
@@ -46,6 +50,8 @@ export class MovimentacaoRelatorioComponent implements OnInit {
   });
   readonly truncado = signal(false);
   readonly limiteAplicado = signal(0);
+  /** Fuso do pátio (`EstacionamentoConfiguracao.timeZoneId`). Vazio usa o fuso do navegador. */
+  readonly timeZoneId = signal<string | null>(null);
 
   transportadoras: Array<{ id: number; label: string }> = [];
 
@@ -64,6 +70,7 @@ export class MovimentacaoRelatorioComponent implements OnInit {
   ngOnInit(): void {
     this.definirPeriodoMesAtual();
     this.carregarTransportadoras();
+    this.carregarFuso();
   }
 
   limparFiltros(): void {
@@ -123,17 +130,65 @@ export class MovimentacaoRelatorioComponent implements OnInit {
 
     this.exportando.set(true);
     const filtro = this.montarFiltro();
-    const req$ = tipo === 'pdf' ? this.api.baixarPdf(filtro) : this.api.baixarExcel(filtro);
-    const mime =
-      tipo === 'pdf'
-        ? 'application/pdf'
-        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    const ext = tipo === 'pdf' ? 'pdf' : 'xlsx';
+    if (tipo === 'pdf') {
+      this.pdfApi
+        .gerar(filtro, this.rotulosFiltros(), this.timeZoneId())
+        .pipe(finalize(() => this.exportando.set(false)))
+        .subscribe({
+          next: (resultado) => {
+            this.downloadBlob(resultado.blob, 'relatorio-movimentacoes.pdf', 'application/pdf');
+            if (resultado.truncado) {
+              this.snack.open(
+                `PDF limitado a ${resultado.limiteAplicado} registros. Refine os filtros para exportar tudo.`,
+                'Fechar',
+                { duration: 6000 }
+              );
+            }
+          },
+          error: () => this.snack.open('Falha ao gerar PDF.', 'Fechar', { duration: 5000 }),
+        });
+      return;
+    }
+    this.api
+      .baixarExcel(filtro)
+      .pipe(finalize(() => this.exportando.set(false)))
+      .subscribe({
+        next: (blob) =>
+          this.downloadBlob(
+            blob,
+            'relatorio-movimentacoes.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          ),
+        error: () => this.snack.open('Falha ao gerar EXCEL.', 'Fechar', { duration: 5000 }),
+      });
+  }
 
-    req$.pipe(finalize(() => this.exportando.set(false))).subscribe({
-      next: (blob) => this.downloadBlob(blob, `relatorio-movimentacoes.${ext}`, mime),
-      error: () => this.snack.open(`Falha ao gerar ${tipo.toUpperCase()}.`, 'Fechar', { duration: 5000 }),
+  private carregarFuso(): void {
+    const id = this.auth.resolveEstacionamentoId();
+    const req$ =
+      id != null && id > 0 ? this.configApi.obterPorEstacionamentoId(id) : this.configApi.obterAtual();
+    req$.subscribe({
+      next: (config) => this.timeZoneId.set(config?.timeZoneId?.trim() || null),
+      error: () => this.timeZoneId.set(null),
     });
+  }
+
+  private rotulosFiltros(): string[] {
+    const rotulos: string[] = [];
+    if (this.placa.trim()) rotulos.push(`Placa ${this.placa.trim()}`);
+    if (this.transportadoraId != null) {
+      const nome = this.transportadoras.find((t) => t.id === this.transportadoraId)?.label;
+      rotulos.push(nome ? `Transportadora ${nome}` : `Transportadora #${this.transportadoraId}`);
+    }
+    if (this.status != null) {
+      const status = this.statusOpcoes.find((s) => s.value === this.status)?.label;
+      if (status) rotulos.push(`Status ${status}`);
+    }
+    if (this.faturado != null) rotulos.push(`Faturado: ${this.faturado ? 'Sim' : 'Não'}`);
+    if (this.ehExcedente != null) rotulos.push(`Excedente: ${this.ehExcedente ? 'Sim' : 'Não'}`);
+    if (this.avulso != null) rotulos.push(`Avulso: ${this.avulso ? 'Sim' : 'Não'}`);
+    if (this.descricao.trim()) rotulos.push(`Busca: ${this.descricao.trim()}`);
+    return rotulos;
   }
 
   private montarFiltro(): MovimentacaoRelatorioFiltro {
@@ -149,6 +204,7 @@ export class MovimentacaoRelatorioComponent implements OnInit {
       ehExcedente: this.ehExcedente,
       avulso: this.avulso,
       descricao: this.descricao.trim() || null,
+      estacionamentoId: this.auth.resolveEstacionamentoId(),
     };
   }
 

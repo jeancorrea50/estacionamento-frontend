@@ -222,11 +222,17 @@
                   <td>{{ item.statusDescricao || '—' }}</td>
                   <td>
                     {{
-                      item.dataHoraEntrada ? (item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm') : '—'
+                      item.dataHoraEntrada
+                        ? (item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' : (timeZoneId() || undefined))
+                        : '—'
                     }}
                   </td>
                   <td>
-                    {{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm') : '—' }}
+                    {{
+                      item.dataHoraSaida
+                        ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm' : (timeZoneId() || undefined))
+                        : '—'
+                    }}
                   </td>
                   <td>{{ item.faturado ? 'Sim' : 'Não' }}</td>
                   <td>{{ item.avulso ? 'Sim' : 'Não' }}</td>

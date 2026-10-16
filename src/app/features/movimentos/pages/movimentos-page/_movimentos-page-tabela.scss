@@ -151,10 +151,6 @@
   cursor: pointer;
 }
 
-.historico-row--excedente {
-  background: color-mix(in srgb, #f59e0b 14%, transparent);
-}
-
 .historico-row--excedente td:first-child {
   box-shadow: inset 3px 0 0 #f97316;
 }
@@ -296,7 +292,7 @@
 .historico-dropdown-fixed {
   position: fixed;
   margin-top: 0;
-  z-index: 1100;
+  z-index: 2000;
   transform: translateX(-100%);
 }
 

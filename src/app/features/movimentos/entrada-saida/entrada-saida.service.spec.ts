@@ -2,7 +2,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../../environments/environment';
 import { mapBuscarPorPlacaParaRegistroRapido } from '../mappers/entrada-saida-buscar-por-placa.mapper';
-import { ModoRecibo } from '../models/entrada-saida.models';
+import { EntradaSaidaStatus, ModoRecibo } from '../models/entrada-saida.models';
 import { EntradaSaidaService } from './entrada-saida.service';
 
 describe('EntradaSaidaService', () => {
@@ -38,10 +38,27 @@ describe('EntradaSaidaService', () => {
     expect(req.request.params.get('motoristaId')).toBe('1');
     expect(req.request.params.get('transportadoraId')).toBe('2');
     expect(req.request.params.get('somenteEmAberto')).toBe('true');
+    expect(req.request.params.get('Status')).toBeNull();
     expect(req.request.params.get('EstacionamentoId')).toBe('9');
     expect(req.request.params.get('NumeroPagina')).toBe('2');
     expect(req.request.params.get('TamanhoPagina')).toBe('20');
     req.flush({ results: [] });
+  });
+
+  it('deve enviar Status na busca', () => {
+    service
+      .buscar({
+        status: EntradaSaidaStatus.Suspenso,
+        somenteEmAberto: true,
+        numeroPagina: 1,
+        tamanhoPagina: 1
+      })
+      .subscribe();
+
+    const req = httpMock.expectOne((r) => r.url === `${environment.API_BASE_URL}/EntradaSaida`);
+    expect(req.request.params.get('Status')).toBe(String(EntradaSaidaStatus.Suspenso));
+    expect(req.request.params.get('somenteEmAberto')).toBe('true');
+    req.flush({ results: [], totalCount: 3 });
   });
 
   it('deve enviar período na busca', () => {

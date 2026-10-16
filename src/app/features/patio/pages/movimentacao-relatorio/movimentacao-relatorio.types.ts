@@ -15,6 +15,7 @@ export interface MovimentacaoRelatorioFiltro {
   avulso?: boolean | null;
   descricao?: string | null;
   limite?: number | null;
+  estacionamentoId?: number | null;
 }
 
 export interface MovimentacaoRelatorioResumo {
@@ -37,6 +38,11 @@ export interface MovimentacaoRelatorioItem {
   statusDescricao: string;
   dataHoraEntrada: string | null;
   dataHoraSaida: string | null;
+  /**
+   * Minutos calculados pela API (`tempoPermanenciaMinutos`).
+   * `null` quando o relatório não envia o campo — não recalcular no cliente.
+   */
+  tempoPermanenciaMinutos: number | null;
   faturado: boolean;
   avulso: boolean;
   ehExcedente: boolean;

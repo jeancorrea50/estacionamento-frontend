@@ -29,6 +29,16 @@ function pickStr(row: Record<string, unknown>, ...keys: string[]): string {
   return '';
 }
 
+function pickOptionalNum(row: Record<string, unknown>, ...keys: string[]): number | null {
+  for (const k of keys) {
+    const v = row[k];
+    if (v == null || v === '') continue;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 function pickBool(row: Record<string, unknown>, ...keys: string[]): boolean {
   for (const k of keys) {
     const v = row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
@@ -50,6 +60,11 @@ function mapItem(raw: unknown): MovimentacaoRelatorioItem {
     statusDescricao: pickStr(row, 'statusDescricao', 'StatusDescricao'),
     dataHoraEntrada: pickStr(row, 'dataHoraEntrada', 'DataHoraEntrada') || null,
     dataHoraSaida: pickStr(row, 'dataHoraSaida', 'DataHoraSaida') || null,
+    tempoPermanenciaMinutos: pickOptionalNum(
+      row,
+      'tempoPermanenciaMinutos',
+      'TempoPermanenciaMinutos'
+    ),
     faturado: pickBool(row, 'faturado', 'Faturado'),
     avulso: pickBool(row, 'avulso', 'Avulso'),
     ehExcedente: pickBool(row, 'ehExcedente', 'EhExcedente'),
@@ -102,6 +117,7 @@ function toParams(filtro: MovimentacaoRelatorioFiltro): HttpParams {
   set('Avulso', filtro.avulso);
   set('Descricao', filtro.descricao);
   set('Limite', filtro.limite);
+  set('EstacionamentoId', filtro.estacionamentoId);
   return params;
 }
 

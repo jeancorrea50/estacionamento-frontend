@@ -11,15 +11,132 @@
         </header>
 
         <section class="dashboard-kpis dashboard-kpis--portaria" aria-label="Indicadores do dia">
-          <article class="kpi-card">
-            <p class="kpi-card__label">Entradas Hoje</p>
-            <p class="kpi-card__valor">{{ entradasHoje() }}</p>
+          <article class="kpi-card kpi-card--trend">
+            <div class="kpi-card__top">
+              <span class="kpi-card__ico kpi-card__ico--patio" aria-hidden="true">
+                <span class="material-symbols-outlined">local_shipping</span>
+              </span>
+              <p class="kpi-card__label">Veículos no pátio</p>
+            </div>
+            <p class="kpi-card__valor">{{ veiculosNoPatio() }}</p>
           </article>
-          <article class="kpi-card">
-            <p class="kpi-card__label">Saídas Hoje</p>
-            <p class="kpi-card__valor">{{ saidasHoje() }}</p>
+          <article class="kpi-card kpi-card--trend">
+            <div class="kpi-card__top">
+              <span class="kpi-card__ico kpi-card__ico--entrada" aria-hidden="true">
+                <span class="material-symbols-outlined">login</span>
+              </span>
+              <p class="kpi-card__label">Entradas hoje</p>
+            </div>
+            <p class="kpi-card__valor">{{ kpiEntradas().valor }}</p>
+            <div class="kpi-card__foot">
+              <ng-container
+                [ngTemplateOutlet]="kpiVariacao"
+                [ngTemplateOutletContext]="{ $implicit: kpiEntradas() }"
+              />
+              <ng-container
+                [ngTemplateOutlet]="kpiSpark"
+                [ngTemplateOutletContext]="{
+                  serie: kpiEntradas().serie,
+                  cor: '#22c55e',
+                  id: 'kpiGradEntradas'
+                }"
+              />
+            </div>
+          </article>
+          <article class="kpi-card kpi-card--trend">
+            <div class="kpi-card__top">
+              <span class="kpi-card__ico kpi-card__ico--saida" aria-hidden="true">
+                <span class="material-symbols-outlined">logout</span>
+              </span>
+              <p class="kpi-card__label">Saídas hoje</p>
+            </div>
+            <p class="kpi-card__valor">{{ kpiSaidas().valor }}</p>
+            <div class="kpi-card__foot">
+              <ng-container
+                [ngTemplateOutlet]="kpiVariacao"
+                [ngTemplateOutletContext]="{ $implicit: kpiSaidas() }"
+              />
+              <ng-container
+                [ngTemplateOutlet]="kpiSpark"
+                [ngTemplateOutletContext]="{
+                  serie: kpiSaidas().serie,
+                  cor: '#f87171',
+                  id: 'kpiGradSaidas'
+                }"
+              />
+            </div>
+          </article>
+          <article class="kpi-card kpi-card--trend">
+            <div class="kpi-card__top">
+              <span class="kpi-card__ico kpi-card__ico--suspenso" aria-hidden="true">
+                <span class="material-symbols-outlined">pause_circle</span>
+              </span>
+              <p class="kpi-card__label">Veículos suspensos</p>
+            </div>
+            <p class="kpi-card__valor">{{ veiculosSuspensos() }}</p>
+          </article>
+          <article class="kpi-card kpi-card--trend">
+            <div class="kpi-card__top">
+              <span class="kpi-card__ico kpi-card__ico--agendado" aria-hidden="true">
+                <span class="material-symbols-outlined">calendar_month</span>
+              </span>
+              <p class="kpi-card__label">Agendados hoje</p>
+            </div>
+            <p class="kpi-card__valor">{{ kpiAgendados().valor }}</p>
+            <div class="kpi-card__foot">
+              <ng-container
+                [ngTemplateOutlet]="kpiVariacao"
+                [ngTemplateOutletContext]="{ $implicit: kpiAgendados() }"
+              />
+              <ng-container
+                [ngTemplateOutlet]="kpiSpark"
+                [ngTemplateOutletContext]="{
+                  serie: kpiAgendados().serie,
+                  cor: '#60a5fa',
+                  id: 'kpiGradAgendados'
+                }"
+              />
+            </div>
           </article>
         </section>
+
+        <ng-template #kpiVariacao let-kpi>
+          @if (kpi.variacao != null) {
+            <p
+              class="kpi-card__var"
+              [class.kpi-card__var--down]="kpi.variacao < 0"
+              [class.kpi-card__var--flat]="kpi.variacao === 0"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{ kpi.variacao < 0 ? 'arrow_downward' : 'arrow_upward' }}
+              </span>
+              {{ kpi.variacao > 0 ? '+' : '' }}{{ kpi.variacao }}%
+              <span class="kpi-card__var-base">vs. ontem</span>
+            </p>
+          }
+        </ng-template>
+
+        <ng-template #kpiSpark let-serie="serie" let-cor="cor" let-id="id">
+          @if (serie.length > 1) {
+            <svg class="kpi-spark" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient [attr.id]="id" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" [attr.stop-color]="cor" stop-opacity="0.45" />
+                  <stop offset="100%" [attr.stop-color]="cor" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon [attr.points]="areaSpark(serie)" [attr.fill]="'url(#' + id + ')'" />
+              <polyline
+                [attr.points]="linhaSpark(serie)"
+                fill="none"
+                [attr.stroke]="cor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
+            </svg>
+          }
+        </ng-template>
 
         @if (podeAcoesOperacionaisPatio) {
           <div class="portaria-cta" role="group" aria-label="Ações de entrada e saída">
@@ -366,9 +483,11 @@
                             @if (menuAcoesId() === item.id && menuAcoesPos(); as pos) {
                               <div
                                 class="historico-dropdown historico-dropdown-fixed"
+                                appHistoricoMenuPortal
                                 role="menu"
                                 [style.top.px]="pos.top"
                                 [style.left.px]="pos.left"
+                                (click)="$event.stopPropagation()"
                               >
                                 <button
                                   type="button"

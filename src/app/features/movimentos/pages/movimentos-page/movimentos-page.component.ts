@@ -23,6 +23,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ApiError } from '../../../../core/api/models';
 import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
+import { HistoricoMenuPortalDirective } from './historico-menu-portal.directive';
 import {
   TelefoneFormatDirective,
   formatTelefone
@@ -66,7 +67,20 @@ import {
   toIsoDateTimeStart
 } from './movimentos-filtros.util';
 import { MovimentacaoRelatorioService } from '../../../patio/services/movimentacao-relatorio.service';
-import type { MovimentacaoRelatorioFiltro } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio.types';
+import { MovimentacaoRelatorioPdfService } from '../../../patio/services/movimentacao-relatorio-pdf.service';
+import type {
+  MovimentacaoRelatorioFiltro,
+  MovimentacaoRelatorioOutput
+} from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio.types';
+import {
+  contarPorDia,
+  diasRetroativos,
+  KPI_TENDENCIA_VAZIA,
+  KpiTendencia,
+  sparklineArea,
+  sparklineLinha,
+  tendenciaDoDia
+} from './kpi-tendencia.util';
 
 type PermanenciaAcao = 'suspender' | 'retornar' | 'finalizar';
 type StatusMonitoramento = 'entrada' | 'saida' | 'aberto';
@@ -117,7 +131,14 @@ interface AlertaItemVm {
 @Component({
   selector: 'app-movimentos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, CameraPreviewComponent, TelefoneFormatDirective, MovimentosFiltrosPanelComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CameraPreviewComponent,
+    TelefoneFormatDirective,
+    MovimentosFiltrosPanelComponent,
+    HistoricoMenuPortalDirective
+  ],
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
 })
@@ -135,6 +156,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly movimentacaoRelatorio = inject(MovimentacaoRelatorioService);
+  private readonly movimentacaoRelatorioPdf = inject(MovimentacaoRelatorioPdfService);
 
   /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
   private get service(): EntradaSaidaService {
@@ -705,16 +727,44 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
     this.exportando.set(true);
     const filtro = this.montarFiltroExportacao();
-    const req$ =
-      tipo === 'pdf'
-        ? this.movimentacaoRelatorio.baixarPdf(filtro)
-        : this.movimentacaoRelatorio.baixarExcel(filtro);
-    const ext = tipo === 'pdf' ? 'pdf' : 'xlsx';
+    if (tipo === 'pdf') {
+      this.movimentacaoRelatorioPdf
+        .gerar(filtro, this.rotulosFiltroExportacao(filtro))
+        .pipe(finalize(() => this.exportando.set(false)))
+        .subscribe({
+          next: (resultado) => {
+            this.downloadBlob(resultado.blob, 'movimentacoes.pdf');
+            if (resultado.truncado) {
+              this.toast.error(
+                `PDF limitado a ${resultado.limiteAplicado} registros. Refine os filtros para exportar tudo.`
+              );
+            }
+          },
+          error: () => this.toast.error('Falha ao gerar PDF.')
+        });
+      return;
+    }
 
-    req$.pipe(finalize(() => this.exportando.set(false))).subscribe({
-      next: (blob) => this.downloadBlob(blob, `movimentacoes.${ext}`),
-      error: () => this.toast.error(`Falha ao gerar ${tipo.toUpperCase()}.`)
-    });
+    this.movimentacaoRelatorio
+      .baixarExcel(filtro)
+      .pipe(finalize(() => this.exportando.set(false)))
+      .subscribe({
+        next: (blob) => this.downloadBlob(blob, 'movimentacoes.xlsx'),
+        error: () => this.toast.error('Falha ao gerar EXCEL.')
+      });
+  }
+
+  private rotulosFiltroExportacao(filtro: MovimentacaoRelatorioFiltro): string[] {
+    const rotulos: string[] = [];
+    if (filtro.placa) rotulos.push(`Placa ${filtro.placa}`);
+    if (filtro.transportadoraId) rotulos.push(`Transportadora #${filtro.transportadoraId}`);
+    if (filtro.status != null) {
+      rotulos.push(`Status ${entradaSaidaStatusLabel(filtro.status) || filtro.status}`);
+    }
+    if (filtro.faturado != null) rotulos.push(`Faturado: ${filtro.faturado ? 'Sim' : 'Não'}`);
+    if (filtro.ehExcedente != null) rotulos.push(`Excedente: ${filtro.ehExcedente ? 'Sim' : 'Não'}`);
+    if (filtro.descricao) rotulos.push(`Busca: ${filtro.descricao}`);
+    return rotulos;
   }
 
   /** Mapeia filtros da tela para o contrato de MovimentacaoRelatorio. */
@@ -1129,6 +1179,15 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     const value = this.dashboardTempoReal()?.['emAberto'];
     return typeof value === 'number' ? value : 0;
   });
+
+  /** Contagens da portaria via GET `/api/EntradaSaida` (total da página). */
+  readonly veiculosNoPatio = signal(0);
+  readonly veiculosSuspensos = signal(0);
+  readonly veiculosAgendadosHoje = signal(0);
+  /** Série de 7 dias do relatório de movimentações. Sem histórico inventado. */
+  readonly kpiEntradas = signal<KpiTendencia>(KPI_TENDENCIA_VAZIA);
+  readonly kpiSaidas = signal<KpiTendencia>(KPI_TENDENCIA_VAZIA);
+  readonly kpiAgendados = signal<KpiTendencia>(KPI_TENDENCIA_VAZIA);
 
   readonly tempoMedioPatio = computed(() => {
     const rawValue = this.dashboardTempoReal()?.['tempoMedioPatio'];
@@ -2577,11 +2636,18 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private carregarMonitoramentoDoPatio(): void {
     if (!this.isPortariaView() || this.auth.needsEstacionamentoSelection()) {
       this.monitoramentoHttpSeed.set([]);
+      this.veiculosNoPatio.set(0);
+      this.veiculosSuspensos.set(0);
+      this.veiculosAgendadosHoje.set(0);
+      this.kpiEntradas.set(KPI_TENDENCIA_VAZIA);
+      this.kpiSaidas.set(KPI_TENDENCIA_VAZIA);
+      this.kpiAgendados.set(KPI_TENDENCIA_VAZIA);
       return;
     }
 
     const hoje = criarDataHoje();
     this.cancelarMonitoramentoPortaria$.next();
+    this.carregarKpisPortaria(hoje);
     this.entradaSaidaService
       .buscar({
         numeroPagina: 1,
@@ -2606,6 +2672,108 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           this.monitoramentoHttpSeed.set([]);
         }
       });
+  }
+
+  /** Totais da portaria: no pátio, suspensos e agendados na data de hoje. */
+  private carregarKpisPortaria(hoje: Date): void {
+    const estacionamentoId = this.estacionamentoIdDaSessao() ?? undefined;
+    const base = {
+      numeroPagina: 1,
+      tamanhoPagina: 1,
+      estacionamentoId
+    };
+    const contar = (filtro: EntradaSaidaFiltro) =>
+      this.entradaSaidaService.buscar(filtro).pipe(
+        map((paged) => paged.totalCount ?? 0),
+        catchError(() => of(0))
+      );
+    const dias = diasRetroativos(hoje, 7);
+    const inicio = dias[0];
+    const fim = dias[dias.length - 1];
+    const relatorio = (filtro: MovimentacaoRelatorioFiltro) =>
+      this.movimentacaoRelatorio.buscar(filtro).pipe(
+        catchError(() => of<MovimentacaoRelatorioOutput | null>(null))
+      );
+
+    forkJoin({
+      noPatio: contar({
+        ...base,
+        status: EntradaSaidaStatus.Entrada,
+        somenteEmAberto: true
+      }),
+      suspensos: contar({
+        ...base,
+        status: EntradaSaidaStatus.Suspenso,
+        somenteEmAberto: true
+      }),
+      agendados: contar({
+        ...base,
+        status: EntradaSaidaStatus.Agendado,
+        dataInicial: toIsoDateTimeStart(hoje),
+        dataFinal: toIsoDateTimeEnd(hoje)
+      }),
+      entradas: relatorio({
+        dataInicial: inicio,
+        dataFinal: fim,
+        limite: 1000,
+        estacionamentoId
+      }),
+      saidas: relatorio({
+        dataSaidaInicial: inicio,
+        dataSaidaFinal: fim,
+        limite: 1000,
+        estacionamentoId
+      })
+    })
+      .pipe(takeUntil(this.cancelarMonitoramentoPortaria$))
+      .subscribe((totais) => {
+        this.veiculosNoPatio.set(totais.noPatio);
+        this.veiculosSuspensos.set(totais.suspensos);
+        this.veiculosAgendadosHoje.set(totais.agendados);
+
+        const serieEntradas =
+          totais.entradas && !totais.entradas.truncado
+            ? contarPorDia(
+                totais.entradas.itens.map((item) => item.dataHoraEntrada),
+                dias
+              )
+            : [];
+        const serieSaidas =
+          totais.saidas && !totais.saidas.truncado
+            ? contarPorDia(
+                totais.saidas.itens.map((item) => item.dataHoraSaida),
+                dias
+              )
+            : [];
+        const serieAgendados =
+          totais.entradas && !totais.entradas.truncado
+            ? contarPorDia(
+                totais.entradas.itens
+                  .filter((item) => item.status === EntradaSaidaStatus.Agendado)
+                  .map((item) => item.dataHoraEntrada),
+                dias
+              )
+            : [];
+
+        const entradasHoje = serieEntradas.length
+          ? serieEntradas[serieEntradas.length - 1]
+          : this.entradasHoje();
+        const saidasHoje = serieSaidas.length
+          ? serieSaidas[serieSaidas.length - 1]
+          : this.saidasHoje();
+
+        this.kpiEntradas.set(tendenciaDoDia(serieEntradas, entradasHoje));
+        this.kpiSaidas.set(tendenciaDoDia(serieSaidas, saidasHoje));
+        this.kpiAgendados.set(tendenciaDoDia(serieAgendados, totais.agendados));
+      });
+  }
+
+  linhaSpark(serie: number[]): string {
+    return sparklineLinha(serie);
+  }
+
+  areaSpark(serie: number[]): string {
+    return sparklineArea(serie);
   }
 
   /** EstacionamentoId da sessão (Admin/Transportadora) ou do vínculo fixo. */

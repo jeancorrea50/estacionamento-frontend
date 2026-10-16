@@ -241,7 +241,10 @@ export class CadastroVeiculosPageComponent implements OnInit {
     });
   }
 
-  transportadoraLabel(id: number | null | undefined): string {
+  transportadoraLabel(item: { transportadoraId?: number | null; transportadoraNome?: string | null }): string {
+    const nomeDireto = item.transportadoraNome?.trim();
+    if (nomeDireto) return nomeDireto;
+    const id = item.transportadoraId;
     if (id == null || id <= 0) return '—';
     const t = this.transportadoras.find((x) => x.id === id);
     return t?.nomeFantasia?.trim() || t?.razaoSocial?.trim() || `ID ${id}`;

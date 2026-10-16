@@ -102,7 +102,7 @@
                     <td>{{ item.cor || '—' }}</td>
                     <td>{{ item.anoFabricacao ?? item.anoModelo ?? '—' }}</td>
                     <td>{{ labelTipoCarga(item.tipoCarga) }}</td>
-                    <td>{{ transportadoraLabel(item.transportadoraId) }}</td>
+                    <td>{{ transportadoraLabel(item) }}</td>
                     <td>
                       <app-est-status-pill-estacionamento [ativo]="item.ativo" />
                     </td>

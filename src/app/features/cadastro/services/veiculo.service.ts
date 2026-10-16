@@ -138,6 +138,7 @@ export class VeiculoService {
     const marcaModelo =
       joinMarcaModelo(marca, modelo) || String(marca || modelo);
     const motoristas = this.parseMotoristasVinculosGet(row);
+    const transportadora = extrairTransportadoraLinha(row, get);
     return {
       id: Number(get('id') ?? get('Id')) || 0,
       placa: String(get('placa') ?? get('Placa') ?? ''),
@@ -148,7 +149,8 @@ export class VeiculoService {
       tipoVeiculo: get('tipoVeiculo') != null ? String(get('tipoVeiculo')) : undefined,
       centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
       ativo: get('ativo') !== false && get('Ativo') !== false,
-      transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined,
+      transportadoraId: transportadora.id,
+      transportadoraNome: transportadora.nome,
       tipoCarga: parseTipoCarga(
         (get('tipoCarga') ?? get('TipoCarga')) as number | string | null | undefined
       ),
@@ -312,9 +314,10 @@ export class VeiculoService {
       (get('tipoCarga') ?? get('TipoCarga')) as number | string | null | undefined
     );
 
+    const transportadora = extrairTransportadoraLinha(result, get);
     return {
       id,
-      transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined,
+      transportadoraId: transportadora.id,
       placa: String(get('placa') ?? ''),
       motoristaId,
       motoristaNome,
@@ -669,4 +672,43 @@ export class VeiculoService {
       'Falha ao importar planilha.';
     return { ok: false, message: String(msg) };
   }
+}
+
+/** Id e nome da transportadora na listagem/GET (raiz ou objeto aninhado). */
+function extrairTransportadoraLinha(
+  row: Record<string, unknown>,
+  get: (k: string) => unknown
+): { id?: number; nome?: string } {
+  const nestedRaw = get('transportadora');
+  const nested =
+    nestedRaw && typeof nestedRaw === 'object' && !Array.isArray(nestedRaw)
+      ? (nestedRaw as Record<string, unknown>)
+      : null;
+  const pick = (obj: Record<string, unknown> | null, keys: string[]): unknown => {
+    if (!obj) return undefined;
+    for (const k of keys) {
+      const v = obj[k] ?? obj[k.charAt(0).toUpperCase() + k.slice(1)];
+      if (v == null || (typeof v === 'string' && !v.trim())) continue;
+      return v;
+    }
+    return undefined;
+  };
+  const pessoaRaw = pick(nested, ['pessoa', 'pessoaJuridica']);
+  const pessoa =
+    pessoaRaw && typeof pessoaRaw === 'object' && !Array.isArray(pessoaRaw)
+      ? (pessoaRaw as Record<string, unknown>)
+      : null;
+
+  const idRaw = get('transportadoraId') ?? pick(nested, ['id', 'transportadoraId']);
+  const idNum = Number(idRaw);
+  const id = Number.isFinite(idNum) && idNum > 0 ? idNum : undefined;
+
+  const nomeRaw =
+    (typeof nestedRaw === 'string' ? nestedRaw : undefined) ??
+    get('transportadoraNome') ??
+    get('nomeTransportadora') ??
+    pick(nested, ['nomeFantasia', 'fantasia', 'razaoSocial', 'nomeRazaoSocial', 'descricao']) ??
+    pick(pessoa, ['nomeFantasia', 'fantasia', 'razaoSocial', 'nomeRazaoSocial', 'descricao']);
+  const nome = nomeRaw != null ? String(nomeRaw).trim() : '';
+  return { id, nome: nome || undefined };
 }

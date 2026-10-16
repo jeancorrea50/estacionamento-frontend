@@ -8,7 +8,7 @@ import { environment } from '../../../../environments/environment';
 describe('VeiculoService — motoristas vinculados no GET', () => {
   let service: VeiculoService;
   let httpMock: HttpTestingController;
-  const base = `${environment.API_BASE_URL}/Veiculo`;
+  const base = `${environment.API_BASE_URL}/Transportadora/7/Veiculo`;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -23,7 +23,7 @@ describe('VeiculoService — motoristas vinculados no GET', () => {
   it('deve mapear motoristas[] de objetos (descricao, cnh, validadeCNH)', () => {
     let mapped: VeiculoDTO | null | undefined;
 
-    service.obterPorId(1).subscribe((res) => {
+    service.obterPorId(1, 7).subscribe((res) => {
       mapped = res;
     });
 
@@ -62,7 +62,7 @@ describe('VeiculoService — motoristas vinculados no GET', () => {
   it('não deve exigir motoristaIds quando motoristas[] vem como objetos', () => {
     let mapped: VeiculoDTO | null | undefined;
 
-    service.obterPorId(1).subscribe((res) => {
+    service.obterPorId(1, 7).subscribe((res) => {
       mapped = res;
     });
 
@@ -111,7 +111,7 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body.motoristas).toEqual([
       { id: 10, principal: true },
@@ -138,7 +138,7 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
       placa: 'ABC1D23',
@@ -181,7 +181,7 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({
       id: 5,
@@ -210,12 +210,13 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
         id: 5,
         placa: 'ABC1D23',
         ativo: true,
+        transportadoraId: 1,
         motoristaId: 2,
         motoristaIds: [2, 7]
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.method).toBe('PUT');
     expect(req.request.body.motoristas).toEqual([
       { id: 2, principal: true },
@@ -232,7 +233,8 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
     service
       .alterar({
         placa: 'ABC1D23',
-        ativo: true
+        ativo: true,
+        transportadoraId: 1
       })
       .subscribe({
         error: (e) => {
@@ -240,7 +242,7 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
         }
       });
 
-    httpMock.expectNone(base);
+    httpMock.expectNone((r) => r.url.includes('/Veiculo'));
     expect(erro?.message).toContain('Id obrigatório');
   });
 
@@ -254,7 +256,7 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body.id).toBeUndefined();
     expect(req.request.body.placa).toBe('XYZ9Z99');
@@ -266,11 +268,12 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       .gravar({
         placa: 'DEF2A34',
         ativo: true,
+        transportadoraId: 1,
         motoristas: []
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.body.motoristas).toEqual([]);
     req.flush({ id: 1 });
   });
@@ -286,7 +289,7 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       })
       .subscribe();
 
-    const req = httpMock.expectOne(base);
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
     expect(req.request.method).toBe('POST');
     expect(req.request.body.tipoCarga).toBe(2);
     expect(req.request.body.motoristas).toEqual([{ id: 10, principal: true }]);
@@ -316,7 +319,7 @@ describe('VeiculoService — listagem com motoristas', () => {
       mapped = res;
     });
 
-    const req = httpMock.expectOne((r) => r.url.startsWith(base) && r.method === 'GET');
+    const req = httpMock.expectOne((r) => r.url.includes('/Veiculo') && r.method === 'GET');
     req.flush({
       success: true,
       result: {
@@ -390,5 +393,35 @@ describe('VeiculoService — listagem com motoristas', () => {
       { id: 2040, nome: 'Genivaldo Ferreira Mendes' },
       { id: 5, nome: 'Juliana Teixeira Ramos' }
     ]);
+  });
+
+  it('buscar deve ler transportadora aninhada quando o admin lista sem filtro', () => {
+    let nome: string | undefined;
+    let id: number | undefined;
+
+    service.buscar({ NumeroPagina: 1, TamanhoPagina: 20 }).subscribe((res) => {
+      nome = res.items[0]?.transportadoraNome;
+      id = res.items[0]?.transportadoraId;
+    });
+
+    httpMock.expectOne((r) => r.url.startsWith(base)).flush({
+      result: {
+        results: [
+          {
+            id: 5023,
+            placa: 'IAA7771',
+            ativo: true,
+            transportadora: {
+              id: 18,
+              pessoa: { nomeFantasia: 'Gt Sistemas EPP', razaoSocial: 'Gt Sistemas EPP' }
+            }
+          }
+        ],
+        rowCount: 1
+      }
+    });
+
+    expect(id).toBe(18);
+    expect(nome).toBe('Gt Sistemas EPP');
   });
 });

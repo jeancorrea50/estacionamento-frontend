@@ -10,6 +10,8 @@ export interface VeiculoListItemDTO {
   centroCusto?: string;
   ativo: boolean;
   transportadoraId?: number;
+  /** Nome vindo do objeto `transportadora` da listagem (admin sem filtro). */
+  transportadoraNome?: string;
   /** Enum byte `TipoCarga` quando a listagem expõe o campo. */
   tipoCarga?: number | null;
   /** Vínculos da listagem (`motoristas[]` / `motoristaIds`). */

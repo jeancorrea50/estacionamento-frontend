@@ -153,7 +153,7 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
   }
 
   selecionar(opt: LookupOption): void {
-    this.selectedId.set(opt.id);
+    this.selectedId.update((atual) => (atual === opt.id ? null : opt.id));
   }
 
   selecionarEConfirmar(opt: LookupOption): void {
@@ -181,6 +181,27 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
       const opt = rows[idx];
       if (opt) this.selecionarEConfirmar(opt);
     }
+  }
+
+  /** Fecha a sessão operacional e abre o sistema sem pátio vinculado. */
+  continuarSemPatio(): void {
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.auth.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
+      next: (res) => {
+        this.saving.set(false);
+        if (!res.success) {
+          this.toast.error(res.message || 'Não foi possível remover o pátio da sessão.');
+          return;
+        }
+        this.selectedId.set(null);
+        this.selected.emit(0);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.toast.error('Não foi possível remover o pátio da sessão.');
+      },
+    });
   }
 
   confirmar(): void {

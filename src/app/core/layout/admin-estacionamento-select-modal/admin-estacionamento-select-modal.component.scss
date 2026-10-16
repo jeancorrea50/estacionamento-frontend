@@ -284,7 +284,8 @@
   padding: 0.85rem 1.25rem 1.1rem;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   border-top: 1px solid var(--aes-border);
 }

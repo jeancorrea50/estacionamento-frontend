@@ -129,6 +129,14 @@
     <footer class="aes-modal__footer">
       <button
         type="button"
+        class="aes-btn aes-btn--ghost"
+        [disabled]="loading() || saving()"
+        (click)="continuarSemPatio()"
+      >
+        Continuar sem pátio
+      </button>
+      <button
+        type="button"
         class="aes-btn aes-btn--primary"
         [disabled]="loading() || saving() || !selectedId()"
         (click)="confirmar()"

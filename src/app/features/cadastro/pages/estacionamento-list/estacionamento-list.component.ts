@@ -16,6 +16,7 @@ import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 import { EstacionamentoViewDialogComponent } from '../../components/estacionamento-view-dialog/estacionamento-view-dialog.component';
@@ -51,10 +52,17 @@ export class EstacionamentoListComponent implements OnDestroy {
   private ngZone = inject(NgZone);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
+  private permissionCache = inject(PermissionCacheService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private readonly cancelarHidratar$ = new Subject<void>();
-  readonly canExcluir = this.auth.isAdmin();
+  get canAlterar(): boolean {
+    return this.auth.isAdmin() || this.permissionCache.allows('estacionamento', 'alterar');
+  }
+
+  get canExcluir(): boolean {
+    return this.auth.isAdmin() || this.permissionCache.allows('estacionamento', 'excluir');
+  }
 
   itens: EstacionamentoListItemDTO[] = [];
   /** Só vira true durante GET Buscar; antes do primeiro clique em "Buscar" não há requisição. */

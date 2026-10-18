@@ -108,6 +108,9 @@
                     </td>
                     <td class="trn-table__acoes">
                       <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para motorista ' + item.id">
+                        <button type="button" class="trn-act-btn" title="Visualizar" aria-label="Visualizar motorista" (click)="visualizarCondutor(item)">
+                          <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                        </button>
                         @if (canAlterar) {
                           <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarCondutor(item)">
                             <span class="material-symbols-outlined" aria-hidden="true">edit</span>

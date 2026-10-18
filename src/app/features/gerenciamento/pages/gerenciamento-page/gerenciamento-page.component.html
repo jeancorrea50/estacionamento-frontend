@@ -233,7 +233,7 @@
             <span class="material-symbols-outlined">person_add</span>
           </div>
           <div class="modal-header__titles">
-            <h2 id="modal-form-title">{{ isEdit() ? 'Editar usuário' : 'Novo usuário' }}</h2>
+            <h2 id="modal-form-title">{{ usuarioSomenteLeitura ? 'Visualizar usuário' : (isEdit() ? 'Editar usuário' : 'Novo usuário') }}</h2>
             <p class="modal-header__subtitle">Cadastre um novo usuário e defina seu perfil de acesso.</p>
           </div>
         </div>
@@ -251,7 +251,7 @@
           <span>Cadastro exclusivo de pessoa física. Os dados de acesso serão usados na autenticação.</span>
         </div>
 
-        <div class="form-sections">
+        <fieldset class="form-sections" [disabled]="usuarioSomenteLeitura" style="border:0;margin:0;padding:0;min-width:0">
           <section class="form-section-card" aria-labelledby="sec-pessoais">
             <header class="form-section-card__head">
               <h3 id="sec-pessoais">Dados pessoais</h3>
@@ -545,7 +545,7 @@
               }
             </div>
           </section>
-        </div>
+        </fieldset>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharModalForm()">Cancelar</button>
@@ -607,9 +607,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharModalVer()">Fechar</button>
-        @if (canAlterar && podeEditarUsuario(itemVer())) {
-          <button type="button" class="btn btn-primary" (click)="abrirEditar(itemVer()!); fecharModalVer()">Editar</button>
-        }
+        <button type="button" class="btn btn-primary" (click)="abrirMaisInformacoes(itemVer()!); fecharModalVer()">Mais informações</button>
       </div>
     </div>
   </div>

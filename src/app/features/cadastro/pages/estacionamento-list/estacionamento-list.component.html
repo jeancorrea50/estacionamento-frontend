@@ -104,15 +104,17 @@
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
                     </button>
-                    <a
-                      class="trn-act-btn trn-act-btn--accent"
-                      [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
-                      [queryParams]="queryEditar(item)"
-                      title="Editar"
-                      aria-label="Editar estacionamento"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                    </a>
+                    @if (canAlterar) {
+                      <a
+                        class="trn-act-btn trn-act-btn--accent"
+                        [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                        [queryParams]="queryEditar(item)"
+                        title="Editar"
+                        aria-label="Editar estacionamento"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                      </a>
+                    }
                     @if (canExcluir) {
                       <button
                         type="button"

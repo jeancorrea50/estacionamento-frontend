@@ -65,7 +65,7 @@ export interface EstacionamentoViewDialogData {
           Fechar
         </button>
         <button type="button" class="trn-view__btn trn-view__btn--primary" (click)="ref.close('edit')">
-          Editar Cadastro
+          Mais informações
         </button>
       </footer>
     </div>

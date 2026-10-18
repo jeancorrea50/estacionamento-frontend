@@ -110,6 +110,9 @@
                     </td>
                     <td class="trn-table__acoes">
                       <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para veículo ' + item.id">
+                        <button type="button" class="trn-act-btn" title="Visualizar" aria-label="Visualizar veículo" (click)="visualizarVeiculo(item)">
+                          <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                        </button>
                         @if (canAlterar) {
                           <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarVeiculo(item)">
                             <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -260,10 +263,12 @@
             </div>
             <section class="frota-vinculos frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'motoristasVinculados'">
               <div class="frota-vinculos__toolbar">
+                @if (!veiculoSomenteLeitura) {
                 <button type="button" class="btn btn-secondary" (click)="abrirBuscaMotoristaFrota()">
                   <span class="material-symbols-outlined" aria-hidden="true">search</span>
                   Buscar motorista
                 </button>
+                }
               </div>
               @if (motoristasVinculadosFrota.length === 0) {
                 <p class="frota-vinculos__empty">Nenhum motorista vinculado.</p>
@@ -291,12 +296,14 @@
                           <td>
                             @if (m.principal) {
                               <span class="frota-vinculo-item__badge">Principal</span>
-                            } @else {
+                            } @else if (!veiculoSomenteLeitura) {
                               <button type="button" class="btn btn-secondary btn--sm" (click)="definirVinculoPrincipal(m.id)">Definir principal</button>
                             }
                           </td>
                           <td class="table-cell--actions">
+                            @if (!veiculoSomenteLeitura) {
                             <button type="button" class="btn btn-secondary btn--sm btn--table-action-danger" (click)="removerVinculoMotorista(m.id)">Remover</button>
+                            }
                           </td>
                         </tr>
                       }

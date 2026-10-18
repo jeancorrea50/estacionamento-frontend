@@ -734,6 +734,7 @@
                           </td>
                           <td class="table-cell--actions">
                             <div class="table-actions">
+                              <button type="button" class="btn btn-secondary btn--sm btn--table-action" (click)="visualizarVeiculoFrota(v, $event)">Visualizar</button>
                               @if (canAlterarVeiculo) {
                                 <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v, $event)">Editar</button>
                               }
@@ -857,6 +858,7 @@
                         </td>
                         <td class="table-cell--actions">
                           <div class="table-actions">
+                            <button type="button" class="btn btn-secondary btn--sm btn--table-action" (click)="visualizarCondutorFrota(c)">Visualizar</button>
                             @if (canAlterarMotorista) {
                               <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarCondutor(c)">Editar</button>
                             }

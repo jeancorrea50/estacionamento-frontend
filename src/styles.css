@@ -2324,7 +2324,8 @@ html.theme-dark .trn-view-dialog-panel {
 
 .trn-view-dialog-panel .mat-mdc-dialog-component-host,
 .trn-view-dialog-panel app-transportadora-view-dialog,
-.trn-view-dialog-panel app-estacionamento-view-dialog {
+.trn-view-dialog-panel app-estacionamento-view-dialog,
+.trn-view-dialog-panel app-cadastro-view-dialog {
   display: block;
   background: var(--trn-view-dialog-surface) !important;
   color: var(--trn-view-dialog-text) !important;

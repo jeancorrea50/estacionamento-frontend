@@ -39,6 +39,7 @@ import { EstacionamentoFormStepService } from '../../services/estacionamento-for
 import { ToastService } from '../../../../core/api/services/toast.service';
 import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { BancoDadosConexaoService } from '../../../gerenciamento/services/banco-dados-conexao.service';
 import type { BancoDadosConexaoSelect } from '../../../gerenciamento/models/banco-dados-conexao.models';
 import type { TipoTarifaAvulsa } from '../../../configuracoes/models/estacionamento-configuracao.models';
@@ -130,7 +131,15 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   /** Opções de perfil BancoDadosConexao (Admin). */
   conexoesOpcoes: BancoDadosConexaoSelect[] = [];
   readonly isAdmin = inject(AuthService).isAdmin();
+  private readonly permissionCache = inject(PermissionCacheService);
   private readonly bancoDadosApi = inject(BancoDadosConexaoService);
+
+  get podePersistirEstacionamento(): boolean {
+    if (this.isAdmin || this.permissionCache.has('*')) return true;
+    return this.id == null
+      ? this.permissionCache.allows('estacionamento', 'gravar')
+      : this.permissionCache.allows('estacionamento', 'alterar');
+  }
   private readonly auth = inject(AuthService);
   /** URL da foto em exibição ampliada (lightbox). */
   fotoAmpliadaUrl: string | null = null;
@@ -325,7 +334,15 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       this.payloadMerge = null;
       this.stepService.reset();
       this.atualizarValidadoresCnpj();
+      this.aplicarSomenteLeituraEstacionamento();
     }
+  }
+
+  /** Sem gravar/alterar o formulário aberto por "Mais informações" fica só para leitura. */
+  private aplicarSomenteLeituraEstacionamento(): void {
+    if (!this.form) return;
+    if (this.podePersistirEstacionamento) this.form.enable({ emitEvent: false });
+    else this.form.disable({ emitEvent: false });
   }
 
   ngOnDestroy(): void {
@@ -837,6 +854,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
    * Cadastro novo sem id: delega a `salvarCadastroEstacionamento` (POST completo).
    */
   salvarDadosBancarios(): void {
+    if (!this.podePersistirEstacionamento) return;
     if (this.salvandoDadosBancarios || this.salvando) return;
     if (this.bankTabInvalid) {
       this.form.get('titularRazaoSocial')?.markAsTouched();
@@ -1064,9 +1082,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
             if (hasContato) {
               this.contatosOpen = true;
             }
-            if (this.form.invalid) {
+            if (this.form.invalid && this.podePersistirEstacionamento) {
               this.form.markAllAsTouched();
             }
+            this.aplicarSomenteLeituraEstacionamento();
           } else {
             this.erro = 'Registro não encontrado.';
           }
@@ -1115,6 +1134,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
    * Configuração Valores vai no mesmo payload (`configuracaoValores`).
    */
   private salvarCadastroEstacionamento(stayOnPage = false): void {
+    if (!this.podePersistirEstacionamento) return;
     if (this.salvando) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -1448,6 +1468,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
    * Upload de fotos via API UploadFotos (Azure). Valida quantidade e tipo; após sucesso recarrega a lista.
    */
   private uploadarArquivosFotos(files: File[]): void {
+    if (!this.podePersistirEstacionamento) return;
     if (this.id == null || !Number.isFinite(this.id)) {
       this.toast.warning('Salve o cadastro antes de adicionar fotos.');
       return;
@@ -1495,6 +1516,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   }
 
   removerFoto(index: number): void {
+    if (!this.podePersistirEstacionamento) return;
     const item = this.fotoItems[index];
     if (!item) return;
     if (item.file && item.url.startsWith('blob:')) {

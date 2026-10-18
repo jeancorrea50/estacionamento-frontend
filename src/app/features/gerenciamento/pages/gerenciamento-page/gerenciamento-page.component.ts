@@ -126,6 +126,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   saveError = signal<string | null>(null);
   saving = signal(false);
   carregandoDetalhe = signal(false);
+  usuarioSomenteLeitura = false;
   mostrarSenha = false;
   mostrarConfirmarSenha = false;
 
@@ -516,15 +517,21 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  abrirEditar(item: UsuarioGerenciamentoItem): void {
-    if (!this.canAlterar) {
+  abrirMaisInformacoes(item: UsuarioGerenciamentoItem): void {
+    const somenteLeitura = !this.canAlterar || !this.podeEditarUsuario(item);
+    this.abrirEditar(item, somenteLeitura);
+  }
+
+  abrirEditar(item: UsuarioGerenciamentoItem, somenteLeitura = false): void {
+    if (!somenteLeitura && !this.canAlterar) {
       this.toast.error('Você não possui permissão para editar usuários (usuario.alterar).');
       return;
     }
-    if (!this.podeEditarUsuario(item)) {
+    if (!somenteLeitura && !this.podeEditarUsuario(item)) {
       this.toast.error('Somente Administrador pode editar usuário com perfil Admin.');
       return;
     }
+    this.usuarioSomenteLeitura = somenteLeitura;
     if (!item.id) {
       return;
     }
@@ -647,6 +654,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   fecharModalForm(): void {
+    this.usuarioSomenteLeitura = false;
     this.modalFormOpen.set(false);
     this.saveError.set(null);
     this.mostrarSenha = false;
@@ -895,6 +903,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   salvar(): void {
+    if (this.usuarioSomenteLeitura) return;
+    if (this.isEdit() && !this.canAlterar) return;
+    if (!this.isEdit() && !this.podeCadastrarUsuario) return;
     this.saveError.set(null);
     if (!this.form.nome?.trim() || !this.form.email?.trim()) {
       this.saveError.set('Preencha nome e e-mail.');

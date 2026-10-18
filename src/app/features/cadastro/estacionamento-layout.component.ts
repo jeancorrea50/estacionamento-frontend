@@ -13,6 +13,7 @@ import {
   Estacionamento_STEP_LABELS
 } from './services/estacionamento-form-step.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PermissionCacheService } from '../../core/services/permission-cache.service';
 
 @Component({
   selector: 'app-estacionamento-layout',
@@ -26,6 +27,22 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
   readonly stepService = inject(EstacionamentoFormStepService);
   readonly toolbar = inject(EstacionamentoToolbarService);
   readonly isAdmin = inject(AuthService).isAdmin();
+  private readonly permissionCache = inject(PermissionCacheService);
+
+  get podeGravar(): boolean {
+    return this.isAdmin || this.permissionCache.allows('estacionamento', 'gravar');
+  }
+
+  get podeAlterar(): boolean {
+    return this.isAdmin || this.permissionCache.allows('estacionamento', 'alterar');
+  }
+
+  get podeSalvarCabecalho(): boolean {
+    const url = this.router.url;
+    if (url.includes('estacionamento/novo')) return this.podeGravar;
+    if (url.includes('estacionamento/editar')) return this.podeAlterar;
+    return false;
+  }
 
   /** True quando a rota é novo ou editar (formulário com stepper). */
   showStepper = signal(false);
@@ -94,6 +111,7 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
 
   /** Salvar no cabeçalho: delega ao formulário (Cadastro ou Dados Bancários). */
   onHeaderSalvar(): void {
+    if (!this.podeSalvarCabecalho) return;
     this.stepService.requestSaveFromHeader();
   }
 }

@@ -38,6 +38,7 @@ import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { TrnStatusCadastroPillComponent } from '../../components/trn-status-cadastro-pill/trn-status-cadastro-pill.component';
 import { TransportadoraViewDialogComponent } from '../../components/transportadora-view-dialog/transportadora-view-dialog.component';
+import { CadastroViewDialogComponent } from '../../components/cadastro-view-dialog/cadastro-view-dialog.component';
 import { ConvidarTransportadoraDialogComponent } from '../../components/convidar-transportadora-dialog/convidar-transportadora-dialog.component';
 import { ConviteTransportadoraService } from '../../services/convite-transportadora.service';
 import {
@@ -192,6 +193,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   showVeiculoForm = false;
   veiculoForm!: FormGroup;
   veiculoEditId: number | null = null;
+  veiculoSomenteLeitura = false;
+  motoristaSomenteLeitura = false;
   salvandoVeiculo = false;
   /**
    * Único critério de habilitação do botão "Salvar veículo" (app zoneless):
@@ -956,6 +959,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         );
         // Evita reconsulta CNPJ sobrescrever Status após hidratar de /Transportadora/{id}.
         this.ultimoCnpjConsultado = this.cnpjService.normalizeCnpj(dto.cnpj);
+        if (this.canAlterar) this.transportadoraForm.enable({ emitEvent: false });
+        else this.transportadoraForm.disable({ emitEvent: false });
         // Cada aba carrega o próprio endpoint (Frota ≠ Motoristas).
         if (this.activeTab === 'frota') this.carregarVeiculos();
         if (this.activeTab === 'motoristas') this.carregarCondutores();
@@ -1402,6 +1407,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   abrirNovoVeiculo(event?: Event): void {
     event?.stopPropagation();
     if (!this.canGravarVeiculo) return;
+    this.veiculoSomenteLeitura = false;
+    this.veiculoForm?.enable({ emitEvent: false });
     if (!this.veiculoForm) {
       this.criarFormVeiculo();
     }
@@ -1464,9 +1471,41 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     }
   }
 
-  editarVeiculo(v: VeiculoListItemDTO, event?: Event): void {
+  visualizarVeiculoFrota(v: VeiculoListItemDTO, event?: Event): void {
     event?.stopPropagation();
-    if (!this.canAlterarVeiculo) return;
+    const motoristas = (v.motoristas ?? [])
+      .map((m) => m.nome?.trim())
+      .filter((nome): nome is string => !!nome)
+      .join(', ');
+    const ref = this.dialog.open(CadastroViewDialogComponent, {
+      width: '520px',
+      maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
+      data: {
+        titulo: 'Visualizar veículo',
+        linhas: [
+          { label: 'ID', valor: String(v.id) },
+          { label: 'Placa', valor: this.formatPlacaFrotaGrid(v.placa) || '—' },
+          { label: 'Marca / modelo', valor: v.marcaModelo?.trim() || '—' },
+          { label: 'Cor', valor: v.cor?.trim() || '—' },
+          { label: 'Ano', valor: String(v.anoFabricacao ?? v.anoModelo ?? '—') },
+          { label: 'Tipo de carga', valor: this.labelTipoCarga(v.tipoCarga) },
+          { label: 'Centro de custo', valor: v.centroCusto?.trim() || '—' },
+          { label: 'Motoristas', valor: motoristas || '—' },
+          { label: 'Status', valor: v.ativo ? 'Ativo' : 'Inativo' },
+        ],
+      },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') this.editarVeiculo(v, undefined, !this.canAlterarVeiculo);
+    });
+  }
+
+  editarVeiculo(v: VeiculoListItemDTO, event?: Event, somenteLeitura = false): void {
+    event?.stopPropagation();
+    if (!somenteLeitura && !this.canAlterarVeiculo) return;
+    this.veiculoSomenteLeitura = somenteLeitura;
+    this.veiculoForm?.enable({ emitEvent: false });
     if (!this.veiculoForm) {
       this.criarFormVeiculo();
     }
@@ -1497,6 +1536,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.atualizarPlacaFrotaValida(placaLista);
     this.modalFrotaTab = 'veiculo';
     this.ensureTransportadoraListForFrota();
+    this.aplicarLeituraVeiculoFrota();
     this.agendarAbrirModalVeiculo();
 
     const tid = v.transportadoraId ?? this.transportadoraId;
@@ -1528,6 +1568,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
         this.veiculoForm.get('placa')?.updateValueAndValidity({ emitEvent: false });
         this.atualizarPlacaFrotaValida(placaFinal);
         this.aplicarVinculosMotoristasDoVeiculoDto(dto);
+        this.aplicarLeituraVeiculoFrota();
         this.cdr.markForCheck();
       }
     }, () => {
@@ -1639,6 +1680,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     if (event && Date.now() < this.bloquearFecharModalAte) {
       return;
     }
+    this.veiculoSomenteLeitura = false;
+    this.veiculoForm?.enable({ emitEvent: false });
     this.showVeiculoForm = false;
     this.frotaMotoristaModalAberto = false;
     this.modalFrotaTab = 'veiculo';
@@ -1787,7 +1830,14 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     return `${partes[0][0] ?? ''}${partes[1][0] ?? ''}`.toUpperCase();
   }
 
+  private aplicarLeituraVeiculoFrota(): void {
+    if (!this.veiculoForm) return;
+    if (this.veiculoSomenteLeitura) this.veiculoForm.disable({ emitEvent: false });
+    else this.veiculoForm.enable({ emitEvent: false });
+  }
+
   removerVinculoMotorista(id: number): void {
+    if (this.veiculoSomenteLeitura) return;
     const alvo = this.motoristasVinculadosFrota.find((m) => m.id === id);
     this.motoristasVinculadosFrota = this.motoristasVinculadosFrota.filter((m) => m.id !== id);
     if (alvo?.principal) {
@@ -1803,6 +1853,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   definirVinculoPrincipal(id: number): void {
+    if (this.veiculoSomenteLeitura) return;
     const escolhido = this.motoristasVinculadosFrota.find((m) => m.id === id);
     if (!escolhido) return;
     this.definirMotoristaPrincipal(escolhido.id, escolhido.nome);
@@ -2113,6 +2164,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   abrirNovoCondutor(): void {
     if (!this.canGravarMotorista) return;
+    this.motoristaSomenteLeitura = false;
+    this.motoristaForm?.enable({ emitEvent: false });
     if (!this.motoristaForm) {
       this.criarFormMotorista();
     }
@@ -2137,6 +2190,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Fecha o modal Motorista (Fechar, X ou clique fora). */
   fecharModalCondutor(): void {
+    this.motoristaSomenteLeitura = false;
+    this.motoristaForm?.enable({ emitEvent: false });
     this.showCondutorForm = false;
     this.limparEstadoLookupMotorista();
   }
@@ -2408,8 +2463,34 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       });
   }
 
-  editarCondutor(c: MotoristaListItemDTO): void {
-    if (!this.canAlterarMotorista) return;
+  visualizarCondutorFrota(c: MotoristaListItemDTO): void {
+    const ref = this.dialog.open(CadastroViewDialogComponent, {
+      width: '520px',
+      maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
+      data: {
+        titulo: 'Visualizar motorista',
+        linhas: [
+          { label: 'ID', valor: String(c.id) },
+          { label: 'Nome', valor: c.nomeCompleto?.trim() || '—' },
+          { label: 'CPF', valor: this.formatCpfCondutor(c.cpf) || '—' },
+          { label: 'Celular', valor: this.formatTelefoneCondutor(c.celular) || '—' },
+          { label: 'E-mail', valor: c.email?.trim() || '—' },
+          { label: 'CNH', valor: c.cnh?.trim() || '—' },
+          { label: 'Vencimento CNH', valor: c.vencimentoCnh?.trim() || '—' },
+          { label: 'Status', valor: c.ativo ? 'Ativo' : 'Inativo' },
+        ],
+      },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') this.editarCondutor(c, !this.canAlterarMotorista);
+    });
+  }
+
+  editarCondutor(c: MotoristaListItemDTO, somenteLeitura = false): void {
+    if (!somenteLeitura && !this.canAlterarMotorista) return;
+    this.motoristaSomenteLeitura = somenteLeitura;
+    this.motoristaForm?.enable({ emitEvent: false });
     if (!this.motoristaForm) {
       this.criarFormMotorista();
     }
@@ -2430,6 +2511,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       });
     });
     this.showCondutorForm = true;
+    this.aplicarLeituraMotoristaFrota();
     this.cdr.detectChanges();
 
     // Complementa celular/e-mail pelo detalhe quando a listagem não trouxer o contato completo.
@@ -2461,9 +2543,16 @@ export class CadastroTransportadoraPageComponent implements OnInit {
             primeiroContatoId: dto.primeiroContatoId ?? this.condutores[idx].primeiroContatoId
           };
         }
+        this.aplicarLeituraMotoristaFrota();
         this.cdr.markForCheck();
       }
     });
+  }
+
+  private aplicarLeituraMotoristaFrota(): void {
+    if (!this.motoristaForm) return;
+    if (this.motoristaSomenteLeitura) this.motoristaForm.disable({ emitEvent: false });
+    else this.motoristaForm.enable({ emitEvent: false });
   }
 
   formatCpfCondutor(cpf: string): string {

@@ -21,6 +21,7 @@ import { ApiError } from '../../../../core/api/models';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 import { CadastroConfirmDialogComponent } from '../../components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
+import { CadastroViewDialogComponent } from '../../components/cadastro-view-dialog/cadastro-view-dialog.component';
 import { cpfCompletoValidator, celularCompletoValidator } from '../../validators/cpf-celular.validator';
 import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 
@@ -64,6 +65,8 @@ export class CadastroMotoristasPageComponent implements OnInit {
   get podeSalvarMotorista(): boolean {
     return this.condutorEditId ? this.canAlterar : this.canGravar;
   }
+
+  motoristaSomenteLeitura = false;
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
@@ -363,6 +366,8 @@ export class CadastroMotoristasPageComponent implements OnInit {
 
   abrirNovoCondutor(): void {
     if (!this.canGravar) return;
+    this.motoristaSomenteLeitura = false;
+    this.motoristaForm.enable({ emitEvent: false });
     this.limparEstadoLookupMotorista();
     this.condutorEditId = null;
     const tidPadrao =
@@ -384,8 +389,35 @@ export class CadastroMotoristasPageComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  editarCondutor(c: MotoristaListItemDTO): void {
-    if (!this.canAlterar) return;
+  visualizarCondutor(item: MotoristaListItemDTO): void {
+    const ref = this.dialog.open(CadastroViewDialogComponent, {
+      width: '520px',
+      maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
+      data: {
+        titulo: 'Visualizar motorista',
+        linhas: [
+          { label: 'ID', valor: String(item.id) },
+          { label: 'Nome', valor: item.nomeCompleto?.trim() || '—' },
+          { label: 'CPF', valor: this.formatCpfCondutor(item.cpf) || '—' },
+          { label: 'E-mail', valor: item.email?.trim() || '—' },
+          { label: 'Celular', valor: this.formatTelefoneCondutor(item.celular) || '—' },
+          { label: 'CNH', valor: item.cnh?.trim() || '—' },
+          { label: 'Vencimento CNH', valor: item.vencimentoCnh?.trim() || '—' },
+          { label: 'Transportadora', valor: this.transportadoraLabel(item.transportadoraId, item.transportadoraNome) },
+          { label: 'Status', valor: item.ativo ? 'Ativo' : 'Inativo' },
+        ],
+      },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') this.editarCondutor(item, !this.canAlterar);
+    });
+  }
+
+  editarCondutor(c: MotoristaListItemDTO, somenteLeitura = false): void {
+    if (!somenteLeitura && !this.canAlterar) return;
+    this.motoristaSomenteLeitura = somenteLeitura;
+    this.motoristaForm.enable({ emitEvent: false });
     this.limparEstadoLookupMotorista();
     this.condutorEditId = c.id;
     this.ultimoCpfMotoristaConsultado = String(c.cpf ?? '').replace(/\D/g, '');
@@ -403,6 +435,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
       });
     });
     this.showCondutorForm = true;
+    this.aplicarLeituraMotorista();
     this.cdr.detectChanges();
 
     const tid = c.transportadoraId ?? this.transportadoraIdForm;
@@ -421,12 +454,20 @@ export class CadastroMotoristasPageComponent implements OnInit {
             transportadoraId: dto.transportadoraId ?? c.transportadoraId ?? null,
           });
         });
+        this.aplicarLeituraMotorista();
         this.cdr.markForCheck();
       },
     });
   }
 
+  private aplicarLeituraMotorista(): void {
+    if (this.motoristaSomenteLeitura) this.motoristaForm.disable({ emitEvent: false });
+    else this.motoristaForm.enable({ emitEvent: false });
+  }
+
   fecharModalCondutor(): void {
+    this.motoristaSomenteLeitura = false;
+    this.motoristaForm.enable({ emitEvent: false });
     this.showCondutorForm = false;
     this.limparEstadoLookupMotorista();
   }

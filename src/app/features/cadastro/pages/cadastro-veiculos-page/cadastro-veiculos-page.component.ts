@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { CadastroViewDialogComponent } from '../../components/cadastro-view-dialog/cadastro-view-dialog.component';
 import { VeiculoService } from '../../services/veiculo.service';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { MotoristaService } from '../../services/motorista.service';
@@ -53,6 +55,8 @@ export class CadastroVeiculosPageComponent implements OnInit {
   private toast = inject(ToastService);
   private auth = inject(AuthService);
   private permissionCache = inject(PermissionCacheService);
+  private dialog = inject(MatDialog);
+  veiculoSomenteLeitura = false;
 
   get canGravar(): boolean {
     return this.permissionCache.allows('veiculo', 'gravar');
@@ -290,6 +294,8 @@ export class CadastroVeiculosPageComponent implements OnInit {
 
   abrirNovoVeiculo(): void {
     if (!this.canGravar) return;
+    this.veiculoSomenteLeitura = false;
+    this.veiculoForm.enable({ emitEvent: false });
     this.veiculoEditId = null;
     this.modalFrotaTab = 'veiculo';
     this.frotaMotoristaModalAberto = false;
@@ -318,8 +324,41 @@ export class CadastroVeiculosPageComponent implements OnInit {
     this.agendarAbrirModalVeiculo();
   }
 
-  editarVeiculo(v: VeiculoListItemDTO): void {
-    if (!this.canAlterar) return;
+  visualizarVeiculo(item: VeiculoListItemDTO): void {
+    const motoristas = (item.motoristas ?? [])
+      .map((m) => m.nome?.trim())
+      .filter((nome): nome is string => !!nome)
+      .join(', ');
+    const ref = this.dialog.open(CadastroViewDialogComponent, {
+      width: '520px',
+      maxWidth: '96vw',
+      panelClass: 'trn-view-dialog-panel',
+      data: {
+        titulo: 'Visualizar veículo',
+        linhas: [
+          { label: 'ID', valor: String(item.id) },
+          { label: 'Placa', valor: this.formatPlacaFrotaGrid(item.placa) || '—' },
+          { label: 'Marca / modelo', valor: item.marcaModelo?.trim() || '—' },
+          { label: 'Cor', valor: item.cor?.trim() || '—' },
+          { label: 'Ano fabricação', valor: item.anoFabricacao != null ? String(item.anoFabricacao) : '—' },
+          { label: 'Ano modelo', valor: item.anoModelo != null ? String(item.anoModelo) : '—' },
+          { label: 'Tipo de carga', valor: this.labelTipoCarga(item.tipoCarga) },
+          { label: 'Centro de custo', valor: item.centroCusto?.trim() || '—' },
+          { label: 'Transportadora', valor: this.transportadoraLabel(item) },
+          { label: 'Motoristas', valor: motoristas || '—' },
+          { label: 'Status', valor: item.ativo ? 'Ativo' : 'Inativo' },
+        ],
+      },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result === 'edit') this.editarVeiculo(item, !this.canAlterar);
+    });
+  }
+
+  editarVeiculo(v: VeiculoListItemDTO, somenteLeitura = false): void {
+    if (!somenteLeitura && !this.canAlterar) return;
+    this.veiculoSomenteLeitura = somenteLeitura;
+    this.veiculoForm.enable({ emitEvent: false });
     const { marca, modelo } = splitMarcaModelo(v.marcaModelo);
     this.veiculoEditId = v.id;
     this.motoristasVinculadosFrota = [];
@@ -340,6 +379,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
     });
     this.atualizarPlacaFrotaValida(placaLista);
     this.modalFrotaTab = 'veiculo';
+    this.aplicarLeituraVeiculo();
     this.agendarAbrirModalVeiculo();
 
     const tid = v.transportadoraId ?? this.transportadoraIdForm ?? this.filtroTransportadoraId;
@@ -368,6 +408,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
       });
       this.atualizarPlacaFrotaValida(placaFinal);
       this.aplicarVinculosMotoristasDoVeiculoDto(dto);
+      this.aplicarLeituraVeiculo();
       this.cdr.markForCheck();
     });
   }
@@ -513,6 +554,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   definirVinculoPrincipal(id: number): void {
+    if (this.veiculoSomenteLeitura) return;
     const escolhido = this.motoristasVinculadosFrota.find((m) => m.id === id);
     if (!escolhido) return;
     this.definirMotoristaPrincipal(escolhido.id, escolhido.nome);
@@ -520,6 +562,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   removerVinculoMotorista(id: number): void {
+    if (this.veiculoSomenteLeitura) return;
     const alvo = this.motoristasVinculadosFrota.find((m) => m.id === id);
     this.motoristasVinculadosFrota = this.motoristasVinculadosFrota.filter((m) => m.id !== id);
     if (alvo?.principal) {
@@ -544,8 +587,15 @@ export class CadastroVeiculosPageComponent implements OnInit {
     return `${partes[0][0] ?? ''}${partes[1][0] ?? ''}`.toUpperCase();
   }
 
+  private aplicarLeituraVeiculo(): void {
+    if (this.veiculoSomenteLeitura) this.veiculoForm.disable({ emitEvent: false });
+    else this.veiculoForm.enable({ emitEvent: false });
+  }
+
   fecharModalFrota(event?: Event): void {
     if (event && Date.now() < this.bloquearFecharModalAte) return;
+    this.veiculoSomenteLeitura = false;
+    this.veiculoForm.enable({ emitEvent: false });
     this.showVeiculoForm = false;
     this.frotaMotoristaModalAberto = false;
     this.modalFrotaTab = 'veiculo';

@@ -945,6 +945,7 @@
                 @if (fotoLoading) {
                   <p class="foto-loading">Carregando fotos…</p>
                 } @else {
+                @if (podePersistirEstacionamento) {
                 <div
                   class="foto-drop-zone"
                   [class.foto-drop-zone--over]="fotoDragOver"
@@ -975,6 +976,7 @@
                   </div>
                 </div>
                 }
+                }
                 @if (fotoError) {
                   <span class="field__error">{{ fotoError }}</span>
                 }
@@ -995,6 +997,7 @@
                             <span class="esteira-fotos__badge-principal" aria-hidden="true">Principal</span>
                           }
                         </button>
+                        @if (podePersistirEstacionamento) {
                         <button
                           type="button"
                           class="esteira-fotos__set-principal"
@@ -1013,6 +1016,7 @@
                         >
                           {{ fotoDeleting ? 'Removendo…' : 'Remover' }}
                         </button>
+                        }
                       </div>
                     }
                   </div>
@@ -1067,6 +1071,7 @@
           @if (currentStep === 2) {
             <button type="button" class="btn btn-secondary" (click)="stepAnterior()">Anterior</button>
             <button type="button" class="btn btn-primary" (click)="proximoStep()">Próximo</button>
+            @if (podePersistirEstacionamento) {
             <button
               type="button"
               class="btn btn-primary"
@@ -1075,6 +1080,7 @@
             >
               {{ salvandoDadosBancarios ? 'Salvando...' : 'Salvar' }}
             </button>
+            }
           }
           @if (currentStep === 3) {
             <button type="button" class="btn btn-secondary" (click)="stepAnterior()">Anterior</button>

@@ -9,7 +9,7 @@
       </div>
       <div class="page-header__actions estacao-page-header__actions">
         <a class="btn btn-secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
-        @if (stepService.currentStep() === 1 || stepService.currentStep() === 2) {
+        @if ((stepService.currentStep() === 1 || stepService.currentStep() === 2) && podeSalvarCabecalho) {
           <button type="button" class="btn btn-primary" (click)="onHeaderSalvar()">Salvar</button>
         }
       </div>
@@ -76,7 +76,7 @@
         <span class="material-symbols-outlined" aria-hidden="true">search</span>
         Buscar
       </button>
-      @if (isAdmin) {
+      @if (podeGravar) {
         <a class="est-dash-btn est-dash-btn--primary" routerLink="/app/cadastro/estacionamento/novo">
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
           Novo

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, effect, inject, input, output, untracked } from '@angular/core';
+import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { ToastService } from '../../../../../core/api/services/toast.service';
 import { ApiError } from '../../../../../core/api/models';
 import { PaginatedSearchItem } from '../../../../../shared/models/paginated-search.models';
@@ -28,12 +28,12 @@ export class PaginatedEntitySearchHostComponent {
   fechar = output<void>();
   selecionar = output<PaginatedSearchItem>();
 
-  loading = false;
-  itens: PaginatedSearchItem[] = [];
-  totalCount = 0;
-  numeroPagina = 1;
-  tamanhoPagina = 10;
-  termoSincronizado = '';
+  readonly loading = signal(false);
+  readonly itens = signal<PaginatedSearchItem[]>([]);
+  readonly totalCount = signal(0);
+  readonly numeroPagina = signal(1);
+  readonly tamanhoPagina = signal(10);
+  readonly termoSincronizado = signal('');
 
   constructor() {
     effect(() => {
@@ -41,8 +41,8 @@ export class PaginatedEntitySearchHostComponent {
       if (!open) return;
       untracked(() => {
         const inicial = (this.termoAoAbrir() ?? '').trim();
-        this.numeroPagina = 1;
-        this.termoSincronizado = inicial;
+        this.numeroPagina.set(1);
+        this.termoSincronizado.set(inicial);
         this.carregar(inicial);
       });
     });
@@ -128,14 +128,14 @@ export class PaginatedEntitySearchHostComponent {
   }
 
   onPesquisar(termo: string): void {
-    this.termoSincronizado = termo;
-    this.numeroPagina = 1;
+    this.termoSincronizado.set(termo);
+    this.numeroPagina.set(1);
     this.carregar(termo);
   }
 
   onMudarPagina(p: number): void {
-    this.numeroPagina = p;
-    this.carregar(this.termoSincronizado);
+    this.numeroPagina.set(p);
+    this.carregar(this.termoSincronizado());
   }
 
   onSelecionar(item: PaginatedSearchItem): void {
@@ -143,26 +143,26 @@ export class PaginatedEntitySearchHostComponent {
   }
 
   private carregar(termo: string): void {
-    this.loading = true;
+    this.loading.set(true);
     const req$ = this.requestForKind(termo);
     req$.subscribe({
       next: (paged) => {
-        this.loading = false;
-        this.itens = paged.items;
-        this.totalCount = paged.totalCount;
-        this.numeroPagina = paged.numeroPagina;
-        this.tamanhoPagina = paged.tamanhoPagina;
+        this.itens.set(paged.items);
+        this.totalCount.set(paged.totalCount);
+        this.numeroPagina.set(paged.numeroPagina);
+        this.tamanhoPagina.set(paged.tamanhoPagina);
+        this.loading.set(false);
       },
       error: (err: ApiError) => {
-        this.loading = false;
+        this.loading.set(false);
         this.toast.error(err?.message ?? 'Erro ao buscar dados.');
       }
     });
   }
 
   private requestForKind(termo: string) {
-    const p = this.numeroPagina;
-    const s = this.tamanhoPagina;
+    const p = this.numeroPagina();
+    const s = this.tamanhoPagina();
     switch (this.kind()) {
       case 'motorista':
         return this.lookup.buscarMotoristas(termo, p, s, this.transportadoraId());

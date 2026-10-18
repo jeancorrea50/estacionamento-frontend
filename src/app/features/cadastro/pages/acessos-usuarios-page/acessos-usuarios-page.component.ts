@@ -324,8 +324,10 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       },
       error: (err) => {
         this.loading = false;
-        this.erro = err?.message ?? 'Endpoint não encontrado no backend.';
+        const msg = this.mensagemErro(err, 'Não foi possível carregar os usuários.');
+        this.erro = msg;
         this.itens = [];
+        this.avisarSeSemToast(err, msg);
         this.cdr.markForCheck();
       },
     });
@@ -421,9 +423,10 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
         this.perfisList = this.normalizePerfis(body);
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loadingPerfis = false;
         this.perfisList = [];
+        this.avisarSeSemToast(err, 'Não foi possível carregar os perfis.');
         this.cdr.markForCheck();
       },
     });
@@ -587,6 +590,17 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     this.cdr.markForCheck();
   }
 
+  private mensagemErro(err: unknown, fallback: string): string {
+    const e = err as { message?: string };
+    return e?.message?.trim() || fallback;
+  }
+
+  /** O interceptor já mostra o toast do sistema; aqui cobre validação local e erros sem HTTP. */
+  private avisarSeSemToast(err: unknown, message: string): void {
+    if ((err as { toastShown?: boolean })?.toastShown) return;
+    this.toast.error(message);
+  }
+
   validarFormulario(): boolean {
     if (!this.form.nome.trim()) return false;
     if (!this.form.email.trim()) return false;
@@ -604,7 +618,9 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   salvar(): void {
     this.saveError.set(null);
     if (!this.validarFormulario()) {
-      this.saveError.set('Preencha os campos obrigatórios (nome, email, CPF válido, senha no cadastro e vínculo quando exigido).');
+      const msg = 'Preencha os campos obrigatórios (nome, email, CPF válido, senha no cadastro e vínculo quando exigido).';
+      this.saveError.set(msg);
+      this.toast.error(msg);
       this.cdr.markForCheck();
       return;
     }
@@ -652,8 +668,14 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       },
       error: (err: unknown) => {
         this.saving.set(false);
-        const e = err as { message?: string };
-        this.saveError.set(e?.message?.trim() || 'Não foi possível cadastrar o usuário no backend.');
+        const msg = this.mensagemErro(
+          err,
+          this.isEdit()
+            ? 'Não foi possível atualizar o usuário.'
+            : 'Não foi possível cadastrar o usuário.'
+        );
+        this.saveError.set(msg);
+        this.avisarSeSemToast(err, msg);
         this.cdr.markForCheck();
       }
     });

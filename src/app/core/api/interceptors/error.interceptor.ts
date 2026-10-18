@@ -147,12 +147,6 @@ function isConviteTransportadoraRequest(req: HttpRequest<unknown>): boolean {
   );
 }
 
-/** Cadastro de usuário: a tela (modal) exibe a mensagem; evita toast duplicado. */
-function isUsuarioRegisterRequest(req: HttpRequest<unknown>): boolean {
-  const u = req.url.toLowerCase();
-  return u.includes('auth/usuario/register') || u.includes('auth/usuario/registrar');
-}
-
 /**
  * GET da config de horário: 404 = ainda não cadastrada (cenário esperado).
  * O toast genérico atrapalhava o fluxo da aba Horário.
@@ -246,7 +240,6 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         isConfirmarEmailRequest(req) ||
         isPasswordResetPublicRequest(req) ||
         isConviteTransportadoraRequest(req) ||
-        isUsuarioRegisterRequest(req) ||
         isSugerirNomeBancoGet(req) ||
         isMotoristaWriteRequest(req) ||
         (isEstacionamentoConfiguracaoAtualGet(req) &&

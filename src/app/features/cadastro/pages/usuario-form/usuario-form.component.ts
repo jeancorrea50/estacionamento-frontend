@@ -12,6 +12,7 @@ import {
   ApplicationRole,
 } from '../../services/acessos-perfis.service';
 import { AcessosPermissoesService } from '../../services/acessos-permissoes.service';
+import { ToastService } from '../../../../core/api/services/toast.service';
 
 @Component({
   selector: 'app-usuario-form',
@@ -26,6 +27,7 @@ export class UsuarioFormComponent implements OnInit {
   private usuariosService = inject(AcessosUsuariosService);
   private perfisService = inject(AcessosPerfisService);
   private permissoesService = inject(AcessosPermissoesService);
+  private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   id: string | null = null;
@@ -66,7 +68,8 @@ export class UsuarioFormComponent implements OnInit {
           this.form.perfilIds = Array.isArray(u.perfilIds) ? [...u.perfilIds] : [];
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: unknown) => {
+          this.avisarSeSemToast(err, 'Não foi possível carregar o usuário.');
           this.cdr.markForCheck();
         },
       });
@@ -84,10 +87,11 @@ export class UsuarioFormComponent implements OnInit {
         this.perfisList = this.normalizePerfis(body);
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loadingPerfis = false;
         this.perfisErro = 'Não foi possível carregar os perfis.';
         this.perfisList = [];
+        this.avisarSeSemToast(err, this.perfisErro);
         this.cdr.markForCheck();
       },
     });
@@ -102,10 +106,11 @@ export class UsuarioFormComponent implements OnInit {
         this.permissoesList = this.normalizePermissoes(body);
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loadingPermissoes = false;
-        this.permissoesErro = 'Endpoint de permissões não encontrado no backend.';
+        this.permissoesErro = 'Não foi possível carregar as permissões.';
         this.permissoesList = [];
+        this.avisarSeSemToast(err, this.permissoesErro);
         this.cdr.markForCheck();
       },
     });
@@ -159,6 +164,11 @@ export class UsuarioFormComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  private avisarSeSemToast(err: unknown, message: string): void {
+    if ((err as { toastShown?: boolean })?.toastShown) return;
+    this.toast.error(message);
+  }
+
   salvar(): void {
     this.saveError = null;
     this.saving = true;
@@ -182,14 +192,18 @@ export class UsuarioFormComponent implements OnInit {
     obs.subscribe({
       next: () => {
         this.saving = false;
+        this.toast.success(this.isEdit ? 'Usuário atualizado com sucesso.' : 'Usuário cadastrado com sucesso.');
         this.router.navigate(['/app/administracao/usuario']);
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.saving = false;
-        this.saveError = this.isEdit
+        const fallback = this.isEdit
           ? USUARIO_EDITAR_ENDPOINT_NAO_DISPONIVEL
           : USUARIO_ENDPOINT_NAO_DISPONIVEL;
+        const msg = (err as { message?: string })?.message?.trim() || fallback;
+        this.saveError = msg;
+        this.avisarSeSemToast(err, msg);
         this.cdr.markForCheck();
       },
     });

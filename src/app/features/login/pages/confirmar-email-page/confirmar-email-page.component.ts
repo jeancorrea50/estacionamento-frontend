@@ -26,6 +26,14 @@ export class ConfirmarEmailPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((m) => {
+      const codigo = m.get('c') ?? m.get('codigo');
+      if (codigo) {
+        this.status.set('loading');
+        this.cdr.markForCheck();
+        this.confirmar({ codigo });
+        return;
+      }
+
       const userIdStr = m.get('userId') ?? m.get('userid');
       const token = m.get('token') ?? m.get('Token');
       if (!userIdStr || !token) {
@@ -43,25 +51,29 @@ export class ConfirmarEmailPageComponent implements OnInit {
       }
       this.status.set('loading');
       this.cdr.markForCheck();
-      this.api.confirmarEmail({ userId, token: token }).subscribe({
-        next: () => {
-          this.status.set('ok');
-          this.message.set('E-mail confirmado. Você já pode fazer login.');
-          this.cdr.markForCheck();
-          setTimeout(() => this.router.navigateByUrl(this.linkLogin), 2000);
-        },
-        error: (err: unknown) => {
-          this.status.set('error');
-          const m =
-            (err as ApiError)?.message ??
-            (err as HttpErrorResponse)?.error?.message ??
-            (typeof (err as HttpErrorResponse)?.error === 'string'
-              ? (err as HttpErrorResponse).error
-              : 'Não foi possível confirmar o e-mail. Tente novamente ou contate o suporte.');
-          this.message.set(typeof m === 'string' ? m : 'Falha na confirmação.');
-          this.cdr.markForCheck();
-        },
-      });
+      this.confirmar({ userId, token });
+    });
+  }
+
+  private confirmar(dto: { userId?: number; token?: string; codigo?: string }): void {
+    this.api.confirmarEmail(dto).subscribe({
+      next: () => {
+        this.status.set('ok');
+        this.message.set('E-mail confirmado. Você já pode fazer login.');
+        this.cdr.markForCheck();
+        setTimeout(() => this.router.navigateByUrl(this.linkLogin), 2000);
+      },
+      error: (err: unknown) => {
+        this.status.set('error');
+        const m =
+          (err as ApiError)?.message ??
+          (err as HttpErrorResponse)?.error?.message ??
+          (typeof (err as HttpErrorResponse)?.error === 'string'
+            ? (err as HttpErrorResponse).error
+            : 'Não foi possível confirmar o e-mail. Tente novamente ou contate o suporte.');
+        this.message.set(typeof m === 'string' ? m : 'Falha na confirmação.');
+        this.cdr.markForCheck();
+      },
     });
   }
 }

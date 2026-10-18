@@ -124,8 +124,10 @@ export interface RegistroResult {
 }
 
 export interface ConfirmarEmailRequest {
-  userId: number;
-  token: string;
+  userId?: number;
+  token?: string;
+  /** userId e token cifrados (query c do e-mail). */
+  codigo?: string;
 }
 
 export interface LoginEnvelopeBody {

@@ -812,7 +812,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Abre modal de convite (botão Convidar). */
   abrirModalConvite(): void {
-    if (!this.canGravar) return;
     if (this.somentePropriaTransportadora) {
       this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
       return;

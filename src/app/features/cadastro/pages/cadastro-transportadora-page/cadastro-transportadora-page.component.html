@@ -87,7 +87,7 @@
             <span class="est-dash-btn__text">Importar dados</span>
           </button>
         }
-        @if (!somentePropriaTransportadora && canGravar) {
+        @if (!somentePropriaTransportadora) {
           <button
             type="button"
             class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
@@ -97,6 +97,8 @@
             <span class="material-symbols-outlined" aria-hidden="true">mail</span>
             <span class="est-dash-btn__text">Convidar</span>
           </button>
+        }
+        @if (!somentePropriaTransportadora && canGravar) {
           <button
             type="button"
             class="est-dash-btn est-dash-btn--primary"

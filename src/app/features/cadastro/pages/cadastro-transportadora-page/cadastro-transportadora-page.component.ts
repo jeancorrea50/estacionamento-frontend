@@ -20,6 +20,7 @@ import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.direc
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 import { ApiError } from '../../../../core/api/models';
 import {
@@ -83,6 +84,55 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private motoristaService = inject(MotoristaService);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
+  private permissionCache = inject(PermissionCacheService);
+
+  get canGravar(): boolean {
+    return this.permissionCache.allows('transportadora', 'gravar');
+  }
+
+  get canAlterar(): boolean {
+    return this.permissionCache.allows('transportadora', 'alterar');
+  }
+
+  get canExcluir(): boolean {
+    return this.permissionCache.allows('transportadora', 'excluir');
+  }
+
+  get podeSalvarTransportadora(): boolean {
+    return this.transportadoraId != null && this.transportadoraId > 0 ? this.canAlterar : this.canGravar;
+  }
+
+  get canGravarVeiculo(): boolean {
+    return this.permissionCache.allows('veiculo', 'gravar');
+  }
+
+  get canAlterarVeiculo(): boolean {
+    return this.permissionCache.allows('veiculo', 'alterar');
+  }
+
+  get canExcluirVeiculo(): boolean {
+    return this.permissionCache.allows('veiculo', 'excluir');
+  }
+
+  get podeSalvarVeiculo(): boolean {
+    return this.veiculoEditId ? this.canAlterarVeiculo : this.canGravarVeiculo;
+  }
+
+  get canGravarMotorista(): boolean {
+    return this.permissionCache.allows('motorista', 'gravar');
+  }
+
+  get canAlterarMotorista(): boolean {
+    return this.permissionCache.allows('motorista', 'alterar');
+  }
+
+  get canExcluirMotorista(): boolean {
+    return this.permissionCache.allows('motorista', 'excluir');
+  }
+
+  get podeSalvarMotorista(): boolean {
+    return this.condutorEditId ? this.canAlterarMotorista : this.canGravarMotorista;
+  }
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
@@ -762,6 +812,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Abre modal de convite (botão Convidar). */
   abrirModalConvite(): void {
+    if (!this.canGravar) return;
     if (this.somentePropriaTransportadora) {
       this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
       return;
@@ -783,6 +834,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Abre o formulário de inserção de transportadora (botão + Novo). */
   novoTransportadora(): void {
+    if (!this.canGravar) return;
     if (this.somentePropriaTransportadora) {
       this.toast.error('Seu perfil permite apenas editar a própria transportadora.');
       return;
@@ -825,6 +877,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   reenviarConvite(item: TransportadoraListItemDTO): void {
+    if (!this.canGravar) return;
     const id = item.conviteId ?? item.id;
     if (!id || id <= 0) {
       this.toast.error('Convite não encontrado para reenvio.');
@@ -841,6 +894,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   cancelarConvite(item: TransportadoraListItemDTO): void {
+    if (!this.canAlterar) return;
     const id = item.conviteId ?? item.id;
     if (!id || id <= 0) {
       this.toast.error('Convite não encontrado.');
@@ -938,6 +992,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   salvarTransportadora(): void {
+    if (!this.podeSalvarTransportadora) return;
     if (this.transportadoraForm.invalid) {
       this.transportadoraForm.markAllAsTouched();
       return;
@@ -1060,6 +1115,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   excluirTransportadora(): void {
+    if (!this.canExcluir) return;
     const id = this.transportadoraForm.get('id')?.value;
     if (!id) return;
     if (!confirm('Confirma a exclusão desta transportadora?')) return;
@@ -1078,6 +1134,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Exclusão a partir da tabela de consulta (lista). */
   excluirTransportadoraLista(item: TransportadoraListItemDTO): void {
+    if (!this.canExcluir) return;
     const id = item?.id;
     if (!id || id <= 0) return;
     if (!confirm('Confirma a exclusão desta transportadora?')) return;
@@ -1345,6 +1402,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   abrirNovoVeiculo(event?: Event): void {
     event?.stopPropagation();
+    if (!this.canGravarVeiculo) return;
     if (!this.veiculoForm) {
       this.criarFormVeiculo();
     }
@@ -1409,6 +1467,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   editarVeiculo(v: VeiculoListItemDTO, event?: Event): void {
     event?.stopPropagation();
+    if (!this.canAlterarVeiculo) return;
     if (!this.veiculoForm) {
       this.criarFormVeiculo();
     }
@@ -1491,6 +1550,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   salvarVeiculo(): void {
+    if (!this.podeSalvarVeiculo) return;
     const placa = this.placaFrotaNormalizada;
     if (!placaCompleta(placa)) {
       this.veiculoForm.get('placa')?.markAsTouched();
@@ -1561,6 +1621,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   excluirVeiculo(veiculo: VeiculoListItemDTO): void {
+    if (!this.canExcluirVeiculo) return;
     if (!confirm('Excluir este veículo?')) return;
     if (veiculo.id <= 0) return;
     const tid = veiculo.transportadoraId ?? this.transportadoraId;
@@ -1773,6 +1834,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Abre modal de importação de frota por Excel. */
   abrirImportarDados(): void {
+    if (!this.canGravar) return;
     this.fileDados = null;
     this.showImportarDados = true;
   }
@@ -1839,6 +1901,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   abrirImportarFrota(): void {
+    if (!this.canGravarVeiculo) return;
     if (this.transportadoraId == null) {
       this.toast.error('Salve a transportadora antes de importar a frota.');
       return;
@@ -1855,6 +1918,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Abre modal de importação de condutores por Excel. */
   abrirImportarCondutores(): void {
+    if (!this.canGravarMotorista) return;
     if (this.transportadoraId == null) {
       this.toast.error('Salve a transportadora antes de importar motoristas.');
       return;
@@ -2049,6 +2113,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   abrirNovoCondutor(): void {
+    if (!this.canGravarMotorista) return;
     if (!this.motoristaForm) {
       this.criarFormMotorista();
     }
@@ -2222,6 +2287,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   salvarMotorista(): void {
+    if (!this.podeSalvarMotorista) return;
     if (this.motoristaForm.invalid) {
       this.motoristaForm.markAllAsTouched();
       const cpfCtrl = this.motoristaForm.get('cpf');
@@ -2344,6 +2410,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   editarCondutor(c: MotoristaListItemDTO): void {
+    if (!this.canAlterarMotorista) return;
     if (!this.motoristaForm) {
       this.criarFormMotorista();
     }
@@ -2499,6 +2566,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   excluirCondutor(condutor: MotoristaListItemDTO): void {
+    if (!this.canExcluirMotorista) return;
     if (condutor.id <= 0) return;
 
     const nome = (condutor.nomeCompleto || '').trim() || 'este motorista';

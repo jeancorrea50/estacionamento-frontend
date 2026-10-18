@@ -16,6 +16,7 @@ import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.direc
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ApiError } from '../../../../core/api/models';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
@@ -46,6 +47,23 @@ export class CadastroMotoristasPageComponent implements OnInit {
   private transportadoraService = inject(TransportadoraService);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
+  private permissionCache = inject(PermissionCacheService);
+
+  get canGravar(): boolean {
+    return this.permissionCache.allows('motorista', 'gravar');
+  }
+
+  get canAlterar(): boolean {
+    return this.permissionCache.allows('motorista', 'alterar');
+  }
+
+  get canExcluir(): boolean {
+    return this.permissionCache.allows('motorista', 'excluir');
+  }
+
+  get podeSalvarMotorista(): boolean {
+    return this.condutorEditId ? this.canAlterar : this.canGravar;
+  }
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
@@ -344,6 +362,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   abrirNovoCondutor(): void {
+    if (!this.canGravar) return;
     this.limparEstadoLookupMotorista();
     this.condutorEditId = null;
     const tidPadrao =
@@ -366,6 +385,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   editarCondutor(c: MotoristaListItemDTO): void {
+    if (!this.canAlterar) return;
     this.limparEstadoLookupMotorista();
     this.condutorEditId = c.id;
     this.ultimoCpfMotoristaConsultado = String(c.cpf ?? '').replace(/\D/g, '');
@@ -422,6 +442,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   salvarMotorista(): void {
+    if (!this.podeSalvarMotorista) return;
     if (this.motoristaForm.invalid) {
       this.motoristaForm.markAllAsTouched();
       return;
@@ -521,6 +542,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   excluirCondutor(condutor: MotoristaListItemDTO): void {
+    if (!this.canExcluir) return;
     if (condutor.id <= 0) return;
     const nome = (condutor.nomeCompleto || '').trim() || 'este motorista';
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
@@ -555,6 +577,7 @@ export class CadastroMotoristasPageComponent implements OnInit {
   }
 
   abrirImportarCondutores(): void {
+    if (!this.canGravar) return;
     this.fileCondutores = null;
     this.importTransportadoraId =
       this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId) ?? null;

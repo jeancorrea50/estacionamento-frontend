@@ -153,26 +153,28 @@
                         >
                           <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
                         </button>
-                        <button
-                          type="button"
-                          class="usuarios-icon-btn"
-                          (click)="abrirEditar(item)"
-                          [disabled]="!canAlterar || !podeEditarUsuario(item)"
-                          title="Editar"
-                          aria-label="Editar usuário"
-                        >
-                          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="usuarios-icon-btn usuarios-icon-btn--danger"
-                          (click)="excluir(item)"
-                          [disabled]="!canExcluir"
-                          title="Excluir"
-                          aria-label="Excluir usuário"
-                        >
-                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                        </button>
+                        @if (canAlterar && podeEditarUsuario(item)) {
+                          <button
+                            type="button"
+                            class="usuarios-icon-btn"
+                            (click)="abrirEditar(item)"
+                            title="Editar"
+                            aria-label="Editar usuário"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                          </button>
+                        }
+                        @if (canExcluir) {
+                          <button
+                            type="button"
+                            class="usuarios-icon-btn usuarios-icon-btn--danger"
+                            (click)="excluir(item)"
+                            title="Excluir"
+                            aria-label="Excluir usuário"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                          </button>
+                        }
                       </td>
                     </tr>
                   }
@@ -547,9 +549,11 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharModalForm()">Cancelar</button>
-        <button type="button" class="btn btn-primary" [disabled]="saving() || carregandoDetalhe()" (click)="salvar()">
-          {{ saving() ? 'Salvando...' : 'Salvar' }}
-        </button>
+        @if (isEdit() ? canAlterar : podeCadastrarUsuario) {
+          <button type="button" class="btn btn-primary" [disabled]="saving() || carregandoDetalhe()" (click)="salvar()">
+            {{ saving() ? 'Salvando...' : 'Salvar' }}
+          </button>
+        }
       </div>
     </div>
   </div>

@@ -47,18 +47,20 @@
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
           Buscar
         </button>
-        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="downloadModeloFrota()" [disabled]="baixandoModeloFrota">
-          <span class="material-symbols-outlined" aria-hidden="true">download</span>
-          {{ baixandoModeloFrota ? 'Baixando…' : 'Download modelo' }}
-        </button>
-        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirImportarFrota()">
-          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-          Importar frota
-        </button>
-        <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovoVeiculo()">
-          <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          Novo
-        </button>
+        @if (canGravar) {
+          <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="downloadModeloFrota()" [disabled]="baixandoModeloFrota">
+            <span class="material-symbols-outlined" aria-hidden="true">download</span>
+            {{ baixandoModeloFrota ? 'Baixando…' : 'Download modelo' }}
+          </button>
+          <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirImportarFrota()">
+            <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+            Importar frota
+          </button>
+          <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovoVeiculo()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo
+          </button>
+        }
       </section>
 
       @if (erroList) {
@@ -108,12 +110,16 @@
                     </td>
                     <td class="trn-table__acoes">
                       <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para veículo ' + item.id">
-                        <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarVeiculo(item)">
-                          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                        </button>
-                        <button type="button" class="trn-act-btn trn-act-btn--danger" title="Excluir" (click)="excluirVeiculo(item)">
-                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                        </button>
+                        @if (canAlterar) {
+                          <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarVeiculo(item)">
+                            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                          </button>
+                        }
+                        @if (canExcluir) {
+                          <button type="button" class="trn-act-btn trn-act-btn--danger" title="Excluir" (click)="excluirVeiculo(item)">
+                            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                          </button>
+                        }
                       </div>
                     </td>
                   </tr>
@@ -302,9 +308,11 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
-            <button type="button" class="btn btn-primary" [disabled]="!placaFrotaValida || salvandoVeiculo || veiculoForm.invalid" (click)="salvarVeiculo()">
-              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
-            </button>
+            @if (podeSalvarVeiculo) {
+              <button type="button" class="btn btn-primary" [disabled]="!placaFrotaValida || salvandoVeiculo || veiculoForm.invalid" (click)="salvarVeiculo()">
+                {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
+              </button>
+            }
           </div>
         </form>
       </div>

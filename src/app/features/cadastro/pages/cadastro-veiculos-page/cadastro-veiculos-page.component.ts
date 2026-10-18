@@ -10,6 +10,7 @@ import { TransportadoraListItemDTO } from '../../models/transportadora.dto';
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { EstSummaryMetricComponent } from '../../components/est-summary-metric/est-summary-metric.component';
 import { EstStatusPillEstacionamentoComponent } from '../../components/est-status-pill-estacionamento/est-status-pill-estacionamento.component';
 import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/components/modal-busca-motorista/modal-busca-motorista.component';
@@ -51,6 +52,23 @@ export class CadastroVeiculosPageComponent implements OnInit {
   private motoristaService = inject(MotoristaService);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
+  private permissionCache = inject(PermissionCacheService);
+
+  get canGravar(): boolean {
+    return this.permissionCache.allows('veiculo', 'gravar');
+  }
+
+  get canAlterar(): boolean {
+    return this.permissionCache.allows('veiculo', 'alterar');
+  }
+
+  get canExcluir(): boolean {
+    return this.permissionCache.allows('veiculo', 'excluir');
+  }
+
+  get podeSalvarVeiculo(): boolean {
+    return this.veiculoEditId ? this.canAlterar : this.canGravar;
+  }
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
@@ -271,6 +289,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   abrirNovoVeiculo(): void {
+    if (!this.canGravar) return;
     this.veiculoEditId = null;
     this.modalFrotaTab = 'veiculo';
     this.frotaMotoristaModalAberto = false;
@@ -300,6 +319,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   editarVeiculo(v: VeiculoListItemDTO): void {
+    if (!this.canAlterar) return;
     const { marca, modelo } = splitMarcaModelo(v.marcaModelo);
     this.veiculoEditId = v.id;
     this.motoristasVinculadosFrota = [];
@@ -353,6 +373,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   excluirVeiculo(veiculo: VeiculoListItemDTO): void {
+    if (!this.canExcluir) return;
     if (!confirm('Excluir este veículo?')) return;
     if (veiculo.id <= 0) return;
     const tid =
@@ -372,6 +393,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   salvarVeiculo(): void {
+    if (!this.podeSalvarVeiculo) return;
     const placa = this.placaFrotaNormalizada;
     if (!placaCompleta(placa)) {
       this.veiculoForm.get('placa')?.markAsTouched();
@@ -535,6 +557,7 @@ export class CadastroVeiculosPageComponent implements OnInit {
   }
 
   abrirImportarFrota(): void {
+    if (!this.canGravar) return;
     this.fileFrota = null;
     this.importTransportadoraId =
       this.resolveTransportadoraIdObrigatoria(this.filtroTransportadoraId) ?? null;

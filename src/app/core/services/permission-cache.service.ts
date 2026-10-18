@@ -74,4 +74,9 @@ export class PermissionCacheService {
   has(key: string): boolean {
     return this.hasAny([key]);
   }
+
+  /** Claim `recurso.acao` ou curinga `*`. */
+  allows(recurso: string, acao: string): boolean {
+    return this.has(`${recurso}.${acao}`) || this.has('*');
+  }
 }

@@ -46,11 +46,22 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
-  /** Permissões alinhadas ao back ([PermissionAuthorize]). */
-  canVisualizar = this.permissionCache.has('usuario.visualizar') || this.permissionCache.hasAny(['*']);
-  canGravar = this.permissionCache.has('usuario.gravar') || this.permissionCache.hasAny(['*']);
-  canAlterar = this.permissionCache.has('usuario.alterar') || this.permissionCache.hasAny(['*']);
-  canExcluir = this.permissionCache.has('usuario.excluir') || this.permissionCache.hasAny(['*']);
+  /** Permissões alinhadas ao back ([PermissionAuthorize]). Lidas do cache a cada checagem. */
+  get canVisualizar(): boolean {
+    return this.permissionCache.has('usuario.visualizar') || this.permissionCache.hasAny(['*']);
+  }
+
+  get canGravar(): boolean {
+    return this.permissionCache.has('usuario.gravar') || this.permissionCache.hasAny(['*']);
+  }
+
+  get canAlterar(): boolean {
+    return this.permissionCache.has('usuario.alterar') || this.permissionCache.hasAny(['*']);
+  }
+
+  get canExcluir(): boolean {
+    return this.permissionCache.has('usuario.excluir') || this.permissionCache.hasAny(['*']);
+  }
 
   get podeCadastrarUsuario(): boolean {
     return this.canGravar && this.opcoesCadastro?.podeCadastrar === true;

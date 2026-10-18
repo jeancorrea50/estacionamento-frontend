@@ -47,18 +47,20 @@
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
           Buscar
         </button>
-        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="downloadModeloCondutores()" [disabled]="baixandoModeloCondutores">
-          <span class="material-symbols-outlined" aria-hidden="true">download</span>
-          {{ baixandoModeloCondutores ? 'Baixando…' : 'Download modelo' }}
-        </button>
-        <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirImportarCondutores()">
-          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-          Importar motoristas
-        </button>
-        <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovoCondutor()">
-          <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          Novo
-        </button>
+        @if (canGravar) {
+          <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="downloadModeloCondutores()" [disabled]="baixandoModeloCondutores">
+            <span class="material-symbols-outlined" aria-hidden="true">download</span>
+            {{ baixandoModeloCondutores ? 'Baixando…' : 'Download modelo' }}
+          </button>
+          <button type="button" class="est-dash-btn est-dash-btn--neutral" (click)="abrirImportarCondutores()">
+            <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+            Importar motoristas
+          </button>
+          <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovoCondutor()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo
+          </button>
+        }
       </section>
 
       @if (erroList) {
@@ -106,12 +108,16 @@
                     </td>
                     <td class="trn-table__acoes">
                       <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para motorista ' + item.id">
-                        <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarCondutor(item)">
-                          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                        </button>
-                        <button type="button" class="trn-act-btn trn-act-btn--danger" title="Excluir" (click)="excluirCondutor(item)">
-                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                        </button>
+                        @if (canAlterar) {
+                          <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editarCondutor(item)">
+                            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                          </button>
+                        }
+                        @if (canExcluir) {
+                          <button type="button" class="trn-act-btn trn-act-btn--danger" title="Excluir" (click)="excluirCondutor(item)">
+                            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                          </button>
+                        }
                       </div>
                     </td>
                   </tr>
@@ -242,9 +248,11 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
-              {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
-            </button>
+            @if (podeSalvarMotorista) {
+              <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
+                {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
+              </button>
+            }
           </div>
         </form>
       </div>

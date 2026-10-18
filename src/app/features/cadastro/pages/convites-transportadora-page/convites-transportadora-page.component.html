@@ -265,7 +265,7 @@
     </div>
 
     <footer class="cvl-modal__foot">
-      @if (podeReenviar(c)) {
+      @if (podeReenviar(c) && canGravar) {
         <button
           type="button"
           class="cvl-btn cvl-btn--primary"
@@ -285,6 +285,8 @@
             WhatsApp
           </button>
         }
+      }
+      @if (podeReenviar(c) && canAlterar) {
         <button
           type="button"
           class="cvl-btn cvl-btn--danger"
@@ -294,7 +296,8 @@
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
           Cancelar
         </button>
-      } @else if (isConcluido(c.status) && c.transportadoraIdCriada) {
+      }
+      @if (!(podeReenviar(c) && (canGravar || canAlterar)) && isConcluido(c.status) && c.transportadoraIdCriada && canAlterar) {
         <a
           class="cvl-btn cvl-btn--ghost"
           [routerLink]="[transportadorasRoute, 'editar', c.transportadoraIdCriada]"

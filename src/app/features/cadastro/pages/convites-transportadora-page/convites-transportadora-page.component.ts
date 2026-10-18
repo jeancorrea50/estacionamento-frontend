@@ -9,6 +9,7 @@ import {
   ConviteTransportadoraDto,
 } from '../../../convite/services/convite-transportadora-api.service';
 import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 
 type StepKey = 1 | 2 | 3 | 4;
 
@@ -22,6 +23,16 @@ type StepKey = 1 | 2 | 3 | 4;
 export class ConvitesTransportadoraPageComponent implements OnInit {
   private readonly api = inject(ConviteTransportadoraApiService);
   private readonly snack = inject(MatSnackBar);
+  private readonly permissionCache = inject(PermissionCacheService);
+
+  /** Convite usa as claims de transportadora: criar/reenviar = gravar, cancelar = alterar. */
+  get canGravar(): boolean {
+    return this.permissionCache.allows('transportadora', 'gravar');
+  }
+
+  get canAlterar(): boolean {
+    return this.permissionCache.allows('transportadora', 'alterar');
+  }
 
   readonly transportadorasRoute = CADASTRO_TRANSPORTADORAS_ROUTE;
   readonly loading = signal(false);
@@ -190,7 +201,7 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
   }
 
   reenviar(c: ConviteTransportadoraDto): void {
-    if (!this.podeReenviar(c) || this.reenviandoId() != null) return;
+    if (!this.canGravar || !this.podeReenviar(c) || this.reenviandoId() != null) return;
     this.reenviandoId.set(c.id);
     this.api
       .reenviar(c.id)
@@ -219,6 +230,7 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
   }
 
   cancelar(c: ConviteTransportadoraDto): void {
+    if (!this.canAlterar) return;
     if (this.isConcluido(c.status) || this.isCancelado(c.status) || this.cancelandoId() != null) {
       return;
     }

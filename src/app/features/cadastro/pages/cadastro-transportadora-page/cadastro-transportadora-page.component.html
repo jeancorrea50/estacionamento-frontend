@@ -9,7 +9,7 @@
         </div>
         <div class="page-header__actions estacao-page-header__actions">
           <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
-          @if (activeTab === 'cadastro') {
+          @if (activeTab === 'cadastro' && podeSalvarTransportadora) {
             <button type="button" class="btn btn-primary" (click)="salvarTransportadora()" [disabled]="salvando">Salvar</button>
           }
         </div>
@@ -66,26 +66,28 @@
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
           <span class="est-dash-btn__text">Buscar</span>
         </button>
-        <button
-          type="button"
-          class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
-          (click)="downloadModeloTransportadora()"
-          [disabled]="baixandoModelo"
-          [attr.aria-label]="baixandoModelo ? 'Baixando modelo' : 'Download modelo'"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">download</span>
-          <span class="est-dash-btn__text">{{ baixandoModelo ? 'Baixando…' : 'Download modelo' }}</span>
-        </button>
-        <button
-          type="button"
-          class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
-          (click)="abrirImportarDados()"
-          aria-label="Importar dados"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-          <span class="est-dash-btn__text">Importar dados</span>
-        </button>
-        @if (!somentePropriaTransportadora) {
+        @if (canGravar) {
+          <button
+            type="button"
+            class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
+            (click)="downloadModeloTransportadora()"
+            [disabled]="baixandoModelo"
+            [attr.aria-label]="baixandoModelo ? 'Baixando modelo' : 'Download modelo'"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">download</span>
+            <span class="est-dash-btn__text">{{ baixandoModelo ? 'Baixando…' : 'Download modelo' }}</span>
+          </button>
+          <button
+            type="button"
+            class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
+            (click)="abrirImportarDados()"
+            aria-label="Importar dados"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+            <span class="est-dash-btn__text">Importar dados</span>
+          </button>
+        }
+        @if (!somentePropriaTransportadora && canGravar) {
           <button
             type="button"
             class="est-dash-btn est-dash-btn--neutral est-dash-btn--compact-sm"
@@ -193,42 +195,50 @@
                               <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
                             </button>
                             @if (isConvitePendente(item)) {
-                              <button
-                                type="button"
-                                class="trn-act-btn trn-act-btn--accent"
-                                title="Reenviar convite"
-                                aria-label="Reenviar convite"
-                                (click)="reenviarConvite(item)"
-                              >
-                                <span class="material-symbols-outlined" aria-hidden="true">send</span>
-                              </button>
-                              <button
-                                type="button"
-                                class="trn-act-btn trn-act-btn--danger"
-                                title="Cancelar convite"
-                                aria-label="Cancelar convite"
-                                (click)="cancelarConvite(item)"
-                              >
-                                <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                              </button>
+                              @if (canGravar) {
+                                <button
+                                  type="button"
+                                  class="trn-act-btn trn-act-btn--accent"
+                                  title="Reenviar convite"
+                                  aria-label="Reenviar convite"
+                                  (click)="reenviarConvite(item)"
+                                >
+                                  <span class="material-symbols-outlined" aria-hidden="true">send</span>
+                                </button>
+                              }
+                              @if (canAlterar) {
+                                <button
+                                  type="button"
+                                  class="trn-act-btn trn-act-btn--danger"
+                                  title="Cancelar convite"
+                                  aria-label="Cancelar convite"
+                                  (click)="cancelarConvite(item)"
+                                >
+                                  <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                                </button>
+                              }
                             } @else {
-                              <a
-                                class="trn-act-btn trn-act-btn--accent"
-                                [routerLink]="[transportadorasRoute, 'editar', item.id]"
-                                title="Editar"
-                                aria-label="Editar transportadora"
-                              >
-                                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                              </a>
-                              <button
-                                type="button"
-                                class="trn-act-btn trn-act-btn--danger"
-                                title="Excluir"
-                                aria-label="Excluir transportadora"
-                                (click)="excluirTransportadoraLista(item)"
-                              >
-                                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                              </button>
+                              @if (canAlterar) {
+                                <a
+                                  class="trn-act-btn trn-act-btn--accent"
+                                  [routerLink]="[transportadorasRoute, 'editar', item.id]"
+                                  title="Editar"
+                                  aria-label="Editar transportadora"
+                                >
+                                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                                </a>
+                              }
+                              @if (canExcluir) {
+                                <button
+                                  type="button"
+                                  class="trn-act-btn trn-act-btn--danger"
+                                  title="Excluir"
+                                  aria-label="Excluir transportadora"
+                                  (click)="excluirTransportadoraLista(item)"
+                                >
+                                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                                </button>
+                              }
                             }
                           </div>
                         </td>
@@ -567,13 +577,15 @@
 
                       <footer class="cadastro-form-footer">
                         <div class="cadastro-form-footer__left">
-                          @if (transportadoraForm.get('id')?.value) {
+                          @if (transportadoraForm.get('id')?.value && canExcluir) {
                             <button type="button" class="btn btn-danger btn--outline" (click)="excluirTransportadora()">Excluir</button>
                           }
                         </div>
                         <div class="cadastro-form-footer__right">
                           <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
-                          <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar' }}</button>
+                          @if (podeSalvarTransportadora) {
+                            <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar' }}</button>
+                          }
                         </div>
                       </footer>
                     </div>
@@ -648,21 +660,23 @@
         <div class="tab-panel frota-panel">
           <div class="tab-toolbar">
             <div class="tab-toolbar__actions">
-            <button
-              type="button"
-              class="btn btn-primary"
-              (click)="abrirNovoVeiculo($event)"
-            >
-              Cadastrar frota
-            </button>
-            <button
-              type="button"
-              class="btn btn-secondary"
-              [disabled]="transportadoraId == null"
-              (click)="abrirImportarFrota()"
-            >
-              Importar frota
-            </button>
+            @if (canGravarVeiculo) {
+              <button
+                type="button"
+                class="btn btn-primary"
+                (click)="abrirNovoVeiculo($event)"
+              >
+                Cadastrar frota
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="transportadoraId == null"
+                (click)="abrirImportarFrota()"
+              >
+                Importar frota
+              </button>
+            }
             </div>
             @if (transportadoraId == null) {
               <p class="tab-toolbar__hint frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar veículos nesta aba. Cada veículo é enviado em uma requisição própria para a API.</p>
@@ -718,8 +732,12 @@
                           </td>
                           <td class="table-cell--actions">
                             <div class="table-actions">
-                              <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v, $event)">Editar</button>
-                              <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirVeiculo(v)">Excluir</button>
+                              @if (canAlterarVeiculo) {
+                                <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarVeiculo(v, $event)">Editar</button>
+                              }
+                              @if (canExcluirVeiculo) {
+                                <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirVeiculo(v)">Excluir</button>
+                              }
                             </div>
                           </td>
                         </tr>
@@ -789,15 +807,17 @@
         <div class="tab-panel motoristas-panel">
           <div class="tab-toolbar">
             <div class="tab-toolbar__actions">
-              <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar motorista</button>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                [disabled]="transportadoraId == null"
-                (click)="abrirImportarCondutores()"
-              >
-                Importar motoristas
-              </button>
+              @if (canGravarMotorista) {
+                <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar motorista</button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  [disabled]="transportadoraId == null"
+                  (click)="abrirImportarCondutores()"
+                >
+                  Importar motoristas
+                </button>
+              }
             </div>
             @if (transportadoraId == null) {
               <p class="tab-toolbar__hint frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar motoristas nesta aba. Cada motorista é enviado em uma requisição própria para a API.</p>
@@ -835,8 +855,12 @@
                         </td>
                         <td class="table-cell--actions">
                           <div class="table-actions">
-                            <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarCondutor(c)">Editar</button>
-                            <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirCondutor(c)">Excluir</button>
+                            @if (canAlterarMotorista) {
+                              <button type="button" class="btn btn-primary btn--sm btn--table-action" (click)="editarCondutor(c)">Editar</button>
+                            }
+                            @if (canExcluirMotorista) {
+                              <button type="button" class="btn btn-secondary btn--sm btn--table-action btn--table-action-danger" (click)="excluirCondutor(c)">Excluir</button>
+                            }
                           </div>
                         </td>
                       </tr>
@@ -1072,14 +1096,16 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              [disabled]="!placaFrotaValida || salvandoVeiculo"
-              (click)="salvarVeiculo()"
-            >
-              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
-            </button>
+            @if (podeSalvarVeiculo) {
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="!placaFrotaValida || salvandoVeiculo"
+                (click)="salvarVeiculo()"
+              >
+                {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
+              </button>
+            }
           </div>
         </form>
       </div>
@@ -1192,9 +1218,11 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
-              {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
-            </button>
+            @if (podeSalvarMotorista) {
+              <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
+                {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
+              </button>
+            }
           </div>
         </form>
       </div>

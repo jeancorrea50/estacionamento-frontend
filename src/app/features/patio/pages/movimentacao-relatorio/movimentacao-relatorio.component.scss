@@ -18,14 +18,15 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--primary, #1976d2) 16%, transparent);
-  color: var(--primary, #1976d2);
+  background: color-mix(in srgb, var(--primary, #3d8bff) 16%, transparent);
+  color: var(--primary, #3d8bff);
 }
 
 .cfg-page-head__title {
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 600);
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
@@ -124,8 +125,8 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent);
-  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #e8a23a) 45%, transparent);
+  background: color-mix(in srgb, var(--warning, #e8a23a) 12%, transparent);
   color: var(--text);
   font-size: 13px;
 }
@@ -138,6 +139,78 @@
   text-align: center;
   color: var(--text-muted, #94a3b8);
   padding: 18px 12px !important;
+}
+
+.rel-placa {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.rel-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.rel-pill--entrada {
+  background: color-mix(in srgb, var(--success, #36c98f) 18%, transparent);
+  color: var(--success, #36c98f);
+  border-color: color-mix(in srgb, var(--success, #36c98f) 45%, transparent);
+}
+
+.rel-pill--saida {
+  background: color-mix(in srgb, var(--text-muted, #92929f) 16%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text-muted, #92929f) 35%, transparent);
+}
+
+.rel-pill--suspenso {
+  background: color-mix(in srgb, var(--warning, #e8a23a) 18%, transparent);
+  color: var(--warning, #e8a23a);
+  border-color: color-mix(in srgb, var(--warning, #e8a23a) 45%, transparent);
+}
+
+.rel-pill--agendado {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 18%, transparent);
+  color: var(--primary, #3d8bff);
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 45%, transparent);
+}
+
+.rel-pill--cancelado {
+  background: color-mix(in srgb, var(--danger, #f06468) 14%, transparent);
+  color: var(--danger, #f06468);
+  border-color: color-mix(in srgb, var(--danger, #f06468) 40%, transparent);
+}
+
+.rel-pill--sim {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 16%, transparent);
+  color: var(--primary, #3d8bff);
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 40%, transparent);
+}
+
+.rel-pill--nao {
+  background: color-mix(in srgb, var(--text-muted, #92929f) 12%, transparent);
+  color: var(--text-muted, #92929f);
+  border-color: color-mix(in srgb, var(--text-muted, #92929f) 30%, transparent);
+}
+
+.rel-pill--excedente {
+  background: color-mix(in srgb, var(--warning, #e8a23a) 20%, transparent);
+  color: var(--warning, #e8a23a);
+  border-color: color-mix(in srgb, var(--warning, #e8a23a) 50%, transparent);
+}
+
+.rel-row--excedente td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning, #e8a23a);
 }
 
 @media (max-width: 1100px) {

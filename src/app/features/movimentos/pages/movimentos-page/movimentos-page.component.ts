@@ -119,6 +119,7 @@ interface MonitoramentoItemVm {
   motorista: string;
   transportadora: string;
   status: StatusMonitoramento;
+  statusLabel: string;
 }
 
 interface AlertaItemVm {
@@ -1215,7 +1216,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         placa: item.placa || '—',
         motorista: item.motorista || '—',
         transportadora: item.transportadora || '—',
-        status: item.status
+        status: item.status,
+        statusLabel: item.statusLabel?.trim() || ''
       }))
   );
 
@@ -1276,6 +1278,17 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     if (status === 'saida') return 'status-dot status-dot--saida';
     if (status === 'aberto') return 'status-dot status-dot--aberto';
     return 'status-dot status-dot--entrada';
+  }
+
+  labelStatusMonitoramento(item: MonitoramentoItemVm | StatusMonitoramento): string {
+    if (typeof item === 'object' && item?.statusLabel) {
+      const label = item.statusLabel.trim();
+      if (label) return label === 'Saida' ? 'Saída' : label;
+    }
+    const status = typeof item === 'object' ? item.status : item;
+    if (status === 'saida') return 'Saída';
+    if (status === 'aberto') return 'No pátio';
+    return 'Entrada';
   }
 
   /**

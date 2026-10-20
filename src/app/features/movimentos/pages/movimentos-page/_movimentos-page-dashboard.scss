@@ -156,9 +156,28 @@
 
 .portaria-hero__title {
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 600);
+  letter-spacing: -0.02em;
   color: var(--text);
+}
+
+.operacao-page-head {
+  margin: 0 0 12px;
+}
+
+.operacao-page-head__title {
+  margin: 0;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 600);
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.operacao-page-head__sub {
+  margin: 4px 0 0;
+  font-size: var(--font-body, 14px);
+  color: var(--muted);
 }
 
 .portaria-hero__sub {
@@ -433,15 +452,15 @@
 }
 
 .registro-section--motorista {
-  border-left: 3px solid #2563eb;
+  box-shadow: inset 3px 0 0 var(--primary, #3d8bff);
 }
 
 .registro-section--transportadora {
-  border-left: 3px solid #059669;
+  box-shadow: inset 3px 0 0 var(--success, #36c98f);
 }
 
 .registro-section--extras {
-  border-left: 3px solid #64748b;
+  box-shadow: inset 3px 0 0 var(--muted, #92929f);
 }
 
 .registro-grid {
@@ -525,18 +544,37 @@
   height: 10px;
   display: inline-block;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .status-dot--entrada {
-  background: #22c55e;
+  background: var(--success, #36c98f);
 }
 
 .status-dot--saida {
-  background: #ef4444;
+  background: var(--danger, #f06468);
 }
 
 .status-dot--aberto {
-  background: #f59e0b;
+  background: var(--warning, #e8a23a);
+}
+
+.monitor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.monitor-status__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.monitor-placa {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 
 .alert-list {

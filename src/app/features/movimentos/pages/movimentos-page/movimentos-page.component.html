@@ -37,7 +37,7 @@
                 [ngTemplateOutlet]="kpiSpark"
                 [ngTemplateOutletContext]="{
                   serie: kpiEntradas().serie,
-                  cor: '#22c55e',
+                  cor: 'var(--success, #36c98f)',
                   id: 'kpiGradEntradas'
                 }"
               />
@@ -60,7 +60,7 @@
                 [ngTemplateOutlet]="kpiSpark"
                 [ngTemplateOutletContext]="{
                   serie: kpiSaidas().serie,
-                  cor: '#f87171',
+                  cor: 'var(--danger, #f06468)',
                   id: 'kpiGradSaidas'
                 }"
               />
@@ -92,7 +92,7 @@
                 [ngTemplateOutlet]="kpiSpark"
                 [ngTemplateOutletContext]="{
                   serie: kpiAgendados().serie,
-                  cor: '#60a5fa',
+                  cor: 'var(--primary, #3d8bff)',
                   id: 'kpiGradAgendados'
                 }"
               />
@@ -174,7 +174,6 @@
         <article class="dashboard-card dashboard-card--alertas">
           <header class="dashboard-card__header">
             <h2>Últimos Alertas</h2>
-            <button type="button" class="portaria-link" disabled title="Em breve">Ver todos &gt;</button>
           </header>
           @if (ultimosAlertas().length === 0) {
             <div class="portaria-empty" role="status">
@@ -221,10 +220,20 @@
                 <tbody>
                   @for (item of monitoramentoItens(); track item.id) {
                     <tr>
-                      <td><span [class]="classeStatusMonitoramento(item.status)"></span></td>
+                      <td>
+                        <span class="monitor-status">
+                          <span
+                            [class]="classeStatusMonitoramento(item.status)"
+                            aria-hidden="true"
+                          ></span>
+                          <span class="monitor-status__label">{{
+                            labelStatusMonitoramento(item)
+                          }}</span>
+                        </span>
+                      </td>
                       <td>{{ item.data }}</td>
                       <td>{{ item.horario }}</td>
-                      <td>{{ item.placa }}</td>
+                      <td class="monitor-placa">{{ item.placa }}</td>
                       <td>{{ item.motorista }}</td>
                       <td>{{ item.transportadora }}</td>
                     </tr>
@@ -240,28 +249,13 @@
         <app-camera-preview />
       </aside>
     </section>
-  } @else {
-    <section class="dashboard-kpis">
-      <article class="kpi-card">
-        <p class="kpi-card__label">Entradas Hoje</p>
-        <p class="kpi-card__valor">{{ entradasHoje() }}</p>
-      </article>
-      <article class="kpi-card">
-        <p class="kpi-card__label">Saídas Hoje</p>
-        <p class="kpi-card__valor">{{ saidasHoje() }}</p>
-      </article>
-      <article class="kpi-card">
-        <p class="kpi-card__label">Em Aberto</p>
-        <p class="kpi-card__valor">{{ emAberto() }}</p>
-      </article>
-      <article class="kpi-card">
-        <p class="kpi-card__label">Tempo Médio no Pátio</p>
-        <p class="kpi-card__valor">{{ tempoMedioPatio() }}</p>
-      </article>
-    </section>
-    }
+  }
 
     @if (isOperacaoView()) {
+      <header class="operacao-page-head">
+        <h1 class="operacao-page-head__title">Movimentações</h1>
+        <p class="operacao-page-head__sub">Consulta e ações nos movimentos do pátio.</p>
+      </header>
       <section class="card operacao-toolbar operacao-toolbar--compact" aria-label="Filtros e busca">
         <div class="operacao-actions">
           <div class="operacao-actions__chips">

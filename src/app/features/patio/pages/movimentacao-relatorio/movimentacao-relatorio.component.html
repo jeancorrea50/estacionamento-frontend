@@ -215,11 +215,13 @@
             </thead>
             <tbody>
               @for (item of itens(); track item.id) {
-                <tr>
-                  <td>{{ item.placaVeiculo || '—' }}</td>
+                <tr [class.rel-row--excedente]="item.ehExcedente">
+                  <td class="rel-placa">{{ formatarPlaca(item.placaVeiculo) }}</td>
                   <td>{{ item.nomeMotorista || '—' }}</td>
                   <td>{{ item.nomeTransportadora || '—' }}</td>
-                  <td>{{ item.statusDescricao || '—' }}</td>
+                  <td>
+                    <span [class]="pillStatusClasse(item)">{{ rotuloStatus(item) }}</span>
+                  </td>
                   <td>
                     {{
                       item.dataHoraEntrada
@@ -234,9 +236,30 @@
                         : '—'
                     }}
                   </td>
-                  <td>{{ item.faturado ? 'Sim' : 'Não' }}</td>
-                  <td>{{ item.avulso ? 'Sim' : 'Não' }}</td>
-                  <td>{{ item.ehExcedente ? 'Sim' : 'Não' }}</td>
+                  <td>
+                    <span
+                      class="rel-pill"
+                      [class.rel-pill--sim]="item.faturado"
+                      [class.rel-pill--nao]="!item.faturado"
+                      >{{ item.faturado ? 'Sim' : 'Não' }}</span
+                    >
+                  </td>
+                  <td>
+                    <span
+                      class="rel-pill"
+                      [class.rel-pill--sim]="item.avulso"
+                      [class.rel-pill--nao]="!item.avulso"
+                      >{{ item.avulso ? 'Sim' : 'Não' }}</span
+                    >
+                  </td>
+                  <td>
+                    <span
+                      class="rel-pill"
+                      [class.rel-pill--excedente]="item.ehExcedente"
+                      [class.rel-pill--nao]="!item.ehExcedente"
+                      >{{ item.ehExcedente ? 'Sim' : 'Não' }}</span
+                    >
+                  </td>
                   <td>{{ item.observacao || '—' }}</td>
                 </tr>
               } @empty {

@@ -6,7 +6,13 @@ import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
+import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
+import {
+  EntradaSaidaStatus,
+  ENTRADA_SAIDA_STATUS_LABEL,
+  parseEntradaSaidaStatus,
+} from '../../../movimentos/models/entrada-saida.models';
 import { MovimentacaoRelatorioPdfService } from '../../services/movimentacao-relatorio-pdf.service';
 import { MovimentacaoRelatorioService } from '../../services/movimentacao-relatorio.service';
 import type {
@@ -71,6 +77,31 @@ export class MovimentacaoRelatorioComponent implements OnInit {
     this.definirPeriodoMesAtual();
     this.carregarTransportadoras();
     this.carregarFuso();
+  }
+
+  formatarPlaca(placa: string | null | undefined): string {
+    return formatPlacaDisplay(placa) || '—';
+  }
+
+  rotuloStatus(item: MovimentacaoRelatorioItem): string {
+    if (item.statusDescricao?.trim()) {
+      const desc = item.statusDescricao.trim();
+      return desc === 'Saida' ? 'Saída' : desc;
+    }
+    const parsed = parseEntradaSaidaStatus(item.status);
+    if (parsed == null) return '—';
+    const label = ENTRADA_SAIDA_STATUS_LABEL[parsed];
+    return label === 'Saida' ? 'Saída' : label;
+  }
+
+  pillStatusClasse(item: MovimentacaoRelatorioItem): string {
+    const status = parseEntradaSaidaStatus(item.status);
+    if (status === EntradaSaidaStatus.Saida) return 'rel-pill rel-pill--saida';
+    if (status === EntradaSaidaStatus.Suspenso) return 'rel-pill rel-pill--suspenso';
+    if (status === EntradaSaidaStatus.Agendado) return 'rel-pill rel-pill--agendado';
+    if (status === EntradaSaidaStatus.Cancelado) return 'rel-pill rel-pill--cancelado';
+    if (status === EntradaSaidaStatus.Entrada) return 'rel-pill rel-pill--entrada';
+    return 'rel-pill';
   }
 
   limparFiltros(): void {

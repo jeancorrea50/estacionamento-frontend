@@ -28,6 +28,7 @@ export interface CnpjFormValue {
   razaoSocial: string;
   nomeFantasia: string;
   ativo: boolean;
+  situacaoCadastral?: string;
   inscricaoEstadual?: string;
   email?: string;
   telefone?: string;
@@ -86,6 +87,7 @@ export function mapCnpjResponseToFormValue(res: unknown): CnpjFormValue {
     nomeFantasia: getStr(r, 'nome_fantasia', 'nomeFantasia'),
     ativo
   };
+  if (situacao) value.situacaoCadastral = situacao;
   const ie = firstInscricaoEstadual(r);
   if (ie) value.inscricaoEstadual = ie;
   const email = getStr(r, 'email');

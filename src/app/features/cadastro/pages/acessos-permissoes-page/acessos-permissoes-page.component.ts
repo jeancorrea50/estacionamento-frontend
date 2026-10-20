@@ -28,6 +28,9 @@ import {
   styleUrls: ['./acessos-permissoes-page.component.scss'],
 })
 export class AcessosPermissoesPageComponent implements OnInit {
+  private normalizePermissionKey(value: string): string {
+    return String(value ?? '').trim().toLowerCase();
+  }
   private menuPermissionsStore = inject(MenuPermissionsStoreService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -101,9 +104,10 @@ export class AcessosPermissoesPageComponent implements OnInit {
 
   togglePermission(key: string): void {
     const current = this.formPermissionIds();
-    const idx = current.indexOf(key);
+    const cmp = this.normalizePermissionKey(key);
+    const idx = current.findIndex((k) => this.normalizePermissionKey(k) === cmp);
     if (idx >= 0) {
-      this.formPermissionIds.set(current.filter((k) => k !== key));
+      this.formPermissionIds.set(current.filter((k) => this.normalizePermissionKey(k) !== cmp));
     } else {
       this.formPermissionIds.set([...current, key]);
     }
@@ -127,7 +131,8 @@ export class AcessosPermissoesPageComponent implements OnInit {
 
   getSelectedCountInModule(module: PermissionModule): number {
     const keys = PERMISSION_CATALOG[module] ?? [];
-    return keys.filter((k) => this.formPermissionIds().includes(k)).length;
+    const selected = this.formPermissionIds().map((k) => this.normalizePermissionKey(k));
+    return keys.filter((k) => selected.includes(this.normalizePermissionKey(k))).length;
   }
 
   salvarVinculos(): void {

@@ -1,0 +1,25 @@
+.confirmar-email {
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.status {
+  line-height: 1.5;
+  &--ok {
+    color: #1b5e20;
+  }
+  &--err {
+    color: #b71c1c;
+  }
+}
+
+.link-login {
+  color: inherit;
+  text-decoration: underline;
+}

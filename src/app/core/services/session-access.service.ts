@@ -1,15 +1,28 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { resolveAppRouteFromNome } from '../../features/gerenciamento/services/menu-route-resolver';
+import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
+import { CADASTRO_ESTACIONAMENTOS_ROUTE } from '../../features/cadastro/cadastro-rotas';
+import { MENU_STRUCTURE } from '../../features/cadastro/constants/menu-structure';
+import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
+import {
+  formatAppMenuDisplayLabel,
+  resolveAppRouteFromNome,
+} from '../../features/gerenciamento/services/menu-route-resolver';
 
-const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v1';
+/** v2: invalida cache antigo que podia expandir menus além do login. */
+const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v2';
+const LEGACY_SESSION_MENUS_KEYS = ['gts-session-menus-v1'] as const;
 
 export interface SessionSubMenuAccess {
   id?: number;
   descricao?: string | null;
   rota?: string | null;
   ativo?: boolean | null;
+  /** Se false, o item não aparece na sidebar (pode continuar acessível por rota/permissão). */
+  exibirNoSidebar?: boolean | null;
   selecionado?: boolean | null;
   ordem?: number | null;
+  /** Submenu de 2º nível (menu → submenu → submenu²). */
+  subMenus?: SessionSubMenuAccess[] | null;
 }
 
 export interface SessionMenuAccess {
@@ -18,10 +31,26 @@ export interface SessionMenuAccess {
   icone?: string | null;
   rota?: string | null;
   ativo?: boolean | null;
+  /** Se false, o item não aparece na sidebar (pode continuar acessível por rota/permissão). */
+  exibirNoSidebar?: boolean | null;
   selecionado?: boolean | null;
   ordem?: number | null;
   subMenus?: SessionSubMenuAccess[] | null;
 }
+
+/** Rotas canônicas conhecidas da árvore fixa (para não herdar irmãos por prefixo). */
+const KNOWN_MENU_ROUTES: readonly string[] = (() => {
+  const out = new Set<string>();
+  const walk = (nodes: { route: string; children?: { route: string; children?: { route: string }[] }[] }[]) => {
+    for (const node of nodes) {
+      const r = normalizeRoute(node.route);
+      if (r) out.add(r);
+      if (node.children?.length) walk(node.children);
+    }
+  };
+  walk(MENU_STRUCTURE);
+  return [...out];
+})();
 
 @Injectable({ providedIn: 'root' })
 export class SessionAccessService {
@@ -35,6 +64,9 @@ export class SessionAccessService {
     const normalized = normalizeMenus(menus);
     this.menusState.set(normalized);
     try {
+      for (const key of LEGACY_SESSION_MENUS_KEYS) {
+        localStorage.removeItem(key);
+      }
       localStorage.setItem(SESSION_MENUS_STORAGE_KEY, JSON.stringify(normalized));
     } catch {
       /* ignore */
@@ -45,11 +77,18 @@ export class SessionAccessService {
     this.menusState.set([]);
     try {
       localStorage.removeItem(SESSION_MENUS_STORAGE_KEY);
+      for (const key of LEGACY_SESSION_MENUS_KEYS) {
+        localStorage.removeItem(key);
+      }
     } catch {
       /* ignore */
     }
   }
 
+  /**
+   * Verifica se a URL atual está entre as rotas liberadas no payload `menus` do login.
+   * Sem menus na sessão (legado/dev), libera o acesso.
+   */
   canAccessRoute(url: string): boolean {
     if (!this.hasSessionMenus()) {
       return true;
@@ -62,7 +101,45 @@ export class SessionAccessService {
     if (current === '/app' || current === '') {
       return true;
     }
-    return allowed.some((route) => isRouteMatch(current, route));
+    if (isAccessGranted(current, allowed)) {
+      return true;
+    }
+    /**
+     * Ecossistema: mapa documental sob Administração.
+     * Libera se o login já concedeu qualquer rota de `/app/administracao`
+     * (o submenu é publicado no backend via seed ao abrir Gerenciamento → Menu).
+     */
+    if (
+      current === '/app/administracao/ecossistema' ||
+      current.startsWith('/app/administracao/ecossistema/')
+    ) {
+      return allowed.some((route) => {
+        const r = normalizeRoute(route);
+        return r === '/app/administracao' || r.startsWith('/app/administracao/');
+      });
+    }
+    /** Estacionamento: Gerenciamento e Cadastro (legado/forms) compartilham o mesmo acesso. */
+    if (
+      current === '/app/gerenciamento/estacionamento' ||
+      current.startsWith('/app/gerenciamento/estacionamento/') ||
+      current === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+      current.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
+      current === '/app/cadastro/estacionamento' ||
+      current.startsWith('/app/cadastro/estacionamento/')
+    ) {
+      return allowed.some((route) => {
+        const r = normalizeRoute(route);
+        return (
+          r === '/app/gerenciamento/estacionamento' ||
+          r.startsWith('/app/gerenciamento/estacionamento/') ||
+          r === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+          r.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
+          r === '/app/cadastro/estacionamento' ||
+          r.startsWith('/app/cadastro/estacionamento/')
+        );
+      });
+    }
+    return false;
   }
 
   getDefaultRoute(): string | null {
@@ -70,7 +147,19 @@ export class SessionAccessService {
     return allowed[0] ?? null;
   }
 
-  filterSidebarItems<T extends { route: string; children?: { route: string }[] }>(items: T[]): T[] {
+  /**
+   * Filtra itens da sidebar FIXA pelas rotas permitidas na sessão.
+   * Suporta um nível extra de filhos (ex.: Cobrança sob Faturamento).
+   * Grupo sem nenhum filho liberado é ocultado.
+   *
+   * Liberar Transportadora NÃO libera Convites/Relatório (irmãos sob o mesmo prefixo).
+   */
+  filterSidebarItems<
+    T extends {
+      route: string;
+      children?: { route: string; label?: string; children?: { route: string }[] }[];
+    },
+  >(items: T[]): T[] {
     if (!this.hasSessionMenus()) {
       return items;
     }
@@ -78,30 +167,83 @@ export class SessionAccessService {
     const allowed = this.allowedRoutes();
     const hasRoute = (route: string): boolean => {
       const normalized = normalizeRoute(route);
-      return allowed.some((r) => isRouteMatch(normalized, r));
+      if (isSidebarRouteVisible(normalized, allowed)) {
+        return true;
+      }
+      /** Estacionamento: login pode vir com rota de Gerenciamento ou Cadastro. */
+      if (
+        normalized === '/app/gerenciamento/estacionamento' ||
+        normalized === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+        normalized === '/app/cadastro/estacionamento'
+      ) {
+        return allowed.some((r) => {
+          const a = normalizeRoute(r);
+          return (
+            a === '/app/gerenciamento/estacionamento' ||
+            a === CADASTRO_ESTACIONAMENTOS_ROUTE ||
+            a === '/app/cadastro/estacionamento' ||
+            a.startsWith('/app/gerenciamento/estacionamento/') ||
+            a.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
+            a.startsWith('/app/cadastro/estacionamento/')
+          );
+        });
+      }
+      /** Ecossistema: visível na sidebar se Administração já estiver liberada na sessão. */
+      if (
+        normalized === '/app/administracao/ecossistema' ||
+        normalized.startsWith('/app/administracao/ecossistema/')
+      ) {
+        return allowed.some((r) => {
+          const a = normalizeRoute(r);
+          return a === '/app/administracao' || a.startsWith('/app/administracao/');
+        });
+      }
+      return false;
     };
 
     return items
       .map((item) => {
-        if (item.children?.length) {
-          const children = item.children.filter((child) => hasRoute(child.route));
-          if (children.length === 0 && !hasRoute(item.route)) {
-            return null;
-          }
-          return { ...item, children } as T;
+        if (!item.children?.length) {
+          return hasRoute(item.route) ? item : null;
         }
-        return hasRoute(item.route) ? item : null;
+
+        const children = item.children
+          .map((child) => {
+            if (child.children?.length) {
+              const nestedVisible = child.children.filter((n) => hasRoute(n.route));
+              if (nestedVisible.length > 0) {
+                return { ...child, children: nestedVisible };
+              }
+              return hasRoute(child.route) ? { ...child, children: undefined } : null;
+            }
+            return hasRoute(child.route) ? child : null;
+          })
+          .filter((child): child is NonNullable<typeof child> => child !== null);
+
+        if (children.length === 0) {
+          return null;
+        }
+        return { ...item, children } as T;
       })
       .filter((item): item is T => item !== null);
   }
 
   private loadMenus(): SessionMenuAccess[] {
     try {
+      for (const key of LEGACY_SESSION_MENUS_KEYS) {
+        localStorage.removeItem(key);
+      }
       const raw = localStorage.getItem(SESSION_MENUS_STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as SessionMenuAccess[];
       if (!Array.isArray(parsed)) return [];
-      return normalizeMenus(parsed);
+      const normalized = normalizeMenus(parsed);
+      try {
+        localStorage.setItem(SESSION_MENUS_STORAGE_KEY, JSON.stringify(normalized));
+      } catch {
+        /* ignore */
+      }
+      return normalized;
     } catch {
       return [];
     }
@@ -117,13 +259,12 @@ export class SessionAccessService {
 
       if (activeSubs.length === 0) {
         const route = resolveAppRouteFromNome(safeText(menu.descricao), menu.rota ?? null);
-        addRouteWithAncestors(routeSet, route);
+        addGrantedRoute(routeSet, route);
         continue;
       }
 
       for (const sub of activeSubs) {
-        const route = resolveAppRouteFromNome(safeText(sub.descricao), sub.rota ?? null);
-        addRouteWithAncestors(routeSet, route);
+        collectSessionSubRoutes(sub, routeSet, safeText(menu.descricao));
       }
     }
 
@@ -131,46 +272,71 @@ export class SessionAccessService {
   }
 }
 
+function collectSessionSubRoutes(
+  sub: SessionSubMenuAccess,
+  routeSet: Set<string>,
+  menuLabel: string
+): void {
+  if (sub.ativo === false || sub.selecionado === false) return;
+  const route = resolveAppRouteFromNome(safeText(sub.descricao), sub.rota ?? null);
+  addGrantedRoute(routeSet, route);
+  for (const nested of sub.subMenus ?? []) {
+    collectSessionSubRoutes(nested, routeSet, menuLabel);
+  }
+}
+
+function normalizeSessionSubMenus(subs: SessionSubMenuAccess[]): SessionSubMenuAccess[] {
+  const mapped = subs.map((sub) => normalizeSessionSubMenu(sub));
+  return nestSubMenusByRouteGeneric(mapped);
+}
+
+function normalizeSessionSubMenu(sub: SessionSubMenuAccess): SessionSubMenuAccess {
+  const rota = normalizeOptionalRoute(sub.rota);
+  const nestedRaw = sub.subMenus ?? [];
+  const nested = nestedRaw.length ? normalizeSessionSubMenus(nestedRaw) : [];
+  return {
+    ...sub,
+    descricao: safeText(sub.descricao),
+    rota,
+    selecionado: normalizeBoolean(sub.selecionado),
+    subMenus: nested.length ? nested : undefined,
+  };
+}
+
 function normalizeMenus(menus: SessionMenuAccess[]): SessionMenuAccess[] {
-  return menus.map((menu) => ({
-    ...menu,
-    descricao: safeText(menu.descricao),
-    rota: normalizeOptionalRoute(menu.rota),
-    selecionado: normalizeBoolean(menu.selecionado),
-    subMenus: (menu.subMenus ?? []).map((sub) => ({
-      ...sub,
-      descricao: safeText(sub.descricao),
-      rota: normalizeOptionalRoute(sub.rota),
-      selecionado: normalizeBoolean(sub.selecionado),
-    })),
-  }));
+  return menus.map((menu) => {
+    const rota = normalizeOptionalRoute(menu.rota);
+    const descricaoRaw = safeText(menu.descricao);
+    return {
+      ...menu,
+      descricao: formatAppMenuDisplayLabel(descricaoRaw, rota) || descricaoRaw,
+      rota,
+      selecionado: normalizeBoolean(menu.selecionado),
+      subMenus: normalizeSessionSubMenus(menu.subMenus ?? []),
+    };
+  });
 }
 
 function normalizeOptionalRoute(route: string | null | undefined): string | null {
   if (typeof route !== 'string') return null;
   const value = route.trim();
-  return value || null;
+  if (!value) return null;
+  return normalizeLegacyAppRoute(value) ?? value;
 }
 
 function normalizeBoolean(value: boolean | null | undefined): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
 
-function addRouteWithAncestors(set: Set<string>, route: string): void {
+/**
+ * Registra apenas a rota concedida no login.
+ * Não inclui ancestrais: liberar `/app/patio/movimentacoes` não pode liberar
+ * `/app/patio/entrada-saida` (irmãos sob o mesmo pai).
+ */
+function addGrantedRoute(set: Set<string>, route: string): void {
   const normalized = normalizeRoute(route);
-  if (!normalized.startsWith('/app')) return;
-  if (normalized !== '/app') {
-    set.add(normalized);
-  }
-
-  const parts = normalized.split('/').filter(Boolean);
-  let acc = '';
-  for (const part of parts) {
-    acc += `/${part}`;
-    if (acc.startsWith('/app') && acc !== '/app') {
-      set.add(acc);
-    }
-  }
+  if (!normalized.startsWith('/app') || normalized === '/app') return;
+  set.add(normalized);
 }
 
 function normalizeRoute(route: string): string {
@@ -186,8 +352,33 @@ function safeText(value: string | null | undefined): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function isRouteMatch(current: string, allowed: string): boolean {
-  const normalizedAllowed = normalizeRoute(allowed);
-  if (!normalizedAllowed || normalizedAllowed === '/app') return false;
-  return current === normalizedAllowed || current.startsWith(`${normalizedAllowed}/`);
+/** Sidebar: rota exatamente concedida, ou ancestral de uma rota concedida. */
+function isSidebarRouteVisible(route: string, allowed: string[]): boolean {
+  const normalized = normalizeRoute(route);
+  if (!normalized) return false;
+  if (allowed.some((r) => normalizeRoute(r) === normalized)) return true;
+  return allowed.some((r) => normalizeRoute(r).startsWith(`${normalized}/`));
+}
+
+/**
+ * Acesso: usa a rota de menu conhecida mais específica que cobre a URL.
+ * Assim `/transportadoras` não libera `/transportadoras/convites`.
+ */
+function isAccessGranted(current: string, allowed: string[]): boolean {
+  const cur = normalizeRoute(current);
+  if (!cur) return false;
+
+  const allowedNorm = allowed.map(normalizeRoute).filter(Boolean);
+  if (allowedNorm.some((a) => a === cur)) return true;
+
+  const matchingKnown = KNOWN_MENU_ROUTES.filter((k) => cur === k || cur.startsWith(`${k}/`)).sort(
+    (a, b) => b.length - a.length
+  );
+  const bestKnown = matchingKnown[0];
+  if (bestKnown) {
+    return allowedNorm.some((a) => a === bestKnown);
+  }
+
+  // Detalhe/rota dinâmica sob uma concedida (ex.: /transportadoras/42).
+  return allowedNorm.some((a) => cur === a || cur.startsWith(`${a}/`));
 }

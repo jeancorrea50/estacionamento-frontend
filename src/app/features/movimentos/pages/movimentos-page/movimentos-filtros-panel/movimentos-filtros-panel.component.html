@@ -1,0 +1,249 @@
+<div class="mov-filtros" (click)="$event.stopPropagation()">
+  <div class="mov-filtros__bar">
+    <button
+      type="button"
+      class="btn btn-secondary btn--sm mov-filtros__btn"
+      [class.mov-filtros__btn--ativo]="aberto() || filtrosAtivosCount() > 0"
+      (click)="togglePanel($event)"
+      [attr.aria-label]="filtrosAtivosCount() > 0 ? 'Abrir filtros (' + filtrosAtivosCount() + ' ativos)' : 'Abrir filtros'"
+      [attr.aria-expanded]="aberto()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">filter_list</span>
+      Filtros
+      @if (filtrosAtivosCount() > 0) {
+        <span class="mov-filtros__badge">{{ filtrosAtivosCount() }}</span>
+      }
+      <span
+        class="material-symbols-outlined mov-filtros__arrow"
+        [class.mov-filtros__arrow--aberto]="aberto()"
+        aria-hidden="true"
+      >expand_more</span>
+    </button>
+
+    @if (filtrosAtivosCount() > 0) {
+      <button type="button" class="btn btn-secondary btn--sm mov-filtros__limpar" (click)="onLimpar()">
+        <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+        Limpar
+      </button>
+    }
+  </div>
+
+  @if (aberto()) {
+    <div class="mov-filtros__dropdown" role="dialog" aria-modal="true" aria-label="Filtros avançados">
+      <p class="mov-filtros__titulo">Filtros</p>
+
+      <label class="mov-filtros__field">
+        <span class="mov-filtros__label">Placa</span>
+        <input
+          type="search"
+          class="mov-filtros__input"
+          maxlength="8"
+          placeholder="ABC1D23"
+          [ngModel]="draft().placa"
+          (ngModelChange)="onPlacaChange($event)"
+          [ngModelOptions]="{ standalone: true }"
+        />
+      </label>
+
+      <label class="mov-filtros__field mov-filtros__field--lookup">
+        <span class="mov-filtros__label">Motorista</span>
+        <div class="mov-filtros__lookup">
+          <input
+            type="search"
+            class="mov-filtros__input"
+            placeholder="Buscar motorista..."
+            autocomplete="off"
+            [ngModel]="draft().motoristaLabel"
+            (ngModelChange)="onMotoristaTermo($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+          @if (draft().motoristaId) {
+            <button type="button" class="mov-filtros__clear-ico" aria-label="Limpar motorista" (click)="limparMotorista()">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          }
+        </div>
+        @if (motoristaBuscando()) {
+          <span class="mov-filtros__hint">Buscando...</span>
+        }
+        @if (motoristaOpcoes().length > 0) {
+          <ul class="mov-filtros__suggest" role="listbox">
+            @for (opt of motoristaOpcoes(); track opt.id) {
+              <li role="option">
+                <button type="button" class="mov-filtros__suggest-item" (click)="selecionarMotorista(opt)">
+                  {{ opt.label }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </label>
+
+      @if (!ocultarTransportadora()) {
+        <label class="mov-filtros__field mov-filtros__field--lookup">
+          <span class="mov-filtros__label">Transportadora</span>
+          <div class="mov-filtros__lookup">
+            <input
+              type="search"
+              class="mov-filtros__input"
+              placeholder="Buscar transportadora..."
+              autocomplete="off"
+              [ngModel]="draft().transportadoraLabel"
+              (ngModelChange)="onTransportadoraTermo($event)"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            @if (draft().transportadoraId) {
+              <button type="button" class="mov-filtros__clear-ico" aria-label="Limpar transportadora" (click)="limparTransportadora()">
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+              </button>
+            }
+          </div>
+          @if (transportadoraBuscando()) {
+            <span class="mov-filtros__hint">Buscando...</span>
+          }
+          @if (transportadoraOpcoes().length > 0) {
+            <ul class="mov-filtros__suggest" role="listbox">
+              @for (opt of transportadoraOpcoes(); track opt.id) {
+                <li role="option">
+                  <button type="button" class="mov-filtros__suggest-item" (click)="selecionarTransportadora(opt)">
+                    {{ opt.label }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </label>
+      }
+
+      <div class="mov-filtros__field">
+        <span class="mov-filtros__label">Período</span>
+        <div class="mov-filtros__periodo-row">
+          <div class="rec-data-picker mov-filtros__date">
+            <button
+              type="button"
+              class="rec-data-picker__trigger"
+              [class.rec-data-picker__trigger--ativo]="panelDataAberto()"
+              (click)="togglePanelData($event)"
+              aria-label="Selecionar período"
+              [attr.aria-expanded]="panelDataAberto()"
+            >
+              <span class="rec-data-picker__label">{{ periodoLabel() }}</span>
+              <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
+            </button>
+
+            @if (panelDataAberto()) {
+              <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
+                <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
+                  <h3 class="rec-cal__titulo">Calendário</h3>
+                  <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
+                    @for (g of periodoGranularidadeOpcoes; track g.id) {
+                      <button
+                        type="button"
+                        class="rec-data-picker__mode"
+                        role="tab"
+                        [class.rec-data-picker__mode--active]="draft().granularidade === g.id"
+                        [attr.aria-selected]="draft().granularidade === g.id"
+                        (click)="setPeriodoGranularidade(g.id)"
+                      >
+                        {{ g.label }}
+                      </button>
+                    }
+                  </div>
+
+                  @if (draft().granularidade === 'ano') {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
+                    </div>
+                    <div class="rec-cal__anos-grid">
+                      @for (ano of calendarioAnosOpcoes(); track ano) {
+                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">
+                          {{ ano }}
+                        </button>
+                      }
+                    </div>
+                  } @else if (draft().granularidade === 'mes') {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
+                    </div>
+                    <div class="rec-cal__meses-grid">
+                      @for (mes of mesesLabels; track mes; let i = $index) {
+                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">
+                          {{ mes }}
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioTituloMes() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
+                    </div>
+                    <div class="rec-cal__weekdays" aria-hidden="true">
+                      @for (dia of diasSemanaLabels; track dia) {
+                        <span class="rec-cal__weekday">{{ dia }}</span>
+                      }
+                    </div>
+                    <div class="rec-cal__grid" role="grid" aria-label="Dias do mês" (mouseleave)="onDocumentMouseUp()">
+                      @for (cell of calendarioGrade(); track cell.iso) {
+                        <button
+                          type="button"
+                          class="rec-cal__dia"
+                          role="gridcell"
+                          [ngClass]="diaCalendarioModificadores(cell)"
+                          [attr.aria-label]="cell.iso"
+                          (mousedown)="onDiaCalendarioPointerDown(cell, $event)"
+                          (mouseenter)="onDiaCalendarioPointerEnter(cell)"
+                        >
+                          {{ cell.day }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          @if (draft().periodoAtivo) {
+            <button type="button" class="btn btn-secondary btn--sm" (click)="limparPeriodo()">Remover</button>
+          }
+        </div>
+      </div>
+
+      <label class="mov-filtros__field">
+        <span class="mov-filtros__label">Excedente</span>
+        <select
+          class="mov-filtros__input mov-filtros__select"
+          [ngModel]="draft().excedente"
+          (ngModelChange)="onExcedenteChange($event)"
+          [ngModelOptions]="{ standalone: true }"
+        >
+          <option value="all">Todos</option>
+          <option value="sim">Somente excedente</option>
+          <option value="nao">Sem excedente</option>
+        </select>
+      </label>
+
+      <div class="mov-filtros__actions">
+        <button type="button" class="btn btn-secondary btn--sm" (click)="onLimpar()">Limpar</button>
+        <button type="button" class="btn btn-primary btn--sm" (click)="onAplicar()">Aplicar</button>
+      </div>
+    </div>
+  }
+</div>

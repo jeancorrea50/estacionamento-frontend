@@ -1,7 +1,14 @@
 import { expect, test } from '@playwright/test';
 
+/** Base64url sem `Buffer` (evita exigir @types/node no projeto Angular). */
 function toBase64Url(value: Record<string, unknown>): string {
-  return Buffer.from(JSON.stringify(value)).toString('base64url');
+  const json = JSON.stringify(value);
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  for (const b of bytes) {
+    binary += String.fromCharCode(b);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
 function buildFakeJwt(): string {

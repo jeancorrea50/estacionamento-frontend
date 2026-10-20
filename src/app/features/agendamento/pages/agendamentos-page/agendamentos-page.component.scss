@@ -1,0 +1,139 @@
+@use '../../../cadastro/styles/cadastro-est-shared' as *;
+@use '../../../cadastro/styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+@import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
+
+/* Barra de filtros: uma linha alinhada (mesmo ritmo do dash de cadastro). */
+.ag-dash-filter.est-dash-filter {
+  align-items: center;
+  gap: 10px;
+  overflow: visible;
+}
+
+.ag-dash-filter__search.est-dash-filter__search {
+  flex: 1 1 180px;
+  max-width: 260px;
+  min-width: 160px;
+}
+
+.ag-dash-filter__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.ag-dash-filter .est-dash-btn {
+  height: 42px;
+  min-height: 42px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ag-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+  color: var(--primary, #1d4ed8);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.trn-table__acoes,
+.trn-act-btns {
+  overflow: visible;
+}
+
+.trn-act-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+.ag-acoes-vazio {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .ag-dash-filter__actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .ag-dash-filter.est-dash-filter {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ag-dash-filter__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ag-dash-filter .est-dash-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
+  }
+
+  .ag-dash-filter .est-dash-btn--primary {
+    flex: 1 1 100%;
+  }
+
+  .trn-list-table-card,
+  .trn-list-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trn-table {
+    min-width: 720px;
+  }
+
+  .trn-table__acoes {
+    position: sticky;
+    right: 0;
+    background: inherit;
+    z-index: 1;
+  }
+
+  .trn-act-btns {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .trn-list-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    overflow-x: visible;
+  }
+}

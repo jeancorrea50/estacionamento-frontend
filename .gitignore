@@ -11,6 +11,10 @@
 npm-debug.log
 yarn-error.log
 
+# OpenAPI / secrets locais (URL do Swagger por ambiente)
+.env
+config/openapi.config.local.json
+
 # IDEs and editors
 .idea/
 .project
@@ -38,6 +42,10 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+.cursor/**/*.png
+.cursor/**/*.jpg
+.cursor/**/*.jpeg
+.cursor/**/*.webp
 
 # System files
 .DS_Store

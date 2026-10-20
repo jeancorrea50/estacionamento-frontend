@@ -15,11 +15,18 @@ export interface AppUser {
 export interface LoggedUser {
   username: string;
   perfil: string;
-  /** Claim `Permission` do token (ex.: estacionamento.visualizar). */
+  /** Claim `Permission` do token (ex.: Estacionamento.visualizar). */
   permissionKeys: string[];
   email?: string;
   /** Claim `nameid` (id do usuário no servidor). */
   nameId?: string;
+  /**
+   * Claim `EmpresaId` do JWT (= EstacionamentoId do vínculo, quando aplicável).
+   * Usado em POST de fatura e filtros multi-tenant.
+   */
+  empresaId?: number;
+  /** Claim `TransportadoraId` do JWT (usuário vinculado a transportadora). */
+  transportadoraId?: number;
   permissoes: {
     acessoConfiguracoes: boolean;
     verHome: boolean;

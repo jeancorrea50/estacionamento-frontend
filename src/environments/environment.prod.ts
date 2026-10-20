@@ -1,20 +1,28 @@
 /**
- * Ambiente de produção.
- * O backend deve permitir CORS para a origem do frontend.
+ * Produção via gateway nginx (mesmo host do frontend) — paths relativos.
+ *
+ * Público:
+ *   https://HOST/                         → frontend
+ *   https://HOST/estac/                   → backend
+ *   https://HOST/estac/worker/            → workers
+ *   https://HOST/estac/notification/      → notification
+ *
+ * Fallback direto (só se gateway cair):
+ *   :5000 backend | :8081 workers | :8083 notification | :4200 frontend
  */
 export const environment = {
   production: true,
-  /** Base do backend (sem /api no final). */
-  apiUrl: 'https://localhost:44317',
-  /** Base URL da API (uso em TransportadoraService, ApiService e interceptors). */
-  API_BASE_URL: 'https://localhost:44317/api',
+  apiUrl: '/estac',
+  API_BASE_URL: '/estac/api',
+  REPORT_BASE_URL: '/estac/report/api',
+  dashboardHubUrl: '/estac/worker/hubs/movimento/entradasaida',
+  notificationApiUrl: '/estac/notification/api',
+  notificationHubUrl: '/estac/notification/hubs/notificacao',
   emergencyAdmin: {
     enabled: false,
     username: '',
-    password: ''
+    password: '',
   },
-  /** Base URL ViaCEP (chamada direta em prod; ViaCEP permite CORS). */
-  viacepBaseUrl: 'https://viacep.com.br',
-  /** Base URL BrasilAPI (CNPJ). */
-  brasilApiBaseUrl: 'https://brasilapi.com.br'
+  viacepBaseUrl: 'https://viacep.com.br/ws',
+  brasilApiBaseUrl: 'https://brasilapi.com.br',
 };

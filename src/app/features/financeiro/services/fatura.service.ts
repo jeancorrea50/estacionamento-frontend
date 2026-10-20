@@ -1,0 +1,483 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth.service';
+import type {
+  FaturaFechamentosFilter,
+  FaturaFechamentosOutput,
+  FaturaFilter,
+  FaturaInadimplentesFilter,
+  FaturaInadimplentesOutput,
+  FaturaOutput,
+  FaturaPagedResult,
+  FaturaPostInput,
+  FaturaPutInput,
+  FaturaSearchOutput,
+  FaturaVisaoGeralOutput,
+  FaturaAcordoInadimplenciaInput,
+  FaturaWhatsAppCobrancaOutput,
+  HistoricoCobrancaItemOutput,
+  StatusCobrancaFatura
+} from '../models/fatura.models';
+import {
+  mapFechamentoItemToLista,
+  mapInadimplenteItemToLista,
+  mapOutputToListaItem,
+  mapRawFechamentosOutput,
+  mapRawInadimplentesOutput,
+  mapRawOutput,
+  mapRawSearchItem,
+  mapRawVisaoGeral,
+  mapSearchToListaItem,
+  pickNumber,
+  pickStringOrNull,
+  unwrapResult
+} from '../mappers/fatura.mapper';
+import type { FaturaListaItem } from '../pages/faturamento-page/faturas/faturamento-faturas.types';
+import type {
+  FechamentoListaItem,
+  FechamentoResumo
+} from '../pages/faturamento-page/fechamentos/faturamento-fechamentos.types';
+import type {
+  InadimplenciaListaItem,
+  InadimplenciaResumo
+} from '../pages/faturamento-page/inadimplencia/faturamento-inadimplencia.types';
+
+const API = `${environment.API_BASE_URL}/financeiro/Fatura`;
+
+@Injectable({ providedIn: 'root' })
+export class FaturaService {
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+
+  /** GET `/api/financeiro/Fatura` */
+  buscar(filtro: FaturaFilter): Observable<FaturaPagedResult> {
+    return this.http
+      .get<unknown>(API, { params: this.buildBuscarParams(filtro) })
+      .pipe(map((body) => this.normalizePagedResult(body, filtro.numeroPagina, filtro.tamanhoPagina)));
+  }
+
+  listar(filtro: FaturaFilter): Observable<{
+    items: FaturaListaItem[];
+    totalCount: number;
+    numeroPagina: number;
+    tamanhoPagina: number;
+  }> {
+    return this.buscar(filtro).pipe(
+      map((page) => ({
+        ...page,
+        items: page.items.map((dto) => mapSearchToListaItem(dto))
+      }))
+    );
+  }
+
+  /** GET `/api/financeiro/Fatura/{id}` */
+  obterPorId(id: number): Observable<FaturaOutput | null> {
+    return this.http.get<unknown>(`${API}/${id}`).pipe(
+      map((body) => {
+        const raw = this.extractRecord(body);
+        if (!raw) return null;
+        return mapRawOutput(raw, id);
+      })
+    );
+  }
+
+  obterListaItemPorId(id: number): Observable<FaturaListaItem | null> {
+    return this.obterPorId(id).pipe(map((dto) => (dto ? mapOutputToListaItem(dto) : null)));
+  }
+
+  /** POST `/api/financeiro/Fatura` */
+  gravar(input: FaturaPostInput): Observable<FaturaListaItem | null> {
+    return this.http.post<unknown>(API, input).pipe(map((body) => this.mapMutationBody(body)));
+  }
+
+  /** PUT `/api/financeiro/Fatura` */
+  alterar(input: FaturaPutInput): Observable<FaturaListaItem | null> {
+    return this.http.put<unknown>(API, input).pipe(map((body) => this.mapMutationBody(body, input.id)));
+  }
+
+  /** DELETE `/api/financeiro/Fatura/{id}` */
+  excluir(id: number): Observable<void> {
+    return this.http.delete<unknown>(`${API}/${id}`).pipe(map(() => undefined));
+  }
+
+  /** GET `/api/financeiro/Fatura/{id}/report` — PDF blob. */
+  baixarPdf(id: number): Observable<Blob> {
+    return this.http.get(`${API}/${id}/report`, { responseType: 'blob' });
+  }
+
+  /** POST `/api/financeiro/Fatura/{id}/enviar-lembrete-email` — envia PDF por e-mail. */
+  enviarLembreteEmail(id: number): Observable<void> {
+    return this.http.post<unknown>(`${API}/${id}/enviar-lembrete-email`, {}).pipe(map(() => undefined));
+  }
+
+  /** POST `/api/financeiro/Fatura/{id}/enviar-lembrete-whatsapp` — gera wa.me + histórico. */
+  enviarLembreteWhatsApp(id: number): Observable<FaturaWhatsAppCobrancaOutput> {
+    return this.http.post<unknown>(`${API}/${id}/enviar-lembrete-whatsapp`, {}).pipe(
+      map((body) => {
+        const raw = this.extractRecord(body) ?? {};
+        return {
+          faturaId: pickNumber(raw, 'faturaId', 'FaturaId') || id,
+          destinatario: String(raw['destinatario'] ?? raw['Destinatario'] ?? ''),
+          mensagem: String(raw['mensagem'] ?? raw['Mensagem'] ?? ''),
+          url: String(raw['url'] ?? raw['Url'] ?? ''),
+          dataEnvio: String(raw['dataEnvio'] ?? raw['DataEnvio'] ?? '')
+        };
+      })
+    );
+  }
+
+  /** GET `/api/financeiro/Fatura/{id}/historico-cobranca` */
+  listarHistoricoCobranca(id: number): Observable<HistoricoCobrancaItemOutput[]> {
+    return this.http.get<unknown>(`${API}/${id}/historico-cobranca`).pipe(
+      map((body) => {
+        const raw = unwrapResult(body);
+        const rows = Array.isArray(raw) ? raw : [];
+        return rows
+          .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+          .map((row) => ({
+            id: pickNumber(row, 'id', 'Id'),
+            dataEnvio: String(row['dataEnvio'] ?? row['DataEnvio'] ?? ''),
+            modalidade: pickNumber(row, 'modalidade', 'Modalidade'),
+            modalidadeLabel: String(row['modalidadeLabel'] ?? row['ModalidadeLabel'] ?? ''),
+            destinatario: String(row['destinatario'] ?? row['Destinatario'] ?? ''),
+            assunto: pickStringOrNull(row, 'assunto', 'Assunto'),
+            descricao: pickStringOrNull(row, 'descricao', 'Descricao'),
+            sucesso: Boolean(row['sucesso'] ?? row['Sucesso']),
+            mensagemErro: pickStringOrNull(row, 'mensagemErro', 'MensagemErro'),
+            resultado: String(row['resultado'] ?? row['Resultado'] ?? '')
+          }));
+      })
+    );
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/vencimento` */
+  alterarVencimento(id: number, dataVencimento: string): Observable<void> {
+    return this.http
+      .put<unknown>(`${API}/${id}/vencimento`, { dataVencimento })
+      .pipe(map(() => undefined));
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/acrescimo` */
+  aplicarAcrescimo(id: number, valor: number): Observable<void> {
+    return this.http.put<unknown>(`${API}/${id}/acrescimo`, { valor }).pipe(map(() => undefined));
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/desconto` */
+  aplicarDesconto(id: number, valor: number): Observable<void> {
+    return this.http.put<unknown>(`${API}/${id}/desconto`, { valor }).pipe(map(() => undefined));
+  }
+
+  /** POST `/api/financeiro/Fatura/{id}/acordo` */
+  registrarAcordo(id: number, input: FaturaAcordoInadimplenciaInput): Observable<void> {
+    return this.http.post<unknown>(`${API}/${id}/acordo`, input).pipe(map(() => undefined));
+  }
+
+  /** PUT `/api/financeiro/Fatura/{id}/status-cobranca` */
+  alterarStatusCobranca(id: number, statusCobranca: StatusCobrancaFatura): Observable<void> {
+    return this.http
+      .put<unknown>(`${API}/${id}/status-cobranca`, { statusCobranca })
+      .pipe(map(() => undefined));
+  }
+
+  /** GET `/api/financeiro/Fatura/{id}/excel` — planilha Excel blob. */
+  baixarExcel(id: number): Observable<Blob> {
+    return this.http.get(`${API}/${id}/excel`, { responseType: 'blob' });
+  }
+
+  /** GET `/api/financeiro/Fatura/visao-geral` — cards e gráficos da Visão Geral. */
+  obterVisaoGeral(filtro: Omit<FaturaFilter, 'numeroPagina' | 'tamanhoPagina'> = {}): Observable<FaturaVisaoGeralOutput> {
+    return this.http
+      .get<unknown>(`${API}/visao-geral`, {
+        params: this.buildBuscarParams({ ...filtro, numeroPagina: 1, tamanhoPagina: 1 })
+      })
+      .pipe(map((body) => mapRawVisaoGeral(body)));
+  }
+
+  /**
+   * GET `/api/financeiro/Fatura/estacionamento` — lookup para filtros (Fatura.Visualizar).
+   * Mesmo payload do Buscar de Estacionamento, sem exigir Estacionamento.Visualizar.
+   */
+  buscarEstacionamentos(options?: {
+    descricao?: string;
+    numeroPagina?: number;
+    tamanhoPagina?: number;
+  }): Observable<Array<{ id: number; label: string; cnpj?: string; nome?: string | null }>> {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(options?.numeroPagina ?? 1))
+      .set('TamanhoPagina', String(options?.tamanhoPagina ?? 200));
+    if (options?.descricao?.trim()) {
+      params = params.set('Descricao', options.descricao.trim());
+    }
+
+    return this.http.get<unknown>(`${API}/estacionamento`, { params }).pipe(
+      map((body) => this.normalizeEstacionamentoLookup(body))
+    );
+  }
+
+  /**
+   * GET `/api/financeiro/Fatura/transportadora` — lookup para filtros (Fatura.Visualizar).
+   * Mesmo payload do Buscar de Transportadora, sem exigir Transportadora.Visualizar.
+   */
+  buscarTransportadoras(options?: {
+    descricao?: string;
+    cnpj?: string;
+    numeroPagina?: number;
+    tamanhoPagina?: number;
+  }): Observable<Array<{ id: number; label: string; cnpj?: string }>> {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(options?.numeroPagina ?? 1))
+      .set('TamanhoPagina', String(options?.tamanhoPagina ?? 200));
+    if (options?.descricao?.trim()) {
+      params = params.set('Descricao', options.descricao.trim());
+    }
+    if (options?.cnpj?.trim()) {
+      params = params.set('Cnpj', options.cnpj.replace(/\D/g, ''));
+    }
+
+    return this.http.get<unknown>(`${API}/transportadora`, { params }).pipe(
+      map((body) => this.normalizeTransportadoraLookup(body))
+    );
+  }
+
+  /** GET `/api/financeiro/Fatura/inadimplentes` — lista + resumo do dashboard. */
+  buscarInadimplentes(filtro: FaturaInadimplentesFilter): Observable<FaturaInadimplentesOutput> {
+    return this.http
+      .get<unknown>(`${API}/inadimplentes`, { params: this.buildInadimplentesParams(filtro) })
+      .pipe(map((body) => mapRawInadimplentesOutput(body, filtro.numeroPagina, filtro.tamanhoPagina)));
+  }
+
+  listarInadimplentes(filtro: FaturaInadimplentesFilter): Observable<{
+    resumo: InadimplenciaResumo;
+    items: InadimplenciaListaItem[];
+    totalCount: number;
+    numeroPagina: number;
+    tamanhoPagina: number;
+  }> {
+    return this.buscarInadimplentes(filtro).pipe(
+      map((page) => ({
+        resumo: page.resumo,
+        items: page.itens.items.map((dto) => mapInadimplenteItemToLista(dto)),
+        totalCount: page.itens.totalCount,
+        numeroPagina: page.itens.numeroPagina,
+        tamanhoPagina: page.itens.tamanhoPagina
+      }))
+    );
+  }
+
+  /** GET `/api/financeiro/Fatura/fechamentos` — lista + resumo do dashboard. */
+  buscarFechamentos(filtro: FaturaFechamentosFilter): Observable<FaturaFechamentosOutput> {
+    return this.http
+      .get<unknown>(`${API}/fechamentos`, { params: this.buildFechamentosParams(filtro) })
+      .pipe(map((body) => mapRawFechamentosOutput(body, filtro.numeroPagina, filtro.tamanhoPagina)));
+  }
+
+  listarFechamentos(filtro: FaturaFechamentosFilter): Observable<{
+    resumo: FechamentoResumo;
+    items: FechamentoListaItem[];
+    totalCount: number;
+    numeroPagina: number;
+    tamanhoPagina: number;
+  }> {
+    return this.buscarFechamentos(filtro).pipe(
+      map((page) => {
+        const estacionamentoId = this.auth.resolveEstacionamentoId();
+        return {
+          resumo: page.resumo,
+          items: page.itens.items.map((dto) => mapFechamentoItemToLista(dto, estacionamentoId)),
+          totalCount: page.itens.totalCount,
+          numeroPagina: page.itens.numeroPagina,
+          tamanhoPagina: page.itens.tamanhoPagina
+        };
+      })
+    );
+  }
+
+  private buildBuscarParams(filtro: FaturaFilter): HttpParams {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(filtro.numeroPagina))
+      .set('TamanhoPagina', String(filtro.tamanhoPagina));
+
+    if (filtro.descricao?.trim()) params = params.set('Descricao', filtro.descricao.trim());
+    if (filtro.numero?.trim()) params = params.set('Numero', filtro.numero.trim());
+    if (filtro.dataInicial) params = params.set('DataInicial', filtro.dataInicial);
+    if (filtro.dataFinal) params = params.set('DataFinal', filtro.dataFinal);
+    if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
+      params = params.set('TransportadoraId', String(filtro.transportadoraId));
+    }
+    if (typeof filtro.estacionamentoId === 'number' && filtro.estacionamentoId > 0) {
+      params = params.set('EstacionamentoId', String(filtro.estacionamentoId));
+    }
+    if (typeof filtro.status === 'number') {
+      params = params.set('Status', String(filtro.status));
+    }
+    if (typeof filtro.modalidadeRecebimento === 'number') {
+      params = params.set('ModalidadeRecebimento', String(filtro.modalidadeRecebimento));
+    }
+    if (filtro.propriedade?.trim()) params = params.set('Propriedade', filtro.propriedade.trim());
+    if (filtro.sort?.trim()) params = params.set('Sort', filtro.sort.trim());
+    return params;
+  }
+
+  private buildInadimplentesParams(filtro: FaturaInadimplentesFilter): HttpParams {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(filtro.numeroPagina))
+      .set('TamanhoPagina', String(filtro.tamanhoPagina));
+
+    if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
+      params = params.set('TransportadoraId', String(filtro.transportadoraId));
+    }
+    if (filtro.numero?.trim()) params = params.set('Numero', filtro.numero.trim());
+    if (filtro.descricao?.trim()) params = params.set('Descricao', filtro.descricao.trim());
+    if (filtro.dataInicial) params = params.set('DataInicial', filtro.dataInicial);
+    if (filtro.dataFinal) params = params.set('DataFinal', filtro.dataFinal);
+    if (filtro.propriedade?.trim()) params = params.set('Propriedade', filtro.propriedade.trim());
+    if (filtro.sort?.trim()) params = params.set('Sort', filtro.sort.trim());
+    return params;
+  }
+
+  private buildFechamentosParams(filtro: FaturaFechamentosFilter): HttpParams {
+    let params = new HttpParams()
+      .set('NumeroPagina', String(filtro.numeroPagina))
+      .set('TamanhoPagina', String(filtro.tamanhoPagina));
+
+    if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
+      params = params.set('TransportadoraId', String(filtro.transportadoraId));
+    }
+    if (typeof filtro.situacao === 'number') {
+      params = params.set('Situacao', String(filtro.situacao));
+    }
+    if (typeof filtro.modalidade === 'number') {
+      params = params.set('Modalidade', String(filtro.modalidade));
+    }
+    if (filtro.descricao?.trim()) params = params.set('Descricao', filtro.descricao.trim());
+    if (filtro.dataInicial) params = params.set('DataInicial', filtro.dataInicial);
+    if (filtro.dataFinal) params = params.set('DataFinal', filtro.dataFinal);
+    if (filtro.propriedade?.trim()) params = params.set('Propriedade', filtro.propriedade.trim());
+    if (filtro.sort?.trim()) params = params.set('Sort', filtro.sort.trim());
+    return params;
+  }
+
+  private normalizePagedResult(
+    body: unknown,
+    numeroPagina: number,
+    tamanhoPagina: number
+  ): FaturaPagedResult {
+    const source = unwrapResult(body);
+    const root = source && typeof source === 'object' ? (source as Record<string, unknown>) : {};
+    const rows =
+      (Array.isArray(root['results']) && root['results']) ||
+      (Array.isArray(root['Results']) && root['Results']) ||
+      (Array.isArray(root['items']) && root['items']) ||
+      (Array.isArray(source) && source) ||
+      [];
+
+    const items: FaturaSearchOutput[] = (rows as unknown[])
+      .filter((row): row is Record<string, unknown> => row != null && typeof row === 'object')
+      .map((row) => mapRawSearchItem(row));
+
+    return {
+      items,
+      totalCount:
+        Number(root['rowCount'] ?? root['RowCount'] ?? root['totalCount'] ?? items.length) ||
+        items.length,
+      numeroPagina:
+        Number(root['currentPage'] ?? root['CurrentPage'] ?? root['numeroPagina'] ?? numeroPagina) ||
+        numeroPagina,
+      tamanhoPagina:
+        Number(root['pageSize'] ?? root['PageSize'] ?? root['tamanhoPagina'] ?? tamanhoPagina) ||
+        tamanhoPagina
+    };
+  }
+
+  private mapMutationBody(body: unknown, fallbackId = 0): FaturaListaItem | null {
+    const raw = unwrapResult(body);
+    if (raw == null || raw === true || typeof raw !== 'object' || Array.isArray(raw)) {
+      return null;
+    }
+    const record = raw as Record<string, unknown>;
+    const hasIdentity =
+      pickNumber(record, 'id', 'Id') > 0 ||
+      pickNumber(record, 'transportadoraId', 'TransportadoraId') > 0 ||
+      fallbackId > 0;
+    if (!hasIdentity && !('numero' in record || 'Numero' in record)) {
+      return null;
+    }
+    return mapOutputToListaItem(mapRawOutput(record, fallbackId));
+  }
+
+  private extractRecord(body: unknown): Record<string, unknown> | null {
+    const raw = unwrapResult(body);
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    return raw as Record<string, unknown>;
+  }
+
+  private normalizeEstacionamentoLookup(
+    body: unknown
+  ): Array<{ id: number; label: string; cnpj?: string; nome?: string | null }> {
+    return this.extractLookupRows(body)
+      .map((row) => {
+        const id = Number(row['id'] ?? row['Id']) || 0;
+        const nome = String(
+          row['nomeRazaoSocial'] ??
+            row['NomeRazaoSocial'] ??
+            row['nomeFantasia'] ??
+            row['NomeFantasia'] ??
+            row['descricaoPessoa'] ??
+            row['DescricaoPessoa'] ??
+            row['descricao'] ??
+            row['Descricao'] ??
+            ''
+        ).trim();
+        const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? '').trim();
+        return {
+          id,
+          nome: nome || null,
+          cnpj,
+          label: nome ? `${nome} — ${cnpj || '-'}` : String(id),
+        };
+      })
+      .filter((row) => row.id > 0);
+  }
+
+  private normalizeTransportadoraLookup(
+    body: unknown
+  ): Array<{ id: number; label: string; cnpj?: string }> {
+    return this.extractLookupRows(body)
+      .map((row) => {
+        const id = Number(row['id'] ?? row['Id']) || 0;
+        const nome = String(
+          row['razaoSocial'] ??
+            row['RazaoSocial'] ??
+            row['nomeRazaoSocial'] ??
+            row['NomeRazaoSocial'] ??
+            row['descricao'] ??
+            row['Descricao'] ??
+            row['descricaoPessoa'] ??
+            row['DescricaoPessoa'] ??
+            ''
+        ).trim();
+        const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? row['documento'] ?? row['Documento'] ?? '').trim();
+        return {
+          id,
+          cnpj,
+          label: nome ? `${nome} — ${cnpj || '-'}` : String(id),
+        };
+      })
+      .filter((row) => row.id > 0);
+  }
+
+  private extractLookupRows(body: unknown): Record<string, unknown>[] {
+    const source = unwrapResult(body);
+    const root = source && typeof source === 'object' ? (source as Record<string, unknown>) : {};
+    const rows =
+      (Array.isArray(root['results']) && (root['results'] as unknown[])) ||
+      (Array.isArray(root['Results']) && (root['Results'] as unknown[])) ||
+      (Array.isArray(root['items']) && (root['items'] as unknown[])) ||
+      (Array.isArray(source) && (source as unknown[])) ||
+      [];
+
+    return rows.filter((row): row is Record<string, unknown> => row != null && typeof row === 'object');
+  }
+}

@@ -1,0 +1,291 @@
+:host {
+  display: block;
+  color: var(--cfg-form-text, var(--text));
+  background: var(--cfg-form-surface, var(--surface, #fff));
+}
+
+.cfg-acordo-dlg {
+  display: flex;
+  flex-direction: column;
+  max-height: min(82vh, 640px);
+  min-width: min(92vw, 520px);
+}
+
+.cfg-acordo-dlg__header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--cfg-form-border, var(--border-subtle, #e2e8f0));
+}
+
+.cfg-acordo-dlg__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cfg-acordo-dlg__title.mat-mdc-dialog-title,
+.cfg-acordo-dlg__title {
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--cfg-form-text, var(--text));
+}
+
+.cfg-acordo-dlg__title::before {
+  display: none;
+}
+
+.cfg-acordo-dlg__subtitle {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted, #64748b);
+}
+
+.cfg-acordo-dlg__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--cfg-form-border, var(--border-subtle, #e2e8f0));
+  background: transparent;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+}
+
+.cfg-acordo-dlg__close:hover {
+  color: var(--cfg-form-text, var(--text));
+  background: color-mix(in srgb, var(--cfg-form-text, var(--text)) 6%, transparent);
+}
+
+.cfg-acordo-dlg__close .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.cfg-acordo-dlg__erros {
+  margin: 8px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+  background: color-mix(in srgb, #ef4444 8%, transparent);
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+:host-context(html.theme-dark) .cfg-acordo-dlg__erros {
+  color: #fecaca;
+}
+
+.cfg-acordo-dlg__body.mat-mdc-dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding: 12px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: inherit;
+}
+
+.cfg-acordo-dlg__grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cfg-acordo-dlg__field {
+  width: 100%;
+}
+
+.cfg-acordo-dlg__prefix {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--cfg-form-text, var(--text));
+}
+
+.cfg-acordo-dlg__listagem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px dashed var(--cfg-form-border, var(--border-subtle, #e2e8f0));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cfg-form-input-bg, var(--surface-2, #f8fafc)) 70%, transparent);
+}
+
+.cfg-acordo-dlg__listagem-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cfg-acordo-dlg__listagem-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cfg-acordo-dlg__listagem-title,
+.cfg-acordo-dlg__section-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--cfg-form-text, var(--text));
+}
+
+.cfg-acordo-dlg__hint-text {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  color: var(--muted, #64748b);
+}
+
+.cfg-acordo-dlg__link {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.cfg-acordo-dlg__info {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin: -2px 0 0;
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  line-height: 1.35;
+}
+
+.cfg-acordo-dlg__info .material-symbols-outlined {
+  font-size: 14px;
+  margin-top: 1px;
+}
+
+.cfg-acordo-dlg__footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--cfg-form-border, var(--border-subtle, #e2e8f0));
+}
+
+.cfg-acordo-dlg__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfg-acordo-dlg__btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.cfg-acordo-dlg__btn--ghost {
+  align-self: flex-start;
+  min-height: 30px;
+  padding: 0 4px;
+  background: transparent;
+  color: var(--muted, #64748b);
+}
+
+.cfg-acordo-dlg__btn--ghost:hover {
+  color: var(--cfg-form-text, var(--text));
+  background: color-mix(in srgb, var(--cfg-form-text, var(--text)) 6%, transparent);
+}
+
+.cfg-acordo-dlg__btn--outline {
+  background: transparent;
+  border-color: var(--cfg-form-border, var(--border-subtle, #e2e8f0));
+  color: var(--cfg-form-text, var(--text));
+}
+
+.cfg-acordo-dlg__btn--primary {
+  background: var(--sidebar-active-bg, var(--primary, #2563eb));
+  color: var(--btn-primary-text, #fff);
+}
+
+.cfg-acordo-dlg__btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+/* Campos Material mais densos */
+:host ::ng-deep .mat-mdc-form-field {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 6px;
+  font-size: 0.8125rem;
+}
+
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background: var(--cfg-form-input-bg, var(--input-bg, #fff)) !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-flex {
+  min-height: 40px;
+  align-items: center;
+}
+
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-infix {
+  min-height: 40px;
+  padding-top: 10px !important;
+  padding-bottom: 8px !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field .mdc-floating-label {
+  font-size: 0.75rem !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field .mdc-notched-outline__leading,
+:host ::ng-deep .mat-mdc-form-field .mdc-notched-outline__notch,
+:host ::ng-deep .mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: var(--cfg-form-input-border, var(--input-border, #cbd5e1)) !important;
+}
+
+:host ::ng-deep .mat-mdc-form-field input.mat-mdc-input-element,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-select-value-text,
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-select-arrow {
+  color: var(--cfg-form-input-text, var(--text)) !important;
+  font-size: 0.8125rem;
+}
+
+:host ::ng-deep .mat-mdc-form-field .mat-mdc-form-field-bottom-align::before {
+  height: 0;
+}
+
+:host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .cfg-acordo-dlg__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cfg-acordo-dlg {
+    min-width: 0;
+  }
+}

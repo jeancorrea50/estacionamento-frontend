@@ -6,6 +6,7 @@ import { EstacionamentoConfiguracaoService } from '../../configuracoes/services/
 import {
   criarPdfMovimentacoes,
   formatarDataFiltro,
+  resolverTransportadoraEscopo,
 } from '../pages/movimentacao-relatorio/movimentacao-relatorio-pdf';
 import type { MovimentacaoRelatorioFiltro } from '../pages/movimentacao-relatorio/movimentacao-relatorio.types';
 import { MovimentacaoRelatorioService } from './movimentacao-relatorio.service';
@@ -53,10 +54,12 @@ export class MovimentacaoRelatorioPdfService {
     }).pipe(
       map(({ relatorio, timeZoneId: fuso }) => {
         const sessao = this.auth.getSessionEstacionamento();
+        const transportadoraEscopo = resolverTransportadoraEscopo(relatorio.itens);
         const doc = criarPdfMovimentacoes({
           estacionamentoNome:
             sessao?.razaoSocial?.trim() || sessao?.nome?.trim() || 'Estacionamento',
           estacionamentoCnpj: sessao?.cnpj?.trim() || null,
+          transportadoraEscopo,
           timeZoneId: fuso,
           periodoEntrada: periodo(consulta.dataInicial, consulta.dataFinal),
           periodoSaida:

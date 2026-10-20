@@ -2,7 +2,8 @@
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  min-width: 0;
+  /* Evita esmagar colunas críticas: scroll horizontal em vez de "RAL-..." / "19/10/..." */
+  min-width: 1220px;
 }
 
 .historico-table th,
@@ -10,16 +11,17 @@
   text-align: left;
   vertical-align: middle;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
-/* Placa */
+/* Placa — nunca truncar (formato BR cabe em ~7.5rem) */
 .historico-table th:nth-child(1),
 .historico-table td:nth-child(1) {
-  width: 8%;
-  min-width: 92px;
+  width: 7.5rem;
+  min-width: 7.5rem;
+  overflow: visible;
+  text-overflow: clip;
   font-variant-numeric: tabular-nums;
 }
 
@@ -29,31 +31,41 @@
   letter-spacing: 0.02em;
 }
 
-/* Motorista */
+/* Motorista / Transportadora — únicos com ellipsis (title no HTML) */
 .historico-table th:nth-child(2),
 .historico-table td:nth-child(2) {
-  width: 20%;
-  min-width: 120px;
+  width: 14%;
+  min-width: 132px;
 }
 
-/* Transportadora */
 .historico-table th:nth-child(3),
 .historico-table td:nth-child(3) {
-  width: 22%;
+  width: 15%;
   min-width: 140px;
 }
 
-/* Entrada / Saída / Tempo no pátio */
+/* Entrada / Saída — "dd/MM/yy HH:mm" precisa de espaço fixo */
 .historico-table th:nth-child(4),
 .historico-table td:nth-child(4),
 .historico-table th:nth-child(5),
-.historico-table td:nth-child(5),
+.historico-table td:nth-child(5) {
+  width: 7.75rem;
+  min-width: 7.75rem;
+  overflow: visible;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+/* Tempo no pátio */
 .historico-table th:nth-child(6),
 .historico-table td:nth-child(6) {
-  width: 9%;
-  min-width: 104px;
+  width: 8.5rem;
+  min-width: 8.5rem;
+  overflow: visible;
+  text-overflow: clip;
   font-variant-numeric: tabular-nums;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .historico-tempo {
@@ -64,24 +76,28 @@
 /* Status */
 .historico-table th:nth-child(7),
 .historico-table td:nth-child(7) {
-  width: 8%;
-  min-width: 92px;
+  width: 6.75rem;
+  min-width: 6.75rem;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Cobertura */
 .historico-table th:nth-child(8),
 .historico-table td:nth-child(8) {
-  width: 13%;
-  min-width: 148px;
+  width: 9.5rem;
+  min-width: 9.5rem;
+  overflow: visible;
+  text-overflow: clip;
 }
 
-/* Ações — ocupa o restante da largura */
+/* Ações — compacta; botões não forçam truncamento nas outras colunas */
 .historico-table th:nth-child(9),
 .historico-table td:nth-child(9),
 .historico-table th.col-acoes,
 .historico-table td.acoes-cell {
-  width: 22%;
-  min-width: 248px;
+  width: 13.5rem;
+  min-width: 13.5rem;
   max-width: none;
   overflow: visible;
   text-overflow: clip;
@@ -414,7 +430,7 @@
 
 .historico-card .data-table.historico-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1220px;
   max-width: none;
 }
 
@@ -423,13 +439,23 @@
 .operacao-card--full .data-table td,
 .historico-card .data-table th,
 .historico-card .data-table td {
-  padding: 12px 16px;
+  padding: 12px 12px;
   text-align: left;
   border-top: none;
   border-left: none;
   border-right: none;
   border-bottom: 1px solid rgba(148, 163, 184, 0.28);
   line-height: 1.4;
+}
+
+.historico-card .data-table th:first-child,
+.historico-card .data-table td:first-child {
+  padding-left: 16px;
+}
+
+.historico-card .data-table th.col-acoes,
+.historico-card .data-table td.acoes-cell {
+  padding-right: 12px;
 }
 
 .historico-card .data-table th,
@@ -442,7 +468,7 @@
   color: #cbd5e1;
   font-weight: 700;
   font-size: 0.75rem;
-  background: rgba(15, 23, 42, 0.55);
+  background: transparent;
   letter-spacing: 0.02em;
 }
 
@@ -457,7 +483,7 @@
 .operacao-card--full .data-table th.th-sortable:hover,
 .historico-card .data-table th.th-sortable:hover {
   color: var(--text);
-  background: color-mix(in srgb, var(--border-subtle) 22%, transparent);
+  background: transparent;
 }
 
 .operacao-card--full .data-table .th-sort-icon,
@@ -647,17 +673,7 @@
 @media (max-width: 1024px) {
   .historico-table,
   .historico-card .data-table.historico-table {
-    min-width: 980px;
-  }
-
-  .historico-table th:nth-child(2),
-  .historico-table td:nth-child(2) {
-    min-width: 108px;
-  }
-
-  .historico-table th:nth-child(3),
-  .historico-table td:nth-child(3) {
-    min-width: 120px;
+    min-width: 1180px;
   }
 }
 
@@ -671,7 +687,7 @@
   .historico-card .data-table th,
   .operacao-card--full .data-table th {
     color: var(--muted);
-    background: color-mix(in srgb, var(--border-subtle) 45%, #fff);
+    background: transparent;
   }
 
   .historico-card .data-table th,
@@ -715,7 +731,7 @@
 
   .historico-table,
   .historico-card .data-table.historico-table {
-    min-width: 920px;
+    min-width: 1180px;
     font-size: 0.75rem;
   }
 

@@ -8,7 +8,10 @@ export interface MovimentacaoRelatorioFiltro {
   dataSaidaInicial?: string | null;
   dataSaidaFinal?: string | null;
   placa?: string | null;
+  motoristaId?: number | null;
   transportadoraId?: number | null;
+  /** Alinha com query `SomenteEmAberto` do GET /api/MovimentacaoRelatorio. */
+  somenteEmAberto?: boolean | null;
   status?: number | null;
   faturado?: boolean | null;
   ehExcedente?: boolean | null;
@@ -39,14 +42,19 @@ export interface MovimentacaoRelatorioItem {
   dataHoraEntrada: string | null;
   dataHoraSaida: string | null;
   /**
-   * Minutos calculados pela API (`tempoPermanenciaMinutos`).
-   * `null` quando o relatório não envia o campo — não recalcular no cliente.
+   * Minutos da API (`tempoPermanenciaMinutos`).
+   * `null` quando o relatório omite — o PDF deriva de entrada/saída (igual à lista).
    */
   tempoPermanenciaMinutos: number | null;
   faturado: boolean;
   avulso: boolean;
   ehExcedente: boolean;
   observacao: string | null;
+  /**
+   * Valor da linha quando o backend enviar (`valor`, `valorApurado`, etc.).
+   * `null` = ausente no contrato/payload — não exibir R$ 0,00 inventado.
+   */
+  valor: number | null;
 }
 
 export interface MovimentacaoRelatorioOutput {

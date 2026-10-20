@@ -69,6 +69,17 @@ function mapItem(raw: unknown): MovimentacaoRelatorioItem {
     avulso: pickBool(row, 'avulso', 'Avulso'),
     ehExcedente: pickBool(row, 'ehExcedente', 'EhExcedente'),
     observacao: pickStr(row, 'observacao', 'Observacao') || null,
+    valor: pickOptionalNum(
+      row,
+      'valor',
+      'Valor',
+      'valorApurado',
+      'ValorApurado',
+      'valorTotal',
+      'ValorTotal',
+      'valorExcedente',
+      'ValorExcedente'
+    ),
   };
 }
 
@@ -110,7 +121,9 @@ function toParams(filtro: MovimentacaoRelatorioFiltro): HttpParams {
   set('DataSaidaInicial', filtro.dataSaidaInicial);
   set('DataSaidaFinal', filtro.dataSaidaFinal);
   set('Placa', filtro.placa);
+  set('MotoristaId', filtro.motoristaId);
   set('TransportadoraId', filtro.transportadoraId);
+  set('SomenteEmAberto', filtro.somenteEmAberto);
   set('Status', filtro.status);
   set('Faturado', filtro.faturado);
   set('EhExcedente', filtro.ehExcedente);

@@ -210,7 +210,7 @@
                 <th>Faturado</th>
                 <th>Avulso</th>
                 <th>Excedente</th>
-                <th>Observação</th>
+                <th>Valor</th>
               </tr>
             </thead>
             <tbody>
@@ -260,7 +260,7 @@
                       >{{ item.ehExcedente ? 'Sim' : 'Não' }}</span
                     >
                   </td>
-                  <td>{{ item.observacao || '—' }}</td>
+                  <td class="rel-valor">{{ formatarValor(item.valor) }}</td>
                 </tr>
               } @empty {
                 <tr>

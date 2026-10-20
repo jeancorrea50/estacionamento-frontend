@@ -20,6 +20,7 @@ import type {
   MovimentacaoRelatorioItem,
   MovimentacaoRelatorioResumo,
 } from './movimentacao-relatorio.types';
+import { formatarValorRelatorio } from './movimentacao-relatorio-pdf.helpers';
 import { RELATORIO_BOOL_OPCOES, RELATORIO_MOV_STATUS_OPCOES } from './movimentacao-relatorio.types';
 
 @Component({
@@ -81,6 +82,10 @@ export class MovimentacaoRelatorioComponent implements OnInit {
 
   formatarPlaca(placa: string | null | undefined): string {
     return formatPlacaDisplay(placa) || '—';
+  }
+
+  formatarValor(valor: number | null | undefined): string {
+    return formatarValorRelatorio(valor);
   }
 
   rotuloStatus(item: MovimentacaoRelatorioItem): string {

@@ -148,6 +148,12 @@
   letter-spacing: 0.02em;
 }
 
+.rel-valor {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .rel-pill {
   display: inline-flex;
   align-items: center;

@@ -62,10 +62,13 @@ import {
   MovimentosFiltrosAvancados,
   criarDataHoje,
   criarFiltrosAvancadosVazios,
-  toIsoDate,
   toIsoDateTimeEnd,
   toIsoDateTimeStart
 } from './movimentos-filtros.util';
+import {
+  montarFiltroMovimentacoesExportacao,
+  rotulosFiltroMovimentacoesExportacao,
+} from './movimentos-exportacao.util';
 import { MovimentacaoRelatorioService } from '../../../patio/services/movimentacao-relatorio.service';
 import { MovimentacaoRelatorioPdfService } from '../../../patio/services/movimentacao-relatorio-pdf.service';
 import type {
@@ -195,6 +198,26 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly viewMode = signal<MovimentosViewMode>('portaria');
   readonly isOperacaoView = computed(() => this.viewMode() === 'operacao');
   readonly isPortariaView = computed(() => this.viewMode() === 'portaria');
+
+  /** Relógio do hero da portaria (apenas UI; não afeta contrato/API). */
+  private readonly agoraPortaria = signal(new Date());
+  private relogioPortariaId: ReturnType<typeof setInterval> | null = null;
+  readonly dataHeroPortaria = computed(() =>
+    new Intl.DateTimeFormat('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(this.agoraPortaria())
+  );
+  readonly horaHeroPortaria = computed(() =>
+    new Intl.DateTimeFormat('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(this.agoraPortaria())
+  );
 
   readonly filtroResumoChip = signal<FiltroResumoChip>('noPatio');
   readonly resumoMovimentoId = signal<number | null>(null);
@@ -502,11 +525,13 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     if (this.viewMode() === 'operacao') {
       this.aplicarFiltroResumo('noPatio');
     } else {
+      this.iniciarRelogioPortaria();
       this.carregarMonitoramentoDoPatio();
     }
   }
 
   ngOnDestroy(): void {
+    this.pararRelogioPortaria();
     this.cancelarValorEstacionamento$.next();
     this.cancelarValorEstacionamento$.complete();
     this.cancelarSaidaModalLista$.next();
@@ -515,6 +540,19 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.cancelarMonitoramentoPortaria$.complete();
     this.fecharReciboConfirm(false);
     this.fecharPreviewRecibo();
+  }
+
+  private iniciarRelogioPortaria(): void {
+    this.pararRelogioPortaria();
+    this.agoraPortaria.set(new Date());
+    this.relogioPortariaId = setInterval(() => this.agoraPortaria.set(new Date()), 1000);
+  }
+
+  private pararRelogioPortaria(): void {
+    if (this.relogioPortariaId != null) {
+      clearInterval(this.relogioPortariaId);
+      this.relogioPortariaId = null;
+    }
   }
 
   buscar(): void {
@@ -756,76 +794,23 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private rotulosFiltroExportacao(filtro: MovimentacaoRelatorioFiltro): string[] {
-    const rotulos: string[] = [];
-    if (filtro.placa) rotulos.push(`Placa ${filtro.placa}`);
-    if (filtro.transportadoraId) rotulos.push(`Transportadora #${filtro.transportadoraId}`);
-    if (filtro.status != null) {
-      rotulos.push(`Status ${entradaSaidaStatusLabel(filtro.status) || filtro.status}`);
-    }
-    if (filtro.faturado != null) rotulos.push(`Faturado: ${filtro.faturado ? 'Sim' : 'Não'}`);
-    if (filtro.ehExcedente != null) rotulos.push(`Excedente: ${filtro.ehExcedente ? 'Sim' : 'Não'}`);
-    if (filtro.descricao) rotulos.push(`Busca: ${filtro.descricao}`);
-    return rotulos;
+    return rotulosFiltroMovimentacoesExportacao(filtro, this.filtroResumoChip());
   }
 
-  /** Mapeia filtros da tela para o contrato de MovimentacaoRelatorio. */
+  /** Mapeia filtros da tela (chips + Em aberto + avançados) para MovimentacaoRelatorio. */
   private montarFiltroExportacao(): MovimentacaoRelatorioFiltro {
-    const avancados = this.filtrosAvancados();
-    const placaRapida = this.filtro.descricao.trim();
-    const placaAvancada = avancados.placa.trim();
-    const placaRaw = placaAvancada || placaRapida;
-    const placa = placaRaw ? formatPlacaDisplay(normalizePlaca(placaRaw)) : null;
-
     const transportadoraSessao = this.auth.isTransportadoraRole()
       ? this.auth.resolveTransportadoraId()
       : null;
-    const transportadoraId =
-      transportadoraSessao != null && transportadoraSessao > 0
-        ? transportadoraSessao
-        : avancados.transportadoraId != null && avancados.transportadoraId > 0
-          ? avancados.transportadoraId
-          : null;
-
-    let dataInicial: string | null = avancados.periodoAtivo
-      ? toIsoDate(avancados.dataInicio)
-      : null;
-    let dataFinal: string | null = avancados.periodoAtivo
-      ? toIsoDate(avancados.dataFim)
-      : null;
-
-    const chip = this.filtroResumoChip();
-    if (chip === 'entradasHoje' && !avancados.periodoAtivo) {
-      const hoje = toIsoDate(criarDataHoje());
-      dataInicial = hoje;
-      dataFinal = hoje;
-    }
-
-    // Relatório exige janela de datas; sem isso o backend usa default estreito
-    // (ex.: só hoje) e o PDF/Excel fica bem menor que a lista da tela.
-    if (!dataInicial || !dataFinal) {
-      const hoje = criarDataHoje();
-      dataInicial = toIsoDate(new Date(hoje.getFullYear() - 5, 0, 1));
-      dataFinal = toIsoDate(hoje);
-    }
-
-    let status: number | null = null;
-    if (chip === 'suspensos') status = EntradaSaidaStatus.Suspenso;
-    else if (chip === 'agendados') status = EntradaSaidaStatus.Agendado;
-    else if (chip === 'noPatio') status = EntradaSaidaStatus.Entrada;
-
-    let ehExcedente: boolean | null = null;
-    if (avancados.excedente === 'sim') ehExcedente = true;
-    else if (avancados.excedente === 'nao') ehExcedente = false;
-
-    return {
-      dataInicial,
-      dataFinal,
-      placa,
-      transportadoraId,
-      status,
-      ehExcedente,
-      limite: Math.max(this.totalCount() || 0, 1000)
-    };
+    return montarFiltroMovimentacoesExportacao({
+      filtrosAvancados: this.filtrosAvancados(),
+      placaRapida: this.filtro.descricao,
+      somenteEmAberto: this.filtro.somenteEmAberto,
+      chip: this.filtroResumoChip(),
+      transportadoraSessaoId: transportadoraSessao,
+      estacionamentoId: this.estacionamentoIdDaSessao(),
+      limiteMinimo: Math.max(this.totalCount() || 0, 1000),
+    });
   }
 
   onMotoristaCpfInput(value: string): void {

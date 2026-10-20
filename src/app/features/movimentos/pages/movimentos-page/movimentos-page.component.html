@@ -5,9 +5,41 @@
     @if (isPortariaView()) {
     <section class="portaria-layout" aria-label="Operação de entrada e saída">
       <div class="portaria-layout__main">
-        <header class="dashboard-card portaria-hero">
-          <h1 class="portaria-hero__title">Entrada e Saída</h1>
-          <p class="portaria-hero__sub">Controle operacional de entradas e saídas no pátio.</p>
+        <header class="dashboard-card portaria-hero" aria-label="Entrada e Saída">
+          <div class="portaria-hero__media" aria-hidden="true">
+            <img
+              class="portaria-hero__img"
+              src="/portaria-hero-truck.jpg"
+              alt=""
+              decoding="async"
+              fetchpriority="low"
+            />
+            <div class="portaria-hero__overlay"></div>
+          </div>
+
+          <div class="portaria-hero__content">
+            <div class="portaria-hero__brand">
+              <div class="portaria-hero__icon" aria-hidden="true">
+                <span class="material-symbols-outlined">local_shipping</span>
+              </div>
+              <div class="portaria-hero__text">
+                <h1 class="portaria-hero__title">Entrada e Saída</h1>
+                <p class="portaria-hero__sub">
+                  Controle operacional de entradas e saídas no pátio.
+                </p>
+              </div>
+            </div>
+
+            <div class="portaria-hero__clock" aria-live="polite">
+              <span class="material-symbols-outlined portaria-hero__clock-ico" aria-hidden="true"
+                >schedule</span
+              >
+              <div class="portaria-hero__clock-text">
+                <span class="portaria-hero__clock-date">{{ dataHeroPortaria() }}</span>
+                <span class="portaria-hero__clock-time">{{ horaHeroPortaria() }}</span>
+              </div>
+            </div>
+          </div>
         </header>
 
         <section class="dashboard-kpis dashboard-kpis--portaria" aria-label="Indicadores do dia">
@@ -252,9 +284,14 @@
   }
 
     @if (isOperacaoView()) {
-      <header class="operacao-page-head">
-        <h1 class="operacao-page-head__title">Movimentações</h1>
-        <p class="operacao-page-head__sub">Consulta e ações nos movimentos do pátio.</p>
+      <header class="cfg-page-head" aria-label="Movimentações">
+        <div class="cfg-page-head__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">swap_horiz</span>
+        </div>
+        <div class="cfg-page-head__text">
+          <h1 class="cfg-page-head__title">Movimentações</h1>
+          <p class="cfg-page-head__sub">Consulta e ações nos movimentos do pátio.</p>
+        </div>
       </header>
       <section class="card operacao-toolbar operacao-toolbar--compact" aria-label="Filtros e busca">
         <div class="operacao-actions">
@@ -390,7 +427,9 @@
                         <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('saida') }}</span>
                       </button>
                     </th>
-                    <th scope="col">Tempo no pátio</th>
+                    <th scope="col" title="Tempo no pátio">
+                      <span class="historico-th-label">Tempo no pátio</span>
+                    </th>
                     <th scope="col">
                       <button type="button" class="data-table__sort-btn" (click)="ordenarPor('status')">
                         Status
@@ -414,18 +453,33 @@
                       [class.historico-row--selected]="isMovimentoSelecionado(item.id)"
                       (click)="selecionarMovimento(item)"
                     >
-                      <td class="historico-placa">{{ formatarPlaca(item.placaVeiculo) }}</td>
+                      <td
+                        class="historico-placa"
+                        [title]="formatarPlaca(item.placaVeiculo)"
+                      >{{ formatarPlaca(item.placaVeiculo) }}</td>
                       <td>
-                        <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista }}</span>
-                      </td>
-                      <td>
-                        <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{
-                          item.nomeTransportadora
+                        <span class="cell-ellipsis" [title]="item.nomeMotorista || ''">{{
+                          item.nomeMotorista || '—'
                         }}</span>
                       </td>
-                      <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
-                      <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}</td>
-                      <td class="historico-tempo">{{ tempoNoPatioItem(item) }}</td>
+                      <td>
+                        <span class="cell-ellipsis" [title]="item.nomeTransportadora || ''">{{
+                          item.nomeTransportadora || '—'
+                        }}</span>
+                      </td>
+                      <td [title]="item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm'">
+                        {{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}
+                      </td>
+                      <td
+                        [title]="
+                          item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm') : ''
+                        "
+                      >
+                        {{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yy HH:mm') : '—' }}
+                      </td>
+                      <td class="historico-tempo" [title]="tempoNoPatioItem(item)">
+                        {{ tempoNoPatioItem(item) }}
+                      </td>
                       <td>
                         <span [class]="statusTabelaClasse(item)">
                           {{ statusTabelaLabel(item) }}
@@ -437,7 +491,7 @@
                             Excedente
                           </span>
                         } @else if (item.acordoCobrancaId) {
-                          <span class="status-pill status-pill--acordo" title="Dentro do acordo">Dentro do acordo</span>
+                          <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
                         } @else {
                           —
                         }
@@ -448,9 +502,11 @@
                             class="btn btn-primary btn--sm"
                             type="button"
                             [disabled]="!!item.dataHoraSaida"
+                            title="Registrar saída"
+                            aria-label="Registrar saída"
                             (click)="$event.stopPropagation(); abrirPermanencia(item, 'finalizar')"
                           >
-                            Registrar saída
+                            Saída
                           </button>
                         }
                         <button
@@ -458,6 +514,11 @@
                           type="button"
                           [disabled]="!podeVisualizarRecibo(item) || reciboEmCarregamento()"
                           [title]="item.dataHoraSaida ? 'Visualizar recibo de saída (PDF)' : 'Visualizar recibo de entrada (PDF)'"
+                          [attr.aria-label]="
+                            item.dataHoraSaida
+                              ? 'Visualizar recibo de saída'
+                              : 'Visualizar recibo de entrada'
+                          "
                           (click)="$event.stopPropagation(); abrirReciboHistorico(item)"
                         >
                           {{ reciboBaixandoId() === item.id ? '...' : 'Recibo' }}

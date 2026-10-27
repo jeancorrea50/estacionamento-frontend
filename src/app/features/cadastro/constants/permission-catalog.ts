@@ -1,6 +1,6 @@
 /**
  * Catálogo de permissões alinhado aos recursos/endpoints do backend.
- * Recursos: Estacionamento, Motorista, Transportadora, Veiculo, VeiculoModelo, Perfil, Usuario.
+ * Recursos: Estacionamento, Motorista, Transportadora, Veiculo, VeiculoModelo, Permissao, Usuario.
  * Ações por recurso: visualizar (Buscar + ObterPorId), gravar (Gravar), alterar (Alterar), excluir (Delete).
  * Módulos de app (Movimentos, Financeiro, Relatórios, Fotos) mantidos para uso na UI até o backend expor.
  */
@@ -10,9 +10,11 @@ export const PERMISSION_MODULES = [
   'Transportadora',
   'Veículo',
   'Veículo modelo',
-  'Perfil',
+  'Permissão',
   'Usuários',
+  'Movimentações',
   'Movimentos',
+  'Agendamento',
   'Financeiro',
   'Relatórios',
   'Fotos',
@@ -52,28 +54,58 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'veiculoModelo.alterar',
     'veiculoModelo.excluir',
   ],
-  Perfil: [
-    'perfil.visualizar',
-    'perfil.gravar',
-    'perfil.alterar',
-    'perfil.excluir',
+  'Permissão': [
+    'permissao.visualizar',
+    'permissao.gravar',
+    'permissao.alterar',
+    'permissao.excluir',
   ],
   Usuários: [
     'usuarios.visualizar',
     'usuarios.gerenciar',
   ],
-  Movimentos: [
-    'movimentos.entrada',
-    'movimentos.saida',
-    'movimentos.consultar',
+  Movimentações: [
+    'movimentacoes.visualizar',
+    'movimentacoes.gravar',
+    'movimentacoes.alterar',
+    'movimentacoes.excluir',
+  ],
+  Movimentos: [ // módulo interno (permissões/API); exibição na UI: "Entrada e Saída"
+    'entradasaida.visualizar',
+    'entradasaida.gravar',
+    'entradasaida.alterar',
+    'entradasaida.excluir',
+  ],
+  Agendamento: [
+    'agendamento.visualizar',
+    'agendamento.gravar',
+    'agendamento.alterar',
+    'agendamento.excluir',
   ],
   Financeiro: [
     'financeiro.ver',
     'financeiro.exportar',
+    'faturamento.visualizar',
+    'faturamento.gravar',
+    'faturamento.alterar',
+    'faturamento.excluir',
+    'relatorio.visualizar',
+    'relatorio.exportar',
+    'pagamento.visualizar',
+    'pagamento.gravar',
+    'pagamento.alterar',
+    'pagamento.excluir',
+    'cobranca.visualizar',
+    'cobranca.gravar',
+    'cobranca.alterar',
+    'cobranca.excluir',
   ],
   Relatórios: [
     'relatorios.visualizar',
     'relatorios.exportar',
+    'relatoriodetransportadoras.visualizar',
+    'relatoriodemovimentacoes.visualizar',
+    'relatoriodepagamentos.visualizar',
   ],
   Fotos: [
     'fotos.upload',

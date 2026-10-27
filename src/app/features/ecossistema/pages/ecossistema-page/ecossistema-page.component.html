@@ -1,0 +1,606 @@
+<div
+  class="eco-page"
+  [class.eco-page--panel]="!!selecionado() || diagnosticoAberto()"
+  [class.eco-page--diag]="diagnosticoAberto()"
+>
+  <header class="eco-toolbar" aria-label="Ferramentas do ecossistema">
+    <div class="eco-toolbar__title">
+      <span class="material-symbols-outlined" aria-hidden="true">hub</span>
+      <div>
+        <h1>Ecossistema</h1>
+        <p>Mapa funcional do sistema — sem dados operacionais de clientes</p>
+      </div>
+    </div>
+
+    <div class="eco-toolbar__search">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <input
+        type="search"
+        [(ngModel)]="buscaProxy"
+        (keyup.enter)="buscarECentralizar()"
+        placeholder="Buscar módulo…"
+        aria-label="Buscar módulo"
+      />
+      <button type="button" class="eco-btn eco-btn--ghost" (click)="buscarECentralizar()">Ir</button>
+    </div>
+
+    <div class="eco-toolbar__filters">
+      <select [ngModel]="filtroGrupo()" (ngModelChange)="filtroGrupo.set($event)" aria-label="Filtrar grupo">
+        <option value="todos">Todos os grupos</option>
+        <option value="plataforma">Plataforma</option>
+        <option value="estacionamento">Estacionamento</option>
+        <option value="transportadora">Transportadora</option>
+      </select>
+      <select [ngModel]="filtroEvidencia()" (ngModelChange)="filtroEvidencia.set($event)" aria-label="Filtrar evidência">
+        <option value="todos">Toda evidência</option>
+        <option value="identificado">Identificado</option>
+        <option value="parcial">Parcial</option>
+        <option value="proposto">Proposto</option>
+        <option value="nao_verificado">Não verificado</option>
+      </select>
+      <select [ngModel]="filtroTipo()" (ngModelChange)="filtroTipo.set($event)" aria-label="Filtrar conexão">
+        <option value="todos">Todos os vínculos</option>
+        <option value="dependencia">Dependência</option>
+        <option value="consulta">Consulta</option>
+        <option value="evento">Evento</option>
+        <option value="integracao_externa">Integração</option>
+      </select>
+    </div>
+
+    <div class="eco-toolbar__actions">
+      <button
+        type="button"
+        class="eco-btn eco-btn--diag"
+        [class.eco-btn--diag-on]="diagnosticoAberto()"
+        (click)="diagnosticoAberto() ? fecharDiagnostico() : abrirDiagnostico()"
+        title="Avaliar fluxos, conexão e gaps FE/BE"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">health_and_safety</span>
+        Diagnóstico
+      </button>
+      <button type="button" class="eco-btn" (click)="organizarMapa()" title="Organizar mapa">Organizar</button>
+      <button type="button" class="eco-btn" (click)="ajustarATela()" title="Ajustar à tela">Ajustar</button>
+      <button type="button" class="eco-btn" (click)="restaurarLayout()" title="Restaurar layout">Restaurar</button>
+      <button type="button" class="eco-btn eco-btn--icon" (click)="toggleFullscreen()" title="Tela cheia" aria-label="Tela cheia">
+        <span class="material-symbols-outlined">fullscreen</span>
+      </button>
+    </div>
+  </header>
+
+  @if (erro()) {
+    <div class="eco-banner" role="alert">{{ erro() }}</div>
+  }
+
+  <div
+    #viewport
+    class="eco-viewport"
+    (wheel)="onWheel($event)"
+    (pointerdown)="onPointerDownBg($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+  >
+    <div class="eco-grid" aria-hidden="true"></div>
+
+    <div class="eco-world" [style.transform]="transformStyle()">
+      <svg class="eco-edges" [attr.width]="worldBounds().maxX + 80" [attr.height]="worldBounds().maxY + 80">
+        <defs>
+          <marker id="eco-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L7,3 L0,6 Z" class="eco-arrow-fill" />
+          </marker>
+        </defs>
+        @for (g of arestasGeom(); track g.edge.id) {
+          <path
+            [attr.d]="edgePath(g)"
+            class="eco-edge"
+            [class.eco-edge--hi]="g.highlighted"
+            [class.eco-edge--dim]="g.dimmed"
+            [class.eco-edge--dep]="g.edge.tipo === 'dependencia'"
+            [class.eco-edge--query]="g.edge.tipo === 'consulta'"
+            [class.eco-edge--event]="g.edge.tipo === 'evento'"
+            [class.eco-edge--ext]="g.edge.tipo === 'integracao_externa'"
+            [attr.stroke-dasharray]="strokeDash(g.edge)"
+            marker-end="url(#eco-arrow)"
+          />
+          <text [attr.x]="g.mx" [attr.y]="g.my" class="eco-edge-label" [class.eco-edge-label--dim]="g.dimmed">
+            {{ g.edge.label }}
+          </text>
+        }
+      </svg>
+
+      @for (n of nosVisiveis(); track n.id) {
+        <button
+          type="button"
+          class="eco-node"
+          [class.eco-node--plataforma]="n.grupo === 'plataforma'"
+          [class.eco-node--estacionamento]="n.grupo === 'estacionamento'"
+          [class.eco-node--transportadora]="n.grupo === 'transportadora'"
+          [class.eco-node--selected]="isNodeSelected(n.id)"
+          [class.eco-node--dim]="isNodeDimmed(n.id)"
+          [class.eco-node--issue]="isNodeComProblema(n.id)"
+          [class.eco-node--parcial]="n.evidencia === 'parcial'"
+          [class.eco-node--proposto]="n.evidencia === 'proposto' || n.evidencia === 'nao_verificado'"
+          [style.left.px]="n.x"
+          [style.top.px]="n.y"
+          [style.width.px]="n.w"
+          [style.height.px]="n.h"
+          (pointerdown)="onPointerDownNode($event, n.id)"
+          (dblclick)="onNodeDblClick(n.id)"
+          [attr.aria-pressed]="isNodeSelected(n.id)"
+        >
+          <span class="eco-node__label">{{ n.label }}</span>
+          @if (n.childrenIds.length) {
+            <span class="eco-node__expand" aria-hidden="true">{{ isExpanded(n.id) ? '▾' : '▸' }}</span>
+          }
+        </button>
+      }
+    </div>
+
+    @if (nosVisiveis().length === 0) {
+      <div class="eco-empty">
+        <p>Nenhum bloco corresponde aos filtros atuais.</p>
+        <button type="button" class="eco-btn" (click)="filtroGrupo.set('todos'); filtroEvidencia.set('todos'); buscaProxy = ''">
+          Limpar filtros
+        </button>
+      </div>
+    }
+
+    <div class="eco-controls" aria-label="Zoom">
+      <button type="button" class="eco-btn eco-btn--icon" (click)="zoomBy(1.12)" title="Zoom +">+</button>
+      <button type="button" class="eco-btn eco-btn--icon" (click)="zoomBy(0.9)" title="Zoom −">−</button>
+      <button type="button" class="eco-btn eco-btn--icon" (click)="ajustarATela()" title="Ajustar à tela">
+        <span class="material-symbols-outlined">fit_screen</span>
+      </button>
+      <button type="button" class="eco-btn eco-btn--icon" (click)="centralizar()" title="Centralizar">
+        <span class="material-symbols-outlined">center_focus_strong</span>
+      </button>
+    </div>
+
+    <aside class="eco-minimap" [class.eco-minimap--closed]="!minimapaAberto()">
+      <button type="button" class="eco-minimap__toggle" (click)="minimapaAberto.set(!minimapaAberto())">
+        {{ minimapaAberto() ? 'Minimapa' : 'Mapa' }}
+      </button>
+      @if (minimapaAberto()) {
+        <svg [attr.viewBox]="minimapViewBox()" preserveAspectRatio="xMidYMid meet">
+          @for (n of nosVisiveis(); track n.id) {
+            <rect
+              [attr.x]="n.x"
+              [attr.y]="n.y"
+              [attr.width]="n.w"
+              [attr.height]="n.h"
+              class="eco-minimap__node"
+              [class.eco-minimap__node--sel]="isNodeSelected(n.id)"
+            />
+          }
+        </svg>
+      }
+    </aside>
+
+    <div class="eco-legend" aria-label="Legenda">
+      <span><i class="eco-leg eco-leg--dep"></i> Dependência</span>
+      <span><i class="eco-leg eco-leg--query"></i> Consulta</span>
+      <span><i class="eco-leg eco-leg--event"></i> Evento</span>
+      <span><i class="eco-leg eco-leg--dash"></i> Proposto / N/V</span>
+      <span><i class="eco-leg eco-leg--issue"></i> Problema aberto</span>
+    </div>
+  </div>
+
+  @if (diagnosticoAberto()) {
+    <aside class="eco-panel eco-panel--diag" aria-label="Diagnóstico do ecossistema">
+      <header class="eco-panel__head">
+        <div>
+          <h2>Diagnóstico</h2>
+          <p class="eco-panel__meta">Fluxos ponta a ponta · conexão · backend · frontend · regras</p>
+        </div>
+        <button type="button" class="eco-btn eco-btn--icon" (click)="fecharDiagnostico()" aria-label="Fechar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="eco-panel__escopo">
+        <button type="button" class="eco-chip eco-chip--on" (click)="rodarDiagnostico()" [disabled]="diagnosticoLoading()">
+          {{ diagnosticoLoading() ? 'Avaliando…' : 'Reavaliar agora' }}
+        </button>
+        <button type="button" class="eco-chip" (click)="abrirFormProblema()">Lançar problema</button>
+        <select
+          class="eco-diag-select"
+          [ngModel]="diagnosticoFiltroSev()"
+          (ngModelChange)="diagnosticoFiltroSev.set($event)"
+          aria-label="Filtrar severidade"
+        >
+          <option value="todos">Todas severidades</option>
+          <option value="critica">Crítico</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Melhoria</option>
+        </select>
+      </div>
+
+      @if (formProblemaAberto()) {
+        <ng-container *ngTemplateOutlet="formProblemaTpl" />
+      }
+
+      <section>
+        <h3>
+          Problemas lançados ({{ problemasVisiveis().length }})
+          <button
+            type="button"
+            class="eco-chip eco-chip--inline"
+            [class.eco-chip--on]="mostrarProblemasResolvidos()"
+            (click)="mostrarProblemasResolvidos.set(!mostrarProblemasResolvidos())"
+          >
+            {{ mostrarProblemasResolvidos() ? 'Ocultar resolvidos' : 'Ver resolvidos' }}
+          </button>
+        </h3>
+        @if (problemasVisiveis().length === 0) {
+          <p>Nenhum problema {{ mostrarProblemasResolvidos() ? '' : 'aberto ' }}lançado. Use “Lançar problema”.</p>
+        } @else {
+          <ul class="eco-diag-achados">
+            @for (p of problemasVisiveis(); track p.id) {
+              <ng-container *ngTemplateOutlet="problemaCardTpl; context: { $implicit: p, showMapa: true }" />
+            }
+          </ul>
+        }
+      </section>
+
+      @if (diagnosticoLoading() && !diagnostico()) {
+        <p class="eco-diag-loading">Varredura do mapa e probes de API em andamento…</p>
+      } @else if (diagnostico(); as d) {
+        <div class="eco-diag-kpis" aria-label="Resumo">
+          <span class="eco-diag-kpi eco-diag-kpi--crit">{{ d.resumo.criticos }} crítico</span>
+          <span class="eco-diag-kpi eco-diag-kpi--alta">{{ d.resumo.altos }} alta</span>
+          <span class="eco-diag-kpi">{{ d.resumo.medios }} média</span>
+          <span class="eco-diag-kpi">{{ d.resumo.baixos }} melhoria</span>
+        </div>
+
+        <section>
+          <h3>Fluxos ponta a ponta</h3>
+          <ul class="eco-diag-fluxos">
+            @for (f of d.fluxos; track f.id) {
+              <li [class.eco-diag-fluxo--risco]="!f.saudavel">
+                <strong>{{ f.nome }}</strong>
+                <span>{{ f.etapas.join(' → ') }}</span>
+                <em>{{ f.resumo }}</em>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <section>
+          <h3>Probes de API</h3>
+          <ul class="eco-diag-probes">
+            @for (p of d.probes; track p.id) {
+              <li
+                [class.eco-diag-probe--ok]="p.status === 'ok'"
+                [class.eco-diag-probe--warn]="p.status === 'aviso'"
+                [class.eco-diag-probe--fail]="p.status === 'falha'"
+              >
+                <button type="button" class="eco-diag-link" (click)="focarNoMapa(p.noId)" [disabled]="!p.noId">
+                  {{ p.label }}
+                </button>
+                <span>{{ p.httpStatus ?? '—' }} · {{ p.mensagem }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <section>
+          <h3>Achados ({{ diagnosticoAchadosFiltrados().length }})</h3>
+          @if (diagnosticoAchadosFiltrados().length === 0) {
+            <p>Nenhum achado neste filtro. Fluxos aparentam saudáveis para o escopo avaliado.</p>
+          } @else {
+            <ul class="eco-diag-achados">
+              @for (a of diagnosticoAchadosFiltrados(); track a.id) {
+                <li
+                  class="eco-diag-achado"
+                  [class.eco-diag-achado--crit]="a.severidade === 'critica'"
+                  [class.eco-diag-achado--alta]="a.severidade === 'alta'"
+                  [class.eco-diag-achado--media]="a.severidade === 'media'"
+                >
+                  <header>
+                    <span class="eco-diag-sev">{{ sevLabel[a.severidade] }}</span>
+                    <span class="eco-diag-cat">{{ catLabel[a.categoria] }}</span>
+                  </header>
+                  <strong>{{ a.titulo }}</strong>
+                  <p>{{ a.descricao }}</p>
+                  <p class="eco-diag-acao"><span>Como sanar:</span> {{ a.acaoSugerida }}</p>
+                  @if (a.noId) {
+                    <button type="button" class="eco-btn eco-btn--sm" (click)="focarAchado(a)">
+                      Ver no mapa
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    </aside>
+  } @else if (selecionado(); as n) {
+    <aside class="eco-panel" aria-label="Detalhes do módulo">
+      <header class="eco-panel__head">
+        <div>
+          <h2>{{ n.label }}</h2>
+          <p class="eco-panel__meta">
+            {{ grupoLabel[n.grupo] }} · {{ evidLabel[n.evidencia] }}
+            @if (problemasAbertosDoModulo().length) {
+              <span class="eco-panel__issue-badge">{{ problemasAbertosDoModulo().length }} aberto(s)</span>
+            }
+          </p>
+        </div>
+        <button type="button" class="eco-btn eco-btn--icon" (click)="limparSelecao()" aria-label="Fechar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+
+      <div class="eco-panel__escopo">
+        <button type="button" class="eco-chip" [class.eco-chip--on]="escopo() === 'diretas'" (click)="setEscopo('diretas')">
+          Conexões diretas
+        </button>
+        <button type="button" class="eco-chip" [class.eco-chip--on]="escopo() === 'fluxo'" (click)="setEscopo('fluxo')">
+          Fluxo completo
+        </button>
+        <button
+          type="button"
+          class="eco-chip eco-chip--issue"
+          [class.eco-chip--on]="formProblemaAberto()"
+          (click)="formProblemaAberto() ? fecharFormProblema() : abrirFormProblemaDoNo(n)"
+        >
+          Lançar problema
+        </button>
+        <button type="button" class="eco-chip" (click)="limparSelecao()">Limpar seleção</button>
+      </div>
+
+      @if (formProblemaAberto()) {
+        <ng-container *ngTemplateOutlet="formProblemaTpl" />
+      }
+
+      @if (problemasDoModuloSelecionado(); as probsModulo) {
+        @if (probsModulo.length) {
+          <section class="eco-modulo-problemas" aria-label="Problemas deste módulo">
+            <h3>Problemas deste módulo ({{ probsModulo.length }})</h3>
+            <ul class="eco-diag-achados">
+              @for (p of probsModulo; track p.id) {
+                <li
+                  class="eco-diag-achado"
+                  [class.eco-diag-achado--crit]="p.severidade === 'critica'"
+                  [class.eco-diag-achado--alta]="p.severidade === 'alta'"
+                  [class.eco-diag-achado--media]="p.severidade === 'media'"
+                  [class.eco-problema--resolvido]="p.status === 'resolvido'"
+                >
+                  <header>
+                    <span class="eco-diag-sev">{{ sevLabel[p.severidade] }}</span>
+                    <span class="eco-diag-cat">{{ problemaCatLabel[p.categoria] }}</span>
+                    <span class="eco-diag-cat">{{ problemaStatusLabel[p.status] }}</span>
+                  </header>
+                  <strong>{{ p.titulo }}</strong>
+                  <p>{{ p.descricao }}</p>
+                  @if (p.sugestoes.length) {
+                    <div class="eco-problema-sugestoes eco-problema-sugestoes--compact">
+                      <h4>Como resolver</h4>
+                      <ul>
+                        @for (s of p.sugestoes; track s) {
+                          <li>{{ s }}</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                  <div class="eco-problema-actions">
+                    @if (p.status === 'aberto') {
+                      <button type="button" class="eco-btn eco-btn--sm" (click)="toggleDestacarProblema(p)">
+                        {{ p.destacar ? 'Remover destaque' : 'Destacar' }}
+                      </button>
+                      <button type="button" class="eco-btn eco-btn--sm eco-btn--ok" (click)="resolverProblema(p)">
+                        Marcar resolvido
+                      </button>
+                    } @else {
+                      <button type="button" class="eco-btn eco-btn--sm" (click)="reabrirProblema(p)">Reabrir</button>
+                    }
+                    <button type="button" class="eco-btn eco-btn--sm" (click)="removerProblema(p)">Excluir</button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+
+      <section>
+        <h3>Finalidade</h3>
+        <p>{{ n.finalidade }}</p>
+      </section>
+      <section>
+        <h3>Quem utiliza</h3>
+        <p>{{ n.quemUsa.join(', ') || '—' }}</p>
+      </section>
+      <section>
+        <h3>Tela / rota</h3>
+        <p>{{ n.rota || 'Sem rota SPA dedicada' }}</p>
+      </section>
+      <section>
+        <h3>Informações necessárias</h3>
+        <ul>
+          @for (i of n.informacoesNecessarias; track i) {
+            <li>{{ i }}</li>
+          }
+        </ul>
+      </section>
+      <section>
+        <h3>Ações</h3>
+        <ul>
+          @for (a of n.acoes; track a) {
+            <li>{{ a }}</li>
+          }
+        </ul>
+      </section>
+      <section>
+        <h3>Resultados</h3>
+        <ul>
+          @for (r of n.resultados; track r) {
+            <li>{{ r }}</li>
+          }
+        </ul>
+      </section>
+      @if (n.regras.length) {
+        <section>
+          <h3>Regras identificadas</h3>
+          <ul>
+            @for (r of n.regras; track r) {
+              <li>{{ r }}</li>
+            }
+          </ul>
+        </section>
+      }
+      <section>
+        <h3>Evidência</h3>
+        <p>{{ n.evidenciaDetalhe }}</p>
+      </section>
+      @if (n.pendencias.length) {
+        <section>
+          <h3>Pendências de validação</h3>
+          <ul>
+            @for (p of n.pendencias; track p) {
+              <li>{{ p }}</li>
+            }
+          </ul>
+        </section>
+      }
+
+      <footer class="eco-panel__foot">
+        <button type="button" class="eco-btn eco-btn--warn" (click)="abrirFormProblemaDoNo(n)">
+          Lançar problema neste módulo
+        </button>
+        @if (podeAbrirModulo(n)) {
+          <a class="eco-btn eco-btn--primary" [routerLink]="n.rota">Abrir módulo</a>
+        } @else if (n.rota) {
+          <button type="button" class="eco-btn" disabled title="Sem permissão ou acesso ao menu">Abrir módulo</button>
+        }
+      </footer>
+    </aside>
+  }
+
+  <ng-template #problemaCardTpl let-p let-showMapa="showMapa">
+    <li
+      class="eco-diag-achado"
+      [class.eco-diag-achado--crit]="p.severidade === 'critica'"
+      [class.eco-diag-achado--alta]="p.severidade === 'alta'"
+      [class.eco-diag-achado--media]="p.severidade === 'media'"
+      [class.eco-problema--resolvido]="p.status === 'resolvido'"
+    >
+      <header>
+        <span class="eco-diag-sev">{{ labelSevProblema(p) }}</span>
+        <span class="eco-diag-cat">{{ labelCatProblema(p) }}</span>
+        <span class="eco-diag-cat">{{ labelStatusProblema(p) }}</span>
+      </header>
+      <strong>{{ p.titulo }}</strong>
+      <p>{{ p.descricao }}</p>
+      @if (p.sugestoes.length) {
+        <div class="eco-problema-sugestoes eco-problema-sugestoes--compact">
+          <h4>Como resolver</h4>
+          <ul>
+            @for (s of p.sugestoes; track s) {
+              <li>{{ s }}</li>
+            }
+          </ul>
+        </div>
+      }
+      <div class="eco-problema-actions">
+        @if (showMapa && p.noId) {
+          <button type="button" class="eco-btn eco-btn--sm" (click)="focarNoMapa(p.noId)">Ver no mapa</button>
+        }
+        @if (p.status === 'aberto') {
+          <button type="button" class="eco-btn eco-btn--sm" (click)="toggleDestacarProblema(p)">
+            {{ p.destacar ? 'Remover destaque' : 'Destacar' }}
+          </button>
+          <button type="button" class="eco-btn eco-btn--sm eco-btn--ok" (click)="resolverProblema(p)">
+            Marcar resolvido
+          </button>
+        } @else {
+          <button type="button" class="eco-btn eco-btn--sm" (click)="reabrirProblema(p)">Reabrir</button>
+        }
+        <button type="button" class="eco-btn eco-btn--sm" (click)="removerProblema(p)">Excluir</button>
+      </div>
+    </li>
+  </ng-template>
+
+  <ng-template #formProblemaTpl>
+    <section class="eco-problema-form" aria-label="Novo problema">
+      <h3>Novo problema</h3>
+      @if (problemaErro()) {
+        <p class="eco-problema-erro">{{ problemaErro() }}</p>
+      }
+      <label>
+        Título
+        <input
+          type="text"
+          [(ngModel)]="formProblema.titulo"
+          maxlength="120"
+          placeholder="Ex.: Saída não calcula valor do acordo"
+        />
+      </label>
+      <label>
+        Descrição
+        <textarea
+          rows="5"
+          [(ngModel)]="formProblema.descricao"
+          maxlength="2000"
+          placeholder="O que acontece, quando, com qual perfil/pátio…"
+        ></textarea>
+      </label>
+      <div class="eco-problema-grid">
+        <label>
+          Tipo
+          <select [(ngModel)]="formProblema.categoria">
+            @for (opt of [
+              { v: 'fluxo_vago', l: 'Fluxo / processo' },
+              { v: 'backend', l: 'Backend / API' },
+              { v: 'frontend', l: 'Frontend' },
+              { v: 'regra_negocio', l: 'Regra de negócio' },
+              { v: 'conexao', l: 'Conexão / proxy' },
+              { v: 'sessao', l: 'Sessão / pátio' },
+              { v: 'outro', l: 'Outro' }
+            ]; track opt.v) {
+              <option [ngValue]="opt.v">{{ opt.l }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Severidade
+          <select [(ngModel)]="formProblema.severidade">
+            <option [ngValue]="'critica'">Crítico</option>
+            <option [ngValue]="'alta'">Alta</option>
+            <option [ngValue]="'media'">Média</option>
+            <option [ngValue]="'baixa'">Melhoria</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        Módulo no mapa
+        <select [(ngModel)]="formProblema.noId">
+          <option value="">— Nenhum —</option>
+          @for (opt of nosOpcoes; track opt.id) {
+            <option [value]="opt.id">{{ opt.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Fluxo relacionado (opcional)
+        <select [(ngModel)]="formProblema.fluxoId">
+          <option value="">— Nenhum —</option>
+          @for (f of fluxosOpcoes; track f.id) {
+            <option [value]="f.id">{{ f.nome }}</option>
+          }
+        </select>
+      </label>
+      <label class="eco-problema-check">
+        <input type="checkbox" [(ngModel)]="formProblema.destacar" />
+        Destacar problema no mapa
+      </label>
+
+      <div class="eco-problema-actions">
+        <button type="button" class="eco-btn eco-btn--primary" (click)="salvarProblema()">Salvar e destacar</button>
+        <button type="button" class="eco-btn" (click)="fecharFormProblema()">Cancelar</button>
+      </div>
+    </section>
+  </ng-template>
+</div>

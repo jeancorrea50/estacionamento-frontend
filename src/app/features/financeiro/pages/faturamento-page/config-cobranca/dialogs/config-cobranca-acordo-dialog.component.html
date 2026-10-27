@@ -1,0 +1,94 @@
+<div class="cfg-acordo-dlg">
+  <header class="cfg-acordo-dlg__header">
+    <div class="cfg-acordo-dlg__titles">
+      <h2 class="cfg-acordo-dlg__title" mat-dialog-title>{{ titulo }}</h2>
+      <p class="cfg-acordo-dlg__subtitle">Defina o período e as listagens de vagas por mês.</p>
+    </div>
+    <button type="button" class="cfg-acordo-dlg__close" aria-label="Fechar" (click)="cancelar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  @if (erros.length) {
+    <div class="cfg-acordo-dlg__erros" role="alert">
+      @for (e of erros; track e) {
+        <span>{{ e }}</span>
+      }
+    </div>
+  }
+
+  <mat-dialog-content class="cfg-acordo-dlg__body">
+    <div class="cfg-acordo-dlg__grid">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+        <mat-label>Data início</mat-label>
+        <input matInput type="date" name="acordoDataInicio" [(ngModel)]="acordo.dataInicio" required />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+        <mat-label>Data fim</mat-label>
+        <input matInput type="date" name="acordoDataFim" [(ngModel)]="acordo.dataFim" required />
+      </mat-form-field>
+    </div>
+
+    @for (listagem of acordo.listagens; track listagem.id; let i = $index) {
+      <section class="cfg-acordo-dlg__listagem">
+        <div class="cfg-acordo-dlg__listagem-head">
+          <div class="cfg-acordo-dlg__listagem-titles">
+            <h3 class="cfg-acordo-dlg__listagem-title">Listagem {{ i + 1 }}</h3>
+            <p class="cfg-acordo-dlg__hint-text">Meses e quantidade de vagas.</p>
+          </div>
+          @if (acordo.listagens.length > 1) {
+            <button type="button" class="cfg-acordo-dlg__link" (click)="removerListagem(listagem.id)">
+              Remover
+            </button>
+          }
+        </div>
+        <div class="cfg-acordo-dlg__grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+            <mat-label>Meses</mat-label>
+            <mat-select
+              multiple
+              [name]="'mesesListagem' + listagem.id"
+              [(ngModel)]="listagem.meses"
+              panelClass="cfg-acordo-meses-panel"
+              (ngModelChange)="onMesesChange(listagem, $event)"
+              required
+            >
+              @for (m of mesesAcordo; track m.mes) {
+                <mat-option [value]="m.mes" [disabled]="mesOcupado(listagem, m.mes)">
+                  {{ m.label }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+            <mat-label>Quantidade de vagas</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [(ngModel)]="listagem.quantidade"
+              [name]="'qtdListagem' + listagem.id"
+              required
+            />
+          </mat-form-field>
+        </div>
+      </section>
+    }
+
+    <button type="button" class="cfg-acordo-dlg__btn cfg-acordo-dlg__btn--ghost" (click)="adicionarListagem()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Adicionar listagem
+    </button>
+  </mat-dialog-content>
+
+  <footer class="cfg-acordo-dlg__footer">
+    <button type="button" class="cfg-acordo-dlg__btn cfg-acordo-dlg__btn--outline" (click)="cancelar()">
+      Cancelar
+    </button>
+    <button type="button" class="cfg-acordo-dlg__btn cfg-acordo-dlg__btn--primary" (click)="concluir()">
+      Concluir
+    </button>
+  </footer>
+</div>

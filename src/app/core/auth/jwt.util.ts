@@ -53,10 +53,16 @@ export function extractJwtPermissionKeys(payload: Record<string, unknown>): stri
     payload['Permissions'] ??
     payload['Permissao'];
   if (Array.isArray(raw)) {
-    return raw.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
+    return Array.from(
+      new Set(
+        raw
+          .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+          .map((x) => x.trim().toLowerCase())
+      )
+    );
   }
   if (typeof raw === 'string' && raw.trim()) {
-    return [raw.trim()];
+    return [raw.trim().toLowerCase()];
   }
   return [];
 }
@@ -69,6 +75,10 @@ export function getJwtStringClaim(
     const v = payload[key];
     if (typeof v === 'string' && v.trim()) {
       return v.trim();
+    }
+    if (Array.isArray(v)) {
+      const first = v.find((x): x is string => typeof x === 'string' && x.trim().length > 0);
+      if (first) return first.trim();
     }
   }
   return null;

@@ -10,8 +10,8 @@ import { environment } from '../../../../environments/environment';
  * Para tipar respostas/corpos com os tipos do backend, use os tipos gerados:
  * @example
  * import type { ApiSchemas } from '../generated';
- * this.api.get<ApiSchemas['AlgumDto']>('Estacionamento/ObterPorId/1');
- * this.api.post<ApiSchemas['EstacionamentoPostInput']>('Estacionamento/Gravar', body);
+   * this.api.get<ApiSchemas['AlgumDto']>('Estacionamento/1');
+   * this.api.post<ApiSchemas['EstacionamentoPostInput']>('Estacionamento', body);
  */
 @Injectable({
   providedIn: 'root'
@@ -23,7 +23,7 @@ export class ApiService {
 
   /**
    * GET request.
-   * @param path Caminho relativo à base (ex.: 'Estacionamento/Buscar').
+   * @param path Caminho relativo à base (ex.: 'Estacionamento' ou 'auth/Menu/Buscar').
    * @param params Query params opcionais.
    * @param T Use tipos de {@link ApiSchemas} ou {@link components} quando for resposta do backend.
    */

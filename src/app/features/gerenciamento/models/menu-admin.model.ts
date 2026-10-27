@@ -16,7 +16,14 @@ export interface SubMenuAdmin {
   ordem: number;
   rota: string;
   ativo: boolean;
+  /**
+   * Se o item aparece na sidebar.
+   * Independente de `ativo` (ativo = habilitado no sistema; este flag só controla a navegação lateral).
+   */
+  exibirNoSidebar: boolean;
   permissions: MenuPermissionRow[];
+  /** Submenu de 2º nível (agrupado por prefixo de rota). */
+  subMenus?: SubMenuAdmin[];
 }
 
 export interface MenuAdmin {
@@ -24,7 +31,11 @@ export interface MenuAdmin {
   nome: string;
   ordem: number;
   icone: string;
+  /** Rota base do módulo (ex.: `/app/configuracoes`). Usada na sidebar e para derivar rotas de submenus. */
+  rota?: string;
   ativo: boolean;
+  /** Se o módulo (ou o agrupamento) aparece na sidebar. */
+  exibirNoSidebar: boolean;
   subMenus: SubMenuAdmin[];
   /**
    * `true` = menu já existe no backend (Buscar / após salvar). Usar **Alterar** ao persistir.

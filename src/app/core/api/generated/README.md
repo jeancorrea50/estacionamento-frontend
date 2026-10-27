@@ -31,8 +31,8 @@ type EstacionamentoPost = ApiSchemas['EstacionamentoPostInput'];
 type LoginBody = ApiSchemas['LoginInput'];
 
 // No ApiService
-this.api.post<ApiSchemas['EstacionamentoPostInput']>('Estacionamento/Gravar', body);
-this.api.get<...>('Estacionamento/ObterPorId/' + id);
+this.api.post<ApiSchemas['EstacionamentoPostInput']>('Estacionamento', body);
+this.api.get<...>('Estacionamento/' + id);
 ```
 
 O **ApiService** (`get<T>`, `post<T>`, etc.) já está preparado para usar esses tipos no genérico `T`.

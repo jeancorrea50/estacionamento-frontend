@@ -1,0 +1,411 @@
+<div class="rec-page">
+
+  <div class="rec-kpi-row">
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--orange">
+          <span class="material-symbols-outlined" aria-hidden="true">gpp_bad</span>
+        </div>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Total vencido</span>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ totalVencidoFormatado() }}</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--orange">
+          <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+        </div>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Faturas vencidas</span>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--orange">{{ faturasVencidasResumo() }}</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--blue">
+          <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
+        </div>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Transportadoras inadimplentes</span>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--blue">{{ transportadorasInadimplentesResumo() }}</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="rec-kpi-card" appearance="outlined">
+      <mat-card-content class="rec-kpi-card__content">
+        <div class="rec-kpi-card__ico-wrap rec-kpi-card__ico-wrap--green">
+          <span class="material-symbols-outlined" aria-hidden="true">handshake</span>
+        </div>
+        <div class="rec-kpi-card__body">
+          <div class="rec-kpi-card__top">
+            <span class="rec-kpi-card__label">Acordos realizados</span>
+          </div>
+          <p class="rec-kpi-card__value rec-kpi-card__value--green">{{ contagemAcordos() }}</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <section class="cfg-search-bar" aria-label="Busca de inadimplência">
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="transportadoraFiltro()" (ngModelChange)="transportadoraFiltro.set($event)" aria-label="Transportadora">
+        <option value="all">Todas transportadoras</option>
+        @for (t of transportadorasOpcoes(); track t) {
+          <option [ngValue]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="estacionamentoFiltro()" (ngModelChange)="estacionamentoFiltro.set($event)" aria-label="Estacionamento">
+        <option value="all">Todos estacionamentos</option>
+        @for (e of estacionamentosOpcoes(); track e) {
+          <option [ngValue]="e">{{ e }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="diasFiltro()" (ngModelChange)="diasFiltro.set($event)" aria-label="Dias em atraso">
+        @for (o of diasAtrasoOpcoes; track o.id) {
+          <option [ngValue]="o.id">{{ o.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="cfg-search-bar__select-wrap">
+      <select class="cfg-search-bar__select" [ngModel]="statusCobrancaFiltro()" (ngModelChange)="statusCobrancaFiltro.set($event)" aria-label="Status da cobrança">
+        <option value="all">Todos os status de cobrança</option>
+        @for (s of statusCobrancaOpcoes; track s) {
+          <option [ngValue]="s">{{ s }}</option>
+        }
+      </select>
+    </div>
+    <label class="cfg-search-bar__search">
+      <span class="material-symbols-outlined cfg-search-bar__search-ico" aria-hidden="true">search</span>
+      <input
+        type="text"
+        class="cfg-search-bar__search-input"
+        placeholder="Pesquisar por fatura, transportadora..."
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+        (keyup.enter)="carregarLista()"
+        autocomplete="off"
+        aria-label="Termo de busca"
+      />
+    </label>
+    <button type="button" class="cfg-search-bar__btn cfg-search-bar__btn--neutral" [disabled]="loading()" (click)="carregarLista()">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      Buscar
+    </button>
+          <div class="rec-data-picker cfg-search-bar__date">
+            <button
+              type="button"
+              class="rec-data-picker__trigger"
+              [class.rec-data-picker__trigger--ativo]="panelDataAberto()"
+              (click)="togglePanelData($event)"
+              aria-label="Selecionar data"
+              [attr.aria-expanded]="panelDataAberto()"
+            >
+              <span class="rec-data-picker__label">Data</span>
+              <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
+            </button>
+            @if (panelDataAberto()) {
+              <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
+                <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
+                  <h3 class="rec-cal__titulo">Calendário</h3>
+                  <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
+                    @for (g of periodoGranularidadeOpcoes; track g.id) {
+                      <button
+                        type="button"
+                        class="rec-data-picker__mode"
+                        role="tab"
+                        [class.rec-data-picker__mode--active]="periodoGranularidade() === g.id"
+                        [attr.aria-selected]="periodoGranularidade() === g.id"
+                        (click)="setPeriodoGranularidade(g.id)"
+                      >
+                        {{ g.label }}
+                      </button>
+                    }
+                  </div>
+                  @if (periodoGranularidade() === 'ano') {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
+                    </div>
+                    <div class="rec-cal__anos-grid">
+                      @for (ano of calendarioAnosOpcoes(); track ano) {
+                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">
+                          {{ ano }}
+                        </button>
+                      }
+                    </div>
+                  } @else if (periodoGranularidade() === 'mes') {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
+                    </div>
+                    <div class="rec-cal__meses-grid">
+                      @for (mes of mesesLabels; track mes; let i = $index) {
+                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">
+                          {{ mes }}
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="rec-cal__nav">
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                      </button>
+                      <span class="rec-cal__periodo-titulo">{{ calendarioTituloMes() }}</span>
+                      <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()">
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                      </button>
+                    </div>
+                    <div class="rec-cal__weekdays" aria-hidden="true">
+                      @for (dia of diasSemanaLabels; track dia) {
+                        <span class="rec-cal__weekday">{{ dia }}</span>
+                      }
+                    </div>
+                    <div class="rec-cal__grid" role="grid" aria-label="Dias do mês" (mouseleave)="onDocumentMouseUp()">
+                      @for (cell of calendarioGrade(); track cell.iso) {
+                        <button
+                          type="button"
+                          class="rec-cal__dia"
+                          role="gridcell"
+                          [ngClass]="diaCalendarioModificadores(cell)"
+                          [attr.aria-label]="cell.iso"
+                          [attr.aria-selected]="diaCalendarioModificadores(cell)['rec-cal__dia--selecionado'] || diaCalendarioModificadores(cell)['rec-cal__dia--range']"
+                          (mousedown)="onDiaCalendarioPointerDown(cell, $event)"
+                          (mouseenter)="onDiaCalendarioPointerEnter(cell)"
+                        >
+                          {{ cell.day }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+  </section>
+
+  <section class="fat-quick-bar" aria-label="Filtros rápidos">
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('todas')" (click)="alternarFiltroRapido('todas')">
+      Todas <span class="fat-quick-chip__count">{{ contagensChips().todas }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('d1_7')" (click)="alternarFiltroRapido('d1_7')">
+      1 a 7 dias <span class="fat-quick-chip__count">{{ contagensChips().d1_7 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('d8_15')" (click)="alternarFiltroRapido('d8_15')">
+      8 a 15 dias <span class="fat-quick-chip__count">{{ contagensChips().d8_15 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('mais15')" (click)="alternarFiltroRapido('mais15')">
+      Mais de 15 dias <span class="fat-quick-chip__count">{{ contagensChips().mais15 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('mais30')" (click)="alternarFiltroRapido('mais30')">
+      Mais de 30 dias <span class="fat-quick-chip__count">{{ contagensChips().mais30 }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('semCobranca')" (click)="alternarFiltroRapido('semCobranca')">
+      Sem cobrança <span class="fat-quick-chip__count">{{ contagensChips().semCobranca }}</span>
+    </button>
+    <button type="button" class="fat-quick-chip" [class.fat-quick-chip--active]="isFiltroRapidoAtivo('emNegociacao')" (click)="alternarFiltroRapido('emNegociacao')">
+      Em negociação <span class="fat-quick-chip__count">{{ contagensChips().emNegociacao }}</span>
+    </button>
+  </section>
+
+  @if (loading()) {
+    <p class="loading-msg cfg-loading" role="status">Carregando inadimplentes...</p>
+  }
+
+  <div class="trn-list-table-card cfg-list-table-card rec-list-table">
+    <div class="trn-list-table-scroll rec-table-scroll">
+      <table mat-table [dataSource]="linhasPaginadas()" class="rec-mat-table">
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__sel">
+              <mat-checkbox
+                (change)="onMasterToggle($event)"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+                [aria-label]="checkboxLabel()"
+              />
+            </th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__sel">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="onRowToggle(row, $event)"
+                [checked]="selection.isSelected(row)"
+                [aria-label]="checkboxLabel(row)"
+              />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fatura">
+            <th mat-header-cell *matHeaderCellDef>Fatura</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="rec-mat-table__mono">{{ row.id }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="tipoFatura">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let row">{{ row.tipoFatura || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="transportadora">
+            <th mat-header-cell *matHeaderCellDef>Transportadora</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="rec-mat-table__ellipsis" [matTooltip]="row.transportadora">{{ row.transportadora }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="valor">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__num">Valor</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__num">{{ formatCurrency(row.valor) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="vencimento">
+            <th mat-header-cell *matHeaderCellDef class="inad-col-ven">Vencimento</th>
+            <td mat-cell *matCellDef="let row" class="inad-col-ven">{{ row.vencimento }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="diasAtraso">
+            <th mat-header-cell *matHeaderCellDef>Dias em atraso</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="diasAtrasoBadgeClass(row.diasAtraso)">{{ row.diasAtraso }} dias</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="ultimaCobranca">
+            <th mat-header-cell *matHeaderCellDef class="inad-col-uc">Última cobrança</th>
+            <td mat-cell *matCellDef="let row" class="inad-col-uc">{{ textoCelula(row.ultimaCobranca) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="statusCobranca">
+            <th mat-header-cell *matHeaderCellDef>Status da cobrança</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="statusCobrancaClass(row.statusCobranca)">{{ row.statusCobranca }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acoes">
+            <th mat-header-cell *matHeaderCellDef class="rec-mat-table__ac">Ações</th>
+            <td mat-cell *matCellDef="let row" class="rec-mat-table__ac">
+              <div class="rec-mat-table__actions">
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Enviar lembrete por e-mail"
+                  (click)="enviarLembreteEmail(row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Enviar por WhatsApp"
+                  (click)="enviarLembreteWhatsApp(row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chat</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Reenviar cobrança por e-mail"
+                  [disabled]="bloquearReenviar(row)"
+                  (click)="enviarLembreteEmail(row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
+                </button>
+                <button type="button" mat-icon-button class="rec-ico" matTooltip="Ver fatura" (click)="baixarPdfFatura(row)">
+                  <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Mais ações"
+                  [matMenuTriggerFor]="menuMais"
+                  [matMenuTriggerData]="{ row: row }"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      @if (linhasFiltradas().length === 0 && !loading()) {
+        <p class="rec-empty">Nenhum registro encontrado com os filtros atuais.</p>
+      }
+    </div>
+    <div class="rec-table-footer">
+      <span class="rec-table-footer__info">Mostrando {{ paginaInfo() }} de {{ linhasFiltradas().length }} registros</span>
+      <div class="rec-table-footer__pages" role="navigation" aria-label="Paginação">
+        <button type="button" mat-icon-button class="rec-page-nav-btn" [disabled]="paginaAtual() === 0" (click)="irParaPagina(paginaAtual() - 1)">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+        </button>
+        @for (p of paginasVisiveis(); track p) {
+          <button type="button" class="rec-page-num" [class.rec-page-num--active]="p === paginaAtual() + 1" (click)="irParaPagina(p - 1)">{{ p }}</button>
+        }
+        <button type="button" mat-icon-button class="rec-page-nav-btn" [disabled]="paginaAtual() >= totalPaginas() - 1" (click)="irParaPagina(paginaAtual() + 1)">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<mat-menu #menuMais="matMenu">
+  <ng-template matMenuContent let-row="row">
+    <button type="button" mat-menu-item (click)="abrirAcordo(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">handshake</span>
+      Registrar acordo
+    </button>
+    <button type="button" mat-menu-item (click)="editarVencimento(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">edit_calendar</span>
+      Editar vencimento
+    </button>
+    <button type="button" mat-menu-item (click)="aplicarAcrescimo(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">add_circle</span>
+      Aplicar acréscimo
+    </button>
+    <button type="button" mat-menu-item (click)="aplicarDesconto(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">percent</span>
+      Aplicar desconto
+    </button>
+    <button type="button" mat-menu-item (click)="verHistorico(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">history</span>
+      Ver histórico de cobranças
+    </button>
+    <button type="button" mat-menu-item (click)="marcarSemRetorno(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">block</span>
+      Marcar como sem retorno
+    </button>
+  </ng-template>
+</mat-menu>
+

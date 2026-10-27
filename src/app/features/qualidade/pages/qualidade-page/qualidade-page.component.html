@@ -1,0 +1,385 @@
+<div class="cfg-page qa-page">
+  <header class="cfg-page-head">
+    <div class="cfg-page-head__icon" aria-hidden="true">
+      <span class="material-symbols-outlined">verified</span>
+    </div>
+    <div class="cfg-page-head__text">
+      <h1 class="cfg-page-head__title">Qualidade e Testes</h1>
+      <p class="cfg-page-head__sub">
+        Inventário e checklist do frontend GTSistemas — resultados manuais locais e artefatos de
+        CI (Vitest/Playwright). Não executa testes no navegador.
+      </p>
+    </div>
+    <div class="qa-head-actions">
+      <button type="button" class="btn btn-secondary btn--sm" (click)="recarregar()" [disabled]="loading()">
+        Atualizar
+      </button>
+      <button type="button" class="btn btn-secondary btn--sm" (click)="exportarCsv()" [disabled]="!snapshot()">
+        Exportar CSV
+      </button>
+      <button type="button" class="btn btn-primary btn--sm" (click)="exportarJson()" [disabled]="!snapshot()">
+        Exportar JSON
+      </button>
+    </div>
+  </header>
+
+  <p class="qa-banner" role="note">
+    O histórico de execuções manuais fica neste navegador (localStorage) e
+    <strong>não é compartilhado</strong> entre usuários ou dispositivos. Não cole senhas, tokens ou
+    dados pessoais nas evidências. Aprovado/Falhou exige evidência ou resultado obtido.
+  </p>
+
+  @if (loading()) {
+    <p class="qa-loading">Carregando inventário…</p>
+  } @else if (snapshot(); as snap) {
+    <section class="qa-resumo" aria-label="Resumo de qualidade">
+      <article class="qa-kpi">
+        <span class="qa-kpi__v">{{ snap.resumo.inventariados }}</span>
+        <span class="qa-kpi__l">Inventariados</span>
+      </article>
+      <article class="qa-kpi">
+        <span class="qa-kpi__v">{{ snap.resumo.comAutomacaoMapeada }}</span>
+        <span class="qa-kpi__l">Com automação mapeada</span>
+      </article>
+      <article class="qa-kpi">
+        <span class="qa-kpi__v">{{ snap.resumo.comArtefatoCi }}</span>
+        <span class="qa-kpi__l">Com artefato CI</span>
+      </article>
+      <article class="qa-kpi">
+        <span class="qa-kpi__v">{{ snap.resumo.manuaisRegistrados }}</span>
+        <span class="qa-kpi__l">Manuais registrados</span>
+      </article>
+      <article class="qa-kpi qa-kpi--ok">
+        <span class="qa-kpi__v">{{ snap.resumo.aprovados }}</span>
+        <span class="qa-kpi__l">Aprovados</span>
+      </article>
+      <article class="qa-kpi qa-kpi--fail">
+        <span class="qa-kpi__v">{{ snap.resumo.falhos }}</span>
+        <span class="qa-kpi__l">Falhos</span>
+      </article>
+      <article class="qa-kpi">
+        <span class="qa-kpi__v">{{ snap.resumo.bloqueados }}</span>
+        <span class="qa-kpi__l">Bloqueados</span>
+      </article>
+      <article class="qa-kpi">
+        <span class="qa-kpi__v">{{ snap.resumo.naoExecutados }}</span>
+        <span class="qa-kpi__l">Não executados</span>
+      </article>
+      <article class="qa-kpi qa-kpi--accent">
+        <span class="qa-kpi__v">{{ snap.resumo.percentualCoberturaComprovada }}%</span>
+        <span class="qa-kpi__l">Cobertura comprovada</span>
+      </article>
+    </section>
+
+    <section class="qa-artefatos" aria-label="Artefatos de automação">
+      <div class="qa-artefato">
+        <h2>Vitest</h2>
+        <p>
+          @if (snap.vitest.geradoEm) {
+            Gerado em {{ snap.vitest.geradoEm | date: 'dd/MM/yyyy HH:mm' }} —
+            {{ snap.vitest.aprovados }}/{{ snap.vitest.total }} aprovados,
+            {{ snap.vitest.falhos }} falhos
+          } @else {
+            {{ snap.vitest.aviso || 'Sem artefato' }}
+          }
+        </p>
+      </div>
+      <div class="qa-artefato">
+        <h2>Playwright</h2>
+        <p>
+          @if (snap.playwright.geradoEm) {
+            Gerado em {{ snap.playwright.geradoEm | date: 'dd/MM/yyyy HH:mm' }} —
+            {{ snap.playwright.aprovados }}/{{ snap.playwright.total }} aprovados,
+            {{ snap.playwright.falhos }} falhos
+          } @else {
+            {{ snap.playwright.aviso || 'Sem artefato' }}
+          }
+        </p>
+      </div>
+      @if (snap.specsOrfaos.length) {
+        <div class="qa-artefato qa-artefato--warn">
+          <h2>Specs sem caso no inventário ({{ snap.specsOrfaos.length }})</h2>
+          <ul class="qa-orphan-list">
+            @for (s of snap.specsOrfaos; track s) {
+              <li><code>{{ s }}</code></li>
+            }
+          </ul>
+        </div>
+      }
+    </section>
+
+    <section class="qa-filtros cfg-search-bar" aria-label="Filtros">
+      <input
+        class="cfg-search-bar__input"
+        type="search"
+        placeholder="Buscar ID ou título…"
+        [ngModel]="filtroTexto()"
+        (ngModelChange)="filtroTexto.set($event)"
+      />
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="filtroModulo()"
+        (ngModelChange)="filtroModulo.set($event)"
+      >
+        <option value="">Módulo</option>
+        @for (m of snap.modulos; track m.id) {
+          <option [value]="m.id">{{ m.titulo }}</option>
+        }
+      </select>
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="filtroCamada()"
+        (ngModelChange)="filtroCamada.set($event)"
+      >
+        <option value="">Camada</option>
+        @for (o of camadaOpcoes; track o.value) {
+          <option [value]="o.value">{{ o.label }}</option>
+        }
+      </select>
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="filtroSeveridade()"
+        (ngModelChange)="filtroSeveridade.set($event)"
+      >
+        <option value="">Severidade</option>
+        @for (o of severidadeOpcoes; track o.value) {
+          <option [value]="o.value">{{ o.label }}</option>
+        }
+      </select>
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="filtroStatus()"
+        (ngModelChange)="filtroStatus.set($event)"
+      >
+        <option value="">Status</option>
+        @for (o of statusOpcoes; track o.value) {
+          <option [value]="o.value">{{ o.label }}</option>
+        }
+      </select>
+      <select
+        class="cfg-search-bar__select"
+        [ngModel]="filtroTipo()"
+        (ngModelChange)="filtroTipo.set($event)"
+      >
+        <option value="">Tipo cobertura</option>
+        @for (o of tipoOpcoes; track o.value) {
+          <option [value]="o.value">{{ o.label }}</option>
+        }
+      </select>
+      <button type="button" class="btn btn-secondary btn--sm" (click)="limparFiltros()">Limpar</button>
+    </section>
+
+    <div class="qa-layout">
+      <aside class="qa-tree" aria-label="Árvore de casos">
+        @for (mod of arvore(); track mod.moduloId) {
+          <details class="qa-tree__mod" open>
+            <summary>{{ mod.moduloTitulo }}</summary>
+            @for (tela of mod.telas; track tela.telaId) {
+              <details class="qa-tree__tela" open>
+                <summary>{{ tela.telaTitulo }}</summary>
+                @for (fn of tela.funcoes; track fn.fnId) {
+                  <div class="qa-tree__fn">
+                    <div class="qa-tree__fn-title">{{ fn.fnTitulo }}</div>
+                    <ul>
+                      @for (c of fn.casos; track c.caso.id) {
+                        <li>
+                          <button
+                            type="button"
+                            class="qa-tree__caso"
+                            [class.qa-tree__caso--active]="selecionadoId() === c.caso.id"
+                            (click)="selecionar(c.caso.id)"
+                          >
+                            <span class="qa-tree__id">{{ c.caso.id }}</span>
+                            <span class="qa-tree__titulo">{{ c.caso.titulo }}</span>
+                            <span class="qa-pill" [attr.data-status]="c.statusEfetivo">{{
+                              statusLabel[c.statusEfetivo]
+                            }}</span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </details>
+            }
+          </details>
+        } @empty {
+          <p class="qa-empty">Nenhum caso com os filtros atuais.</p>
+        }
+      </aside>
+
+      <main class="qa-detail">
+        @if (selecionado(); as sel) {
+          <h2>{{ sel.caso.id }} — {{ sel.caso.titulo }}</h2>
+          <p class="qa-detail__meta">
+            {{ sel.moduloTitulo }} › {{ sel.telaTitulo }} › {{ sel.funcionalidadeTitulo }}
+          </p>
+          <div class="qa-badges">
+            <span class="qa-pill" [attr.data-status]="sel.statusEfetivo">{{
+              statusLabel[sel.statusEfetivo]
+            }}</span>
+            <span class="qa-chip">{{ tipoLabel[sel.caso.tipoCobertura] }}</span>
+            <span class="qa-chip">{{ camadaLabel[sel.caso.camada] }}</span>
+            <span class="qa-chip">{{ severidadeLabel[sel.caso.severidade] }}</span>
+            @if (sel.artefatoStatus) {
+              <span class="qa-chip">CI: {{ sel.artefatoStatus }}</span>
+            }
+          </div>
+
+          <dl class="qa-dl">
+            <dt>Objetivo</dt>
+            <dd>{{ sel.caso.objetivo }}</dd>
+            <dt>Pré-condições</dt>
+            <dd>
+              <ul>
+                @for (p of sel.caso.preCondicoes; track p) {
+                  <li>{{ p }}</li>
+                } @empty {
+                  <li>—</li>
+                }
+              </ul>
+            </dd>
+            <dt>Passos</dt>
+            <dd>
+              <ol>
+                @for (p of sel.caso.passos; track p) {
+                  <li>{{ p }}</li>
+                }
+              </ol>
+            </dd>
+            <dt>Resultado esperado</dt>
+            <dd>{{ sel.caso.resultadoEsperado }}</dd>
+            @if (sel.caso.notas) {
+              <dt>Notas</dt>
+              <dd>{{ sel.caso.notas }}</dd>
+            }
+            @if (sel.caso.rotas?.length) {
+              <dt>Rotas</dt>
+              <dd>
+                @for (r of sel.caso.rotas; track r) {
+                  <code>{{ r }}</code>
+                }
+              </dd>
+            }
+            @if (sel.caso.endpoints?.length) {
+              <dt>Endpoints</dt>
+              <dd>
+                @for (e of sel.caso.endpoints; track e) {
+                  <code>{{ e }}</code>
+                }
+              </dd>
+            }
+            @if (sel.caso.arquivos?.length) {
+              <dt>Arquivos</dt>
+              <dd>
+                @for (a of sel.caso.arquivos; track a) {
+                  <code>{{ a }}</code>
+                }
+              </dd>
+            }
+            @if (sel.caso.automacaoSpecPaths?.length) {
+              <dt>Specs</dt>
+              <dd>
+                @for (a of sel.caso.automacaoSpecPaths; track a) {
+                  <code>{{ a }}</code>
+                }
+              </dd>
+            }
+          </dl>
+
+          <div class="qa-actions-bar">
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm"
+              disabled
+              title="A execução automatizada só ocorre via npm/CI. Publique /qa/*.json — o browser não roda testes."
+            >
+              Executar automatizado (indisponível no browser)
+            </button>
+          </div>
+
+          <h3>Registrar teste manual</h3>
+          <form class="qa-form" (submit)="$event.preventDefault(); registrarManual()">
+            <label>
+              Status
+              <select [(ngModel)]="formStatus" name="status">
+                @for (o of statusOpcoes; track o.value) {
+                  <option [value]="o.value">{{ o.label }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Resultado obtido
+              <textarea [(ngModel)]="formResultado" name="resultado" rows="2"></textarea>
+            </label>
+            <label>
+              Observações
+              <textarea [(ngModel)]="formObs" name="obs" rows="2"></textarea>
+            </label>
+            <label>
+              Evidência textual
+              <textarea [(ngModel)]="formEvidencia" name="evid" rows="3"></textarea>
+            </label>
+            <div class="qa-form__row">
+              <label>
+                Ambiente
+                <input [(ngModel)]="formAmbiente" name="amb" />
+              </label>
+              <label>
+                Versão
+                <input [(ngModel)]="formVersao" name="ver" />
+              </label>
+              <label>
+                Responsável (local)
+                <input [(ngModel)]="formResponsavel" name="resp" placeholder="operador-local" />
+              </label>
+            </div>
+            <div class="qa-form__actions">
+              <button type="submit" class="btn btn-primary btn--sm" [disabled]="salvando()">
+                Salvar resultado manual
+              </button>
+              <button type="button" class="btn btn-secondary btn--sm" (click)="limparCasoLocal()">
+                Limpar histórico local do caso
+              </button>
+            </div>
+          </form>
+
+          @if (sel.ultimoRegistro; as reg) {
+            <h3>Último registro local</h3>
+            <p class="qa-hist">
+              {{ statusLabel[reg.status] }} · {{ reg.criadoEm | date: 'dd/MM/yyyy HH:mm:ss' }} ·
+              {{ reg.ambiente }} · {{ reg.versaoApp }} · {{ reg.responsavelLocal }}
+            </p>
+            @if (reg.resultadoObtido) {
+              <p><strong>Obtido:</strong> {{ reg.resultadoObtido }}</p>
+            }
+            @if (reg.evidenciaTexto) {
+              <p><strong>Evidência:</strong> {{ reg.evidenciaTexto }}</p>
+            }
+          }
+        } @else {
+          <p class="qa-empty">Selecione um caso na árvore para ver detalhes e registrar resultado.</p>
+        }
+      </main>
+    </div>
+
+    @if (falhas().length) {
+      <section class="qa-falhas" aria-label="Painel de falhas">
+        <h2>Falhas ({{ falhas().length }})</h2>
+        <ul>
+          @for (f of falhas(); track f.caso.id) {
+            <li>
+              <button type="button" class="linkish" (click)="selecionar(f.caso.id)">
+                {{ f.caso.id }}
+              </button>
+              — {{ f.caso.titulo }}
+              @if (f.ultimoRegistro?.resultadoObtido) {
+                <span class="qa-muted"> · {{ f.ultimoRegistro!.resultadoObtido }}</span>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>

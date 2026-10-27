@@ -1,9 +1,27 @@
 <div class="menu-admin tab-content">
-  <p class="page-description">
-    Gerencie menus, submenus, permissões e ordem (arrastar). O botão
-    <strong>Salvar</strong> envia apenas a <strong>ordem</strong> dos menus e submenus (API
-    OrganizarMenus).
-  </p>
+  <section class="menu-orientation-card" aria-label="Orientação sobre menus">
+    <div class="menu-orientation-card__icon" aria-hidden="true">
+      <span class="material-symbols-outlined">info</span>
+    </div>
+    <div class="menu-orientation-card__body">
+      <p class="menu-orientation-card__lead">
+        Esta tela alinha o <strong>banco de dados</strong> com as rotas do frontend: ordem, visibilidade (esconder) e
+        permissões por menu/submenu. A estrutura visual da sidebar no app é fixa; o login libera o que o usuário pode ver.
+      </p>
+      <p class="menu-orientation-card__hint">
+        <strong class="menu-orientation-card__emphasis">Antes de salvar</strong>, a rota precisa existir no SPA.
+        Arraste para ordenar; use <strong>Exibir no sidebar</strong> para esconder; configure as permissões em cada submenu.
+        <strong class="menu-orientation-card__emphasis">Salvar</strong> envia a ordem e a composição (OrganizarMenus).
+      </p>
+    </div>
+    <div class="menu-orientation-card__art" aria-hidden="true">
+      <div class="menu-orientation-card__art-window">
+        <span class="menu-orientation-card__art-bar"></span>
+        <span class="menu-orientation-card__art-bar menu-orientation-card__art-bar--short"></span>
+        <span class="material-symbols-outlined menu-orientation-card__art-cursor">back_hand</span>
+      </div>
+    </div>
+  </section>
 
   @if (carregandoLista()) {
     <p class="menu-admin__status" role="status">Carregando menus do servidor…</p>
@@ -17,26 +35,20 @@
     </div>
   }
 
-  <div class="menu-admin__action-bar dk-action-bar" role="toolbar" aria-label="Ações do admin de menus">
-    <div class="menu-admin__action-bar-inner dk-action-bar">
-      <div class="menu-admin__action-bar-left dk-action-bar__left">
-        <button type="button" class="menu-admin__btn menu-admin__btn--solid" (click)="openNovoMenu()">
-          Novo menu
-        </button>
-      </div>
-      <div class="menu-admin__action-bar-right dk-action-bar__right">
-        <button
-          type="button"
-          class="menu-admin__btn"
-          [class.menu-admin__btn--accent]="!salvandoNoBackend()"
-          [class.menu-admin__btn--muted]="salvandoNoBackend()"
-          [disabled]="salvandoNoBackend()"
-          (click)="salvarNoBackend()"
-        >
-          {{ salvandoNoBackend() ? 'Salvando…' : 'Salvar' }}
-        </button>
-      </div>
-    </div>
+  <div class="menu-admin__toolbar" role="toolbar" aria-label="Ações do admin de menus">
+    <button type="button" class="menu-admin__toolbar-btn menu-admin__toolbar-btn--primary" (click)="openNovoMenu()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Novo menu
+    </button>
+    <button
+      type="button"
+      class="menu-admin__toolbar-btn menu-admin__toolbar-btn--secondary"
+      [disabled]="salvandoNoBackend()"
+      (click)="salvarNoBackend()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">save</span>
+      {{ salvandoNoBackend() ? 'Salvando…' : 'Salvar' }}
+    </button>
   </div>
 
   <div
@@ -45,85 +57,96 @@
     [cdkDropListData]="admin.menus()"
     (cdkDropListDropped)="onMenuDrop($event)"
   >
+    @if (!carregandoLista() && !erroLista() && admin.menus().length === 0) {
+      <div class="menu-admin-empty" role="status">
+        <span class="material-symbols-outlined menu-admin-empty__icon" aria-hidden="true">menu_book</span>
+        <h2 class="menu-admin-empty__title">Nenhum menu cadastrado</h2>
+        <p class="menu-admin-empty__text">
+          Crie o primeiro menu para alinhar rotas, ordem, visibilidade e permissões com o banco.
+        </p>
+        <button type="button" class="menu-admin__toolbar-btn menu-admin__toolbar-btn--primary" (click)="openNovoMenu()">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Novo menu
+        </button>
+      </div>
+    }
     @for (menu of admin.menus(); track menu.id) {
-      <div class="menu-card" cdkDrag [cdkDragData]="menu">
-        <div class="menu-card__header">
-          <button type="button" class="menu-card__expand" (click)="toggleExpand(menu.id)" [attr.aria-expanded]="isExpanded(menu.id)">
-            <span class="material-symbols-outlined chevron" [class.chevron--open]="isExpanded(menu.id)">expand_more</span>
-          </button>
-          <span class="drag-handle material-symbols-outlined" cdkDragHandle title="Arrastar">drag_indicator</span>
-          <span class="material-symbols-outlined menu-card__icon">{{ menu.icone }}</span>
+      <div class="menu-card">
+        <!-- cdkDrag só no cabeçalho: evita aninhar drag do submenu dentro do drag do menu (CDK bloqueava transferência entre listas). -->
+        <div class="menu-card__header" cdkDrag [cdkDragData]="menu">
+          <div class="menu-card__leading">
+            <button type="button" class="menu-card__expand" (click)="toggleExpand(menu.id)" [attr.aria-expanded]="isExpanded(menu.id)">
+              <span class="material-symbols-outlined chevron" [class.chevron--open]="isExpanded(menu.id)">expand_more</span>
+            </button>
+            <span class="drag-handle material-symbols-outlined" cdkDragHandle title="Arrastar menu">drag_indicator</span>
+            <span class="menu-card__icon-wrap">
+              <span class="material-symbols-outlined menu-card__icon">{{ menu.icone }}</span>
+            </span>
+          </div>
           <div class="menu-card__titles">
             <span class="menu-card__name">{{ menu.nome }}</span>
           </div>
-          <span class="badge badge--toggle" [class.badge--off]="!menu.ativo">
-            {{ menu.ativo ? 'Ativo' : 'Inativo' }}
-          </span>
-          <div class="menu-card__actions">
-            <button type="button" class="btn btn--icon" (click)="openEditMenu(menu)" title="Editar">
-              <span class="material-symbols-outlined">edit</span>
-            </button>
-            <button
-              type="button"
-              class="btn btn--icon btn--danger"
-              [disabled]="isExcluindoMenu(menu.id)"
-              (click)="excluirMenu(menu)"
-              title="Excluir"
+          <div class="menu-card__end">
+            <span class="status-chip" [class.status-chip--on]="menu.ativo" [class.status-chip--off]="!menu.ativo">
+              <span class="status-chip__dot" aria-hidden="true"></span>
+              {{ menu.ativo ? 'Ativo' : 'Inativo' }}
+            </span>
+            <span
+              class="status-chip status-chip--icon-only"
+              [class.status-chip--on]="menu.exibirNoSidebar !== false"
+              [class.status-chip--off]="menu.exibirNoSidebar === false"
+              [title]="menu.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+              [attr.aria-label]="menu.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
             >
-              <span class="material-symbols-outlined">delete</span>
-            </button>
+              <span class="material-symbols-outlined status-chip__icon" aria-hidden="true">
+                {{ menu.exibirNoSidebar !== false ? 'visibility' : 'visibility_off' }}
+              </span>
+            </span>
+            <div class="menu-card__actions">
+              <button type="button" class="btn btn--icon" (click)="openEditMenu(menu)" title="Editar menu">
+                <span class="material-symbols-outlined">edit</span>
+              </button>
+              <button
+                type="button"
+                class="btn btn--icon btn--danger"
+                [disabled]="isExcluindoMenu(menu.id)"
+                (click)="excluirMenu(menu)"
+                title="Excluir menu"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        @if (isExpanded(menu.id)) {
-          <div class="menu-card__body">
+        <div class="menu-card__body" [class.menu-card__body--collapsed]="!isExpanded(menu.id)">
+          @if (isExpanded(menu.id)) {
             <div class="menu-card__sub-toolbar">
               <button type="button" class="btn btn-primary btn--sm" (click)="openNovoSubmenu(menu.id)">Novo submenu</button>
               <button type="button" class="btn btn-secondary btn--sm" (click)="openNovaPermissaoNoMenu(menu.id)">
                 Nova permissão
               </button>
             </div>
-            <div
-              class="submenu-drop"
-              cdkDropList
-              [cdkDropListData]="menu.subMenus"
-              (cdkDropListDropped)="onSubDrop(menu.id, $event)"
-            >
+          }
+          <div
+            class="submenu-drop"
+            [class.submenu-drop--collapsed]="!isExpanded(menu.id)"
+            cdkDropList
+            [id]="'submenu-drop-' + menu.id"
+            [cdkDropListConnectedTo]="submenuDropListConnections()"
+            [cdkDropListData]="menu.subMenus"
+            [attr.aria-label]="'Submenus do menu ' + menu.nome"
+            (cdkDropListDropped)="onSubDrop(menu.id, $event)"
+          >
+            @if (isExpanded(menu.id)) {
               @for (sub of menu.subMenus; track sub.id) {
-                <div class="sub-row" cdkDrag [cdkDragData]="sub">
-                  <span class="drag-handle material-symbols-outlined" cdkDragHandle>drag_indicator</span>
-                  <div class="sub-row__main">
-                    <div class="sub-row__line">
-                      <strong>{{ sub.nome }}</strong>
-                      <code class="sub-row__route">{{ sub.rota }}</code>
-                      <span class="badge badge--toggle" [class.badge--off]="!sub.ativo">
-                        {{ sub.ativo ? 'Ativo' : 'Inativo' }}
-                      </span>
-                    </div>
-                    <div class="sub-row__perm-list">
-                      <span class="sub-row__perm-label">Permissões:</span>
-                      <span class="sub-row__perm-values">{{ formatPermissoesResumo(sub) }}</span>
-                    </div>
-                  </div>
-                  <div class="sub-row__actions">
-                    <button type="button" class="btn btn--icon" (click)="openEditSub(menu.id, sub)" title="Editar submenu">
-                      <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn--icon btn--danger"
-                      [disabled]="isExcluindoSub(sub.id)"
-                      (click)="excluirSub(menu.id, sub)"
-                      title="Excluir submenu"
-                    >
-                      <span class="material-symbols-outlined">delete</span>
-                    </button>
-                  </div>
-                </div>
+                <ng-container
+                  *ngTemplateOutlet="subRowTpl; context: { $implicit: sub, menuId: menu.id, depth: 0 }"
+                />
               }
-            </div>
+            }
           </div>
-        }
+        </div>
       </div>
     }
   </div>
@@ -155,12 +178,32 @@
             [disabled]="salvandoMenuModal()"
           />
         </div>
+        <div class="form-group">
+          <label for="m-rota">Rota</label>
+          <input
+            id="m-rota"
+            class="input-control"
+            list="spa-rotas-datalist"
+            [(ngModel)]="menuFormRota"
+            placeholder="/app/configuracoes"
+            [disabled]="salvandoMenuModal()"
+          />
+          <span class="form-hint">
+            Deve existir no frontend antes de gravar no banco (ex.: <code>/app/gerenciamento</code>).
+            Se vazio, é gerada a partir do nome e também validada.
+          </span>
+        </div>
         @if (menuEditId() !== null) {
           <label class="form-row-check">
             <input type="checkbox" [(ngModel)]="menuFormAtivo" [disabled]="salvandoMenuModal()" />
             Ativo
           </label>
         }
+        <label class="form-row-check">
+          <input type="checkbox" [(ngModel)]="menuFormExibirNoSidebar" [disabled]="salvandoMenuModal()" />
+          Exibir no sidebar
+        </label>
+        <span class="form-hint">Desmarque para esconder este menu no menu lateral (rota e permissões continuam no banco).</span>
       </div>
       <div class="modal-footer dk-modal-footer">
         <button
@@ -206,6 +249,7 @@
           <input
             id="s-rota"
             class="input-control"
+            list="spa-rotas-datalist"
             [(ngModel)]="subFormRota"
             (ngModelChange)="onSubmenuRotaChange($event)"
             placeholder="/app/dashboard"
@@ -218,6 +262,15 @@
             Ativo
           </label>
         }
+        <label class="form-row-check">
+          <input type="checkbox" [(ngModel)]="subFormExibirNoSidebar" [disabled]="salvandoSubModal()" />
+          Exibir no sidebar
+        </label>
+        <span class="form-hint">Desmarque para esconder este item no menu lateral (a rota e as permissões continuam válidas).</span>
+        <span class="form-hint">
+          A rota precisa existir no SPA. Crie a tela no frontend primeiro; aqui você só alinha com o banco.
+          Ao digitar o nome, a URL é sugerida automaticamente.
+        </span>
         <div class="form-section form-section--permissions">
           <div class="form-section__header">
             <h3 class="form-section__title">Permissões do submenu</h3>
@@ -251,7 +304,7 @@
                 id="s-perm-custom"
                 class="input-control"
                 [(ngModel)]="novaPermissaoCustom"
-                placeholder="ex.: estacionamento.exportar"
+                placeholder="ex.: Estacionamento.exportar"
                 [disabled]="salvandoSubModal()"
                 (keyup.enter)="adicionarPermissaoCustomizada()"
               />
@@ -294,3 +347,68 @@
     </div>
   </div>
 }
+
+<ng-template #subRowTpl let-sub let-menuId="menuId" let-depth="depth">
+  <div class="sub-row" [class.sub-row--nested]="depth > 0" cdkDrag [cdkDragDisabled]="depth > 0" [cdkDragData]="sub">
+    @if (depth === 0) {
+      <span class="drag-handle material-symbols-outlined" cdkDragHandle>drag_indicator</span>
+    }
+    <div class="sub-row__main">
+      <div class="sub-row__line">
+        <strong class="sub-row__name">{{ sub.nome }}</strong>
+        <code class="sub-row__route">{{ sub.rota }}</code>
+        <span class="status-chip status-chip--sm" [class.status-chip--on]="sub.ativo" [class.status-chip--off]="!sub.ativo">
+          <span class="status-chip__dot" aria-hidden="true"></span>
+          {{ sub.ativo ? 'Ativo' : 'Inativo' }}
+        </span>
+        <span
+          class="status-chip status-chip--sm status-chip--icon-only"
+          [class.status-chip--on]="sub.exibirNoSidebar !== false"
+          [class.status-chip--off]="sub.exibirNoSidebar === false"
+          [title]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+          [attr.aria-label]="sub.exibirNoSidebar !== false ? 'Visível no menu lateral' : 'Oculto no menu lateral'"
+        >
+          <span class="material-symbols-outlined status-chip__icon" aria-hidden="true">
+            {{ sub.exibirNoSidebar !== false ? 'visibility' : 'visibility_off' }}
+          </span>
+        </span>
+      </div>
+      <div class="sub-row__perm-list">
+        <span class="sub-row__perm-label">Permissões:</span>
+        <span class="sub-row__perm-values">{{ formatPermissoesResumo(sub) }}</span>
+      </div>
+    </div>
+    <div class="sub-row__actions">
+      <button type="button" class="btn btn--icon btn--sm" (click)="openNovoSubmenu(menuId, sub.id)" title="Novo submenu filho">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+      <button type="button" class="btn btn--icon" (click)="openEditSub(menuId, sub)" title="Editar submenu">
+        <span class="material-symbols-outlined">edit</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn--icon btn--danger"
+        [disabled]="isExcluindoSub(sub.id)"
+        (click)="excluirSub(menuId, sub)"
+        title="Excluir submenu"
+      >
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </div>
+  </div>
+  @if (sub.subMenus?.length) {
+    <div class="sub-row__children">
+      @for (child of sub.subMenus; track child.id) {
+        <ng-container
+          *ngTemplateOutlet="subRowTpl; context: { $implicit: child, menuId: menuId, depth: depth + 1 }"
+        />
+      }
+    </div>
+  }
+</ng-template>
+
+<datalist id="spa-rotas-datalist">
+  @for (rota of rotasSpaConhecidas; track rota) {
+    <option [value]="rota"></option>
+  }
+</datalist>

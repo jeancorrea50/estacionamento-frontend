@@ -1,0 +1,31 @@
+<div class="faturamento-shell">
+  <div class="page-container">
+
+    <header class="page-header page-header-card dk-page-header fat-page-header">
+      <div class="dk-page-header__top fat-page-header__top">
+        <div class="dk-page-header__titles fat-page-header__titles">
+          <h1 class="page-title dk-page-title">Faturamento</h1>
+          <p class="page-subtitle dk-page-subtitle">Controle de faturas, cobranças e recebimentos</p>
+        </div>
+      </div>
+      <nav class="dk-tabs fat-fin-tabs" role="tablist" aria-label="Abas de Faturamento">
+        @for (t of tabs; track t.path) {
+          <a
+            class="dk-tabs__tab fat-fin-tabs__tab"
+            role="tab"
+            [routerLink]="t.path"
+            routerLinkActive="tab--active"
+            [routerLinkActiveOptions]="{ exact: false }"
+          >
+            {{ t.label }}
+          </a>
+        }
+      </nav>
+    </header>
+
+    <div class="fat-fin-tab-body">
+      <router-outlet />
+    </div>
+
+  </div>
+</div>

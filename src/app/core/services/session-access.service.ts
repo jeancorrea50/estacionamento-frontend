@@ -105,13 +105,15 @@ export class SessionAccessService {
       return true;
     }
     /**
-     * Ecossistema: mapa documental sob Administração.
-     * Libera se o login já concedeu qualquer rota de `/app/administracao`
-     * (o submenu é publicado no backend via seed ao abrir Gerenciamento → Menu).
+     * Ecossistema / Qualidade: sob Administração.
+     * Liberam se o login já concedeu qualquer rota de `/app/administracao`
+     * (submenus publicados no backend via seed ao abrir Gerenciamento → Menu).
      */
     if (
       current === '/app/administracao/ecossistema' ||
-      current.startsWith('/app/administracao/ecossistema/')
+      current.startsWith('/app/administracao/ecossistema/') ||
+      current === '/app/administracao/qualidade' ||
+      current.startsWith('/app/administracao/qualidade/')
     ) {
       return allowed.some((route) => {
         const r = normalizeRoute(route);
@@ -188,10 +190,12 @@ export class SessionAccessService {
           );
         });
       }
-      /** Ecossistema: visível na sidebar se Administração já estiver liberada na sessão. */
+      /** Ecossistema / Qualidade: visíveis se Administração já estiver liberada na sessão. */
       if (
         normalized === '/app/administracao/ecossistema' ||
-        normalized.startsWith('/app/administracao/ecossistema/')
+        normalized.startsWith('/app/administracao/ecossistema/') ||
+        normalized === '/app/administracao/qualidade' ||
+        normalized.startsWith('/app/administracao/qualidade/')
       ) {
         return allowed.some((r) => {
           const a = normalizeRoute(r);

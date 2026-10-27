@@ -186,4 +186,47 @@ describe('SessionAccessService sidebar filter', () => {
     expect(service.canAccessRoute('/app/agendamento')).toBe(false);
     expect(service.canAccessRoute('/app/rede-credenciada')).toBe(false);
   });
+
+  it('libera Ecossistema e Qualidade quando Administração está na sessão', () => {
+    service.setMenus([
+      {
+        id: 20,
+        descricao: 'Administração',
+        ativo: true,
+        ordem: 0,
+        rota: '/app/administracao',
+        selecionado: true,
+        subMenus: [
+          {
+            id: 21,
+            descricao: 'Usuário',
+            rota: '/app/administracao/usuario',
+            ativo: true,
+            selecionado: true,
+            ordem: 0,
+          },
+        ],
+      },
+    ]);
+
+    const filtered = service.filterSidebarItems([
+      {
+        label: 'Administração',
+        route: '/app/administracao',
+        children: [
+          { label: 'Usuário', route: '/app/administracao/usuario' },
+          { label: 'Ecossistema', route: '/app/administracao/ecossistema' },
+          { label: 'Qualidade e Testes', route: '/app/administracao/qualidade' },
+        ],
+      },
+    ]);
+
+    expect(filtered[0].children?.map((c) => c.route)).toEqual([
+      '/app/administracao/usuario',
+      '/app/administracao/ecossistema',
+      '/app/administracao/qualidade',
+    ]);
+    expect(service.canAccessRoute('/app/administracao/qualidade')).toBe(true);
+    expect(service.canAccessRoute('/app/administracao/ecossistema')).toBe(true);
+  });
 });

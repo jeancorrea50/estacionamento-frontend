@@ -5,6 +5,7 @@ import {
   ADMINISTRACAO_USUARIO_PATH,
 } from './administracao-rotas';
 import { ECOSSISTEMA_PATH } from '../ecossistema/ecossistema-rotas';
+import { QUALIDADE_PATH } from '../qualidade/qualidade-rotas';
 
 export const ADMINISTRACAO_ROUTES: Routes = [
   { path: '', pathMatch: 'full', redirectTo: ADMINISTRACAO_USUARIO_PATH },
@@ -29,6 +30,13 @@ export const ADMINISTRACAO_ROUTES: Routes = [
     loadComponent: () =>
       import('../ecossistema/pages/ecossistema-page/ecossistema-page.component').then(
         (m) => m.EcossistemaPageComponent
+      ),
+  },
+  {
+    path: QUALIDADE_PATH,
+    loadComponent: () =>
+      import('../qualidade/pages/qualidade-page/qualidade-page.component').then(
+        (m) => m.QualidadePageComponent
       ),
   },
 ];

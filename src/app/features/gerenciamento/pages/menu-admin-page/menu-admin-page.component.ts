@@ -9,6 +9,7 @@ import { MenuAdminService } from '../../services/menu-admin.service';
 import { MenuApiService } from '../../services/menu-api.service';
 import { FinanceiroMenuSeedService } from '../../services/financeiro-menu-seed.service';
 import { EcossistemaMenuSeedService } from '../../services/ecossistema-menu-seed.service';
+import { QualidadeMenuSeedService } from '../../services/qualidade-menu-seed.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
@@ -51,6 +52,7 @@ export class MenuAdminPageComponent implements OnInit {
   private readonly menuApi = inject(MenuApiService);
   private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
   private readonly ecossistemaMenuSeed = inject(EcossistemaMenuSeedService);
+  private readonly qualidadeMenuSeed = inject(QualidadeMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -77,6 +79,7 @@ export class MenuAdminPageComponent implements OnInit {
    */
   private skipNextFinanceiroSeed = false;
   private skipNextEcossistemaSeed = false;
+  private skipNextQualidadeSeed = false;
 
   ngOnInit(): void {
     this.carregarMenusDoBackend();
@@ -131,22 +134,47 @@ export class MenuAdminPageComponent implements OnInit {
 
     if (this.skipNextEcossistemaSeed) {
       this.skipNextEcossistemaSeed = false;
-      return;
+    } else {
+      this.ecossistemaMenuSeed.ensureEcossistemaSubMenu(menus).subscribe({
+        next: (result) => {
+          if (result.created || result.updatedRoute) {
+            this.toast.success(
+              result.created
+                ? 'Administração: submenu Ecossistema publicado no servidor.'
+                : 'Administração: rota do Ecossistema alinhada no servidor.'
+            );
+            this.skipNextEcossistemaSeed = true;
+            this.refreshMenusAfterMutation();
+          }
+        },
+      });
     }
 
-    this.ecossistemaMenuSeed.ensureEcossistemaSubMenu(menus).subscribe({
-      next: (result) => {
-        if (result.created || result.updatedRoute) {
-          this.toast.success(
-            result.created
-              ? 'Administração: submenu Ecossistema publicado no servidor.'
-              : 'Administração: rota do Ecossistema alinhada no servidor.'
+    if (this.skipNextQualidadeSeed) {
+      this.skipNextQualidadeSeed = false;
+    } else {
+      this.qualidadeMenuSeed.ensureQualidadeSubMenu(menus).subscribe({
+        next: (result) => {
+          if (result.created || result.updatedRoute) {
+            this.toast.success(
+              result.created
+                ? 'Administração: submenu Qualidade e Testes publicado no servidor.'
+                : 'Administração: rota de Qualidade e Testes alinhada no servidor.'
+            );
+            this.skipNextQualidadeSeed = true;
+            this.refreshMenusAfterMutation();
+          }
+        },
+        error: (err: unknown) => {
+          this.toast.error(
+            this.apiErrorMessage(
+              err,
+              'Não foi possível publicar o submenu Qualidade e Testes no servidor.'
+            )
           );
-          this.skipNextEcossistemaSeed = true;
-          this.refreshMenusAfterMutation();
-        }
-      },
-    });
+        },
+      });
+    }
   }
 
   /** Atualiza lista após Gravar/Alterar sem bloquear a tela com o spinner inicial. */

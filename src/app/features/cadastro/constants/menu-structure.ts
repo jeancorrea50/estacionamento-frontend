@@ -37,6 +37,7 @@ import {
   ADMINISTRACAO_PERMISSAO_ROUTE,
 } from '../../administracao/administracao-rotas';
 import { ECOSSISTEMA_LABEL, ECOSSISTEMA_ROUTE } from '../../ecossistema/ecossistema-rotas';
+import { QUALIDADE_LABEL, QUALIDADE_ROUTE } from '../../qualidade/qualidade-rotas';
 import {
   REDE_CREDENCIADA_LABEL,
   REDE_CREDENCIADA_ROUTE,
@@ -145,6 +146,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
       { id: 'sub-usuario', label: 'Usuário', route: ADMINISTRACAO_USUARIO_ROUTE },
       { id: 'sub-permissao', label: 'Permissão', route: ADMINISTRACAO_PERMISSAO_ROUTE },
       { id: 'sub-ecossistema', label: ECOSSISTEMA_LABEL, route: ECOSSISTEMA_ROUTE },
+      { id: 'sub-qualidade', label: QUALIDADE_LABEL, route: QUALIDADE_ROUTE },
     ],
   },
   {

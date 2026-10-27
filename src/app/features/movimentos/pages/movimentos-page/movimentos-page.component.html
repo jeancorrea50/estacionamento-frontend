@@ -51,7 +51,7 @@
               <p class="kpi-card__label">Veículos no pátio</p>
             </div>
             <p class="kpi-card__valor">{{ veiculosNoPatio() }}</p>
-          </article>
+      </article>
           <article class="kpi-card kpi-card--trend">
             <div class="kpi-card__top">
               <span class="kpi-card__ico kpi-card__ico--entrada" aria-hidden="true">
@@ -74,7 +74,7 @@
                 }"
               />
             </div>
-          </article>
+      </article>
           <article class="kpi-card kpi-card--trend">
             <div class="kpi-card__top">
               <span class="kpi-card__ico kpi-card__ico--saida" aria-hidden="true">
@@ -97,7 +97,7 @@
                 }"
               />
             </div>
-          </article>
+      </article>
           <article class="kpi-card kpi-card--trend">
             <div class="kpi-card__top">
               <span class="kpi-card__ico kpi-card__ico--suspenso" aria-hidden="true">
@@ -129,8 +129,8 @@
                 }"
               />
             </div>
-          </article>
-        </section>
+      </article>
+    </section>
 
         <ng-template #kpiVariacao let-kpi>
           @if (kpi.variacao != null) {
@@ -204,9 +204,9 @@
         }
 
         <article class="dashboard-card dashboard-card--alertas">
-          <header class="dashboard-card__header">
+        <header class="dashboard-card__header">
             <h2>Últimos Alertas</h2>
-          </header>
+        </header>
           @if (ultimosAlertas().length === 0) {
             <div class="portaria-empty" role="status">
               <span class="material-symbols-outlined portaria-empty__ico" aria-hidden="true">notifications</span>
@@ -1100,7 +1100,7 @@
                   } @empty {
                     <tr>
                       <td colspan="6">Nenhum veículo em aberto encontrado.</td>
-                    </tr>
+              </tr>
             }
           </tbody>
         </table>

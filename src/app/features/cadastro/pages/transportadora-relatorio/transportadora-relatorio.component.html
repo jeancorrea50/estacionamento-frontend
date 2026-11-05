@@ -10,26 +10,24 @@
       </div>
     </header>
 
-    <section
-      class="cfg-search-bar rel-filters"
-      aria-label="Filtros do relatório de transportadoras"
-    >
+    <section class="rel-toolbar" aria-label="Filtros do relatório de transportadoras">
       <div class="rel-filters__grid">
-        <label class="rel-field">
-          <span class="rel-field__label">Data inicial (criação)</span>
-          <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataInicial" />
-        </label>
-
-        <label class="rel-field">
-          <span class="rel-field__label">Data final (criação)</span>
-          <input type="date" class="cfg-search-bar__search-input" [(ngModel)]="dataFinal" />
-        </label>
+        <div class="rel-field rel-field--periodo">
+          <span class="rel-field__label">Período de criação</span>
+          <app-periodo-data-picker
+            emptyLabel="Criação"
+            ariaLabel="Selecionar período de criação"
+            [dataInicial]="dataInicial"
+            [dataFinal]="dataFinal"
+            (periodoChange)="onPeriodo($event)"
+          />
+        </div>
 
         <label class="rel-field rel-field--wide">
           <span class="rel-field__label">Busca / descrição</span>
           <input
             type="text"
-            class="cfg-search-bar__search-input"
+            class="rel-field__control"
             [(ngModel)]="descricao"
             placeholder="Razão social, fantasia…"
           />
@@ -39,7 +37,7 @@
           <span class="rel-field__label">CNPJ</span>
           <input
             type="text"
-            class="cfg-search-bar__search-input"
+            class="rel-field__control"
             [(ngModel)]="cnpj"
             placeholder="Somente números"
           />
@@ -47,7 +45,7 @@
 
         <label class="rel-field">
           <span class="rel-field__label">Ativo</span>
-          <select class="cfg-search-bar__select" [(ngModel)]="ativo">
+          <select class="rel-field__control" [(ngModel)]="ativo">
             @for (o of ativoOpcoes; track $index) {
               <option [ngValue]="o.value">{{ o.label }}</option>
             }
@@ -58,7 +56,7 @@
           <span class="rel-field__label">Qtd. veículos (mín.)</span>
           <input
             type="number"
-            class="cfg-search-bar__search-input"
+            class="rel-field__control"
             [(ngModel)]="quantidadeVeiculosMin"
             min="0"
             step="1"
@@ -69,7 +67,7 @@
           <span class="rel-field__label">Qtd. veículos (máx.)</span>
           <input
             type="number"
-            class="cfg-search-bar__search-input"
+            class="rel-field__control"
             [(ngModel)]="quantidadeVeiculosMax"
             min="0"
             step="1"
@@ -78,26 +76,16 @@
       </div>
 
       <div class="rel-filters__actions">
-        <button
-          type="button"
-          class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
-          (click)="limparFiltros()"
-          [disabled]="loading()"
-        >
+        <button type="button" class="btn btn-secondary" (click)="limparFiltros()" [disabled]="loading()">
           Limpar
         </button>
-        <button
-          type="button"
-          class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
-          (click)="buscar()"
-          [disabled]="loading()"
-        >
+        <button type="button" class="btn btn-secondary" (click)="buscar()" [disabled]="loading()">
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
           Buscar
         </button>
         <button
           type="button"
-          class="cfg-search-bar__btn cfg-search-bar__btn--primary"
+          class="btn btn-primary"
           (click)="imprimirPdf()"
           [disabled]="loading() || exportando()"
         >
@@ -106,7 +94,7 @@
         </button>
         <button
           type="button"
-          class="cfg-search-bar__btn cfg-search-bar__btn--neutral"
+          class="btn btn-secondary"
           (click)="exportarExcel()"
           [disabled]="loading() || exportando()"
         >
@@ -117,13 +105,13 @@
     </section>
 
     @if (loading()) {
-      <p class="loading-msg">Carregando relatório…</p>
+      <p class="rel-loading">Carregando relatório…</p>
     }
 
     @if (!jaBuscou() && !loading()) {
-      <div class="empty-state empty-state--compact cfg-before-search">
+      <div class="rel-empty" role="status">
         <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
-        <p class="empty-msg">
+        <p>
           Ajuste os filtros e clique em <strong>Buscar</strong> para pré-visualizar. Use
           <strong>PDF</strong> ou <strong>Excel</strong> para exportar.
         </p>
@@ -132,19 +120,19 @@
 
     @if (jaBuscou() && !loading()) {
       <section class="rel-kpi" aria-label="Resumo do relatório">
-        <article class="rel-kpi__card">
+        <article class="rel-kpi__chip">
           <span class="rel-kpi__label">Transportadoras</span>
           <strong class="rel-kpi__value">{{ resumo().quantidade }}</strong>
         </article>
-        <article class="rel-kpi__card">
+        <article class="rel-kpi__chip">
           <span class="rel-kpi__label">Ativas</span>
           <strong class="rel-kpi__value">{{ resumo().qtdAtivas }}</strong>
         </article>
-        <article class="rel-kpi__card">
+        <article class="rel-kpi__chip">
           <span class="rel-kpi__label">Inativas</span>
           <strong class="rel-kpi__value">{{ resumo().qtdInativas }}</strong>
         </article>
-        <article class="rel-kpi__card">
+        <article class="rel-kpi__chip">
           <span class="rel-kpi__label">Total veículos</span>
           <strong class="rel-kpi__value">{{ resumo().totalVeiculos }}</strong>
         </article>
@@ -157,9 +145,9 @@
         </p>
       }
 
-      <div class="trn-list-table-card rel-table-wrap">
-        <div class="trn-list-table-scroll">
-          <table class="data-table trn-table">
+      <div class="rel-results-card">
+        <div class="rel-results-card__scroll">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Razão social</th>

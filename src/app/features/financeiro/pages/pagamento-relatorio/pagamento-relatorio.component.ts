@@ -7,6 +7,10 @@ import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
+import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado,
+} from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { PAGAMENTOS_RELATORIO_ROUTE } from '../../faturamento-rotas';
 import { FaturaService } from '../../services/fatura.service';
 import { PagamentoRelatorioService } from '../../services/pagamento-relatorio.service';
@@ -23,7 +27,14 @@ import {
 @Component({
   selector: 'app-pagamento-relatorio',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSnackBarModule, CurrencyPipe, DatePipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatSnackBarModule,
+    CurrencyPipe,
+    DatePipe,
+    PeriodoDataPickerComponent,
+  ],
   templateUrl: './pagamento-relatorio.component.html',
   styleUrls: ['./pagamento-relatorio.component.scss'],
 })
@@ -81,6 +92,11 @@ export class PagamentoRelatorioComponent implements OnInit {
     if (this.canVisualizar) {
       this.carregarTransportadoras();
     }
+  }
+
+  onPeriodo(periodo: PeriodoDataSelecionado): void {
+    this.dataInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.dataFinal = periodo.ativo ? periodo.dataFinal : '';
   }
 
   limparFiltros(): void {

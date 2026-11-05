@@ -31,11 +31,11 @@
                 aria-label="Transportadora"
               >
                 <option [ngValue]="null">Todas as transportadoras</option>
-                @for (t of transportadoras; track t.id) {
-                  <option [ngValue]="t.id">
-                    {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
-                  </option>
-                }
+                @for (t of transportadoras(); track t.id) {
+                    <option [ngValue]="t.id">
+                      {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
+                    </option>
+                  }
               </select>
             </div>
           }
@@ -78,27 +78,27 @@
           </div>
         </section>
 
-        @if (erroList) {
+        @if (erroList(); as erro) {
           <div class="trn-list-banner trn-list-banner--error" role="alert">
-            <p class="error-msg">{{ erroList }}</p>
+            <p class="error-msg">{{ erro }}</p>
           </div>
         }
-        @if (loadingList) {
+        @if (loadingList()) {
           <p class="loading-msg trn-loading">Carregando...</p>
         }
 
-        @if (jaBuscou && !loadingList && !erroList) {
+        @if (jaBuscou() && !loadingList() && !erroList()) {
           <div class="trn-list-metrics" aria-label="Resumo da consulta">
             <app-est-summary-metric
               icon="event"
               label="Agendados"
-              [value]="totalCount"
+              [value]="totalCount()"
               variant="neutral"
             />
             <app-est-summary-metric
               icon="local_shipping"
               label="Nesta página"
-              [value]="items.length"
+              [value]="items().length"
               variant="success"
             />
           </div>
@@ -121,7 +121,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (item of items; track item.id) {
+                  @for (item of items(); track item.id) {
                     <tr class="trn-table__row">
                       <td>{{ item.id }}</td>
                       <td>{{ formatPlaca(item.placaVeiculo) }}</td>
@@ -175,7 +175,7 @@
                 </tbody>
               </table>
             </div>
-            @if (items.length === 0) {
+            @if (items().length === 0) {
               <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
                 <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
                 <p class="empty-msg">Nenhum agendamento encontrado.</p>
@@ -187,15 +187,15 @@
             <p class="trn-list-footer__info">
               Mostrando <strong>{{ intervaloLista.de }}</strong> a
               <strong>{{ intervaloLista.ate }}</strong> de
-              <strong>{{ totalCount }}</strong>
-              {{ totalCount === 1 ? 'agendamento' : 'agendamentos' }}
+              <strong>{{ totalCount() }}</strong>
+              {{ totalCount() === 1 ? 'agendamento' : 'agendamentos' }}
             </p>
             <div class="trn-list-footer__right">
               <div class="trn-footer-pager" aria-label="Paginação">
                 <button
                   type="button"
                   class="trn-foot-page"
-                  [disabled]="numeroPagina <= 1 || totalCount === 0"
+                  [disabled]="numeroPagina() <= 1 || totalCount() === 0"
                   (click)="irParaPagina(1)"
                   aria-label="Primeira página"
                 >
@@ -206,20 +206,20 @@
                 <button
                   type="button"
                   class="trn-foot-page"
-                  [disabled]="numeroPagina <= 1 || totalCount === 0"
-                  (click)="irParaPagina(numeroPagina - 1)"
+                  [disabled]="numeroPagina() <= 1 || totalCount() === 0"
+                  (click)="irParaPagina(numeroPagina() - 1)"
                   aria-label="Página anterior"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
                 </button>
                 <span class="trn-foot-current" aria-current="page">{{
-                  totalCount === 0 ? 0 : numeroPagina
+                  totalCount() === 0 ? 0 : numeroPagina()
                 }}</span>
                 <button
                   type="button"
                   class="trn-foot-page"
-                  [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
-                  (click)="irParaPagina(numeroPagina + 1)"
+                  [disabled]="numeroPagina() >= totalPaginas || totalCount() === 0"
+                  (click)="irParaPagina(numeroPagina() + 1)"
                   aria-label="Próxima página"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
@@ -227,7 +227,7 @@
                 <button
                   type="button"
                   class="trn-foot-page"
-                  [disabled]="numeroPagina >= totalPaginas || totalCount === 0"
+                  [disabled]="numeroPagina() >= totalPaginas || totalCount() === 0"
                   (click)="irParaPagina(totalPaginas)"
                   aria-label="Última página"
                 >
@@ -243,7 +243,7 @@
     </div>
   </div>
 
-  @if (showForm) {
+  @if (showForm()) {
     <div class="modal-overlay modal-overlay--frota" (click)="fecharForm()" role="presentation">
       <div
         class="modal-content modal-content--frota"
@@ -278,7 +278,7 @@
                   formControlName="transportadoraId"
                 >
                   <option [ngValue]="null">Selecione</option>
-                  @for (t of transportadoras; track t.id) {
+                  @for (t of transportadoras(); track t.id) {
                     <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial }}</option>
                   }
                 </select>
@@ -295,7 +295,7 @@
                 appPlacaFormat
                 (blur)="onPlacaBlur()"
               />
-              @if (lookingUp) {
+              @if (lookingUp()) {
                 <span class="field-hint">Consultando placa...</span>
               }
             </div>
@@ -324,9 +324,9 @@
             <button
               type="submit"
               class="btn btn-primary"
-              [disabled]="form.invalid || salvando || lookingUp"
+              [disabled]="form.invalid || salvando() || lookingUp()"
             >
-              {{ salvando ? 'Salvando...' : 'Salvar agendamento' }}
+              {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
             </button>
           </div>
         </form>

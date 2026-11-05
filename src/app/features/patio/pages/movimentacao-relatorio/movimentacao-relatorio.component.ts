@@ -5,6 +5,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../../core/services/auth.service';
+import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado,
+} from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
@@ -26,7 +30,7 @@ import { RELATORIO_BOOL_OPCOES, RELATORIO_MOV_STATUS_OPCOES } from './movimentac
 @Component({
   selector: 'app-movimentacao-relatorio',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSnackBarModule, DatePipe],
+  imports: [CommonModule, FormsModule, MatSnackBarModule, DatePipe, PeriodoDataPickerComponent],
   templateUrl: './movimentacao-relatorio.component.html',
   styleUrls: ['./movimentacao-relatorio.component.scss'],
 })
@@ -64,8 +68,6 @@ export class MovimentacaoRelatorioComponent implements OnInit {
 
   dataInicial = '';
   dataFinal = '';
-  dataSaidaInicial = '';
-  dataSaidaFinal = '';
   placa = '';
   transportadoraId: number | null = null;
   status: number | null = null;
@@ -109,10 +111,13 @@ export class MovimentacaoRelatorioComponent implements OnInit {
     return 'rel-pill';
   }
 
+  onPeriodo(periodo: PeriodoDataSelecionado): void {
+    this.dataInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.dataFinal = periodo.ativo ? periodo.dataFinal : '';
+  }
+
   limparFiltros(): void {
     this.definirPeriodoMesAtual();
-    this.dataSaidaInicial = '';
-    this.dataSaidaFinal = '';
     this.placa = '';
     this.transportadoraId = null;
     this.status = null;
@@ -231,8 +236,6 @@ export class MovimentacaoRelatorioComponent implements OnInit {
     return {
       dataInicial: this.dataInicial || null,
       dataFinal: this.dataFinal || null,
-      dataSaidaInicial: this.dataSaidaInicial || null,
-      dataSaidaFinal: this.dataSaidaFinal || null,
       placa: this.placa.trim() || null,
       transportadoraId: this.transportadoraId,
       status: this.status,

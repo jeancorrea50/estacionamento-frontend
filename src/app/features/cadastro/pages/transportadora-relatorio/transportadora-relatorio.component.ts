@@ -4,6 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs/operators';
 
+import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado,
+} from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { TransportadoraRelatorioService } from '../../services/transportadora-relatorio.service';
 import type {
   TransportadoraRelatorioFiltro,
@@ -15,7 +19,7 @@ import { RELATORIO_ATIVO_OPCOES } from './transportadora-relatorio.types';
 @Component({
   selector: 'app-transportadora-relatorio',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSnackBarModule, DatePipe],
+  imports: [CommonModule, FormsModule, MatSnackBarModule, DatePipe, PeriodoDataPickerComponent],
   templateUrl: './transportadora-relatorio.component.html',
   styleUrls: ['./transportadora-relatorio.component.scss'],
 })
@@ -48,6 +52,11 @@ export class TransportadoraRelatorioComponent implements OnInit {
 
   ngOnInit(): void {
     this.definirPeriodoMesAtual();
+  }
+
+  onPeriodo(periodo: PeriodoDataSelecionado): void {
+    this.dataInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.dataFinal = periodo.ativo ? periodo.dataFinal : '';
   }
 
   limparFiltros(): void {

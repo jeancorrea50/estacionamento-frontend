@@ -129,10 +129,20 @@ export function aplicarGranularidadeAno(ano: number): { inicio: Date; fim: Date 
 export function formatarPeriodoLabel(inicio: Date, fim: Date, granularidade: MovimentosPeriodoGranularidade): string {
   const ini = toIsoDate(inicio);
   const fi = toIsoDate(fim);
-  if (granularidade === 'ano') return String(inicio.getFullYear());
-  if (granularidade === 'mes') {
-    return inicio.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
+  if (granularidade === 'ano') {
+    const anoIni = inicio.getFullYear();
+    const anoFim = fim.getFullYear();
+    return anoIni === anoFim ? String(anoIni) : `${anoIni} – ${anoFim}`;
   }
+
+  if (granularidade === 'mes') {
+    const rotuloMes = (d: Date) => d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+    const mesmoMes =
+      inicio.getFullYear() === fim.getFullYear() && inicio.getMonth() === fim.getMonth();
+    return mesmoMes ? rotuloMes(inicio) : `${rotuloMes(inicio)} – ${rotuloMes(fim)}`;
+  }
+
   if (ini === fi) {
     return inicio.toLocaleDateString('pt-BR');
   }

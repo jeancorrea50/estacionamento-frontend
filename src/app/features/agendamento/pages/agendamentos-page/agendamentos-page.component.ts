@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -89,18 +89,19 @@ export class AgendamentosPageComponent implements OnInit {
     return this.podeOperarPatio;
   }
 
-  loadingList = false;
-  jaBuscou = false;
-  erroList: string | null = null;
-  salvando = false;
-  lookingUp = false;
-  showForm = false;
+  /** Signals: app usa zoneless — estado async precisa notificar a UI. */
+  readonly loadingList = signal(false);
+  readonly jaBuscou = signal(false);
+  readonly erroList = signal<string | null>(null);
+  readonly salvando = signal(false);
+  readonly lookingUp = signal(false);
+  readonly showForm = signal(false);
 
-  items: AgendamentoSearchItem[] = [];
-  totalCount = 0;
-  numeroPagina = 1;
-  tamanhoPagina = 20;
-  transportadoras: TransportadoraListItemDTO[] = [];
+  readonly items = signal<AgendamentoSearchItem[]>([]);
+  readonly totalCount = signal(0);
+  readonly numeroPagina = signal(1);
+  readonly tamanhoPagina = signal(20);
+  readonly transportadoras = signal<TransportadoraListItemDTO[]>([]);
 
   filtroPlaca = '';
   filtroDataInicial = '';
@@ -122,8 +123,9 @@ export class AgendamentosPageComponent implements OnInit {
     if (!this.canVisualizar) return;
 
     if (this.auth.needsEstacionamentoSelection()) {
-      this.erroList = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
-      this.toast.error(this.erroList);
+      const msg = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
+      this.erroList.set(msg);
+      this.toast.error(msg);
       return;
     }
 
@@ -139,18 +141,19 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   get totalPaginas(): number {
-    return Math.max(1, Math.ceil(this.totalCount / this.tamanhoPagina));
+    return Math.max(1, Math.ceil(this.totalCount() / this.tamanhoPagina()));
   }
 
   get intervaloLista(): { de: number; ate: number } {
-    if (this.totalCount === 0) return { de: 0, ate: 0 };
-    const de = (this.numeroPagina - 1) * this.tamanhoPagina + 1;
-    const ate = Math.min(this.numeroPagina * this.tamanhoPagina, this.totalCount);
+    const total = this.totalCount();
+    if (total === 0) return { de: 0, ate: 0 };
+    const de = (this.numeroPagina() - 1) * this.tamanhoPagina() + 1;
+    const ate = Math.min(this.numeroPagina() * this.tamanhoPagina(), total);
     return { de, ate };
   }
 
   onBuscar(): void {
-    this.numeroPagina = 1;
+    this.numeroPagina.set(1);
     this.carregar();
   }
 
@@ -163,17 +166,18 @@ export class AgendamentosPageComponent implements OnInit {
     if (!this.canVisualizar) return;
 
     if (this.auth.needsEstacionamentoSelection()) {
-      this.erroList = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
-      this.toast.error(this.erroList);
-      this.items = [];
-      this.totalCount = 0;
-      this.jaBuscou = true;
+      const msg = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
+      this.erroList.set(msg);
+      this.toast.error(msg);
+      this.items.set([]);
+      this.totalCount.set(0);
+      this.jaBuscou.set(true);
       return;
     }
 
-    this.loadingList = true;
-    this.erroList = null;
-    this.jaBuscou = true;
+    this.loadingList.set(true);
+    this.erroList.set(null);
+    this.jaBuscou.set(true);
 
     this.api
       .buscar({
@@ -181,25 +185,25 @@ export class AgendamentosPageComponent implements OnInit {
         dataInicial: this.filtroDataInicial || this.filtroDataFinal || undefined,
         dataFinal: this.filtroDataFinal || this.filtroDataInicial || undefined,
         transportadoraId: this.podeOperarPatio ? this.filtroTransportadoraId ?? undefined : undefined,
-        numeroPagina: this.numeroPagina,
-        tamanhoPagina: this.tamanhoPagina,
+        numeroPagina: this.numeroPagina(),
+        tamanhoPagina: this.tamanhoPagina(),
       })
       .subscribe({
         next: (res) => {
-          this.items = res.items;
-          this.totalCount = res.totalCount;
-          this.loadingList = false;
+          this.items.set(res.items);
+          this.totalCount.set(res.totalCount);
+          this.loadingList.set(false);
         },
         error: (err: { message?: string } | unknown) => {
-          this.loadingList = false;
-          this.items = [];
-          this.totalCount = 0;
+          this.loadingList.set(false);
+          this.items.set([]);
+          this.totalCount.set(0);
           const msg =
             err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
               ? err.message
               : 'Não foi possível carregar os agendamentos.';
-          this.erroList = msg;
-          this.toast.error(this.erroList);
+          this.erroList.set(msg);
+          this.toast.error(msg);
         },
       });
   }
@@ -216,11 +220,11 @@ export class AgendamentosPageComponent implements OnInit {
       motoristaNome: '',
       motoristaCpf: '',
     });
-    this.showForm = true;
+    this.showForm.set(true);
   }
 
   fecharForm(): void {
-    this.showForm = false;
+    this.showForm.set(false);
   }
 
   podeConfirmarItem(item: AgendamentoSearchItem): boolean {
@@ -241,10 +245,10 @@ export class AgendamentosPageComponent implements OnInit {
     this.form.patchValue({ placa: formatPlacaDisplay(placa) || raw }, { emitEvent: false });
     if (!placaCompleta(placa)) return;
 
-    this.lookingUp = true;
+    this.lookingUp.set(true);
     this.api.obterPorPlaca(placa).subscribe({
       next: (agg) => {
-        this.lookingUp = false;
+        this.lookingUp.set(false);
         if (!agg?.veiculoId) {
           this.toast.error('Veículo não encontrado para a placa informada.');
           this.form.patchValue({ veiculoId: null, motoristaId: null, motoristaNome: '', motoristaCpf: '' });
@@ -272,7 +276,7 @@ export class AgendamentosPageComponent implements OnInit {
         }
       },
       error: () => {
-        this.lookingUp = false;
+        this.lookingUp.set(false);
         this.toast.error('Falha ao consultar a placa.');
       },
     });
@@ -307,7 +311,7 @@ export class AgendamentosPageComponent implements OnInit {
       return;
     }
 
-    this.salvando = true;
+    this.salvando.set(true);
     this.api
       .gravar({
         dataAgendamento: this.toLocalIso(String(v.dataAgendamento ?? '')),
@@ -322,15 +326,15 @@ export class AgendamentosPageComponent implements OnInit {
       })
       .subscribe({
         next: (res) => {
-          this.salvando = false;
+          this.salvando.set(false);
           if (!res.success) {
             this.toast.error(res.message || 'Não foi possível criar o agendamento.');
             return;
           }
           this.toast.success(res.message || 'Agendamento criado.');
           const transportadoraLabel =
-            this.transportadoras.find((t) => t.id === tid)?.razaoSocial?.trim() ||
-            this.transportadoras.find((t) => t.id === tid)?.nomeFantasia?.trim() ||
+            this.transportadoras().find((t) => t.id === tid)?.razaoSocial?.trim() ||
+            this.transportadoras().find((t) => t.id === tid)?.nomeFantasia?.trim() ||
             '—';
           this.portariaAlertas.push({
             id: `agendamento-${placa}-${Date.now()}`,
@@ -341,7 +345,7 @@ export class AgendamentosPageComponent implements OnInit {
           this.carregar();
         },
         error: () => {
-          this.salvando = false;
+          this.salvando.set(false);
           this.toast.error('Não foi possível criar o agendamento.');
         },
       });
@@ -401,7 +405,7 @@ export class AgendamentosPageComponent implements OnInit {
 
   irParaPagina(p: number): void {
     if (p < 1 || p > this.totalPaginas) return;
-    this.numeroPagina = p;
+    this.numeroPagina.set(p);
     this.carregar();
   }
 
@@ -427,10 +431,10 @@ export class AgendamentosPageComponent implements OnInit {
   private carregarTransportadoras(): void {
     this.transportadoraService.buscar({ NumeroPagina: 1, TamanhoPagina: 200 }).subscribe({
       next: (res) => {
-        this.transportadoras = res.items ?? [];
+        this.transportadoras.set(res.items ?? []);
       },
       error: () => {
-        this.transportadoras = [];
+        this.transportadoras.set([]);
       },
     });
   }

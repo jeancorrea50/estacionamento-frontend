@@ -5,6 +5,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../../../core/services/auth.service';
+import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado,
+} from '../../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { FaturaService } from '../../../services/fatura.service';
 import { FaturaRelatorioService } from '../../../services/fatura-relatorio.service';
 import type { FaturaRelatorioFiltro, FaturaRelatorioItem, FaturaRelatorioResumo, RelatorioPeriodoCampo } from './faturamento-relatorio.types';
@@ -18,7 +22,14 @@ import {
 @Component({
   selector: 'app-faturamento-relatorio',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSnackBarModule, CurrencyPipe, DatePipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatSnackBarModule,
+    CurrencyPipe,
+    DatePipe,
+    PeriodoDataPickerComponent,
+  ],
   templateUrl: './faturamento-relatorio.component.html',
   styleUrls: ['./faturamento-relatorio.component.scss'],
 })
@@ -71,6 +82,21 @@ export class FaturamentoRelatorioComponent implements OnInit {
   ngOnInit(): void {
     this.definirPeriodoMesAtual();
     this.carregarTransportadoras();
+  }
+
+  onPeriodoPrincipal(periodo: PeriodoDataSelecionado): void {
+    this.dataInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.dataFinal = periodo.ativo ? periodo.dataFinal : '';
+  }
+
+  onPeriodoVencimento(periodo: PeriodoDataSelecionado): void {
+    this.dataVencimentoInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.dataVencimentoFinal = periodo.ativo ? periodo.dataFinal : '';
+  }
+
+  onPeriodoPagamento(periodo: PeriodoDataSelecionado): void {
+    this.dataPagamentoInicial = periodo.ativo ? periodo.dataInicial : '';
+    this.dataPagamentoFinal = periodo.ativo ? periodo.dataFinal : '';
   }
 
   limparFiltros(): void {

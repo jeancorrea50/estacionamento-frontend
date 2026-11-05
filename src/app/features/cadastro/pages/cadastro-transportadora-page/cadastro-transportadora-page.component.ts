@@ -2294,7 +2294,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       width: '460px',
       autoFocus: 'dialog',
-      panelClass: 'cfg-form-dialog-panel',
+      panelClass: 'cad-confirm-dialog-panel',
       data: {
         titulo: 'Motorista já cadastrado',
         mensagem,
@@ -2661,6 +2661,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const ref = this.dialog.open(CadastroConfirmDialogComponent, {
       width: '420px',
       autoFocus: 'dialog',
+      panelClass: 'cad-confirm-dialog-panel',
       data: {
         titulo: 'Excluir motorista',
         mensagem: `Confirma a exclusão de "${nome}"? Esta ação não pode ser desfeita.`,

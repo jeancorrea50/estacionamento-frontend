@@ -53,7 +53,13 @@
               aria-label="Placa"
             />
           </label>
-          <app-agendamento-periodo-picker (periodoChange)="onPeriodoChange($event)" />
+          <app-periodo-data-picker
+            emptyLabel="Qualquer período"
+            ariaLabel="Selecionar período"
+            [dataInicial]="filtroDataInicial"
+            [dataFinal]="filtroDataFinal"
+            (periodoChange)="onPeriodoChange($event)"
+          />
           <div class="ag-dash-filter__actions">
             <button
               type="button"
@@ -261,12 +267,10 @@
         <form [formGroup]="form" (ngSubmit)="salvar()">
           <div class="modal-body modal-body--frota-compact">
             <div class="form-row">
-              <label for="ag-data">Data/hora <span class="required">*</span></label>
-              <input
-                id="ag-data"
-                type="datetime-local"
-                class="input-control"
-                formControlName="dataAgendamento"
+              <label>Data/hora <span class="required">*</span></label>
+              <app-agendamento-data-hora-picker
+                [value]="form.controls.dataAgendamento.value || ''"
+                (valueChange)="onDataHoraChange($event)"
               />
             </div>
             @if (podeOperarPatio) {
@@ -276,6 +280,7 @@
                   id="ag-transp"
                   class="input-control input-control--select"
                   formControlName="transportadoraId"
+                  (change)="onTransportadoraFormChange()"
                 >
                   <option [ngValue]="null">Selecione</option>
                   @for (t of transportadoras(); track t.id) {
@@ -284,29 +289,75 @@
                 </select>
               </div>
             }
-            <div class="form-row">
-              <label for="ag-placa">Placa <span class="required">*</span></label>
-              <input
-                id="ag-placa"
-                type="text"
-                class="input-control"
-                formControlName="placa"
-                placeholder="ABC-1D23"
-                appPlacaFormat
-                (blur)="onPlacaBlur()"
-              />
-              @if (lookingUp()) {
-                <span class="field-hint">Consultando placa...</span>
-              }
-            </div>
-            <div class="form-row">
-              <label for="ag-mot">Motorista</label>
-              <input
-                id="ag-mot"
-                type="text"
-                class="input-control"
-                formControlName="motoristaNome"
-              />
+            <div class="form-row ag-placas-field">
+              <label>Placas <span class="required">*</span></label>
+              <div class="ag-placas-field__control">
+                @if (loadingFrota()) {
+                  <span class="ag-placas-field__status">Carregando frota...</span>
+                } @else if (!transportadoraFormId()) {
+                  <span class="ag-placas-field__status">Selecione a transportadora para listar as placas.</span>
+                } @else if (frotaVeiculos().length === 0) {
+                  <span class="ag-placas-field__status">Nenhuma placa cadastrada para esta transportadora.</span>
+                } @else {
+                  <div class="ag-placa-combo" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="input-control input-control--select ag-placa-combo__trigger"
+                      (click)="togglePlacasDropdown($event)"
+                      [attr.aria-expanded]="placasDropdownAberto()"
+                      aria-haspopup="listbox"
+                      aria-label="Selecionar placas"
+                    >
+                      <span class="ag-placa-combo__trigger-text">{{ labelPlacasSelecionadas() }}</span>
+                      <span class="material-symbols-outlined ag-placa-combo__chevron" aria-hidden="true">
+                        {{ placasDropdownAberto() ? 'expand_less' : 'expand_more' }}
+                      </span>
+                    </button>
+
+                    @if (placasDropdownAberto()) {
+                      <div class="ag-placa-combo__panel" role="listbox" aria-multiselectable="true">
+                        <label class="ag-placa-combo__search">
+                          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                          <input
+                            type="text"
+                            class="input-control"
+                            placeholder="Digite a placa para buscar…"
+                            [ngModel]="filtroPlacaFrota()"
+                            (ngModelChange)="onFiltroPlacaFrotaChange($event)"
+                            [ngModelOptions]="{ standalone: true }"
+                            autocomplete="off"
+                            aria-label="Buscar placa"
+                            (click)="$event.stopPropagation()"
+                          />
+                        </label>
+
+                        <div class="ag-placa-combo__list">
+                          @for (v of frotaVeiculosFiltrados(); track v.id) {
+                            <label
+                              class="ag-placa-combo__item"
+                              [class.ag-placa-combo__item--on]="placaSelecionada(v.id)"
+                            >
+                              <input
+                                type="checkbox"
+                                [checked]="placaSelecionada(v.id)"
+                                (change)="togglePlaca(v.id, $event)"
+                              />
+                              <span class="ag-placa-combo__placa">{{ formatPlaca(v.placa) }}</span>
+                              <span class="ag-placa-combo__veiculo" [title]="v.marcaModelo || ''">
+                                {{ v.marcaModelo || '—' }}
+                              </span>
+                            </label>
+                          } @empty {
+                            <div class="ag-placa-combo__empty">
+                              Nenhuma placa encontrada para “{{ filtroPlacaFrota() }}”.
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
             </div>
             <div class="form-row">
               <label for="ag-obs">Observação</label>
@@ -324,7 +375,7 @@
             <button
               type="submit"
               class="btn btn-primary"
-              [disabled]="form.invalid || salvando() || lookingUp()"
+              [disabled]="form.invalid || salvando() || loadingFrota() || placasSelecionadasIds().length === 0"
             >
               {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
             </button>

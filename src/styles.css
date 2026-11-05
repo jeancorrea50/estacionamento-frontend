@@ -2346,6 +2346,48 @@ html.theme-dark .trn-view-dialog-panel {
   display: block;
 }
 
+/* Modal de confirmação genérico (agendamento, cadastro, etc.) */
+.cad-confirm-dialog-panel {
+  --cad-confirm-surface: #252530;
+  --cad-confirm-border: #363642;
+  --cad-confirm-text: #f1f1f5;
+  --cad-confirm-muted: #d4d4d8;
+  --cad-confirm-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+html.theme-light .cad-confirm-dialog-panel {
+  --cad-confirm-surface: var(--color-bg-card, #ffffff);
+  --cad-confirm-border: var(--color-border, #e5e7eb);
+  --cad-confirm-text: var(--color-text-primary, #111827);
+  --cad-confirm-muted: var(--color-text-secondary, #4b5563);
+  --cad-confirm-shadow: var(--shadow-lg, 0 12px 32px rgba(15, 23, 42, 0.12));
+}
+
+html.theme-dark .cad-confirm-dialog-panel {
+  --cad-confirm-surface: #252530;
+  --cad-confirm-border: #363642;
+  --cad-confirm-text: #f1f1f5;
+  --cad-confirm-muted: #d4d4d8;
+  --cad-confirm-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.cad-confirm-dialog-panel .mat-mdc-dialog-surface,
+.cad-confirm-dialog-panel .mdc-dialog__surface {
+  background: var(--cad-confirm-surface) !important;
+  color: var(--cad-confirm-text) !important;
+  border: 1px solid var(--cad-confirm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--cad-confirm-shadow) !important;
+  overflow: hidden;
+}
+
+.cad-confirm-dialog-panel .mat-mdc-dialog-component-host,
+.cad-confirm-dialog-panel app-cadastro-confirm-dialog {
+  display: block;
+  background: var(--cad-confirm-surface) !important;
+  color: var(--cad-confirm-text) !important;
+}
+
 html.theme-dark .cdk-overlay-backdrop.cdk-overlay-backdrop-showing {
   background: rgba(0, 0, 0, 0.55);
 }

@@ -71,6 +71,8 @@ import {
 } from './movimentos-exportacao.util';
 import { MovimentacaoRelatorioService } from '../../../patio/services/movimentacao-relatorio.service';
 import { MovimentacaoRelatorioPdfService } from '../../../patio/services/movimentacao-relatorio-pdf.service';
+import { ReciboPdfService } from '../../recibo/recibo-pdf.service';
+import { isModalidadeFaturamento } from '../../recibo/recibo-pdf.helpers';
 import type {
   MovimentacaoRelatorioFiltro,
   MovimentacaoRelatorioOutput
@@ -161,6 +163,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly movimentacaoRelatorio = inject(MovimentacaoRelatorioService);
   private readonly movimentacaoRelatorioPdf = inject(MovimentacaoRelatorioPdfService);
+  private readonly reciboPdf = inject(ReciboPdfService);
 
   /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
   private get service(): EntradaSaidaService {
@@ -1465,6 +1468,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
               id: criado?.id ?? 0,
               modo: ModoRecibo.Entrada,
               placa: placaNorm,
+              ehExcedente: criado?.ehExcedente === true,
+              acordoCobrancaId: criado?.acordoCobrancaId ?? null,
               mensagem: 'Entrada registrada. Deseja visualizar o recibo de entrada?'
             });
             this.toast.success('Entrada registrada com sucesso.');
@@ -1707,12 +1712,17 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.visualizarRecibo({
         id: item.id,
         modo: ModoRecibo.Entrada,
-        placa
+        placa,
+        tipoCobranca:
+          item.avulso === false ? 'Faturado' : item.avulso === true ? 'Avulso' : null,
+        ehExcedente: item.ehExcedente === true,
+        avulso: item.avulso,
+        acordoCobrancaId: item.acordoCobrancaId ?? null
       });
       return;
     }
 
-    // Com saída: recibo com valor de estacionamento.
+    // Com saída: avulso exige valor; faturamento/contrato omite valores no PDF.
     this.reciboBaixandoId.set(item.id);
     this.service
       .obterValorEstacionamento(item.id)
@@ -1720,21 +1730,23 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.reciboBaixandoId.set(null);
+          const tipoCobranca =
+            res.tipoCobranca?.trim() ||
+            (item.avulso === false ? 'Faturado' : item.avulso === true ? 'Avulso' : null);
           const valor =
             res.valor != null && Number.isFinite(Number(res.valor))
               ? Math.round(Number(res.valor) * 100) / 100
               : null;
-          if (valor == null) {
-            this.toast.error(
-              'Não há valor de estacionamento disponível para gerar o recibo.'
-            );
-            return;
-          }
           this.visualizarRecibo({
             id: item.id,
             modo: ModoRecibo.Saida,
             valor,
-            placa
+            placa,
+            tipoCobranca,
+            tipoTarifa: res.tipoTarifa === 1 || res.tipoTarifa === 2 ? res.tipoTarifa : null,
+            ehExcedente: item.ehExcedente === true,
+            avulso: item.avulso,
+            acordoCobrancaId: item.acordoCobrancaId ?? null
           });
         },
         error: (err: ApiError) => {
@@ -1785,6 +1797,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     valor?: number | null;
     placa: string;
     mensagem: string;
+    tipoCobranca?: string | null;
+    tipoTarifa?: TipoTarifaEstacionamento | null;
+    ehExcedente?: boolean | null;
+    avulso?: boolean | null;
+    acordoCobrancaId?: number | null;
   }): Promise<void> {
     const aceitar = await this.perguntarImprimirRecibo(opts.mensagem);
     if (!aceitar) return;
@@ -1797,7 +1814,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       id,
       modo: opts.modo,
       valor: opts.valor,
-      placa: opts.placa
+      placa: opts.placa,
+      tipoCobranca: opts.tipoCobranca,
+      tipoTarifa: opts.tipoTarifa,
+      ehExcedente: opts.ehExcedente,
+      avulso: opts.avulso,
+      acordoCobrancaId: opts.acordoCobrancaId
     });
   }
 
@@ -1806,6 +1828,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     modo: ModoRecibo;
     valor?: number | null;
     placa: string;
+    tipoCobranca?: string | null;
+    tipoTarifa?: TipoTarifaEstacionamento | null;
+    ehExcedente?: boolean | null;
+    avulso?: boolean | null;
+    acordoCobrancaId?: number | null;
   }): void {
     const id = opts.id;
     if (!id || id <= 0) {
@@ -1814,15 +1841,32 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     }
 
     this.reciboBaixandoId.set(id);
-    this.service
-      .baixarRecibo(id, opts.modo, opts.modo === ModoRecibo.Saida ? opts.valor : null)
+    this.reciboPdf
+      .gerar({
+        id,
+        modo: opts.modo,
+        placa: opts.placa,
+        valor: opts.modo === ModoRecibo.Saida ? opts.valor : null,
+        // Sem fallback para signals de saída: evita contaminar recibo do histórico.
+        tipoCobranca: opts.tipoCobranca?.trim() || null,
+        tipoTarifa: opts.tipoTarifa === 1 || opts.tipoTarifa === 2 ? opts.tipoTarifa : null,
+        ehExcedente: opts.ehExcedente === true,
+        avulso: opts.avulso,
+        acordoCobrancaId: opts.acordoCobrancaId ?? null
+      })
       .pipe(finalize(() => this.reciboBaixandoId.set(null)))
       .subscribe({
         next: (blob) => {
           const prefixo = opts.modo === ModoRecibo.Entrada ? 'ticket-entrada' : 'recibo';
           this.abrirPreviewRecibo(blob, `${prefixo}-${opts.placa || id}.pdf`);
         },
-        error: (err: ApiError) => this.handleApiError(err, 'Falha ao gerar o recibo PDF.')
+        error: (err: ApiError | Error) => {
+          if (err instanceof Error && !(err as ApiError).status) {
+            this.toast.error(err.message || 'Falha ao gerar o recibo PDF.');
+            return;
+          }
+          this.handleApiError(err as ApiError, 'Falha ao gerar o recibo PDF.');
+        }
       });
   }
 
@@ -1956,8 +2000,14 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.toast.error('Placa não encontrada para registrar a saída.');
       return;
     }
+    const tipoCobranca = this.saidaTipoCobranca();
+    const faturamento = isModalidadeFaturamento({
+      tipoCobranca,
+      acordoCobrancaId: item.acordoCobrancaId,
+      ehExcedente: item.ehExcedente
+    });
     const valor = this.saidaValor();
-    if (valor == null || !Number.isFinite(valor) || valor < 0) {
+    if (!faturamento && (valor == null || !Number.isFinite(valor) || valor < 0)) {
       this.toast.error(
         this.saidaTipoTarifa() === 1
           ? 'Informe o valor da hora para calcular o total do recibo.'
@@ -1976,8 +2026,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           void this.ofertarReciboAposOperacao({
             id: item.id,
             modo: ModoRecibo.Saida,
-            valor,
+            valor: faturamento ? null : valor,
             placa,
+            tipoCobranca,
+            tipoTarifa: this.saidaTipoTarifa(),
+            ehExcedente: item.ehExcedente === true,
+            acordoCobrancaId: item.acordoCobrancaId ?? null,
             mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
           });
           this.finalizarAcaoPermanencia('Saída registrada com sucesso.');

@@ -64,17 +64,37 @@ export class AgendamentoService {
   }
 
   cancelar(id: number): Observable<{ success: boolean; message?: string }> {
-    return this.http.patch<unknown>(`${this.apiRoot}/${id}/cancelar`, {}).pipe(
-      map((body) => this.readSuccess(body, 'Agendamento cancelado.')),
-      catchError((err: unknown) => of(this.readHttpFailure(err)))
-    );
+    // Swagger: 200 sem content — evita erro de parse JSON em body vazio.
+    return this.http
+      .patch(`${this.apiRoot}/${id}/cancelar`, {}, { responseType: 'text' })
+      .pipe(
+        map((body) => this.readPatchResult(body, 'Agendamento cancelado.')),
+        catchError((err: unknown) => of(this.readHttpFailure(err)))
+      );
   }
 
   confirmarEntrada(id: number): Observable<{ success: boolean; message?: string }> {
-    return this.http.patch<unknown>(`${this.apiRoot}/${id}/confirmar-entrada`, {}).pipe(
-      map((body) => this.readSuccess(body, 'Entrada confirmada.')),
-      catchError((err: unknown) => of(this.readHttpFailure(err)))
-    );
+    // Swagger: 200 sem content — evita erro de parse JSON em body vazio.
+    return this.http
+      .patch(`${this.apiRoot}/${id}/confirmar-entrada`, {}, { responseType: 'text' })
+      .pipe(
+        map((body) => this.readPatchResult(body, 'Entrada confirmada.')),
+        catchError((err: unknown) => of(this.readHttpFailure(err)))
+      );
+  }
+
+  /** Aceita body vazio, texto ou JSON do ServiceResult. */
+  private readPatchResult(
+    body: string | null | undefined,
+    fallback: string
+  ): { success: boolean; message?: string } {
+    const raw = String(body ?? '').trim();
+    if (!raw) return { success: true, message: fallback };
+    try {
+      return this.readSuccess(JSON.parse(raw) as unknown, fallback);
+    } catch {
+      return { success: true, message: fallback };
+    }
   }
 
   private normalizePaged(
@@ -163,7 +183,17 @@ export class AgendamentoService {
 
   private readHttpFailure(err: unknown): { success: boolean; message?: string } {
     if (err && typeof err === 'object' && 'error' in err) {
-      const e = (err as { error?: unknown }).error;
+      let e = (err as { error?: unknown }).error;
+      if (typeof e === 'string') {
+        const raw = e.trim();
+        if (raw) {
+          try {
+            e = JSON.parse(raw) as unknown;
+          } catch {
+            return { success: false, message: raw };
+          }
+        }
+      }
       if (e && typeof e === 'object') {
         const b = e as Record<string, unknown>;
         const notes = b['notifications'] ?? b['Notifications'] ?? b['message'] ?? b['Message'];

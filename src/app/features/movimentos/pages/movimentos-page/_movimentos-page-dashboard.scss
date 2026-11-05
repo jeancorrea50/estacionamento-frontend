@@ -1058,6 +1058,97 @@
   }
 }
 
+/* Hero da portaria no tema claro — evita fundo dark com texto ilegível */
+:host-context(html.theme-light) {
+  .portaria-hero {
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 18%, var(--border-subtle, #d6dbe5));
+    background:
+      radial-gradient(
+        120% 140% at 100% 50%,
+        color-mix(in srgb, var(--primary, #3d8bff) 10%, transparent) 0%,
+        transparent 55%
+      ),
+      linear-gradient(
+        118deg,
+        var(--surface, #ffffff) 0%,
+        color-mix(in srgb, var(--surface, #ffffff) 88%, var(--primary, #3d8bff) 6%) 48%,
+        color-mix(in srgb, var(--surface-2, #f4f6fb) 92%, #e8eef8) 100%
+      );
+    box-shadow:
+      0 1px 0 color-mix(in srgb, #ffffff 80%, transparent) inset,
+      0 8px 24px color-mix(in srgb, #0f172a 8%, transparent);
+  }
+
+  .portaria-hero::before {
+    opacity: 0.28;
+  }
+
+  .portaria-hero::after {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, #ffffff 55%, transparent) 0%,
+      transparent 36%,
+      color-mix(in srgb, #0f172a 4%, transparent) 100%
+    );
+  }
+
+  .portaria-hero__img {
+    opacity: 0.22;
+    filter: saturate(0.85) contrast(1.02) brightness(1.08);
+  }
+
+  .portaria-hero__overlay {
+    background:
+      linear-gradient(
+        100deg,
+        var(--surface, #ffffff) 0%,
+        color-mix(in srgb, var(--surface, #ffffff) 94%, transparent) 34%,
+        color-mix(in srgb, var(--surface, #ffffff) 55%, transparent) 62%,
+        color-mix(in srgb, var(--surface, #ffffff) 12%, transparent) 100%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, #ffffff 40%, transparent) 0%,
+        transparent 50%,
+        color-mix(in srgb, #0f172a 4%, transparent) 100%
+      );
+  }
+
+  .portaria-hero__icon {
+    color: var(--primary, #2563eb);
+    background: color-mix(in srgb, var(--primary, #3d8bff) 14%, #ffffff);
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 28%, var(--border-subtle, #d6dbe5));
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary, #3d8bff) 12%, transparent);
+  }
+
+  .portaria-hero__title {
+    color: var(--text, #0f172a);
+    text-shadow: none;
+  }
+
+  .portaria-hero__sub {
+    color: var(--muted, #64748b);
+    text-shadow: none;
+  }
+
+  .portaria-hero__clock {
+    background: color-mix(in srgb, var(--surface, #ffffff) 88%, #eef2ff);
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 16%, var(--border-subtle, #d6dbe5));
+    box-shadow: 0 4px 14px color-mix(in srgb, #0f172a 6%, transparent);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .portaria-hero__clock-date {
+    color: var(--muted, #64748b);
+  }
+
+  .portaria-hero__clock-time {
+    color: var(--text, #0f172a);
+    text-shadow: none;
+  }
+}
+
 /* Contraste no tema escuro — tokens globais */
 :host-context(html.theme-dark) {
   .page-title,

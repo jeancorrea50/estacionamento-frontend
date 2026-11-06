@@ -65,13 +65,15 @@ export class AcessosPermissoesPageComponent implements OnInit {
   novaExpandedMenuIds = signal<string[]>([]);
   novaMenuFilterTerm = signal('');
 
-  /** Menus filtrados pelo termo (nome do menu ou de algum submenu). */
+  /** Menus filtrados pelo termo (nome do menu ou de algum submenu/neto). */
   filteredMenusForNova = computed(() => {
     const term = this.novaMenuFilterTerm().trim().toLowerCase();
     if (!term) return MENU_STRUCTURE;
     return MENU_STRUCTURE.filter((node) => {
       if (node.label.toLowerCase().includes(term)) return true;
-      return node.children?.some((c) => c.label.toLowerCase().includes(term)) ?? false;
+      return this.flattenSubItems(node.children).some((c) =>
+        c.label.toLowerCase().includes(term)
+      );
     });
   });
 
@@ -148,9 +150,8 @@ export class AcessosPermissoesPageComponent implements OnInit {
     if (!id) return '';
     for (const node of MENU_STRUCTURE) {
       if (node.id === id) return node.label;
-      for (const sub of node.children ?? []) {
-        if (sub.id === id) return sub.label;
-      }
+      const hit = this.flattenSubItems(node.children).find((s) => s.id === id);
+      if (hit) return hit.label;
     }
     return id;
   }
@@ -168,12 +169,57 @@ export class AcessosPermissoesPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  /** Itens selecionáveis do menu: submenus ou o próprio item quando não há filhos. */
+  /**
+   * Itens selecionáveis do menu (inclui 2º nível: Convites/Relatório sob Transportadora).
+   * Sem filhos: o próprio menu.
+   */
   submenuItems(node: MenuNode): { id: string; label: string }[] {
-    if (node.children?.length) {
-      return node.children.map((s) => ({ id: s.id, label: s.label }));
-    }
+    const flat = this.flattenSubItems(node.children);
+    if (flat.length) return flat;
     return [{ id: node.id, label: node.label }];
+  }
+
+  /** Achata submenus + netos para listagem/vínculo de permissões. */
+  flattenSubItems(
+    children: MenuSubItem[] | undefined,
+    parentLabel?: string
+  ): { id: string; label: string }[] {
+    const out: { id: string; label: string }[] = [];
+    for (const sub of children ?? []) {
+      const label = parentLabel ? `${parentLabel} › ${sub.label}` : sub.label;
+      if (sub.children?.length) {
+        // Pai com filhos também entra (ex.: Transportadora / Faturamento).
+        out.push({ id: sub.id, label: parentLabel ? label : sub.label });
+        out.push(...this.flattenSubItems(sub.children, sub.label));
+      } else {
+        out.push({ id: sub.id, label });
+      }
+    }
+    return out;
+  }
+
+  /** Linhas da tabela principal (menu + módulo/submenu, incluindo netos). */
+  permissionTableRows(): { menu: MenuNode; sub: MenuSubItem; label: string }[] {
+    const rows: { menu: MenuNode; sub: MenuSubItem; label: string }[] = [];
+    for (const node of MENU_STRUCTURE) {
+      if (!node.children?.length) {
+        continue;
+      }
+      for (const item of this.flattenSubItems(node.children)) {
+        const sub = this.findSubById(node.children, item.id);
+        if (sub) rows.push({ menu: node, sub, label: item.label });
+      }
+    }
+    return rows;
+  }
+
+  private findSubById(children: MenuSubItem[] | undefined, id: string): MenuSubItem | null {
+    for (const sub of children ?? []) {
+      if (sub.id === id) return sub;
+      const nested = this.findSubById(sub.children, id);
+      if (nested) return nested;
+    }
+    return null;
   }
 
   toggleNovaSub(id: string): void {

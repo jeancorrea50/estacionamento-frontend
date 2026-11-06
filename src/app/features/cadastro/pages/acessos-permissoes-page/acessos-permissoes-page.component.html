@@ -21,30 +21,29 @@
         </tr>
       </thead>
       <tbody>
-        @for (node of menuStructure; track node.id) {
-          @if (node.children?.length) {
-            @for (sub of node.children; track sub.id) {
+        @for (row of permissionTableRows(); track row.sub.id) {
               <tr>
-                <td>{{ node.label }}</td>
-                <td>{{ sub.label }}</td>
+                <td>{{ row.menu.label }}</td>
+                <td>{{ row.label }}</td>
                 <td>
                   <span class="permission-tags">
-                    @for (key of getPermissionsForNode(sub.id); track key) {
+                    @for (key of getPermissionsForNode(row.sub.id); track key) {
                       <span class="permission-tag">{{ key }}</span>
                     }
-                    @if (getPermissionsForNode(sub.id).length === 0) {
+                    @if (getPermissionsForNode(row.sub.id).length === 0) {
                       <span class="permission-tags--empty">Nenhuma</span>
                     }
                   </span>
                 </td>
                 <td class="acoes-cell">
-                  <button type="button" class="btn btn-primary btn--sm" (click)="openVincular(sub.id)">
+                  <button type="button" class="btn btn-primary btn--sm" (click)="openVincular(row.sub.id)">
                     Vincular
                   </button>
                 </td>
               </tr>
-            }
-          } @else {
+        }
+        @for (node of menuStructure; track node.id) {
+          @if (!node.children?.length) {
             <tr>
               <td>{{ node.label }}</td>
               <td>{{ node.label }}</td>

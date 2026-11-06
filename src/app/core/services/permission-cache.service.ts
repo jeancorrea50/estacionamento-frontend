@@ -13,6 +13,12 @@ function normalizePermissionKey(value: string | null | undefined): string {
 const RECURSO_ALIASES: Readonly<Record<string, readonly string[]>> = {
   agendamento: ['agendamentos'],
   agendamentos: ['agendamento'],
+  veiculo: ['veiculos'],
+  veiculos: ['veiculo'],
+  motorista: ['motoristas'],
+  motoristas: ['motorista'],
+  transportadora: ['transportadoras'],
+  transportadoras: ['transportadora'],
 };
 
 function expandRecursoKeys(recurso: string): string[] {

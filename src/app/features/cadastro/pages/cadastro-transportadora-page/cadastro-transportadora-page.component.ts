@@ -103,16 +103,34 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     return this.transportadoraId != null && this.transportadoraId > 0 ? this.canAlterar : this.canGravar;
   }
 
+  /**
+   * Frota/Motoristas nesta tela fazem parte do CRUD da transportadora.
+   * Perfil Transportadora (e quem tem transportadora.*) não precisa de claim
+   * separada de menu Veículo/Motorista para operar as abas.
+   */
+  private allowsNestedTransportadoraCrud(
+    recurso: 'veiculo' | 'motorista',
+    acao: 'gravar' | 'alterar' | 'excluir'
+  ): boolean {
+    if (this.permissionCache.allows(recurso, acao)) return true;
+    if (this.permissionCache.allows('transportadora', acao)) return true;
+    // Manter frota/motorista é operação de edição da própria transportadora.
+    if (acao === 'gravar' && this.permissionCache.allows('transportadora', 'alterar')) {
+      return true;
+    }
+    return false;
+  }
+
   get canGravarVeiculo(): boolean {
-    return this.permissionCache.allows('veiculo', 'gravar');
+    return this.allowsNestedTransportadoraCrud('veiculo', 'gravar');
   }
 
   get canAlterarVeiculo(): boolean {
-    return this.permissionCache.allows('veiculo', 'alterar');
+    return this.allowsNestedTransportadoraCrud('veiculo', 'alterar');
   }
 
   get canExcluirVeiculo(): boolean {
-    return this.permissionCache.allows('veiculo', 'excluir');
+    return this.allowsNestedTransportadoraCrud('veiculo', 'excluir');
   }
 
   get podeSalvarVeiculo(): boolean {
@@ -120,15 +138,15 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   get canGravarMotorista(): boolean {
-    return this.permissionCache.allows('motorista', 'gravar');
+    return this.allowsNestedTransportadoraCrud('motorista', 'gravar');
   }
 
   get canAlterarMotorista(): boolean {
-    return this.permissionCache.allows('motorista', 'alterar');
+    return this.allowsNestedTransportadoraCrud('motorista', 'alterar');
   }
 
   get canExcluirMotorista(): boolean {
-    return this.permissionCache.allows('motorista', 'excluir');
+    return this.allowsNestedTransportadoraCrud('motorista', 'excluir');
   }
 
   get podeSalvarMotorista(): boolean {

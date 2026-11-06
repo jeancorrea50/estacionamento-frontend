@@ -19,6 +19,15 @@
     "changeOrigin": true,
     "logLevel": "warn"
   },
+  "/gerenc": {
+    "target": "http://localhost:5204",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn",
+    "pathRewrite": {
+      "^/gerenc": ""
+    }
+  },
   "/estac": {
     "target": "https://gtsistema.com",
     "secure": true,

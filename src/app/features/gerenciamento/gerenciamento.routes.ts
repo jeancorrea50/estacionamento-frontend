@@ -67,6 +67,13 @@ export const GERENCIAMENTO_ROUTES: Routes = [
             (m) => m.HorarioPageComponent
           ),
       },
+      {
+        path: 'custos',
+        loadComponent: () =>
+          import('./pages/custos-gerenciais-page/custos-gerenciais-page.component').then(
+            (m) => m.CustosGerenciaisPageComponent
+          ),
+      },
     ],
   },
 ];

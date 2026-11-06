@@ -159,6 +159,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
       { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
       { id: 'sub-estacionamento', label: 'Estacionamento', route: '/app/gerenciamento/estacionamento' },
       { id: 'sub-horario', label: 'Horário', route: '/app/gerenciamento/horario' },
+      { id: 'sub-custos', label: 'Custos gerenciais', route: '/app/gerenciamento/custos' },
     ],
   },
   {

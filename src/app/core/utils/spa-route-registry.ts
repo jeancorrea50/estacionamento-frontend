@@ -96,6 +96,7 @@ function collectStaticRoutes(): void {
     '/app/gerenciamento/usuario',
     '/app/gerenciamento/estacionamento',
     '/app/gerenciamento/horario',
+    '/app/gerenciamento/custos',
     '/app/cadastro',
     '/app/cadastro/transportadoras',
     '/app/cadastro/veiculos',

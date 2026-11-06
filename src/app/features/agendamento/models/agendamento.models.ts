@@ -7,6 +7,8 @@ import {
 export { EntradaSaidaStatus, entradaSaidaStatusLabel, parseEntradaSaidaStatus };
 
 export interface AgendamentoFiltro {
+  /** Busca livre: placa, nome do motorista ou CPF (enviado como Descricao na API). */
+  busca?: string;
   placa?: string;
   dataInicial?: string;
   dataFinal?: string;
@@ -20,6 +22,7 @@ export interface AgendamentoSearchItem {
   descricao: string;
   motoristaId: number;
   nomeMotorista: string;
+  cpfMotorista?: string | null;
   transportadoraId: number;
   nomeTransportadora: string;
   veiculoId: number;

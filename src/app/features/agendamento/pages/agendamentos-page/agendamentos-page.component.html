@@ -46,11 +46,11 @@
             <input
               type="text"
               class="est-dash-filter__search-input"
-              placeholder="Placa…"
-              [(ngModel)]="filtroPlaca"
+              placeholder="Placa, motorista ou CPF…"
+              [(ngModel)]="filtroBusca"
               (keyup.enter)="onBuscar()"
               autocomplete="off"
-              aria-label="Placa"
+              aria-label="Buscar por placa, motorista ou CPF"
             />
           </label>
           <app-periodo-data-picker
@@ -147,6 +147,18 @@
                             role="group"
                             [attr.aria-label]="'Ações para agendamento ' + item.id"
                           >
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--neutral"
+                              title="Recibo A4"
+                              aria-label="Gerar recibo do agendamento"
+                              [disabled]="gerandoReciboId() === item.id"
+                              (click)="emitirRecibo(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true"
+                                >receipt_long</span
+                              >
+                            </button>
                             @if (podeConfirmarItem(item)) {
                               <button
                                 type="button"

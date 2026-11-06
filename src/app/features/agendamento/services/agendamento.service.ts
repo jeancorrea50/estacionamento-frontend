@@ -24,7 +24,11 @@ export class AgendamentoService {
       .set('NumeroPagina', String(filtro.numeroPagina || 1))
       .set('TamanhoPagina', String(filtro.tamanhoPagina || 20));
 
-    if (filtro.placa?.trim()) params = params.set('Placa', filtro.placa.trim());
+    const busca = (filtro.busca ?? filtro.placa ?? '').trim();
+    if (busca) {
+      // Backend: Descricao casa placa, nome do motorista ou CPF.
+      params = params.set('Descricao', busca);
+    }
     if (filtro.dataInicial?.trim()) params = params.set('DataInicial', filtro.dataInicial.trim());
     if (filtro.dataFinal?.trim()) params = params.set('DataFinal', filtro.dataFinal.trim());
     if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
@@ -135,6 +139,7 @@ export class AgendamentoService {
       descricao: this.pickString(row, 'descricao', 'Descricao'),
       motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
       nomeMotorista: this.pickString(row, 'nomeMotorista', 'NomeMotorista'),
+      cpfMotorista: this.pickStringOrNull(row, 'cpfMotorista', 'CpfMotorista'),
       transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
       nomeTransportadora: this.pickString(row, 'nomeTransportadora', 'NomeTransportadora'),
       veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),

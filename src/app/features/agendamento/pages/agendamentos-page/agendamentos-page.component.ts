@@ -12,6 +12,7 @@ import { SessionAccessService } from '../../../../core/services/session-access.s
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
+import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
 import { VeiculoListItemDTO } from '../../../cadastro/models/veiculo.dto';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
@@ -30,6 +31,7 @@ import {
   entradaSaidaStatusLabel,
   parseEntradaSaidaStatus,
 } from '../../models/agendamento.models';
+import { baixarPdfReciboAgendamento } from '../../recibo/agendamento-recibo-pdf';
 import {
   PeriodoDataPickerComponent,
   PeriodoDataSelecionado,
@@ -61,6 +63,7 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly veiculoService = inject(VeiculoService);
+  private readonly estacionamentoService = inject(EstacionamentoService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
@@ -80,9 +83,13 @@ export class AgendamentosPageComponent implements OnInit {
     return this.canVisualizar && this.permissions.allows('agendamento', 'gravar');
   }
 
-  /** PATCH cancelar — claim `agendamento.alterar`. */
+  /** PATCH cancelar — claim `agendamentos.alterar` (API) / alias singular. */
   get podeCancelar(): boolean {
-    return this.canVisualizar && this.permissions.allows('agendamento', 'alterar');
+    return (
+      this.canVisualizar &&
+      (this.permissions.allows('agendamento', 'alterar') ||
+        this.permissions.allows('agendamento', 'excluir'))
+    );
   }
 
   get podeOperarPatio(): boolean {
@@ -121,10 +128,12 @@ export class AgendamentosPageComponent implements OnInit {
   readonly tamanhoPagina = signal(20);
   readonly transportadoras = signal<TransportadoraListItemDTO[]>([]);
 
-  filtroPlaca = '';
+  /** Placa, nome do motorista ou CPF. */
+  filtroBusca = '';
   filtroDataInicial = '';
   filtroDataFinal = '';
   filtroTransportadoraId: number | null = null;
+  readonly gerandoReciboId = signal<number | null>(null);
 
   form = this.fb.group({
     dataAgendamento: ['', Validators.required],
@@ -261,7 +270,7 @@ export class AgendamentosPageComponent implements OnInit {
 
     this.api
       .buscar({
-        placa: this.filtroPlaca.trim() || undefined,
+        busca: this.filtroBusca.trim() || undefined,
         dataInicial: this.filtroDataInicial || this.filtroDataFinal || undefined,
         dataFinal: this.filtroDataFinal || this.filtroDataInicial || undefined,
         transportadoraId: this.podeOperarPatio ? this.filtroTransportadoraId ?? undefined : undefined,
@@ -320,7 +329,84 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   temAcoes(item: AgendamentoSearchItem): boolean {
-    return this.podeConfirmarItem(item) || this.podeCancelarItem(item);
+    return this.podeConfirmarItem(item) || this.podeCancelarItem(item) || this.canVisualizar;
+  }
+
+  emitirRecibo(item: AgendamentoSearchItem): void {
+    if (!this.canVisualizar || !item?.id) return;
+    if (this.gerandoReciboId() === item.id) return;
+
+    const session = this.auth.getSessionEstacionamento();
+    const estId = this.auth.resolveEstacionamentoId();
+    const base = {
+      id: item.id,
+      placa: item.placaVeiculo,
+      dataHoraAgendada: item.dataHoraEntrada,
+      motoristaNome: item.nomeMotorista || '—',
+      motoristaCpf: item.cpfMotorista || '',
+      transportadoraNome: item.nomeTransportadora || null,
+      observacao: item.observacao || null,
+      estacionamentoNome:
+        session?.nome?.trim() ||
+        session?.razaoSocial?.trim() ||
+        'Estacionamento',
+      estacionamentoCnpj: session?.cnpj || null,
+      enderecoLinha1: null as string | null,
+      enderecoLinha2: null as string | null,
+    };
+
+    this.gerandoReciboId.set(item.id);
+    const loadEndereco$ =
+      estId && estId > 0
+        ? this.estacionamentoService.obterPorId(estId, session?.codExportacao).pipe(
+            map((det) => {
+              if (!det) return base;
+              const end = det.enderecos?.[0] as
+                | {
+                    logradouro?: string;
+                    numero?: string;
+                    bairro?: string;
+                    cidade?: string;
+                    estado?: string;
+                    uf?: string;
+                    cep?: string;
+                  }
+                | undefined;
+              const linha1 = end
+                ? [end.logradouro, end.numero].filter(Boolean).join(', ')
+                : '';
+              const linha2 = end
+                ? [end.bairro, end.cidade, end.estado || end.uf, end.cep]
+                    .filter(Boolean)
+                    .join(' - ')
+                : '';
+              return {
+                ...base,
+                estacionamentoNome:
+                  det.pessoa?.nomeFantasia?.trim() ||
+                  det.pessoa?.nomeRazaoSocial?.trim() ||
+                  det.descricao?.trim() ||
+                  base.estacionamentoNome,
+                estacionamentoCnpj: det.pessoa?.cnpj || base.estacionamentoCnpj,
+                enderecoLinha1: linha1 || null,
+                enderecoLinha2: linha2 || null,
+              };
+            }),
+            catchError(() => of(base))
+          )
+        : of(base);
+
+    loadEndereco$.pipe(finalize(() => this.gerandoReciboId.set(null))).subscribe({
+      next: (dados) => {
+        try {
+          baixarPdfReciboAgendamento(dados);
+          this.toast.success('Recibo gerado.');
+        } catch {
+          this.toast.error('Não foi possível gerar o recibo PDF.');
+        }
+      },
+      error: () => this.toast.error('Não foi possível gerar o recibo PDF.'),
+    });
   }
 
   salvar(): void {

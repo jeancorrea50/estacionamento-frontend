@@ -429,6 +429,11 @@
   border-color: color-mix(in srgb, var(--primary) 35%, var(--border-subtle));
 }
 
+.trn-act-btn--neutral {
+  color: var(--text);
+  border-color: var(--border-subtle);
+}
+
 .trn-act-btn--danger {
   color: color-mix(in srgb, var(--danger, #f87171) 95%, var(--text));
   border-color: color-mix(in srgb, var(--danger, #ef4444) 35%, transparent);

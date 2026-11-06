@@ -7,6 +7,21 @@ function normalizePermissionKey(value: string | null | undefined): string {
 }
 
 /**
+ * Backend/JWT pode emitir o recurso no singular (catálogo) ou no plural (label do submenu).
+ * Ex.: tela checa `agendamento.gravar`; claim vem `agendamentos.gravar`.
+ */
+const RECURSO_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  agendamento: ['agendamentos'],
+  agendamentos: ['agendamento'],
+};
+
+function expandRecursoKeys(recurso: string): string[] {
+  const r = normalizePermissionKey(recurso);
+  if (!r) return [];
+  return [r, ...(RECURSO_ALIASES[r] ?? [])];
+}
+
+/**
  * Cache local de chaves de permissão do usuário logado (preenchido a partir do claim `Permission` do JWT).
  */
 @Injectable({ providedIn: 'root' })
@@ -68,15 +83,28 @@ export class PermissionCacheService {
     if (keys.includes('*')) return true;
     if (keys.length === 0) return false;
     const requiredKeys = required.map((r) => normalizePermissionKey(r)).filter(Boolean);
-    return requiredKeys.some((r) => keys.includes(r));
+    return requiredKeys.some((r) => keys.includes(r) || this.keyMatchesAlias(keys, r));
   }
 
   has(key: string): boolean {
     return this.hasAny([key]);
   }
 
-  /** Claim `recurso.acao` ou curinga `*`. */
+  /** Claim `recurso.acao` (aceita alias singular/plural) ou curinga `*`. */
   allows(recurso: string, acao: string): boolean {
-    return this.has(`${recurso}.${acao}`) || this.has('*');
+    const a = normalizePermissionKey(acao);
+    if (!a) return false;
+    return expandRecursoKeys(recurso).some((r) => this.has(`${r}.${a}`));
+  }
+
+  /** Aceita `agendamento.gravar` quando a sessão só tem `agendamentos.gravar` (e vice-versa). */
+  private keyMatchesAlias(storedKeys: string[], required: string): boolean {
+    const [recurso, ...acaoParts] = required.split('.');
+    if (!recurso || acaoParts.length === 0) return false;
+    const acao = acaoParts.join('.');
+    return expandRecursoKeys(recurso).some((alias) => {
+      if (alias === recurso) return false;
+      return storedKeys.includes(`${alias}.${acao}`);
+    });
   }
 }

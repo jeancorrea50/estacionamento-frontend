@@ -25,11 +25,13 @@ export const PATIO_MENU_TREE: MenuSubItem[] = [
     id: 'sub-movimentacoes',
     label: 'Movimentações',
     route: PATIO_MOVIMENTACOES_ROUTE,
-  },
-  {
-    id: 'sub-movimentacoes-relatorio',
-    label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
-    route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+    children: [
+      {
+        id: 'sub-movimentacoes-relatorio',
+        label: PATIO_MOVIMENTACOES_RELATORIO_LABEL,
+        route: PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+      },
+    ],
   },
   {
     id: 'sub-entrada-saida',

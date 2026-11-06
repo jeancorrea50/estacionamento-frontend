@@ -8,9 +8,9 @@ import {
   resolveAppRouteFromNome,
 } from '../../features/gerenciamento/services/menu-route-resolver';
 
-/** v2: invalida cache antigo que podia expandir menus além do login. */
-const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v2';
-const LEGACY_SESSION_MENUS_KEYS = ['gts-session-menus-v1'] as const;
+/** v3: Relatório filho usa rota do pai (não colapsa tudo em `/app/relatorios`). */
+const SESSION_MENUS_STORAGE_KEY = 'gts-session-menus-v3';
+const LEGACY_SESSION_MENUS_KEYS = ['gts-session-menus-v1', 'gts-session-menus-v2'] as const;
 
 export interface SessionSubMenuAccess {
   id?: number;
@@ -239,40 +239,118 @@ export class SessionAccessService {
         continue;
       }
 
-      for (const sub of activeSubs) {
-        collectSessionSubRoutes(sub, routeSet, safeText(menu.descricao));
-      }
+      collectSessionSubRoutesLevel(activeSubs, routeSet, menu.rota ?? null);
     }
 
     return [...routeSet];
   }
 }
 
-function collectSessionSubRoutes(
-  sub: SessionSubMenuAccess,
+/** Pais de seção usados para inferir Relatório em lista plana (login). */
+const RELATORIO_SECTION_PARENTS = [
+  '/app/financeiro/faturamento',
+  '/app/financeiro/pagamento',
+  '/app/financeiro/pagamentos',
+  '/app/cadastro/transportadoras',
+  '/app/cadastro/transportadora',
+  '/app/patio/movimentacoes',
+] as const;
+
+function collectSessionSubRoutesLevel(
+  siblings: SessionSubMenuAccess[],
   routeSet: Set<string>,
-  menuLabel: string
+  menuOrParentRoute: string | null
 ): void {
-  if (sub.ativo === false || sub.selecionado === false) return;
-  const route = resolveAppRouteFromNome(safeText(sub.descricao), sub.rota ?? null);
-  addGrantedRoute(routeSet, route);
-  for (const nested of sub.subMenus ?? []) {
-    collectSessionSubRoutes(nested, routeSet, menuLabel);
+  const ordered = [...siblings].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  for (let i = 0; i < ordered.length; i++) {
+    const sub = ordered[i];
+    if (sub.ativo === false || sub.selecionado === false) continue;
+    const parentFromSibling = findPrecedingSectionParent(ordered, i);
+    const route = resolveAppRouteFromNome(
+      safeText(sub.descricao),
+      sub.rota ?? null,
+      parentFromSibling ?? menuOrParentRoute
+    );
+    addGrantedRoute(routeSet, route);
+    const nested = Array.isArray(sub.subMenus) ? sub.subMenus : [];
+    if (nested.length) {
+      collectSessionSubRoutesLevel(nested, routeSet, route);
+    }
   }
 }
 
-function normalizeSessionSubMenus(subs: SessionSubMenuAccess[]): SessionSubMenuAccess[] {
-  const mapped = subs.map((sub) => normalizeSessionSubMenu(sub));
+function isRelatorioDescricao(descricao: string | null | undefined): boolean {
+  const key = safeText(descricao)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  return key === 'relatorio' || key === 'relatorios';
+}
+
+function findPrecedingSectionParent(
+  ordered: SessionSubMenuAccess[],
+  index: number
+): string | null {
+  for (let i = index - 1; i >= 0; i--) {
+    const sibling = ordered[i];
+    // Não usar outro "Relatório" como âncora (ex.: faturamento/relatorio antes de pagamento/relatorio).
+    if (isRelatorioDescricao(sibling?.descricao)) continue;
+    const r = normalizeRoute(String(sibling?.rota ?? ''));
+    if (!r || r.endsWith('/relatorio') || r === '/app/relatorios' || r === '/app/relatorio') {
+      continue;
+    }
+    for (const parent of RELATORIO_SECTION_PARENTS) {
+      if (r === parent || r.startsWith(`${parent}/`)) {
+        if (parent.startsWith('/app/cadastro/transportadora')) {
+          return '/app/cadastro/transportadoras';
+        }
+        if (parent === '/app/financeiro/pagamentos') {
+          return '/app/financeiro/pagamento';
+        }
+        return parent;
+      }
+    }
+  }
+  return null;
+}
+
+function normalizeSessionSubMenus(
+  subs: SessionSubMenuAccess[],
+  parentRoute?: string | null
+): SessionSubMenuAccess[] {
+  const ordered = [...subs].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  const mapped: SessionSubMenuAccess[] = [];
+  for (let i = 0; i < ordered.length; i++) {
+    const sub = ordered[i];
+    const parentFromSibling = findPrecedingSectionParent(
+      [
+        ...mapped,
+        ...ordered.slice(i).map((s) => ({
+          ...s,
+          rota: normalizeOptionalRoute(s.rota),
+        })),
+      ],
+      i
+    );
+    mapped.push(normalizeSessionSubMenu(sub, parentFromSibling ?? parentRoute));
+  }
   return nestSubMenusByRouteGeneric(mapped);
 }
 
-function normalizeSessionSubMenu(sub: SessionSubMenuAccess): SessionSubMenuAccess {
-  const rota = normalizeOptionalRoute(sub.rota);
+function normalizeSessionSubMenu(
+  sub: SessionSubMenuAccess,
+  parentRoute?: string | null
+): SessionSubMenuAccess {
+  const descricao = safeText(sub.descricao);
+  const rotaRaw = normalizeOptionalRoute(sub.rota);
+  const rota = normalizeOptionalRoute(
+    resolveAppRouteFromNome(descricao, rotaRaw, parentRoute)
+  );
   const nestedRaw = sub.subMenus ?? [];
-  const nested = nestedRaw.length ? normalizeSessionSubMenus(nestedRaw) : [];
+  const nested = nestedRaw.length ? normalizeSessionSubMenus(nestedRaw, rota) : [];
   return {
     ...sub,
-    descricao: safeText(sub.descricao),
+    descricao,
     rota,
     selecionado: normalizeBoolean(sub.selecionado),
     subMenus: nested.length ? nested : undefined,
@@ -288,7 +366,7 @@ function normalizeMenus(menus: SessionMenuAccess[]): SessionMenuAccess[] {
       descricao: formatAppMenuDisplayLabel(descricaoRaw, rota) || descricaoRaw,
       rota,
       selecionado: normalizeBoolean(menu.selecionado),
-      subMenus: normalizeSessionSubMenus(menu.subMenus ?? []),
+      subMenus: normalizeSessionSubMenus(menu.subMenus ?? [], rota),
     };
   });
 }

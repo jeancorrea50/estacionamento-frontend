@@ -22,7 +22,11 @@ import { ApiError } from '../api/models';
 import { mergeServiceResultToRoot, readLoginServiceFailure, unwrapServiceResult } from '../api/utils/service-result.util';
 import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
 import { normalizeLegacyAppRoute } from '../utils/app-route-normalizer';
-import { formatAppMenuDisplayLabel } from '../../features/gerenciamento/services/menu-route-resolver';
+import {
+  formatAppMenuDisplayLabel,
+  canonicalizeRelatorioRouteFromLogin,
+  resolveAppRouteFromNome,
+} from '../../features/gerenciamento/services/menu-route-resolver';
 import { nestSubMenusByRouteGeneric } from '../../features/gerenciamento/services/menu-tree.util';
 import { ToastService } from '../api/services/toast.service';
 
@@ -1084,15 +1088,36 @@ function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null):
   return [];
 }
 
-function mapSubMenus(value: unknown): SessionSubMenuAccess[] {
+function mapSubMenus(value: unknown, parentRoute?: string | null): SessionSubMenuAccess[] {
   if (!Array.isArray(value)) return [];
-  const mapped = value
+  const shallow = value
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-    .map((sub) => mapSubMenuEntry(sub));
-  return nestSubMenusByRouteGeneric(mapped);
+    .map((sub) => mapSubMenuEntryShallow(sub));
+
+  // 1º passo: resolve com pai explícito (API aninhada) ou irmão precedente (lista plana).
+  const resolved = refineRelatorioRoutesAmongSiblings(
+    shallow.map((sub, index) => {
+      const parent = parentRoute ?? findPrecedingSectionParentRoute(shallow, index);
+      const descricao = sub.descricao ?? '';
+      const rota = resolveAppRouteFromNome(descricao, sub.rota ?? null, parent);
+      const nestedRaw = sub._nestedRaw;
+      const nestedFlat =
+        nestedRaw != null ? mapSubMenus(nestedRaw, rota) : sub.subMenus ?? [];
+      const { _nestedRaw: _, ...rest } = sub;
+      return {
+        ...rest,
+        rota,
+        subMenus: nestedFlat.length ? nestedFlat : undefined,
+      };
+    })
+  );
+
+  return nestSubMenusByRouteGeneric(resolved);
 }
 
-function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
+type ShallowSessionSub = SessionSubMenuAccess & { _nestedRaw?: unknown };
+
+function mapSubMenuEntryShallow(sub: Record<string, unknown>): ShallowSessionSub {
   const id = toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']) ?? 0;
   const rotaRaw = toStringValue(sub['rota']) ?? toStringValue(sub['subRota']);
   const rota = normalizeLegacyAppRoute(rotaRaw) ?? rotaRaw;
@@ -1105,7 +1130,6 @@ function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
     sub['subModules'] ??
     sub['subModulesDto'] ??
     sub['SubMenus'];
-  const nestedFlat = Array.isArray(nestedRaw) ? mapSubMenus(nestedRaw) : [];
   return {
     id,
     descricao:
@@ -1123,8 +1147,85 @@ function mapSubMenuEntry(sub: Record<string, unknown>): SessionSubMenuAccess {
     }),
     selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']) ?? true,
     ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
-    subMenus: nestedFlat.length ? nestedFlat : undefined,
+    _nestedRaw: Array.isArray(nestedRaw) ? nestedRaw : undefined,
   };
+}
+
+/** Seções que podem ter um filho "Relatório" com rota própria. */
+const RELATORIO_SECTION_PARENTS = [
+  '/app/financeiro/faturamento',
+  '/app/financeiro/pagamento',
+  '/app/financeiro/pagamentos',
+  '/app/cadastro/transportadoras',
+  '/app/cadastro/transportadora',
+  '/app/patio/movimentacoes',
+] as const;
+
+function normSessionRoute(route: string | null | undefined): string {
+  return String(route ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\/+$/, '');
+}
+
+function isRelatorioSessionLabel(descricao: string | null | undefined): boolean {
+  const label = (descricao ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  return label === 'relatorio' || label === 'relatorios';
+}
+
+function findPrecedingSectionParentRoute(
+  subs: SessionSubMenuAccess[],
+  index: number
+): string | null {
+  const ordered = [...subs].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  const target = subs[index];
+  const ordIdx = ordered.indexOf(target);
+  for (let i = ordIdx - 1; i >= 0; i--) {
+    const sibling = ordered[i];
+    // Evita ancorar o Relatório de pagamento no Relatório de faturamento (irmão precedente).
+    if (isRelatorioSessionLabel(sibling?.descricao)) continue;
+    const r = normSessionRoute(sibling?.rota);
+    if (!r || r.endsWith('/relatorio') || r === '/app/relatorios' || r === '/app/relatorio') {
+      continue;
+    }
+    for (const parent of RELATORIO_SECTION_PARENTS) {
+      if (r === parent || r.startsWith(`${parent}/`)) {
+        return parent.startsWith('/app/cadastro/transportadora')
+          ? '/app/cadastro/transportadoras'
+          : parent === '/app/financeiro/pagamentos'
+            ? '/app/financeiro/pagamento'
+            : parent;
+      }
+    }
+  }
+  return null;
+}
+
+function refineRelatorioRoutesAmongSiblings(subs: SessionSubMenuAccess[]): SessionSubMenuAccess[] {
+  return subs.map((sub, index) => {
+    const label = (sub.descricao ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const isRelatorio = label === 'relatorio' || label === 'relatorios';
+    if (!isRelatorio) return sub;
+
+    // Rota do login já traz o pai (app/patio/movimentacoes/relatorio, etc.).
+    const fromLogin = canonicalizeRelatorioRouteFromLogin(sub.rota);
+    if (fromLogin) {
+      return fromLogin !== sub.rota ? { ...sub, rota: fromLogin } : sub;
+    }
+
+    const parent = findPrecedingSectionParentRoute(subs, index);
+    if (!parent) return sub;
+    const inferred = resolveAppRouteFromNome(sub.descricao ?? 'Relatório', sub.rota, parent);
+    return inferred && inferred !== sub.rota ? { ...sub, rota: inferred } : sub;
+  });
 }
 
 function tryExtractProfileMenus(value: unknown, jwtRole?: string | null): unknown[] | null {

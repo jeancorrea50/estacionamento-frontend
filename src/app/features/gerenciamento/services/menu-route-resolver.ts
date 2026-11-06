@@ -48,8 +48,10 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   'entrada e saída': PATIO_ENTRADA_SAIDA_ROUTE,
   /** API costuma mandar singular; rota de portaria */
   movimento: PATIO_ENTRADA_SAIDA_ROUTE,
-  relatorio: '/app/relatorios',
-  relatorios: '/app/relatorios',
+  /**
+   * "Relatório" sozinho é ambíguo (pátio/cadastro/faturamento/pagamento).
+   * Sem rota do pai, NÃO mapear para `/app/relatorios` — use `resolveRelatorioUnderParent`.
+   */
   financeiro: FINANCEIRO_ROUTE,
   faturamento: FATURAMENTO_ROUTE,
   pagamentos: PAGAMENTOS_ROUTE,
@@ -63,6 +65,10 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   /** Submenu Relatório de faturamento (sidebar, abaixo de Cobrança) — não confundir com `/app/relatorios`. */
   'relatorio de faturamento': FATURAMENTO_RELATORIO_ROUTE,
   'relatorio faturamento': FATURAMENTO_RELATORIO_ROUTE,
+  'relatorio de pagamentos': PAGAMENTOS_RELATORIO_ROUTE,
+  'relatorio pagamentos': PAGAMENTOS_RELATORIO_ROUTE,
+  'relatorio de pagamento': PAGAMENTOS_RELATORIO_ROUTE,
+  'relatorio pagamento': PAGAMENTOS_RELATORIO_ROUTE,
   'relatorio de transportadoras': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   'relatorio transportadoras': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   'relatorio de movimentacoes': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
@@ -140,6 +146,8 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/gerenciamento/horario': '/app/gerenciamento/horario',
   '/app/configuracoes/parametros': '/app/configuracoes/parametros',
   '/app/relatorio': '/app/relatorios',
+  '/app/financeiro/pagamento/relatorio': PAGAMENTOS_RELATORIO_ROUTE,
+  '/app/financeiro/pagamentos/relatorio': PAGAMENTOS_RELATORIO_ROUTE,
   '/app/gerenciamento': '/app/gerenciamento',
   '/app/gerenciamento/usuario': '/app/administracao/usuario',
   '/app/configuracoes/usuarios': '/app/administracao/usuario',
@@ -155,7 +163,10 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/financeiro/faturamento/relatorio': FATURAMENTO_RELATORIO_ROUTE,
   '/app/faturamento/relatorio': FATURAMENTO_RELATORIO_ROUTE,
   '/app/cadastro/transportadoras/relatorio': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+  '/app/cadastro/transportadora/relatorio': CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
   '/app/patio/movimentacoes/relatorio': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+  '/app/movimentos/relatorio': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
+  '/app/movimentos/lista/relatorio': PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   '/app/financeiro/faturamento/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/config-cobranca': FATURAMENTO_CONFIG_ROUTE,
   '/app/financeiro/faturamento/configuracao-cobranca': FATURAMENTO_CONFIG_ROUTE,
@@ -173,23 +184,105 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   ...Object.fromEntries(FATURAMENTO_TABS.map((t) => [`/app/financeiro/${t.path}`, t.route] as const)),
 };
 
-function matchSubItems(nomeNorm: string, subs: MenuSubItem[] | undefined): string | null {
-  if (!subs?.length) return null;
+function collectMenuStructureMatches(nomeNorm: string, subs: MenuSubItem[] | undefined, out: string[]): void {
+  if (!subs?.length) return;
   for (const c of subs) {
-    if (norm(c.label) === nomeNorm) return c.route;
-    const nested = matchSubItems(nomeNorm, c.children);
-    if (nested) return nested;
+    if (norm(c.label) === nomeNorm) out.push(c.route);
+    collectMenuStructureMatches(nomeNorm, c.children, out);
   }
+}
+
+/**
+ * Só resolve por label quando o match é único.
+ * Labels repetidos (ex.: vários "Relatório") exigem rota da API ou do pai.
+ */
+function tryMatchMenuStructure(nome: string): string | null {
+  const key = norm(nome);
+  const matches: string[] = [];
+  for (const node of MENU_STRUCTURE) {
+    if (norm(node.label) === key) matches.push(node.route);
+    collectMenuStructureMatches(key, node.children, matches);
+  }
+  const unique = [...new Set(matches)];
+  return unique.length === 1 ? unique[0] : null;
+}
+
+/** Pais conhecidos cujo filho "Relatório" tem rota canônica própria. */
+const RELATORIO_BY_PARENT: readonly { parent: string; relatorio: string }[] = [
+  { parent: FATURAMENTO_ROUTE, relatorio: FATURAMENTO_RELATORIO_ROUTE },
+  { parent: PAGAMENTOS_ROUTE, relatorio: PAGAMENTOS_RELATORIO_ROUTE },
+  { parent: '/app/financeiro/pagamentos', relatorio: PAGAMENTOS_RELATORIO_ROUTE },
+  { parent: CADASTRO_TRANSPORTADORAS_ROUTE, relatorio: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE },
+  { parent: '/app/cadastro/transportadora', relatorio: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE },
+  { parent: PATIO_MOVIMENTACOES_ROUTE, relatorio: PATIO_MOVIMENTACOES_RELATORIO_ROUTE },
+];
+
+function stripTrailingSlash(route: string): string {
+  const t = route.trim();
+  if (!t || t === '/') return t;
+  return t.endsWith('/') ? t.replace(/\/+$/, '') : t;
+}
+
+function isRelatorioLabel(nome: string): boolean {
+  const key = norm(nome);
+  return key === 'relatorio' || key === 'relatorios';
+}
+
+function isGenericRelatorioRoute(route: string | null | undefined): boolean {
+  const r = stripTrailingSlash(String(route ?? '')).toLowerCase();
+  return !r || r === '/app/relatorio' || r === '/app/relatorios';
+}
+
+/**
+ * Dado o pai (Faturamento, Pagamento, Transportadora, Movimentações…),
+ * devolve a rota canônica do submenu Relatório.
+ */
+export function resolveRelatorioUnderParent(parentRoute: string | null | undefined): string | null {
+  const p = stripTrailingSlash(String(parentRoute ?? '')).toLowerCase();
+  if (!p.startsWith('/app/')) return null;
+
+  // Rota do login já veio completa: …/movimentacoes/relatorio → identifica o pai pelo path.
+  if (p.endsWith('/relatorio')) {
+    const parentOfRelatorio = p.slice(0, -'/relatorio'.length);
+    for (const { parent, relatorio } of RELATORIO_BY_PARENT) {
+      const base = parent.toLowerCase();
+      if (parentOfRelatorio === base || parentOfRelatorio.startsWith(`${base}/`)) {
+        return relatorio;
+      }
+    }
+  }
+
+  for (const { parent, relatorio } of RELATORIO_BY_PARENT) {
+    const base = parent.toLowerCase();
+    if (p === base || p.startsWith(`${base}/`)) {
+      return relatorio;
+    }
+  }
+
+  // Não inventar `/app/cadastro/relatorio` etc. — só pais conhecidos.
   return null;
 }
 
-function tryMatchMenuStructure(nome: string): string | null {
-  const key = norm(nome);
-  for (const node of MENU_STRUCTURE) {
-    if (norm(node.label) === key) return node.route;
-    const fromSubs = matchSubItems(key, node.children);
-    if (fromSubs) return fromSubs;
+/**
+ * Login envia a rota com o pai no path (ex.: `app/patio/movimentacoes/relatorio`).
+ * Canonicaliza para a rota Angular correspondente; null se genérica/ambígua.
+ */
+export function canonicalizeRelatorioRouteFromLogin(
+  route: string | null | undefined
+): string | null {
+  const fromApi = normalizeApiRota(route ?? undefined);
+  if (!fromApi || isGenericRelatorioRoute(fromApi)) return null;
+
+  const r = stripTrailingSlash(fromApi).toLowerCase();
+  for (const { relatorio } of RELATORIO_BY_PARENT) {
+    if (r === relatorio.toLowerCase()) return relatorio;
   }
+
+  // Qualquer …/{pai}/relatorio cujo prefixo seja seção conhecida.
+  if (r.endsWith('/relatorio')) {
+    return resolveRelatorioUnderParent(fromApi);
+  }
+
   return null;
 }
 
@@ -363,12 +456,41 @@ export function formatAppMenuDisplayLabel(label: string, route?: string | null):
 /**
  * Define a rota do Angular para sidebar/navegação quando a API omite `rota` ou
  * envia só `/app` (equivalente a "sem rota").
+ *
+ * @param parentRoute rota do menu/submenu pai — obrigatória para labels ambíguos
+ *        como "Relatório" (cadastro / pátio / faturamento / pagamento).
  */
-export function resolveAppRouteFromNome(nome: string, rotaFromApi?: string | null): string {
+export function resolveAppRouteFromNome(
+  nome: string,
+  rotaFromApi?: string | null,
+  parentRoute?: string | null
+): string {
   const fromApi = normalizeApiRota(rotaFromApi ?? undefined);
+  const key = norm(nome);
+
+  // Rota do login com pai no path tem prioridade (mesmo se o label não for "Relatório").
+  const fromLoginRelatorio = canonicalizeRelatorioRouteFromLogin(rotaFromApi);
+  if (fromLoginRelatorio) {
+    return fromLoginRelatorio;
+  }
+
+  if (isRelatorioLabel(nome)) {
+    if (parentRoute) {
+      const underParent = resolveRelatorioUnderParent(parentRoute);
+      if (underParent) return underParent;
+    }
+    if (fromApi && !isGenericRelatorioRoute(fromApi)) {
+      return fromApi;
+    }
+    // Sem pai nem rota específica: não inventar `/app/relatorios` (misturava todos).
+    const fromStructure = tryMatchMenuStructure(nome);
+    if (fromStructure) return fromStructure;
+    if (fromApi) return fromApi;
+    return '/app/relatorios';
+  }
+
   if (fromApi) return fromApi;
 
-  const key = norm(nome);
   if (key && ALIAS_NOME_PARA_ROTA[key]) {
     return ALIAS_NOME_PARA_ROTA[key];
   }

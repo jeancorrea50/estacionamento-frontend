@@ -27,27 +27,32 @@ export interface FinanceiroFlatSubMenuDef {
  * Telas do Faturamento — permissões independentes (não herdam seleção do pai).
  * Sidebar pode aninhar por rota; seed/permissões usam lista plana.
  */
+/** Abas internas de Faturamento (permissão independente; em geral fora da sidebar). */
+export const FINANCEIRO_FATURAMENTO_TAB_ITEMS: MenuSubItem[] = FATURAMENTO_TABS.map((t) => ({
+  id: `sub-faturamento-${t.id}`,
+  label: t.label,
+  route: t.route,
+}));
+
 export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
   {
     id: 'sub-faturamento',
     label: 'Faturamento',
     route: FATURAMENTO_ROUTE,
+    children: [
+      {
+        id: 'sub-faturamento-cobranca',
+        label: FATURAMENTO_CONFIG_LABEL,
+        route: FATURAMENTO_CONFIG_ROUTE,
+      },
+      {
+        id: 'sub-faturamento-relatorio',
+        label: FATURAMENTO_RELATORIO_LABEL,
+        route: FATURAMENTO_RELATORIO_ROUTE,
+      },
+    ],
   },
-  ...FATURAMENTO_TABS.map((t) => ({
-    id: `sub-faturamento-${t.id}`,
-    label: t.label,
-    route: t.route,
-  })),
-  {
-    id: 'sub-faturamento-cobranca',
-    label: FATURAMENTO_CONFIG_LABEL,
-    route: FATURAMENTO_CONFIG_ROUTE,
-  },
-  {
-    id: 'sub-faturamento-relatorio',
-    label: FATURAMENTO_RELATORIO_LABEL,
-    route: FATURAMENTO_RELATORIO_ROUTE,
-  },
+  ...FINANCEIRO_FATURAMENTO_TAB_ITEMS,
 ];
 
 /** Definição canônica do módulo Financeiro para seed/admin/permissões. */
@@ -57,11 +62,13 @@ export const FINANCEIRO_MENU_TREE: MenuSubItem[] = [
     id: 'sub-pagamentos',
     label: 'Pagamento',
     route: PAGAMENTOS_ROUTE,
-  },
-  {
-    id: 'sub-pagamentos-relatorio',
-    label: PAGAMENTOS_RELATORIO_LABEL,
-    route: PAGAMENTOS_RELATORIO_ROUTE,
+    children: [
+      {
+        id: 'sub-pagamentos-relatorio',
+        label: PAGAMENTOS_RELATORIO_LABEL,
+        route: PAGAMENTOS_RELATORIO_ROUTE,
+      },
+    ],
   },
 ];
 

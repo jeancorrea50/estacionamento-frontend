@@ -81,6 +81,11 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'agendamento.gravar',
     'agendamento.alterar',
     'agendamento.excluir',
+    // JWT/submenu "Agendamentos" (plural)
+    'agendamentos.visualizar',
+    'agendamentos.gravar',
+    'agendamentos.alterar',
+    'agendamentos.excluir',
   ],
   Financeiro: [
     'financeiro.ver',

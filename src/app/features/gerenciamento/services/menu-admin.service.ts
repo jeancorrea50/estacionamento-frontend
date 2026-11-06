@@ -885,14 +885,15 @@ export class MenuAdminService {
 
   private mapSessionSubToNavChild(
     sub: SessionSubMenuAccess,
-    menuLabel: string
+    menuLabel: string,
+    parentRoute?: string | null
   ): { label: string; route: string; children?: { label: string; route: string }[] } {
     const label = sub.descricao?.trim() || 'submenu';
-    const route = resolveAppRouteFromNome(label, sub.rota ?? null);
+    const route = resolveAppRouteFromNome(label, sub.rota ?? null, parentRoute);
     const nested = (sub.subMenus ?? [])
       .filter((s) => s.ativo !== false && this.resolveShowInSidebar(s, 'sub'))
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
-      .map((s) => this.mapSessionSubToNavChild(s, menuLabel));
+      .map((s) => this.mapSessionSubToNavChild(s, menuLabel, route));
     if (nested.length) {
       return { label, route, children: nested };
     }
@@ -901,13 +902,14 @@ export class MenuAdminService {
 
   private mapAdminSubToNavChild(
     sub: SubMenuAdmin,
-    menuLabel: string
+    menuLabel: string,
+    parentRoute?: string | null
   ): { label: string; route: string; children?: { label: string; route: string }[] } {
-    const route = resolveAppRouteFromNome(sub.nome, sub.rota);
+    const route = resolveAppRouteFromNome(sub.nome, sub.rota, parentRoute);
     const nested = (sub.subMenus ?? [])
       .filter((s) => s.ativo && s.exibirNoSidebar !== false)
       .sort((a, b) => a.ordem - b.ordem)
-      .map((s) => this.mapAdminSubToNavChild(s, menuLabel));
+      .map((s) => this.mapAdminSubToNavChild(s, menuLabel, route));
     if (nested.length) {
       return { label: sub.nome, route, children: nested };
     }

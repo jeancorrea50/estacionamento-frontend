@@ -181,6 +181,16 @@
                       </button>
                       <button
                         type="button"
+                        class="trn-act-btn trn-act-btn--accent"
+                        title="Registrar pagamento"
+                        aria-label="Registrar pagamento"
+                        [disabled]="!podeRegistrarPagamento(row)"
+                        (click)="registrarPagamento(row)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">payments</span>
+                      </button>
+                      <button
+                        type="button"
                         class="trn-act-btn"
                         title="Mais ações"
                         aria-label="Mais ações"
@@ -283,6 +293,15 @@
       <button type="button" mat-menu-item (click)="baixarExcel(fatura)">
         <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">table_view</span>
         Baixar Excel
+      </button>
+      <button
+        type="button"
+        mat-menu-item
+        [disabled]="!podeRegistrarPagamento(fatura)"
+        (click)="registrarPagamento(fatura)"
+      >
+        <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">payments</span>
+        Registrar pagamento
       </button>
       <button type="button" mat-menu-item disabled>
         <span class="material-symbols-outlined fat-menu-ico" aria-hidden="true">chat</span>

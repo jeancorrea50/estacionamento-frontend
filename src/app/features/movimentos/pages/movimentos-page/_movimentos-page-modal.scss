@@ -784,7 +784,7 @@
 }
 
 .es-modal--saida-lista {
-  width: min(980px, 96vw);
+  width: min(1100px, 98vw);
 }
 
 .es-modal__header {
@@ -957,14 +957,77 @@
 
 .es-saida-table__acoes {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 6px;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  white-space: nowrap;
+}
+
+.es-saida-table__acoes .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.es-saida-table__acoes .btn + .btn {
+  margin-left: 0;
 }
 
 .es-saida-table {
   width: 100%;
   margin: 0;
+  table-layout: fixed;
+}
+
+.es-saida-table th,
+.es-saida-table td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.es-saida-table th:nth-child(1),
+.es-saida-table td:nth-child(1) {
+  width: 12%;
+}
+
+.es-saida-table th:nth-child(2),
+.es-saida-table td:nth-child(2) {
+  width: 18%;
+}
+
+.es-saida-table th:nth-child(3),
+.es-saida-table td:nth-child(3) {
+  width: 20%;
+}
+
+.es-saida-table th:nth-child(4),
+.es-saida-table td:nth-child(4) {
+  width: 14%;
+}
+
+.es-saida-table th:nth-child(5),
+.es-saida-table td:nth-child(5) {
+  width: 12%;
+}
+
+.es-saida-table th.col-acoes,
+.es-saida-table td.es-saida-table__acoes {
+  width: 24%;
+  min-width: 220px;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.es-saida-table .cell-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .es-saida-table tbody tr {

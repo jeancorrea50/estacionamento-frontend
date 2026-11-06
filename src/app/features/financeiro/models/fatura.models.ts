@@ -142,6 +142,16 @@ export interface FaturaPagedResult {
   tamanhoPagina: number;
 }
 
+/** Item opcional de `proximosVencimentos` no dashboard (quando o backend enviar a lista). */
+export interface FaturaProximoVencimentoOutput {
+  transportadoraId: number;
+  transportadoraNome: string;
+  valor: number;
+  /** ISO date yyyy-MM-dd (ou datetime). */
+  dataVencimento: string;
+  status: StatusFatura;
+}
+
 /** GET `/api/financeiro/Fatura/visao-geral` — dashboard da aba Visão Geral. */
 export interface FaturaVisaoGeralOutput {
   totalAReceber: number;
@@ -156,6 +166,11 @@ export interface FaturaVisaoGeralOutput {
   faturasPorStatus: FaturaStatusResumoOutput[];
   recebimentosPorModalidade: FaturaModalidadeResumoOutput[];
   evolucaoFaturamento: FaturaEvolucaoMensalOutput[];
+  /**
+   * Lista de próximos vencimentos quando presente no payload.
+   * Ausente/`[]` = empty state (não inventar linhas no FE).
+   */
+  proximosVencimentos: FaturaProximoVencimentoOutput[];
 }
 
 export interface FaturaStatusResumoOutput {
@@ -164,8 +179,12 @@ export interface FaturaStatusResumoOutput {
   valor: number;
 }
 
+/**
+ * Item de `recebimentosPorModalidade` na visão geral.
+ * `modalidade` = `ModalidadeCobranca` (1–6). Sem configuração de cobrança → 0 / ausente = Avulso.
+ */
 export interface FaturaModalidadeResumoOutput {
-  modalidade: ModalidadeRecebimento;
+  modalidade: number;
   quantidade: number;
   valor: number;
 }

@@ -24,6 +24,7 @@ import {
 } from '../config-cobranca-acordo.util';
 import { formatarBrl, parseBrl } from '../config-cobranca-moeda.util';
 import {
+  EMAIL_FINANCEIRO_MAX,
   MODALIDADE_OPCOES,
   RegraFechamento,
   SERVICO_VALOR_LABELS,
@@ -31,8 +32,11 @@ import {
   definicaoValorOpcoes,
   definicaoValorPadrao,
   isDiaSemanaValido,
+  isEmailFinanceiroValido,
   modalidadeExigeVencimentoFatura,
   montarRegistroDoFormulario,
+  parseEmailsFinanceiros,
+  serializeEmailsFinanceiros,
   servicosFromItem,
   servicosVazios,
   valorCobrancaLabel,
@@ -110,6 +114,7 @@ export class ConfigCobrancaFormDialogComponent {
   private readonly dialog = inject(MatDialog);
 
   readonly RegraFechamento = RegraFechamento;
+  readonly EMAIL_FINANCEIRO_MAX = EMAIL_FINANCEIRO_MAX;
 
   errosVisiveis: string[] = [];
   jurosMultaAberto = false;
@@ -142,7 +147,9 @@ export class ConfigCobrancaFormDialogComponent {
   diaFechamento: number | null = null;
   regraFechamento: number = RegraFechamento.UltimoDiaDoMes;
   prazoVencimentoDias = 10;
-  email = '';
+  /** Destinatários do envio automático (persistidos em `emailFinanceiro` separados por vírgula). */
+  emails: string[] = [];
+  emailRascunho = '';
   envioAuto = false;
   gerarAuto = false;
   multa = false;
@@ -241,7 +248,8 @@ export class ConfigCobrancaFormDialogComponent {
         this.regraFechamento = RegraFechamento.DiaFixo;
       }
       this.prazoVencimentoDias = r.prazoVencimentoDias || 10;
-      this.email = r.emailFinanceiro ?? '';
+      this.emails = parseEmailsFinanceiros(r.emailFinanceiro);
+      this.emailRascunho = '';
       this.envioAuto = r.envioAutomatico;
       this.gerarAuto = r.gerarFaturaAutomaticamente;
       this.multa = r.multaAplicar;
@@ -384,12 +392,67 @@ export class ConfigCobrancaFormDialogComponent {
     this.ref.close(undefined);
   }
 
+  get emailFinanceiroSerializado(): string {
+    return serializeEmailsFinanceiros(this.emails);
+  }
+
+  get podeAdicionarEmail(): boolean {
+    return this.envioAuto && this.emails.length < EMAIL_FINANCEIRO_MAX;
+  }
+
+  onEmailRascunhoKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+      event.preventDefault();
+      this.adicionarEmailDoRascunho();
+      return;
+    }
+    if (event.key === 'Backspace' && !this.emailRascunho && this.emails.length) {
+      this.removerEmail(this.emails[this.emails.length - 1]!);
+    }
+  }
+
+  adicionarEmailDoRascunho(): void {
+    if (!this.envioAuto) return;
+    const candidatos = parseEmailsFinanceiros(this.emailRascunho);
+    if (!candidatos.length) {
+      const bruto = this.emailRascunho.trim();
+      if (bruto) {
+        this.snack.open('E-mail financeiro inválido.', 'Fechar', { duration: 3500 });
+      }
+      return;
+    }
+
+    let adicionados = 0;
+    for (const email of candidatos) {
+      if (!isEmailFinanceiroValido(email)) {
+        this.snack.open(`E-mail financeiro inválido: ${email}.`, 'Fechar', { duration: 4000 });
+        continue;
+      }
+      if (this.emails.includes(email)) continue;
+      if (this.emails.length >= EMAIL_FINANCEIRO_MAX) {
+        this.snack.open(`Informe no máximo ${EMAIL_FINANCEIRO_MAX} e-mails financeiros.`, 'Fechar', {
+          duration: 4500
+        });
+        break;
+      }
+      this.emails = [...this.emails, email];
+      adicionados += 1;
+    }
+
+    if (adicionados > 0) this.emailRascunho = '';
+  }
+
+  removerEmail(email: string): void {
+    this.emails = this.emails.filter((e) => e !== email);
+  }
+
   testarEnvio(): void {
     if (!this.envioAuto) {
       this.snack.open('Ative o envio automático por e-mail para testar o envio.', 'Fechar', { duration: 4500 });
       return;
     }
-    const mail = this.email?.trim();
+    this.adicionarEmailDoRascunho();
+    const mail = this.emailFinanceiroSerializado;
     if (!mail) {
       this.snack.open('Cadastre um e-mail financeiro para testar o envio.', 'Fechar', { duration: 4500 });
       return;
@@ -418,6 +481,15 @@ export class ConfigCobrancaFormDialogComponent {
     this.sincronizarValorEstacionamentoDoTexto();
     this.sincronizarCustoExcedenteDoTexto();
     sincronizarVagasDoAcordo(this.acordo);
+    if (this.emailRascunho.trim()) {
+      this.adicionarEmailDoRascunho();
+      if (this.emailRascunho.trim()) {
+        this.errosVisiveis = ['E-mail financeiro inválido.'];
+        this.abaAtiva = 'regras';
+        this.snack.open(this.errosVisiveis[0]!, 'Fechar', { duration: 5000 });
+        return;
+      }
+    }
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
       modalidade: this.modalidade,
@@ -425,7 +497,7 @@ export class ConfigCobrancaFormDialogComponent {
       regraFechamento: this.regraFechamento,
       diaFechamento: this.diaFechamento,
       prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
-      email: this.email,
+      email: this.emailFinanceiroSerializado,
       gerarFaturaAutomaticamente: this.gerarAuto,
       envioAutomaticoEmail: this.envioAuto,
       multa: this.multa,
@@ -513,7 +585,7 @@ export class ConfigCobrancaFormDialogComponent {
       regraFechamento: this.regraFechamento,
       diaFechamento: this.diaFechamento,
       prazoVencimentoDias: Number(this.prazoVencimentoDias) || 0,
-      email: this.email,
+      email: this.emailFinanceiroSerializado,
       envioAuto: this.envioAuto,
       gerarAuto: this.gerarAuto,
       multa: this.multa,

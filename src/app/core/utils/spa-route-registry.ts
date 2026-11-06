@@ -17,6 +17,7 @@ import {
 } from '../../features/cadastro/cadastro-rotas';
 import {
   PATIO_ENTRADA_SAIDA_ROUTE,
+  PATIO_MOVIMENTACOES_RELATORIO_ROUTE,
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../features/patio/patio-rotas';
@@ -65,6 +66,7 @@ function collectCadastroRoutes(): void {
 function collectPatioRoutes(): void {
   addRoute(PATIO_ROUTE);
   addRoute(PATIO_MOVIMENTACOES_ROUTE);
+  addRoute(PATIO_MOVIMENTACOES_RELATORIO_ROUTE);
   addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
 }
 

@@ -1,114 +1,104 @@
 import { Component, inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { FormsModule } from '@angular/forms';
 
-import type { RecebimentoPartialDialogData } from './faturamento-recebimentos.types';
+import { ModalidadeRecebimento } from '../../../models/fatura.models';
+import type {
+  RecebimentoPagamentoDialogData,
+  RecebimentoPagamentoDialogResult
+} from './faturamento-recebimentos.types';
 
 @Component({
   selector: 'app-faturamento-recebimentos-partial-dialog',
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, FormsModule],
-  template: `
-    <h2 mat-dialog-title>Pagamento parcial</h2>
-    <mat-dialog-content class="rec-partial__body">
-      <p class="rec-partial__hint">Estrutura visual mockada — sem integração.</p>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Fatura</mat-label>
-        <input matInput [value]="data.faturaId" readonly />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Valor total</mat-label>
-        <input matInput [value]="fmt(data.valorTotal)" readonly />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Valor já recebido</mat-label>
-        <input matInput [value]="fmt(data.valorJaRecebido)" readonly />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Saldo restante</mat-label>
-        <input matInput [value]="fmt(data.saldoRestante)" readonly />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Novo valor recebido</mat-label>
-        <input matInput type="number" [(ngModel)]="novoValor" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Data do pagamento</mat-label>
-        <input matInput type="date" [(ngModel)]="dataPagamento" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field">
-        <mat-label>Forma de pagamento</mat-label>
-        <mat-select [(ngModel)]="forma">
-          <mat-option value="PIX">PIX</mat-option>
-          <mat-option value="Boleto">Boleto</mat-option>
-          <mat-option value="Transferência">Transferência</mat-option>
-          <mat-option value="Cartão">Cartão</mat-option>
-          <mat-option value="Dinheiro">Dinheiro</mat-option>
-          <mat-option value="Outros">Outros</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rec-partial__field rec-partial__field--full">
-        <mat-label>Observação</mat-label>
-        <textarea matInput rows="2" [(ngModel)]="obs"></textarea>
-      </mat-form-field>
-      <div class="rec-partial__upload">
-        <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-        <span>Anexar comprovante (mock)</span>
-      </div>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button type="button" mat-button (click)="ref.close()">Cancelar</button>
-      <button type="button" mat-flat-button color="primary" (click)="ref.close()">Salvar mock</button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      .rec-partial__body {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: min(100vw - 48px, 440px);
-        padding-top: 4px !important;
-      }
-      .rec-partial__hint {
-        margin: 0 0 4px;
-        font-size: 12px;
-        color: var(--muted, #64748b);
-      }
-      .rec-partial__field {
-        width: 100%;
-      }
-      .rec-partial__upload {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px dashed rgba(148, 163, 184, 0.45);
-        font-size: 13px;
-        color: var(--muted, #64748b);
-      }
-      .rec-partial__upload .material-symbols-outlined {
-        font-size: 20px;
-        opacity: 0.85;
-      }
-    `
-  ]
+  templateUrl: './faturamento-recebimentos-partial-dialog.component.html',
+  styleUrl: './faturamento-recebimentos-partial-dialog.component.scss'
 })
 export class FaturamentoRecebimentosPartialDialogComponent {
-  readonly ref = inject(MatDialogRef<FaturamentoRecebimentosPartialDialogComponent>);
-  readonly data = inject<RecebimentoPartialDialogData>(MAT_DIALOG_DATA);
+  readonly ref = inject(
+    MatDialogRef<FaturamentoRecebimentosPartialDialogComponent, RecebimentoPagamentoDialogResult>
+  );
+  readonly data = inject<RecebimentoPagamentoDialogData>(MAT_DIALOG_DATA);
+  readonly ModalidadeRecebimento = ModalidadeRecebimento;
 
-  novoValor = 0;
-  dataPagamento = '2026-05-20';
-  forma = 'PIX';
-  obs = '';
+  saving = false;
+  erroValor = '';
+  novoValor =
+    this.data.valorRecebidoInicial != null && this.data.valorRecebidoInicial > 0
+      ? this.data.valorRecebidoInicial
+      : this.data.saldoRestante > 0
+        ? this.data.saldoRestante
+        : this.data.valorTotal;
+  dataPagamento = this.toDateInput(this.data.dataPagamentoInicial) || this.hojeIso();
+  forma: ModalidadeRecebimento =
+    this.data.formaInicial && this.data.formaInicial > 0
+      ? this.data.formaInicial
+      : ModalidadeRecebimento.Pix;
+  obs = this.data.observacaoInicial?.trim() || '';
+
+  get titulo(): string {
+    if (this.data.mode === 'edit') return 'Editar pagamento';
+    if (this.novoValor > 0 && this.novoValor < this.data.saldoRestante - 0.0001) {
+      return 'Pagamento parcial';
+    }
+    return 'Registrar pagamento';
+  }
 
   fmt(v: number): string {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  salvar(): void {
+    this.erroValor = '';
+    const valor = Number(this.novoValor);
+    if (!Number.isFinite(valor) || valor <= 0) {
+      this.erroValor = 'Informe um valor maior que zero.';
+      return;
+    }
+    const teto =
+      this.data.mode === 'edit'
+        ? Math.max(this.data.valorTotal, this.data.valorJaRecebido + this.data.saldoRestante)
+        : this.data.saldoRestante > 0
+          ? this.data.saldoRestante
+          : this.data.valorTotal;
+    if (valor > teto + 0.009) {
+      this.erroValor = `Valor não pode ultrapassar ${this.fmt(teto)}.`;
+      return;
+    }
+    if (!this.dataPagamento?.trim()) {
+      this.erroValor = 'Informe a data do pagamento.';
+      return;
+    }
+
+    const result: RecebimentoPagamentoDialogResult = {
+      mode: this.data.mode,
+      faturaId: this.data.faturaId,
+      pagamentoId: this.data.pagamentoId ?? this.data.faturaId,
+      valorRecebido: Math.round(valor * 100) / 100,
+      dataPagamento: this.dataPagamento.trim(),
+      modalidadeRecebimento: this.forma,
+      observacao: this.obs.trim() || null
+    };
+    this.ref.close(result);
+  }
+
+  private hojeIso(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  private toDateInput(raw: string | null | undefined): string {
+    const v = String(raw || '').trim();
+    if (!v) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+    return '';
   }
 }

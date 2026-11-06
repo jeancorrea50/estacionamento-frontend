@@ -12,6 +12,7 @@ import {
   type FaturaStatusResumoOutput,
   type FaturaEvolucaoMensalOutput,
   type FaturaModalidadeResumoOutput,
+  type FaturaProximoVencimentoOutput,
   type FaturaVisaoGeralOutput,
   type ResumoFechamentosOutput,
   type ResumoInadimplentesOutput,
@@ -685,7 +686,8 @@ export function emptyVisaoGeral(): FaturaVisaoGeralOutput {
     cobrancasPendentes: 0,
     faturasPorStatus: [],
     recebimentosPorModalidade: [],
-    evolucaoFaturamento: []
+    evolucaoFaturamento: [],
+    proximosVencimentos: []
   };
 }
 
@@ -708,7 +710,10 @@ export function mapRawVisaoGeral(body: unknown): FaturaVisaoGeralOutput {
     recebimentosPorModalidade: mapRawModalidadeResumoList(
       root['recebimentosPorModalidade'] ?? root['RecebimentosPorModalidade']
     ),
-    evolucaoFaturamento: mapRawEvolucaoList(root['evolucaoFaturamento'] ?? root['EvolucaoFaturamento'])
+    evolucaoFaturamento: mapRawEvolucaoList(root['evolucaoFaturamento'] ?? root['EvolucaoFaturamento']),
+    proximosVencimentos: mapRawProximosVencimentosList(
+      root['proximosVencimentos'] ?? root['ProximosVencimentos']
+    )
   };
 }
 
@@ -727,7 +732,8 @@ function mapRawStatusResumoList(raw: unknown): FaturaStatusResumoOutput[] {
 
 function mapRawModalidadeResumoList(raw: unknown): FaturaModalidadeResumoOutput[] {
   return asRecordList(raw).map((row) => ({
-    modalidade: pickNumber(row, 'modalidade', 'Modalidade') as ModalidadeRecebimento,
+    // ModalidadeCobranca (1–6). 0/ausente = Avulso (sem configuração de cobrança).
+    modalidade: pickNumber(row, 'modalidade', 'Modalidade'),
     quantidade: pickNumber(row, 'quantidade', 'Quantidade'),
     valor: pickNumber(row, 'valor', 'Valor')
   }));
@@ -739,4 +745,21 @@ function mapRawEvolucaoList(raw: unknown): FaturaEvolucaoMensalOutput[] {
     mes: pickNumber(row, 'mes', 'Mes'),
     valor: pickNumber(row, 'valor', 'Valor')
   }));
+}
+
+function mapRawProximosVencimentosList(raw: unknown): FaturaProximoVencimentoOutput[] {
+  if (!Array.isArray(raw)) return [];
+  return asRecordList(raw)
+    .map((row) => {
+      const transportadoraNome =
+        pickString(row, 'transportadoraNome', 'TransportadoraNome', 'transportadora', 'Transportadora') || '';
+      const dataVencimento =
+        pickString(row, 'dataVencimento', 'DataVencimento', 'vencimento', 'Vencimento') || '';
+      const valor = pickNumber(row, 'valor', 'Valor', 'valorEmAberto', 'ValorEmAberto', 'valorTotal', 'ValorTotal');
+      const status = pickNumber(row, 'status', 'Status') as StatusFatura;
+      const transportadoraId = pickNumber(row, 'transportadoraId', 'TransportadoraId');
+      if (!transportadoraNome || !dataVencimento) return null;
+      return { transportadoraId, transportadoraNome, valor, dataVencimento, status };
+    })
+    .filter((row): row is FaturaProximoVencimentoOutput => row != null);
 }

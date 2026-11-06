@@ -20,15 +20,19 @@ import { finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
 import { ThemeService } from '../../../../../core/services/theme.service';
+import { ModalidadeRecebimento } from '../../../models/fatura.models';
+import { toApiDateTime } from '../../../mappers/fatura.mapper';
 import { PagamentoService } from '../../../services/pagamento.service';
+import { FaturaConfirmDialogComponent } from '../faturas/dialogs/fatura-confirm-dialog.component';
 import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoRecebimentosPartialDialogComponent } from './faturamento-recebimentos-partial-dialog.component';
 import type {
   RecebimentoComprovanteEstado,
   RecebimentoFiltroRapidoId,
   RecebimentoListaItem,
+  RecebimentoPagamentoDialogData,
+  RecebimentoPagamentoDialogResult,
   RecebimentoPagamentoStatus,
-  RecebimentoPartialDialogData,
   RecebimentoPeriodoGranularidade,
   RecebimentoResumo
 } from './faturamento-recebimentos.types';
@@ -524,25 +528,169 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     return `${this.selection.isSelected(row) ? 'Desmarcar' : 'Selecionar'} ${row.id}`;
   }
 
-  acaoMock(acao: string, row?: RecebimentoListaItem): void {
-    void acao;
-    void row;
+  registrarPagamento(row?: RecebimentoListaItem): void {
+    const alvo = row ?? this.resumoLinha();
+    if (!alvo) {
+      this.snack.open('Selecione uma fatura na lista para registrar o pagamento.', 'Fechar', {
+        duration: 4500
+      });
+      return;
+    }
+    if (this.bloquearPagamentoPrincipal(alvo)) {
+      this.snack.open('Esta fatura não aceita novo pagamento.', 'Fechar', { duration: 4500 });
+      return;
+    }
+    this.abrirDialogPagamento(alvo, 'create', alvo.saldoRestante > 0 ? alvo.saldoRestante : alvo.valorFatura);
   }
 
   abrirPagamentoParcial(row?: RecebimentoListaItem): void {
     const alvo = row ?? this.resumoLinha();
-    const data: RecebimentoPartialDialogData = {
-      faturaId: alvo?.id ?? '—',
-      valorTotal: alvo?.valorFatura ?? 0,
-      valorJaRecebido: alvo?.valorRecebido ?? 0,
-      saldoRestante: alvo?.saldoRestante ?? 0
+    if (!alvo) {
+      this.snack.open('Selecione uma fatura na lista para pagamento parcial.', 'Fechar', {
+        duration: 4500
+      });
+      return;
+    }
+    if (this.bloquearPagamentoPrincipal(alvo)) {
+      this.snack.open('Esta fatura não aceita novo pagamento.', 'Fechar', { duration: 4500 });
+      return;
+    }
+    const sugerido =
+      alvo.saldoRestante > 0 ? Math.min(alvo.saldoRestante, Math.max(0.01, alvo.saldoRestante / 2)) : 0;
+    this.abrirDialogPagamento(alvo, 'create', sugerido || undefined);
+  }
+
+  editarPagamento(row: RecebimentoListaItem): void {
+    if (row.valorRecebido <= 0 && !row.dataPagamento) {
+      this.snack.open('Não há pagamento registrado para editar.', 'Fechar', { duration: 4500 });
+      return;
+    }
+    this.abrirDialogPagamento(row, 'edit', row.valorRecebido > 0 ? row.valorRecebido : undefined);
+  }
+
+  estornarPagamento(row: RecebimentoListaItem): void {
+    if (row.valorRecebido <= 0 && row.status !== 'Pago' && row.status !== 'Parcial') {
+      this.snack.open('Não há pagamento para estornar nesta fatura.', 'Fechar', { duration: 4500 });
+      return;
+    }
+    const pagamentoId = row.faturaId;
+    const ref = this.dialog.open(FaturaConfirmDialogComponent, {
+      width: '420px',
+      panelClass: 'cfg-form-dialog-panel',
+      data: {
+        titulo: 'Estornar pagamento',
+        mensagem: `Deseja estornar o pagamento da fatura ${row.id}? O status voltará a depender do backend.`,
+        confirmLabel: 'Estornar'
+      }
+    });
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+      this.loading.set(true);
+      this.api
+        .excluir(pagamentoId)
+        .pipe(finalize(() => this.loading.set(false)))
+        .subscribe({
+          next: () => {
+            this.snack.open('Pagamento estornado com sucesso.', 'Fechar', { duration: 3500 });
+            this.carregarLista();
+          },
+          error: (err) => {
+            this.snack.open(this.mensagemErro(err, 'Falha ao estornar pagamento.'), 'Fechar', {
+              duration: 5500
+            });
+          }
+        });
+    });
+  }
+
+  private abrirDialogPagamento(
+    row: RecebimentoListaItem,
+    mode: 'create' | 'edit',
+    valorInicial?: number
+  ): void {
+    const data: RecebimentoPagamentoDialogData = {
+      mode,
+      faturaId: row.faturaId,
+      faturaNumero: row.id,
+      valorTotal: row.valorFatura,
+      valorJaRecebido: row.valorRecebido,
+      saldoRestante: row.saldoRestante,
+      valorRecebidoInicial: valorInicial,
+      dataPagamentoInicial: row.dataPagamento,
+      formaInicial: this.formaCodigoFromLabel(row.formaPagamento),
+      pagamentoId: row.faturaId
     };
-    this.dialog.open(FaturamentoRecebimentosPartialDialogComponent, {
-      width: '520px',
+
+    const ref = this.dialog.open(FaturamentoRecebimentosPartialDialogComponent, {
+      width: '760px',
       maxWidth: '96vw',
       panelClass: 'cfg-form-dialog-panel',
+      autoFocus: 'dialog',
       data
     });
+
+    ref.afterClosed().subscribe((result: RecebimentoPagamentoDialogResult | undefined) => {
+      if (!result) return;
+      this.persistirPagamento(result);
+    });
+  }
+
+  private persistirPagamento(result: RecebimentoPagamentoDialogResult): void {
+    const dataPagamento = toApiDateTime(result.dataPagamento) || `${result.dataPagamento}T00:00:00`;
+    this.loading.set(true);
+
+    const req$ =
+      result.mode === 'edit'
+        ? this.api.alterar({
+            id: result.pagamentoId,
+            valorRecebido: result.valorRecebido,
+            dataPagamento,
+            modalidadeRecebimento: result.modalidadeRecebimento,
+            observacao: result.observacao
+          })
+        : this.api.gravar({
+            faturaId: result.faturaId,
+            valorRecebido: result.valorRecebido,
+            dataPagamento,
+            modalidadeRecebimento: result.modalidadeRecebimento,
+            observacao: result.observacao
+          });
+
+    req$.pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: () => {
+        this.snack.open(
+          result.mode === 'edit' ? 'Pagamento atualizado.' : 'Pagamento registrado com sucesso.',
+          'Fechar',
+          { duration: 3500 }
+        );
+        this.carregarLista();
+      },
+      error: (err) => {
+        this.snack.open(
+          this.mensagemErro(err, result.mode === 'edit' ? 'Falha ao editar pagamento.' : 'Falha ao registrar pagamento.'),
+          'Fechar',
+          { duration: 5500 }
+        );
+      }
+    });
+  }
+
+  private formaCodigoFromLabel(label: string | null | undefined): ModalidadeRecebimento | null {
+    switch ((label || '').trim()) {
+      case 'PIX':
+      case 'Pix':
+        return ModalidadeRecebimento.Pix;
+      case 'Boleto':
+        return ModalidadeRecebimento.Boleto;
+      case 'Transferência':
+      case 'Transferencia':
+        return ModalidadeRecebimento.Transferencia;
+      case 'Cartão':
+      case 'Cartao':
+        return ModalidadeRecebimento.Cartao;
+      default:
+        return null;
+    }
   }
 
   private criarDataHoje(): Date {

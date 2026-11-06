@@ -1,0 +1,105 @@
+<div class="fat-dlg">
+  <header class="fat-dlg__header">
+    <div class="fat-dlg__header-main">
+      <div class="fat-dlg__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">payments</span>
+      </div>
+      <div class="fat-dlg__titles">
+        <h2 class="fat-dlg__title" mat-dialog-title>{{ titulo }}</h2>
+        <p class="fat-dlg__subtitle">
+          {{
+            data.mode === 'edit'
+              ? 'Atualize o pagamento desta fatura.'
+              : 'Informe o valor recebido para dar baixa na fatura.'
+          }}
+        </p>
+      </div>
+    </div>
+    <button type="button" class="fat-dlg__close" aria-label="Fechar" [disabled]="saving" (click)="ref.close()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <mat-dialog-content class="fat-dlg__body">
+    <div class="fat-dlg__sections">
+      <section class="fat-dlg__card" aria-labelledby="pag-resumo-title">
+        <header class="fat-dlg__card-head">
+          <h3 id="pag-resumo-title" class="fat-dlg__card-title">Resumo da fatura</h3>
+        </header>
+        <div class="fat-dlg__kpi-grid">
+          <div class="fat-dlg__kpi">
+            <p class="fat-dlg__kpi-label">Fatura</p>
+            <p class="fat-dlg__kpi-value">{{ data.faturaNumero }}</p>
+          </div>
+          <div class="fat-dlg__kpi">
+            <p class="fat-dlg__kpi-label">Valor total</p>
+            <p class="fat-dlg__kpi-value">{{ fmt(data.valorTotal) }}</p>
+          </div>
+          <div class="fat-dlg__kpi">
+            <p class="fat-dlg__kpi-label">Já recebido</p>
+            <p class="fat-dlg__kpi-value fat-dlg__kpi-value--ok">{{ fmt(data.valorJaRecebido) }}</p>
+          </div>
+          <div class="fat-dlg__kpi">
+            <p class="fat-dlg__kpi-label">Saldo restante</p>
+            <p
+              class="fat-dlg__kpi-value"
+              [class.fat-dlg__kpi-value--warn]="data.saldoRestante > 0"
+              [class.fat-dlg__kpi-value--ok]="data.saldoRestante === 0"
+            >
+              {{ fmt(data.saldoRestante) }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="fat-dlg__card" aria-labelledby="pag-dados-title">
+        <header class="fat-dlg__card-head">
+          <h3 id="pag-dados-title" class="fat-dlg__card-title">Dados do pagamento</h3>
+        </header>
+        <div class="fat-dlg__grid fat-dlg__grid--2">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-dlg__field">
+            <mat-label>Valor deste pagamento</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0.01"
+              step="0.01"
+              [(ngModel)]="novoValor"
+              [disabled]="saving"
+            />
+            @if (erroValor) {
+              <mat-hint class="fat-dlg__erro">{{ erroValor }}</mat-hint>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-dlg__field">
+            <mat-label>Data do pagamento</mat-label>
+            <input matInput type="date" [(ngModel)]="dataPagamento" [disabled]="saving" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-dlg__field fat-dlg__field--full">
+            <mat-label>Forma de pagamento</mat-label>
+            <mat-select [(ngModel)]="forma" [disabled]="saving">
+              <mat-option [value]="ModalidadeRecebimento.Pix">PIX</mat-option>
+              <mat-option [value]="ModalidadeRecebimento.Boleto">Boleto</mat-option>
+              <mat-option [value]="ModalidadeRecebimento.Transferencia">Transferência</mat-option>
+              <mat-option [value]="ModalidadeRecebimento.Cartao">Cartão</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="fat-dlg__field fat-dlg__field--full">
+            <mat-label>Observação</mat-label>
+            <textarea matInput rows="3" [(ngModel)]="obs" [disabled]="saving"></textarea>
+          </mat-form-field>
+        </div>
+      </section>
+    </div>
+  </mat-dialog-content>
+
+  <footer class="fat-dlg__footer">
+    <button type="button" mat-button [disabled]="saving" (click)="ref.close()">Cancelar</button>
+    <button type="button" mat-flat-button color="primary" [disabled]="saving" (click)="salvar()">
+      {{ data.mode === 'edit' ? 'Salvar alterações' : 'Registrar pagamento' }}
+    </button>
+  </footer>
+</div>

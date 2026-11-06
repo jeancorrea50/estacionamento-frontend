@@ -9,7 +9,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
-import { finalize } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import type {
   ApexAxisChartSeries,
   ApexChart,
@@ -27,24 +28,32 @@ import type {
 import type { ApiError } from '../../../../../core/api/models';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ThemeService } from '../../../../../core/services/theme.service';
-import { ModalidadeRecebimento } from '../../../models/fatura.models';
+import {
+  ModalidadeRecebimento,
+  SituacaoFechamento,
+  StatusFatura,
+  type FaturaProximoVencimentoOutput
+} from '../../../models/fatura.models';
 import { emptyVisaoGeral, statusFaturaFromLabel } from '../../../mappers/fatura.mapper';
 import { FaturaService } from '../../../services/fatura.service';
 import { FaturamentoDataPickerPanelDirective } from '../shared/faturamento-data-picker-panel.directive';
 import { FaturamentoNavService } from '../../../services/faturamento-nav.service';
+import type { FaturaListaItem } from '../faturas/faturamento-faturas.types';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
 import {
   VISAO_ALERTAS,
+  filtrosPorStatusFatura,
   type AlertaResumo,
   type ProximoVencimento
 } from './faturamento-visao-alertas';
 import {
   mapVisaoAlertas,
-  mapVisaoCards,
   mapVisaoEvolucao,
-  mapVisaoIndicadores,
   mapVisaoPorModalidade,
-  mapVisaoPorStatus
+  mapVisaoPorStatus,
+  mapVisaoProximosVencimentos,
+  mapVisaoResumoFinanceiro,
+  type AlertaKpiVm
 } from './faturamento-visao-geral.mapper';
 
 type VisaoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
@@ -170,28 +179,61 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
   });
 
   /** Só envia DataInicial/DataFinal depois que o usuário escolhe um período. */
-  private readonly periodoFiltroAtivo = signal(false);
+  readonly periodoFiltroAtivo = signal(false);
 
   /* ── Dados da API ─────────────────────────────────────────────────── */
   private loadSeq = 0;
   readonly dashboard = signal(emptyVisaoGeral());
-  readonly visaoCards = computed(() => mapVisaoCards(this.dashboard()));
-  readonly visaoIndicadores = computed(() => mapVisaoIndicadores(this.dashboard()));
+  /**
+   * Totais dos Alertas sem recorte de data (todos os meses),
+   * respeitando apenas filtros de transportadora/estacionamento/status/modalidade.
+   */
+  readonly dashboardAlertas = signal(emptyVisaoGeral());
+  readonly fechamentosPendentesTotal = signal(0);
+  /** Snapshots mensais só para o KPI "Faturas emitidas". */
+  readonly dashboardMesAtual = signal(emptyVisaoGeral());
+  readonly dashboardMesAnterior = signal(emptyVisaoGeral());
+  readonly visaoResumoFinanceiro = computed(() => mapVisaoResumoFinanceiro(this.dashboard()));
   readonly visaoEvolucaoMensal = computed(() => mapVisaoEvolucao(this.dashboard()));
   readonly visaoPorStatus = computed(() => mapVisaoPorStatus(this.dashboard()));
   readonly visaoPorModalidade = computed(() => mapVisaoPorModalidade(this.dashboard()));
 
-  /** Alertas com a rota da aba conforme cadastro em Gerenciamento > Menu. */
-  readonly visaoAlertas = computed<AlertaResumo[]>(() =>
-    mapVisaoAlertas(this.dashboard(), VISAO_ALERTAS).map((a) => ({
+  /** Alertas KPI a partir do contrato `/visao-geral` + fechamentos (sem seeds numéricos). */
+  readonly visaoAlertas = computed<Array<AlertaKpiVm & AlertaResumo>>(() =>
+    mapVisaoAlertas(this.dashboardAlertas(), VISAO_ALERTAS, {
+      fechamentosPendentes: this.fechamentosPendentesTotal(),
+      mesAtual: this.dashboardMesAtual(),
+      mesAnterior: this.dashboardMesAnterior()
+    }).map((a) => ({
       ...a,
       route: this.nav.resolveTabRoute(a.tab)
     }))
   );
 
-  readonly proximosVencimentos = computed<ProximoVencimento[]>(() => []);
+  /**
+   * Fallback de próximos vencimentos via GET `/Fatura` (Em aberto),
+   * usado só quando `/visao-geral` não devolver a lista.
+   */
+  private readonly proximosVencimentosLista = signal<FaturaProximoVencimentoOutput[]>([]);
+
+  /**
+   * Preferência: `proximosVencimentos` do dashboard.
+   * Fallback: faturas Em aberto com vencimento >= hoje (API real).
+   * Sem linhas → empty state (nunca seed).
+   */
+  readonly proximosVencimentos = computed<ProximoVencimento[]>(() => {
+    const fromDash = mapVisaoProximosVencimentos(this.dashboard().proximosVencimentos);
+    const rows = fromDash.length > 0 ? fromDash : mapVisaoProximosVencimentos(this.proximosVencimentosLista());
+    const route = this.nav.resolveTabRoute('faturas');
+    return rows.map((row) => ({
+      ...row,
+      route,
+      queryParams: filtrosPorStatusFatura(row)
+    }));
+  });
 
   readonly faturasRoute = computed(() => this.nav.resolveTabRoute('faturas'));
+  readonly faturasAVencerQuery = { filtro: 'a-vencer' } as const;
 
   /* ── ApexCharts (eixos/tooltips white/dark; rótulo em barra azul = texto claro) ── */
   private readonly chartAxisColor = computed(() => (this.isDarkTheme() ? '#8ea0b8' : '#4870a0'));
@@ -255,7 +297,7 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
   readonly evolutionGrid = computed<ApexGrid>(() => ({
     borderColor: this.chartGridColor(),
     strokeDashArray: 4,
-    padding: { top: 12, right: 8, bottom: 40, left: 48 },
+    padding: { top: 22, right: 12, bottom: 40, left: 48 },
     xaxis: { lines: { show: false } },
     yaxis: { lines: { show: true } }
   }));
@@ -274,7 +316,29 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
       );
     }
   }));
-  readonly evolutionDataLabels: ApexDataLabels = { enabled: false };
+  readonly evolutionDataLabels = computed<ApexDataLabels>(() => ({
+    enabled: true,
+    formatter: (val: string | number | number[]) => {
+      const n = Array.isArray(val) ? Number(val[0]) : Number(val);
+      return Number.isFinite(n) ? this.formatCurrency(n) : '';
+    },
+    offsetY: -8,
+    style: {
+      colors: [this.isDarkTheme() ? '#f1f5f9' : '#0f172a'],
+      fontSize: '11px',
+      fontWeight: 700,
+      fontFamily: 'inherit'
+    },
+    background: { enabled: false },
+    dropShadow: {
+      enabled: true,
+      top: 1,
+      left: 0,
+      blur: 2,
+      color: this.isDarkTheme() ? '#0b1220' : '#ffffff',
+      opacity: 0.85
+    }
+  }));
 
   readonly statusChart = computed<ApexChart>(() => ({
     type: 'bar',
@@ -327,7 +391,7 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
 
   readonly modalChart = computed<ApexChart>(() => ({
     type: 'bar',
-    height: 252,
+    height: Math.max(220, 52 + this.visaoPorModalidade().length * 44),
     fontFamily: 'inherit',
     foreColor: this.chartAxisColor(),
     background: 'transparent',
@@ -336,38 +400,61 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
     redrawOnParentResize: true
   }));
   readonly modalSeries = computed<ApexAxisChartSeries>(() => [
-    { name: 'Valor', data: this.visaoPorModalidade().map((m) => m.valor) }
+    { name: 'Valor gerado', data: this.visaoPorModalidade().map((m) => m.valor) }
   ]);
   readonly modalPlotOptions: ApexPlotOptions = {
-    bar: { horizontal: true, borderRadius: 4, barHeight: '70%', dataLabels: { position: 'center' } }
+    bar: { horizontal: true, borderRadius: 4, barHeight: '62%', distributed: false, dataLabels: { position: 'top' } }
   };
-  readonly modalXaxis = computed<ApexXAxis>(() => ({
-    categories: this.visaoPorModalidade().map((m) => m.modalidade),
-    min: 0,
-    max: Math.ceil(Math.max(...this.visaoPorModalidade().map((m) => m.valor), 1) * 1.12 / 1000) * 1000,
-    tickAmount: 4,
-    decimalsInFloat: 0,
+  /**
+   * Em barra horizontal o Apex usa `xaxis.categories` para os nomes das modalidades
+   * e o eixo numérico (R$) no mesmo xaxis (escala).
+   */
+  readonly modalXaxis = computed<ApexXAxis>(() => {
+    const maxVal = Math.max(...this.visaoPorModalidade().map((m) => m.valor), 0);
+    const max = maxVal <= 0 ? 1 : Math.ceil(maxVal * 1.18);
+    return {
+      categories: this.visaoPorModalidade().map((m) => m.modalidade),
+      min: 0,
+      max,
+      tickAmount: 4,
+      decimalsInFloat: 0,
+      labels: {
+        style: { colors: this.chartAxisColor(), fontSize: '10px' },
+        formatter: (val: string) => {
+          // Labels da escala numérica (não das categorias).
+          const n = Number(val);
+          if (!Number.isFinite(n)) return String(val ?? '');
+          if (n < 0) return '';
+          if (n >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`;
+          if (n >= 1_000) return `${Math.round(n / 100) / 10}k`;
+          return String(Math.round(n));
+        }
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false }
+    };
+  });
+  readonly modalYaxis = computed<ApexYAxis>(() => ({
     labels: {
-      style: { colors: this.chartAxisColor(), fontSize: '10px' },
-      formatter: (val: string) => {
-        const n = Number(val);
-        if (!Number.isFinite(n) || n < 0) return '';
-        if (n >= 1000) return `${Math.round(n / 1000)}k`;
-        return String(Math.round(n));
-      }
-    },
-    axisBorder: { show: false },
-    axisTicks: { show: false }
+      style: { colors: this.chartAxisColor(), fontSize: '11px', fontWeight: 600 },
+      maxWidth: 110
+    }
   }));
   readonly modalDataLabels = computed<ApexDataLabels>(() => ({
     enabled: true,
-    formatter: (val: number) => this.formatCurrency(Number(val)),
-    offsetX: 0,
-    style: { colors: [this.chartOnBarLabel], fontSize: '11px', fontWeight: 600 }
+    formatter: (val: number) => this.formatCurrency(Number(val) || 0),
+    offsetX: 8,
+    style: {
+      colors: [this.isDarkTheme() ? '#e2e8f0' : '#0f172a'],
+      fontSize: '11px',
+      fontWeight: 700,
+      fontFamily: 'inherit'
+    },
+    background: { enabled: false }
   }));
   readonly modalGrid = computed<ApexGrid>(() => ({
     borderColor: this.chartGridColor(),
-    padding: { top: 16, right: 12, bottom: 4, left: 4 },
+    padding: { top: 12, right: 28, bottom: 4, left: 8 },
     xaxis: { lines: { show: true } },
     yaxis: { lines: { show: false } }
   }));
@@ -544,6 +631,10 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  formatPercent(v: number): string {
+    return `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  }
+
   carregarDashboard(): void {
     const seq = ++this.loadSeq;
     this.loading.set(true);
@@ -551,32 +642,131 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
     const estac = this.estacionamentoFiltro();
     const status = this.statusFiltro();
     const modalidade = this.modalidadeFiltro();
+    const transportadoraId = typeof transp === 'number' ? transp : undefined;
+    const estacionamentoId = typeof estac === 'number' ? estac : undefined;
+    const statusApi = status === 'all' ? undefined : statusFaturaFromLabel(status);
+    const modalidadeApi = this.modalidadeCodigoFromFiltro(modalidade);
+    const dataInicial = this.periodoFiltroAtivo() ? this.toIsoDate(this.periodoDataInicio()) : undefined;
+    const dataFinal = this.periodoFiltroAtivo() ? this.toIsoDate(this.periodoDataFim()) : undefined;
 
-    this.api
-      .obterVisaoGeral({
-        transportadoraId: typeof transp === 'number' ? transp : undefined,
-        estacionamentoId: typeof estac === 'number' ? estac : undefined,
-        status: status === 'all' ? undefined : statusFaturaFromLabel(status),
-        modalidadeRecebimento: this.modalidadeCodigoFromFiltro(modalidade),
-        dataInicial: this.periodoFiltroAtivo() ? this.toIsoDate(this.periodoDataInicio()) : undefined,
-        dataFinal: this.periodoFiltroAtivo() ? this.toIsoDate(this.periodoDataFim()) : undefined
-      })
-      .pipe(finalize(() => {
-        if (seq === this.loadSeq) this.loading.set(false);
-      }))
+    const filtroBase = {
+      transportadoraId,
+      estacionamentoId,
+      status: statusApi,
+      modalidadeRecebimento: modalidadeApi
+    };
+
+    const agora = new Date();
+    const isoMesAtualIni = this.toIsoDate(new Date(agora.getFullYear(), agora.getMonth(), 1));
+    const isoMesAtualFim = this.toIsoDate(new Date(agora.getFullYear(), agora.getMonth() + 1, 0));
+    const isoMesAntIni = this.toIsoDate(new Date(agora.getFullYear(), agora.getMonth() - 1, 1));
+    const isoMesAntFim = this.toIsoDate(new Date(agora.getFullYear(), agora.getMonth(), 0));
+
+    forkJoin({
+      visao: this.api.obterVisaoGeral({
+        ...filtroBase,
+        dataInicial,
+        dataFinal
+      }),
+      // Alertas totais (sem data): vencidas, cobranças, transportadoras.
+      visaoAlertas: this.api
+        .obterVisaoGeral({ ...filtroBase })
+        .pipe(catchError(() => of(emptyVisaoGeral()))),
+      fechamentosAlertas: this.api
+        .buscarFechamentos({
+          transportadoraId,
+          situacao: SituacaoFechamento.EmAndamento,
+          numeroPagina: 1,
+          tamanhoPagina: 1
+        })
+        .pipe(catchError(() => of(null))),
+      // Só para KPI "Faturas emitidas": mês atual × mês passado.
+      visaoMesAtual: this.api
+        .obterVisaoGeral({
+          ...filtroBase,
+          dataInicial: isoMesAtualIni,
+          dataFinal: isoMesAtualFim
+        })
+        .pipe(catchError(() => of(emptyVisaoGeral()))),
+      visaoMesAnterior: this.api
+        .obterVisaoGeral({
+          ...filtroBase,
+          dataInicial: isoMesAntIni,
+          dataFinal: isoMesAntFim
+        })
+        .pipe(catchError(() => of(emptyVisaoGeral()))),
+      // Próximos vencimentos: lista real Em aberto (fallback se dashboard não trouxer o array).
+      proximosLista: this.api
+        .listar({
+          ...filtroBase,
+          status: statusApi ?? StatusFatura.EmAberto,
+          dataInicial,
+          dataFinal,
+          numeroPagina: 1,
+          tamanhoPagina: 20,
+          propriedade: 'DataVencimento',
+          sort: 'asc'
+        })
+        .pipe(catchError(() => of({ items: [] as FaturaListaItem[], totalCount: 0, numeroPagina: 1, tamanhoPagina: 20 })))
+    })
+      .pipe(
+        finalize(() => {
+          if (seq === this.loadSeq) this.loading.set(false);
+        })
+      )
       .subscribe({
-        next: (dto) => {
+        next: ({ visao, visaoAlertas, fechamentosAlertas, visaoMesAtual, visaoMesAnterior, proximosLista }) => {
           if (seq !== this.loadSeq) return;
-          this.dashboard.set(dto);
+          this.dashboard.set(visao);
+          this.dashboardAlertas.set(visaoAlertas);
+          this.fechamentosPendentesTotal.set(fechamentosAlertas?.itens.totalCount ?? 0);
+          this.dashboardMesAtual.set(visaoMesAtual);
+          this.dashboardMesAnterior.set(visaoMesAnterior);
+          this.proximosVencimentosLista.set(this.mapListaParaProximos(proximosLista.items));
         },
         error: (err) => {
           if (seq !== this.loadSeq) return;
           this.dashboard.set(emptyVisaoGeral());
+          this.dashboardAlertas.set(emptyVisaoGeral());
+          this.fechamentosPendentesTotal.set(0);
+          this.dashboardMesAtual.set(emptyVisaoGeral());
+          this.dashboardMesAnterior.set(emptyVisaoGeral());
+          this.proximosVencimentosLista.set([]);
           this.snack.open(this.mensagemErro(err, 'Falha ao carregar a visão geral.'), 'Fechar', {
             duration: 5500
           });
         }
       });
+  }
+
+  /** Só faturas com vencimento >= hoje; máximo 5 linhas. */
+  private mapListaParaProximos(items: FaturaListaItem[]): FaturaProximoVencimentoOutput[] {
+    const hoje = this.criarDataHoje();
+    return items
+      .filter((row) => {
+        const venc = this.parseIsoDateLocal(row.vencimento);
+        return !!venc && venc.getTime() >= hoje.getTime();
+      })
+      .slice(0, 5)
+      .map((row) => ({
+        transportadoraId: row.transportadoraId,
+        transportadoraNome: row.transportadora,
+        valor: row.valorEmAberto > 0 ? row.valorEmAberto : row.valorTotal,
+        dataVencimento: row.vencimento,
+        status: row.statusCodigo
+      }));
+  }
+
+  private parseIsoDateLocal(iso: string): Date | null {
+    const raw = String(iso || '').trim();
+    if (!raw) return null;
+    const day = raw.includes('T') ? raw.slice(0, 10) : raw.slice(0, 10);
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+    if (!m) {
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   }
 
   private carregarLookups(): void {

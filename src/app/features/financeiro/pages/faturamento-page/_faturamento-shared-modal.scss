@@ -1,0 +1,264 @@
+/* Shell visual dos dialogs do Financeiro — alinhado ao modal "Novo usuário". */
+
+.fat-dlg {
+  display: flex;
+  flex-direction: column;
+  max-height: min(92vh, 860px);
+  min-width: 0;
+  color: var(--text);
+}
+
+.fat-dlg__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1.15rem 1.35rem 1rem;
+  border-bottom: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  flex-shrink: 0;
+}
+
+.fat-dlg__header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fat-dlg__icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #4d7cfe) 45%, var(--border-subtle, #334155));
+  background: color-mix(in srgb, var(--primary, #4d7cfe) 16%, transparent);
+  color: var(--primary, #60a5fa);
+}
+
+.fat-dlg__icon .material-symbols-outlined {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.fat-dlg__icon--warn {
+  border-color: color-mix(in srgb, #f87171 45%, var(--border-subtle, #334155));
+  background: color-mix(in srgb, #f87171 14%, transparent);
+  color: #fca5a5;
+}
+
+.fat-dlg__titles {
+  min-width: 0;
+}
+
+.fat-dlg__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.fat-dlg__subtitle {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--muted, #94a3b8);
+}
+
+.fat-dlg__close {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fat-dlg__close:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2, #1e293b) 80%, transparent);
+}
+
+.fat-dlg__close .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.fat-dlg__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem 1.35rem 1.15rem !important;
+  margin: 0 !important;
+  max-height: none !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fat-dlg__banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--primary, #4d7cfe) 28%, var(--border-subtle, #334155));
+  background: color-mix(in srgb, var(--primary, #4d7cfe) 10%, transparent);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.fat-dlg__banner .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--primary, #60a5fa);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.fat-dlg__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fat-dlg__card {
+  padding: 0.95rem 1rem 0.75rem;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-2, #0f172a) 88%, transparent);
+}
+
+.fat-dlg__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 0.75rem;
+}
+
+.fat-dlg__card-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fat-dlg__grid {
+  display: grid;
+  gap: 0 1rem;
+}
+
+.fat-dlg__grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fat-dlg__grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fat-dlg__grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fat-dlg__field {
+  width: 100%;
+  margin-bottom: 0.65rem;
+}
+
+.fat-dlg__field--full {
+  grid-column: 1 / -1;
+}
+
+.fat-dlg__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fat-dlg__kpi {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle, #334155) 90%, transparent);
+  background: color-mix(in srgb, var(--card-bg, #1e1e2d) 92%, transparent);
+}
+
+.fat-dlg__kpi-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+}
+
+.fat-dlg__kpi-value {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.fat-dlg__kpi-value--ok {
+  color: var(--fat-success, #36c98f);
+}
+
+.fat-dlg__kpi-value--warn {
+  color: #fb923c;
+}
+
+.fat-dlg__erro {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--fat-danger, #f06468);
+}
+
+.fat-dlg__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 0.9rem 1.35rem 1.15rem;
+  border-top: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.22));
+  flex-shrink: 0;
+}
+
+.fat-dlg__hint {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  color: var(--muted, #94a3b8);
+}
+
+@media (max-width: 720px) {
+  .fat-dlg__grid--2,
+  .fat-dlg__grid--3,
+  .fat-dlg__grid--4,
+  .fat-dlg__kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fat-dlg__header,
+  .fat-dlg__body,
+  .fat-dlg__footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .fat-dlg__title {
+    font-size: 1.1rem;
+  }
+}

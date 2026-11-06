@@ -126,8 +126,31 @@ html.theme-dark {
   --layout-right-border: var(--dark-border);
   --layout-right-inset: none;
 
+  --ds-select-panel-bg: var(--dark-card-elevated);
   --ds-select-panel-border: var(--dark-border);
+  --ds-select-panel-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  --ds-select-item-hover-bg: var(--dark-hover);
+  --ds-select-item-active-bg: var(--dark-hover-strong);
+  --ds-select-item-active-text: var(--dark-text);
+  --ds-select-scrollbar: #434350;
   --ds-select-radius: 10px;
+
+  /* Angular Material (azure-blue light): overlays herdam estes tokens no html */
+  --mat-select-panel-background-color: var(--dark-card-elevated);
+  --mat-option-label-text-color: var(--dark-text);
+  --mat-option-hover-state-layer-color: var(--dark-hover);
+  --mat-option-focus-state-layer-color: var(--dark-hover);
+  --mat-option-selected-state-layer-color: var(--dark-hover-strong);
+  --mat-option-selected-state-label-text-color: var(--dark-text);
+  --mat-menu-container-color: var(--dark-card-elevated);
+  --mat-menu-item-label-text-color: var(--dark-text);
+  --mat-menu-item-hover-state-layer-color: var(--dark-hover);
+  --mat-menu-item-focus-state-layer-color: var(--dark-hover);
+  --mat-autocomplete-background-color: var(--dark-card-elevated);
+  --mat-sys-surface: var(--dark-card);
+  --mat-sys-surface-container: var(--dark-card-elevated);
+  --mat-sys-surface-container-high: var(--dark-card-elevated);
+  --mat-sys-on-surface: var(--dark-text);
 }
 
 html.theme-dark body {

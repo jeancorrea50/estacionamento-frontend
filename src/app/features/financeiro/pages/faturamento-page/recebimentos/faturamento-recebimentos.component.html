@@ -347,18 +347,26 @@
             <th mat-header-cell *matHeaderCellDef class="rec-mat-table__ac">Ações</th>
             <td mat-cell *matCellDef="let row" class="rec-mat-table__ac">
               <div class="rec-mat-table__actions">
-                <button type="button" mat-icon-button class="rec-ico" matTooltip="Visualizar" (click)="acaoMock('visualizar', row)">
-                  <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Registrar pagamento"
+                  [disabled]="bloquearPagamentoPrincipal(row)"
+                  (click)="registrarPagamento(row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">payments</span>
                 </button>
-                @if (row.comprovante === 'Anexado' || row.comprovante === 'Aguardando conferência') {
-                  <button type="button" mat-icon-button class="rec-ico" matTooltip="Baixar comprovante" (click)="acaoMock('baixar', row)">
-                    <span class="material-symbols-outlined" aria-hidden="true">download</span>
-                  </button>
-                } @else {
-                  <button type="button" mat-icon-button class="rec-ico" matTooltip="Anexar comprovante" (click)="acaoMock('anexar', row)">
-                    <span class="material-symbols-outlined" aria-hidden="true">attach_file</span>
-                  </button>
-                }
+                <button
+                  type="button"
+                  mat-icon-button
+                  class="rec-ico"
+                  matTooltip="Pagamento parcial"
+                  [disabled]="bloquearPagamentoPrincipal(row)"
+                  (click)="abrirPagamentoParcial(row)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">pie_chart</span>
+                </button>
                 <button
                   type="button"
                   mat-icon-button
@@ -417,44 +425,32 @@
 
 <mat-menu #menuMais="matMenu">
   <ng-template matMenuContent let-row="row">
-    <button type="button" mat-menu-item (click)="acaoMock('editar', row)">
+    <button type="button" mat-menu-item (click)="editarPagamento(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">edit</span>
       Editar pagamento
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('estornar-menu', row)">
+    <button type="button" mat-menu-item (click)="estornarPagamento(row)">
       <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">undo</span>
       Estornar pagamento
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('historico', row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">history</span>
-      Ver histórico
+    <button type="button" mat-menu-item [disabled]="bloquearPagamentoPrincipal(row)" (click)="registrarPagamento(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">payments</span>
+      Registrar pagamento
     </button>
-    <button type="button" mat-menu-item (click)="acaoMock('baixar', row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">download</span>
-      Baixar comprovante
-    </button>
-    <button type="button" mat-menu-item (click)="acaoMock('conferido', row)">
-      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">task_alt</span>
-      Marcar como conferido
+    <button type="button" mat-menu-item [disabled]="bloquearPagamentoPrincipal(row)" (click)="abrirPagamentoParcial(row)">
+      <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">pie_chart</span>
+      Pagamento parcial
     </button>
   </ng-template>
 </mat-menu>
 
 <mat-menu #menuAcoesRapidas="matMenu">
-  <button type="button" mat-menu-item (click)="acaoMock('registrar')">
+  <button type="button" mat-menu-item (click)="registrarPagamento()">
     <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">payments</span>
     Registrar Pagamento
   </button>
   <button type="button" mat-menu-item (click)="abrirPagamentoParcial()">
     <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">pie_chart</span>
     Pagamento Parcial
-  </button>
-  <button type="button" mat-menu-item (click)="acaoMock('importar')">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">upload_file</span>
-    Importar Comprovantes
-  </button>
-  <button type="button" mat-menu-item (click)="acaoMock('exportar')">
-    <span class="material-symbols-outlined rec-menu-ico" aria-hidden="true">download</span>
-    Exportar
   </button>
 </mat-menu>

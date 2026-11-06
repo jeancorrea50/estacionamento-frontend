@@ -16,8 +16,15 @@ import { catchError, finalize } from 'rxjs/operators';
 
 import type { ApiError } from '../../../../../core/api/models';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { StatusFatura } from '../../../models/fatura.models';
+import { ModalidadeRecebimento, StatusFatura, TipoFatura } from '../../../models/fatura.models';
+import { toApiDateTime } from '../../../mappers/fatura.mapper';
 import { FaturaService } from '../../../services/fatura.service';
+import { PagamentoService } from '../../../services/pagamento.service';
+import { FaturamentoRecebimentosPartialDialogComponent } from '../recebimentos/faturamento-recebimentos-partial-dialog.component';
+import type {
+  RecebimentoPagamentoDialogData,
+  RecebimentoPagamentoDialogResult
+} from '../recebimentos/faturamento-recebimentos.types';
 import {
   FaturaConfirmDialogComponent
 } from './dialogs/fatura-confirm-dialog.component';
@@ -54,6 +61,7 @@ export class FaturamentoFaturasComponent implements OnInit {
   private readonly snack = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly api = inject(FaturaService);
+  private readonly pagamentoApi = inject(PagamentoService);
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -211,12 +219,14 @@ export class FaturamentoFaturasComponent implements OnInit {
       .subscribe({
         next: (page) => {
           this.selection.clear();
-          // Backend já ordena por DataEmissao/Id desc — mantém os mais recentes primeiro.
-          this.items.set(page.items);
-          this.totalCount.set(page.totalCount);
+          // Esta tela lista só faturas de cobrança (regra cadastrada). Avulsas ficam fora.
+          // GET /Fatura não expõe TipoFatura no contrato — filtro no cliente sobre o payload real.
+          const cobranca = page.items.filter((row) => this.isFaturaCobranca(row));
+          this.items.set(cobranca);
+          this.totalCount.set(cobranca.length);
           if (page.totalCount > page.items.length) {
             this.snack.open(
-              `Exibindo ${page.items.length} de ${page.totalCount} registros mais recentes. Refine a busca para ver os demais.`,
+              `Exibindo as cobranças mais recentes entre ${page.items.length} de ${page.totalCount} registros. Refine a busca para ver as demais.`,
               'Fechar',
               { duration: 5000 }
             );
@@ -248,9 +258,10 @@ export class FaturamentoFaturasComponent implements OnInit {
     }
 
     const ref = this.dialog.open(FaturaFormDialogComponent, {
-      width: '640px',
-      maxWidth: '95vw',
+      width: '760px',
+      maxWidth: '96vw',
       panelClass: 'cfg-form-dialog-panel',
+      autoFocus: 'dialog',
       data: {
         mode: 'create',
         transportadoras: this.transportadorasLookup(),
@@ -295,9 +306,10 @@ export class FaturamentoFaturasComponent implements OnInit {
             return;
           }
           this.dialog.open(FaturaFormDialogComponent, {
-            width: '720px',
-            maxWidth: '95vw',
+            width: '760px',
+            maxWidth: '96vw',
             panelClass: 'cfg-form-dialog-panel',
+            autoFocus: 'dialog',
             data: {
               mode: 'view',
               item,
@@ -312,6 +324,74 @@ export class FaturamentoFaturasComponent implements OnInit {
           });
         }
       });
+  }
+
+  podeRegistrarPagamento(row: FaturaListaItem): boolean {
+    return (
+      row.status !== 'Pago' &&
+      row.status !== 'Cancelada' &&
+      (row.valorEmAberto > 0 || row.valorTotal > row.valorRecebido)
+    );
+  }
+
+  registrarPagamento(row: FaturaListaItem): void {
+    if (!this.podeRegistrarPagamento(row)) {
+      this.snack.open('Esta fatura não aceita novo pagamento.', 'Fechar', { duration: 4500 });
+      return;
+    }
+
+    const saldo = Math.max(
+      0,
+      row.valorEmAberto > 0 ? row.valorEmAberto : row.valorTotal - row.valorRecebido
+    );
+    const data: RecebimentoPagamentoDialogData = {
+      mode: 'create',
+      faturaId: row.id,
+      faturaNumero: row.numero || String(row.id),
+      valorTotal: row.valorTotal,
+      valorJaRecebido: row.valorRecebido,
+      saldoRestante: saldo,
+      valorRecebidoInicial: saldo > 0 ? saldo : row.valorTotal,
+      dataPagamentoInicial: null,
+      formaInicial: row.modalidadeRecebimentoCodigo ?? ModalidadeRecebimento.Pix,
+      pagamentoId: row.id
+    };
+
+    const ref = this.dialog.open(FaturamentoRecebimentosPartialDialogComponent, {
+      width: '760px',
+      maxWidth: '96vw',
+      panelClass: 'cfg-form-dialog-panel',
+      autoFocus: 'dialog',
+      data
+    });
+
+    ref.afterClosed().subscribe((result: RecebimentoPagamentoDialogResult | undefined) => {
+      if (!result) return;
+      const dataPagamento = toApiDateTime(result.dataPagamento) || `${result.dataPagamento}T00:00:00`;
+      this.salvando.set(true);
+      this.pagamentoApi
+        .gravar({
+          faturaId: result.faturaId,
+          valorRecebido: result.valorRecebido,
+          dataPagamento,
+          modalidadeRecebimento: result.modalidadeRecebimento,
+          observacao: result.observacao
+        })
+        .pipe(finalize(() => this.salvando.set(false)))
+        .subscribe({
+          next: () => {
+            this.snack.open('Pagamento registrado. A fatura será atualizada pelo backend.', 'Fechar', {
+              duration: 4000
+            });
+            this.carregarLista();
+          },
+          error: (err) => {
+            this.snack.open(this.mensagemErro(err, 'Falha ao registrar pagamento.'), 'Fechar', {
+              duration: 5500
+            });
+          }
+        });
+    });
   }
 
   excluir(row: FaturaListaItem): void {
@@ -499,7 +579,8 @@ export class FaturamentoFaturasComponent implements OnInit {
   }
 
   private aplicarFiltrosCliente(rows: FaturaListaItem[]): FaturaListaItem[] {
-    let out = rows;
+    // Escopo da tela: apenas modalidade Cobrança (não misturar venda avulsa).
+    let out = rows.filter((r) => this.isFaturaCobranca(r));
     const q = this.filtroRapido();
     if (q) {
       out = out.filter((r) => this.passFiltroRapido(r, q));
@@ -511,6 +592,11 @@ export class FaturamentoFaturasComponent implements OnInit {
     }
 
     return out;
+  }
+
+  /** Fatura vinculada a regra de cobrança (`TipoFatura.Cobranca`). */
+  private isFaturaCobranca(row: FaturaListaItem): boolean {
+    return row.tipoFaturaCodigo === TipoFatura.Cobranca;
   }
 
   private passFiltroRapido(row: FaturaListaItem, q: FiltroRapidoFaturas): boolean {

@@ -1,13 +1,14 @@
 /**
- * Dados dos cartões "Alertas" e "Próximos vencimentos" da Visão Geral.
- * A rota final é resolvida em runtime pelo menu cadastrado (Gerenciamento > Menu),
- * por isso aqui só fica a aba de destino (`tab`) e o filtro aplicado no destino.
+ * Metadados dos cartões "Alertas" e tipagem de "Próximos vencimentos" da Visão Geral.
+ * Quantidades e linhas de vencimento vêm exclusivamente da API — nunca de seeds fictícios.
+ * A rota final é resolvida em runtime pelo menu cadastrado (Gerenciamento > Menu).
  */
 import type { FaturamentoTabId, FaturaStatusVisao } from '../faturamento-visao.types';
 
 export interface AlertaResumoBase {
   id: string;
   titulo: string;
+  /** Sempre preenchido pelo mapper a partir do backend. */
   quantidade: number;
   detalhe: string;
   icon: string;
@@ -19,6 +20,8 @@ export interface AlertaResumoBase {
 export interface AlertaResumo extends AlertaResumoBase {
   /** Rota absoluta resolvida (menu cadastrado ou rota canônica). */
   route: string;
+  /** Linha extra (ex.: mês passado) — só quando o contrato tiver o dado. */
+  detalheSecundario?: string | null;
 }
 
 export interface ProximoVencimentoBase {
@@ -33,11 +36,12 @@ export interface ProximoVencimento extends ProximoVencimentoBase {
   queryParams: Record<string, string>;
 }
 
+/** Estrutura dos alertas (labels/ícones/rotas). Quantidade inicia em 0 e é sobrescrita pelo contrato. */
 export const VISAO_ALERTAS: readonly AlertaResumoBase[] = [
   {
     id: 'fat',
     titulo: 'Faturas vencidas',
-    quantidade: 7,
+    quantidade: 0,
     detalhe: 'Requer atenção imediata',
     icon: 'gpp_bad',
     tab: 'faturas',
@@ -46,7 +50,7 @@ export const VISAO_ALERTAS: readonly AlertaResumoBase[] = [
   {
     id: 'cob',
     titulo: 'Cobranças pendentes',
-    quantidade: 11,
+    quantidade: 0,
     detalhe: 'Envio ou confirmação pendente',
     icon: 'mark_email_unread',
     tab: 'inadimplencia',
@@ -55,29 +59,28 @@ export const VISAO_ALERTAS: readonly AlertaResumoBase[] = [
   {
     id: 'fech',
     titulo: 'Fechamentos pendentes',
-    quantidade: 2,
+    quantidade: 0,
     detalhe: 'Períodos aguardando conferência',
     icon: 'fact_check',
     tab: 'fechamentos',
     queryParams: { filtro: 'andamento' }
   },
   {
-    id: 'env',
-    titulo: 'Faturas aguardando envio',
-    quantidade: 3,
-    detalhe: 'Ainda não disparadas ao cliente',
-    icon: 'schedule_send',
-    tab: 'faturas',
-    queryParams: { filtro: 'aguardando-envio' }
+    id: 'emi',
+    titulo: 'Faturas emitidas',
+    quantidade: 0,
+    detalhe: 'No mês atual',
+    icon: 'receipt_long',
+    tab: 'faturas'
+  },
+  {
+    id: 'transp',
+    titulo: 'Transportadoras faturadas',
+    quantidade: 0,
+    detalhe: 'Com fatura no sistema',
+    icon: 'local_shipping',
+    tab: 'faturas'
   }
-];
-
-export const PROXIMOS_VENCIMENTOS: readonly ProximoVencimentoBase[] = [
-  { transportadora: 'Transp. Horizonte Ltda', valor: 4_200, vencimento: '14/05/2026', status: 'Em aberto' },
-  { transportadora: 'Logística Sul ME', valor: 2_890.5, vencimento: '15/05/2026', status: 'Aguardando envio' },
-  { transportadora: 'Cargo Prime Transportes', valor: 6_150, vencimento: '16/05/2026', status: 'Parcial' },
-  { transportadora: 'Rota Azul Logística', valor: 1_980, vencimento: '18/05/2026', status: 'Em aberto' },
-  { transportadora: 'Expresso Centro Oeste', valor: 3_310, vencimento: '08/05/2026', status: 'Vencido' }
 ];
 
 /** Filtros da aba Faturas equivalentes ao status do vencimento. */

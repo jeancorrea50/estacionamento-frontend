@@ -162,6 +162,22 @@ describe('validarFormularioConfig', () => {
     expect(r.ok === false && r.mensagens).toContain('Informe o e-mail financeiro.');
   });
 
+  it('aceita múltiplos e-mails financeiros separados por vírgula', () => {
+    expect(
+      validarFormularioConfig(
+        entradaValida({ email: 'a@empresa.com, b@empresa.com; c@empresa.com', envioAutomaticoEmail: true })
+      ).ok
+    ).toBe(true);
+  });
+
+  it('rejeita e-mail inválido na lista de destinatários', () => {
+    const r = validarFormularioConfig(
+      entradaValida({ email: 'a@empresa.com, nao-email', envioAutomaticoEmail: true })
+    );
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.mensagens.some((m) => m.includes('inválido'))).toBe(true);
+  });
+
   it('exige percentual quando juros ou multa estão ativos', () => {
     expect(validarFormularioConfig(entradaValida({ juros: true, jurosPct: 0 })).ok).toBe(false);
     expect(validarFormularioConfig(entradaValida({ juros: true, jurosPct: 2 })).ok).toBe(true);

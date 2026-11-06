@@ -140,9 +140,13 @@
           >
             @if (isExpanded(menu.id)) {
               @for (sub of menu.subMenus; track sub.id) {
-                <ng-container
-                  *ngTemplateOutlet="subRowTpl; context: { $implicit: sub, menuId: menu.id, depth: 0 }"
-                />
+                <!-- Um único cdkDrag por submenu raiz (filhos ficam DENTRO, sem cdkDrag). -->
+                <div class="sub-row-group" cdkDrag [cdkDragData]="sub">
+                  <ng-container
+                    *ngTemplateOutlet="subRowTpl; context: { $implicit: sub, menuId: menu.id, depth: 0 }"
+                  />
+                  <div *cdkDragPlaceholder class="sub-row-group__placeholder"></div>
+                </div>
               }
             }
           </div>
@@ -349,9 +353,9 @@
 }
 
 <ng-template #subRowTpl let-sub let-menuId="menuId" let-depth="depth">
-  <div class="sub-row" [class.sub-row--nested]="depth > 0" cdkDrag [cdkDragDisabled]="depth > 0" [cdkDragData]="sub">
+  <div class="sub-row" [class.sub-row--nested]="depth > 0">
     @if (depth === 0) {
-      <span class="drag-handle material-symbols-outlined" cdkDragHandle>drag_indicator</span>
+      <span class="drag-handle material-symbols-outlined" cdkDragHandle title="Arrastar para reordenar">drag_indicator</span>
     }
     <div class="sub-row__main">
       <div class="sub-row__line">

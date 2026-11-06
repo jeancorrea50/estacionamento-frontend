@@ -24,9 +24,10 @@ import { MenuApiService } from '../../../gerenciamento/services/menu-api.service
 import {
   mapBuscarResponseToMenuAdmins,
 } from '../../../gerenciamento/services/menu-api.mapper';
+import { PatioMenuSeedService } from '../../../gerenciamento/services/patio-menu-seed.service';
+import { PatioAdminRoleRepairService } from '../../../gerenciamento/services/patio-admin-role-repair.service';
 import { flattenSubMenus } from '../../../gerenciamento/services/menu-tree.util';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
-import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import {
@@ -69,9 +70,10 @@ export class AcessosPerfisPageComponent implements OnInit {
   readonly permAcoesLegenda = PERMISSAO_ACOES_LEGENDA;
   private perfisService = inject(AcessosPerfisService);
   private menuApi = inject(MenuApiService);
+  private patioMenuSeed = inject(PatioMenuSeedService);
+  private patioAdminRoleRepair = inject(PatioAdminRoleRepairService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
-  private sessionAccess = inject(SessionAccessService);
   private authService = inject(AuthService);
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
@@ -128,26 +130,111 @@ export class AcessosPerfisPageComponent implements OnInit {
     }).subscribe({
       next: ({ perfis, menus }) => {
         const rawList = this.extractRawProfileList(perfis);
-        this.loading = false;
-        this.erro = null;
         this.itens = rawList.map((item) => this.normalizeRoleItem(item));
         this.searchDraft = '';
         this.searchTerm = '';
-        const fromMenuApi =
-          menus != null ? this.sanitizeMenuCatalog(mapBuscarResponseToMenuAdmins(menus)) : [];
-        const catalog =
-          fromMenuApi.length > 0
-            ? fromMenuApi
-            : this.sanitizeMenuCatalog(this.buildMenuCatalogFromProfiles(rawList));
-        this.backendMenuCatalog.set(catalog);
-        this.permissionTree.set(buildPermissionTreeState(catalog, null, []));
-        this.syncProfilePermissionsStore();
-        this.cdr.markForCheck();
+
+        const mappedMenus =
+          menus != null ? mapBuscarResponseToMenuAdmins(menus) : [];
+
+        // Garante Pátio no catálogo do backend antes de montar a árvore de permissões.
+        this.patioMenuSeed.ensurePatioMenuStructure(mappedMenus).subscribe({
+          next: (seed) => {
+            if (
+              seed.createdMenu ||
+              seed.createdSubs > 0 ||
+              seed.updatedRoutes > 0 ||
+              seed.renamed
+            ) {
+              this.toast.success(
+                seed.createdMenu
+                  ? 'Menu Pátio republicado no servidor. Marque-o no perfil e faça login novamente.'
+                  : 'Menu Pátio atualizado no servidor. Confira as permissões do perfil.'
+              );
+              this.menuApi.buscar().subscribe({
+                next: (fresh) => {
+                  this.applyMenuCatalog(
+                    mapBuscarResponseToMenuAdmins(fresh),
+                    rawList,
+                    true
+                  );
+                },
+                error: () => this.applyMenuCatalog(mappedMenus, rawList, true),
+              });
+              return;
+            }
+            this.applyMenuCatalog(mappedMenus, rawList, true);
+          },
+          error: (err: unknown) => {
+            this.toast.error(
+              this.mensagemErroSalvarPerfil(err) ||
+                'Não foi possível publicar o menu Pátio no servidor.'
+            );
+            this.applyMenuCatalog(mappedMenus, rawList, false);
+          },
+        });
       },
       error: () => {
         this.loading = false;
         this.erro = AVISO_SEM_ENDPOINT;
         this.itens = [];
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private applyMenuCatalog(
+    menus: ReturnType<typeof mapBuscarResponseToMenuAdmins>,
+    rawList: Record<string, unknown>[],
+    repairAdminPatio: boolean
+  ): void {
+    const fromMenuApi = this.sanitizeMenuCatalog(menus);
+    const catalog =
+      fromMenuApi.length > 0
+        ? fromMenuApi
+        : this.sanitizeMenuCatalog(this.buildMenuCatalogFromProfiles(rawList));
+    this.backendMenuCatalog.set(catalog);
+    this.permissionTree.set(buildPermissionTreeState(catalog, null, []));
+    this.syncProfilePermissionsStore();
+
+    if (!repairAdminPatio) {
+      this.loading = false;
+      this.erro = null;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const roles = rawList.map((item) => this.normalizeRoleItem(item));
+    this.patioAdminRoleRepair.ensurePatioOnOperationalRoles(catalog, roles).subscribe({
+      next: (result) => {
+        if (result.repaired.length) {
+          this.toast.success(
+            `Pátio revinculado ao(s) perfil(is): ${result.repaired.join(', ')}. Faça novo login no usuário Admin.`
+          );
+          // Recarrega lista para refletir menus do perfil após o PUT.
+          this.perfisService.buscar().subscribe({
+            next: (perfis) => {
+              const refreshed = this.extractRawProfileList(perfis);
+              this.itens = refreshed.map((item) => this.normalizeRoleItem(item));
+              this.loading = false;
+              this.erro = null;
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              this.loading = false;
+              this.erro = null;
+              this.cdr.markForCheck();
+            },
+          });
+          return;
+        }
+        this.loading = false;
+        this.erro = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        this.erro = null;
         this.cdr.markForCheck();
       },
     });
@@ -806,26 +893,6 @@ export class AcessosPerfisPageComponent implements OnInit {
     return out;
   }
 
-  private syncSessionAccessFromBackendCatalog(): void {
-    const menus = this.backendMenuCatalog();
-    this.sessionAccess.setMenus(
-      menus.map((m) => ({
-        id: m.id,
-        descricao: m.nome,
-        icone: m.icone,
-        ativo: m.ativo,
-        ordem: m.ordem,
-        subMenus: (m.subMenus ?? []).map((s) => ({
-          id: s.id,
-          descricao: s.nome,
-          rota: s.rota,
-          ativo: s.ativo,
-          ordem: s.ordem,
-        })),
-      }))
-    );
-  }
-
   private syncPermissionCacheForCurrentUserProfile(editedRoleName: string): void {
     const logged = this.authService.getLoggedUser();
     if (!logged) return;
@@ -938,7 +1005,7 @@ export class AcessosPerfisPageComponent implements OnInit {
         }
         const editedRoleName = this.form.name.trim() || this.editItem()?.name || '';
         this.syncPermissionCacheForCurrentUserProfile(editedRoleName);
-        this.syncSessionAccessFromBackendCatalog();
+        // Sessão/sidebar só mudam de forma definitiva no próximo login (payload `menus` do backend).
         this.toast.warning('Permissões atualizadas. Faça novo login para aplicar 100% das regras do token.');
         this.saving.set(false);
         this.closeModal();

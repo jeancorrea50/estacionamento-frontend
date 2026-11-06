@@ -403,37 +403,7 @@
   display: none;
 }
 
-/* Select panel: overlay no body — usa tokens de select do shell/tema */
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-select-panel {
-  border-radius: var(--ds-select-radius, 14px);
-  border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
-  background: var(--ds-select-panel-bg, var(--surface));
-  box-shadow: var(--ds-select-panel-shadow, var(--shadow-lg));
-  padding: 4px 0;
-  margin-top: 4px;
-}
-
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option {
-  min-height: 40px;
-  padding: 10px 12px;
-}
-
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option .mdc-list-item__primary-text {
-  color: var(--input-text, var(--text));
-  font-size: var(--font-body, 14px);
-  font-weight: 500;
-}
-
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
-  background: var(--ds-select-item-hover-bg, color-mix(in srgb, var(--primary) 10%, transparent));
-}
-
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled),
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option.mat-mdc-option-active:not(.mdc-list-item--disabled) {
-  background: var(--ds-select-item-active-bg, color-mix(in srgb, var(--primary) 16%, var(--surface)));
-}
-
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text,
-:host ::ng-deep .cdk-overlay-pane .mat-mdc-option.mat-mdc-option-active .mdc-list-item__primary-text {
-  color: var(--ds-select-item-active-text, var(--text));
-}
+/*
+ * Painel do mat-select NÃO vive no host (CDK overlay no body).
+ * Tema do painel: styles.css (.mat-mdc-select-panel + html.theme-dark).
+ */

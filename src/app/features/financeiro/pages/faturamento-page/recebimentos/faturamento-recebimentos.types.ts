@@ -1,4 +1,4 @@
-import type { TipoFatura } from '../../../models/fatura.models';
+import type { ModalidadeRecebimento, TipoFatura } from '../../../models/fatura.models';
 import type { TipoFaturaLabel } from '../faturas/faturamento-faturas.types';
 
 export type RecebimentoPagamentoStatus =
@@ -67,9 +67,36 @@ export interface RecebimentoResumo {
   pagamentosDoDia: number;
 }
 
+/** @deprecated Use RecebimentoPagamentoDialogData. */
 export interface RecebimentoPartialDialogData {
   faturaId: string;
   valorTotal: number;
   valorJaRecebido: number;
   saldoRestante: number;
+}
+
+export interface RecebimentoPagamentoDialogData {
+  mode: 'create' | 'edit';
+  faturaId: number;
+  faturaNumero: string;
+  valorTotal: number;
+  valorJaRecebido: number;
+  saldoRestante: number;
+  valorRecebidoInicial?: number;
+  dataPagamentoInicial?: string | null;
+  formaInicial?: ModalidadeRecebimento | null;
+  observacaoInicial?: string | null;
+  /** Id do pagamento para PUT/DELETE; fallback = faturaId quando a API unifica. */
+  pagamentoId?: number | null;
+}
+
+export interface RecebimentoPagamentoDialogResult {
+  mode: 'create' | 'edit';
+  faturaId: number;
+  pagamentoId: number;
+  valorRecebido: number;
+  /** yyyy-MM-dd */
+  dataPagamento: string;
+  modalidadeRecebimento: ModalidadeRecebimento;
+  observacao: string | null;
 }

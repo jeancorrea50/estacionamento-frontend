@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -33,27 +33,38 @@ export interface InadVencimentoDialogData {
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, FormsModule],
   template: `
-    <h2 mat-dialog-title>Editar vencimento</h2>
-    <mat-dialog-content>
-      <p class="inad-dlg__hint">Fatura {{ data.faturaNumero }}</p>
-      <mat-form-field appearance="outline" class="inad-dlg__field" subscriptSizing="dynamic">
-        <mat-label>Novo vencimento</mat-label>
-        <input matInput type="date" [(ngModel)]="dataVencimento" />
-      </mat-form-field>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button type="button" mat-button (click)="ref.close()">Cancelar</button>
-      <button type="button" mat-flat-button color="primary" [disabled]="!dataVencimento || salvando()" (click)="salvar()">
-        Salvar
-      </button>
-    </mat-dialog-actions>
+    <div class="fat-dlg">
+      <header class="fat-dlg__header">
+        <div class="fat-dlg__header-main">
+          <div class="fat-dlg__icon" aria-hidden="true">
+            <span class="material-symbols-outlined">event</span>
+          </div>
+          <div class="fat-dlg__titles">
+            <h2 class="fat-dlg__title" mat-dialog-title>Editar vencimento</h2>
+            <p class="fat-dlg__subtitle">Fatura {{ data.faturaNumero }}</p>
+          </div>
+        </div>
+        <button type="button" class="fat-dlg__close" aria-label="Fechar" (click)="ref.close()">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </header>
+      <mat-dialog-content class="fat-dlg__body">
+        <section class="fat-dlg__card">
+          <mat-form-field appearance="outline" class="fat-dlg__field" subscriptSizing="dynamic">
+            <mat-label>Novo vencimento</mat-label>
+            <input matInput type="date" [(ngModel)]="dataVencimento" />
+          </mat-form-field>
+        </section>
+      </mat-dialog-content>
+      <footer class="fat-dlg__footer">
+        <button type="button" mat-button (click)="ref.close()">Cancelar</button>
+        <button type="button" mat-flat-button color="primary" [disabled]="!dataVencimento || salvando()" (click)="salvar()">
+          Salvar
+        </button>
+      </footer>
+    </div>
   `,
-  styles: [
-    `
-      .inad-dlg__hint { margin: 0 0 8px; font-size: 13px; color: var(--muted, #64748b); }
-      .inad-dlg__field { width: 100%; min-width: 260px; }
-    `
-  ]
+  styleUrl: './faturamento-inadimplencia-dialogs.component.scss'
 })
 export class InadVencimentoDialogComponent {
   readonly ref = inject(MatDialogRef<InadVencimentoDialogComponent, boolean>);
@@ -91,27 +102,38 @@ export class InadVencimentoDialogComponent {
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, FormsModule],
   template: `
-    <h2 mat-dialog-title>{{ data.titulo }}</h2>
-    <mat-dialog-content>
-      <p class="inad-dlg__hint">Fatura {{ data.faturaNumero }}</p>
-      <mat-form-field appearance="outline" class="inad-dlg__field" subscriptSizing="dynamic">
-        <mat-label>{{ data.label }}</mat-label>
-        <input matInput type="number" min="0" step="0.01" [(ngModel)]="valor" />
-      </mat-form-field>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button type="button" mat-button (click)="ref.close()">Cancelar</button>
-      <button type="button" mat-flat-button color="primary" [disabled]="valor < 0 || salvando()" (click)="salvar()">
-        Salvar
-      </button>
-    </mat-dialog-actions>
+    <div class="fat-dlg">
+      <header class="fat-dlg__header">
+        <div class="fat-dlg__header-main">
+          <div class="fat-dlg__icon" aria-hidden="true">
+            <span class="material-symbols-outlined">{{ data.modo === 'acrescimo' ? 'add_card' : 'sell' }}</span>
+          </div>
+          <div class="fat-dlg__titles">
+            <h2 class="fat-dlg__title" mat-dialog-title>{{ data.titulo }}</h2>
+            <p class="fat-dlg__subtitle">Fatura {{ data.faturaNumero }}</p>
+          </div>
+        </div>
+        <button type="button" class="fat-dlg__close" aria-label="Fechar" (click)="ref.close()">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </header>
+      <mat-dialog-content class="fat-dlg__body">
+        <section class="fat-dlg__card">
+          <mat-form-field appearance="outline" class="fat-dlg__field" subscriptSizing="dynamic">
+            <mat-label>{{ data.label }}</mat-label>
+            <input matInput type="number" min="0" step="0.01" [(ngModel)]="valor" />
+          </mat-form-field>
+        </section>
+      </mat-dialog-content>
+      <footer class="fat-dlg__footer">
+        <button type="button" mat-button (click)="ref.close()">Cancelar</button>
+        <button type="button" mat-flat-button color="primary" [disabled]="valor < 0 || salvando()" (click)="salvar()">
+          Salvar
+        </button>
+      </footer>
+    </div>
   `,
-  styles: [
-    `
-      .inad-dlg__hint { margin: 0 0 8px; font-size: 13px; color: var(--muted, #64748b); }
-      .inad-dlg__field { width: 100%; min-width: 260px; }
-    `
-  ]
+  styleUrl: './faturamento-inadimplencia-dialogs.component.scss'
 })
 export class InadValorDialogComponent {
   readonly ref = inject(MatDialogRef<InadValorDialogComponent, boolean>);
@@ -144,53 +166,52 @@ export class InadValorDialogComponent {
 @Component({
   selector: 'app-inad-historico-dialog',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatProgressSpinnerModule],
   template: `
-    <h2 mat-dialog-title>Histórico de cobranças</h2>
-    <mat-dialog-content>
-      <p class="inad-dlg__hint">Fatura {{ data.id }}</p>
-      @if (loading()) {
-        <div class="inad-hist__loading"><mat-spinner diameter="28" /></div>
-      } @else if (itens().length === 0) {
-        <p class="inad-hist__empty">Nenhum envio registrado para esta fatura.</p>
-      } @else {
-        <ul class="inad-hist__list">
-          @for (h of itens(); track h.id) {
-            <li class="inad-hist__item">
-              <div class="inad-hist__top">
-                <strong>{{ h.modalidadeLabel || '—' }}</strong>
-                <span>{{ formatData(h.dataEnvio) }}</span>
-              </div>
-              <div class="inad-hist__meta">{{ h.assunto || h.descricao || '—' }}</div>
-              <div class="inad-hist__meta">Destinatário: {{ h.destinatario || '—' }}</div>
-              <div [class]="h.sucesso ? 'inad-hist__ok' : 'inad-hist__fail'">{{ h.resultado }}</div>
-            </li>
+    <div class="fat-dlg">
+      <header class="fat-dlg__header">
+        <div class="fat-dlg__header-main">
+          <div class="fat-dlg__icon" aria-hidden="true">
+            <span class="material-symbols-outlined">history</span>
+          </div>
+          <div class="fat-dlg__titles">
+            <h2 class="fat-dlg__title" mat-dialog-title>Histórico de cobranças</h2>
+            <p class="fat-dlg__subtitle">Fatura {{ data.id }}</p>
+          </div>
+        </div>
+        <button type="button" class="fat-dlg__close" aria-label="Fechar" mat-dialog-close>
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </header>
+      <mat-dialog-content class="fat-dlg__body">
+        <section class="fat-dlg__card">
+          @if (loading()) {
+            <div class="inad-hist__loading"><mat-spinner diameter="28" /></div>
+          } @else if (itens().length === 0) {
+            <p class="fat-dlg__hint">Nenhum envio registrado para esta fatura.</p>
+          } @else {
+            <ul class="inad-hist__list">
+              @for (h of itens(); track h.id) {
+                <li class="inad-hist__item">
+                  <div class="inad-hist__top">
+                    <strong>{{ h.modalidadeLabel || '—' }}</strong>
+                    <span>{{ formatData(h.dataEnvio) }}</span>
+                  </div>
+                  <div class="inad-hist__meta">{{ h.assunto || h.descricao || '—' }}</div>
+                  <div class="inad-hist__meta">Destinatário: {{ h.destinatario || '—' }}</div>
+                  <div [class]="h.sucesso ? 'inad-hist__ok' : 'inad-hist__fail'">{{ h.resultado }}</div>
+                </li>
+              }
+            </ul>
           }
-        </ul>
-      }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button type="button" mat-button mat-dialog-close>Fechar</button>
-    </mat-dialog-actions>
+        </section>
+      </mat-dialog-content>
+      <footer class="fat-dlg__footer">
+        <button type="button" mat-flat-button color="primary" mat-dialog-close>Fechar</button>
+      </footer>
+    </div>
   `,
-  styles: [
-    `
-      .inad-dlg__hint { margin: 0 0 8px; font-size: 13px; color: var(--muted, #64748b); }
-      .inad-hist__loading { display: flex; justify-content: center; padding: 24px; }
-      .inad-hist__empty { margin: 12px 0; color: var(--muted, #64748b); }
-      .inad-hist__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow: auto; }
-      .inad-hist__item { border: 1px solid color-mix(in srgb, var(--border, #cbd5e1) 80%, transparent); border-radius: 8px; padding: 10px 12px; }
-      .inad-hist__top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
-      .inad-hist__meta { font-size: 12px; color: var(--muted, #64748b); margin-top: 2px; }
-      .inad-hist__ok { margin-top: 4px; font-size: 12px; color: #15803d; }
-      .inad-hist__fail { margin-top: 4px; font-size: 12px; color: #b91c1c; }
-    `
-  ]
+  styleUrl: './faturamento-inadimplencia-dialogs.component.scss'
 })
 export class InadHistoricoDialogComponent {
   readonly data = inject<InadimplenciaListaItem>(MAT_DIALOG_DATA);

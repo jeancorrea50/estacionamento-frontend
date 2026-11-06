@@ -511,7 +511,7 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
     }
     this.dialog
       .open(FaturamentoInadimplenciaAcordoDialogComponent, {
-        width: '520px',
+        width: '720px',
         maxWidth: '96vw',
         panelClass: 'cfg-form-dialog-panel',
         data: {
@@ -535,9 +535,10 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
   editarVencimento(row: InadimplenciaListaItem): void {
     this.dialog
       .open(InadVencimentoDialogComponent, {
-        width: '420px',
+        width: '480px',
         maxWidth: '96vw',
         panelClass: 'cfg-form-dialog-panel',
+        autoFocus: 'dialog',
         data: {
           faturaId: row.faturaId,
           faturaNumero: row.id,
@@ -556,9 +557,10 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
   aplicarAcrescimo(row: InadimplenciaListaItem): void {
     this.dialog
       .open(InadValorDialogComponent, {
-        width: '420px',
+        width: '480px',
         maxWidth: '96vw',
         panelClass: 'cfg-form-dialog-panel',
+        autoFocus: 'dialog',
         data: {
           faturaId: row.faturaId,
           faturaNumero: row.id,
@@ -580,9 +582,10 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
   aplicarDesconto(row: InadimplenciaListaItem): void {
     this.dialog
       .open(InadValorDialogComponent, {
-        width: '420px',
+        width: '480px',
         maxWidth: '96vw',
         panelClass: 'cfg-form-dialog-panel',
+        autoFocus: 'dialog',
         data: {
           faturaId: row.faturaId,
           faturaNumero: row.id,
@@ -603,9 +606,10 @@ export class FaturamentoInadimplenciaComponent implements OnInit {
 
   verHistorico(row: InadimplenciaListaItem): void {
     this.dialog.open(InadHistoricoDialogComponent, {
-      width: '520px',
+      width: '560px',
       maxWidth: '96vw',
       panelClass: 'cfg-form-dialog-panel',
+      autoFocus: 'dialog',
       data: row
     });
   }

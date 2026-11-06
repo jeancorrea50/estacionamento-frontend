@@ -1967,6 +1967,93 @@ select:not([multiple]):not([size]):disabled {
   cursor: not-allowed;
 }
 
+/*
+ * OVERLAY Material (CDK no <body>): fora do host do dialog.
+ * Seletores globais + .cdk-overlay-pane para vencer azure-blue.css.
+ */
+.cdk-overlay-pane .mat-mdc-select-panel,
+.cdk-overlay-pane .mat-mdc-autocomplete-panel,
+.cdk-overlay-pane .mat-mdc-menu-panel {
+  --mat-select-panel-background-color: var(--ds-select-panel-bg) !important;
+  --mat-autocomplete-background-color: var(--ds-select-panel-bg) !important;
+  --mat-option-label-text-color: var(--input-text, var(--text)) !important;
+  --mat-option-hover-state-layer-color: var(--ds-select-item-hover-bg) !important;
+  --mat-option-focus-state-layer-color: var(--ds-select-item-hover-bg) !important;
+  --mat-option-selected-state-layer-color: var(--ds-select-item-active-bg) !important;
+  --mat-option-selected-state-label-text-color: var(--ds-select-item-active-text) !important;
+  --mat-menu-container-color: var(--ds-select-panel-bg) !important;
+  --mat-menu-item-label-text-color: var(--input-text, var(--text)) !important;
+  --mat-menu-item-hover-state-layer-color: var(--ds-select-item-hover-bg) !important;
+  --mat-menu-item-focus-state-layer-color: var(--ds-select-item-hover-bg) !important;
+  border-radius: var(--ds-select-radius, 10px) !important;
+  border: 1px solid var(--ds-select-panel-border) !important;
+  background: var(--ds-select-panel-bg) !important;
+  background-color: var(--ds-select-panel-bg) !important;
+  box-shadow: var(--ds-select-panel-shadow) !important;
+  color: var(--input-text, var(--text)) !important;
+  padding: var(--ds-select-panel-pad-y, 4px) 0 !important;
+  max-height: var(--ds-select-panel-max-h, min(280px, 50vh)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+html.theme-dark .cdk-overlay-pane .mat-mdc-select-panel,
+html.theme-dark .cdk-overlay-pane .mat-mdc-autocomplete-panel,
+html.theme-dark .cdk-overlay-pane .mat-mdc-menu-panel,
+html:not(.theme-light):not(.theme-dark) .cdk-overlay-pane .mat-mdc-select-panel,
+html:not(.theme-light):not(.theme-dark) .cdk-overlay-pane .mat-mdc-autocomplete-panel,
+html:not(.theme-light):not(.theme-dark) .cdk-overlay-pane .mat-mdc-menu-panel {
+  --mat-select-panel-background-color: var(--ds-select-panel-bg, #2c2c37) !important;
+  --mat-autocomplete-background-color: var(--ds-select-panel-bg, #2c2c37) !important;
+  background: var(--ds-select-panel-bg, #2c2c37) !important;
+  background-color: var(--ds-select-panel-bg, #2c2c37) !important;
+  border-color: var(--ds-select-panel-border, #363642) !important;
+  color: var(--dark-text, #f1f1f5) !important;
+}
+
+html.theme-light .cdk-overlay-pane .mat-mdc-select-panel,
+html.theme-light .cdk-overlay-pane .mat-mdc-autocomplete-panel,
+html.theme-light .cdk-overlay-pane .mat-mdc-menu-panel {
+  --mat-select-panel-background-color: var(--ds-select-panel-bg, #ffffff) !important;
+  --mat-autocomplete-background-color: var(--ds-select-panel-bg, #ffffff) !important;
+  background: var(--ds-select-panel-bg, #ffffff) !important;
+  background-color: var(--ds-select-panel-bg, #ffffff) !important;
+  border-color: var(--ds-select-panel-border, #e5e7eb) !important;
+  color: var(--input-text, var(--text, #1f2937)) !important;
+}
+
+.cdk-overlay-pane .mat-mdc-select-panel .mat-mdc-option,
+.cdk-overlay-pane .mat-mdc-autocomplete-panel .mat-mdc-option {
+  min-height: var(--ds-select-item-min-height, 40px) !important;
+  color: var(--input-text, var(--text)) !important;
+}
+
+.cdk-overlay-pane .mat-mdc-option .mdc-list-item__primary-text {
+  color: inherit !important;
+}
+
+html.theme-dark .cdk-overlay-pane .mat-mdc-option,
+html:not(.theme-light):not(.theme-dark) .cdk-overlay-pane .mat-mdc-option {
+  color: var(--dark-text, #f1f1f5) !important;
+}
+
+html.theme-light .cdk-overlay-pane .mat-mdc-option {
+  color: var(--input-text, var(--text, #1f2937)) !important;
+}
+
+.cdk-overlay-pane .mat-mdc-select-panel .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.cdk-overlay-pane .mat-mdc-autocomplete-panel .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.cdk-overlay-pane .mat-mdc-select-panel .mat-mdc-option.mat-mdc-option-active:not(.mdc-list-item--disabled),
+.cdk-overlay-pane .mat-mdc-autocomplete-panel .mat-mdc-option.mat-mdc-option-active:not(.mdc-list-item--disabled) {
+  background: var(--ds-select-item-hover-bg) !important;
+}
+
+.cdk-overlay-pane .mat-mdc-select-panel .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled),
+.cdk-overlay-pane .mat-mdc-autocomplete-panel .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  background: var(--ds-select-item-active-bg) !important;
+  color: var(--ds-select-item-active-text) !important;
+}
+
 /* Painéis de lista compartilhados (combobox Banco, autocomplete, Estacionamento, menus) */
 .banco-combo__list,
 .tipo-conta-combo__list,
@@ -2232,10 +2319,15 @@ html.theme-dark .cfg-form-dialog-panel {
 .cfg-form-dialog-panel app-config-cobranca-form-dialog,
 .cfg-form-dialog-panel app-config-cobranca-weekday-dialog,
 .cfg-form-dialog-panel app-config-cobranca-acordo-dialog,
+.cfg-form-dialog-panel app-config-cobranca-confirm-dialog,
+.cfg-form-dialog-panel app-config-cobranca-view-rule-dialog,
 .cfg-form-dialog-panel app-fatura-form-dialog,
 .cfg-form-dialog-panel app-fatura-confirm-dialog,
 .cfg-form-dialog-panel app-faturamento-recebimentos-partial-dialog,
-.cfg-form-dialog-panel app-faturamento-inadimplencia-acordo-dialog {
+.cfg-form-dialog-panel app-faturamento-inadimplencia-acordo-dialog,
+.cfg-form-dialog-panel app-inad-vencimento-dialog,
+.cfg-form-dialog-panel app-inad-valor-dialog,
+.cfg-form-dialog-panel app-inad-historico-dialog {
   display: flex;
   flex-direction: column;
   min-height: 0;

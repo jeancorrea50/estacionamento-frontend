@@ -11,7 +11,6 @@ import {
   modalidadeRecebimentoLabel,
   tipoFaturaLabel
 } from './fatura.mapper';
-import { ModalidadeCobranca } from '../models/configuracao-cobranca.models';
 import {
   ModalidadeRecebimento,
   SituacaoFechamento,
@@ -162,7 +161,10 @@ describe('fatura.mapper', () => {
         TransportadorasFaturadas: 14,
         CobrancasPendentes: 11,
         FaturasPorStatus: [{ Status: StatusFatura.Pago, Quantidade: 28, Valor: 100 }],
-        RecebimentosPorModalidade: [{ Modalidade: ModalidadeRecebimento.Pix, Quantidade: 10, Valor: 52100 }],
+        RecebimentosPorModalidade: [
+          { Modalidade: 4, Quantidade: 10, Valor: 52100 },
+          { Modalidade: 0, Quantidade: 2, Valor: 1500 }
+        ],
         EvolucaoFaturamento: [{ Ano: 2026, Mes: 5, Valor: 88000 }]
       }
     });
@@ -172,5 +174,26 @@ describe('fatura.mapper', () => {
     expect(dto.faturasPorStatus[0].quantidade).toBe(28);
     expect(dto.recebimentosPorModalidade[0].valor).toBe(52100);
     expect(dto.evolucaoFaturamento[0].mes).toBe(5);
+    expect(dto.proximosVencimentos).toEqual([]);
+  });
+
+  it('mapeia proximosVencimentos quando o backend enviar a lista', () => {
+    const dto = mapRawVisaoGeral({
+      Result: {
+        ProximosVencimentos: [
+          {
+            TransportadoraId: 9,
+            TransportadoraNome: 'Trans Sul',
+            Valor: 1235,
+            DataVencimento: '2026-11-20',
+            Status: StatusFatura.EmAberto
+          }
+        ]
+      }
+    });
+    expect(dto.proximosVencimentos).toHaveLength(1);
+    expect(dto.proximosVencimentos[0].transportadoraNome).toBe('Trans Sul');
+    expect(dto.proximosVencimentos[0].valor).toBe(1235);
+    expect(dto.proximosVencimentos[0].dataVencimento).toBe('2026-11-20');
   });
 });

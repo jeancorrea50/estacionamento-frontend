@@ -10,6 +10,7 @@ import { MenuApiService } from '../../services/menu-api.service';
 import { FinanceiroMenuSeedService } from '../../services/financeiro-menu-seed.service';
 import { EcossistemaMenuSeedService } from '../../services/ecossistema-menu-seed.service';
 import { QualidadeMenuSeedService } from '../../services/qualidade-menu-seed.service';
+import { PatioMenuSeedService } from '../../services/patio-menu-seed.service';
 import type { MenuCreateInput } from '../../services/menu-api.types';
 import {
   computeNextIdFromMenus,
@@ -53,6 +54,7 @@ export class MenuAdminPageComponent implements OnInit {
   private readonly financeiroMenuSeed = inject(FinanceiroMenuSeedService);
   private readonly ecossistemaMenuSeed = inject(EcossistemaMenuSeedService);
   private readonly qualidadeMenuSeed = inject(QualidadeMenuSeedService);
+  private readonly patioMenuSeed = inject(PatioMenuSeedService);
   private readonly toast = inject(ToastService);
   protected readonly acoes = PERMISSOES_ACOES;
 
@@ -80,6 +82,7 @@ export class MenuAdminPageComponent implements OnInit {
   private skipNextFinanceiroSeed = false;
   private skipNextEcossistemaSeed = false;
   private skipNextQualidadeSeed = false;
+  private skipNextPatioSeed = false;
 
   ngOnInit(): void {
     this.carregarMenusDoBackend();
@@ -110,6 +113,35 @@ export class MenuAdminPageComponent implements OnInit {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
+
+    if (this.skipNextPatioSeed) {
+      this.skipNextPatioSeed = false;
+    } else {
+      this.patioMenuSeed.ensurePatioMenuStructure(menus).subscribe({
+        next: (result) => {
+          if (
+            result.createdMenu ||
+            result.createdSubs > 0 ||
+            result.updatedRoutes > 0 ||
+            result.renamed
+          ) {
+            const parts: string[] = [];
+            if (result.createdMenu) parts.push('módulo criado');
+            if (result.createdSubs > 0) parts.push(`${result.createdSubs} submenu(s)`);
+            if (result.updatedRoutes > 0) parts.push(`${result.updatedRoutes} rota(s)`);
+            if (result.renamed) parts.push('nome/rota alinhados');
+            this.toast.success(`Pátio: ${parts.join('; ')}.`);
+            this.skipNextPatioSeed = true;
+            this.refreshMenusAfterMutation();
+          }
+        },
+        error: (err: unknown) => {
+          this.toast.error(
+            this.apiErrorMessage(err, 'Não foi possível publicar o menu Pátio no servidor.')
+          );
+        },
+      });
+    }
 
     if (this.skipNextFinanceiroSeed) {
       this.skipNextFinanceiroSeed = false;

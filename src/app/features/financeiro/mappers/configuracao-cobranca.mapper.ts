@@ -19,6 +19,7 @@ import type {
   ConfigCobrancaStatus
 } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
 import { acordoVazio, listagensAPartirDasVagas, MESES_ACORDO, vagasFromListagens } from '../pages/faturamento-page/config-cobranca/config-cobranca-acordo.util';
+import { normalizarEmailFinanceiro } from '../pages/faturamento-page/config-cobranca/config-cobranca-email.util';
 
 /** Rótulo de cada serviço adicional, usado no resumo textual e nas telas de visualização. */
 export const SERVICO_LABELS: Record<ConfigCobrancaServicoKey, string> = {
@@ -314,7 +315,8 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
       ? RegraFechamento.UltimoDiaDoMes
       : item.regraFechamento || RegraFechamento.UltimoDiaDoMes,
     prazoVencimentoDias: item.prazoVencimentoDias,
-    emailFinanceiro: (item.emailFinanceiro ?? '').trim(),
+    // Múltiplos destinatários: string única separada por vírgula (contrato atual).
+    emailFinanceiro: normalizarEmailFinanceiro(item.emailFinanceiro),
     envioAutomaticoEmail: !!item.envioAutomatico,
     gerarFaturaAutomaticamente: !!item.gerarFaturaAutomaticamente,
     permitirPagamentoParcial: !!item.pagamentoParcial,

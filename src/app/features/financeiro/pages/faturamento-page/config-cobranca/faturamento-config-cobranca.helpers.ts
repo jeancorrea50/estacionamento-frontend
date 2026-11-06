@@ -1,4 +1,8 @@
 import { acordoVazio, mensagensValidacaoAcordo, normalizarAcordo } from './config-cobranca-acordo.util';
+import {
+  mensagemEmailsFinanceirosInvalidos,
+  normalizarEmailFinanceiro
+} from './config-cobranca-email.util';
 import type {
   ConfigCobrancaAcordo,
   ConfigCobrancaDefinicaoValor,
@@ -45,6 +49,15 @@ export function modalidadeExigeVencimentoFatura(
 ): boolean {
   return modalidade !== 'Diária';
 }
+
+export {
+  EMAIL_FINANCEIRO_MAX,
+  isEmailFinanceiroValido,
+  mensagemEmailsFinanceirosInvalidos,
+  normalizarEmailFinanceiro,
+  parseEmailsFinanceiros,
+  serializeEmailsFinanceiros
+} from './config-cobranca-email.util';
 
 /** Dia da semana persistido em `diaFechamento` quando a modalidade é Semanal. */
 export type DiaSemanaCobranca = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -227,14 +240,10 @@ export function validarFormularioConfig(input: {
     }
   }
 
-  if (input.envioAutomaticoEmail !== false) {
-    if (!input.email?.trim()) m.push('Informe o e-mail financeiro.');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
-      m.push('E-mail financeiro inválido.');
-    }
-  } else if (input.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
-    m.push('E-mail financeiro inválido.');
-  }
+  const erroEmail = mensagemEmailsFinanceirosInvalidos(input.email, {
+    obrigatorio: input.envioAutomaticoEmail !== false
+  });
+  if (erroEmail) m.push(erroEmail);
 
   if (!valorInformado(input.valorEstacionamento)) {
     m.push(
@@ -287,7 +296,7 @@ export function montarRegistroDoFormulario(campos: {
   acordo?: ConfigCobrancaAcordo;
   definicaoValor?: ConfigCobrancaDefinicaoValor;
 }): ConfigCobrancaListaItem {
-  const emailNorm = campos.email?.trim() || null;
+  const emailNorm = normalizarEmailFinanceiro(campos.email) || null;
   let status: ConfigCobrancaStatus = campos.status === 'Inativa' ? 'Inativa' : 'Ativa';
   if (campos.envioAuto && !emailNorm) status = 'Sem e-mail financeiro';
 

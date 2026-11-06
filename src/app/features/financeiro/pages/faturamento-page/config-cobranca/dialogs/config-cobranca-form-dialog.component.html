@@ -1,8 +1,13 @@
 <div class="cfg-modal">
   <header class="cfg-modal__header">
-    <div class="cfg-modal__titles">
-      <h2 class="cfg-modal__title" mat-dialog-title>{{ titulo }}</h2>
-      <p class="cfg-modal__subtitle">{{ subtitulo }}</p>
+    <div class="cfg-modal__header-main">
+      <div class="cfg-modal__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">rule</span>
+      </div>
+      <div class="cfg-modal__titles">
+        <h2 class="cfg-modal__title" mat-dialog-title>{{ titulo }}</h2>
+        <p class="cfg-modal__subtitle">{{ subtitulo }}</p>
+      </div>
     </div>
     <button type="button" class="cfg-modal__close" aria-label="Fechar" (click)="cancelar()">
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
@@ -263,10 +268,50 @@
               <mat-hint>Dias após o fechamento</mat-hint>
             </mat-form-field>
           }
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>E-mail financeiro</mat-label>
-            <input matInput type="email" [(ngModel)]="email" [disabled]="!envioAuto" [required]="envioAuto" />
-          </mat-form-field>
+          <div class="cfg-field cfg-field--full cfg-emails" [class.cfg-emails--disabled]="!envioAuto">
+            <label class="cfg-emails__label" for="cfg-email-rascunho">
+              E-mails financeiros
+              @if (envioAuto) {
+                <span class="cfg-emails__req" aria-hidden="true">*</span>
+              }
+            </label>
+            <div
+              class="cfg-emails__box"
+              role="group"
+              aria-label="E-mails financeiros para recebimento automático"
+            >
+              @for (mail of emails; track mail) {
+                <span class="cfg-emails__chip">
+                  <span class="cfg-emails__chip-text">{{ mail }}</span>
+                  <button
+                    type="button"
+                    class="cfg-emails__chip-remove"
+                    [disabled]="!envioAuto"
+                    [attr.aria-label]="'Remover ' + mail"
+                    (click)="removerEmail(mail)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                  </button>
+                </span>
+              }
+              <input
+                id="cfg-email-rascunho"
+                class="cfg-emails__input"
+                type="email"
+                name="emailFinanceiroRascunho"
+                [(ngModel)]="emailRascunho"
+                [disabled]="!podeAdicionarEmail"
+                [attr.aria-required]="envioAuto"
+                placeholder="{{ emails.length ? 'Adicionar outro e-mail' : 'Digite o e-mail e pressione Enter' }}"
+                autocomplete="email"
+                (keydown)="onEmailRascunhoKeydown($event)"
+                (blur)="adicionarEmailDoRascunho()"
+              />
+            </div>
+            <p class="cfg-emails__hint">
+              Adicione até {{ EMAIL_FINANCEIRO_MAX }} destinatários. Use Enter ou vírgula para confirmar cada e-mail.
+            </p>
+          </div>
         </div>
       </section>
     }

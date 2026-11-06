@@ -21,6 +21,8 @@ import {
   QualidadeCatalogService,
   type QualidadeCatalogSnapshot,
 } from '../../services/qualidade-catalog.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
+import { QUALIDADE_ROUTE } from '../../qualidade-rotas';
 
 @Component({
   selector: 'app-qualidade-page',
@@ -35,6 +37,11 @@ import {
 export class QualidadePageComponent implements OnInit {
   private readonly catalog = inject(QualidadeCatalogService);
   private readonly toast = inject(ToastService);
+  private readonly sessionAccess = inject(SessionAccessService);
+
+  get canVisualizar(): boolean {
+    return this.sessionAccess.canAccessRoute(QUALIDADE_ROUTE);
+  }
 
   readonly loading = signal(true);
   readonly snapshot = signal<QualidadeCatalogSnapshot | null>(null);
@@ -163,10 +170,15 @@ export class QualidadePageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (!this.canVisualizar) {
+      this.loading.set(false);
+      return;
+    }
     this.recarregar();
   }
 
   recarregar(): void {
+    if (!this.canVisualizar) return;
     this.loading.set(true);
     this.catalog.carregarSnapshot().subscribe({
       next: (snap) => {

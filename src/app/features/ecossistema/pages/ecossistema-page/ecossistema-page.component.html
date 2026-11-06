@@ -1,3 +1,8 @@
+@if (!canVisualizar) {
+  <div class="eco-page" role="status">
+    <p class="empty-msg">Sem permissão para visualizar Ecossistema.</p>
+  </div>
+} @else {
 <div
   class="eco-page"
   [class.eco-page--panel]="!!selecionado() || diagnosticoAberto()"
@@ -604,3 +609,4 @@
     </section>
   </ng-template>
 </div>
+}

@@ -104,22 +104,6 @@ export class SessionAccessService {
     if (isAccessGranted(current, allowed)) {
       return true;
     }
-    /**
-     * Ecossistema / Qualidade: sob Administração.
-     * Liberam se o login já concedeu qualquer rota de `/app/administracao`
-     * (submenus publicados no backend via seed ao abrir Gerenciamento → Menu).
-     */
-    if (
-      current === '/app/administracao/ecossistema' ||
-      current.startsWith('/app/administracao/ecossistema/') ||
-      current === '/app/administracao/qualidade' ||
-      current.startsWith('/app/administracao/qualidade/')
-    ) {
-      return allowed.some((route) => {
-        const r = normalizeRoute(route);
-        return r === '/app/administracao' || r.startsWith('/app/administracao/');
-      });
-    }
     /** Estacionamento: Gerenciamento e Cadastro (legado/forms) compartilham o mesmo acesso. */
     if (
       current === '/app/gerenciamento/estacionamento' ||
@@ -188,18 +172,6 @@ export class SessionAccessService {
             a.startsWith(`${CADASTRO_ESTACIONAMENTOS_ROUTE}/`) ||
             a.startsWith('/app/cadastro/estacionamento/')
           );
-        });
-      }
-      /** Ecossistema / Qualidade: visíveis se Administração já estiver liberada na sessão. */
-      if (
-        normalized === '/app/administracao/ecossistema' ||
-        normalized.startsWith('/app/administracao/ecossistema/') ||
-        normalized === '/app/administracao/qualidade' ||
-        normalized.startsWith('/app/administracao/qualidade/')
-      ) {
-        return allowed.some((r) => {
-          const a = normalizeRoute(r);
-          return a === '/app/administracao' || a.startsWith('/app/administracao/');
         });
       }
       return false;

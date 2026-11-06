@@ -10,19 +10,24 @@
         CI (Vitest/Playwright). Não executa testes no navegador.
       </p>
     </div>
-    <div class="qa-head-actions">
-      <button type="button" class="btn btn-secondary btn--sm" (click)="recarregar()" [disabled]="loading()">
-        Atualizar
-      </button>
-      <button type="button" class="btn btn-secondary btn--sm" (click)="exportarCsv()" [disabled]="!snapshot()">
-        Exportar CSV
-      </button>
-      <button type="button" class="btn btn-primary btn--sm" (click)="exportarJson()" [disabled]="!snapshot()">
-        Exportar JSON
-      </button>
-    </div>
+    @if (canVisualizar) {
+      <div class="qa-head-actions">
+        <button type="button" class="btn btn-secondary btn--sm" (click)="recarregar()" [disabled]="loading()">
+          Atualizar
+        </button>
+        <button type="button" class="btn btn-secondary btn--sm" (click)="exportarCsv()" [disabled]="!snapshot()">
+          Exportar CSV
+        </button>
+        <button type="button" class="btn btn-primary btn--sm" (click)="exportarJson()" [disabled]="!snapshot()">
+          Exportar JSON
+        </button>
+      </div>
+    }
   </header>
 
+  @if (!canVisualizar) {
+    <p class="empty-msg" role="status">Sem permissão para visualizar Qualidade e Testes.</p>
+  } @else {
   <p class="qa-banner" role="note">
     O histórico de execuções manuais fica neste navegador (localStorage) e
     <strong>não é compartilhado</strong> entre usuários ou dispositivos. Não cole senhas, tokens ou
@@ -381,5 +386,6 @@
         </ul>
       </section>
     }
+  }
   }
 </div>

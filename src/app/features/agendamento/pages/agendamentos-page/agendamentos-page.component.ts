@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
@@ -54,6 +55,7 @@ import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../
 export class AgendamentosPageComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly sessionAccess = inject(SessionAccessService);
+  private readonly permissions = inject(PermissionCacheService);
   private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
   private readonly portariaAlertas = inject(PortariaAlertasStore);
@@ -73,20 +75,23 @@ export class AgendamentosPageComponent implements OnInit {
     );
   }
 
+  /** POST /Agendamento — claim `agendamento.gravar` (Visualizar sozinho não cria). */
   get podeCriar(): boolean {
-    return this.canVisualizar;
+    return this.canVisualizar && this.permissions.allows('agendamento', 'gravar');
   }
 
+  /** PATCH cancelar — claim `agendamento.alterar`. */
   get podeCancelar(): boolean {
-    return this.canVisualizar;
+    return this.canVisualizar && this.permissions.allows('agendamento', 'alterar');
   }
 
   get podeOperarPatio(): boolean {
     return this.canVisualizar && !this.isTransportadora;
   }
 
+  /** PATCH confirmar-entrada — claim `agendamento.alterar` + operação de pátio. */
   get podeConfirmarEntrada(): boolean {
-    return this.podeOperarPatio;
+    return this.podeOperarPatio && this.permissions.allows('agendamento', 'alterar');
   }
 
   readonly loadingList = signal(false);

@@ -54,6 +54,7 @@ import {
 } from '../../utils/ecossistema-graph.util';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { ECOSSISTEMA_ROUTE } from '../../ecossistema-rotas';
 import { finalize } from 'rxjs/operators';
 
 type DragMode = 'none' | 'pan' | 'node';
@@ -85,6 +86,10 @@ export class EcossistemaPageComponent implements OnInit, OnDestroy {
   private readonly problemaStore = inject(EcossistemaProblemaService);
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly permissions = inject(PermissionCacheService);
+
+  get canVisualizar(): boolean {
+    return this.sessionAccess.canAccessRoute(ECOSSISTEMA_ROUTE);
+  }
 
   readonly evidLabel = EVIDENCIA_LABEL;
   readonly grupoLabel = GRUPO_LABEL;
@@ -285,6 +290,7 @@ export class EcossistemaPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (!this.canVisualizar) return;
     const saved = this.layoutStore.load();
     this.positions.set(saved?.positions ?? this.layoutStore.defaultPositions());
     if (saved?.view) {

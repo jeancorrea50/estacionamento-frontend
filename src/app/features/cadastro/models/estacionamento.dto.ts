@@ -6,7 +6,7 @@ export interface PessoaDTO {
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
   nomeFantasia: string;
-  documento: string;
+  cnpj: string;
   email: string;
   ativo: boolean;
 }
@@ -21,12 +21,17 @@ export interface EstacionamentoDTO {
 /** Item resumido para listagem (conforme retorno da API de listagem) */
 export interface EstacionamentoListItemDTO {
   id: number;
+  /** Chave global do tenant — necessária no GET por id quando o cadastro está em outro banco. */
+  codExportacao?: string | null;
+  pessoaId?: number | null;
   descricao: string;
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
-  documento: string;
+  cnpj: string;
   email: string;
   ativo: boolean;
+  capacidadeVeiculo?: number | null;
+  tamanhoTerreno?: string | null;
 }
 
 /** Endereço retornado em ObterPorId (pessoa.enderecos) */
@@ -47,9 +52,12 @@ export interface EnderecoDTO {
 export interface ContatoDTO {
   pessoaId: number;
   principal: boolean;
-  tipoContato: number;
-  numero: string;
-  observacao: string;
+  tipoContato?: number;
+  /** Legado UI — API usa `telefone`. */
+  numero?: string;
+  telefone?: string;
+  email?: string;
+  observacao?: string;
 }
 
 /** Pessoa aninhada no resultado de ObterPorId */
@@ -57,7 +65,7 @@ export interface PessoaObterPorIdDTO {
   tipoPessoa: TipoPessoa;
   nomeRazaoSocial: string;
   nomeFantasia: string;
-  documento: string;
+  cnpj: string;
   email: string;
   ativo: boolean;
   enderecos?: EnderecoDTO[];
@@ -67,7 +75,18 @@ export interface PessoaObterPorIdDTO {
   dataAtualizacao: string | null;
 }
 
-/** Resultado bruto de GET /api/Estacionamento/ObterPorId/:id (campo result) */
+/** Contexto vindo do GET /Estacionamento/{id} para preservar datas e ids no PUT completo. */
+export interface EstacionamentoPayloadMergeContext {
+  estacionamentoDataCriacao?: string;
+  estacionamentoDataAtualizacao?: string | null;
+  /** Objeto bruto de contaBancaria da API (ou primeiro item se vier em lista; clone superficial). */
+  contaBancariaPreserved?: Record<string, unknown> | null;
+  pessoaDescricao?: string | null;
+  pessoaDataCriacao?: string;
+  pessoaDataAtualizacao?: string | null;
+}
+
+/** Resultado bruto de GET /api/Estacionamento/{id} (campo result) */
 export interface EstacionamentoObterPorIdResultDTO {
   pessoaId: number;
   capacidadeVeiculo: number;
@@ -76,6 +95,9 @@ export interface EstacionamentoObterPorIdResultDTO {
   responsavelCpf: string;
   possuiSeguranca: boolean;
   possuiBanheiro: boolean;
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  diasFuncionamento?: string | null;
   tipoCobranca: number;
   cobrancaPorcentagem: number;
   cobrancaValor: number;
@@ -89,8 +111,26 @@ export interface EstacionamentoObterPorIdResultDTO {
   conta?: string;
   tipoConta?: string;
   chavePix?: string;
+  tipoChave?: 1 | 2 | 3 | 4 | 5 | null;
   /** Fotos em base64 ou URLs (integração backend) */
   fotos?: string[];
+
+  /** Multi-tenant / GtCentral */
+  codExportacao?: string | null;
+  isolationMode?: number | null;
+  bancoDadosConexaoId?: number | null;
+  ativo?: boolean | null;
+  nomeRazaoSocialCatalogo?: string | null;
+  fantasiaCatalogo?: string | null;
+  cidadeCatalogo?: string | null;
+  estadoCatalogo?: string | null;
+  bairroCatalogo?: string | null;
+  bancoDadosConexao?: {
+    id?: number;
+    nome?: string;
+    host?: string;
+    nomeBanco?: string;
+  } | null;
 }
 
 /** Resposta da API (wrapper success / result) */
@@ -100,9 +140,9 @@ export interface ApiResponseDTO<T> {
   result: T;
 }
 
-/** Parâmetros para GET /api/Estacionamento/Buscar (Swagger). Termo busca em id, descrição, nome/razão social, documento, e-mail, ativo. */
+/** Parâmetros para GET /api/Estacionamento?... (`Termo` é enviado como `Descricao` quando o backend não expõe `Termo` no OpenAPI). */
 export interface EstacionamentoBuscarParams {
-  /** Termo único: busca em id, descricao, nomeRazaoSocial, documento, email, ativo (backend aplica OR). */
+  /** Mapeado para `Descricao` no HttpClient. */
   Termo?: string;
   Descricao?: string;
   DataInicial?: string;

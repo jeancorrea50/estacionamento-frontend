@@ -7,6 +7,11 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
 import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { SignalrDashboardService } from '../services/signalr-dashboard.service';
+import { SignalrNotificationService } from '../services/signalr-notification.service';
+import { PortariaAlertasStore } from '../../features/movimentos/services/portaria-alertas.store';
+import { NotificationBellComponent } from './notification-bell/notification-bell.component';
+import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
 
 const MOBILE_BREAKPOINT = 768;
@@ -22,7 +27,15 @@ interface AccessContext {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterModule, SidebarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterOutlet,
+    RouterModule,
+    SidebarComponent,
+    NotificationBellComponent,
+    AdminEstacionamentoSelectModalComponent,
+  ],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss']
 })
@@ -31,8 +44,16 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
   private authService = inject(AuthService);
+  private dashboardHub = inject(SignalrDashboardService);
+  private notificationHub = inject(SignalrNotificationService);
+  private portariaAlertas = inject(PortariaAlertasStore);
 
   sidebarCollapsed = false;
+  readonly showEstacionamentoModal = signal(false);
+  readonly sessionEstacionamento = signal<{
+    razaoSocial: string;
+    cnpj: string;
+  } | null>(null);
   private persistSidebarCollapsed(): void {
     if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(this.sidebarCollapsed));
@@ -50,6 +71,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   currentMode = computed(() => this.themeMode());
   isFullWidthContent = signal(false);
+  /** Rotas de Movimentos mantêm o cromado “card sobre card”; demais telas usam UI plana (styles.css). */
+  readonly isMovimentosRoute = signal(false);
   private routerSub?: { unsubscribe: () => void };
   readonly loggedUsername = signal<string>('Usuário');
   readonly loggedTipoAcesso = signal<string>('Acesso não identificado');
@@ -72,11 +95,25 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.themeService.theme$.subscribe((t) => this.themeMode.set(t.mode));
   }
 
+  /** Sino de notificações (migrations/infra) — somente Admin. */
+  isAdminUser(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  canTrocarEstacionamentoSessao(): boolean {
+    return this.authService.canTrocarEstacionamentoSessao();
+  }
+
   ngOnInit(): void {
     this.loadLoggedUserContext();
+    this.refreshSessionEstacionamentoLabel();
     this.loadSidebarCollapsed();
     this.checkMobile();
     this.updateFullWidthContent(this.router.url);
+    this.bootstrapEstacionamentoSessao();
+    if (this.isAdminUser()) {
+      void this.notificationHub.connect();
+    }
     this.routerSub = this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
     ).subscribe((e) => {
@@ -85,17 +122,118 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Aplica pátio cadastrado silenciosamente; modal só via Trocar/Selecionar no topbar. */
+  private bootstrapEstacionamentoSessao(): void {
+    if (!this.authService.canTrocarEstacionamentoSessao()) {
+      this.refreshSessionEstacionamentoLabel();
+      return;
+    }
+
+    this.authService.bootstrapEstacionamentoSessao().subscribe({
+      next: (res) => {
+        this.refreshSessionEstacionamentoLabel();
+        if (res.applied) {
+          void this.dashboardHub.reconnectForSession();
+        }
+      },
+      error: () => this.refreshSessionEstacionamentoLabel(),
+    });
+  }
+
+  abrirSelecaoEstacionamento(): void {
+    if (!this.authService.canTrocarEstacionamentoSessao()) return;
+    this.showEstacionamentoModal.set(true);
+  }
+
+  onEstacionamentoSelected(): void {
+    this.showEstacionamentoModal.set(false);
+    this.refreshSessionEstacionamentoLabel();
+    // Hub + HTTP devem usar o JWT do pátio novo (EmpresaId/CodExportacao).
+    const url = this.router.url;
+    this.portariaAlertas.clear();
+    void this.dashboardHub.reconnectForSession().finally(() => {
+      void this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+        void this.router.navigateByUrl(url);
+      });
+    });
+  }
+
+  /** Atalho quando o lookup de pátios falha: abre o mapa sem sessão operacional. */
+  abrirEcossistemaSemPatio(): void {
+    this.showEstacionamentoModal.set(false);
+    void this.router.navigateByUrl('/app/administracao/ecossistema');
+  }
+
+  trocarEstacionamento(): void {
+    if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) return;
+    this.authService.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
+      next: (res) => {
+        if (!res.success) {
+          // Mesmo com falha na API, limpa sessão local para reabrir o modal.
+          this.authService.clearSessionEstacionamento();
+        }
+        this.dashboardHub.clearState();
+        this.portariaAlertas.clear();
+        void this.dashboardHub.disconnect();
+        this.refreshSessionEstacionamentoLabel();
+        this.showEstacionamentoModal.set(true);
+      },
+      error: () => {
+        this.authService.clearSessionEstacionamento();
+        this.dashboardHub.clearState();
+        this.portariaAlertas.clear();
+        void this.dashboardHub.disconnect();
+        this.refreshSessionEstacionamentoLabel();
+        this.showEstacionamentoModal.set(true);
+      },
+    });
+  }
+
+  private refreshSessionEstacionamentoLabel(): void {
+    if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) {
+      this.sessionEstacionamento.set(null);
+      return;
+    }
+    const session = this.authService.getSessionEstacionamento();
+    if (!session?.id) {
+      this.sessionEstacionamento.set(null);
+      return;
+    }
+    const razaoSocial =
+      session.razaoSocial?.trim() ||
+      session.nome?.trim() ||
+      `#${session.id}`;
+    this.sessionEstacionamento.set({
+      razaoSocial,
+      cnpj: session.cnpj?.trim() || '',
+    });
+  }
+
   private updateFullWidthContent(url: string): void {
-    const movimentos = url.includes('/movimentos');
+    const movimentos = url.includes('/movimentos') || url.includes('/patio');
+    this.isMovimentosRoute.set(movimentos);
     const estacionamento = url.includes('/cadastro/estacionamento');
-    const transportadora = url.includes('/cadastro/transportadora');
+    const transportadora = url.includes('/cadastro/transportadora') || url.includes('/cadastro/veiculo') || url.includes('/cadastro/motorista');
+    const financeiro = url.includes('/financeiro') || url.includes('/faturamento');
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');
-    this.isFullWidthContent.set(movimentos || estacionamento || transportadora || acessos || gerenciamento);
+    const redeCredenciada = url.includes('/rede-credenciada');
+    const ecossistema = url.includes('/administracao/ecossistema');
+    this.isFullWidthContent.set(
+      movimentos ||
+        estacionamento ||
+        transportadora ||
+        financeiro ||
+        acessos ||
+        gerenciamento ||
+        redeCredenciada ||
+        ecossistema
+    );
   }
 
   ngOnDestroy(): void {
     this.routerSub?.unsubscribe();
+    void this.notificationHub.disconnect();
   }
 
   @HostListener('window:resize')
@@ -294,6 +432,12 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     if (typeof value !== 'string' && typeof value !== 'number') return null;
     const digits = String(value).replace(/\D/g, '');
     return digits.length === 14 ? digits : null;
+  }
+
+  formatCnpjDisplay(value: string | null | undefined): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return 'CNPJ não informado';
+    return this.formatCnpj(raw);
   }
 
   private formatCnpj(value: string): string {

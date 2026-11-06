@@ -1,0 +1,243 @@
+<div class="custos-page">
+  <header class="custos-page__head">
+    <div>
+      <h1 class="custos-page__title">Custos gerenciais</h1>
+      <p class="custos-page__sub">Acompanhe gastos, investimentos e receitas da empresa.</p>
+    </div>
+  </header>
+
+  <nav class="dk-tabs custos-tabs" role="tablist" aria-label="Abas de custos">
+    <button type="button" class="dk-tabs__tab" role="tab" [class.tab--active]="aba() === 'visao'" (click)="setAba('visao')">
+      Visão geral
+    </button>
+    <button
+      type="button"
+      class="dk-tabs__tab"
+      role="tab"
+      [class.tab--active]="aba() === 'lancamentos'"
+      (click)="setAba('lancamentos')"
+    >
+      Lançamentos
+    </button>
+  </nav>
+
+  @if (aba() === 'visao') {
+    <section class="custos-panel">
+      <div class="custos-filters">
+        <label>
+          Ano
+          <select class="input-control" [ngModel]="anoFiltro()" (ngModelChange)="anoFiltro.set($event); carregarDashboard()">
+            @for (a of anosOpcoes(); track a) {
+              <option [ngValue]="a">{{ a }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Tipo
+          <select
+            class="input-control"
+            [ngModel]="tipoDashFiltro()"
+            (ngModelChange)="tipoDashFiltro.set($event); carregarDashboard()"
+          >
+            <option [ngValue]="null">Todos</option>
+            @for (t of tipos; track t.value) {
+              <option [ngValue]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (loadingDash()) {
+        <p class="loading-msg">Carregando dashboard…</p>
+      } @else if (dashboard(); as d) {
+        <div class="custos-kpis">
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Despesas</span>
+            <strong class="custos-kpi__value custos-kpi__value--despesa">{{ d.totalDespesa | currency: 'BRL' }}</strong>
+          </article>
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Investimentos</span>
+            <strong class="custos-kpi__value custos-kpi__value--invest">{{ d.totalInvestimento | currency: 'BRL' }}</strong>
+          </article>
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Receitas</span>
+            <strong class="custos-kpi__value custos-kpi__value--receita">{{ d.totalReceita | currency: 'BRL' }}</strong>
+          </article>
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Saldo líquido</span>
+            <strong class="custos-kpi__value" [class.custos-kpi__value--neg]="d.saldoLiquido < 0">
+              {{ d.saldoLiquido | currency: 'BRL' }}
+            </strong>
+          </article>
+        </div>
+
+        <div class="custos-charts">
+          <article class="custos-chart-card">
+            <h2>Evolução mensal — {{ d.ano }}</h2>
+            <apx-chart
+              [series]="chartMensalSeries()"
+              [chart]="chartLine"
+              [xaxis]="xaxisFrom(chartMensalCategories())"
+              [stroke]="stroke"
+              [fill]="fill"
+              [dataLabels]="dataLabels"
+              [yaxis]="yaxis"
+              [tooltip]="tooltip"
+              [legend]="legend"
+            ></apx-chart>
+          </article>
+          <article class="custos-chart-card">
+            <h2>Comparativo anual</h2>
+            <apx-chart
+              [series]="chartAnualSeries()"
+              [chart]="chartBar"
+              [xaxis]="xaxisFrom(chartAnualCategories())"
+              [plotOptions]="plotBars"
+              [dataLabels]="dataLabels"
+              [yaxis]="yaxis"
+              [tooltip]="tooltip"
+              [legend]="legend"
+            ></apx-chart>
+          </article>
+          <article class="custos-chart-card custos-chart-card--wide">
+            <h2>Por categoria — {{ d.ano }}</h2>
+            @if (chartCategoriaSeries().length === 0) {
+              <p class="empty-msg">Sem valores no período.</p>
+            } @else {
+              <apx-chart
+                [series]="chartCategoriaSeries()"
+                [chart]="chartPie"
+                [labels]="chartCategoriaLabels()"
+                [legend]="legend"
+                [tooltip]="tooltip"
+              ></apx-chart>
+            }
+          </article>
+        </div>
+      }
+    </section>
+  }
+
+  @if (aba() === 'lancamentos') {
+    <section class="custos-panel">
+      <div class="custos-filters custos-filters--lista">
+        <label class="custos-filters__search">
+          Busca
+          <input class="input-control" type="text" [ngModel]="termo()" (ngModelChange)="termo.set($event)" (keyup.enter)="onBuscarLista()" placeholder="Descrição…" />
+        </label>
+        <label>
+          Tipo
+          <select class="input-control" [ngModel]="tipoListaFiltro()" (ngModelChange)="tipoListaFiltro.set($event)">
+            <option [ngValue]="null">Todos</option>
+            @for (t of tipos; track t.value) {
+              <option [ngValue]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="btn btn-secondary" (click)="onBuscarLista()">Buscar</button>
+        <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo lançamento</button>
+      </div>
+
+      @if (loadingLista()) {
+        <p class="loading-msg">Carregando…</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of lancamentos(); track item.id) {
+                <tr>
+                  <td>{{ item.dataCompetencia | date: 'dd/MM/yyyy' }}</td>
+                  <td>{{ item.tipoLabel }}</td>
+                  <td>{{ item.categoriaNome }}</td>
+                  <td>{{ item.descricao }}</td>
+                  <td>{{ item.valor | currency: 'BRL' }}</td>
+                  <td class="acoes-cell">
+                    <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
+                    <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (lancamentos().length === 0) {
+            <p class="empty-msg">Nenhum lançamento encontrado.</p>
+          }
+        </div>
+        <p class="custos-pager">{{ totalCount() }} registro(s)</p>
+      }
+    </section>
+  }
+</div>
+
+@if (modalAberto()) {
+  <div class="modal-overlay" (click)="fecharModal()">
+    <div class="modal-content custos-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>{{ editId() ? 'Editar lançamento' : 'Novo lançamento' }}</h2>
+        <button type="button" class="modal-close" (click)="fecharModal()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>
+            Tipo
+            <select class="input-control" [(ngModel)]="form.tipo">
+              @for (t of tipos; track t.value) {
+                <option [ngValue]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Categoria
+            <select class="input-control" [(ngModel)]="form.categoriaId">
+              <option [ngValue]="0">Selecione…</option>
+              @for (c of categorias(); track c.id) {
+                <option [ngValue]="c.id">{{ c.nome }}</option>
+              }
+            </select>
+          </label>
+          <label class="form-grid__full">
+            Descrição
+            <input class="input-control" type="text" [(ngModel)]="form.descricao" />
+          </label>
+          <label>
+            Valor
+            <input class="input-control" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" />
+          </label>
+          <label>
+            Competência
+            <input class="input-control" type="date" [(ngModel)]="form.dataCompetencia" />
+          </label>
+          <label>
+            Pagamento
+            <input
+              class="input-control"
+              type="date"
+              [ngModel]="form.dataPagamento || ''"
+              (ngModelChange)="form.dataPagamento = $event || null"
+            />
+          </label>
+          <label class="form-grid__full">
+            Observação
+            <textarea class="input-control" rows="3" [(ngModel)]="form.observacao"></textarea>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="salvando()" (click)="salvar()">
+          {{ salvando() ? 'Salvando…' : 'Salvar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

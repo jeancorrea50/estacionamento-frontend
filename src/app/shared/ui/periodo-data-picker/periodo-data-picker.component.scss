@@ -1,0 +1,77 @@
+/* Estilos do calendário (rec-data-picker / rec-cal) — mesmo padrão de Movimentações. */
+@use '../../../features/financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: block;
+  position: relative;
+  z-index: 40;
+  overflow: visible;
+  min-width: 0;
+  width: 100%;
+}
+
+.periodo-data-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+}
+
+.periodo-data-picker__control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.periodo-data-picker__control .rec-data-picker__trigger {
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 10px;
+  padding: 0 12px;
+}
+
+.periodo-data-picker__control .rec-data-picker__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.periodo-data-picker__control .rec-data-picker__panel {
+  left: 0;
+  right: auto;
+}
+
+.periodo-data-picker__hint {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--rec-cal-muted, var(--text-muted, #94a3b8));
+}
+
+.periodo-data-picker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-2) 90%, #000);
+  color: var(--muted);
+  cursor: pointer;
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  &:hover {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 40%, var(--border-subtle));
+  }
+}

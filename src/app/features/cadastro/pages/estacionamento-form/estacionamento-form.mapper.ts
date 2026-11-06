@@ -3,16 +3,20 @@
  * Backend: resposanvelLegal, responsavelCpf, capacidadeVeiculo, tamanhoTerreno, tipoCobranca (0-3), etc.
  */
 
+import type { EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
+import { normalizeChavePixForApi } from '../../utils/chave-pix-format';
+
 export interface FormValue {
   id: number;
-  descricao: string;
+  /** Legado / opcional: no fluxo atual `descricao` do estacionamento é derivada de Nome Fantasia / Razão Social no mapper. */
+  descricao?: string;
   pessoaId: number;
   pessoa: {
     id: number;
     tipoPessoa: 1 | 2;
     nomeRazaoSocial: string;
     nomeFantasia: string;
-    documento: string;
+    cnpj: string;
     email: string;
     ativo: boolean;
   };
@@ -41,6 +45,17 @@ export interface FormValue {
   tipoTaxaMensalidade?: 'taxa' | 'mensalidade' | null;
   taxaPercentual?: number | null;
   mensalidadeValor?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  /** Configuração Valores — EstacionamentoConfiguracao via CRUD Estacionamento */
+  tipoTarifaAvulsa?: 1 | 2 | null;
+  valorAvulso?: number | null;
+  minutosToleranciaPermanencia?: number | null;
+  /** HH:mm. Vazio quando o pátio não informou. */
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  /** 1=segunda … 7=domingo, separados por vírgula. */
+  diasFuncionamento?: string | null;
   banco?: string;
   agenciaNumero?: string;
   agenciaDigito?: string;
@@ -48,13 +63,26 @@ export interface FormValue {
   contaDigito?: string;
   tipoConta?: string;
   chavePix?: string;
+  /** TipoChave backend: 1=Cpf, 2=Cnpj, 3=Email, 4=Telefone, 5=Aleatoria */
+  tipoChave?: 1 | 2 | 3 | 4 | 5 | null;
   contaBancariaId?: number | null;
   /** Titular da conta (padrão = pessoa responsável). */
   titularRazaoSocial?: string;
   titularCnpj?: string;
+  /** Multi-tenant */
+  codExportacao?: string;
+  isolationMode?: 1 | 2;
+  bancoDadosConexaoId?: number | null;
+  ativoTenant?: boolean;
 }
 
 /** TipoCobranca no backend: 0 = nenhum, 1 = taxa, 2 = mensalidade (ajustar se o backend usar outros valores). */
+function coordenadaPayload(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const numero = Number(value);
+  return Number.isFinite(numero) ? Math.round(numero * 1e6) / 1e6 : null;
+}
+
 function mapTipoCobranca(tipo: 'taxa' | 'mensalidade' | null | undefined): number {
   if (tipo === 'taxa') return 1;
   if (tipo === 'mensalidade') return 2;
@@ -99,21 +127,187 @@ function mapTipoContaToBackend(value: string | null | undefined): string {
   return String(value ?? '').trim();
 }
 
+/** Contrato `TipoChave`: 1=Cpf … 5=Aleatoria; null quando não informado. */
+function mapTipoChaveToBackend(value: number | null | undefined): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 1 || n > 5) return null;
+  return Math.trunc(n);
+}
+
+/** Contrato `ConfiguracaoValores` no POST/PUT Estacionamento. */
+function buildConfiguracaoValoresPayload(value: FormValue): Record<string, unknown> {
+  const tipoRaw = Number(value.tipoTarifaAvulsa);
+  const tipo = tipoRaw === 1 || tipoRaw === 2 ? tipoRaw : null;
+  const valorRaw = value.valorAvulso;
+  const valor =
+    valorRaw === null || valorRaw === undefined || valorRaw === ('' as unknown)
+      ? null
+      : Number(valorRaw);
+  const tolRaw = value.minutosToleranciaPermanencia;
+  const tolerancia =
+    tolRaw === null || tolRaw === undefined || tolRaw === ('' as unknown)
+      ? null
+      : Math.trunc(Number(tolRaw));
+
+  return {
+    tipoTarifaAvulsa: tipo,
+    valorAvulso: valor != null && Number.isFinite(valor) ? valor : null,
+    minutosToleranciaPermanencia:
+      tolerancia != null && Number.isFinite(tolerancia) ? tolerancia : null
+  };
+}
+
+
+function horaPayload(valor: unknown): string | null {
+  const texto = String(valor ?? '').trim();
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}:00` : null;
+}
+
+function gContaKey(obj: Record<string, unknown>, k: string): string {
+  const pascal = k.charAt(0).toUpperCase() + k.slice(1);
+  return String(obj[k] ?? obj[pascal] ?? '').trim();
+}
+
+/**
+ * Indica se o registro de conta (payload ou resposta API) tem algum dado bancário relevante.
+ */
+export function contaBancariaRegistroComDadosRelevantes(item: unknown): boolean {
+  if (!item || typeof item !== 'object') return false;
+  const o = item as Record<string, unknown>;
+  return Boolean(
+    gContaKey(o, 'banco') ||
+      gContaKey(o, 'agencia') ||
+      gContaKey(o, 'conta') ||
+      gContaKey(o, 'chavePix') ||
+      gContaKey(o, 'tipoConta') ||
+      gContaKey(o, 'titular') ||
+      gContaKey(o, 'cpfCnpj') ||
+      Number(o['tipoChave'] ?? o['TipoChave'] ?? 0) > 0
+  );
+}
+
+/**
+ * Primeiro nível: `contaBancaria` do JSON do GET.
+ * A API pode devolver lista ou um único objeto; normalizamos para array interno.
+ */
+export function extrairContaBancariaDaRespostaApi(raw: unknown): unknown[] {
+  if (raw == null || typeof raw !== 'object') return [];
+  const o = raw as Record<string, unknown>;
+  const list = o['contaBancaria'] ?? o['ContaBancaria'];
+  if (Array.isArray(list)) return list;
+  if (list != null && typeof list === 'object') return [list];
+  return [];
+}
+
+/**
+ * Monta um item de `contaBancaria`: merge do que veio no GET (`contaAtual`) com o formulário.
+ * Nomes alinhados ao Swagger (`agencia`, `agenciaDigito`, `conta`, `contaDigito`, …).
+ */
+export function buildContaBancariaMerged(
+  contaAtual: Record<string, unknown> | null | undefined,
+  value: FormValue,
+  estacionamentoId: number,
+  nowIso: string
+): Record<string, unknown> {
+  const base = contaAtual && typeof contaAtual === 'object' ? { ...contaAtual } : {};
+  const agenciaStr = buildAgencia(value.agenciaNumero, value.agenciaDigito);
+  const contaStr = buildConta(value.contaNumero, value.contaDigito);
+  const agenciaSplit = splitNumeroDigito(agenciaStr);
+  const contaSplit = splitNumeroDigito(contaStr);
+  const tipoContaBackend = mapTipoContaToBackend(value.tipoConta);
+  const titularRazaoSocial = String(value.titularRazaoSocial ?? '').trim();
+  const titularCnpj = String(value.titularCnpj ?? '').replace(/\D/g, '');
+
+  const idNum =
+    (Number(value.contaBancariaId ?? 0) || 0) > 0
+      ? Number(value.contaBancariaId)
+      : Number(base['id'] ?? base['Id'] ?? 0) || 0;
+
+  const descricao =
+    String(base['descricao'] ?? base['Descricao'] ?? '').trim() ||
+    titularRazaoSocial ||
+    String(value.pessoa?.nomeFantasia ?? '').trim() ||
+    '';
+
+  const dataCriacao =
+    String(base['dataCriacao'] ?? base['DataCriacao'] ?? '').trim() || nowIso;
+
+  const ativaBase = base['ativa'] ?? base['Ativa'];
+  const ativa = ativaBase === false ? false : true;
+
+  const out: Record<string, unknown> = {
+    ...base,
+    id: idNum,
+    descricao,
+    dataCriacao,
+    dataAtualizacao: nowIso,
+    titular: titularRazaoSocial,
+    cpfCnpj: titularCnpj,
+    banco: String(value.banco ?? '').trim(),
+    agencia: agenciaSplit.numero,
+    agenciaDigito: agenciaSplit.digito,
+    conta: contaSplit.numero,
+    contaDigito: contaSplit.digito,
+    tipoConta: tipoContaBackend,
+    ativa,
+    chavePix: normalizeChavePixForApi(value.chavePix, value.tipoChave),
+    tipoChave: mapTipoChaveToBackend(value.tipoChave)
+  };
+
+  const estacionamentoIdNum = Number(estacionamentoId) || 0;
+  if (estacionamentoIdNum > 0) {
+    // Contrato do backend usa EstacionamentoId; só enviar quando já houver id persistido.
+    out['EstacionamentoId'] = estacionamentoIdNum;
+  }
+
+  return out;
+}
+
+/** Compatibilidade / testes — preferir {@link buildContaBancariaMerged}. */
+export function formValueToContaBancariaItem(
+  value: FormValue,
+  estacionamentoId: number
+): Record<string, unknown> | null {
+  const now = new Date().toISOString();
+  const m = buildContaBancariaMerged(null, value, estacionamentoId, now);
+  return contaBancariaRegistroComDadosRelevantes(m) ? m : null;
+}
+
 /** Endereço no formato do backend (para preservar ao editar). */
 export type EnderecoPayload = Record<string, unknown>;
 
+/** Remove propriedades `undefined` em profundidade (JSON não serializa undefined). */
+export function stripUndefinedDeep(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+    return value.map(stripUndefinedDeep).filter((v) => v !== undefined);
+  }
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined) continue;
+    const next = stripUndefinedDeep(v);
+    if (next === undefined) continue;
+    out[k] = next;
+  }
+  return out;
+}
+
 /**
- * Gera o payload para POST Gravar / PUT Alterar conforme contrato do backend.
- * @param value valor do formulário
- * @param enderecosCarregados endereços retornados por ObterPorId (preservados na alteração)
- * @param fotosBase64 fotos em base64 para envio ao backend (máx. 4)
+ * Monta o body completo de POST/PUT /api/Estacionamento (merge do GET + formulário).
+ * @param merge contexto de ObterPorId (datas e conta preservada); omitir em cadastro novo.
  */
-export function formValueToEstacionamentoPayload(
+export function montarPayloadEstacionamento(
   value: FormValue,
   enderecosCarregados?: EnderecoPayload[] | null,
-  fotosBase64?: string[]
+  fotosBase64?: string[],
+  merge?: EstacionamentoPayloadMergeContext | null,
+  contratoBase64?: string | null
 ): Record<string, unknown> {
-  const doc = String(value.pessoa?.documento ?? '').replace(/\D/g, '');
+  const nowIso = new Date().toISOString();
+  const cnpj = String(value.pessoa?.cnpj ?? '').replace(/\D/g, '');
   const cpf = String(value.responsavelLegalCpf ?? '').replace(/\D/g, '');
   const telefone = String(value.contatoTelefone ?? '').replace(/\D/g, '').trim();
 
@@ -123,8 +317,10 @@ export function formValueToEstacionamentoPayload(
     contatos.push({
       pessoaId,
       principal: true,
-      tipoContato: 1,
+      // Contrato API: PessoaContatoInput.Telefone (não `numero`).
+      telefone,
       numero: telefone,
+      email: String(value.responsavelLegalEmail ?? '').trim() || undefined,
       observacao: ''
     });
   }
@@ -135,8 +331,9 @@ export function formValueToEstacionamentoPayload(
       contatos.push({
         pessoaId,
         principal: false,
-        tipoContato: 1,
+        telefone: num,
         numero: num,
+        email: String(c.email ?? '').trim() || undefined,
         observacao: ''
       });
     }
@@ -158,13 +355,35 @@ export function formValueToEstacionamentoPayload(
       }))
     : (enderecosCarregados && enderecosCarregados.length > 0 ? enderecosCarregados : []);
 
+  const pessoaDcMerged =
+    merge?.pessoaDataCriacao != null && String(merge.pessoaDataCriacao).trim() !== ''
+      ? String(merge.pessoaDataCriacao).trim()
+      : nowIso;
+
+  const pessoaDescricao =
+    (merge?.pessoaDescricao != null && String(merge.pessoaDescricao).trim() !== ''
+      ? String(merge.pessoaDescricao).trim()
+      : '') ||
+    String(value.pessoa?.nomeFantasia ?? '').trim() ||
+    String(value.pessoa?.nomeRazaoSocial ?? '').trim() ||
+    '';
+
+  const emailPessoa =
+    String(value.responsavelLegalEmail ?? '').trim() ||
+    String(value.pessoa?.email ?? '').trim();
+
   const pessoa: Record<string, unknown> = {
     id: value.pessoa?.id ?? 0,
+    descricao: pessoaDescricao,
+    dataCriacao: pessoaDcMerged,
+    dataAtualizacao: nowIso,
     tipoPessoa: value.pessoa?.tipoPessoa ?? 2,
     nomeRazaoSocial: value.pessoa?.nomeRazaoSocial ?? '',
     nomeFantasia: value.pessoa?.nomeFantasia ?? '',
-    documento: doc,
-    email: value.pessoa?.email ?? '',
+    cnpj,
+    // Compatibilidade com contratos legados de PessoaInput.
+    documento: cnpj,
+    email: emailPessoa,
     ativo: value.pessoa?.ativo ?? true,
     enderecos,
     contatos
@@ -172,76 +391,136 @@ export function formValueToEstacionamentoPayload(
 
   const tipoCobranca = mapTipoCobranca(value.tipoTaxaMensalidade ?? null);
   const capacidade = value.capacidadeVeiculos != null ? Number(value.capacidadeVeiculos) : 0;
-  const agencia = buildAgencia(value.agenciaNumero, value.agenciaDigito);
-  const conta = buildConta(value.contaNumero, value.contaDigito);
-  const agenciaSplit = splitNumeroDigito(agencia);
-  const contaSplit = splitNumeroDigito(conta);
-  const titularRazaoSocial = String(value.titularRazaoSocial ?? '').trim();
-  const titularCnpj = String(value.titularCnpj ?? '').replace(/\D/g, '');
-  const tipoContaBackend = mapTipoContaToBackend(value.tipoConta);
-  const temDadosBancarios = Boolean(
-    String(value.banco ?? '').trim() ||
-    agencia ||
-    conta ||
-    tipoContaBackend ||
-    String(value.chavePix ?? '').trim() ||
-    titularRazaoSocial ||
-    titularCnpj
-  );
-  const contaBancariaPayload = temDadosBancarios
-    ? [{
-        id: Number(value.contaBancariaId ?? 0) || 0,
-        estacionamentoId: value.id ?? 0,
-        titular: titularRazaoSocial,
-        cpfCnpj: titularCnpj,
-        banco: value.banco ?? '',
-        agencia: agenciaSplit.numero,
-        agenciaDigito: agenciaSplit.digito,
-        conta: contaSplit.numero,
-        contaDigito: contaSplit.digito,
-        tipoConta: tipoContaBackend,
-        ativa: true,
-        chavePix: value.chavePix ?? ''
-      }]
-    : [];
+  const estacionamentoIdRoot = Number(value.id ?? 0) || 0;
+
+  const descricaoEstacionamento =
+    String(value.pessoa?.nomeFantasia ?? '').trim() ||
+    String(value.pessoa?.nomeRazaoSocial ?? '').trim() ||
+    String(value.descricao ?? '').trim();
+
+  const preservedConta = merge?.contaBancariaPreserved ?? null;
+  const mergedConta = buildContaBancariaMerged(preservedConta, value, estacionamentoIdRoot, nowIso);
+  const contaBancariaPayload = contaBancariaRegistroComDadosRelevantes(mergedConta) ? mergedConta : undefined;
+
+  const estDataCriacao =
+    merge?.estacionamentoDataCriacao != null && String(merge.estacionamentoDataCriacao).trim() !== ''
+      ? String(merge.estacionamentoDataCriacao).trim()
+      : nowIso;
+
+  const isolationMode = (value.isolationMode === 2 ? 2 : 1) as 1 | 2;
+  const bancoDadosConexaoId =
+    value.bancoDadosConexaoId != null && Number(value.bancoDadosConexaoId) > 0
+      ? Number(value.bancoDadosConexaoId)
+      : 0;
 
   const payload: Record<string, unknown> = {
     id: value.id ?? 0,
-    descricao: value.descricao ?? '',
-    dataCriacao: new Date().toISOString(),
-    dataAtualizacao: new Date().toISOString(),
-    pessoaId: value.pessoaId ?? 0,
+    descricao: descricaoEstacionamento,
+    dataCriacao: estDataCriacao,
+    dataAtualizacao: nowIso,
+    pessoaId,
     capacidadeVeiculo: capacidade,
     tamanhoTerreno: value.tamanho != null ? String(value.tamanho) : '',
-    resposanvelLegal: value.responsavelLegalNome ?? '', // nome do backend (typo)
+    // Contrato atual: ResponsavelLegal; tipografia legada mantida por compatibilidade.
+    responsavelLegal: value.responsavelLegalNome ?? '',
+    resposanvelLegal: value.responsavelLegalNome ?? '',
     responsavelCpf: cpf || '',
+    responsavelEmail: emailPessoa,
+    responsavelTelefone: String(value.contatoTelefone ?? '').replace(/\D/g, ''),
     possuiSeguranca: value.possuiSeguranca ?? false,
     possuiBanheiro: value.possuiBanheiro ?? false,
     tipoCobranca,
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
+    latitude: coordenadaPayload(value.latitude),
+    longitude: coordenadaPayload(value.longitude),
+    // Contrato EstacionamentoPostInput/PutInput usa PessoaJuridica (não `pessoa` na raiz).
+    pessoaJuridica: pessoa,
+    /** Legado — alguns consumidores ainda leem `pessoa`. */
     pessoa,
-    banco: value.banco ?? '',
-    agencia,
-    conta,
-    agenciaDigito: agenciaSplit.digito,
-    contaDigito: contaSplit.digito,
-    tipoConta: tipoContaBackend,
-    chavePix: value.chavePix ?? '',
-    titular: titularRazaoSocial,
-    cpfCnpj: titularCnpj,
-    titularRazaoSocial,
-    titularCnpj,
-    ativa: true,
-    // Backend novo também aceita/espera contaBancaria (lista).
-    contaBancaria: contaBancariaPayload,
-    ContaBancaria: contaBancariaPayload
+    /**
+     * Contrato obrigatório: objeto aninhado `bancoDados` (não campos flat na raiz).
+     * @see EstacionamentoBancoDadosInput
+     */
+    bancoDados: {
+      isolationMode,
+      bancoDadosConexaoId
+    },
+    /**
+     * Tarifa avulsa + tolerância (persistido em EstacionamentoConfiguracao).
+     * TipoTarifaAvulsa: 1=Hora, 2=Diaria.
+     */
+    configuracaoValores: buildConfiguracaoValoresPayload(value),
+    horarioAbertura: horaPayload(value.horarioAbertura),
+    horarioFechamento: horaPayload(value.horarioFechamento),
+    diasFuncionamento: String(value.diasFuncionamento ?? '').trim() || null,
+    /** Tenant GtCentral + flag raiz do contrato EstacionamentoPost/PutInput.Ativo */
+    ativo: value.ativoTenant ?? value.pessoa?.ativo ?? true,
   };
+
+  const contrato = String(contratoBase64 ?? '')
+    .trim()
+    .replace(/^data:application\/pdf;base64,/i, '');
+  if (contrato) {
+    /** byte[] Contrato — JSON como base64, sem prefixo data URL. */
+    payload['contrato'] = contrato;
+  }
+
+  const cod = String(value.codExportacao ?? '').trim();
+  if (cod) {
+    payload['codExportacao'] = cod;
+  }
+
+  if (contaBancariaPayload) {
+    payload['contaBancaria'] = contaBancariaPayload;
+  }
 
   const fotos = fotosBase64?.filter((f) => typeof f === 'string' && f.length > 0) ?? [];
   if (fotos.length > 0) {
     payload['fotos'] = fotos;
   }
 
-  return payload;
+  return stripUndefinedDeep(payload) as Record<string, unknown>;
+}
+
+/**
+ * Alias de {@link montarPayloadEstacionamento} para POST/PUT completo.
+ * @param merge opcional: contexto do GET na edição (datas e conta preservadas).
+ */
+export function formValueToEstacionamentoPayload(
+  value: FormValue,
+  enderecosCarregados?: EnderecoPayload[] | null,
+  fotosBase64?: string[],
+  merge?: EstacionamentoPayloadMergeContext | null,
+  contratoBase64?: string | null
+): Record<string, unknown> {
+  return montarPayloadEstacionamento(
+    value,
+    enderecosCarregados ?? null,
+    fotosBase64 ?? [],
+    merge ?? null,
+    contratoBase64
+  );
+}
+
+/**
+ * PUT da aba Dados Bancários: reforça `contaBancaria` com merge explícito (GET + form) e alinha `dataAtualizacao`.
+ */
+export function montarPayloadSalvarAbaDadosBancarios(
+  value: FormValue,
+  enderecosCarregados: EnderecoPayload[] | null | undefined,
+  merge: EstacionamentoPayloadMergeContext | null,
+  estacionamentoId: number,
+  contratoBase64?: string | null
+): Record<string, unknown> {
+  const nowIso = new Date().toISOString();
+  const base = montarPayloadEstacionamento(value, enderecosCarregados ?? null, [], merge, contratoBase64);
+  const merged = buildContaBancariaMerged(merge?.contaBancariaPreserved ?? null, value, estacionamentoId, nowIso);
+  if (!contaBancariaRegistroComDadosRelevantes(merged)) {
+    delete base['contaBancaria'];
+  } else {
+    base['contaBancaria'] = merged;
+    base['dataAtualizacao'] = nowIso;
+  }
+  return stripUndefinedDeep(base) as Record<string, unknown>;
 }

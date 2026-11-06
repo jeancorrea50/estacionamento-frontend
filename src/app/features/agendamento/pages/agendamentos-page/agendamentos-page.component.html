@@ -1,0 +1,399 @@
+<div class="cadastro-transportadora-shell">
+  <div class="page-container">
+    <div class="page-content trn-page-content--dashboard">
+      <header class="est-dash-hero trn-dash-hero" aria-labelledby="ag-dash-title">
+        <div class="est-dash-hero__icon trn-dash-hero__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">calendar_month</span>
+        </div>
+        <div class="est-dash-hero__copy">
+          <h1 id="ag-dash-title" class="est-dash-hero__title">Agendamentos</h1>
+          <p class="est-dash-hero__subtitle">
+            Agende entradas de veículos no pátio selecionado, confirme a chegada ou cancele
+            compromissos.
+          </p>
+        </div>
+      </header>
+
+      @if (!canVisualizar) {
+        <div class="trn-list-banner trn-list-banner--error" role="status">
+          <p class="error-msg">Sem permissão para visualizar Agendamentos.</p>
+        </div>
+      } @else {
+        <section
+          class="est-dash-filter trn-dash-filter ag-dash-filter"
+          aria-label="Filtros da listagem"
+        >
+          @if (podeOperarPatio) {
+            <div class="est-dash-filter__select-wrap">
+              <select
+                class="est-dash-filter__select input-control trn-dash-filter__select"
+                [(ngModel)]="filtroTransportadoraId"
+                aria-label="Transportadora"
+              >
+                <option [ngValue]="null">Todas as transportadoras</option>
+                @for (t of transportadoras(); track t.id) {
+                    <option [ngValue]="t.id">
+                      {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
+                    </option>
+                  }
+              </select>
+            </div>
+          }
+          <label class="est-dash-filter__search ag-dash-filter__search">
+            <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true"
+              >search</span
+            >
+            <input
+              type="text"
+              class="est-dash-filter__search-input"
+              placeholder="Placa, motorista ou CPF…"
+              [(ngModel)]="filtroBusca"
+              (keyup.enter)="onBuscar()"
+              autocomplete="off"
+              aria-label="Buscar por placa, motorista ou CPF"
+            />
+          </label>
+          <app-periodo-data-picker
+            emptyLabel="Qualquer período"
+            ariaLabel="Selecionar período"
+            [dataInicial]="filtroDataInicial"
+            [dataFinal]="filtroDataFinal"
+            (periodoChange)="onPeriodoChange($event)"
+          />
+          <div class="ag-dash-filter__actions">
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar"
+              (click)="onBuscar()"
+              aria-label="Buscar agendamentos"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              Buscar
+            </button>
+            @if (podeCriar) {
+              <button
+                type="button"
+                class="est-dash-btn est-dash-btn--primary"
+                (click)="abrirNovo()"
+                aria-label="Novo agendamento"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                Novo
+              </button>
+            }
+          </div>
+        </section>
+
+        @if (erroList(); as erro) {
+          <div class="trn-list-banner trn-list-banner--error" role="alert">
+            <p class="error-msg">{{ erro }}</p>
+          </div>
+        }
+        @if (loadingList()) {
+          <p class="loading-msg trn-loading">Carregando...</p>
+        }
+
+        @if (jaBuscou() && !loadingList() && !erroList()) {
+          <div class="trn-list-metrics" aria-label="Resumo da consulta">
+            <app-est-summary-metric
+              icon="event"
+              label="Agendados"
+              [value]="totalCount()"
+              variant="neutral"
+            />
+            <app-est-summary-metric
+              icon="local_shipping"
+              label="Nesta página"
+              [value]="items().length"
+              variant="success"
+            />
+          </div>
+
+          <div class="trn-list-table-card">
+            <div class="trn-list-table-scroll">
+              <table class="data-table trn-table">
+                <thead>
+                  <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Placa</th>
+                    <th scope="col">Motorista</th>
+                    @if (podeOperarPatio) {
+                      <th scope="col">Transportadora</th>
+                    }
+                    <th scope="col">Data agendada</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Observação</th>
+                    <th scope="col" class="trn-table__th-acoes">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of items(); track item.id) {
+                    <tr class="trn-table__row">
+                      <td>{{ item.id }}</td>
+                      <td>{{ formatPlaca(item.placaVeiculo) }}</td>
+                      <td>{{ item.nomeMotorista || '—' }}</td>
+                      @if (podeOperarPatio) {
+                        <td>{{ item.nomeTransportadora || '—' }}</td>
+                      }
+                      <td>{{ formatDateTime(item.dataHoraEntrada) }}</td>
+                      <td>
+                        <span class="ag-status-pill">{{ statusLabel(item.status) }}</span>
+                      </td>
+                      <td>{{ item.observacao || '—' }}</td>
+                      <td class="trn-table__acoes">
+                        @if (temAcoes(item)) {
+                          <div
+                            class="trn-act-btns"
+                            role="group"
+                            [attr.aria-label]="'Ações para agendamento ' + item.id"
+                          >
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--neutral"
+                              title="Recibo A4"
+                              aria-label="Gerar recibo do agendamento"
+                              [disabled]="gerandoReciboId() === item.id"
+                              (click)="emitirRecibo(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true"
+                                >receipt_long</span
+                              >
+                            </button>
+                            @if (podeConfirmarItem(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--accent"
+                                title="Confirmar entrada"
+                                (click)="confirmarEntrada(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true"
+                                  >login</span
+                                >
+                              </button>
+                            }
+                            @if (podeCancelarItem(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Cancelar agendamento"
+                                (click)="cancelar(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true"
+                                  >cancel</span
+                                >
+                              </button>
+                            }
+                          </div>
+                        } @else {
+                          <span class="ag-acoes-vazio" aria-hidden="true">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (items().length === 0) {
+              <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+                <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
+                <p class="empty-msg">Nenhum agendamento encontrado.</p>
+              </div>
+            }
+          </div>
+
+          <footer class="trn-list-footer">
+            <p class="trn-list-footer__info">
+              Mostrando <strong>{{ intervaloLista.de }}</strong> a
+              <strong>{{ intervaloLista.ate }}</strong> de
+              <strong>{{ totalCount() }}</strong>
+              {{ totalCount() === 1 ? 'agendamento' : 'agendamentos' }}
+            </p>
+            <div class="trn-list-footer__right">
+              <div class="trn-footer-pager" aria-label="Paginação">
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() <= 1 || totalCount() === 0"
+                  (click)="irParaPagina(1)"
+                  aria-label="Primeira página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >keyboard_double_arrow_left</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() <= 1 || totalCount() === 0"
+                  (click)="irParaPagina(numeroPagina() - 1)"
+                  aria-label="Página anterior"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="trn-foot-current" aria-current="page">{{
+                  totalCount() === 0 ? 0 : numeroPagina()
+                }}</span>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() >= totalPaginas || totalCount() === 0"
+                  (click)="irParaPagina(numeroPagina() + 1)"
+                  aria-label="Próxima página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() >= totalPaginas || totalCount() === 0"
+                  (click)="irParaPagina(totalPaginas)"
+                  aria-label="Última página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >keyboard_double_arrow_right</span
+                  >
+                </button>
+              </div>
+            </div>
+          </footer>
+        }
+      }
+    </div>
+  </div>
+
+  @if (showForm()) {
+    <div class="modal-overlay modal-overlay--frota" (click)="fecharForm()" role="presentation">
+      <div
+        class="modal-content modal-content--frota"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-agendamento-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="modal-header">
+          <h2 id="modal-agendamento-title">Novo agendamento</h2>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharForm()">
+            &times;
+          </button>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="salvar()">
+          <div class="modal-body modal-body--frota-compact">
+            <div class="form-row">
+              <label>Data/hora <span class="required">*</span></label>
+              <app-agendamento-data-hora-picker
+                [value]="form.controls.dataAgendamento.value || ''"
+                (valueChange)="onDataHoraChange($event)"
+              />
+            </div>
+            @if (podeOperarPatio) {
+              <div class="form-row">
+                <label for="ag-transp">Transportadora <span class="required">*</span></label>
+                <select
+                  id="ag-transp"
+                  class="input-control input-control--select"
+                  formControlName="transportadoraId"
+                  (change)="onTransportadoraFormChange()"
+                >
+                  <option [ngValue]="null">Selecione</option>
+                  @for (t of transportadoras(); track t.id) {
+                    <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial }}</option>
+                  }
+                </select>
+              </div>
+            }
+            <div class="form-row ag-placas-field">
+              <label>Placas <span class="required">*</span></label>
+              <div class="ag-placas-field__control">
+                @if (loadingFrota()) {
+                  <span class="ag-placas-field__status">Carregando frota...</span>
+                } @else if (!transportadoraFormId()) {
+                  <span class="ag-placas-field__status">Selecione a transportadora para listar as placas.</span>
+                } @else if (frotaVeiculos().length === 0) {
+                  <span class="ag-placas-field__status">Nenhuma placa cadastrada para esta transportadora.</span>
+                } @else {
+                  <div class="ag-placa-combo" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="input-control input-control--select ag-placa-combo__trigger"
+                      (click)="togglePlacasDropdown($event)"
+                      [attr.aria-expanded]="placasDropdownAberto()"
+                      aria-haspopup="listbox"
+                      aria-label="Selecionar placas"
+                    >
+                      <span class="ag-placa-combo__trigger-text">{{ labelPlacasSelecionadas() }}</span>
+                      <span class="material-symbols-outlined ag-placa-combo__chevron" aria-hidden="true">
+                        {{ placasDropdownAberto() ? 'expand_less' : 'expand_more' }}
+                      </span>
+                    </button>
+
+                    @if (placasDropdownAberto()) {
+                      <div class="ag-placa-combo__panel" role="listbox" aria-multiselectable="true">
+                        <label class="ag-placa-combo__search">
+                          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                          <input
+                            type="text"
+                            class="input-control"
+                            placeholder="Digite a placa para buscar…"
+                            [ngModel]="filtroPlacaFrota()"
+                            (ngModelChange)="onFiltroPlacaFrotaChange($event)"
+                            [ngModelOptions]="{ standalone: true }"
+                            autocomplete="off"
+                            aria-label="Buscar placa"
+                            (click)="$event.stopPropagation()"
+                          />
+                        </label>
+
+                        <div class="ag-placa-combo__list">
+                          @for (v of frotaVeiculosFiltrados(); track v.id) {
+                            <label
+                              class="ag-placa-combo__item"
+                              [class.ag-placa-combo__item--on]="placaSelecionada(v.id)"
+                            >
+                              <input
+                                type="checkbox"
+                                [checked]="placaSelecionada(v.id)"
+                                (change)="togglePlaca(v.id, $event)"
+                              />
+                              <span class="ag-placa-combo__placa">{{ formatPlaca(v.placa) }}</span>
+                              <span class="ag-placa-combo__veiculo" [title]="v.marcaModelo || ''">
+                                {{ v.marcaModelo || '—' }}
+                              </span>
+                            </label>
+                          } @empty {
+                            <div class="ag-placa-combo__empty">
+                              Nenhuma placa encontrada para “{{ filtroPlacaFrota() }}”.
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="ag-obs">Observação</label>
+              <input
+                id="ag-obs"
+                type="text"
+                class="input-control"
+                formControlName="observacao"
+                maxlength="200"
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="fecharForm()">Fechar</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="form.invalid || salvando() || loadingFrota() || placasSelecionadasIds().length === 0"
+            >
+              {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

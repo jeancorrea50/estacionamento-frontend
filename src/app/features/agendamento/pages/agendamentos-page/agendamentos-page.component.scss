@@ -1,0 +1,310 @@
+@use '../../../cadastro/styles/cadastro-est-shared' as *;
+@use '../../../cadastro/styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+@import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
+
+/* Barra de filtros: uma linha alinhada (mesmo ritmo do dash de cadastro). */
+.ag-dash-filter.est-dash-filter {
+  align-items: center;
+  gap: 10px;
+  overflow: visible;
+}
+
+.ag-dash-filter__search.est-dash-filter__search {
+  flex: 1 1 180px;
+  max-width: 260px;
+  min-width: 160px;
+}
+
+.ag-dash-filter app-periodo-data-picker {
+  flex: 0 1 220px;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.ag-dash-filter__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.ag-dash-filter .est-dash-btn {
+  height: 42px;
+  min-height: 42px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ag-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+  color: var(--primary, #1d4ed8);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.trn-table__acoes,
+.trn-act-btns {
+  overflow: visible;
+}
+
+.trn-act-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+.ag-acoes-vazio {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .ag-dash-filter__actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .ag-dash-filter.est-dash-filter {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ag-dash-filter__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ag-dash-filter .est-dash-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
+  }
+
+  .ag-dash-filter .est-dash-btn--primary {
+    flex: 1 1 100%;
+  }
+
+  .trn-list-table-card,
+  .trn-list-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trn-table {
+    min-width: 720px;
+  }
+
+  .trn-table__acoes {
+    position: sticky;
+    right: 0;
+    background: inherit;
+    z-index: 1;
+  }
+
+  .trn-act-btns {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .trn-list-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    overflow-x: visible;
+  }
+}
+
+/* Body do modal rola quando a lista de placas abre abaixo do campo. */
+.modal-content--frota .modal-body.modal-body--frota-compact {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Mesmo grid do Transportadora: label (110px) + controle (1fr). */
+.ag-placas-field {
+  position: relative;
+  z-index: 2;
+  align-items: start !important;
+}
+
+.ag-placas-field__control {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.ag-placas-field__status {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted, #94a3b8);
+  line-height: 1.35;
+  padding: 8px 0;
+}
+
+.ag-placa-combo {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.ag-placa-combo__trigger {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ag-placa-combo__trigger-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-placa-combo__chevron {
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.ag-placa-combo__panel {
+  /* Em fluxo, logo abaixo do trigger — sem sobrepor campos superiores. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  /* ~10 linhas de placa + campo de busca; além disso, rolagem. */
+  max-height: 460px;
+  padding: 10px;
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  background: var(--surface-elevated, #1e293b);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.ag-placa-combo__search {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.ag-placa-combo__search .material-symbols-outlined {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--text-muted, #94a3b8);
+  pointer-events: none;
+}
+
+.ag-placa-combo__search .input-control {
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 36px;
+  height: 36px;
+  min-height: 36px;
+}
+
+.ag-placa-combo__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* ~10 itens visíveis sem precisar digitar na busca. */
+  max-height: 400px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ag-placa-combo__item {
+  display: grid;
+  grid-template-columns: 18px minmax(5.5rem, auto) 1fr;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ag-placa-combo__item:hover {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 12%, transparent);
+}
+
+.ag-placa-combo__item--on {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 18%, transparent);
+}
+
+.ag-placa-combo__item input {
+  margin: 0;
+}
+
+.ag-placa-combo__placa {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.ag-placa-combo__veiculo {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-placa-combo__empty {
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+}

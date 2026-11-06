@@ -1,0 +1,79 @@
+@use '../../../../shared/styles/relatorio-operacao-shell';
+
+.rel-placa {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.rel-valor {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rel-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.rel-pill--entrada {
+  background: color-mix(in srgb, var(--success, #36c98f) 18%, transparent);
+  color: var(--success, #36c98f);
+  border-color: color-mix(in srgb, var(--success, #36c98f) 45%, transparent);
+}
+
+.rel-pill--saida {
+  background: color-mix(in srgb, var(--text-muted, #92929f) 16%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text-muted, #92929f) 35%, transparent);
+}
+
+.rel-pill--suspenso {
+  background: color-mix(in srgb, var(--warning, #e8a23a) 18%, transparent);
+  color: var(--warning, #e8a23a);
+  border-color: color-mix(in srgb, var(--warning, #e8a23a) 45%, transparent);
+}
+
+.rel-pill--agendado {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 18%, transparent);
+  color: var(--primary, #3d8bff);
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 45%, transparent);
+}
+
+.rel-pill--cancelado {
+  background: color-mix(in srgb, var(--danger, #f06468) 14%, transparent);
+  color: var(--danger, #f06468);
+  border-color: color-mix(in srgb, var(--danger, #f06468) 40%, transparent);
+}
+
+.rel-pill--sim {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 16%, transparent);
+  color: var(--primary, #3d8bff);
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 40%, transparent);
+}
+
+.rel-pill--nao {
+  background: color-mix(in srgb, var(--text-muted, #92929f) 12%, transparent);
+  color: var(--text-muted, #92929f);
+  border-color: color-mix(in srgb, var(--text-muted, #92929f) 30%, transparent);
+}
+
+.rel-pill--excedente {
+  background: color-mix(in srgb, var(--warning, #e8a23a) 20%, transparent);
+  color: var(--warning, #e8a23a);
+  border-color: color-mix(in srgb, var(--warning, #e8a23a) 50%, transparent);
+}
+
+.rel-row--excedente td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning, #e8a23a);
+}

@@ -1,21 +1,24 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, catchError, map, of, timeout, throwError } from 'rxjs';
 import {
   EstacionamentoDTO,
   EstacionamentoListItemDTO,
   EstacionamentoObterPorIdResultDTO,
-  ApiResponseDTO,
   EstacionamentoBuscarParams,
   PagedResultDTO,
-  EnderecoDTO
+  EnderecoDTO,
+  ContatoDTO,
+  PessoaObterPorIdDTO,
+  EstacionamentoPayloadMergeContext,
 } from '../models/estacionamento.dto';
 import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
+import type { PontoMapa } from '../../../shared/maps/ponto-mapa.model';
 
 /** Base da API do backend (dev: /api com proxy; prod: URL completa). */
 const API_BASE = environment.API_BASE_URL;
-const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
+const Estacionamento = `${API_BASE}/Estacionamento`;
 
 /** Objeto no formato do formulário (para patchValue) após carregar ObterPorId */
 export interface EstacionamentoFormValue {
@@ -27,7 +30,7 @@ export interface EstacionamentoFormValue {
     tipoPessoa: 1 | 2;
     nomeRazaoSocial: string;
     nomeFantasia: string;
-    documento: string;
+    cnpj: string;
     email: string;
     ativo: boolean;
   };
@@ -38,6 +41,9 @@ export interface EstacionamentoFormValue {
   tamanho: string;
   possuiSeguranca: boolean;
   possuiBanheiro: boolean;
+  horarioAbertura?: string | null;
+  horarioFechamento?: string | null;
+  diasFuncionamento?: string | null;
   tipoTaxaMensalidade: 'taxa' | 'mensalidade' | null;
   taxaPercentual: number | null;
   mensalidadeValor: number | null;
@@ -56,11 +62,24 @@ export interface EstacionamentoFormValue {
   conta?: string;
   tipoConta?: string;
   chavePix?: string;
+  /** TipoChave: 1=Cpf, 2=Cnpj, 3=Email, 4=Telefone, 5=Aleatoria */
+  tipoChave?: 1 | 2 | 3 | 4 | 5 | null;
   contaBancariaId?: number | null;
+  /** Configuração Valores (GET Estacionamento.configuracaoValores) */
+  tipoTarifaAvulsa?: 1 | 2 | null;
+  valorAvulso?: number | null;
+  minutosToleranciaPermanencia?: number | null;
   titularRazaoSocial?: string;
   titularCnpj?: string;
   /** Fotos retornadas pela API (base64 ou URL); exibidas no passo Fotos. */
   loadedFotosBase64?: string[];
+  /** Dados do GET para montar PUT completo (datas, conta preservada). */
+  payloadMerge?: EstacionamentoPayloadMergeContext;
+  /** Multi-tenant GtCentral */
+  codExportacao?: string;
+  isolationMode?: 1 | 2;
+  bancoDadosConexaoId?: number | null;
+  ativoTenant?: boolean;
 }
 
 @Injectable({
@@ -69,18 +88,56 @@ export interface EstacionamentoFormValue {
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
 
-  /** POST /api/Estacionamento/Gravar (Swagger: EstacionamentoPostInput). Erros propagam para o ErrorInterceptor (toast). */
+  /** GET /api/Estacionamento/mapa — pátios com latitude e longitude. Sem permissão extra. */
+  listarMapa(): Observable<PontoMapa[]> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.mapa}`).pipe(
+      map((body) => normalizarPontosMapa(this.peelApiEnvelope(body)))
+    );
+  }
+
+  /** POST /api/Estacionamento (body: EstacionamentoPostInput). */
   gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
-    return this.http.post<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.gravar}`, dto).pipe(
+    const url = EstacionamentoPaths.gravar
+      ? `${Estacionamento}/${EstacionamentoPaths.gravar}`
+      : Estacionamento;
+    return this.http.post<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
   }
 
-  /** PUT /api/Estacionamento/Alterar (Swagger: EstacionamentoPutInput). Erros propagam para o ErrorInterceptor (toast). */
+  /** PUT /api/Estacionamento (body: EstacionamentoPutInput). */
   alterar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
-    return this.http.put<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.alterar}`, dto).pipe(
+    const url = EstacionamentoPaths.alterar
+      ? `${Estacionamento}/${EstacionamentoPaths.alterar}`
+      : Estacionamento;
+    return this.http.put<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
+  }
+
+  /** PUT /api/Estacionamento/conexao — vincula tenant ao perfil BancoDadosConexao (Admin). */
+  atualizarConexao(payload: {
+    codExportacao: string;
+    estacionamentoId?: number | null;
+    isolationMode: 1 | 2;
+    bancoDadosConexaoId?: number | null;
+    ativo: boolean;
+  }): Observable<Record<string, unknown>> {
+    return this.http
+      .put<unknown>(`${Estacionamento}/${EstacionamentoPaths.atualizarConexao}`, payload)
+      .pipe(
+        map((body) => {
+          if (body != null && typeof body === 'object') {
+            const o = body as Record<string, unknown>;
+            const inner = o['result'] ?? o['Result'];
+            if (inner != null && typeof inner === 'object') {
+              return inner as Record<string, unknown>;
+            }
+            return o;
+          }
+          return {};
+        })
+      );
   }
 
   /** API GTS costuma devolver `{ success, result: { id, ... } }`; o formulário usa `res.id`. */
@@ -98,22 +155,22 @@ export class EstacionamentoService {
     return body as EstacionamentoDTO;
   }
 
-  /** DELETE /api/Estacionamento/Delete/{id} (Swagger). Erros propagam para o ErrorInterceptor (toast). */
+  /** DELETE /api/Estacionamento/{id} */
   excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${ESTACIONAMENTO}/${EstacionamentoPaths.excluir(id)}`);
+    return this.http.delete<void>(`${Estacionamento}/${EstacionamentoPaths.excluir(id)}`);
   }
 
   /**
-   * GET /api/Estacionamento/Buscar (Swagger)
-   * Paginação: 50 registros por página.
+   * GET /api/Estacionamento?... (query: Descricao, DataInicial, DataFinal, paginação, etc.)
+   * Termo do formulário é mapeado para Descricao (campo do OpenAPI).
    */
   buscar(params: EstacionamentoBuscarParams): Observable<PagedResultDTO<EstacionamentoListItemDTO>> {
     const query = new URLSearchParams();
-    const termo = params.Termo != null ? params.Termo.trim() : '';
-    if (termo !== '') {
-      query.set('Termo', termo);
-    } else if (params.Descricao != null && params.Descricao.trim() !== '') {
-      query.set('Descricao', params.Descricao.trim());
+    const fromTermo = params.Termo != null && params.Termo.trim() !== '' ? params.Termo.trim() : '';
+    const fromDesc = params.Descricao != null && params.Descricao.trim() !== '' ? params.Descricao.trim() : '';
+    const desc = fromDesc || fromTermo;
+    if (desc !== '') {
+      query.set('Descricao', desc);
     }
     if (params.DataInicial != null) query.set('DataInicial', params.DataInicial);
     if (params.DataFinal != null) query.set('DataFinal', params.DataFinal);
@@ -122,7 +179,10 @@ export class EstacionamentoService {
     if (params.Propriedade != null) query.set('Propriedade', params.Propriedade);
     if (params.Sort != null) query.set('Sort', params.Sort);
 
-    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${query.toString()}`;
+    const listUrl = EstacionamentoPaths.buscar
+      ? `${Estacionamento}/${EstacionamentoPaths.buscar}`
+      : Estacionamento;
+    const url = `${listUrl}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => {
@@ -248,36 +308,131 @@ export class EstacionamentoService {
     return empty();
   }
 
-  /** Mapeia item do Buscar para EstacionamentoListItemDTO (aceita PascalCase e tipo/tipoPessoa). */
+  /** Mapeia item do Buscar para EstacionamentoListItemDTO (aceita PascalCase, aninhamentos e tipo/tipoPessoa). */
   private mapBuscarItemToListItem(row: Record<string, unknown>): EstacionamentoListItemDTO {
     if (!row || typeof row !== 'object') {
-      return { id: 0, descricao: '', tipoPessoa: 2, nomeRazaoSocial: '', documento: '', email: '', ativo: true };
+      return {
+        id: 0,
+        codExportacao: null,
+        pessoaId: null,
+        descricao: '',
+        tipoPessoa: 2,
+        nomeRazaoSocial: '',
+        cnpj: '',
+        email: '',
+        ativo: true,
+        capacidadeVeiculo: null,
+        tamanhoTerreno: ''
+      };
     }
-    const g = (k: string) => row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
+    const getKey = (obj: Record<string, unknown>, k: string): unknown =>
+      obj[k] ?? obj[k.charAt(0).toUpperCase() + k.slice(1)];
+    const rowBases = (): Record<string, unknown>[] => {
+      const bases: Record<string, unknown>[] = [row];
+      for (const nestKey of ['estacionamento', 'Estacionamento', 'pessoaJuridica', 'PessoaJuridica']) {
+        const nested = row[nestKey];
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+          bases.push(nested as Record<string, unknown>);
+        }
+      }
+      return bases;
+    };
+    const firstOfKeys = (keys: string[]): unknown => {
+      for (const base of rowBases()) {
+        for (const k of keys) {
+          const v = getKey(base, k);
+          if (v == null) continue;
+          if (typeof v === 'string' && v.trim() === '') continue;
+          return v;
+        }
+      }
+      return undefined;
+    };
+    const g = (k: string) => getKey(row, k);
+    const pessoaRow = row['pessoa'] ?? row['Pessoa'];
+    const pessoaObj =
+      pessoaRow && typeof pessoaRow === 'object' && !Array.isArray(pessoaRow)
+        ? (pessoaRow as Record<string, unknown>)
+        : null;
+    const gPessoa = (k: string) => (pessoaObj ? getKey(pessoaObj, k) : undefined);
     const tipoRaw = g('tipo') ?? g('tipoPessoa');
     const tipoNum = Number(tipoRaw);
+    const capacidadeRaw = firstOfKeys([
+      'capacidadeVeiculo',
+      'capacidade',
+      'CapacidadeVeiculo',
+      'capacidadeDeVeiculos',
+      'qtdVeiculos',
+      'quantidadeVeiculos',
+      'vagas',
+      'numeroVagas',
+    ]);
+    const capacidade =
+      capacidadeRaw == null || String(capacidadeRaw).trim() === ''
+        ? null
+        : Number(capacidadeRaw);
+    const tamanhoRaw = firstOfKeys([
+      'tamanhoTerreno',
+      'tamanho',
+      'TamanhoTerreno',
+      'tamanhoM2',
+      'tamanhoDoTerreno',
+      'metrosQuadrados',
+      'areaTerreno',
+      'area',
+    ]);
+    const nomeRazao = String(
+      firstOfKeys(['nomeRazaoSocial', 'razaoSocial']) ??
+        gPessoa('nomeRazaoSocial') ??
+        gPessoa('nome') ??
+        ''
+    ).trim();
+    const cnpj = String(g('cnpj') ?? g('documento') ?? gPessoa('cnpj') ?? gPessoa('documento') ?? '').trim();
+    const email = String(g('email') ?? gPessoa('email') ?? '').trim();
+    /** Coluna «Nome fantasia»: API costuma mandar só `nomeFantasia` ou `descricaoPessoa` na raiz do item. */
+    const descricao = String(
+      firstOfKeys([
+        'nomeFantasia',
+        'descricaoPessoa',
+        'descricaoEstacionamento',
+        'fantasia',
+        'descricao',
+      ]) ??
+        gPessoa('nomeFantasia') ??
+        gPessoa('descricao') ??
+        ''
+    ).trim();
+    const codExportacao = String(
+      firstOfKeys(['codExportacao', 'CodExportacao']) ?? ''
+    ).trim();
     return {
       id: Number(g('id')) || 0,
-      descricao: String(g('descricao') ?? ''),
+      codExportacao: codExportacao || null,
+      pessoaId: Number(g('pessoaId')) || Number(gPessoa('id')) || null,
+      descricao,
       tipoPessoa: (tipoNum === 1 ? 1 : 2) as 1 | 2,
-      nomeRazaoSocial: String(g('nomeRazaoSocial') ?? ''),
-      documento: String(g('documento') ?? ''),
-      email: String(g('email') ?? ''),
-      ativo: g('ativo') !== false
+      nomeRazaoSocial: nomeRazao,
+      cnpj,
+      email,
+      ativo: g('ativo') !== false && (pessoaObj ? getKey(pessoaObj, 'ativo') !== false : true),
+      capacidadeVeiculo: Number.isFinite(capacidade as number) ? (capacidade as number) : null,
+      tamanhoTerreno: tamanhoRaw != null ? String(tamanhoRaw).trim() : ''
     };
   }
 
   /**
-   * GET /api/Estacionamento/ObterPorId/:id
+   * GET /api/Estacionamento/{id}
    * Retorna o valor já mapeado para o formulário de edição.
    */
-  obterPorId(id: number): Observable<EstacionamentoFormValue | null> {
-    return this.http.get<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.obterPorId(id)}`).pipe(
+  obterPorId(id: number, codExportacao?: string | null): Observable<EstacionamentoFormValue | null> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`, {
+      params: this.paramsCodExportacao(codExportacao),
+    }).pipe(
       timeout(15000),
       map((body) => {
         const result = this.extractObterPorIdPayload(body);
-        if (result && typeof result === 'object' && 'pessoa' in result && result.pessoa) {
-          return this.mapResultToFormValue(result as EstacionamentoObterPorIdResultDTO);
+        if (result?.pessoa) {
+          return this.mapResultToFormValue(result);
         }
         return null;
       }),
@@ -285,26 +440,130 @@ export class EstacionamentoService {
     );
   }
 
+  /**
+   * GET /api/Estacionamento/{id} — retorna DTO do formulário e o objeto bruto (validar contaBancaria após PUT).
+   */
+  obterPorIdDetalhado(id: number, codExportacao?: string | null): Observable<{
+    dto: EstacionamentoFormValue | null;
+    raw: EstacionamentoObterPorIdResultDTO | null;
+  }> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`, {
+      params: this.paramsCodExportacao(codExportacao),
+    }).pipe(
+      timeout(15000),
+      map((body) => {
+        const result = this.extractObterPorIdPayload(body);
+        if (result?.pessoa) {
+          return { dto: this.mapResultToFormValue(result), raw: result };
+        }
+        return { dto: null, raw: null };
+      }),
+      catchError((err: unknown) => throwError(() => err))
+    );
+  }
+
+  private paramsCodExportacao(codExportacao?: string | null): HttpParams {
+    const cod = String(codExportacao ?? '').trim();
+    return cod ? new HttpParams().set('codExportacao', cod) : new HttpParams();
+  }
+
   private extractObterPorIdPayload(body: unknown): EstacionamentoObterPorIdResultDTO | null {
     const peeled = this.peelApiEnvelope(body);
-    if (peeled && typeof peeled === 'object' && 'pessoa' in peeled) {
+    return this.coerceEstacionamentoObterPorId(peeled);
+  }
+
+  /**
+   * O backend pode devolver `pessoa` (Swagger) ou apenas `pessoaJuridica` / `PessoaJuridica` no envelope `result`.
+   * Sem normalização, o formulário de edição interpretava como “registro não encontrado”.
+   */
+  private coerceEstacionamentoObterPorId(peeled: unknown): EstacionamentoObterPorIdResultDTO | null {
+    if (peeled == null || typeof peeled !== 'object' || Array.isArray(peeled)) {
+      return null;
+    }
+    const root = peeled as Record<string, unknown>;
+
+    const pessoaExisting = root['pessoa'] ?? root['Pessoa'];
+    if (pessoaExisting != null && typeof pessoaExisting === 'object' && !Array.isArray(pessoaExisting)) {
       return peeled as EstacionamentoObterPorIdResultDTO;
     }
-    const res = body as ApiResponseDTO<EstacionamentoObterPorIdResultDTO> | undefined;
-    if (res?.result && typeof res.result === 'object' && 'pessoa' in res.result) {
-      return res.result;
+
+    const pj =
+      (root['pessoaJuridica'] as Record<string, unknown> | undefined) ??
+      (root['PessoaJuridica'] as Record<string, unknown> | undefined);
+    if (pj == null || typeof pj !== 'object') {
+      return null;
     }
-    return null;
+
+    const pessoaId = Number(root['pessoaId'] ?? root['PessoaId'] ?? pj['id'] ?? pj['Id']) || 0;
+    const pessoa = this.buildPessoaObterPorIdFromPessoaJuridica(pj, pessoaId, root);
+
+    const merged: Record<string, unknown> = { ...root, pessoa };
+
+    const nomeResp =
+      root['resposanvelLegal'] ??
+      root['ResposanvelLegal'] ??
+      root['responsavelLegal'] ??
+      root['ResponsavelLegal'];
+    if (merged['resposanvelLegal'] == null && nomeResp != null) {
+      merged['resposanvelLegal'] = nomeResp;
+    }
+
+    return merged as unknown as EstacionamentoObterPorIdResultDTO;
+  }
+
+  private buildPessoaObterPorIdFromPessoaJuridica(
+    pj: Record<string, unknown>,
+    fallbackPessoaId: number,
+    root: Record<string, unknown>
+  ): PessoaObterPorIdDTO {
+    const endFromPj = pj['enderecos'] ?? pj['Enderecos'];
+    const endFromRoot = root['enderecos'] ?? root['Enderecos'];
+    const enderecos = (
+      Array.isArray(endFromPj) ? endFromPj : Array.isArray(endFromRoot) ? endFromRoot : []
+    ) as EnderecoDTO[];
+
+    const contatosRaw = pj['contatos'] ?? pj['Contatos'];
+    const contatos = Array.isArray(contatosRaw) ? (contatosRaw as ContatoDTO[]) : undefined;
+
+    const id = Number(pj['id'] ?? pj['Id'] ?? fallbackPessoaId) || fallbackPessoaId;
+    const tipo = Number(pj['tipoPessoa'] ?? pj['TipoPessoa']);
+
+    return {
+      id,
+      tipoPessoa: tipo === 1 ? 1 : 2,
+      nomeRazaoSocial: String(pj['nomeRazaoSocial'] ?? pj['NomeRazaoSocial'] ?? '').trim(),
+      nomeFantasia: String(
+        pj['nomeFantasia'] ?? pj['NomeFantasia'] ?? pj['descricao'] ?? pj['Descricao'] ?? ''
+      ).trim(),
+      cnpj: String(pj['cnpj'] ?? pj['Cnpj'] ?? pj['documento'] ?? pj['Documento'] ?? '').trim(),
+      email: String(pj['email'] ?? pj['Email'] ?? '').trim(),
+      ativo: pj['ativo'] !== false && pj['Ativo'] !== false,
+      enderecos: enderecos.length > 0 ? enderecos : undefined,
+      contatos,
+      dataCriacao: String(pj['dataCriacao'] ?? pj['DataCriacao'] ?? ''),
+      dataAtualizacao: (pj['dataAtualizacao'] ?? pj['DataAtualizacao'] ?? null) as string | null,
+    };
   }
 
   private mapResultToFormValue(r: EstacionamentoObterPorIdResultDTO): EstacionamentoFormValue {
     const p = r.pessoa;
-    const telefone = p?.contatos?.find((c) => c.principal)?.numero ?? p?.contatos?.[0]?.numero ?? '';
     const raw = r as unknown as Record<string, unknown>;
-    const contaBancariaList = (raw['contaBancaria'] ?? raw['ContaBancaria']) as Array<Record<string, unknown>> | undefined;
-    const contaBancaria = Array.isArray(contaBancariaList) && contaBancariaList.length > 0
-      ? contaBancariaList[0]
-      : undefined;
+    const contatoPrincipal =
+      p?.contatos?.find((c) => c.principal) ?? p?.contatos?.[0] ?? null;
+    const telefoneContato = String(
+      contatoPrincipal?.telefone ?? contatoPrincipal?.numero ?? ''
+    ).trim();
+    const telefoneRoot = String(
+      raw['responsavelTelefone'] ?? raw['ResponsavelTelefone'] ?? ''
+    ).trim();
+    const telefone = telefoneRoot || telefoneContato;
+    const contaBancariaRaw = (raw['contaBancaria'] ?? raw['ContaBancaria']) as unknown;
+    const contaBancaria =
+      Array.isArray(contaBancariaRaw) && contaBancariaRaw.length > 0
+        ? (contaBancariaRaw[0] as Record<string, unknown>)
+        : contaBancariaRaw != null && typeof contaBancariaRaw === 'object' && !Array.isArray(contaBancariaRaw)
+          ? (contaBancariaRaw as Record<string, unknown>)
+          : undefined;
     const banco = contaBancaria?.['banco'] ?? contaBancaria?.['Banco'] ?? r.banco ?? '';
     const agenciaNumero = contaBancaria?.['agencia'] ?? contaBancaria?.['Agencia'] ?? r.agencia ?? '';
     const agenciaDigito = contaBancaria?.['agenciaDigito'] ?? contaBancaria?.['AgenciaDigito'] ?? '';
@@ -322,41 +581,221 @@ export class EstacionamentoService {
           ? 'poupanca'
           : tipoContaRaw;
     const tipoTaxa = r.tipoCobranca === 1 ? 'taxa' : r.tipoCobranca === 2 ? 'mensalidade' : null;
+
+    const pessoaRaw = raw['pessoa'] ?? raw['Pessoa'];
+    const pObj = pessoaRaw && typeof pessoaRaw === 'object' ? (pessoaRaw as Record<string, unknown>) : {};
+
+    const contaClone =
+      contaBancaria && typeof contaBancaria === 'object'
+        ? ({ ...(contaBancaria as Record<string, unknown>) } as Record<string, unknown>)
+        : null;
+
+    const payloadMerge: EstacionamentoPayloadMergeContext = {
+      estacionamentoDataCriacao: r.dataCriacao,
+      estacionamentoDataAtualizacao: r.dataAtualizacao ?? null,
+      contaBancariaPreserved: contaClone,
+      pessoaDescricao:
+        String((pObj['descricao'] ?? pObj['Descricao'] ?? '') || '').trim() ||
+        (p?.nomeFantasia ?? p?.nomeRazaoSocial ?? '') ||
+        null,
+      pessoaDataCriacao: String(pObj['dataCriacao'] ?? pObj['DataCriacao'] ?? p?.dataCriacao ?? ''),
+      pessoaDataAtualizacao:
+        (pObj['dataAtualizacao'] ?? pObj['DataAtualizacao'] ?? p?.dataAtualizacao ?? null) as string | null
+    };
+
+    const descricaoRoot =
+      String(raw['descricao'] ?? raw['Descricao'] ?? '').trim() ||
+      String(p?.nomeFantasia ?? '').trim() ||
+      String(p?.nomeRazaoSocial ?? '').trim();
+
+    const responsavelEmailRaw =
+      raw['responsavelEmail'] ??
+      raw['ResponsavelEmail'] ??
+      raw['responsavelLegalEmail'] ??
+      raw['ResponsavelLegalEmail'] ??
+      raw['emailResponsavel'] ??
+      raw['EmailResponsavel'] ??
+      contatoPrincipal?.email ??
+      p?.email ??
+      '';
+
     return {
       id: r.id,
-      descricao: p?.nomeFantasia ?? '',
+      descricao: descricaoRoot,
       pessoaId: r.pessoaId,
       pessoa: {
         id: p?.id ?? 0,
         tipoPessoa: (p?.tipoPessoa === 1 ? 1 : 2) as 1 | 2,
         nomeRazaoSocial: p?.nomeRazaoSocial ?? '',
-        nomeFantasia: p?.nomeFantasia ?? '',
-        documento: p?.documento ?? '',
-        email: p?.email ?? '',
+        nomeFantasia:
+          String(raw['descricao'] ?? raw['Descricao'] ?? '').trim() ||
+          String(p?.nomeFantasia ?? pObj['nomeFantasia'] ?? pObj['NomeFantasia'] ?? '').trim(),
+        cnpj: p?.cnpj ?? String((pObj['documento'] ?? pObj['Documento'] ?? '') || ''),
+        email: String(responsavelEmailRaw ?? p?.email ?? '').trim(),
         ativo: p?.ativo ?? true
       },
-      responsavelLegalNome: r.resposanvelLegal ?? '',
+      responsavelLegalNome: String(
+        raw['resposanvelLegal'] ??
+          raw['ResposanvelLegal'] ??
+          raw['responsavelLegal'] ??
+          raw['ResponsavelLegal'] ??
+          r.resposanvelLegal ??
+          ''
+      ).trim(),
       responsavelLegalCpf: r.responsavelCpf ?? '',
+      responsavelLegalEmail: String(responsavelEmailRaw ?? '').trim(),
       contatoTelefone: telefone,
       capacidadeVeiculos: r.capacidadeVeiculo ?? null,
       tamanho: r.tamanhoTerreno ?? '',
       possuiSeguranca: r.possuiSeguranca ?? false,
       possuiBanheiro: r.possuiBanheiro ?? false,
+      horarioAbertura: lerHora(raw['horarioAbertura'] ?? raw['HorarioAbertura']),
+      horarioFechamento: lerHora(raw['horarioFechamento'] ?? raw['HorarioFechamento']),
+      diasFuncionamento: String(raw['diasFuncionamento'] ?? raw['DiasFuncionamento'] ?? '').trim(),
       tipoTaxaMensalidade: tipoTaxa,
       taxaPercentual: r.cobrancaPorcentagem != null ? r.cobrancaPorcentagem : null,
       mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null,
-      latitude: (r as unknown as Record<string, unknown>)['latitude'] as number | null ?? null,
-      longitude: (r as unknown as Record<string, unknown>)['longitude'] as number | null ?? null,
+      latitude: lerNumero(raw['latitude'] ?? raw['Latitude']),
+      longitude: lerNumero(raw['longitude'] ?? raw['Longitude']),
       enderecos: p?.enderecos ?? [],
       banco: String(banco ?? ''),
       agencia: String(agencia ?? ''),
       conta: String(conta ?? ''),
       tipoConta: String(tipoContaNorm),
       chavePix: String(contaBancaria?.['chavePix'] ?? contaBancaria?.['ChavePix'] ?? r.chavePix ?? ''),
+      tipoChave: (() => {
+        const rawTipo = Number(
+          contaBancaria?.['tipoChave'] ?? contaBancaria?.['TipoChave'] ?? r.tipoChave ?? 0
+        );
+        return rawTipo >= 1 && rawTipo <= 5 ? (rawTipo as 1 | 2 | 3 | 4 | 5) : null;
+      })(),
       contaBancariaId: Number(contaBancaria?.['id'] ?? contaBancaria?.['Id']) || null,
       titularRazaoSocial: String(titular ?? ''),
       titularCnpj: String(cpfCnpj ?? ''),
-      loadedFotosBase64: r.fotos ?? []
+      loadedFotosBase64: r.fotos ?? [],
+      payloadMerge,
+      codExportacao: String(raw['codExportacao'] ?? raw['CodExportacao'] ?? r.codExportacao ?? '').trim(),
+      isolationMode: (Number(raw['isolationMode'] ?? raw['IsolationMode'] ?? r.isolationMode ?? 1) === 2
+        ? 2
+        : 1) as 1 | 2,
+      bancoDadosConexaoId:
+        Number(raw['bancoDadosConexaoId'] ?? raw['BancoDadosConexaoId'] ?? r.bancoDadosConexaoId) || null,
+      ativoTenant:
+        raw['ativo'] !== undefined || raw['Ativo'] !== undefined
+          ? Boolean(raw['ativo'] ?? raw['Ativo'])
+          : r.ativo !== false,
+      ...mapConfiguracaoValoresFromApi(raw, r as unknown as Record<string, unknown>),
     };
   }
+}
+
+function mapConfiguracaoValoresFromApi(
+  raw: Record<string, unknown>,
+  r: Record<string, unknown>
+): {
+  tipoTarifaAvulsa: 1 | 2 | null;
+  valorAvulso: number | null;
+  minutosToleranciaPermanencia: number | null;
+} {
+  const nested =
+    (raw['configuracaoValores'] as Record<string, unknown> | undefined) ??
+    (raw['ConfiguracaoValores'] as Record<string, unknown> | undefined) ??
+    (r['configuracaoValores'] as Record<string, unknown> | undefined) ??
+    (r['ConfiguracaoValores'] as Record<string, unknown> | undefined) ??
+    null;
+
+  const tipoRaw = Number(
+    nested?.['tipoTarifaAvulsa'] ??
+      nested?.['TipoTarifaAvulsa'] ??
+      raw['tipoTarifaAvulsa'] ??
+      raw['TipoTarifaAvulsa'] ??
+      0
+  );
+  const valorRaw = nested?.['valorAvulso'] ?? nested?.['ValorAvulso'] ?? raw['valorAvulso'] ?? raw['ValorAvulso'];
+  const tolRaw =
+    nested?.['minutosToleranciaPermanencia'] ??
+    nested?.['MinutosToleranciaPermanencia'] ??
+    raw['minutosToleranciaPermanencia'] ??
+    raw['MinutosToleranciaPermanencia'];
+
+  const valor = valorRaw == null || valorRaw === '' ? null : Number(valorRaw);
+  const tolerancia = tolRaw == null || tolRaw === '' ? null : Math.trunc(Number(tolRaw));
+
+  return {
+    tipoTarifaAvulsa: tipoRaw === 1 || tipoRaw === 2 ? tipoRaw : null,
+    valorAvulso: valor != null && Number.isFinite(valor) ? valor : null,
+    minutosToleranciaPermanencia:
+      tolerancia != null && Number.isFinite(tolerancia) ? tolerancia : null
+  };
+}
+
+function lerNumero(valor: unknown): number | null {
+  if (valor == null || valor === '') return null;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function lerBool(valor: unknown): boolean | null {
+  if (valor === true || valor === false) return valor;
+  if (valor === 1 || valor === '1' || valor === 'true') return true;
+  if (valor === 0 || valor === '0' || valor === 'false') return false;
+  return null;
+}
+
+function lerHora(valor: unknown): string | null {
+  if (valor == null || valor === '') return null;
+  const texto = String(valor).trim();
+  const match = texto.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : null;
+}
+
+function lerTexto(valor: unknown): string | null {
+  const texto = String(valor ?? '').trim();
+  return texto ? texto : null;
+}
+
+function lerTipoTarifa(valor: unknown): 1 | 2 | null {
+  if (valor === 1 || valor === '1' || valor === 'Hora') return 1;
+  if (valor === 2 || valor === '2' || valor === 'Diaria' || valor === 'Diária') return 2;
+  return null;
+}
+
+function normalizarPontosMapa(body: unknown): PontoMapa[] {
+  const lista = Array.isArray(body)
+    ? body
+    : body != null && typeof body === 'object'
+      ? ((body as Record<string, unknown>)['data'] ??
+          (body as Record<string, unknown>)['Data'] ??
+          (body as Record<string, unknown>)['results'] ??
+          (body as Record<string, unknown>)['Results'])
+      : null;
+  if (!Array.isArray(lista)) return [];
+  const pontos: PontoMapa[] = [];
+  for (const item of lista) {
+    if (item == null || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const latitude = lerNumero(row['latitude'] ?? row['Latitude']);
+    const longitude = lerNumero(row['longitude'] ?? row['Longitude']);
+    if (latitude == null || longitude == null) continue;
+    pontos.push({
+      id: Number(row['id'] ?? row['Id'] ?? 0),
+      codExportacao: String(row['codExportacao'] ?? row['CodExportacao'] ?? ''),
+      descricao: String(row['descricao'] ?? row['Descricao'] ?? 'Estacionamento'),
+      cidade: String(row['cidade'] ?? row['Cidade'] ?? ''),
+      estado: String(row['estado'] ?? row['Estado'] ?? ''),
+      latitude,
+      longitude,
+      ativo: lerBool(row['ativo'] ?? row['Ativo']) ?? true,
+      possuiSeguranca: lerBool(row['possuiSeguranca'] ?? row['PossuiSeguranca']),
+      possuiBanheiro: lerBool(row['possuiBanheiro'] ?? row['PossuiBanheiro']),
+      tipoTarifaAvulsa: lerTipoTarifa(row['tipoTarifaAvulsa'] ?? row['TipoTarifaAvulsa']),
+      valorAvulso: lerNumero(row['valorAvulso'] ?? row['ValorAvulso']),
+      minutosTolerancia: lerNumero(row['minutosToleranciaPermanencia'] ?? row['MinutosToleranciaPermanencia']),
+      horarioAbertura: lerHora(row['horarioAbertura'] ?? row['HorarioAbertura']),
+      horarioFechamento: lerHora(row['horarioFechamento'] ?? row['HorarioFechamento']),
+      diasFuncionamento: lerTexto(row['diasFuncionamento'] ?? row['DiasFuncionamento']),
+      timeZoneId: lerTexto(row['timeZoneId'] ?? row['TimeZoneId'])
+    });
+  }
+  return pontos;
 }

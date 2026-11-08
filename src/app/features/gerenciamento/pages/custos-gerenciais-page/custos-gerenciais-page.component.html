@@ -19,6 +19,15 @@
     >
       Lançamentos
     </button>
+    <button
+      type="button"
+      class="dk-tabs__tab"
+      role="tab"
+      [class.tab--active]="aba() === 'centros'"
+      (click)="setAba('centros')"
+    >
+      Centros de custo
+    </button>
   </nav>
 
   @if (aba() === 'visao') {
@@ -42,6 +51,19 @@
             <option [ngValue]="null">Todos</option>
             @for (t of tipos; track t.value) {
               <option [ngValue]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Centro
+          <select
+            class="input-control"
+            [ngModel]="centroDashFiltro()"
+            (ngModelChange)="centroDashFiltro.set($event); carregarDashboard()"
+          >
+            <option [ngValue]="null">Todos</option>
+            @for (c of centros(); track c.id) {
+              <option [ngValue]="c.id">{{ c.nome }}</option>
             }
           </select>
         </label>
@@ -134,6 +156,15 @@
             }
           </select>
         </label>
+        <label>
+          Centro
+          <select class="input-control" [ngModel]="centroListaFiltro()" (ngModelChange)="centroListaFiltro.set($event)">
+            <option [ngValue]="null">Todos</option>
+            @for (c of centros(); track c.id) {
+              <option [ngValue]="c.id">{{ c.nome }}</option>
+            }
+          </select>
+        </label>
         <button type="button" class="btn btn-secondary" (click)="onBuscarLista()">Buscar</button>
         <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo lançamento</button>
       </div>
@@ -147,6 +178,7 @@
               <tr>
                 <th>Data</th>
                 <th>Tipo</th>
+                <th>Centro</th>
                 <th>Categoria</th>
                 <th>Descrição</th>
                 <th>Valor</th>
@@ -158,10 +190,12 @@
                 <tr>
                   <td>{{ item.dataCompetencia | date: 'dd/MM/yyyy' }}</td>
                   <td>{{ item.tipoLabel }}</td>
+                  <td>{{ item.centroCustoNome }}</td>
                   <td>{{ item.categoriaNome }}</td>
                   <td>{{ item.descricao }}</td>
                   <td>{{ item.valor | currency: 'BRL' }}</td>
                   <td class="acoes-cell">
+                    <button type="button" class="btn btn-secondary btn--sm" (click)="abrirHistorico(item)">Histórico</button>
                     <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
                     <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
                   </td>
@@ -174,6 +208,48 @@
           }
         </div>
         <p class="custos-pager">{{ totalCount() }} registro(s)</p>
+      }
+    </section>
+  }
+
+  @if (aba() === 'centros') {
+    <section class="custos-panel">
+      <div class="custos-filters">
+        <button type="button" class="btn btn-primary" (click)="abrirNovoCentro()">Novo centro</button>
+      </div>
+      @if (loadingCentros()) {
+        <p class="loading-msg">Carregando centros…</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nome</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of centros(); track item.id) {
+                <tr>
+                  <td>{{ item.codigo }}</td>
+                  <td>{{ item.nome }}</td>
+                  <td>{{ item.ativo ? 'Ativo' : 'Inativo' }}</td>
+                  <td class="acoes-cell">
+                    @if (item.ativo) {
+                      <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditarCentro(item)">Editar</button>
+                      <button type="button" class="btn btn-danger btn--sm" (click)="excluirCentro(item)">Excluir</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (centros().length === 0) {
+            <p class="empty-msg">Nenhum centro cadastrado.</p>
+          }
+        </div>
       }
     </section>
   }
@@ -193,6 +269,17 @@
             <select class="input-control" [(ngModel)]="form.tipo">
               @for (t of tipos; track t.value) {
                 <option [ngValue]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Centro de custo
+            <select class="input-control" [(ngModel)]="form.centroCustoId">
+              <option [ngValue]="0">Selecione…</option>
+              @for (c of centros(); track c.id) {
+                @if (c.ativo) {
+                  <option [ngValue]="c.id">{{ c.nome }}</option>
+                }
               }
             </select>
           </label>
@@ -237,6 +324,87 @@
         <button type="button" class="btn btn-primary" [disabled]="salvando()" (click)="salvar()">
           {{ salvando() ? 'Salvando…' : 'Salvar' }}
         </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (modalCentroAberto()) {
+  <div class="modal-overlay" role="presentation">
+    <div class="modal-content custos-modal" role="dialog" aria-modal="true" aria-labelledby="centro-modal-title">
+      <div class="modal-header">
+        <h2 id="centro-modal-title">{{ editCentroId() ? 'Editar centro' : 'Novo centro' }}</h2>
+        <button type="button" class="modal-close" (click)="fecharModalCentro()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>
+            Código
+            <input class="input-control" type="text" [(ngModel)]="formCentro.codigo" maxlength="40" />
+          </label>
+          <label class="form-grid__full">
+            Nome
+            <input class="input-control" type="text" [(ngModel)]="formCentro.nome" maxlength="120" />
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharModalCentro()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="salvandoCentro()" (click)="salvarCentro()">
+          {{ salvandoCentro() ? 'Salvando…' : 'Salvar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (modalHistoricoAberto()) {
+  <div class="modal-overlay" role="presentation">
+    <div class="modal-content custos-modal custos-modal--wide" role="dialog" aria-modal="true" aria-labelledby="hist-modal-title">
+      <div class="modal-header">
+        <h2 id="hist-modal-title">Histórico — {{ historicoTitulo() }}</h2>
+        <button type="button" class="modal-close" (click)="fecharHistorico()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        @if (loadingHistorico()) {
+          <p class="loading-msg">Carregando histórico…</p>
+        } @else if (historicoItens().length === 0) {
+          <p class="empty-msg">Nenhuma operação registrada.</p>
+        } @else {
+          <div class="historico-timeline">
+            @for (ev of historicoItens(); track ev.id) {
+              <article class="historico-item">
+                <header class="historico-item__head">
+                  <strong>{{ ev.operacaoLabel }}</strong>
+                  <span>{{ ev.usuarioNome }} · {{ ev.dataHora | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </header>
+                <div class="table-wrap">
+                  <table class="data-table historico-table">
+                    <thead>
+                      <tr>
+                        <th>Campo</th>
+                        <th>De</th>
+                        <th>Para</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (a of ev.alteracoes; track a.campo) {
+                        <tr [class.historico-row--changed]="a.alterado">
+                          <td>{{ a.campo }}</td>
+                          <td>{{ a.de || '—' }}</td>
+                          <td>{{ a.para || '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharHistorico()">Fechar</button>
       </div>
     </div>
   </div>

@@ -20,14 +20,17 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import {
   TIPO_LANCAMENTO_OPCOES,
   type CategoriaCusto,
+  type CentroCusto,
+  type CentroCustoInput,
   type DashboardCusto,
+  type HistoricoLancamentoCusto,
   type LancamentoCusto,
   type LancamentoCustoInput,
   type TipoLancamentoCusto,
 } from '../../models/custo-gerencial.models';
 import { CustoGerencialApiService } from '../../services/custo-gerencial-api.service';
 
-type AbaCusto = 'visao' | 'lancamentos';
+type AbaCusto = 'visao' | 'lancamentos' | 'centros';
 
 @Component({
   selector: 'app-custos-gerenciais-page',
@@ -44,8 +47,12 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly aba = signal<AbaCusto>('visao');
   readonly loadingDash = signal(false);
   readonly loadingLista = signal(false);
+  readonly loadingCentros = signal(false);
+  readonly loadingHistorico = signal(false);
   readonly salvando = signal(false);
+  readonly salvandoCentro = signal(false);
   readonly categorias = signal<CategoriaCusto[]>([]);
+  readonly centros = signal<CentroCusto[]>([]);
   readonly dashboard = signal<DashboardCusto | null>(null);
   readonly lancamentos = signal<LancamentoCusto[]>([]);
   readonly totalCount = signal(0);
@@ -53,12 +60,20 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly tamanhoPagina = 25;
   readonly anoFiltro = signal(new Date().getFullYear());
   readonly tipoDashFiltro = signal<TipoLancamentoCusto | null>(null);
+  readonly centroDashFiltro = signal<number | null>(null);
   readonly termo = signal('');
   readonly tipoListaFiltro = signal<TipoLancamentoCusto | null>(null);
+  readonly centroListaFiltro = signal<number | null>(null);
   readonly modalAberto = signal(false);
+  readonly modalCentroAberto = signal(false);
+  readonly modalHistoricoAberto = signal(false);
   readonly editId = signal<number | null>(null);
+  readonly editCentroId = signal<number | null>(null);
+  readonly historicoTitulo = signal('');
+  readonly historicoItens = signal<HistoricoLancamentoCusto[]>([]);
 
   form: LancamentoCustoInput = this.emptyForm();
+  formCentro: CentroCustoInput = { codigo: '', nome: '' };
 
   readonly anosOpcoes = computed(() => {
     const y = new Date().getFullYear();
@@ -104,6 +119,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
       next: (c) => this.categorias.set(c),
       error: () => this.toast.error('Não foi possível carregar as categorias.'),
     });
+    this.carregarCentros();
     this.carregarDashboard();
     this.carregarLancamentos();
   }
@@ -111,13 +127,25 @@ export class CustosGerenciaisPageComponent implements OnInit {
   setAba(aba: AbaCusto): void {
     this.aba.set(aba);
     if (aba === 'visao') this.carregarDashboard();
-    else this.carregarLancamentos();
+    else if (aba === 'lancamentos') this.carregarLancamentos();
+    else this.carregarCentros(true);
+  }
+
+  carregarCentros(incluirInativos = false): void {
+    this.loadingCentros.set(true);
+    this.api
+      .listarCentros(incluirInativos)
+      .pipe(finalize(() => this.loadingCentros.set(false)))
+      .subscribe({
+        next: (c) => this.centros.set(c),
+        error: () => this.toast.error('Não foi possível carregar os centros de custo.'),
+      });
   }
 
   carregarDashboard(): void {
     this.loadingDash.set(true);
     this.api
-      .dashboard(this.anoFiltro(), this.tipoDashFiltro())
+      .dashboard(this.anoFiltro(), this.tipoDashFiltro(), this.centroDashFiltro())
       .pipe(finalize(() => this.loadingDash.set(false)))
       .subscribe({
         next: (d) => {
@@ -147,6 +175,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
       .buscarLancamentos({
         termo: this.termo(),
         tipo: this.tipoListaFiltro(),
+        centroCustoId: this.centroListaFiltro(),
         numeroPagina: this.numeroPagina(),
         tamanhoPagina: this.tamanhoPagina,
       })
@@ -176,6 +205,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
     this.form = {
       tipo: item.tipo,
       categoriaId: item.categoriaId,
+      centroCustoId: item.centroCustoId,
       descricao: item.descricao,
       valor: item.valor,
       dataCompetencia: item.dataCompetencia?.slice(0, 10) ?? '',
@@ -189,9 +219,84 @@ export class CustosGerenciaisPageComponent implements OnInit {
     this.modalAberto.set(false);
   }
 
+  abrirNovoCentro(): void {
+    this.editCentroId.set(null);
+    this.formCentro = { codigo: '', nome: '' };
+    this.modalCentroAberto.set(true);
+  }
+
+  abrirEditarCentro(item: CentroCusto): void {
+    this.editCentroId.set(item.id);
+    this.formCentro = { codigo: item.codigo, nome: item.nome };
+    this.modalCentroAberto.set(true);
+  }
+
+  fecharModalCentro(): void {
+    this.modalCentroAberto.set(false);
+  }
+
+  salvarCentro(): void {
+    if (!this.formCentro.codigo?.trim() || !this.formCentro.nome?.trim()) {
+      this.toast.warning('Informe código e nome do centro.');
+      return;
+    }
+    this.salvandoCentro.set(true);
+    const payload: CentroCustoInput = {
+      codigo: this.formCentro.codigo.trim(),
+      nome: this.formCentro.nome.trim(),
+    };
+    const id = this.editCentroId();
+    const req$ = id ? this.api.alterarCentro(id, payload) : this.api.criarCentro(payload);
+    req$.pipe(finalize(() => this.salvandoCentro.set(false))).subscribe({
+      next: () => {
+        this.toast.success(id ? 'Centro atualizado.' : 'Centro criado.');
+        this.modalCentroAberto.set(false);
+        this.carregarCentros(this.aba() === 'centros');
+      },
+      error: (err) =>
+        this.toast.error(err?.error?.message ?? err?.message ?? 'Falha ao salvar centro de custo.'),
+    });
+  }
+
+  excluirCentro(item: CentroCusto): void {
+    if (!confirm(`Excluir o centro "${item.nome}"?`)) return;
+    this.api.excluirCentro(item.id).subscribe({
+      next: () => {
+        this.toast.success('Centro excluído.');
+        this.carregarCentros(true);
+      },
+      error: (err) =>
+        this.toast.error(err?.error?.message ?? err?.message ?? 'Falha ao excluir centro de custo.'),
+    });
+  }
+
+  abrirHistorico(item: LancamentoCusto): void {
+    this.historicoTitulo.set(item.descricao);
+    this.historicoItens.set([]);
+    this.modalHistoricoAberto.set(true);
+    this.loadingHistorico.set(true);
+    this.api
+      .historico(item.id)
+      .pipe(finalize(() => this.loadingHistorico.set(false)))
+      .subscribe({
+        next: (h) => this.historicoItens.set(h),
+        error: () => this.toast.error('Não foi possível carregar o histórico.'),
+      });
+  }
+
+  fecharHistorico(): void {
+    this.modalHistoricoAberto.set(false);
+  }
+
   salvar(): void {
-    if (!this.form.descricao?.trim() || !this.form.categoriaId || this.form.valor <= 0 || !this.form.dataCompetencia) {
-      this.toast.warning('Preencha descrição, categoria, valor e data de competência.');
+    if (
+      !this.form.descricao?.trim() ||
+      !this.form.categoriaId ||
+      !this.form.centroCustoId ||
+      this.form.valor <= 0 ||
+      !this.form.dataCompetencia
+    ) {
+      this.toast.warning('Preencha descrição, categoria, centro, valor e data de competência.');
       return;
     }
     this.salvando.set(true);
@@ -236,6 +341,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
     return {
       tipo: 1,
       categoriaId: 0,
+      centroCustoId: 0,
       descricao: '',
       valor: 0,
       dataCompetencia: hoje,

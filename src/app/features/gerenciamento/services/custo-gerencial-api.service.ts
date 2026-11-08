@@ -4,7 +4,10 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import type {
   CategoriaCusto,
+  CentroCusto,
+  CentroCustoInput,
   DashboardCusto,
+  HistoricoLancamentoCusto,
   LancamentoCusto,
   LancamentoCustoInput,
   PagedLancamentos,
@@ -29,10 +32,35 @@ export class CustoGerencialApiService {
       .pipe(map((r) => r.result ?? []));
   }
 
+  listarCentros(incluirInativos = false): Observable<CentroCusto[]> {
+    let params = new HttpParams();
+    if (incluirInativos) params = params.set('incluirInativos', 'true');
+    return this.http
+      .get<ApiEnvelope<CentroCusto[]>>(`${this.base}/centros`, { params })
+      .pipe(map((r) => r.result ?? []));
+  }
+
+  criarCentro(input: CentroCustoInput): Observable<CentroCusto> {
+    return this.http
+      .post<ApiEnvelope<CentroCusto>>(`${this.base}/centros`, input)
+      .pipe(map((r) => r.result as CentroCusto));
+  }
+
+  alterarCentro(id: number, input: CentroCustoInput): Observable<CentroCusto> {
+    return this.http
+      .put<ApiEnvelope<CentroCusto>>(`${this.base}/centros/${id}`, input)
+      .pipe(map((r) => r.result as CentroCusto));
+  }
+
+  excluirCentro(id: number): Observable<void> {
+    return this.http.delete<ApiEnvelope<object>>(`${this.base}/centros/${id}`).pipe(map(() => undefined));
+  }
+
   buscarLancamentos(params: {
     termo?: string;
     tipo?: TipoLancamentoCusto | null;
     categoriaId?: number | null;
+    centroCustoId?: number | null;
     periodoInicio?: string | null;
     periodoFim?: string | null;
     numeroPagina?: number;
@@ -45,6 +73,9 @@ export class CustoGerencialApiService {
     if (params.tipo != null) httpParams = httpParams.set('tipo', String(params.tipo));
     if (params.categoriaId != null && params.categoriaId > 0) {
       httpParams = httpParams.set('categoriaId', String(params.categoriaId));
+    }
+    if (params.centroCustoId != null && params.centroCustoId > 0) {
+      httpParams = httpParams.set('centroCustoId', String(params.centroCustoId));
     }
     if (params.periodoInicio) httpParams = httpParams.set('periodoInicio', params.periodoInicio);
     if (params.periodoFim) httpParams = httpParams.set('periodoFim', params.periodoFim);
@@ -65,6 +96,12 @@ export class CustoGerencialApiService {
       );
   }
 
+  historico(id: number): Observable<HistoricoLancamentoCusto[]> {
+    return this.http
+      .get<ApiEnvelope<HistoricoLancamentoCusto[]>>(`${this.base}/lancamentos/${id}/historico`)
+      .pipe(map((r) => r.result ?? []));
+  }
+
   criar(input: LancamentoCustoInput): Observable<LancamentoCusto> {
     return this.http
       .post<ApiEnvelope<LancamentoCusto>>(`${this.base}/lancamentos`, input)
@@ -81,9 +118,16 @@ export class CustoGerencialApiService {
     return this.http.delete<ApiEnvelope<object>>(`${this.base}/lancamentos/${id}`).pipe(map(() => undefined));
   }
 
-  dashboard(ano: number, tipo?: TipoLancamentoCusto | null): Observable<DashboardCusto> {
+  dashboard(
+    ano: number,
+    tipo?: TipoLancamentoCusto | null,
+    centroCustoId?: number | null
+  ): Observable<DashboardCusto> {
     let params = new HttpParams().set('ano', String(ano));
     if (tipo != null) params = params.set('tipo', String(tipo));
+    if (centroCustoId != null && centroCustoId > 0) {
+      params = params.set('centroCustoId', String(centroCustoId));
+    }
     return this.http
       .get<ApiEnvelope<DashboardCusto>>(`${this.base}/dashboard`, { params })
       .pipe(map((r) => r.result as DashboardCusto));

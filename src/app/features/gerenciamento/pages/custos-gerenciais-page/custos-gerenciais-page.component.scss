@@ -151,6 +151,49 @@
   grid-column: 1 / -1;
 }
 
+.custos-modal--wide {
+  max-width: 820px;
+  width: min(820px, 96vw);
+}
+
+.historico-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.historico-item {
+  border: 1px solid var(--color-border, #363642);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: var(--color-bg-card, #1f1f28);
+}
+
+.historico-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+}
+
+.historico-item__head span {
+  opacity: 0.75;
+}
+
+.historico-table td,
+.historico-table th {
+  font-size: 0.82rem;
+}
+
+.historico-row--changed td {
+  background: rgba(61, 139, 255, 0.12);
+  font-weight: 600;
+}
+
 @media (max-width: 960px) {
   .custos-kpis,
   .custos-charts {

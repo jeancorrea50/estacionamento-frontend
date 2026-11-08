@@ -245,7 +245,10 @@ export class CustosGerenciaisPageComponent implements OnInit {
           this.chartCategoriaLabels.set(d.porCategoria.map((c) => c.categoriaNome));
           this.chartCategoriaSeries.set(d.porCategoria.map((c) => c.valor));
         },
-        error: () => this.toast.error('Não foi possível carregar o dashboard de custos.'),
+        error: (err) =>
+          this.toast.error(
+            err?.error?.message ?? err?.message ?? 'Não foi possível carregar o dashboard de custos.'
+          ),
       });
   }
 
@@ -265,7 +268,10 @@ export class CustosGerenciaisPageComponent implements OnInit {
           this.lancamentos.set(p.results ?? []);
           this.totalCount.set(p.rowCount ?? 0);
         },
-        error: () => this.toast.error('Não foi possível carregar os lançamentos.'),
+        error: (err) =>
+          this.toast.error(
+            err?.error?.message ?? err?.message ?? 'Não foi possível carregar os lançamentos.'
+          ),
       });
   }
 

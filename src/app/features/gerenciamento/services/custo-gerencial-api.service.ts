@@ -83,16 +83,24 @@ export class CustoGerencialApiService {
     return this.http
       .get<ApiEnvelope<PagedLancamentos>>(`${this.base}/lancamentos`, { params: httpParams })
       .pipe(
-        map(
-          (r) =>
+        map((r) => {
+          const page =
             r.result ?? {
               results: [],
               currentPage: 1,
               pageCount: 1,
               pageSize: 25,
               rowCount: 0,
-            }
-        )
+            };
+          return {
+            ...page,
+            results: (page.results ?? []).map((item) => ({
+              ...item,
+              recorrencia: (item.recorrencia || 1) as LancamentoCusto['recorrencia'],
+              recorrenciaLabel: item.recorrenciaLabel || 'Única (dia)',
+            })),
+          };
+        })
       );
   }
 

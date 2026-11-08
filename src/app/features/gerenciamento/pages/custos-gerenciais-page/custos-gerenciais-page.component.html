@@ -180,10 +180,10 @@
 </div>
 
 @if (modalAberto()) {
-  <div class="modal-overlay" (click)="fecharModal()">
-    <div class="modal-content custos-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+  <div class="modal-overlay" role="presentation">
+    <div class="modal-content custos-modal" role="dialog" aria-modal="true" aria-labelledby="custos-modal-title">
       <div class="modal-header">
-        <h2>{{ editId() ? 'Editar lançamento' : 'Novo lançamento' }}</h2>
+        <h2 id="custos-modal-title">{{ editId() ? 'Editar lançamento' : 'Novo lançamento' }}</h2>
         <button type="button" class="modal-close" (click)="fecharModal()" aria-label="Fechar">&times;</button>
       </div>
       <div class="modal-body">

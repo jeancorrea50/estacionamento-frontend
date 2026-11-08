@@ -72,6 +72,43 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly historicoTitulo = signal('');
   readonly historicoItens = signal<HistoricoLancamentoCusto[]>([]);
 
+  /** Auditoria em linhas de tabela: antigo → novo (id/data ASC). */
+  readonly historicoLinhas = computed(() => {
+    const ordenados = [...this.historicoItens()].sort((a, b) => {
+      const byId = (a.id ?? 0) - (b.id ?? 0);
+      if (byId !== 0) return byId;
+      return new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime();
+    });
+
+    return ordenados.flatMap((ev) => {
+      const origem = Array.isArray(ev.alteracoes) ? ev.alteracoes : [];
+      const alterados = origem.filter((a) => a.alterado);
+      const camposBase =
+        ev.operacao === 2 && alterados.length > 0 ? alterados : origem;
+      const campos = camposBase.length
+        ? [...camposBase].sort((a, b) => a.campo.localeCompare(b.campo, 'pt-BR'))
+        : [{ campo: '—', de: null, para: null, alterado: false }];
+
+      return campos.map((campo, idx) => {
+        const de = (campo.de ?? '').trim();
+        const para = (campo.para ?? '').trim();
+        return {
+          key: `${ev.id}-${campo.campo}-${idx}`,
+          eventoId: ev.id,
+          dataHora: ev.dataHora,
+          operacao: ev.operacao,
+          operacaoLabel: ev.operacaoLabel,
+          usuarioNome: (ev.usuarioNome || '').trim() || '—',
+          campo: campo.campo,
+          de: de || '—',
+          para: para || '—',
+          alterado: !!campo.alterado,
+          primeiraDoEvento: idx === 0,
+        };
+      });
+    });
+  });
+
   form: LancamentoCustoInput = this.emptyForm();
   formCentro: CentroCustoInput = { codigo: '', nome: '' };
 
@@ -284,13 +321,26 @@ export class CustosGerenciaisPageComponent implements OnInit {
       .historico(item.id)
       .pipe(finalize(() => this.loadingHistorico.set(false)))
       .subscribe({
-        next: (h) => this.historicoItens.set(h),
+        next: (h) => this.historicoItens.set(Array.isArray(h) ? h : []),
         error: () => this.toast.error('Não foi possível carregar o histórico.'),
       });
   }
 
   fecharHistorico(): void {
     this.modalHistoricoAberto.set(false);
+  }
+
+  operacaoClass(operacao: HistoricoLancamentoCusto['operacao']): string {
+    switch (operacao) {
+      case 1:
+        return 'hist-op--create';
+      case 2:
+        return 'hist-op--update';
+      case 3:
+        return 'hist-op--delete';
+      default:
+        return 'hist-op--unknown';
+    }
   }
 
   salvar(): void {
@@ -322,18 +372,6 @@ export class CustosGerenciaisPageComponent implements OnInit {
       },
       error: (err) =>
         this.toast.error(err?.error?.message ?? err?.message ?? 'Falha ao salvar lançamento.'),
-    });
-  }
-
-  excluir(item: LancamentoCusto): void {
-    if (!confirm(`Excluir o lançamento "${item.descricao}"?`)) return;
-    this.api.excluir(item.id).subscribe({
-      next: () => {
-        this.toast.success('Lançamento excluído.');
-        this.carregarLancamentos();
-        this.carregarDashboard();
-      },
-      error: () => this.toast.error('Falha ao excluir lançamento.'),
     });
   }
 

@@ -197,7 +197,6 @@
                   <td class="acoes-cell">
                     <button type="button" class="btn btn-secondary btn--sm" (click)="abrirHistorico(item)">Histórico</button>
                     <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
-                    <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
                   </td>
                 </tr>
               }
@@ -361,50 +360,66 @@
 @if (modalHistoricoAberto()) {
   <div class="modal-overlay" role="presentation">
     <div
-      class="modal-content custos-modal custos-modal--wide"
+      class="modal-content custos-modal custos-modal--historico"
       role="dialog"
       aria-modal="true"
       aria-labelledby="hist-modal-title"
     >
       <div class="modal-header">
-        <h2 id="hist-modal-title">Histórico — {{ historicoTitulo() }}</h2>
+        <h2 id="hist-modal-title">Auditoria — {{ historicoTitulo() }}</h2>
         <button type="button" class="modal-close" (click)="fecharHistorico()" aria-label="Fechar">&times;</button>
       </div>
       <div class="modal-body">
         @if (loadingHistorico()) {
           <p class="loading-msg">Carregando histórico…</p>
-        } @else if (historicoItens().length === 0) {
+        } @else if (historicoLinhas().length === 0) {
           <p class="empty-msg">Nenhuma operação registrada.</p>
         } @else {
-          <div class="historico-timeline">
-            @for (ev of historicoItens(); track ev.id) {
-              <article class="historico-item">
-                <header class="historico-item__head">
-                  <strong>{{ ev.operacaoLabel }}</strong>
-                  <span>{{ ev.usuarioNome }} · {{ ev.dataHora | date: 'dd/MM/yyyy HH:mm' }}</span>
-                </header>
-                <div class="table-wrap">
-                  <table class="data-table historico-table">
-                    <thead>
-                      <tr>
-                        <th>Campo</th>
-                        <th>De</th>
-                        <th>Para</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (a of ev.alteracoes; track a.campo) {
-                        <tr [class.historico-row--changed]="a.alterado">
-                          <td>{{ a.campo }}</td>
-                          <td>{{ a.de || '—' }}</td>
-                          <td>{{ a.para || '—' }}</td>
-                        </tr>
+          <div class="historico-legend" aria-label="Legenda de operações">
+            <span class="hist-op hist-op--create">Criação</span>
+            <span class="hist-op hist-op--update">Alteração</span>
+            <span class="hist-op hist-op--delete">Exclusão</span>
+          </div>
+          <div class="table-wrap historico-table-wrap">
+            <table class="data-table historico-table">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Data/Hora</th>
+                  <th scope="col">Operação</th>
+                  <th scope="col">Usuário</th>
+                  <th scope="col">Campo</th>
+                  <th scope="col">De</th>
+                  <th scope="col">Para</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (linha of historicoLinhas(); track linha.key) {
+                  <tr
+                    class="historico-row"
+                    [ngClass]="operacaoClass(linha.operacao)"
+                    [class.historico-row--changed]="linha.alterado"
+                    [class.historico-row--event-start]="linha.primeiraDoEvento"
+                  >
+                    <td>{{ linha.primeiraDoEvento ? linha.eventoId : '' }}</td>
+                    <td>
+                      @if (linha.primeiraDoEvento) {
+                        {{ linha.dataHora | date: 'dd/MM/yyyy HH:mm' }}
                       }
-                    </tbody>
-                  </table>
-                </div>
-              </article>
-            }
+                    </td>
+                    <td>
+                      @if (linha.primeiraDoEvento) {
+                        <span class="hist-op" [ngClass]="operacaoClass(linha.operacao)">{{ linha.operacaoLabel }}</span>
+                      }
+                    </td>
+                    <td>{{ linha.primeiraDoEvento ? linha.usuarioNome : '' }}</td>
+                    <td>{{ linha.campo }}</td>
+                    <td>{{ linha.de }}</td>
+                    <td>{{ linha.para }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         }
       </div>

@@ -1,5 +1,6 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { finalize } from 'rxjs/operators';
@@ -12,12 +13,15 @@ import type {
   ApexNonAxisChartSeries,
   ApexPlotOptions,
   ApexStroke,
+  ApexTheme,
   ApexTooltip,
   ApexXAxis,
   ApexYAxis,
 } from 'ng-apexcharts';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { ThemeService } from '../../../../core/services/theme.service';
 import {
+  RECORRENCIA_OPCOES,
   TIPO_LANCAMENTO_OPCOES,
   type CategoriaCusto,
   type CentroCusto,
@@ -42,8 +46,26 @@ type AbaCusto = 'visao' | 'lancamentos' | 'centros';
 export class CustosGerenciaisPageComponent implements OnInit {
   private readonly api = inject(CustoGerencialApiService);
   private readonly toast = inject(ToastService);
+  private readonly themeService = inject(ThemeService);
+
+  private readonly themeConfig = toSignal(this.themeService.theme$, {
+    initialValue: this.themeService.getCurrentTheme(),
+  });
+
+  readonly isDarkTheme = computed(() => {
+    const mode = this.themeConfig().mode;
+    if (mode === 'dark') return true;
+    if (mode === 'light') return false;
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  private readonly chartAxisColor = computed(() => (this.isDarkTheme() ? '#8ea0b8' : '#4870a0'));
+  private readonly chartGridColor = computed(() =>
+    this.isDarkTheme() ? 'rgba(148, 163, 184, 0.22)' : 'rgba(72, 112, 160, 0.22)'
+  );
 
   readonly tipos = TIPO_LANCAMENTO_OPCOES;
+  readonly recorrencias = RECORRENCIA_OPCOES;
   readonly aba = signal<AbaCusto>('visao');
   readonly loadingDash = signal(false);
   readonly loadingLista = signal(false);
@@ -72,7 +94,6 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly historicoTitulo = signal('');
   readonly historicoItens = signal<HistoricoLancamentoCusto[]>([]);
 
-  /** Auditoria em linhas de tabela: antigo → novo (id/data ASC). */
   readonly historicoLinhas = computed(() => {
     const ordenados = [...this.historicoItens()].sort((a, b) => {
       const byId = (a.id ?? 0) - (b.id ?? 0);
@@ -83,8 +104,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
     return ordenados.flatMap((ev) => {
       const origem = Array.isArray(ev.alteracoes) ? ev.alteracoes : [];
       const alterados = origem.filter((a) => a.alterado);
-      const camposBase =
-        ev.operacao === 2 && alterados.length > 0 ? alterados : origem;
+      const camposBase = ev.operacao === 2 && alterados.length > 0 ? alterados : origem;
       const campos = camposBase.length
         ? [...camposBase].sort((a, b) => a.campo.localeCompare(b.campo, 'pt-BR'))
         : [{ campo: '—', de: null, para: null, alterado: false }];
@@ -124,32 +144,55 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly chartCategoriaSeries = signal<ApexNonAxisChartSeries>([]);
   readonly chartCategoriaLabels = signal<string[]>([]);
 
-  readonly chartLine: ApexChart = {
+  readonly chartTheme = computed<ApexTheme>(() => ({
+    mode: this.isDarkTheme() ? 'dark' : 'light',
+    monochrome: { enabled: false },
+  }));
+
+  readonly chartLine = computed<ApexChart>(() => ({
     type: 'area',
     height: 300,
     toolbar: { show: false },
     fontFamily: 'inherit',
-  };
-  readonly chartBar: ApexChart = {
+    foreColor: this.chartAxisColor(),
+    background: 'transparent',
+  }));
+
+  readonly chartBar = computed<ApexChart>(() => ({
     type: 'bar',
     height: 300,
     toolbar: { show: false },
     fontFamily: 'inherit',
-  };
-  readonly chartPie: ApexChart = {
+    foreColor: this.chartAxisColor(),
+    background: 'transparent',
+  }));
+
+  readonly chartPie = computed<ApexChart>(() => ({
     type: 'donut',
     height: 300,
     fontFamily: 'inherit',
-  };
+    foreColor: this.chartAxisColor(),
+    background: 'transparent',
+  }));
+
   readonly stroke: ApexStroke = { curve: 'smooth', width: 2 };
   readonly fill: ApexFill = { type: 'gradient', gradient: { opacityFrom: 0.45, opacityTo: 0.05 } };
   readonly dataLabels: ApexDataLabels = { enabled: false };
-  readonly legend: ApexLegend = { position: 'bottom' };
-  readonly tooltip: ApexTooltip = { y: { formatter: (v) => this.formatMoney(v) } };
+  readonly legend = computed<ApexLegend>(() => ({
+    position: 'bottom',
+    labels: { colors: this.chartAxisColor() },
+  }));
+  readonly tooltip = computed<ApexTooltip>(() => ({
+    theme: this.isDarkTheme() ? 'dark' : 'light',
+    y: { formatter: (v) => this.formatMoney(v) },
+  }));
   readonly plotBars: ApexPlotOptions = { bar: { borderRadius: 4, columnWidth: '55%' } };
-  readonly yaxis: ApexYAxis = {
-    labels: { formatter: (v) => this.formatMoney(Number(v)) },
-  };
+  readonly yaxis = computed<ApexYAxis>(() => ({
+    labels: {
+      style: { colors: this.chartAxisColor() },
+      formatter: (v) => this.formatMoney(Number(v)),
+    },
+  }));
 
   ngOnInit(): void {
     this.api.listarCategorias().subscribe({
@@ -250,12 +293,20 @@ export class CustosGerenciaisPageComponent implements OnInit {
       dataCompetencia: item.dataCompetencia?.slice(0, 10) ?? '',
       dataPagamento: item.dataPagamento ? item.dataPagamento.slice(0, 10) : null,
       observacao: item.observacao ?? null,
+      recorrencia: item.recorrencia || 1,
+      dataFimRecorrencia: item.dataFimRecorrencia ? item.dataFimRecorrencia.slice(0, 10) : null,
     };
     this.modalAberto.set(true);
   }
 
   fecharModal(): void {
     this.modalAberto.set(false);
+  }
+
+  onRecorrenciaChange(): void {
+    if (this.form.recorrencia === 1) {
+      this.form.dataFimRecorrencia = null;
+    }
   }
 
   abrirNovoCentro(): void {
@@ -354,12 +405,17 @@ export class CustosGerenciaisPageComponent implements OnInit {
       this.toast.warning('Preencha descrição, categoria, centro, valor e data de competência.');
       return;
     }
+    if (this.form.recorrencia !== 1 && !this.form.dataFimRecorrencia) {
+      this.toast.warning('Informe a data fim da recorrência semanal/mensal.');
+      return;
+    }
     this.salvando.set(true);
     const payload: LancamentoCustoInput = {
       ...this.form,
       descricao: this.form.descricao.trim(),
       observacao: this.form.observacao?.trim() || null,
       dataPagamento: this.form.dataPagamento || null,
+      dataFimRecorrencia: this.form.recorrencia === 1 ? null : this.form.dataFimRecorrencia || null,
     };
     const id = this.editId();
     const req$ = id ? this.api.alterar(id, payload) : this.api.criar(payload);
@@ -375,8 +431,25 @@ export class CustosGerenciaisPageComponent implements OnInit {
     });
   }
 
+  excluir(item: LancamentoCusto): void {
+    if (!confirm(`Excluir o lançamento "${item.descricao}"?`)) return;
+    this.api.excluir(item.id).subscribe({
+      next: () => {
+        this.toast.success('Lançamento excluído.');
+        this.carregarLancamentos();
+        this.carregarDashboard();
+      },
+      error: () => this.toast.error('Falha ao excluir lançamento.'),
+    });
+  }
+
   xaxisFrom(cats: string[]): ApexXAxis {
-    return { categories: cats };
+    return {
+      categories: cats,
+      labels: { style: { colors: this.chartAxisColor() } },
+      axisBorder: { color: this.chartGridColor() },
+      axisTicks: { color: this.chartGridColor() },
+    };
   }
 
   private fecharTodosModais(): void {
@@ -396,6 +469,8 @@ export class CustosGerenciaisPageComponent implements OnInit {
       dataCompetencia: hoje,
       dataPagamento: null,
       observacao: null,
+      recorrencia: 1,
+      dataFimRecorrencia: null,
     };
   }
 

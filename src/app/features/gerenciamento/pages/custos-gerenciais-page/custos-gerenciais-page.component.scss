@@ -237,6 +237,13 @@
   grid-column: 1 / -1;
 }
 
+.form-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  line-height: 1.35;
+}
+
 .historico-legend {
   display: flex;
   flex-wrap: wrap;

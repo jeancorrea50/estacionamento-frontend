@@ -1,4 +1,5 @@
 export type TipoLancamentoCusto = 1 | 2 | 3;
+export type RecorrenciaLancamentoCusto = 1 | 2 | 3;
 
 export interface CategoriaCusto {
   id: number;
@@ -31,6 +32,10 @@ export interface LancamentoCusto {
   dataCompetencia: string;
   dataPagamento?: string | null;
   observacao?: string | null;
+  recorrencia: RecorrenciaLancamentoCusto;
+  recorrenciaLabel: string;
+  dataFimRecorrencia?: string | null;
+  recorrenciaGrupoId?: string | null;
   ativo: boolean;
   criadoPorNome?: string | null;
   alteradoPorNome?: string | null;
@@ -45,6 +50,8 @@ export interface LancamentoCustoInput {
   dataCompetencia: string;
   dataPagamento?: string | null;
   observacao?: string | null;
+  recorrencia: RecorrenciaLancamentoCusto;
+  dataFimRecorrencia?: string | null;
 }
 
 export interface CampoAlteracaoHistorico {
@@ -102,4 +109,10 @@ export const TIPO_LANCAMENTO_OPCOES: Array<{ value: TipoLancamentoCusto; label: 
   { value: 1, label: 'Despesa' },
   { value: 2, label: 'Investimento' },
   { value: 3, label: 'Receita' },
+];
+
+export const RECORRENCIA_OPCOES: Array<{ value: RecorrenciaLancamentoCusto; label: string }> = [
+  { value: 1, label: 'Única (dia)' },
+  { value: 2, label: 'Semanal' },
+  { value: 3, label: 'Mensal' },
 ];

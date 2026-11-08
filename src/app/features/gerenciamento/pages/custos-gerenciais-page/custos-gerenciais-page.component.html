@@ -98,27 +98,29 @@
             <h2>Evolução mensal — {{ d.ano }}</h2>
             <apx-chart
               [series]="chartMensalSeries()"
-              [chart]="chartLine"
+              [chart]="chartLine()"
+              [theme]="chartTheme()"
               [xaxis]="xaxisFrom(chartMensalCategories())"
               [stroke]="stroke"
               [fill]="fill"
               [dataLabels]="dataLabels"
-              [yaxis]="yaxis"
-              [tooltip]="tooltip"
-              [legend]="legend"
+              [yaxis]="yaxis()"
+              [tooltip]="tooltip()"
+              [legend]="legend()"
             ></apx-chart>
           </article>
           <article class="custos-chart-card">
             <h2>Comparativo anual</h2>
             <apx-chart
               [series]="chartAnualSeries()"
-              [chart]="chartBar"
+              [chart]="chartBar()"
+              [theme]="chartTheme()"
               [xaxis]="xaxisFrom(chartAnualCategories())"
               [plotOptions]="plotBars"
               [dataLabels]="dataLabels"
-              [yaxis]="yaxis"
-              [tooltip]="tooltip"
-              [legend]="legend"
+              [yaxis]="yaxis()"
+              [tooltip]="tooltip()"
+              [legend]="legend()"
             ></apx-chart>
           </article>
           <article class="custos-chart-card custos-chart-card--wide">
@@ -128,10 +130,11 @@
             } @else {
               <apx-chart
                 [series]="chartCategoriaSeries()"
-                [chart]="chartPie"
+                [chart]="chartPie()"
+                [theme]="chartTheme()"
                 [labels]="chartCategoriaLabels()"
-                [legend]="legend"
-                [tooltip]="tooltip"
+                [legend]="legend()"
+                [tooltip]="tooltip()"
               ></apx-chart>
             }
           </article>
@@ -178,6 +181,7 @@
               <tr>
                 <th>Data</th>
                 <th>Tipo</th>
+                <th>Recorrência</th>
                 <th>Centro</th>
                 <th>Categoria</th>
                 <th>Descrição</th>
@@ -190,6 +194,7 @@
                 <tr>
                   <td>{{ item.dataCompetencia | date: 'dd/MM/yyyy' }}</td>
                   <td>{{ item.tipoLabel }}</td>
+                  <td>{{ item.recorrenciaLabel || 'Única (dia)' }}</td>
                   <td>{{ item.centroCustoNome }}</td>
                   <td>{{ item.categoriaNome }}</td>
                   <td>{{ item.descricao }}</td>
@@ -197,6 +202,7 @@
                   <td class="acoes-cell">
                     <button type="button" class="btn btn-secondary btn--sm" (click)="abrirHistorico(item)">Histórico</button>
                     <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
+                    <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
                   </td>
                 </tr>
               }
@@ -304,6 +310,25 @@
             <input class="input-control" type="date" [(ngModel)]="form.dataCompetencia" />
           </label>
           <label>
+            Recorrência
+            <select
+              class="input-control"
+              [(ngModel)]="form.recorrencia"
+              (ngModelChange)="onRecorrenciaChange()"
+              [disabled]="!!editId()"
+            >
+              @for (r of recorrencias; track r.value) {
+                <option [ngValue]="r.value">{{ r.label }}</option>
+              }
+            </select>
+          </label>
+          @if (form.recorrencia !== 1 && !editId()) {
+            <label>
+              Fim da recorrência
+              <input class="input-control" type="date" [(ngModel)]="form.dataFimRecorrencia" />
+            </label>
+          }
+          <label>
             Pagamento
             <input
               class="input-control"
@@ -316,6 +341,12 @@
             Observação
             <textarea class="input-control" rows="3" [(ngModel)]="form.observacao"></textarea>
           </label>
+          @if (!editId() && form.recorrencia !== 1) {
+            <p class="form-hint form-grid__full">
+              Ao salvar, serão gerados lançamentos {{ form.recorrencia === 2 ? 'semanais' : 'mensais' }}
+              da competência até a data fim (máx. 60).
+            </p>
+          }
         </div>
       </div>
       <div class="modal-footer">

@@ -360,7 +360,12 @@
 
 @if (modalHistoricoAberto()) {
   <div class="modal-overlay" role="presentation">
-    <div class="modal-content custos-modal custos-modal--wide" role="dialog" aria-modal="true" aria-labelledby="hist-modal-title">
+    <div
+      class="modal-content custos-modal custos-modal--wide"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hist-modal-title"
+    >
       <div class="modal-header">
         <h2 id="hist-modal-title">Histórico — {{ historicoTitulo() }}</h2>
         <button type="button" class="modal-close" (click)="fecharHistorico()" aria-label="Fechar">&times;</button>

@@ -195,12 +195,14 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   abrirNovo(): void {
+    this.fecharTodosModais();
     this.editId.set(null);
     this.form = this.emptyForm();
     this.modalAberto.set(true);
   }
 
   abrirEditar(item: LancamentoCusto): void {
+    this.fecharTodosModais();
     this.editId.set(item.id);
     this.form = {
       tipo: item.tipo,
@@ -220,12 +222,14 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   abrirNovoCentro(): void {
+    this.fecharTodosModais();
     this.editCentroId.set(null);
     this.formCentro = { codigo: '', nome: '' };
     this.modalCentroAberto.set(true);
   }
 
   abrirEditarCentro(item: CentroCusto): void {
+    this.fecharTodosModais();
     this.editCentroId.set(item.id);
     this.formCentro = { codigo: item.codigo, nome: item.nome };
     this.modalCentroAberto.set(true);
@@ -271,6 +275,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   abrirHistorico(item: LancamentoCusto): void {
+    this.fecharTodosModais();
     this.historicoTitulo.set(item.descricao);
     this.historicoItens.set([]);
     this.modalHistoricoAberto.set(true);
@@ -334,6 +339,12 @@ export class CustosGerenciaisPageComponent implements OnInit {
 
   xaxisFrom(cats: string[]): ApexXAxis {
     return { categories: cats };
+  }
+
+  private fecharTodosModais(): void {
+    this.modalAberto.set(false);
+    this.modalCentroAberto.set(false);
+    this.modalHistoricoAberto.set(false);
   }
 
   private emptyForm(): LancamentoCustoInput {

@@ -94,6 +94,8 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly termo = signal('');
   readonly tipoListaFiltro = signal<TipoLancamentoCusto | null>(null);
   readonly centroListaFiltro = signal<number | null>(null);
+  /** Desmarcado: mostra ativos + inativos. Marcado: filtra só inativos. */
+  readonly somenteInativos = signal(false);
   readonly modalAberto = signal(false);
   readonly modalCentroAberto = signal(false);
   readonly modalHistoricoAberto = signal(false);
@@ -295,6 +297,8 @@ export class CustosGerenciaisPageComponent implements OnInit {
         termo: this.termo(),
         tipo: this.tipoListaFiltro(),
         centroCustoId: this.centroListaFiltro(),
+        incluirInativos: true,
+        somenteInativos: this.somenteInativos(),
         numeroPagina: this.numeroPagina(),
         tamanhoPagina: this.tamanhoPagina,
       })
@@ -316,6 +320,12 @@ export class CustosGerenciaisPageComponent implements OnInit {
     this.carregarLancamentos();
   }
 
+  onSomenteInativosChange(checked: boolean): void {
+    this.somenteInativos.set(!!checked);
+    this.numeroPagina.set(1);
+    this.carregarLancamentos();
+  }
+
   abrirNovo(): void {
     this.fecharTodosModais();
     this.editId.set(null);
@@ -325,6 +335,10 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   abrirEditar(item: LancamentoCusto): void {
+    if (!item.ativo) {
+      this.toast.warning('Lançamento inativo não pode ser editado.');
+      return;
+    }
     this.fecharTodosModais();
     this.editId.set(item.id);
     this.form = {
@@ -519,14 +533,18 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   excluir(item: LancamentoCusto): void {
-    if (!confirm(`Excluir o lançamento "${item.descricao}"?`)) return;
+    if (!item.ativo) {
+      this.toast.warning('Este lançamento já está inativo.');
+      return;
+    }
+    if (!confirm(`Inativar o lançamento "${item.descricao}"? O histórico de auditoria será preservado.`)) return;
     this.api.excluir(item.id).subscribe({
       next: () => {
-        this.toast.success('Lançamento excluído.');
+        this.toast.success('Lançamento inativado. Ele permanece na lista com situação Inativo.');
         this.carregarLancamentos();
         this.carregarDashboard();
       },
-      error: () => this.toast.error('Falha ao excluir lançamento.'),
+      error: () => this.toast.error('Falha ao inativar lançamento.'),
     });
   }
 

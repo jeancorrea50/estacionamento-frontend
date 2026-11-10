@@ -168,6 +168,14 @@
             }
           </select>
         </label>
+        <label class="custos-filters__check">
+          <span>Somente inativos</span>
+          <input
+            type="checkbox"
+            [ngModel]="somenteInativos()"
+            (ngModelChange)="onSomenteInativosChange($event)"
+          />
+        </label>
         <button type="button" class="btn btn-secondary" (click)="onBuscarLista()">Buscar</button>
         <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo lançamento</button>
       </div>
@@ -180,6 +188,7 @@
             <thead>
               <tr>
                 <th>Data</th>
+                <th>Situação</th>
                 <th>Tipo</th>
                 <th>Recorrência</th>
                 <th>Financiador</th>
@@ -193,8 +202,13 @@
             </thead>
             <tbody>
               @for (item of lancamentos(); track item.id) {
-                <tr>
+                <tr [class.lancamento-row--inativo]="!item.ativo">
                   <td>{{ item.dataCompetencia | date: 'dd/MM/yyyy' }}</td>
+                  <td>
+                    <span class="situacao-badge" [class.situacao-badge--inativo]="!item.ativo">
+                      {{ item.ativo ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
                   <td>{{ item.tipoLabel }}</td>
                   <td>{{ item.recorrenciaLabel || 'Única (dia)' }}</td>
                   <td>{{ item.financiadorNome || 'Gt Sistema' }}</td>
@@ -210,8 +224,10 @@
                   <td>{{ item.valor | currency: 'BRL' }}</td>
                   <td class="acoes-cell">
                     <button type="button" class="btn btn-secondary btn--sm" (click)="abrirHistorico(item)">Histórico</button>
-                    <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
-                    <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
+                    @if (item.ativo) {
+                      <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
+                      <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
+                    }
                   </td>
                 </tr>
               }
@@ -440,7 +456,12 @@
       aria-labelledby="hist-modal-title"
     >
       <div class="modal-header">
-        <h2 id="hist-modal-title">Auditoria — {{ historicoTitulo() }}</h2>
+        <div class="modal-header__titles">
+          <h2 id="hist-modal-title">Auditoria Custos</h2>
+          @if (historicoTitulo()) {
+            <p class="modal-header__sub">{{ historicoTitulo() }}</p>
+          }
+        </div>
         <button type="button" class="modal-close" (click)="fecharHistorico()" aria-label="Fechar">&times;</button>
       </div>
       <div class="modal-body">

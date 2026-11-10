@@ -63,6 +63,8 @@ export class CustoGerencialApiService {
     centroCustoId?: number | null;
     periodoInicio?: string | null;
     periodoFim?: string | null;
+    incluirInativos?: boolean;
+    somenteInativos?: boolean;
     numeroPagina?: number;
     tamanhoPagina?: number;
   }): Observable<PagedLancamentos> {
@@ -79,6 +81,11 @@ export class CustoGerencialApiService {
     }
     if (params.periodoInicio) httpParams = httpParams.set('periodoInicio', params.periodoInicio);
     if (params.periodoFim) httpParams = httpParams.set('periodoFim', params.periodoFim);
+    if (params.somenteInativos) {
+      httpParams = httpParams.set('somenteInativos', 'true');
+    } else if (params.incluirInativos === false) {
+      httpParams = httpParams.set('incluirInativos', 'false');
+    }
 
     return this.http
       .get<ApiEnvelope<PagedLancamentos>>(`${this.base}/lancamentos`, { params: httpParams })

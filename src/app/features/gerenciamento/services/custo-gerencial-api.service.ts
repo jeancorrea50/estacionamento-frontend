@@ -140,9 +140,11 @@ export class CustoGerencialApiService {
   dashboard(
     ano: number,
     tipo?: TipoLancamentoCusto | null,
-    centroCustoId?: number | null
+    centroCustoId?: number | null,
+    mes?: number | null
   ): Observable<DashboardCusto> {
     let params = new HttpParams().set('ano', String(ano));
+    if (mes != null && mes >= 1 && mes <= 12) params = params.set('mes', String(mes));
     if (tipo != null) params = params.set('tipo', String(tipo));
     if (centroCustoId != null && centroCustoId > 0) {
       params = params.set('centroCustoId', String(centroCustoId));

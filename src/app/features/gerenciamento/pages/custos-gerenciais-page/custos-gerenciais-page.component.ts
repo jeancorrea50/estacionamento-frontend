@@ -24,6 +24,7 @@ import { ThemeService } from '../../../../core/services/theme.service';
 import {
   FINANCIADOR_GT_SISTEMA,
   FORMA_PAGAMENTO_OPCOES,
+  MESES_OPCOES,
   RECORRENCIA_OPCOES,
   TIPO_LANCAMENTO_OPCOES,
   type CategoriaCusto,
@@ -72,6 +73,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly tipos = TIPO_LANCAMENTO_OPCOES;
   readonly recorrencias = RECORRENCIA_OPCOES;
   readonly formasPagamento = FORMA_PAGAMENTO_OPCOES;
+  readonly mesesOpcoes = MESES_OPCOES;
   readonly financiadorGtSistema = FINANCIADOR_GT_SISTEMA;
   readonly aba = signal<AbaCusto>('visao');
   readonly loadingDash = signal(false);
@@ -89,9 +91,12 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly numeroPagina = signal(1);
   readonly tamanhoPagina = 25;
   readonly anoFiltro = signal(new Date().getFullYear());
+  readonly mesFiltro = signal(new Date().getMonth() + 1);
   readonly tipoDashFiltro = signal<TipoLancamentoCusto | null>(null);
   readonly centroDashFiltro = signal<number | null>(null);
   readonly termo = signal('');
+  readonly anoListaFiltro = signal(new Date().getFullYear());
+  readonly mesListaFiltro = signal(new Date().getMonth() + 1);
   readonly tipoListaFiltro = signal<TipoLancamentoCusto | null>(null);
   readonly centroListaFiltro = signal<number | null>(null);
   /** Desmarcado: mostra ativos + inativos. Marcado: filtra só inativos. */
@@ -99,6 +104,11 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly modalAberto = signal(false);
   readonly modalCentroAberto = signal(false);
   readonly modalHistoricoAberto = signal(false);
+  readonly modalConfirmAberto = signal(false);
+  readonly confirmTitulo = signal('Confirmar');
+  readonly confirmMensagem = signal('');
+  readonly confirmLabel = signal('Confirmar');
+  private confirmAction: (() => void) | null = null;
   readonly editId = signal<number | null>(null);
   readonly editCentroId = signal<number | null>(null);
   readonly historicoTitulo = signal('');
@@ -263,7 +273,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
   carregarDashboard(): void {
     this.loadingDash.set(true);
     this.api
-      .dashboard(this.anoFiltro(), this.tipoDashFiltro(), this.centroDashFiltro())
+      .dashboard(this.anoFiltro(), this.tipoDashFiltro(), this.centroDashFiltro(), this.mesFiltro())
       .pipe(finalize(() => this.loadingDash.set(false)))
       .subscribe({
         next: (d) => {
@@ -292,11 +302,14 @@ export class CustosGerenciaisPageComponent implements OnInit {
 
   carregarLancamentos(): void {
     this.loadingLista.set(true);
+    const { inicio, fim } = this.periodoDoMes(this.anoListaFiltro(), this.mesListaFiltro());
     this.api
       .buscarLancamentos({
         termo: this.termo(),
         tipo: this.tipoListaFiltro(),
         centroCustoId: this.centroListaFiltro(),
+        periodoInicio: inicio,
+        periodoFim: fim,
         incluirInativos: true,
         somenteInativos: this.somenteInativos(),
         numeroPagina: this.numeroPagina(),
@@ -443,14 +456,20 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   excluirCentro(item: CentroCusto): void {
-    if (!confirm(`Excluir o centro "${item.nome}"?`)) return;
-    this.api.excluirCentro(item.id).subscribe({
-      next: () => {
-        this.toast.success('Centro excluído.');
-        this.carregarCentros(true);
+    this.abrirConfirmacao({
+      titulo: 'Excluir centro de custo',
+      mensagem: `Excluir o centro "${item.nome}"?`,
+      confirmLabel: 'Excluir',
+      onConfirm: () => {
+        this.api.excluirCentro(item.id).subscribe({
+          next: () => {
+            this.toast.success('Centro excluído.');
+            this.carregarCentros(true);
+          },
+          error: (err) =>
+            this.toast.error(err?.error?.message ?? err?.message ?? 'Falha ao excluir centro de custo.'),
+        });
       },
-      error: (err) =>
-        this.toast.error(err?.error?.message ?? err?.message ?? 'Falha ao excluir centro de custo.'),
     });
   }
 
@@ -537,15 +556,50 @@ export class CustosGerenciaisPageComponent implements OnInit {
       this.toast.warning('Este lançamento já está inativo.');
       return;
     }
-    if (!confirm(`Inativar o lançamento "${item.descricao}"? O histórico de auditoria será preservado.`)) return;
-    this.api.excluir(item.id).subscribe({
-      next: () => {
-        this.toast.success('Lançamento inativado. Ele permanece na lista com situação Inativo.');
-        this.carregarLancamentos();
-        this.carregarDashboard();
+    this.abrirConfirmacao({
+      titulo: 'Inativar lançamento',
+      mensagem: `Inativar o lançamento "${item.descricao}"?\nO histórico de auditoria será preservado.`,
+      confirmLabel: 'Inativar',
+      onConfirm: () => {
+        this.api.excluir(item.id).subscribe({
+          next: () => {
+            this.toast.success('Lançamento inativado. Ele permanece na lista com situação Inativo.');
+            this.carregarLancamentos();
+            this.carregarDashboard();
+          },
+          error: () => this.toast.error('Falha ao inativar lançamento.'),
+        });
       },
-      error: () => this.toast.error('Falha ao inativar lançamento.'),
     });
+  }
+
+  abrirConfirmacao(opts: {
+    titulo: string;
+    mensagem: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  }): void {
+    this.fecharTodosModais();
+    this.confirmTitulo.set(opts.titulo);
+    this.confirmMensagem.set(opts.mensagem);
+    this.confirmLabel.set(opts.confirmLabel || 'Confirmar');
+    this.confirmAction = opts.onConfirm;
+    this.modalConfirmAberto.set(true);
+  }
+
+  confirmarAcao(): void {
+    const action = this.confirmAction;
+    this.fecharConfirmacao();
+    action?.();
+  }
+
+  fecharConfirmacao(): void {
+    this.modalConfirmAberto.set(false);
+    this.confirmAction = null;
+  }
+
+  mesLabel(mes: number): string {
+    return this.mesesOpcoes.find((m) => m.value === mes)?.label || String(mes);
   }
 
   xaxisFrom(cats: string[]): ApexXAxis {
@@ -561,6 +615,17 @@ export class CustosGerenciaisPageComponent implements OnInit {
     this.modalAberto.set(false);
     this.modalCentroAberto.set(false);
     this.modalHistoricoAberto.set(false);
+    this.modalConfirmAberto.set(false);
+    this.confirmAction = null;
+  }
+
+  private periodoDoMes(ano: number, mes: number): { inicio: string; fim: string } {
+    const m = String(mes).padStart(2, '0');
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    return {
+      inicio: `${ano}-${m}-01`,
+      fim: `${ano}-${m}-${String(ultimoDia).padStart(2, '0')}`,
+    };
   }
 
   private emptyForm(): LancamentoCustoInput {

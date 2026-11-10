@@ -214,6 +214,23 @@
   max-height: 92vh;
 }
 
+.modal-dialog.custos-modal--confirm {
+  width: min(460px, 94vw);
+  max-width: 460px;
+}
+
+.custos-modal--confirm .modal-content.custos-modal {
+  max-width: 460px;
+}
+
+.confirm-msg {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.45;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
 .custos-modal--historico .modal-body {
   flex: 1 1 auto;
   min-height: 0;

@@ -34,6 +34,14 @@
     <section class="custos-panel">
       <div class="custos-filters">
         <label>
+          Mês
+          <select class="input-control" [ngModel]="mesFiltro()" (ngModelChange)="mesFiltro.set($event); carregarDashboard()">
+            @for (m of mesesOpcoes; track m.value) {
+              <option [ngValue]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
           Ano
           <select class="input-control" [ngModel]="anoFiltro()" (ngModelChange)="anoFiltro.set($event); carregarDashboard()">
             @for (a of anosOpcoes(); track a) {
@@ -95,7 +103,7 @@
 
         <div class="custos-charts">
           <article class="custos-chart-card">
-            <h2>Evolução mensal — {{ d.ano }}</h2>
+            <h2>Evolução mensal — {{ d.ano }} (KPIs: {{ mesLabel(mesFiltro()) }})</h2>
             <apx-chart
               [series]="chartMensalSeries()"
               [chart]="chartLine()"
@@ -149,6 +157,22 @@
         <label class="custos-filters__search">
           Busca
           <input class="input-control" type="text" [ngModel]="termo()" (ngModelChange)="termo.set($event)" (keyup.enter)="onBuscarLista()" placeholder="Descrição…" />
+        </label>
+        <label>
+          Mês
+          <select class="input-control" [ngModel]="mesListaFiltro()" (ngModelChange)="mesListaFiltro.set($event)">
+            @for (m of mesesOpcoes; track m.value) {
+              <option [ngValue]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Ano
+          <select class="input-control" [ngModel]="anoListaFiltro()" (ngModelChange)="anoListaFiltro.set($event)">
+            @for (a of anosOpcoes(); track a) {
+              <option [ngValue]="a">{{ a }}</option>
+            }
+          </select>
         </label>
         <label>
           Tipo
@@ -507,6 +531,29 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharHistorico()">Fechar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (modalConfirmAberto()) {
+  <div class="modal-overlay modal fade show" role="presentation">
+    <div
+      class="modal-dialog modal-dialog-centered modal-content custos-modal custos-modal--confirm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="custos-confirm-title"
+    >
+      <div class="modal-header">
+        <h2 id="custos-confirm-title">{{ confirmTitulo() }}</h2>
+        <button type="button" class="btn-close modal-close" (click)="fecharConfirmacao()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-msg">{{ confirmMensagem() }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharConfirmacao()">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="confirmarAcao()">{{ confirmLabel() }}</button>
       </div>
     </div>
   </div>

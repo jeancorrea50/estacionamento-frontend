@@ -97,6 +97,7 @@ export interface PagedLancamentos {
 
 export interface DashboardCusto {
   ano: number;
+  mes?: number | null;
   totalDespesa: number;
   totalInvestimento: number;
   totalReceita: number;
@@ -137,6 +138,21 @@ export const FORMA_PAGAMENTO_OPCOES: Array<{ value: FormaPagamentoCusto; label: 
   { value: 1, label: 'Pix' },
   { value: 2, label: 'Cartão à vista' },
   { value: 3, label: 'Cartão recorrente' },
+];
+
+export const MESES_OPCOES: Array<{ value: number; label: string }> = [
+  { value: 1, label: 'Janeiro' },
+  { value: 2, label: 'Fevereiro' },
+  { value: 3, label: 'Março' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Maio' },
+  { value: 6, label: 'Junho' },
+  { value: 7, label: 'Julho' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Setembro' },
+  { value: 10, label: 'Outubro' },
+  { value: 11, label: 'Novembro' },
+  { value: 12, label: 'Dezembro' },
 ];
 
 export const FINANCIADOR_GT_SISTEMA: FinanciadorOpcao = {

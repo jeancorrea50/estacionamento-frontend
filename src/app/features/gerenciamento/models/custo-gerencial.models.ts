@@ -1,5 +1,6 @@
 export type TipoLancamentoCusto = 1 | 2 | 3;
 export type RecorrenciaLancamentoCusto = 1 | 2 | 3;
+export type FormaPagamentoCusto = 1 | 2 | 3;
 
 export interface CategoriaCusto {
   id: number;
@@ -16,6 +17,12 @@ export interface CentroCusto {
 
 export interface CentroCustoInput {
   codigo: string;
+  nome: string;
+}
+
+export interface FinanciadorOpcao {
+  /** null = Gt Sistema */
+  usuarioId: number | null;
   nome: string;
 }
 
@@ -36,6 +43,11 @@ export interface LancamentoCusto {
   recorrenciaLabel: string;
   dataFimRecorrencia?: string | null;
   recorrenciaGrupoId?: string | null;
+  financiadorUsuarioId?: number | null;
+  financiadorNome: string;
+  formaPagamento: FormaPagamentoCusto;
+  formaPagamentoLabel: string;
+  parcelas?: number | null;
   ativo: boolean;
   criadoPorNome?: string | null;
   alteradoPorNome?: string | null;
@@ -52,6 +64,10 @@ export interface LancamentoCustoInput {
   observacao?: string | null;
   recorrencia: RecorrenciaLancamentoCusto;
   dataFimRecorrencia?: string | null;
+  financiadorUsuarioId?: number | null;
+  financiadorNome: string;
+  formaPagamento: FormaPagamentoCusto;
+  parcelas?: number | null;
 }
 
 export interface CampoAlteracaoHistorico {
@@ -116,3 +132,14 @@ export const RECORRENCIA_OPCOES: Array<{ value: RecorrenciaLancamentoCusto; labe
   { value: 2, label: 'Semanal' },
   { value: 3, label: 'Mensal' },
 ];
+
+export const FORMA_PAGAMENTO_OPCOES: Array<{ value: FormaPagamentoCusto; label: string }> = [
+  { value: 1, label: 'Pix' },
+  { value: 2, label: 'Cartão à vista' },
+  { value: 3, label: 'Cartão recorrente' },
+];
+
+export const FINANCIADOR_GT_SISTEMA: FinanciadorOpcao = {
+  usuarioId: null,
+  nome: 'Gt Sistema',
+};

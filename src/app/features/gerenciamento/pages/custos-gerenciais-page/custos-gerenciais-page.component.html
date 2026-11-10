@@ -182,6 +182,8 @@
                 <th>Data</th>
                 <th>Tipo</th>
                 <th>Recorrência</th>
+                <th>Financiador</th>
+                <th>Pagamento</th>
                 <th>Centro</th>
                 <th>Categoria</th>
                 <th>Descrição</th>
@@ -195,6 +197,13 @@
                   <td>{{ item.dataCompetencia | date: 'dd/MM/yyyy' }}</td>
                   <td>{{ item.tipoLabel }}</td>
                   <td>{{ item.recorrenciaLabel || 'Única (dia)' }}</td>
+                  <td>{{ item.financiadorNome || 'Gt Sistema' }}</td>
+                  <td>
+                    {{ item.formaPagamentoLabel || 'Pix' }}
+                    @if (item.parcelas) {
+                      <span> · {{ item.parcelas }}x</span>
+                    }
+                  </td>
                   <td>{{ item.centroCustoNome }}</td>
                   <td>{{ item.categoriaNome }}</td>
                   <td>{{ item.descricao }}</td>
@@ -329,7 +338,7 @@
             </label>
           }
           <label>
-            Pagamento
+            Data pagamento
             <input
               class="input-control"
               type="date"
@@ -337,6 +346,40 @@
               (ngModelChange)="form.dataPagamento = $event || null"
             />
           </label>
+          <label>
+            Financiador
+            <select class="input-control" [ngModel]="financiadorKey" (ngModelChange)="onFinanciadorChange($event)">
+              <option [ngValue]="'gt-sistema'">{{ financiadorGtSistema.nome }}</option>
+              @for (f of financiadoresAdmin(); track f.usuarioId) {
+                <option [ngValue]="'' + f.usuarioId">{{ f.nome }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Forma de pagamento
+            <select
+              class="input-control"
+              [(ngModel)]="form.formaPagamento"
+              (ngModelChange)="onFormaPagamentoChange()"
+            >
+              @for (fp of formasPagamento; track fp.value) {
+                <option [ngValue]="fp.value">{{ fp.label }}</option>
+              }
+            </select>
+          </label>
+          @if (isCartaoPagamento()) {
+            <label>
+              Parcelas
+              <input
+                class="input-control"
+                type="number"
+                min="1"
+                max="48"
+                step="1"
+                [(ngModel)]="form.parcelas"
+              />
+            </label>
+          }
           <label class="form-grid__full">
             Observação
             <textarea class="input-control" rows="3" [(ngModel)]="form.observacao"></textarea>
@@ -419,34 +462,21 @@
                   <th scope="col">Data/Hora</th>
                   <th scope="col">Operação</th>
                   <th scope="col">Usuário</th>
-                  <th scope="col">Campo</th>
-                  <th scope="col">De</th>
-                  <th scope="col">Para</th>
+                  <th scope="col">Campos</th>
+                  <th scope="col">Detalhes</th>
                 </tr>
               </thead>
               <tbody>
                 @for (linha of historicoLinhas(); track linha.key) {
-                  <tr
-                    class="historico-row"
-                    [ngClass]="operacaoClass(linha.operacao)"
-                    [class.historico-row--changed]="linha.alterado"
-                    [class.historico-row--event-start]="linha.primeiraDoEvento"
-                  >
-                    <td>{{ linha.primeiraDoEvento ? linha.eventoId : '' }}</td>
+                  <tr class="historico-row" [ngClass]="operacaoClass(linha.operacao)">
+                    <td>{{ linha.eventoId }}</td>
+                    <td>{{ linha.dataHora | date: 'dd/MM/yyyy HH:mm' }}</td>
                     <td>
-                      @if (linha.primeiraDoEvento) {
-                        {{ linha.dataHora | date: 'dd/MM/yyyy HH:mm' }}
-                      }
+                      <span class="hist-op" [ngClass]="operacaoClass(linha.operacao)">{{ linha.operacaoLabel }}</span>
                     </td>
-                    <td>
-                      @if (linha.primeiraDoEvento) {
-                        <span class="hist-op" [ngClass]="operacaoClass(linha.operacao)">{{ linha.operacaoLabel }}</span>
-                      }
-                    </td>
-                    <td>{{ linha.primeiraDoEvento ? linha.usuarioNome : '' }}</td>
-                    <td>{{ linha.campo }}</td>
-                    <td>{{ linha.de }}</td>
-                    <td>{{ linha.para }}</td>
+                    <td>{{ linha.usuarioNome }}</td>
+                    <td>{{ linha.qtdCampos }}</td>
+                    <td class="historico-detalhes" [title]="linha.resumo">{{ linha.resumo }}</td>
                   </tr>
                 }
               </tbody>

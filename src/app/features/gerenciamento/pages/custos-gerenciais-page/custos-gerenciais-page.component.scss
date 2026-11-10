@@ -254,42 +254,51 @@
 .historico-table-wrap {
   max-height: min(62vh, 560px);
   overflow: auto;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
 }
 
 .historico-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.historico-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card-bg, var(--surface, #1a1b26));
+  box-shadow: inset 0 -1px 0 var(--border-subtle, rgba(255, 255, 255, 0.08));
 }
 
 .historico-table th,
 .historico-table td {
   font-size: 0.82rem;
   vertical-align: top;
+  padding: 0.65rem 0.75rem;
+}
+
+.historico-table th:nth-child(1),
+.historico-table td:nth-child(1),
+.historico-table th:nth-child(2),
+.historico-table td:nth-child(2),
+.historico-table th:nth-child(3),
+.historico-table td:nth-child(3),
+.historico-table th:nth-child(5),
+.historico-table td:nth-child(5) {
   white-space: nowrap;
 }
 
-.historico-table th:nth-child(5),
-.historico-table td:nth-child(5),
-.historico-table th:nth-child(6),
-.historico-table td:nth-child(6),
-.historico-table th:nth-child(7),
-.historico-table td:nth-child(7) {
+.historico-detalhes {
   white-space: normal;
-  min-width: 110px;
+  min-width: 280px;
+  max-width: 520px;
+  line-height: 1.35;
 }
 
 .historico-row {
   border-left: 3px solid transparent;
-}
-
-.historico-row--event-start td {
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-}
-
-.historico-row--changed td:nth-child(5),
-.historico-row--changed td:nth-child(6),
-.historico-row--changed td:nth-child(7) {
-  font-weight: 600;
 }
 
 .hist-op {

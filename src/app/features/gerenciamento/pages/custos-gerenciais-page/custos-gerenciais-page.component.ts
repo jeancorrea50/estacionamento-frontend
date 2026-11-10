@@ -18,14 +18,18 @@ import type {
   ApexXAxis,
   ApexYAxis,
 } from 'ng-apexcharts';
+import { UsuarioApiService } from '../../../../core/api/services/usuario-api.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import {
+  FINANCIADOR_GT_SISTEMA,
+  FORMA_PAGAMENTO_OPCOES,
   RECORRENCIA_OPCOES,
   TIPO_LANCAMENTO_OPCOES,
   type CategoriaCusto,
   type CentroCusto,
   type CentroCustoInput,
+  type FinanciadorOpcao,
   type DashboardCusto,
   type HistoricoLancamentoCusto,
   type LancamentoCusto,
@@ -45,6 +49,7 @@ type AbaCusto = 'visao' | 'lancamentos' | 'centros';
 })
 export class CustosGerenciaisPageComponent implements OnInit {
   private readonly api = inject(CustoGerencialApiService);
+  private readonly usuariosApi = inject(UsuarioApiService);
   private readonly toast = inject(ToastService);
   private readonly themeService = inject(ThemeService);
 
@@ -66,6 +71,8 @@ export class CustosGerenciaisPageComponent implements OnInit {
 
   readonly tipos = TIPO_LANCAMENTO_OPCOES;
   readonly recorrencias = RECORRENCIA_OPCOES;
+  readonly formasPagamento = FORMA_PAGAMENTO_OPCOES;
+  readonly financiadorGtSistema = FINANCIADOR_GT_SISTEMA;
   readonly aba = signal<AbaCusto>('visao');
   readonly loadingDash = signal(false);
   readonly loadingLista = signal(false);
@@ -75,6 +82,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly salvandoCentro = signal(false);
   readonly categorias = signal<CategoriaCusto[]>([]);
   readonly centros = signal<CentroCusto[]>([]);
+  readonly financiadoresAdmin = signal<FinanciadorOpcao[]>([]);
   readonly dashboard = signal<DashboardCusto | null>(null);
   readonly lancamentos = signal<LancamentoCusto[]>([]);
   readonly totalCount = signal(0);
@@ -94,6 +102,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
   readonly historicoTitulo = signal('');
   readonly historicoItens = signal<HistoricoLancamentoCusto[]>([]);
 
+  /** Uma linha por evento de auditoria, antigo → novo. */
   readonly historicoLinhas = computed(() => {
     const ordenados = [...this.historicoItens()].sort((a, b) => {
       const byId = (a.id ?? 0) - (b.id ?? 0);
@@ -101,36 +110,43 @@ export class CustosGerenciaisPageComponent implements OnInit {
       return new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime();
     });
 
-    return ordenados.flatMap((ev) => {
+    return ordenados.map((ev) => {
       const origem = Array.isArray(ev.alteracoes) ? ev.alteracoes : [];
       const alterados = origem.filter((a) => a.alterado);
-      const camposBase = ev.operacao === 2 && alterados.length > 0 ? alterados : origem;
-      const campos = camposBase.length
-        ? [...camposBase].sort((a, b) => a.campo.localeCompare(b.campo, 'pt-BR'))
-        : [{ campo: '—', de: null, para: null, alterado: false }];
+      const campos = (ev.operacao === 2 && alterados.length > 0 ? alterados : origem).sort((a, b) =>
+        a.campo.localeCompare(b.campo, 'pt-BR')
+      );
 
-      return campos.map((campo, idx) => {
-        const de = (campo.de ?? '').trim();
-        const para = (campo.para ?? '').trim();
-        return {
-          key: `${ev.id}-${campo.campo}-${idx}`,
-          eventoId: ev.id,
-          dataHora: ev.dataHora,
-          operacao: ev.operacao,
-          operacaoLabel: ev.operacaoLabel,
-          usuarioNome: (ev.usuarioNome || '').trim() || '—',
-          campo: campo.campo,
-          de: de || '—',
-          para: para || '—',
-          alterado: !!campo.alterado,
-          primeiraDoEvento: idx === 0,
-        };
-      });
+      const resumo =
+        campos.length === 0
+          ? '—'
+          : campos
+              .map((c) => {
+                const de = (c.de ?? '').trim() || '—';
+                const para = (c.para ?? '').trim() || '—';
+                if (ev.operacao === 1) return `${c.campo}: ${para}`;
+                if (ev.operacao === 3) return `${c.campo}: ${de}`;
+                return `${c.campo}: ${de} → ${para}`;
+              })
+              .join(' · ');
+
+      return {
+        key: String(ev.id),
+        eventoId: ev.id,
+        dataHora: ev.dataHora,
+        operacao: ev.operacao,
+        operacaoLabel: ev.operacaoLabel,
+        usuarioNome: (ev.usuarioNome || '').trim() || '—',
+        resumo,
+        qtdCampos: campos.length,
+      };
     });
   });
 
   form: LancamentoCustoInput = this.emptyForm();
   formCentro: CentroCustoInput = { codigo: '', nome: '' };
+  /** Chave do select: 'gt-sistema' ou id numérico do admin. */
+  financiadorKey: string = 'gt-sistema';
 
   readonly anosOpcoes = computed(() => {
     const y = new Date().getFullYear();
@@ -199,9 +215,29 @@ export class CustosGerenciaisPageComponent implements OnInit {
       next: (c) => this.categorias.set(c),
       error: () => this.toast.error('Não foi possível carregar as categorias.'),
     });
+    this.carregarFinanciadoresAdmin();
     this.carregarCentros();
     this.carregarDashboard();
     this.carregarLancamentos();
+  }
+
+  carregarFinanciadoresAdmin(): void {
+    this.usuariosApi.listar().subscribe({
+      next: (usuarios) => {
+        const admins = (usuarios ?? [])
+          .filter((u) => this.isAdminRole(u.role))
+          .map((u) => {
+            const idNum = Number(u.id);
+            if (!Number.isFinite(idNum) || idNum <= 0) return null;
+            const nome = (u.nome || u.userName || u.email || `Usuário #${idNum}`).trim();
+            return { usuarioId: idNum, nome } as FinanciadorOpcao;
+          })
+          .filter((x): x is FinanciadorOpcao => !!x)
+          .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        this.financiadoresAdmin.set(admins);
+      },
+      error: () => this.toast.warning('Não foi possível carregar administradores para financiador.'),
+    });
   }
 
   setAba(aba: AbaCusto): void {
@@ -284,6 +320,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
     this.fecharTodosModais();
     this.editId.set(null);
     this.form = this.emptyForm();
+    this.financiadorKey = 'gt-sistema';
     this.modalAberto.set(true);
   }
 
@@ -301,7 +338,15 @@ export class CustosGerenciaisPageComponent implements OnInit {
       observacao: item.observacao ?? null,
       recorrencia: item.recorrencia || 1,
       dataFimRecorrencia: item.dataFimRecorrencia ? item.dataFimRecorrencia.slice(0, 10) : null,
+      financiadorUsuarioId: item.financiadorUsuarioId ?? null,
+      financiadorNome: item.financiadorNome || FINANCIADOR_GT_SISTEMA.nome,
+      formaPagamento: item.formaPagamento || 1,
+      parcelas: item.parcelas ?? null,
     };
+    this.financiadorKey =
+      item.financiadorUsuarioId != null && item.financiadorUsuarioId > 0
+        ? String(item.financiadorUsuarioId)
+        : 'gt-sistema';
     this.modalAberto.set(true);
   }
 
@@ -313,6 +358,33 @@ export class CustosGerenciaisPageComponent implements OnInit {
     if (this.form.recorrencia === 1) {
       this.form.dataFimRecorrencia = null;
     }
+  }
+
+  onFinanciadorChange(key: string): void {
+    this.financiadorKey = key;
+    if (key === 'gt-sistema') {
+      this.form.financiadorUsuarioId = null;
+      this.form.financiadorNome = FINANCIADOR_GT_SISTEMA.nome;
+      return;
+    }
+    const id = Number(key);
+    const admin = this.financiadoresAdmin().find((a) => a.usuarioId === id);
+    this.form.financiadorUsuarioId = Number.isFinite(id) && id > 0 ? id : null;
+    this.form.financiadorNome = admin?.nome || `Usuário #${id}`;
+  }
+
+  onFormaPagamentoChange(): void {
+    if (this.form.formaPagamento === 1) {
+      this.form.parcelas = null;
+      return;
+    }
+    if (!this.form.parcelas || this.form.parcelas < 1) {
+      this.form.parcelas = this.form.formaPagamento === 2 ? 1 : 2;
+    }
+  }
+
+  isCartaoPagamento(): boolean {
+    return this.form.formaPagamento === 2 || this.form.formaPagamento === 3;
   }
 
   abrirNovoCentro(): void {
@@ -401,6 +473,7 @@ export class CustosGerenciaisPageComponent implements OnInit {
   }
 
   salvar(): void {
+    this.onFinanciadorChange(this.financiadorKey);
     if (
       !this.form.descricao?.trim() ||
       !this.form.categoriaId ||
@@ -415,6 +488,10 @@ export class CustosGerenciaisPageComponent implements OnInit {
       this.toast.warning('Informe a data fim da recorrência semanal/mensal.');
       return;
     }
+    if (this.isCartaoPagamento() && (!this.form.parcelas || this.form.parcelas < 1 || this.form.parcelas > 48)) {
+      this.toast.warning('Informe as parcelas do cartão (1 a 48).');
+      return;
+    }
     this.salvando.set(true);
     const payload: LancamentoCustoInput = {
       ...this.form,
@@ -422,6 +499,10 @@ export class CustosGerenciaisPageComponent implements OnInit {
       observacao: this.form.observacao?.trim() || null,
       dataPagamento: this.form.dataPagamento || null,
       dataFimRecorrencia: this.form.recorrencia === 1 ? null : this.form.dataFimRecorrencia || null,
+      financiadorUsuarioId: this.form.financiadorUsuarioId ?? null,
+      financiadorNome: this.form.financiadorNome?.trim() || FINANCIADOR_GT_SISTEMA.nome,
+      formaPagamento: this.form.formaPagamento || 1,
+      parcelas: this.isCartaoPagamento() ? this.form.parcelas : null,
     };
     const id = this.editId();
     const req$ = id ? this.api.alterar(id, payload) : this.api.criar(payload);
@@ -477,7 +558,16 @@ export class CustosGerenciaisPageComponent implements OnInit {
       observacao: null,
       recorrencia: 1,
       dataFimRecorrencia: null,
+      financiadorUsuarioId: null,
+      financiadorNome: FINANCIADOR_GT_SISTEMA.nome,
+      formaPagamento: 1,
+      parcelas: null,
     };
+  }
+
+  private isAdminRole(role?: string | null): boolean {
+    const n = (role || '').trim().toLowerCase();
+    return n === 'admin' || n === 'administrador' || n.includes('admin');
   }
 
   private formatMoney(v: number): string {

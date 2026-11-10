@@ -98,6 +98,10 @@ export class CustoGerencialApiService {
               ...item,
               recorrencia: (item.recorrencia || 1) as LancamentoCusto['recorrencia'],
               recorrenciaLabel: item.recorrenciaLabel || 'Única (dia)',
+              financiadorNome: item.financiadorNome || 'Gt Sistema',
+              formaPagamento: (item.formaPagamento || 1) as LancamentoCusto['formaPagamento'],
+              formaPagamentoLabel: item.formaPagamentoLabel || 'Pix',
+              parcelas: item.parcelas ?? null,
             })),
           };
         })

@@ -96,6 +96,6 @@ export class AgendarPageComponent implements OnInit {
   }
 
   statusLabel(item: AgendamentoSearchItem): string {
-    return entradaSaidaStatusLabel(item.status as EntradaSaidaStatus);
+    return entradaSaidaStatusLabel(item.status as EntradaSaidaStatus) || '—';
   }
 }

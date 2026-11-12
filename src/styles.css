@@ -2262,6 +2262,50 @@ html.theme-dark .layout:not(.app-layout--movimentos) .dk-table-wrap {
   border-radius: var(--ds-select-radius, var(--radius-md, 10px));
 }
 
+/* Modal Destinar vagas (Agendamento): theme-aware. */
+.vaga-reserva-dialog-panel {
+  --vaga-dlg-surface: var(--surface, #ffffff);
+  --vaga-dlg-text: var(--text, #1f2937);
+  --vaga-dlg-border: var(--border, #dce3ec);
+  --vaga-dlg-shadow: var(--shadow-lg, 0 24px 64px rgba(15, 23, 42, 0.16));
+}
+
+html.theme-light .vaga-reserva-dialog-panel {
+  --vaga-dlg-surface: var(--color-bg-card, var(--surface, #ffffff));
+  --vaga-dlg-text: var(--color-text-primary, var(--text, #1f2937));
+  --vaga-dlg-border: var(--color-border, var(--border, #dce3ec));
+}
+
+html.theme-dark .vaga-reserva-dialog-panel {
+  --vaga-dlg-surface: var(--surface, #1c2642);
+  --vaga-dlg-text: var(--text, #f1f1f5);
+  --vaga-dlg-border: var(--border, rgba(255, 255, 255, 0.12));
+  --vaga-dlg-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.vaga-reserva-dialog-panel .mat-mdc-dialog-surface,
+.vaga-reserva-dialog-panel .mdc-dialog__surface {
+  background: var(--vaga-dlg-surface) !important;
+  color: var(--vaga-dlg-text) !important;
+  border: 1px solid var(--vaga-dlg-border);
+  border-radius: 12px !important;
+  box-shadow: var(--vaga-dlg-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: min(92vh, 900px);
+}
+
+.vaga-reserva-dialog-panel .mat-mdc-dialog-component-host,
+.vaga-reserva-dialog-panel app-vaga-reserva-dialog {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  background: transparent;
+  color: inherit;
+}
+
 /* Modal financeiro: overlay do Angular Material precisa de estilo global (Prioridade B: theme-aware). */
 .cfg-form-dialog-panel {
   --cfg-form-surface: #ffffff;

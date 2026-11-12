@@ -70,6 +70,17 @@
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
               Buscar
             </button>
+            @if (podeOperarPatio) {
+              <button
+                type="button"
+                class="est-dash-btn est-dash-btn--neutral"
+                (click)="abrirDestinarVagas()"
+                aria-label="Destinar vagas"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">garage</span>
+                Destinar vagas
+              </button>
+            }
             @if (podeCriar) {
               <button
                 type="button"
@@ -83,13 +94,6 @@
             }
           </div>
         </section>
-
-        @if (podeOperarPatio) {
-          <app-vaga-reserva-panel
-            [transportadoras]="transportadoras()"
-            [podeGerenciar]="podeCriar"
-          />
-        }
 
         @if (erroList(); as erro) {
           <div class="trn-list-banner trn-list-banner--error" role="alert">

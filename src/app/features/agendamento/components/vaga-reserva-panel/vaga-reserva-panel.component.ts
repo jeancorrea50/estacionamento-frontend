@@ -31,6 +31,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
 
   @Input() transportadoras: TransportadoraListItemDTO[] = [];
   @Input() podeGerenciar = false;
+  /** Quando true, omite título externo (uso dentro de modal). */
+  @Input() embedded = false;
 
   readonly loading = signal(false);
   readonly salvando = signal(false);

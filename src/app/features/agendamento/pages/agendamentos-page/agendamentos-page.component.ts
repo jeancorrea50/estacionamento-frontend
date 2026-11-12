@@ -38,7 +38,10 @@ import {
 } from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { AgendamentoDataHoraPickerComponent } from './agendamento-data-hora-picker/agendamento-data-hora-picker.component';
 import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../../shared/utils/local-iso-datetime';
-import { VagaReservaPanelComponent } from '../../components/vaga-reserva-panel/vaga-reserva-panel.component';
+import {
+  VagaReservaDialogComponent,
+  type VagaReservaDialogData,
+} from '../../components/vaga-reserva-dialog/vaga-reserva-dialog.component';
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -51,7 +54,6 @@ import { VagaReservaPanelComponent } from '../../components/vaga-reserva-panel/v
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
     AgendamentoDataHoraPickerComponent,
-    VagaReservaPanelComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],
@@ -297,6 +299,21 @@ export class AgendamentosPageComponent implements OnInit {
           this.toast.error(msg);
         },
       });
+  }
+
+  abrirDestinarVagas(): void {
+    if (!this.podeOperarPatio) return;
+    this.dialog.open(VagaReservaDialogComponent, {
+      width: 'min(960px, 96vw)',
+      maxWidth: '96vw',
+      autoFocus: false,
+      panelClass: 'vaga-reserva-dialog-panel',
+      data: {
+        transportadoras: this.transportadoras(),
+        podeGerenciar:
+          this.podeCriar || this.permissions.allows('agendamento', 'alterar'),
+      } satisfies VagaReservaDialogData,
+    });
   }
 
   abrirNovo(): void {

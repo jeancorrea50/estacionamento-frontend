@@ -42,6 +42,20 @@ import {
   VagaReservaDialogComponent,
   type VagaReservaDialogData,
 } from '../../components/vaga-reserva-dialog/vaga-reserva-dialog.component';
+import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
+import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
+import {
+  capacidadeDaModalidade,
+  disponiveisDaModalidade,
+  formatIsoDateBr,
+  montarCalendarioMes,
+  montarFaixasHorarias,
+  nomeMesAno,
+  parseIsoDateLocal,
+  reservadasDaModalidade,
+  toIsoDateLocal,
+  type AgendamentoModalidadeUi,
+} from './agendamento-dashboard.util';
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -68,6 +82,7 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly veiculoService = inject(VeiculoService);
   private readonly estacionamentoService = inject(EstacionamentoService);
+  private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
@@ -131,6 +146,34 @@ export class AgendamentosPageComponent implements OnInit {
   readonly numeroPagina = signal(1);
   readonly tamanhoPagina = signal(20);
   readonly transportadoras = signal<TransportadoraListItemDTO[]>([]);
+  readonly vagasResumo = signal<VagaDisponibilidadeResumo | null>(null);
+  readonly modalidadeUi = signal<AgendamentoModalidadeUi>('estacionamento');
+  readonly dataSelecionadaIso = signal(toIsoDateLocal(new Date()));
+  readonly mesCalendario = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+
+  readonly calendarioDias = computed(() =>
+    montarCalendarioMes(this.mesCalendario(), this.dataSelecionadaIso())
+  );
+  readonly mesCalendarioLabel = computed(() => nomeMesAno(this.mesCalendario()));
+  readonly dataSelecionadaLabel = computed(() => formatIsoDateBr(this.dataSelecionadaIso()));
+  readonly faixasHorarias = computed(() =>
+    montarFaixasHorarias({
+      isoData: this.dataSelecionadaIso(),
+      ui: this.modalidadeUi(),
+      resumo: this.vagasResumo(),
+      items: this.items(),
+    })
+  );
+  readonly kpiAgendados = computed(() => this.totalCount());
+  readonly kpiDisponiveis = computed(() =>
+    disponiveisDaModalidade(this.vagasResumo(), this.modalidadeUi())
+  );
+  readonly kpiOcupados = computed(() => {
+    const cap = capacidadeDaModalidade(this.vagasResumo(), this.modalidadeUi());
+    const disp = this.kpiDisponiveis();
+    return Math.max(0, cap - disp);
+  });
+  readonly kpiLimpeza = computed(() => reservadasDaModalidade(this.vagasResumo(), 'limpeza'));
 
   /** Placa, nome do motorista ou CPF. */
   filtroBusca = '';
@@ -163,7 +206,44 @@ export class AgendamentosPageComponent implements OnInit {
       this.carregarTransportadoras();
     }
 
+    this.aplicarDataSelecionadaNoFiltro(this.dataSelecionadaIso(), false);
+    this.carregarVagas();
     this.onBuscar();
+  }
+
+  selecionarModalidade(ui: AgendamentoModalidadeUi): void {
+    this.modalidadeUi.set(ui);
+  }
+
+  selecionarDiaCalendario(iso: string): void {
+    if (!iso) return;
+    this.dataSelecionadaIso.set(iso);
+    const d = parseIsoDateLocal(iso);
+    this.mesCalendario.set(new Date(d.getFullYear(), d.getMonth(), 1));
+    this.aplicarDataSelecionadaNoFiltro(iso, true);
+  }
+
+  mesAnterior(): void {
+    const base = this.mesCalendario();
+    this.mesCalendario.set(new Date(base.getFullYear(), base.getMonth() - 1, 1));
+  }
+
+  mesSeguinte(): void {
+    const base = this.mesCalendario();
+    this.mesCalendario.set(new Date(base.getFullYear(), base.getMonth() + 1, 1));
+  }
+
+  private aplicarDataSelecionadaNoFiltro(iso: string, buscar: boolean): void {
+    this.filtroDataInicial = iso;
+    this.filtroDataFinal = iso;
+    if (buscar) this.onBuscar();
+  }
+
+  private carregarVagas(): void {
+    this.vagasApi.resumoParaTransportadora().subscribe({
+      next: (r) => this.vagasResumo.set(r),
+      error: () => this.vagasResumo.set(null),
+    });
   }
 
   get totalPaginas(): number {
@@ -186,6 +266,15 @@ export class AgendamentosPageComponent implements OnInit {
   onPeriodoChange(periodo: PeriodoDataSelecionado): void {
     this.filtroDataInicial = periodo.ativo ? periodo.dataInicial : '';
     this.filtroDataFinal = periodo.ativo ? periodo.dataFinal : '';
+    if (periodo.ativo && periodo.dataInicial && periodo.dataInicial === periodo.dataFinal) {
+      this.dataSelecionadaIso.set(periodo.dataInicial);
+      const d = parseIsoDateLocal(periodo.dataInicial);
+      this.mesCalendario.set(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+  }
+
+  flexBar(value: number): number {
+    return Math.max(0, Number(value) || 0);
   }
 
   onDataHoraChange(value: string): void {
@@ -303,17 +392,20 @@ export class AgendamentosPageComponent implements OnInit {
 
   abrirDestinarVagas(): void {
     if (!this.podeOperarPatio) return;
-    this.dialog.open(VagaReservaDialogComponent, {
-      width: 'min(960px, 96vw)',
-      maxWidth: '96vw',
-      autoFocus: false,
-      panelClass: 'vaga-reserva-dialog-panel',
-      data: {
-        transportadoras: this.transportadoras(),
-        podeGerenciar:
-          this.podeCriar || this.permissions.allows('agendamento', 'alterar'),
-      } satisfies VagaReservaDialogData,
-    });
+    this.dialog
+      .open(VagaReservaDialogComponent, {
+        width: 'min(960px, 96vw)',
+        maxWidth: '96vw',
+        autoFocus: false,
+        panelClass: 'vaga-reserva-dialog-panel',
+        data: {
+          transportadoras: this.transportadoras(),
+          podeGerenciar:
+            this.podeCriar || this.permissions.allows('agendamento', 'alterar'),
+        } satisfies VagaReservaDialogData,
+      })
+      .afterClosed()
+      .subscribe(() => this.carregarVagas());
   }
 
   abrirNovo(): void {

@@ -1,16 +1,28 @@
 <div class="cadastro-transportadora-shell">
   <div class="page-container">
     <div class="page-content trn-page-content--dashboard">
-      <header class="est-dash-hero trn-dash-hero" aria-labelledby="ag-dash-title">
-        <div class="est-dash-hero__icon trn-dash-hero__icon" aria-hidden="true">
-          <span class="material-symbols-outlined">calendar_month</span>
+      <header class="ag-dash-top" aria-labelledby="ag-dash-title">
+        <div class="ag-dash-top__copy">
+          <h1 id="ag-dash-title" class="ag-dash-top__title">Agendamentos</h1>
+          <p class="ag-dash-top__sub">Controle visual de vagas e veículos agendados no pátio.</p>
         </div>
-        <div class="est-dash-hero__copy">
-          <h1 id="ag-dash-title" class="est-dash-hero__title">Agendamentos</h1>
-          <p class="est-dash-hero__subtitle">
-            Agende entradas de veículos no pátio selecionado, confirme a chegada ou cancele
-            compromissos.
-          </p>
+        <div class="ag-modalidade-toggle" role="group" aria-label="Modalidade">
+          <button
+            type="button"
+            class="ag-modalidade-toggle__btn"
+            [class.is-active]="modalidadeUi() === 'estacionamento'"
+            (click)="selecionarModalidade('estacionamento')"
+          >
+            Estacionamento
+          </button>
+          <button
+            type="button"
+            class="ag-modalidade-toggle__btn"
+            [class.is-active]="modalidadeUi() === 'limpeza'"
+            (click)="selecionarModalidade('limpeza')"
+          >
+            Limpeza
+          </button>
         </div>
       </header>
 
@@ -32,10 +44,10 @@
               >
                 <option [ngValue]="null">Todas as transportadoras</option>
                 @for (t of transportadoras(); track t.id) {
-                    <option [ngValue]="t.id">
-                      {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
-                    </option>
-                  }
+                  <option [ngValue]="t.id">
+                    {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
+                  </option>
+                }
               </select>
             </div>
           }
@@ -75,10 +87,10 @@
                 type="button"
                 class="est-dash-btn est-dash-btn--neutral"
                 (click)="abrirDestinarVagas()"
-                aria-label="Destinar vagas"
+                aria-label="Destinar vaga"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">garage</span>
-                Destinar vagas
+                Destinar vaga
               </button>
             }
             @if (podeCriar) {
@@ -100,27 +112,113 @@
             <p class="error-msg">{{ erro }}</p>
           </div>
         }
+
+        <div class="ag-kpi-grid" aria-label="Indicadores">
+          <app-est-summary-metric icon="event" label="Agendados" [value]="kpiAgendados()" variant="info" />
+          <app-est-summary-metric
+            icon="event_available"
+            label="Vagas disponíveis"
+            [value]="kpiDisponiveis()"
+            variant="success"
+          />
+          <app-est-summary-metric icon="garage" label="Ocupados" [value]="kpiOcupados()" variant="danger" />
+          <app-est-summary-metric
+            icon="cleaning_services"
+            label="Limpeza agendada"
+            [value]="kpiLimpeza()"
+            variant="info"
+          />
+        </div>
+
+        <div class="ag-dash-mid">
+          <section class="ag-cal-card" aria-label="Selecionar data">
+            <div class="ag-cal-card__head">
+              <h2>Selecionar data</h2>
+              <div class="ag-cal-card__nav">
+                <button type="button" class="ag-cal-card__nav-btn" (click)="mesAnterior()" aria-label="Mês anterior">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="ag-cal-card__month">{{ mesCalendarioLabel() }}</span>
+                <button type="button" class="ag-cal-card__nav-btn" (click)="mesSeguinte()" aria-label="Próximo mês">
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+              </div>
+            </div>
+            <div class="ag-cal-card__weekdays" aria-hidden="true">
+              <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+            </div>
+            <div class="ag-cal-card__grid" role="grid">
+              @for (d of calendarioDias(); track d.iso) {
+                <button
+                  type="button"
+                  class="ag-cal-card__day"
+                  [class.is-out]="d.foraDoMes"
+                  [class.is-today]="d.hoje"
+                  [class.is-selected]="d.selecionado"
+                  (click)="selecionarDiaCalendario(d.iso)"
+                >
+                  {{ d.dia }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="ag-slots-card" aria-label="Controle visual de vagas por horário">
+            <div class="ag-slots-card__head">
+              <h2>Controle visual de vagas por horário</h2>
+              <span class="ag-slots-card__hint">{{ dataSelecionadaLabel() }}</span>
+            </div>
+            <div class="ag-slots-card__scroll">
+              <table class="ag-slots-table">
+                <thead>
+                  <tr>
+                    <th>Horário</th>
+                    <th>Total</th>
+                    <th>Disponíveis</th>
+                    <th>Reservadas</th>
+                    <th>Ocupadas</th>
+                    <th>Ocupação</th>
+                    <th>%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (f of faixasHorarias(); track f.label) {
+                    <tr>
+                      <td>{{ f.label }}</td>
+                      <td>{{ f.total || '—' }}</td>
+                      <td>{{ f.disponiveis }}</td>
+                      <td>{{ f.reservadas }}</td>
+                      <td>{{ f.ocupadas }}</td>
+                      <td>
+                        <div class="ag-occ-bar" aria-hidden="true">
+                          <span class="ag-occ-bar__disp" [style.flex]="flexBar(f.disponiveis)"></span>
+                          <span class="ag-occ-bar__res" [style.flex]="flexBar(f.reservadas)"></span>
+                          <span class="ag-occ-bar__occ" [style.flex]="flexBar(f.ocupadas)"></span>
+                        </div>
+                      </td>
+                      <td>{{ f.ocupacaoPct }}%</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="ag-slots-legend" aria-hidden="true">
+              <span><i class="ag-dot ag-dot--disp"></i> Disponível</span>
+              <span><i class="ag-dot ag-dot--res"></i> Reservada</span>
+              <span><i class="ag-dot ag-dot--occ"></i> Ocupada</span>
+            </div>
+          </section>
+        </div>
+
         @if (loadingList()) {
           <p class="loading-msg trn-loading">Carregando...</p>
         }
 
         @if (jaBuscou() && !loadingList() && !erroList()) {
-          <div class="trn-list-metrics" aria-label="Resumo da consulta">
-            <app-est-summary-metric
-              icon="event"
-              label="Agendados"
-              [value]="totalCount()"
-              variant="neutral"
-            />
-            <app-est-summary-metric
-              icon="local_shipping"
-              label="Nesta página"
-              [value]="items().length"
-              variant="success"
-            />
-          </div>
-
-          <div class="trn-list-table-card">
+          <div class="trn-list-table-card ag-list-card">
+            <div class="ag-list-card__head">
+              <h2>Veículos agendados para {{ dataSelecionadaLabel() }}</h2>
+            </div>
             <div class="trn-list-table-scroll">
               <table class="data-table trn-table">
                 <thead>
@@ -166,9 +264,7 @@
                               [disabled]="gerandoReciboId() === item.id"
                               (click)="emitirRecibo(item)"
                             >
-                              <span class="material-symbols-outlined" aria-hidden="true"
-                                >receipt_long</span
-                              >
+                              <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
                             </button>
                             @if (podeConfirmarItem(item)) {
                               <button
@@ -177,9 +273,7 @@
                                 title="Confirmar entrada"
                                 (click)="confirmarEntrada(item)"
                               >
-                                <span class="material-symbols-outlined" aria-hidden="true"
-                                  >login</span
-                                >
+                                <span class="material-symbols-outlined" aria-hidden="true">login</span>
                               </button>
                             }
                             @if (podeCancelarItem(item)) {
@@ -189,9 +283,7 @@
                                 title="Cancelar agendamento"
                                 (click)="cancelar(item)"
                               >
-                                <span class="material-symbols-outlined" aria-hidden="true"
-                                  >cancel</span
-                                >
+                                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
                               </button>
                             }
                           </div>
@@ -228,9 +320,7 @@
                   (click)="irParaPagina(1)"
                   aria-label="Primeira página"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true"
-                    >keyboard_double_arrow_left</span
-                  >
+                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
                 </button>
                 <button
                   type="button"
@@ -260,9 +350,7 @@
                   (click)="irParaPagina(totalPaginas)"
                   aria-label="Última página"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true"
-                    >keyboard_double_arrow_right</span
-                  >
+                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
                 </button>
               </div>
             </div>

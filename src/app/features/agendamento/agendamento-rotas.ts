@@ -1,4 +1,4 @@
-/** Módulo Agendamento — rota canônica (folha na sidebar). */
+/** Módulo Agendamento — rota canônica (painel operador/estacionamento). */
 export const AGENDAMENTO_ROUTE = '/app/agendamento';
 export const AGENDAMENTO_PATH = 'agendamento';
 
@@ -8,6 +8,11 @@ export const AGENDAMENTO_PATH = 'agendamento';
  */
 export const AGENDAMENTOS_ROUTE = AGENDAMENTO_ROUTE;
 export const AGENDAMENTOS_PATH = 'agendamentos';
+
+/** Submenu transportadora: visão dos próprios agendamentos + vagas liberadas. */
+export const AGENDAR_ROUTE = '/app/agendamento/agendar';
+export const AGENDAR_PATH = 'agendar';
+export const AGENDAR_LABEL = 'Agendar';
 
 /** Normaliza URL legada de agendamento para o canônico `/app/agendamento`. */
 export function normalizeAgendamentoAppRoute(raw: string | null | undefined): string | null {

@@ -30,7 +30,7 @@ import {
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
-import { AGENDAMENTO_ROUTE } from '../../agendamento/agendamento-rotas';
+import { AGENDAMENTO_ROUTE, AGENDAR_LABEL, AGENDAR_ROUTE } from '../../agendamento/agendamento-rotas';
 import {
   ADMINISTRACAO_ROUTE,
   ADMINISTRACAO_USUARIO_ROUTE,
@@ -86,6 +86,13 @@ export const MENU_STRUCTURE: MenuNode[] = [
     label: 'Agendamento',
     route: AGENDAMENTO_ROUTE,
     icon: 'calendar_month',
+    children: [
+      {
+        id: 'sub-agendar',
+        label: AGENDAR_LABEL,
+        route: AGENDAR_ROUTE,
+      },
+    ],
   },
   {
     id: 'menu-rede-credenciada',

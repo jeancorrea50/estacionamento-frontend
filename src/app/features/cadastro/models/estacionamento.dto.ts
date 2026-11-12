@@ -31,6 +31,7 @@ export interface EstacionamentoListItemDTO {
   email: string;
   ativo: boolean;
   capacidadeVeiculo?: number | null;
+  capacidadeVeiculoLimpeza?: number | null;
   tamanhoTerreno?: string | null;
 }
 
@@ -90,6 +91,7 @@ export interface EstacionamentoPayloadMergeContext {
 export interface EstacionamentoObterPorIdResultDTO {
   pessoaId: number;
   capacidadeVeiculo: number;
+  capacidadeVeiculoLimpeza?: number | null;
   tamanhoTerreno: string;
   resposanvelLegal: string;
   responsavelCpf: string;

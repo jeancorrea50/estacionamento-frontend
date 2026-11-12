@@ -165,6 +165,11 @@ export class SidebarComponent implements OnInit {
   }
 
   onParentClick(item: MenuItem, event: MouseEvent): void {
+    // Pai com rota própria (ex.: Agendamento) abre a tela atual e expande o submenu.
+    if (item.route && !this.canShowRailFlyout()) {
+      void this.router.navigateByUrl(item.route);
+    }
+
     if (!this.canShowRailFlyout()) {
       this.toggleMenu(item.route);
       return;
@@ -172,6 +177,10 @@ export class SidebarComponent implements OnInit {
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (item.route) {
+      void this.router.navigateByUrl(item.route);
+    }
 
     const current = this.railFlyout();
     if (current?.item.route === item.route && current.pinned) {

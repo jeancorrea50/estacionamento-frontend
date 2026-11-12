@@ -122,6 +122,7 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   'custo gerencial': '/app/gerenciamento/custos',
   agendamento: '/app/agendamento',
   agendamentos: '/app/agendamento',
+  agendar: '/app/agendamento/agendar',
   'rede credenciada': REDE_CREDENCIADA_ROUTE,
   redecredenciada: REDE_CREDENCIADA_ROUTE,
   'mapa de estacionamentos': REDE_CREDENCIADA_ROUTE,

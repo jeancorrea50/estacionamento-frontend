@@ -33,6 +33,8 @@ function postInput(overrides: Partial<ConfiguracaoCobrancaPostInput> = {}): Conf
     dataCobranca: null,
     cobrarLavagem: false,
     valorLavagem: null,
+    cobrarLimpeza: false,
+    valorLimpeza: null,
     cobrarPernoite: false,
     valorPernoite: null,
     cobrarServicosExtras: false,

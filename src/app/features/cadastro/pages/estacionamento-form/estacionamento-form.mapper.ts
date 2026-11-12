@@ -39,6 +39,7 @@ export interface FormValue {
     estado?: string;
   }>;
   capacidadeVeiculos?: number | null;
+  capacidadeVeiculosLimpeza?: number | null;
   tamanho?: string | number | null;
   possuiSeguranca?: boolean;
   possuiBanheiro?: boolean;
@@ -391,6 +392,8 @@ export function montarPayloadEstacionamento(
 
   const tipoCobranca = mapTipoCobranca(value.tipoTaxaMensalidade ?? null);
   const capacidade = value.capacidadeVeiculos != null ? Number(value.capacidadeVeiculos) : 0;
+  const capacidadeLimpeza =
+    value.capacidadeVeiculosLimpeza != null ? Number(value.capacidadeVeiculosLimpeza) : null;
   const estacionamentoIdRoot = Number(value.id ?? 0) || 0;
 
   const descricaoEstacionamento =
@@ -420,6 +423,8 @@ export function montarPayloadEstacionamento(
     dataAtualizacao: nowIso,
     pessoaId,
     capacidadeVeiculo: capacidade,
+    capacidadeVeiculoLimpeza:
+      capacidadeLimpeza != null && Number.isFinite(capacidadeLimpeza) ? capacidadeLimpeza : null,
     tamanhoTerreno: value.tamanho != null ? String(value.tamanho) : '',
     // Contrato atual: ResponsavelLegal; tipografia legada mantida por compatibilidade.
     responsavelLegal: value.responsavelLegalNome ?? '',

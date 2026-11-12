@@ -24,16 +24,24 @@ import { normalizarEmailFinanceiro } from '../pages/faturamento-page/config-cobr
 /** Rótulo de cada serviço adicional, usado no resumo textual e nas telas de visualização. */
 export const SERVICO_LABELS: Record<ConfigCobrancaServicoKey, string> = {
   lavagem: 'Lavagem',
+  limpeza: 'Limpeza',
   pernoite: 'Pernoite',
   extras: 'Serviços extras',
   beneficio: 'Benefício por abastecimento'
 };
 
-export const SERVICO_KEYS: ConfigCobrancaServicoKey[] = ['lavagem', 'pernoite', 'extras', 'beneficio'];
+export const SERVICO_KEYS: ConfigCobrancaServicoKey[] = [
+  'lavagem',
+  'limpeza',
+  'pernoite',
+  'extras',
+  'beneficio'
+];
 
 export function servicosVazios(): ConfigCobrancaServicos {
   return {
     lavagem: { habilitado: false, valor: null },
+    limpeza: { habilitado: false, valor: null },
     pernoite: { habilitado: false, valor: null },
     extras: { habilitado: false, valor: null },
     beneficio: { habilitado: false, valor: null }
@@ -211,6 +219,7 @@ function acordoToPayload(item: ConfigCobrancaListaItem, isAcordo: boolean): Conf
 export function servicosFromOutput(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaServicos {
   return {
     lavagem: { habilitado: !!dto.cobrarLavagem, valor: numeroOuNull(dto.valorLavagem) },
+    limpeza: { habilitado: !!dto.cobrarLimpeza, valor: numeroOuNull(dto.valorLimpeza) },
     pernoite: { habilitado: !!dto.cobrarPernoite, valor: numeroOuNull(dto.valorPernoite) },
     extras: { habilitado: !!dto.cobrarServicosExtras, valor: numeroOuNull(dto.valorServicosExtras) },
     beneficio: {
@@ -333,6 +342,8 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
     ...acordo,
     cobrarLavagem: servicos.lavagem.habilitado,
     valorLavagem: servicos.lavagem.habilitado ? servicos.lavagem.valor : null,
+    cobrarLimpeza: servicos.limpeza.habilitado,
+    valorLimpeza: servicos.limpeza.habilitado ? servicos.limpeza.valor : null,
     cobrarPernoite: servicos.pernoite.habilitado,
     valorPernoite: servicos.pernoite.habilitado ? servicos.pernoite.valor : null,
     cobrarServicosExtras: servicos.extras.habilitado,
@@ -476,6 +487,8 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     dataCobranca: pickStringOrNull(row, 'dataCobranca', 'DataCobranca'),
     cobrarLavagem: pickBool(row, 'cobrarLavagem', 'CobrarLavagem'),
     valorLavagem: pickNumberOrNull(row, 'valorLavagem', 'ValorLavagem'),
+    cobrarLimpeza: pickBool(row, 'cobrarLimpeza', 'CobrarLimpeza'),
+    valorLimpeza: pickNumberOrNull(row, 'valorLimpeza', 'ValorLimpeza'),
     cobrarPernoite: pickBool(row, 'cobrarPernoite', 'CobrarPernoite'),
     valorPernoite: pickNumberOrNull(row, 'valorPernoite', 'ValorPernoite'),
     cobrarServicosExtras: pickBool(row, 'cobrarServicosExtras', 'CobrarServicosExtras'),

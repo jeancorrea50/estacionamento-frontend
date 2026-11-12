@@ -153,6 +153,7 @@ export function valorCobrancaLabel(
 /** Rótulo do campo de valor de cada serviço adicional. */
 export const SERVICO_VALOR_LABELS: Record<ConfigCobrancaServicoKey, string> = {
   lavagem: 'Valor da lavagem',
+  limpeza: 'Valor da limpeza',
   pernoite: 'Valor da pernoite',
   extras: 'Valor do serviço extra',
   beneficio: 'Valor do benefício'

@@ -15,7 +15,12 @@ export type ConfigCobrancaStatus = 'Ativa' | 'Inativa' | 'Pendente de dados' | '
 export type ConfigCobrancaEnvioFiltroId = 'all' | 'ativo' | 'inativo';
 
 /** Chaves dos serviços adicionais, usadas para montar a seção de forma declarativa. */
-export type ConfigCobrancaServicoKey = 'lavagem' | 'pernoite' | 'extras' | 'beneficio';
+export type ConfigCobrancaServicoKey =
+  | 'lavagem'
+  | 'limpeza'
+  | 'pernoite'
+  | 'extras'
+  | 'beneficio';
 
 /**
  * Unidade de definição do valor principal (`valorEstacionamento` na API).

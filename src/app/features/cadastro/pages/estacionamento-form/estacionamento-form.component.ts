@@ -389,6 +389,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       }),
       // Dados complementares: Estrutura, Valores, Localização
       capacidadeVeiculos: [null as number | null, [Validators.min(0)]],
+      capacidadeVeiculosLimpeza: [null as number | null, [Validators.min(0)]],
       tamanho: [null as number | null, [Validators.min(0)]],
       possuiSeguranca: [false],
       possuiBanheiro: [false],
@@ -1032,6 +1033,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               responsavelLegalEmail: emailRespDto || trim(dto.pessoa.email),
               contatoTelefone: telRaw.length >= 10 ? formatTelefone(telRaw) : trim(dto.contatoTelefone),
               capacidadeVeiculos: dto.capacidadeVeiculos,
+              capacidadeVeiculosLimpeza: dto.capacidadeVeiculosLimpeza,
               tamanho: tamanhoNum,
               possuiSeguranca: dto.possuiSeguranca,
               possuiBanheiro: dto.possuiBanheiro,

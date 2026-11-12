@@ -38,6 +38,7 @@ export interface EstacionamentoFormValue {
   responsavelLegalCpf: string;
   contatoTelefone: string;
   capacidadeVeiculos: number | null;
+  capacidadeVeiculosLimpeza: number | null;
   tamanho: string;
   possuiSeguranca: boolean;
   possuiBanheiro: boolean;
@@ -646,6 +647,7 @@ export class EstacionamentoService {
       responsavelLegalEmail: String(responsavelEmailRaw ?? '').trim(),
       contatoTelefone: telefone,
       capacidadeVeiculos: r.capacidadeVeiculo ?? null,
+      capacidadeVeiculosLimpeza: r.capacidadeVeiculoLimpeza ?? null,
       tamanho: r.tamanhoTerreno ?? '',
       possuiSeguranca: r.possuiSeguranca ?? false,
       possuiBanheiro: r.possuiBanheiro ?? false,

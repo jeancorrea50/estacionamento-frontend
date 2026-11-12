@@ -1,0 +1,149 @@
+<section class="vaga-reserva-panel" aria-label="Destinação de vagas">
+  <div class="vaga-reserva-panel__head">
+    <div>
+      <h2 class="vaga-reserva-panel__title">Vagas para transportadoras</h2>
+      <p class="vaga-reserva-panel__sub">
+        Destine vagas de estacionamento e limpeza (mensal, semanal, diário ou por período do dia).
+      </p>
+    </div>
+    <button type="button" class="btn btn-secondary btn--sm" (click)="carregar()" [disabled]="loading()">
+      Atualizar
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="loading-msg">Carregando disponibilidade…</p>
+  } @else if (resumo(); as v) {
+    <div class="vaga-reserva-panel__kpis">
+      <article>
+        <span>Estacionamento</span>
+        <strong>
+          {{ v.vagasDisponiveisEstacionamento ?? '—' }}
+          <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
+        </strong>
+        <em>Reservadas: {{ v.vagasReservadasEstacionamento }}</em>
+      </article>
+      <article>
+        <span>Limpeza</span>
+        <strong>
+          {{ v.vagasDisponiveisLimpeza ?? '—' }}
+          <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
+        </strong>
+        <em>Reservadas: {{ v.vagasReservadasLimpeza }}</em>
+      </article>
+    </div>
+    @if (!v.controleAtivo) {
+      <p class="empty-msg">
+        Defina a capacidade de veículos e/ou limpeza no cadastro do estacionamento para ativar o
+        controle.
+      </p>
+    }
+  }
+
+  @if (podeGerenciar) {
+    <form class="vaga-reserva-panel__form" [formGroup]="form" (ngSubmit)="salvar()">
+      <label>
+        Transportadora
+        <select formControlName="transportadoraId">
+          <option [ngValue]="0">Selecione…</option>
+          @for (t of transportadoras; track t.id) {
+            <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}</option>
+          }
+        </select>
+      </label>
+      <label class="vaga-reserva-panel__check">
+        <input type="checkbox" formControlName="avulso" />
+        Avulso (sem transportadora)
+      </label>
+      <label>
+        Modalidade
+        <select formControlName="modalidade">
+          @for (m of modalidades; track m.value) {
+            <option [ngValue]="m.value">{{ m.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Quantidade
+        <input type="number" min="1" formControlName="quantidade" />
+      </label>
+      <label>
+        Início
+        <input type="date" formControlName="dataInicio" />
+      </label>
+      <label>
+        Fim
+        <input type="date" formControlName="dataFim" />
+      </label>
+      <label>
+        Periodicidade
+        <select formControlName="periodicidade">
+          @for (p of periodicidades; track p.value) {
+            <option [ngValue]="p.value">{{ p.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        Período do dia
+        <select formControlName="periodoDia">
+          <option [ngValue]="null">Qualquer</option>
+          @for (p of periodosDia; track p.value) {
+            <option [ngValue]="p.value">{{ p.label }}</option>
+          }
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary" [disabled]="salvando()">
+        {{ salvando() ? 'Salvando…' : 'Destinar vagas' }}
+      </button>
+    </form>
+  }
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Transportadora</th>
+          <th>Modalidade</th>
+          <th>Qtd</th>
+          <th>Vigência</th>
+          <th>Periodicidade</th>
+          <th>Período</th>
+          <th>Situação</th>
+          @if (podeGerenciar) {
+            <th></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of reservas(); track r.id) {
+          <tr [class.is-inactive]="!r.ativo">
+            <td>{{ r.transportadoraNome || (r.avulso ? 'Avulso' : '—') }}</td>
+            <td>{{ r.modalidadeLabel }}</td>
+            <td>{{ r.quantidade }}</td>
+            <td>
+              {{ r.dataInicio | date: 'dd/MM/yyyy' }}
+              @if (r.dataFim) {
+                — {{ r.dataFim | date: 'dd/MM/yyyy' }}
+              }
+            </td>
+            <td>{{ r.periodicidadeLabel }}</td>
+            <td>{{ r.periodoDiaLabel || '—' }}</td>
+            <td>{{ r.ativo ? 'Ativa' : 'Inativa' }}</td>
+            @if (podeGerenciar) {
+              <td>
+                @if (r.ativo) {
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="inativar(r.id)">
+                    Inativar
+                  </button>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (reservas().length === 0) {
+      <p class="empty-msg">Nenhuma reserva cadastrada.</p>
+    }
+  </div>
+</section>

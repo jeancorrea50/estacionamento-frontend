@@ -51,6 +51,8 @@ export interface ConfiguracaoCobrancaAcordo {
 export interface ConfiguracaoCobrancaServicosAdicionais {
   cobrarLavagem: boolean;
   valorLavagem: number | null;
+  cobrarLimpeza: boolean;
+  valorLimpeza: number | null;
   cobrarPernoite: boolean;
   valorPernoite: number | null;
   cobrarServicosExtras: boolean;

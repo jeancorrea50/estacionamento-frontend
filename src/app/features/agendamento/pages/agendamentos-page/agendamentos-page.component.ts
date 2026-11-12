@@ -38,6 +38,7 @@ import {
 } from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { AgendamentoDataHoraPickerComponent } from './agendamento-data-hora-picker/agendamento-data-hora-picker.component';
 import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../../shared/utils/local-iso-datetime';
+import { VagaReservaPanelComponent } from '../../components/vaga-reserva-panel/vaga-reserva-panel.component';
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -50,6 +51,7 @@ import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
     AgendamentoDataHoraPickerComponent,
+    VagaReservaPanelComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],

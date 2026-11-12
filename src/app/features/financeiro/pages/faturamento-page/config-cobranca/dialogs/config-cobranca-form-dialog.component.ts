@@ -125,6 +125,7 @@ export class ConfigCobrancaFormDialogComponent {
 
   readonly servicosOpcoes: ServicoOpcao[] = [
     { key: 'lavagem', label: 'Cobrar lavagem', valorLabel: SERVICO_VALOR_LABELS.lavagem, icon: 'local_car_wash' },
+    { key: 'limpeza', label: 'Cobrar limpeza', valorLabel: SERVICO_VALOR_LABELS.limpeza, icon: 'cleaning_services' },
     { key: 'pernoite', label: 'Cobrar pernoite', valorLabel: SERVICO_VALOR_LABELS.pernoite, icon: 'bedtime' },
     { key: 'extras', label: 'Cobrar serviços extras', valorLabel: SERVICO_VALOR_LABELS.extras, icon: 'add_circle' },
     {

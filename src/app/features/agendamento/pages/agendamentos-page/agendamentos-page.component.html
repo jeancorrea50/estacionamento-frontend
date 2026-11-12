@@ -84,6 +84,13 @@
           </div>
         </section>
 
+        @if (podeOperarPatio) {
+          <app-vaga-reserva-panel
+            [transportadoras]="transportadoras()"
+            [podeGerenciar]="podeCriar"
+          />
+        }
+
         @if (erroList(); as erro) {
           <div class="trn-list-banner trn-list-banner--error" role="alert">
             <p class="error-msg">{{ erro }}</p>

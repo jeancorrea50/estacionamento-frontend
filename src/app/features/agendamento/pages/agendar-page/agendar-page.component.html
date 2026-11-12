@@ -1,0 +1,88 @@
+<div class="agendar-page">
+  <header class="agendar-page__head">
+    <div>
+      <h1 class="agendar-page__title">Agendar</h1>
+      <p class="agendar-page__sub">
+        Consulte suas vagas liberadas pelo estacionamento e acompanhe seus agendamentos.
+      </p>
+    </div>
+    @if (!isTransportadora) {
+      <a class="btn btn-secondary" [routerLink]="agendamentoRoute">Abrir painel completo</a>
+    }
+  </header>
+
+  @if (erro()) {
+    <p class="error-msg" role="alert">{{ erro() }}</p>
+  } @else {
+    <section class="agendar-kpis" aria-label="Disponibilidade de vagas">
+      @if (loadingVagas()) {
+        <p class="loading-msg">Carregando vagas…</p>
+      } @else if (vagas(); as v) {
+        @if (!v.controleAtivo) {
+          <p class="empty-msg">
+            Este estacionamento ainda não disponibilizou controle de vagas para transportadoras.
+          </p>
+        } @else {
+          <article class="agendar-kpi">
+            <span class="agendar-kpi__label">Vagas estacionamento</span>
+            <strong class="agendar-kpi__value">
+              {{ v.vagasDisponiveisEstacionamento ?? '—' }}
+              <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
+            </strong>
+            <span class="agendar-kpi__hint">Reservadas: {{ v.vagasReservadasEstacionamento }}</span>
+          </article>
+          <article class="agendar-kpi">
+            <span class="agendar-kpi__label">Vagas limpeza</span>
+            <strong class="agendar-kpi__value">
+              {{ v.vagasDisponiveisLimpeza ?? '—' }}
+              <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
+            </strong>
+            <span class="agendar-kpi__hint">Reservadas: {{ v.vagasReservadasLimpeza }}</span>
+          </article>
+        }
+      } @else {
+        <p class="empty-msg">Disponibilidade de vagas indisponível no momento.</p>
+      }
+    </section>
+
+    <section class="agendar-lista" aria-label="Meus agendamentos">
+      <div class="agendar-lista__head">
+        <h2>Meus agendamentos</h2>
+        <button type="button" class="btn btn-secondary btn--sm" (click)="carregar()">Atualizar</button>
+      </div>
+
+      @if (loading()) {
+        <p class="loading-msg">Carregando…</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Placa</th>
+                <th>Motorista</th>
+                <th>Status</th>
+                <th>Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of items(); track item.id) {
+                <tr>
+                  <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ item.placaVeiculo }}</td>
+                  <td>{{ item.nomeMotorista }}</td>
+                  <td>{{ statusLabel(item) }}</td>
+                  <td>{{ item.observacao || '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (items().length === 0) {
+            <p class="empty-msg">Nenhum agendamento encontrado.</p>
+          }
+        </div>
+        <p class="agendar-pager">{{ totalCount() }} registro(s)</p>
+      }
+    </section>
+  }
+</div>

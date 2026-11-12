@@ -1,0 +1,595 @@
+@use '../../../cadastro/styles/cadastro-est-shared' as *;
+@use '../../../cadastro/styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+@import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
+
+/* Barra de filtros: uma linha alinhada (mesmo ritmo do dash de cadastro). */
+.ag-dash-filter.est-dash-filter {
+  align-items: center;
+  gap: 10px;
+  overflow: visible;
+}
+
+.ag-dash-filter__search.est-dash-filter__search {
+  flex: 1 1 180px;
+  max-width: 260px;
+  min-width: 160px;
+}
+
+.ag-dash-filter app-periodo-data-picker {
+  flex: 0 1 220px;
+  min-width: 180px;
+  max-width: 280px;
+}
+
+.ag-dash-filter__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.ag-dash-filter .est-dash-btn {
+  height: 42px;
+  min-height: 42px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ag-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+  color: var(--primary, #1d4ed8);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.trn-table__acoes,
+.trn-act-btns {
+  overflow: visible;
+}
+
+.trn-act-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+.ag-acoes-vazio {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .ag-dash-filter__actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .ag-dash-filter.est-dash-filter {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ag-dash-filter__search.est-dash-filter__search {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ag-dash-filter__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ag-dash-filter .est-dash-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
+  }
+
+  .ag-dash-filter .est-dash-btn--primary {
+    flex: 1 1 100%;
+  }
+
+  .trn-list-table-card,
+  .trn-list-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trn-table {
+    min-width: 720px;
+  }
+
+  .trn-table__acoes {
+    position: sticky;
+    right: 0;
+    background: inherit;
+    z-index: 1;
+  }
+
+  .trn-act-btns {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .trn-list-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    overflow-x: visible;
+  }
+}
+
+/* Body do modal rola quando a lista de placas abre abaixo do campo. */
+.modal-content--frota .modal-body.modal-body--frota-compact {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Mesmo grid do Transportadora: label (110px) + controle (1fr). */
+.ag-placas-field {
+  position: relative;
+  z-index: 2;
+  align-items: start !important;
+}
+
+.ag-placas-field__control {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.ag-placas-field__status {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--muted, #94a3b8);
+  line-height: 1.35;
+  padding: 8px 0;
+}
+
+.ag-placa-combo {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.ag-placa-combo__trigger {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ag-placa-combo__trigger-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-placa-combo__chevron {
+  flex: 0 0 auto;
+  font-size: 20px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.ag-placa-combo__panel {
+  /* Em fluxo, logo abaixo do trigger — sem sobrepor campos superiores. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  /* ~10 linhas de placa + campo de busca; além disso, rolagem. */
+  max-height: 460px;
+  padding: 10px;
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  background: var(--surface-elevated, #1e293b);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.ag-placa-combo__search {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.ag-placa-combo__search .material-symbols-outlined {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--text-muted, #94a3b8);
+  pointer-events: none;
+}
+
+.ag-placa-combo__search .input-control {
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 36px;
+  height: 36px;
+  min-height: 36px;
+}
+
+.ag-placa-combo__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* ~10 itens visíveis sem precisar digitar na busca. */
+  max-height: 400px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ag-placa-combo__item {
+  display: grid;
+  grid-template-columns: 18px minmax(5.5rem, auto) 1fr;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ag-placa-combo__item:hover {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 12%, transparent);
+}
+
+.ag-placa-combo__item--on {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 18%, transparent);
+}
+
+.ag-placa-combo__item input {
+  margin: 0;
+}
+
+.ag-placa-combo__placa {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.ag-placa-combo__veiculo {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-placa-combo__empty {
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+}
+
+/* ===== Dashboard Agendamentos (layout operacional) ===== */
+.ag-dash-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.ag-dash-top__title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ag-dash-top__sub {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ag-modalidade-toggle {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  gap: 4px;
+}
+
+.ag-modalidade-toggle__btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ag-modalidade-toggle__btn.is-active {
+  background: var(--primary, #2563eb);
+  color: var(--on-primary, #fff);
+}
+
+.ag-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.85rem 0 1rem;
+}
+
+.ag-dash-mid {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.ag-cal-card,
+.ag-slots-card,
+.ag-list-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.ag-cal-card {
+  padding: 0.85rem 0.9rem 1rem;
+}
+
+.ag-cal-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.65rem;
+
+  h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: var(--text);
+  }
+}
+
+.ag-cal-card__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.ag-cal-card__month {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--text);
+}
+
+.ag-cal-card__nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ag-cal-card__weekdays,
+.ag-cal-card__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.ag-cal-card__weekdays {
+  margin-bottom: 4px;
+
+  span {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+}
+
+.ag-cal-card__day {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.ag-cal-card__day.is-out {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.ag-cal-card__day.is-today {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary, #2563eb) 55%, transparent);
+}
+
+.ag-cal-card__day.is-selected {
+  background: var(--primary, #2563eb);
+  color: var(--on-primary, #fff);
+}
+
+.ag-slots-card {
+  padding: 0.85rem 0.95rem 0.75rem;
+  min-width: 0;
+}
+
+.ag-slots-card__head,
+.ag-list-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+
+  h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: var(--text);
+  }
+}
+
+.ag-slots-card__hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.ag-slots-card__scroll {
+  overflow-x: auto;
+}
+
+.ag-slots-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+
+  th,
+  td {
+    padding: 0.45rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    background: var(--surface-2);
+  }
+}
+
+.ag-occ-bar {
+  display: flex;
+  width: min(160px, 28vw);
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+  gap: 1px;
+}
+
+.ag-occ-bar__disp {
+  background: #22c55e;
+  min-width: 0;
+}
+
+.ag-occ-bar__res {
+  background: #eab308;
+  min-width: 0;
+}
+
+.ag-occ-bar__occ {
+  background: #ef4444;
+  min-width: 0;
+}
+
+.ag-slots-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 0.65rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.ag-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+}
+
+.ag-dot--disp {
+  background: #22c55e;
+}
+
+.ag-dot--res {
+  background: #eab308;
+}
+
+.ag-dot--occ {
+  background: #ef4444;
+}
+
+.ag-list-card__head {
+  padding: 0.85rem 1rem 0;
+}
+
+@media (max-width: 1100px) {
+  .ag-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ag-dash-mid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ag-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,33 @@
+<div class="vaga-reserva-dialog">
+  <header class="vaga-reserva-dialog__head">
+    <div>
+      <h2 mat-dialog-title class="vaga-reserva-dialog__title">Destinar vagas</h2>
+      <p class="vaga-reserva-dialog__sub">
+        Destine vagas de estacionamento e limpeza (mensal, semanal, diário ou por período do dia).
+      </p>
+    </div>
+    <button
+      type="button"
+      mat-icon-button
+      class="vaga-reserva-dialog__close"
+      (click)="ref.close()"
+      aria-label="Fechar"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <mat-dialog-content class="vaga-reserva-dialog__body">
+    <app-vaga-reserva-panel
+      [transportadoras]="data.transportadoras"
+      [podeGerenciar]="data.podeGerenciar"
+      [embedded]="true"
+    />
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="vaga-reserva-dialog__actions" align="end">
+    <button type="button" mat-button class="vaga-reserva-dialog__btn-close" (click)="ref.close()">
+      Fechar
+    </button>
+  </mat-dialog-actions>
+</div>

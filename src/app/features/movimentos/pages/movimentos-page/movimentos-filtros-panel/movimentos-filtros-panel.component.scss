@@ -1,0 +1,207 @@
+/* Estilos do calendário (rec-data-picker / rec-cal). O partial também define
+ * `:host { overflow-x: clip }` — sobrescrevemos abaixo para não cortar o dropdown. */
+@use '../../../../financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: inline-flex;
+  position: relative;
+  z-index: 40;
+  /* Sobrescreve overflow-x: clip do faturamento-shared-painel. */
+  overflow: visible;
+  min-width: auto;
+}
+
+.mov-filtros {
+  position: relative;
+  overflow: visible;
+}
+
+.mov-filtros__bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mov-filtros__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.mov-filtros__btn--ativo {
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 45%, var(--border, #363642));
+  color: var(--primary, #3d8bff);
+}
+
+.mov-filtros__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary, #3d8bff);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.mov-filtros__arrow {
+  font-size: 1.1rem;
+  transition: transform 0.18s ease;
+}
+
+.mov-filtros__arrow--aberto {
+  transform: rotate(180deg);
+}
+
+.mov-filtros__limpar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+}
+
+.mov-filtros__dropdown {
+  /* Posição final aplicada via MovimentosFiltrosDropdownPanelDirective (fixed). */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 360px;
+  max-width: min(360px, calc(100vw - 24px));
+  box-sizing: border-box;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, var(--dark-border, #363642));
+  background: var(--surface, var(--dark-card, #292934));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1300;
+}
+
+.mov-filtros__titulo {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text, var(--dark-text, #f1f1f5));
+}
+
+.mov-filtros__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.mov-filtros__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted, var(--dark-text-muted, #92929f));
+}
+
+.mov-filtros__input,
+.mov-filtros__select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, var(--dark-border, #363642));
+  background: var(--input-bg, var(--dark-input, #23232d));
+  color: var(--text, var(--dark-text, #f1f1f5));
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+.mov-filtros__select {
+  cursor: pointer;
+}
+
+.mov-filtros__lookup {
+  position: relative;
+}
+
+.mov-filtros__clear-ico {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted, #92929f);
+  cursor: pointer;
+}
+
+.mov-filtros__lookup .mov-filtros__input {
+  padding-right: 36px;
+}
+
+.mov-filtros__hint {
+  font-size: 0.72rem;
+  color: var(--muted, #92929f);
+}
+
+.mov-filtros__suggest {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 180px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border, #363642);
+  background: var(--surface-2, var(--dark-card-elevated, #2c2c37));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  z-index: 30;
+}
+
+.mov-filtros__suggest-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text, #f1f1f5);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.84rem;
+}
+
+.mov-filtros__suggest-item:hover {
+  background: var(--dark-hover, #323240);
+}
+
+.mov-filtros__periodo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mov-filtros__date {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mov-filtros__date .rec-data-picker__trigger {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.mov-filtros__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

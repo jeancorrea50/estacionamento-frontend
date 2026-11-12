@@ -1,20 +1,23 @@
 import { Injectable, signal, computed } from '@angular/core';
+import { Subject } from 'rxjs';
 
 export type EstacionamentoFormStep = 1 | 2 | 3;
 
-export const ESTACIONAMENTO_STEP_LABELS: Record<EstacionamentoFormStep, string> = {
+export const Estacionamento_STEP_LABELS: Record<EstacionamentoFormStep, string> = {
   1: 'Cadastro',
   2: 'Dados Bancários',
   3: 'Fotos'
 };
 
 /**
- * Controla o step atual do formulário de novo estacionamento (Cadastro → Dados Bancários → Foto).
+ * Controla o step atual do formulário de novo Estacionamento (Cadastro → Dados Bancários → Foto).
  * Usado pelo layout (topbar stepper) e pelo form.
  */
 @Injectable({ providedIn: 'root' })
 export class EstacionamentoFormStepService {
   private readonly step = signal<EstacionamentoFormStep>(1);
+  /** Clique em "Salvar" no cabeçalho do layout (form assina e executa conforme a etapa). */
+  private readonly saveFromHeader$ = new Subject<void>();
 
   readonly currentStep = this.step.asReadonly();
   readonly isStepCadastro = computed(() => this.step() === 1);
@@ -37,5 +40,12 @@ export class EstacionamentoFormStepService {
 
   reset(): void {
     this.step.set(1);
+  }
+
+  /** Observable: o layout emite ao clicar em Salvar ao lado de Voltar. */
+  onSaveFromHeader$ = this.saveFromHeader$.asObservable();
+
+  requestSaveFromHeader(): void {
+    this.saveFromHeader$.next();
   }
 }

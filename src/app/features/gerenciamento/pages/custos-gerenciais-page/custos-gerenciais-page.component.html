@@ -1,0 +1,560 @@
+<div class="custos-page">
+  <header class="custos-page__head">
+    <div>
+      <h1 class="custos-page__title">Custos gerenciais</h1>
+      <p class="custos-page__sub">Acompanhe gastos, investimentos e receitas da empresa.</p>
+    </div>
+  </header>
+
+  <nav class="dk-tabs custos-tabs" role="tablist" aria-label="Abas de custos">
+    <button type="button" class="dk-tabs__tab" role="tab" [class.tab--active]="aba() === 'visao'" (click)="setAba('visao')">
+      Visão geral
+    </button>
+    <button
+      type="button"
+      class="dk-tabs__tab"
+      role="tab"
+      [class.tab--active]="aba() === 'lancamentos'"
+      (click)="setAba('lancamentos')"
+    >
+      Lançamentos
+    </button>
+    <button
+      type="button"
+      class="dk-tabs__tab"
+      role="tab"
+      [class.tab--active]="aba() === 'centros'"
+      (click)="setAba('centros')"
+    >
+      Centros de custo
+    </button>
+  </nav>
+
+  @if (aba() === 'visao') {
+    <section class="custos-panel">
+      <div class="custos-filters">
+        <label>
+          Mês
+          <select class="input-control" [ngModel]="mesFiltro()" (ngModelChange)="mesFiltro.set($event); carregarDashboard()">
+            @for (m of mesesOpcoes; track m.value) {
+              <option [ngValue]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Ano
+          <select class="input-control" [ngModel]="anoFiltro()" (ngModelChange)="anoFiltro.set($event); carregarDashboard()">
+            @for (a of anosOpcoes(); track a) {
+              <option [ngValue]="a">{{ a }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Tipo
+          <select
+            class="input-control"
+            [ngModel]="tipoDashFiltro()"
+            (ngModelChange)="tipoDashFiltro.set($event); carregarDashboard()"
+          >
+            <option [ngValue]="null">Todos</option>
+            @for (t of tipos; track t.value) {
+              <option [ngValue]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Centro
+          <select
+            class="input-control"
+            [ngModel]="centroDashFiltro()"
+            (ngModelChange)="centroDashFiltro.set($event); carregarDashboard()"
+          >
+            <option [ngValue]="null">Todos</option>
+            @for (c of centros(); track c.id) {
+              <option [ngValue]="c.id">{{ c.nome }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (loadingDash()) {
+        <p class="loading-msg">Carregando dashboard…</p>
+      } @else if (dashboard(); as d) {
+        <div class="custos-kpis">
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Despesas</span>
+            <strong class="custos-kpi__value custos-kpi__value--despesa">{{ d.totalDespesa | currency: 'BRL' }}</strong>
+          </article>
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Investimentos</span>
+            <strong class="custos-kpi__value custos-kpi__value--invest">{{ d.totalInvestimento | currency: 'BRL' }}</strong>
+          </article>
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Receitas</span>
+            <strong class="custos-kpi__value custos-kpi__value--receita">{{ d.totalReceita | currency: 'BRL' }}</strong>
+          </article>
+          <article class="custos-kpi">
+            <span class="custos-kpi__label">Saldo líquido</span>
+            <strong class="custos-kpi__value" [class.custos-kpi__value--neg]="d.saldoLiquido < 0">
+              {{ d.saldoLiquido | currency: 'BRL' }}
+            </strong>
+          </article>
+        </div>
+
+        <div class="custos-charts">
+          <article class="custos-chart-card">
+            <h2>Evolução mensal — {{ d.ano }} (KPIs: {{ mesLabel(mesFiltro()) }})</h2>
+            <apx-chart
+              [series]="chartMensalSeries()"
+              [chart]="chartLine()"
+              [theme]="chartTheme()"
+              [xaxis]="xaxisFrom(chartMensalCategories())"
+              [stroke]="stroke"
+              [fill]="fill"
+              [dataLabels]="dataLabels"
+              [yaxis]="yaxis()"
+              [tooltip]="tooltip()"
+              [legend]="legend()"
+            ></apx-chart>
+          </article>
+          <article class="custos-chart-card">
+            <h2>Comparativo anual</h2>
+            <apx-chart
+              [series]="chartAnualSeries()"
+              [chart]="chartBar()"
+              [theme]="chartTheme()"
+              [xaxis]="xaxisFrom(chartAnualCategories())"
+              [plotOptions]="plotBars"
+              [dataLabels]="dataLabels"
+              [yaxis]="yaxis()"
+              [tooltip]="tooltip()"
+              [legend]="legend()"
+            ></apx-chart>
+          </article>
+          <article class="custos-chart-card custos-chart-card--wide">
+            <h2>Por categoria — {{ d.ano }}</h2>
+            @if (chartCategoriaSeries().length === 0) {
+              <p class="empty-msg">Sem valores no período.</p>
+            } @else {
+              <apx-chart
+                [series]="chartCategoriaSeries()"
+                [chart]="chartPie()"
+                [theme]="chartTheme()"
+                [labels]="chartCategoriaLabels()"
+                [legend]="legend()"
+                [tooltip]="tooltip()"
+              ></apx-chart>
+            }
+          </article>
+        </div>
+      }
+    </section>
+  }
+
+  @if (aba() === 'lancamentos') {
+    <section class="custos-panel">
+      <div class="custos-filters custos-filters--lista">
+        <label class="custos-filters__search">
+          Busca
+          <input class="input-control" type="text" [ngModel]="termo()" (ngModelChange)="termo.set($event)" (keyup.enter)="onBuscarLista()" placeholder="Descrição…" />
+        </label>
+        <label>
+          Mês
+          <select class="input-control" [ngModel]="mesListaFiltro()" (ngModelChange)="mesListaFiltro.set($event)">
+            @for (m of mesesOpcoes; track m.value) {
+              <option [ngValue]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Ano
+          <select class="input-control" [ngModel]="anoListaFiltro()" (ngModelChange)="anoListaFiltro.set($event)">
+            @for (a of anosOpcoes(); track a) {
+              <option [ngValue]="a">{{ a }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Tipo
+          <select class="input-control" [ngModel]="tipoListaFiltro()" (ngModelChange)="tipoListaFiltro.set($event)">
+            <option [ngValue]="null">Todos</option>
+            @for (t of tipos; track t.value) {
+              <option [ngValue]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Centro
+          <select class="input-control" [ngModel]="centroListaFiltro()" (ngModelChange)="centroListaFiltro.set($event)">
+            <option [ngValue]="null">Todos</option>
+            @for (c of centros(); track c.id) {
+              <option [ngValue]="c.id">{{ c.nome }}</option>
+            }
+          </select>
+        </label>
+        <label class="custos-filters__check">
+          <span>Somente inativos</span>
+          <input
+            type="checkbox"
+            [ngModel]="somenteInativos()"
+            (ngModelChange)="onSomenteInativosChange($event)"
+          />
+        </label>
+        <button type="button" class="btn btn-secondary" (click)="onBuscarLista()">Buscar</button>
+        <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo lançamento</button>
+      </div>
+
+      @if (loadingLista()) {
+        <p class="loading-msg">Carregando…</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Situação</th>
+                <th>Tipo</th>
+                <th>Recorrência</th>
+                <th>Financiador</th>
+                <th>Pagamento</th>
+                <th>Centro</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of lancamentos(); track item.id) {
+                <tr [class.lancamento-row--inativo]="!item.ativo">
+                  <td>{{ item.dataCompetencia | date: 'dd/MM/yyyy' }}</td>
+                  <td>
+                    <span class="situacao-badge" [class.situacao-badge--inativo]="!item.ativo">
+                      {{ item.ativo ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
+                  <td>{{ item.tipoLabel }}</td>
+                  <td>{{ item.recorrenciaLabel || 'Única (dia)' }}</td>
+                  <td>{{ item.financiadorNome || 'Gt Sistema' }}</td>
+                  <td>
+                    {{ item.formaPagamentoLabel || 'Pix' }}
+                    @if (item.parcelas) {
+                      <span> · {{ item.parcelas }}x</span>
+                    }
+                  </td>
+                  <td>{{ item.centroCustoNome }}</td>
+                  <td>{{ item.categoriaNome }}</td>
+                  <td>{{ item.descricao }}</td>
+                  <td>{{ item.valor | currency: 'BRL' }}</td>
+                  <td class="acoes-cell">
+                    <button type="button" class="btn btn-secondary btn--sm" (click)="abrirHistorico(item)">Histórico</button>
+                    @if (item.ativo) {
+                      <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">Editar</button>
+                      <button type="button" class="btn btn-danger btn--sm" (click)="excluir(item)">Excluir</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (lancamentos().length === 0) {
+            <p class="empty-msg">Nenhum lançamento encontrado.</p>
+          }
+        </div>
+        <p class="custos-pager">{{ totalCount() }} registro(s)</p>
+      }
+    </section>
+  }
+
+  @if (aba() === 'centros') {
+    <section class="custos-panel">
+      <div class="custos-filters">
+        <button type="button" class="btn btn-primary" (click)="abrirNovoCentro()">Novo centro</button>
+      </div>
+      @if (loadingCentros()) {
+        <p class="loading-msg">Carregando centros…</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nome</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of centros(); track item.id) {
+                <tr>
+                  <td>{{ item.codigo }}</td>
+                  <td>{{ item.nome }}</td>
+                  <td>{{ item.ativo ? 'Ativo' : 'Inativo' }}</td>
+                  <td class="acoes-cell">
+                    @if (item.ativo) {
+                      <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditarCentro(item)">Editar</button>
+                      <button type="button" class="btn btn-danger btn--sm" (click)="excluirCentro(item)">Excluir</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (centros().length === 0) {
+            <p class="empty-msg">Nenhum centro cadastrado.</p>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>
+
+@if (modalAberto()) {
+  <div class="modal-overlay" role="presentation">
+    <div class="modal-content custos-modal" role="dialog" aria-modal="true" aria-labelledby="custos-modal-title">
+      <div class="modal-header">
+        <h2 id="custos-modal-title">{{ editId() ? 'Editar lançamento' : 'Novo lançamento' }}</h2>
+        <button type="button" class="modal-close" (click)="fecharModal()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>
+            Tipo
+            <select class="input-control" [(ngModel)]="form.tipo">
+              @for (t of tipos; track t.value) {
+                <option [ngValue]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Centro de custo
+            <select class="input-control" [(ngModel)]="form.centroCustoId">
+              <option [ngValue]="0">Selecione…</option>
+              @for (c of centros(); track c.id) {
+                @if (c.ativo) {
+                  <option [ngValue]="c.id">{{ c.nome }}</option>
+                }
+              }
+            </select>
+          </label>
+          <label>
+            Categoria
+            <select class="input-control" [(ngModel)]="form.categoriaId">
+              <option [ngValue]="0">Selecione…</option>
+              @for (c of categorias(); track c.id) {
+                <option [ngValue]="c.id">{{ c.nome }}</option>
+              }
+            </select>
+          </label>
+          <label class="form-grid__full">
+            Descrição
+            <input class="input-control" type="text" [(ngModel)]="form.descricao" />
+          </label>
+          <label>
+            Valor
+            <input class="input-control" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" />
+          </label>
+          <label>
+            Competência
+            <input class="input-control" type="date" [(ngModel)]="form.dataCompetencia" />
+          </label>
+          <label>
+            Recorrência
+            <select
+              class="input-control"
+              [(ngModel)]="form.recorrencia"
+              (ngModelChange)="onRecorrenciaChange()"
+              [disabled]="!!editId()"
+            >
+              @for (r of recorrencias; track r.value) {
+                <option [ngValue]="r.value">{{ r.label }}</option>
+              }
+            </select>
+          </label>
+          @if (form.recorrencia !== 1 && !editId()) {
+            <label>
+              Fim da recorrência
+              <input class="input-control" type="date" [(ngModel)]="form.dataFimRecorrencia" />
+            </label>
+          }
+          <label>
+            Data pagamento
+            <input
+              class="input-control"
+              type="date"
+              [ngModel]="form.dataPagamento || ''"
+              (ngModelChange)="form.dataPagamento = $event || null"
+            />
+          </label>
+          <label>
+            Financiador
+            <select class="input-control" [ngModel]="financiadorKey" (ngModelChange)="onFinanciadorChange($event)">
+              <option [ngValue]="'gt-sistema'">{{ financiadorGtSistema.nome }}</option>
+              @for (f of financiadoresAdmin(); track f.usuarioId) {
+                <option [ngValue]="'' + f.usuarioId">{{ f.nome }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Forma de pagamento
+            <select
+              class="input-control"
+              [(ngModel)]="form.formaPagamento"
+              (ngModelChange)="onFormaPagamentoChange()"
+            >
+              @for (fp of formasPagamento; track fp.value) {
+                <option [ngValue]="fp.value">{{ fp.label }}</option>
+              }
+            </select>
+          </label>
+          @if (isCartaoPagamento()) {
+            <label>
+              Parcelas
+              <input
+                class="input-control"
+                type="number"
+                min="1"
+                max="48"
+                step="1"
+                [(ngModel)]="form.parcelas"
+              />
+            </label>
+          }
+          <label class="form-grid__full">
+            Observação
+            <textarea class="input-control" rows="3" [(ngModel)]="form.observacao"></textarea>
+          </label>
+          @if (!editId() && form.recorrencia !== 1) {
+            <p class="form-hint form-grid__full">
+              Ao salvar, serão gerados lançamentos {{ form.recorrencia === 2 ? 'semanais' : 'mensais' }}
+              da competência até a data fim (máx. 60).
+            </p>
+          }
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="salvando()" (click)="salvar()">
+          {{ salvando() ? 'Salvando…' : 'Salvar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (modalCentroAberto()) {
+  <div class="modal-overlay" role="presentation">
+    <div class="modal-content custos-modal" role="dialog" aria-modal="true" aria-labelledby="centro-modal-title">
+      <div class="modal-header">
+        <h2 id="centro-modal-title">{{ editCentroId() ? 'Editar centro' : 'Novo centro' }}</h2>
+        <button type="button" class="modal-close" (click)="fecharModalCentro()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label>
+            Código
+            <input class="input-control" type="text" [(ngModel)]="formCentro.codigo" maxlength="40" />
+          </label>
+          <label class="form-grid__full">
+            Nome
+            <input class="input-control" type="text" [(ngModel)]="formCentro.nome" maxlength="120" />
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharModalCentro()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="salvandoCentro()" (click)="salvarCentro()">
+          {{ salvandoCentro() ? 'Salvando…' : 'Salvar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (modalHistoricoAberto()) {
+  <div class="modal-overlay" role="presentation">
+    <div
+      class="modal-content custos-modal custos-modal--historico"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hist-modal-title"
+    >
+      <div class="modal-header">
+        <div class="modal-header__titles">
+          <h2 id="hist-modal-title">Auditoria Custos</h2>
+          @if (historicoTitulo()) {
+            <p class="modal-header__sub">{{ historicoTitulo() }}</p>
+          }
+        </div>
+        <button type="button" class="modal-close" (click)="fecharHistorico()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        @if (loadingHistorico()) {
+          <p class="loading-msg">Carregando histórico…</p>
+        } @else if (historicoLinhas().length === 0) {
+          <p class="empty-msg">Nenhuma operação registrada.</p>
+        } @else {
+          <div class="historico-legend" aria-label="Legenda de operações">
+            <span class="hist-op hist-op--create">Criação</span>
+            <span class="hist-op hist-op--update">Alteração</span>
+            <span class="hist-op hist-op--delete">Exclusão</span>
+          </div>
+          <div class="table-wrap historico-table-wrap">
+            <table class="data-table historico-table">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Data/Hora</th>
+                  <th scope="col">Operação</th>
+                  <th scope="col">Usuário</th>
+                  <th scope="col">Campos</th>
+                  <th scope="col">Detalhes</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (linha of historicoLinhas(); track linha.key) {
+                  <tr class="historico-row" [ngClass]="operacaoClass(linha.operacao)">
+                    <td>{{ linha.eventoId }}</td>
+                    <td>{{ linha.dataHora | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      <span class="hist-op" [ngClass]="operacaoClass(linha.operacao)">{{ linha.operacaoLabel }}</span>
+                    </td>
+                    <td>{{ linha.usuarioNome }}</td>
+                    <td>{{ linha.qtdCampos }}</td>
+                    <td class="historico-detalhes" [title]="linha.resumo">{{ linha.resumo }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharHistorico()">Fechar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (modalConfirmAberto()) {
+  <div class="modal-overlay modal fade show" role="presentation">
+    <div
+      class="modal-dialog modal-dialog-centered modal-content custos-modal custos-modal--confirm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="custos-confirm-title"
+    >
+      <div class="modal-header">
+        <h2 id="custos-confirm-title">{{ confirmTitulo() }}</h2>
+        <button type="button" class="btn-close modal-close" (click)="fecharConfirmacao()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-msg">{{ confirmMensagem() }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharConfirmacao()">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="confirmarAcao()">{{ confirmLabel() }}</button>
+      </div>
+    </div>
+  </div>
+}

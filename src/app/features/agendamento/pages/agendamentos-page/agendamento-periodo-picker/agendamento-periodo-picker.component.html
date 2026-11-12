@@ -1,0 +1,109 @@
+<div class="ag-periodo-picker" (click)="$event.stopPropagation()">
+  <div class="rec-data-picker ag-periodo-picker__control">
+    <button
+      type="button"
+      class="rec-data-picker__trigger"
+      [class.rec-data-picker__trigger--ativo]="panelAberto() || periodoAtivo()"
+      (click)="togglePanel($event)"
+      aria-label="Selecionar período"
+      [attr.aria-expanded]="panelAberto()"
+    >
+      <span class="rec-data-picker__label">{{ periodoLabel() }}</span>
+      <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">calendar_month</span>
+    </button>
+
+    @if (panelAberto()) {
+      <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
+        <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
+          <h3 class="rec-cal__titulo">Calendário</h3>
+          <div class="rec-data-picker__modes ag-periodo-picker__modes" role="tablist" aria-label="Tipo de período">
+            @for (g of periodoGranularidadeOpcoes; track g.id) {
+              <button
+                type="button"
+                class="rec-data-picker__mode"
+                role="tab"
+                [class.rec-data-picker__mode--active]="granularidade() === g.id"
+                [attr.aria-selected]="granularidade() === g.id"
+                (click)="setPeriodoGranularidade(g.id)"
+              >
+                {{ g.label }}
+              </button>
+            }
+          </div>
+
+          @if (granularidade() === 'ano') {
+            <div class="rec-cal__nav">
+              <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+              </button>
+              <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+              <button type="button" class="rec-cal__nav-btn" aria-label="Próximos anos" (click)="anoCalendarioProximo()">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+            <div class="rec-cal__anos-grid">
+              @for (ano of calendarioAnosOpcoes(); track ano) {
+                <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">
+                  {{ ano }}
+                </button>
+              }
+            </div>
+          } @else if (granularidade() === 'mes') {
+            <div class="rec-cal__nav">
+              <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+              </button>
+              <span class="rec-cal__periodo-titulo">{{ calendarioAno() }}</span>
+              <button type="button" class="rec-cal__nav-btn" aria-label="Próximo ano" (click)="anoCalendarioProximo()">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+            <div class="rec-cal__meses-grid">
+              @for (mes of mesesLabels; track mes; let i = $index) {
+                <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">
+                  {{ mes }}
+                </button>
+              }
+            </div>
+          } @else {
+            <div class="rec-cal__nav">
+              <button type="button" class="rec-cal__nav-btn" aria-label="Mês anterior" (click)="mesCalendarioAnterior()">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+              </button>
+              <span class="rec-cal__periodo-titulo">{{ calendarioTituloMes() }}</span>
+              <button type="button" class="rec-cal__nav-btn" aria-label="Próximo mês" (click)="mesCalendarioProximo()">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+            <div class="rec-cal__weekdays" aria-hidden="true">
+              @for (dia of diasSemanaLabels; track dia) {
+                <span class="rec-cal__weekday">{{ dia }}</span>
+              }
+            </div>
+            <div class="rec-cal__grid" role="grid" aria-label="Dias do mês" (mouseleave)="onDocumentMouseUp()">
+              @for (cell of calendarioGrade(); track cell.iso) {
+                <button
+                  type="button"
+                  class="rec-cal__dia"
+                  role="gridcell"
+                  [ngClass]="diaCalendarioModificadores(cell)"
+                  [attr.aria-label]="cell.iso"
+                  (mousedown)="onDiaCalendarioPointerDown(cell, $event)"
+                  (mouseenter)="onDiaCalendarioPointerEnter(cell)"
+                >
+                  {{ cell.day }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (periodoAtivo()) {
+    <button type="button" class="ag-periodo-picker__clear" (click)="limparPeriodo($event)" aria-label="Remover período">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  }
+</div>

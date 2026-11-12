@@ -1,0 +1,48 @@
+/* Mesmo padrão visual de Movimentações / PeriodoDataPicker (rec-cal). */
+@use '../../../../financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: block;
+  position: relative;
+  z-index: 50;
+  overflow: visible;
+  width: 100%;
+}
+
+.ag-dh-picker {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.ag-dh-picker__control {
+  width: 100%;
+}
+
+.ag-dh-picker__control .rec-data-picker__trigger {
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+}
+
+.ag-dh-picker__hora {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-color, #cbd5e1) 70%, transparent);
+}
+
+.ag-dh-picker__hora-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+}
+
+.ag-dh-picker__hora-field .input-control {
+  height: 36px;
+  min-height: 36px;
+}

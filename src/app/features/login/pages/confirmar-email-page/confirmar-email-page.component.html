@@ -1,0 +1,20 @@
+<div class="page-container confirmar-email" role="main">
+  <h1>Confirmação de e-mail</h1>
+  @switch (status()) {
+    @case ('loading') {
+      <p class="status" aria-live="polite">Confirmando e-mail, aguarde…</p>
+    }
+    @case ('ok') {
+      <p class="status status--ok" role="status">{{ message() }} Redirecionando para o login…</p>
+    }
+    @case ('error') {
+      <p class="status status--err" role="alert">{{ message() }}</p>
+      <p>
+        <a [routerLink]="linkLogin" class="link-login">Ir para a tela de login</a>
+      </p>
+    }
+    @default {
+      <p class="status" aria-hidden="true">Iniciando…</p>
+    }
+  }
+</div>

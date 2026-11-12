@@ -1,0 +1,12 @@
+@use '../faturamento-shared-form-list';
+@use '../faturamento-shared-recebimentos';
+@use '../faturamento-shared-visao';
+@use '../faturamento-shared-painel';
+@use '../faturamento-shared-resumo';
+
+/* ──────────────────────────────────────────────────────────────────────
+ * O layout de Fechamentos é composto integralmente pelos shells
+ * compartilhados: painel/KPIs/tabela/filtros/calendário/paginação
+ * (faturamento-shared-painel) e os cartões de resumo/validações
+ * (faturamento-shared-resumo).
+ * ──────────────────────────────────────────────────────────────────── */

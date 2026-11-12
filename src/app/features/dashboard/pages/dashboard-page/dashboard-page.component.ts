@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -8,4 +9,20 @@ import { CommonModule } from '@angular/common';
   templateUrl: './dashboard-page.component.html',
   styleUrls: ['./dashboard-page.component.scss']
 })
-export class DashboardPageComponent {}
+export class DashboardPageComponent implements OnInit {
+  private readonly signalrDashboardService = inject(SignalrDashboardService);
+
+  readonly dashboardAtualizado = this.signalrDashboardService.dashboardAtualizado;
+  readonly movimentacoes = this.signalrDashboardService.movimentacoes;
+  readonly alertaOperacional = this.signalrDashboardService.alertaOperacional;
+
+  readonly ultimaMovimentacao = computed(() => {
+    const lista = this.movimentacoes();
+    // Service já ordena mais recente primeiro.
+    return lista.length > 0 ? lista[0] : null;
+  });
+
+  ngOnInit(): void {
+    void this.signalrDashboardService.connect();
+  }
+}

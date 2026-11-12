@@ -8,6 +8,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import {
   AcessosPerfisService,
   ApplicationRole,
@@ -15,10 +20,25 @@ import {
 } from '../../services/acessos-perfis.service';
 import { ProfilePermissionsStoreService } from '../../services/profile-permissions-store.service';
 import type { MenuAdmin } from '../../../gerenciamento/models/menu-admin.model';
+import { MenuApiService } from '../../../gerenciamento/services/menu-api.service';
+import {
+  mapBuscarResponseToMenuAdmins,
+} from '../../../gerenciamento/services/menu-api.mapper';
+import { PatioMenuSeedService } from '../../../gerenciamento/services/patio-menu-seed.service';
+import { PatioAdminRoleRepairService } from '../../../gerenciamento/services/patio-admin-role-repair.service';
+import { flattenSubMenus } from '../../../gerenciamento/services/menu-tree.util';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
-import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import {
+  PERMISSAO_ACOES_LEGENDA,
+  findPermissaoByAction,
+  listCustomPermissoes,
+  resolvePermissaoAcaoMeta,
+  sortPermissoesByAction,
+  type PermissaoAcaoMeta,
+  type PermissaoAcaoPadrao,
+} from './perfil-permissao-acao.util';
 import {
   buildPermissionTreeState,
   getSelectedMenuCount,
@@ -30,9 +50,11 @@ import {
   togglePermissaoSelection,
   toggleSubMenuSelection,
   type TreeMenuNode,
+  type TreePermissaoNode,
+  type TreeSubMenuNode,
 } from './perfil-permissoes-tree.util';
 
-type ModalKind = 'create' | 'edit' | 'delete' | null;
+type ModalKind = 'create' | 'edit' | 'delete' | 'view' | null;
 
 const AVISO_SEM_ENDPOINT =
   'Backend não possui endpoints de perfis (roles) ainda.';
@@ -40,15 +62,18 @@ const AVISO_SEM_ENDPOINT =
 @Component({
   selector: 'app-acessos-perfis-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatCheckboxModule, MatExpansionModule, MatTooltipModule],
   templateUrl: './acessos-perfis-page.component.html',
   styleUrls: ['./acessos-perfis-page.component.scss'],
 })
 export class AcessosPerfisPageComponent implements OnInit {
+  readonly permAcoesLegenda = PERMISSAO_ACOES_LEGENDA;
   private perfisService = inject(AcessosPerfisService);
+  private menuApi = inject(MenuApiService);
+  private patioMenuSeed = inject(PatioMenuSeedService);
+  private patioAdminRoleRepair = inject(PatioAdminRoleRepairService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
-  private sessionAccess = inject(SessionAccessService);
   private authService = inject(AuthService);
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
@@ -57,9 +82,17 @@ export class AcessosPerfisPageComponent implements OnInit {
   erro: string | null = null;
   itens: ApplicationRole[] = [];
 
+  /** Filtros (somente UI; lista já carregada). Ordem fixa: nome A-Z. */
+  /** Texto digitado no campo (ainda não aplicado até clicar na lupa ou Enter). */
+  searchDraft = '';
+  /** Termo efetivo da busca (usado em `perfisFiltrados`). */
+  searchTerm = '';
+  statusFilter: 'all' | 'ativo' | 'inativo' = 'all';
+
   modalKind = signal<ModalKind>(null);
   editItem = signal<ApplicationRole | null>(null);
   deleteItem = signal<ApplicationRole | null>(null);
+  viewItem = signal<ApplicationRole | null>(null);
   saving = signal(false);
   saveError = signal<string | null>(null);
   deleting = signal(false);
@@ -80,6 +113,7 @@ export class AcessosPerfisPageComponent implements OnInit {
   isCreate = computed(() => this.modalKind() === 'create');
   isEdit = computed(() => this.modalKind() === 'edit');
   isDelete = computed(() => this.modalKind() === 'delete');
+  isView = computed(() => this.modalKind() === 'view');
 
   ngOnInit(): void {
     this.carregar();
@@ -89,17 +123,56 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.loading = true;
     this.erro = null;
     this.cdr.markForCheck();
-    this.perfisService.buscar().subscribe({
-      next: (body) => {
-        const rawList = this.extractRawProfileList(body);
-        this.loading = false;
-        this.erro = null;
+    forkJoin({
+      perfis: this.perfisService.buscar(),
+      // Catálogo oficial de menus/permissões (ids corretos para o PUT/POST de Perfil).
+      menus: this.menuApi.buscar().pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: ({ perfis, menus }) => {
+        const rawList = this.extractRawProfileList(perfis);
         this.itens = rawList.map((item) => this.normalizeRoleItem(item));
-        const menus = this.buildMenuCatalogFromProfiles(rawList);
-        this.backendMenuCatalog.set(menus);
-        this.permissionTree.set(buildPermissionTreeState(menus, null, []));
-        this.syncProfilePermissionsStore();
-        this.cdr.markForCheck();
+        this.searchDraft = '';
+        this.searchTerm = '';
+
+        const mappedMenus =
+          menus != null ? mapBuscarResponseToMenuAdmins(menus) : [];
+
+        // Garante Pátio no catálogo do backend antes de montar a árvore de permissões.
+        this.patioMenuSeed.ensurePatioMenuStructure(mappedMenus).subscribe({
+          next: (seed) => {
+            if (
+              seed.createdMenu ||
+              seed.createdSubs > 0 ||
+              seed.updatedRoutes > 0 ||
+              seed.renamed
+            ) {
+              this.toast.success(
+                seed.createdMenu
+                  ? 'Menu Pátio republicado no servidor. Marque-o no perfil e faça login novamente.'
+                  : 'Menu Pátio atualizado no servidor. Confira as permissões do perfil.'
+              );
+              this.menuApi.buscar().subscribe({
+                next: (fresh) => {
+                  this.applyMenuCatalog(
+                    mapBuscarResponseToMenuAdmins(fresh),
+                    rawList,
+                    true
+                  );
+                },
+                error: () => this.applyMenuCatalog(mappedMenus, rawList, true),
+              });
+              return;
+            }
+            this.applyMenuCatalog(mappedMenus, rawList, true);
+          },
+          error: (err: unknown) => {
+            this.toast.error(
+              this.mensagemErroSalvarPerfil(err) ||
+                'Não foi possível publicar o menu Pátio no servidor.'
+            );
+            this.applyMenuCatalog(mappedMenus, rawList, false);
+          },
+        });
       },
       error: () => {
         this.loading = false;
@@ -110,8 +183,101 @@ export class AcessosPerfisPageComponent implements OnInit {
     });
   }
 
+  private applyMenuCatalog(
+    menus: ReturnType<typeof mapBuscarResponseToMenuAdmins>,
+    rawList: Record<string, unknown>[],
+    repairAdminPatio: boolean
+  ): void {
+    const fromMenuApi = this.sanitizeMenuCatalog(menus);
+    const catalog =
+      fromMenuApi.length > 0
+        ? fromMenuApi
+        : this.sanitizeMenuCatalog(this.buildMenuCatalogFromProfiles(rawList));
+    this.backendMenuCatalog.set(catalog);
+    this.permissionTree.set(buildPermissionTreeState(catalog, null, []));
+    this.syncProfilePermissionsStore();
+
+    if (!repairAdminPatio) {
+      this.loading = false;
+      this.erro = null;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const roles = rawList.map((item) => this.normalizeRoleItem(item));
+    this.patioAdminRoleRepair.ensurePatioOnOperationalRoles(catalog, roles).subscribe({
+      next: (result) => {
+        if (result.repaired.length) {
+          this.toast.success(
+            `Pátio revinculado ao(s) perfil(is): ${result.repaired.join(', ')}. Faça novo login no usuário Admin.`
+          );
+          // Recarrega lista para refletir menus do perfil após o PUT.
+          this.perfisService.buscar().subscribe({
+            next: (perfis) => {
+              const refreshed = this.extractRawProfileList(perfis);
+              this.itens = refreshed.map((item) => this.normalizeRoleItem(item));
+              this.loading = false;
+              this.erro = null;
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              this.loading = false;
+              this.erro = null;
+              this.cdr.markForCheck();
+            },
+          });
+          return;
+        }
+        this.loading = false;
+        this.erro = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        this.erro = null;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * Mantém apenas ids válidos do servidor (evita FK inválida no save do perfil).
+   * Achata submenus aninhados por rota: cada tela (Transportadora, Relatório, Convites…)
+   * fica independente na UI de permissões — sem herdar seleção do “pai”.
+   */
+  private sanitizeMenuCatalog(menus: MenuAdmin[]): MenuAdmin[] {
+    return menus
+      .filter((menu) => menu.id > 0)
+      .map((menu) => {
+        const flatSubs = flattenSubMenus(menu.subMenus ?? [])
+          .filter((sub) => sub.id > 0)
+          .map((sub) => ({
+            ...sub,
+            subMenus: [],
+            permissions: (sub.permissions ?? []).filter((p) => p.id > 0),
+          }));
+        return {
+          ...menu,
+          subMenus: flatSubs,
+        };
+      })
+      .sort((a, b) => a.ordem - b.ordem);
+  }
+
   retry(): void {
     this.carregar();
+  }
+
+  /** Aplica o texto do campo à lista (sem nova chamada HTTP). */
+  aplicarBuscaPerfil(): void {
+    this.searchTerm = this.searchDraft.trim();
+    this.cdr.markForCheck();
+  }
+
+  limparBuscaPerfil(): void {
+    this.searchDraft = '';
+    this.searchTerm = '';
+    this.cdr.markForCheck();
   }
 
   private buildMenuCatalogFromProfiles(items: Record<string, unknown>[]): MenuAdmin[] {
@@ -160,6 +326,7 @@ export class AcessosPerfisPageComponent implements OnInit {
       ordem: this.readNumber(record, 'ordem') ?? 0,
       icone: this.readString(record, 'icone') ?? 'menu',
       ativo: !this.readBoolean(record, 'inativo'),
+      exibirNoSidebar: true,
       subMenus,
       existeNoServidor: true,
     };
@@ -188,6 +355,7 @@ export class AcessosPerfisPageComponent implements OnInit {
       ordem: this.readNumber(record, 'ordem') ?? fallbackOrder,
       rota: this.readString(record, 'rota') ?? '',
       ativo: !this.readBoolean(record, 'inativo'),
+      exibirNoSidebar: true,
       permissions,
     };
   }
@@ -267,17 +435,135 @@ export class AcessosPerfisPageComponent implements OnInit {
   private normalizeRoleItem(raw: Record<string, unknown>): ApplicationRole {
     const permissionIds = this.extractPermissionIdsFromRole(raw);
     const menus = this.getArrayProp(raw, 'menus', 'Menus');
+    const id = this.readId(raw, 'id', 'permissaoId', 'perfilId', 'roleId');
+    const nome = this.readString(raw, 'nome', 'name', 'permissao', 'perfil');
     return {
-      id: this.readId(raw, 'id', 'perfilId', 'roleId'),
-      perfilId: this.readId(raw, 'perfilId', 'id'),
-      perfil: this.readString(raw, 'perfil'),
-      name: this.readString(raw, 'name', 'nome', 'perfil'),
-      nome: this.readString(raw, 'nome', 'name', 'perfil'),
+      id,
+      permissaoId: this.readId(raw, 'permissaoId', 'id', 'perfilId'),
+      perfilId: this.readId(raw, 'perfilId', 'permissaoId', 'id'),
+      permissao: this.readString(raw, 'permissao', 'nome', 'name', 'perfil'),
+      perfil: this.readString(raw, 'perfil', 'permissao', 'nome', 'name'),
+      name: this.readString(raw, 'name', 'nome', 'permissao', 'perfil'),
+      nome,
       normalizedName: this.readString(raw, 'normalizedName', 'descricao'),
       concurrencyStamp: this.readString(raw, 'concurrencyStamp'),
       menus,
       permissionIds,
+      ativo: this.readProfileAtivoFlag(raw),
+      usuariosVinculados: this.readOptionalUserCount(raw),
+      ultimaAtualizacao: this.readOptionalDateString(raw),
     };
+  }
+
+  /** Lista aplicando busca e status (sem nova chamada HTTP). Ordem: nome A-Z. */
+  get perfisFiltrados(): ApplicationRole[] {
+    let list = [...this.itens];
+    const q = this.searchTerm.trim().toLowerCase();
+    if (q) {
+      list = list.filter((item) => {
+        const nome = (item.name ?? item.nome ?? '').toLowerCase();
+        const desc = (item.normalizedName ?? '').toLowerCase();
+        return nome.includes(q) || desc.includes(q);
+      });
+    }
+    if (this.statusFilter === 'ativo') {
+      list = list.filter((item) => this.isPerfilAtivoUi(item));
+    } else if (this.statusFilter === 'inativo') {
+      list = list.filter((item) => !this.isPerfilAtivoUi(item));
+    }
+
+    list.sort((a, b) => {
+      const na = (a.name ?? a.nome ?? '').toLocaleLowerCase('pt-BR');
+      const nb = (b.name ?? b.nome ?? '').toLocaleLowerCase('pt-BR');
+      return na.localeCompare(nb, 'pt-BR');
+    });
+
+    return list;
+  }
+
+  isPerfilAtivoUi(item: ApplicationRole): boolean {
+    if (item.ativo === false) return false;
+    if (item.ativo === true) return true;
+    return true;
+  }
+
+  formatUltimaAtualizacao(iso: string | null | undefined): string {
+    if (!iso?.trim()) return '—';
+    const t = Date.parse(iso);
+    if (!Number.isFinite(t)) return iso.trim();
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(t));
+  }
+
+  formatUsuariosVinculados(item: ApplicationRole): string {
+    const n = item.usuariosVinculados;
+    if (n == null || Number.isNaN(n)) return '—';
+    return String(n);
+  }
+
+  perfilDisplayName(item: ApplicationRole): string {
+    return (item.name ?? item.nome ?? item.perfil ?? '—').trim() || '—';
+  }
+
+  openVisualizar(item: ApplicationRole): void {
+    this.viewItem.set(item);
+    this.modalKind.set('view');
+    this.cdr.markForCheck();
+  }
+
+  openDuplicar(item: ApplicationRole): void {
+    this.saveError.set(null);
+    this.editItem.set(null);
+    const base = this.perfilDisplayName(item);
+    const suffix = base !== '—' ? `${base} (cópia)` : 'Perfil (cópia)';
+    this.form = {
+      name: suffix,
+      normalizedName: item.normalizedName ?? '',
+      permissionIds: [...(item.permissionIds ?? [])],
+    };
+    this.permissionTree.set(
+      buildPermissionTreeState(this.backendMenuCatalog(), item.menus ?? null, item.permissionIds ?? [])
+    );
+    this.modalKind.set('create');
+    this.cdr.markForCheck();
+  }
+
+  private readProfileAtivoFlag(raw: Record<string, unknown>): boolean | undefined {
+    if (raw['inativo'] === true || raw['Inativo'] === true) return false;
+    if (raw['ativo'] === false || raw['Ativo'] === false) return false;
+    if (raw['ativo'] === true || raw['Ativo'] === true) return true;
+    return undefined;
+  }
+
+  private readOptionalUserCount(raw: Record<string, unknown>): number | null | undefined {
+    const n = this.readNumber(
+      raw,
+      'usuariosVinculados',
+      'qtdUsuarios',
+      'totalUsuarios',
+      'usuariosCount',
+      'qtdeUsuarios'
+    );
+    if (n != null && n >= 0) return n;
+    return undefined;
+  }
+
+  private readOptionalDateString(raw: Record<string, unknown>): string | null | undefined {
+    const s = this.readString(
+      raw,
+      'dataAtualizacao',
+      'ultimaAtualizacao',
+      'dataAlteracao',
+      'updatedAt',
+      'ultimaAlteracao',
+      'DataAtualizacao'
+    );
+    return s ?? undefined;
   }
 
   private extractPermissionIdsFromRole(raw: Record<string, unknown>): string[] {
@@ -514,6 +800,23 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  onMenuCheckboxChange(menuId: number, event: MatCheckboxChange): void {
+    this.onMenuToggle(menuId, event.checked);
+  }
+
+  onSubMenuCheckboxChange(menuId: number, subMenuId: number, event: MatCheckboxChange): void {
+    this.onSubMenuToggle(menuId, subMenuId, event.checked);
+  }
+
+  onPermissaoCheckboxChange(
+    menuId: number,
+    subMenuId: number,
+    permissaoId: number,
+    event: MatCheckboxChange
+  ): void {
+    this.onPermissaoToggle(menuId, subMenuId, permissaoId, event.checked);
+  }
+
   onPermissaoToggle(
     menuId: number,
     subMenuId: number,
@@ -526,24 +829,68 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  private syncSessionAccessFromBackendCatalog(): void {
-    const menus = this.backendMenuCatalog();
-    this.sessionAccess.setMenus(
-      menus.map((m) => ({
-        id: m.id,
-        descricao: m.nome,
-        icone: m.icone,
-        ativo: m.ativo,
-        ordem: m.ordem,
-        subMenus: (m.subMenus ?? []).map((s) => ({
-          id: s.id,
-          descricao: s.nome,
-          rota: s.rota,
-          ativo: s.ativo,
-          ordem: s.ordem,
-        })),
-      }))
+  resolveAcaoMeta(permissao: TreePermissaoNode): PermissaoAcaoMeta {
+    return resolvePermissaoAcaoMeta(permissao.key || permissao.nome);
+  }
+
+  sortedPermissoes(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
+    return sortPermissoesByAction(subMenu.permissoes ?? []);
+  }
+
+  findAcaoPadrao(
+    subMenu: TreeSubMenuNode,
+    action: PermissaoAcaoPadrao
+  ): TreePermissaoNode | undefined {
+    return findPermissaoByAction(subMenu.permissoes, action);
+  }
+
+  customPermissoes(subMenu: TreeSubMenuNode): TreePermissaoNode[] {
+    return listCustomPermissoes(subMenu.permissoes);
+  }
+
+  toggleAcaoPermissao(
+    menuId: number,
+    subMenuId: number,
+    permissao: TreePermissaoNode,
+    event?: Event
+  ): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    this.onPermissaoToggle(menuId, subMenuId, permissao.permissaoId, !permissao.selecionado);
+  }
+
+  isMenuIndeterminate(menu: TreeMenuNode): boolean {
+    const flat = this.flattenSubMenus(menu.subMenus);
+    const total = flat.reduce((acc, sub) => acc + sub.permissoes.length, 0);
+    if (total === 0) return false;
+    const selected = flat.reduce(
+      (acc, sub) => acc + sub.permissoes.filter((p) => p.selecionado).length,
+      0
     );
+    return selected > 0 && selected < total;
+  }
+
+  isSubMenuIndeterminate(subMenu: TreeSubMenuNode): boolean {
+    const flat = this.flattenSubMenus([subMenu]);
+    const total = flat.reduce((acc, node) => acc + node.permissoes.length, 0);
+    if (total === 0) return false;
+    const selected = flat.reduce(
+      (acc, node) => acc + node.permissoes.filter((p) => p.selecionado).length,
+      0
+    );
+    return selected > 0 && selected < total;
+  }
+
+  private flattenSubMenus(subMenus: TreeSubMenuNode[]): TreeSubMenuNode[] {
+    const out: TreeSubMenuNode[] = [];
+    const walk = (items: TreeSubMenuNode[]) => {
+      for (const item of items) {
+        out.push(item);
+        if (item.subMenus?.length) walk(item.subMenus);
+      }
+    };
+    walk(subMenus);
+    return out;
   }
 
   private syncPermissionCacheForCurrentUserProfile(editedRoleName: string): void {
@@ -568,13 +915,16 @@ export class AcessosPerfisPageComponent implements OnInit {
 
   private toUpsertPayload(editingItem: ApplicationRole | null): PerfilUpsertInput {
     const nome = this.form.name.trim() || null;
-    return {
-      id: this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId),
-      perfilId: this.toOptionalNumber(editingItem?.perfilId),
+    // Contrato Swagger: PerfilCreateInput / PerfilUpdateInput → { id?, nome, menus }
+    const dto: PerfilUpsertInput = {
       nome,
-      name: nome,
       menus: mapTreeToPerfilMenusPayload(this.permissionTree()),
     };
+    const id = this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId);
+    if (id != null && id > 0) {
+      dto.id = id;
+    }
+    return dto;
   }
 
   private getPermissionIdToKeyMap(): Map<number, string> {
@@ -596,6 +946,15 @@ export class AcessosPerfisPageComponent implements OnInit {
     return item.permissionIds?.length ?? 0;
   }
 
+  trackPerfil(item: ApplicationRole): string {
+    const id = item.id ?? item.perfilId;
+    if (id != null && `${id}`.length > 0) {
+      return `perfil:${id}`;
+    }
+    const nome = `${item.name ?? ''}::${item.nome ?? ''}`;
+    return `perfil-name:${nome}`;
+  }
+
   openExcluir(item: ApplicationRole): void {
     this.deleteItem.set(item);
     this.modalKind.set('delete');
@@ -606,6 +965,7 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.modalKind.set(null);
     this.editItem.set(null);
     this.deleteItem.set(null);
+    this.viewItem.set(null);
     this.saveError.set(null);
     this.cdr.markForCheck();
   }
@@ -645,7 +1005,7 @@ export class AcessosPerfisPageComponent implements OnInit {
         }
         const editedRoleName = this.form.name.trim() || this.editItem()?.name || '';
         this.syncPermissionCacheForCurrentUserProfile(editedRoleName);
-        this.syncSessionAccessFromBackendCatalog();
+        // Sessão/sidebar só mudam de forma definitiva no próximo login (payload `menus` do backend).
         this.toast.warning('Permissões atualizadas. Faça novo login para aplicar 100% das regras do token.');
         this.saving.set(false);
         this.closeModal();
@@ -654,10 +1014,21 @@ export class AcessosPerfisPageComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.saveError.set(err?.message ?? 'Erro ao salvar.');
+        this.saveError.set(this.mensagemErroSalvarPerfil(err));
         this.cdr.markForCheck();
       },
     });
+  }
+
+  private mensagemErroSalvarPerfil(err: unknown): string {
+    const raw =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message?: unknown }).message ?? '').trim()
+        : '';
+    if (/entity changes|inner exception|dbupdate|foreign key|fk_/i.test(raw)) {
+      return 'Não foi possível salvar o perfil. Verifique as permissões selecionadas (ids inválidos ou vínculo inconsistente no servidor).';
+    }
+    return raw || 'Erro ao salvar.';
   }
 
   confirmarExclusao(): void {

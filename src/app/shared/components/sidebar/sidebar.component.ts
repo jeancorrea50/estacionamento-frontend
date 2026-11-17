@@ -164,22 +164,18 @@ export class SidebarComponent implements OnInit {
     this.scheduleRailClose();
   }
 
+  /**
+   * Pai com filhos só expande/recolhe (ou abre flyout no rail).
+   * Não navega: rotas agrupadoras (ex. `/app/patio`) redirecionam para um
+   * submenu e impediam o collapse via `autoExpandFromRoute`.
+   */
   onParentClick(item: MenuItem, event: MouseEvent): void {
-    // Pai com rota própria (ex.: Pátio) abre a tela atual e expande o submenu.
-    if (item.route && !this.canShowRailFlyout()) {
-      void this.router.navigateByUrl(item.route);
-    }
+    event.preventDefault();
+    event.stopPropagation();
 
     if (!this.canShowRailFlyout()) {
       this.toggleMenu(item.route);
       return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (item.route) {
-      void this.router.navigateByUrl(item.route);
     }
 
     const current = this.railFlyout();

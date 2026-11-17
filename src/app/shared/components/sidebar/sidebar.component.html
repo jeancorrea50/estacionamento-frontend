@@ -31,16 +31,23 @@
             <button
               type="button"
               class="menu-item menu-item-parent"
-              [class.active]="isActive(item.route)"
+              [class.active]="isActive(item.route) || isParentExpanded(item)"
               (click)="onParentClick(item, $event)"
               [attr.aria-expanded]="isParentExpanded(item)"
               [attr.aria-haspopup]="item.children?.length ? 'menu' : null"
+              [attr.title]="
+                isMenuExpanded(item.route) ? 'Recolher ' + item.label : 'Expandir ' + item.label
+              "
             >
               <span class="menu-item__icon" aria-hidden="true">
                 <span class="material-symbols-outlined icon">{{ item.icon }}</span>
               </span>
               <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
-              <span class="material-symbols-outlined icon chevron" [class.hidden]="isCollapsed()">
+              <span
+                class="material-symbols-outlined icon chevron"
+                [class.hidden]="isCollapsed()"
+                aria-hidden="true"
+              >
                 {{ isMenuExpanded(item.route) ? 'expand_less' : 'expand_more' }}
               </span>
             </button>

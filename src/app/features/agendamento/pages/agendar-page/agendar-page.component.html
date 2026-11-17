@@ -3,12 +3,19 @@
     <div>
       <h1 class="agendar-page__title">Agendar</h1>
       <p class="agendar-page__sub">
-        Consulte suas vagas liberadas pelo estacionamento e acompanhe seus agendamentos.
+        Consulte vagas liberadas pelo estacionamento e registre seus agendamentos.
       </p>
     </div>
-    @if (!isTransportadora) {
-      <a class="btn btn-secondary" [routerLink]="agendamentoRoute">Abrir painel completo</a>
-    }
+    <div class="agendar-page__actions">
+      @if (podeCriar) {
+        <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+          Novo agendamento
+        </button>
+      }
+      <button type="button" class="btn btn-secondary" (click)="carregar(); carregarVagas()">
+        Atualizar
+      </button>
+    </div>
   </header>
 
   @if (erro()) {
@@ -48,7 +55,6 @@
     <section class="agendar-lista" aria-label="Meus agendamentos">
       <div class="agendar-lista__head">
         <h2>Meus agendamentos</h2>
-        <button type="button" class="btn btn-secondary btn--sm" (click)="carregar()">Atualizar</button>
       </div>
 
       @if (loading()) {
@@ -78,11 +84,26 @@
             </tbody>
           </table>
           @if (items().length === 0) {
-            <p class="empty-msg">Nenhum agendamento encontrado.</p>
+            <div class="empty-state empty-state--compact">
+              <span class="material-symbols-outlined" aria-hidden="true">event_available</span>
+              <p class="empty-msg">Nenhum agendamento encontrado.</p>
+              @if (podeCriar) {
+                <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+                  Criar primeiro agendamento
+                </button>
+              }
+            </div>
           }
         </div>
         <p class="agendar-pager">{{ totalCount() }} registro(s)</p>
       }
     </section>
   }
+
+  <app-agendamento-novo-modal
+    [aberto]="showForm()"
+    [podeEscolherTransportadora]="false"
+    (fechado)="fecharForm()"
+    (salvo)="onNovoSalvo()"
+  />
 </div>

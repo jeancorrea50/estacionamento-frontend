@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError, finalize, map, switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
@@ -13,21 +12,15 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
-import { VeiculoListItemDTO } from '../../../cadastro/models/veiculo.dto';
-import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
+import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 import { EstSummaryMetricComponent } from '../../../cadastro/components/est-summary-metric/est-summary-metric.component';
 import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
-import { AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
+import { AGENDAMENTO_ROUTE, AGENDAR_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
-import { PortariaAlertasStore } from '../../../movimentos/services/portaria-alertas.store';
-import { ModalBuscaTransportadoraComponent } from '../../../movimentos/entrada-saida/components/modal-busca-transportadora/modal-busca-transportadora.component';
-import { ModalBuscaVeiculoComponent } from '../../../movimentos/entrada-saida/components/modal-busca-veiculo/modal-busca-veiculo.component';
-import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 import {
-  AgendamentoPostInput,
   AgendamentoSearchItem,
   EntradaSaidaStatus,
   entradaSaidaStatusLabel,
@@ -38,8 +31,7 @@ import {
   PeriodoDataPickerComponent,
   PeriodoDataSelecionado,
 } from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
-import { AgendamentoDataHoraPickerComponent } from './agendamento-data-hora-picker/agendamento-data-hora-picker.component';
-import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../../shared/utils/local-iso-datetime';
+import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
 import {
   VagaReservaDialogComponent,
   type VagaReservaDialogData,
@@ -59,25 +51,16 @@ import {
   type AgendamentoModalidadeUi,
 } from './agendamento-dashboard.util';
 
-interface AgendamentoPlacaSelecionada {
-  id: number;
-  placa: string;
-  marcaModelo?: string;
-}
-
 @Component({
   selector: 'app-agendamentos-page',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     MatDialogModule,
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
-    AgendamentoDataHoraPickerComponent,
-    ModalBuscaTransportadoraComponent,
-    ModalBuscaVeiculoComponent,
+    AgendamentoNovoModalComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],
@@ -88,12 +71,10 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly permissions = inject(PermissionCacheService);
   private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
-  private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly transportadoraService = inject(TransportadoraService);
   private readonly estacionamentoService = inject(EstacionamentoService);
   private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly toast = inject(ToastService);
-  private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
 
   readonly isAdmin = this.auth.isAdmin();
@@ -102,7 +83,8 @@ export class AgendamentosPageComponent implements OnInit {
   get canVisualizar(): boolean {
     return (
       this.sessionAccess.canAccessRoute(this.router.url) ||
-      this.sessionAccess.canAccessRoute(AGENDAMENTO_ROUTE)
+      this.sessionAccess.canAccessRoute(AGENDAMENTO_ROUTE) ||
+      this.sessionAccess.canAccessRoute(AGENDAR_ROUTE)
     );
   }
 
@@ -132,14 +114,7 @@ export class AgendamentosPageComponent implements OnInit {
   readonly loadingList = signal(false);
   readonly jaBuscou = signal(false);
   readonly erroList = signal<string | null>(null);
-  readonly salvando = signal(false);
   readonly showForm = signal(false);
-  /** Transportadora do modal (signal para UI zoneless). */
-  readonly transportadoraFormId = signal<number | null>(null);
-  readonly transportadoraFormNome = signal('');
-  readonly placasSelecionadas = signal<AgendamentoPlacaSelecionada[]>([]);
-  readonly buscaTransportadoraAberta = signal(false);
-  readonly buscaPlacaAberta = signal(false);
 
   readonly items = signal<AgendamentoSearchItem[]>([]);
   readonly totalCount = signal(0);
@@ -181,12 +156,6 @@ export class AgendamentosPageComponent implements OnInit {
   filtroDataFinal = '';
   filtroTransportadoraId: number | null = null;
   readonly gerandoReciboId = signal<number | null>(null);
-
-  form = this.fb.group({
-    dataAgendamento: ['', Validators.required],
-    transportadoraId: [null as number | null],
-    observacao: [''],
-  });
 
   ngOnInit(): void {
     if (!this.canVisualizar) return;
@@ -277,87 +246,6 @@ export class AgendamentosPageComponent implements OnInit {
     return Math.max(0, Number(value) || 0);
   }
 
-  onDataHoraChange(value: string): void {
-    this.form.controls.dataAgendamento.setValue(value);
-    this.form.controls.dataAgendamento.markAsDirty();
-  }
-
-  abrirBuscaTransportadora(): void {
-    if (!this.podeOperarPatio) return;
-    this.buscaTransportadoraAberta.set(true);
-  }
-
-  fecharBuscaTransportadora(): void {
-    this.buscaTransportadoraAberta.set(false);
-  }
-
-  onTransportadoraBuscaSelecionada(item: PaginatedSearchItem): void {
-    const id = Number(item.id);
-    if (!Number.isFinite(id) || id <= 0) return;
-    this.form.controls.transportadoraId.setValue(id);
-    this.form.controls.transportadoraId.markAsDirty();
-    this.transportadoraFormId.set(id);
-    this.transportadoraFormNome.set((item.titulo || '').trim());
-    this.placasSelecionadas.set([]);
-    this.buscaTransportadoraAberta.set(false);
-  }
-
-  limparTransportadoraForm(): void {
-    if (!this.podeOperarPatio) return;
-    this.form.controls.transportadoraId.setValue(null);
-    this.transportadoraFormId.set(null);
-    this.transportadoraFormNome.set('');
-    this.placasSelecionadas.set([]);
-  }
-
-  abrirBuscaPlaca(): void {
-    const tid = this.transportadoraFormId();
-    if (!tid) {
-      this.toast.error('Selecione a transportadora antes de buscar placas.');
-      return;
-    }
-    this.buscaPlacaAberta.set(true);
-  }
-
-  fecharBuscaPlaca(): void {
-    this.buscaPlacaAberta.set(false);
-  }
-
-  onPlacaBuscaSelecionada(item: PaginatedSearchItem): void {
-    const id = Number(item.id);
-    const placa = String(item.titulo || '').trim();
-    if (!Number.isFinite(id) || id <= 0 || !placa) return;
-
-    if ((item.campo5 || '').trim().toLowerCase() === 'não') {
-      this.toast.error('Esta placa está inativa e não pode ser agendada.');
-      return;
-    }
-
-    const placaNorm = normalizePlaca(placa);
-    const jaExiste = this.placasSelecionadas().some(
-      (p) => p.id === id || normalizePlaca(p.placa) === placaNorm
-    );
-    if (jaExiste) {
-      this.toast.warning(`A placa ${formatPlacaDisplay(placa) || placa} já está na lista.`);
-      this.buscaPlacaAberta.set(false);
-      return;
-    }
-
-    this.placasSelecionadas.update((lista) => [
-      ...lista,
-      {
-        id,
-        placa,
-        marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
-      },
-    ]);
-    this.buscaPlacaAberta.set(false);
-  }
-
-  removerPlacaSelecionada(veiculoId: number): void {
-    this.placasSelecionadas.update((lista) => lista.filter((p) => p.id !== veiculoId));
-  }
-
   carregar(): void {
     if (!this.canVisualizar) return;
 
@@ -424,25 +312,17 @@ export class AgendamentosPageComponent implements OnInit {
 
   abrirNovo(): void {
     if (!this.podeCriar) return;
-    const tid =
-      this.isTransportadora && !this.isAdmin ? this.auth.resolveTransportadoraId() : null;
-    this.form.reset({
-      dataAgendamento: toDateTimeLocalInputValue(),
-      transportadoraId: tid,
-      observacao: '',
-    });
-    this.transportadoraFormId.set(tid && tid > 0 ? tid : null);
-    this.transportadoraFormNome.set('');
-    this.placasSelecionadas.set([]);
-    this.buscaTransportadoraAberta.set(false);
-    this.buscaPlacaAberta.set(false);
     this.showForm.set(true);
   }
 
   fecharForm(): void {
-    this.buscaTransportadoraAberta.set(false);
-    this.buscaPlacaAberta.set(false);
     this.showForm.set(false);
+  }
+
+  onNovoSalvo(): void {
+    this.showForm.set(false);
+    this.carregar();
+    this.carregarVagas();
   }
 
   podeConfirmarItem(item: AgendamentoSearchItem): boolean {
@@ -534,118 +414,6 @@ export class AgendamentosPageComponent implements OnInit {
     });
   }
 
-  salvar(): void {
-    if (!this.podeCriar) return;
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.toast.error('Informe a data/hora do agendamento.');
-      return;
-    }
-
-    const tid =
-      this.isTransportadora && !this.isAdmin
-        ? this.auth.resolveTransportadoraId()
-        : Number(this.form.controls.transportadoraId.value) || null;
-
-    if (!tid) {
-      this.toast.error('Selecione a transportadora.');
-      return;
-    }
-
-    const selecionados = this.placasSelecionadas();
-    if (!selecionados.length) {
-      this.toast.error('Selecione ao menos uma placa cadastrada.');
-      return;
-    }
-
-    const dataAgendamento = datetimeLocalInputToApiIso(
-      String(this.form.controls.dataAgendamento.value ?? '')
-    );
-    if (!dataAgendamento) {
-      this.toast.error('Data/hora inválida.');
-      return;
-    }
-
-    const observacao = (this.form.controls.observacao.value ?? '').trim() || null;
-
-    this.salvando.set(true);
-    forkJoin(
-      selecionados.map((veiculo) =>
-        this.resolverPayloadPlaca(veiculo, tid, dataAgendamento, observacao).pipe(
-          switchMap((payload) => {
-            if (!payload) {
-              return of({
-                success: false as const,
-                placa: veiculo.placa,
-                message: 'Veículo sem motorista vinculado ou placa inválida.',
-              });
-            }
-            return this.api.gravar(payload).pipe(
-              map((res) => ({
-                success: res.success,
-                placa: veiculo.placa,
-                message: res.message,
-              }))
-            );
-          }),
-          catchError(() =>
-            of({
-              success: false as const,
-              placa: veiculo.placa,
-              message: 'Falha ao criar agendamento.',
-            })
-          )
-        )
-      )
-    )
-      .pipe(finalize(() => this.salvando.set(false)))
-      .subscribe({
-        next: (results) => {
-          const ok = results.filter((r) => r.success);
-          const falhas = results.filter((r) => !r.success);
-
-          if (ok.length) {
-            const transportadoraLabel =
-              this.transportadoraFormNome().trim() ||
-              this.transportadoras().find((t) => t.id === tid)?.razaoSocial?.trim() ||
-              this.transportadoras().find((t) => t.id === tid)?.nomeFantasia?.trim() ||
-              '—';
-            for (const item of ok) {
-              const placaFmt = formatPlacaDisplay(item.placa) || item.placa;
-              this.portariaAlertas.push({
-                id: `agendamento-${item.placa}-${Date.now()}-${Math.random()}`,
-                titulo: 'Agendamento registrado',
-                descricao: `Placa ${placaFmt} - ${transportadoraLabel}`,
-              });
-            }
-          }
-
-          if (ok.length && !falhas.length) {
-            this.toast.success(
-              ok.length === 1
-                ? 'Agendamento criado.'
-                : `${ok.length} agendamentos criados.`
-            );
-            this.fecharForm();
-            this.carregar();
-            return;
-          }
-
-          if (ok.length && falhas.length) {
-            this.toast.error(
-              `${ok.length} criados, ${falhas.length} falharam (${falhas
-                .map((f) => formatPlacaDisplay(f.placa) || f.placa)
-                .join(', ')}).`
-            );
-            this.carregar();
-            return;
-          }
-
-          this.toast.error(falhas[0]?.message || 'Não foi possível criar o agendamento.');
-        },
-      });
-  }
-
   confirmarEntrada(item: AgendamentoSearchItem): void {
     if (!this.podeConfirmarItem(item)) return;
     if (!item.id || item.id <= 0) {
@@ -733,51 +501,6 @@ export class AgendamentosPageComponent implements OnInit {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleString('pt-BR');
-  }
-
-  private resolverPayloadPlaca(
-    veiculo: Pick<VeiculoListItemDTO, 'id' | 'placa'>,
-    transportadoraId: number,
-    dataAgendamento: string,
-    observacao: string | null
-  ) {
-    const placa = normalizePlaca(veiculo.placa);
-    if (!placaCompleta(placa)) {
-      return of(null);
-    }
-
-    return this.api.obterPorPlaca(placa).pipe(
-      map((agg) => {
-        const motoristaId = agg?.motoristaId && agg.motoristaId > 0 ? agg.motoristaId : null;
-        if (!motoristaId || motoristaId <= 0) return null;
-
-        if (
-          this.isTransportadora &&
-          !this.isAdmin &&
-          agg?.transportadoraId &&
-          agg.transportadoraId !== transportadoraId
-        ) {
-          return null;
-        }
-
-        const payload: AgendamentoPostInput = {
-          dataAgendamento,
-          observacao,
-          transportadoraId,
-          motorista: {
-            id: motoristaId,
-            cpf: agg?.motoristaCpf || null,
-            nome: agg?.motoristaNome || null,
-          },
-          veiculo: {
-            id: agg?.veiculoId || veiculo.id,
-            placa,
-          },
-        };
-        return payload;
-      }),
-      catchError(() => of(null))
-    );
   }
 
   private isStatusAgendado(item: AgendamentoSearchItem): boolean {

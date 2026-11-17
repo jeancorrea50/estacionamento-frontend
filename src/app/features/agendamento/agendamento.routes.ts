@@ -11,8 +11,8 @@ export const AGENDAMENTO_ROUTES: Routes = [
       ),
     title: 'Agendamentos',
   },
-  /** Legado: `/app/agendamento/agendamentos` → `/app/agendamento`. */
-  { path: AGENDAMENTOS_PATH, pathMatch: 'full', redirectTo: '' },
+  /** Legado transportadora: `/app/agendamento/agendamentos` → `/app/agendar`. */
+  { path: AGENDAMENTOS_PATH, pathMatch: 'full', redirectTo: '../agendar' },
 ];
 
 /** Menu Agendar: `/app/agendar`. */

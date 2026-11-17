@@ -4,10 +4,10 @@ export const AGENDAMENTO_PATH = 'agendamento';
 export const AGENDAMENTO_LABEL = 'Agendamento';
 
 /**
- * Alias legado da lista (`/app/agendamento/agendamentos`).
- * Mantido igual à rota canônica para não quebrar menus/login antigos.
+ * Alias legado da lista transportadora (`/app/agendamento/agendamentos`).
+ * Agora aponta para a tela Agendar (`/app/agendar`).
  */
-export const AGENDAMENTOS_ROUTE = AGENDAMENTO_ROUTE;
+export const AGENDAMENTOS_ROUTE = '/app/agendar';
 export const AGENDAMENTOS_PATH = 'agendamentos';
 
 /** Menu próprio: visão transportadora (próprios agendamentos + vagas liberadas). */
@@ -20,6 +20,8 @@ export const AGENDAR_LEGACY_ROUTE = '/app/agendamento/agendar';
 
 /**
  * Normaliza URLs legadas de agendamento/agendar para as rotas canônicas.
+ * - Pátio: `/app/agendamento`
+ * - Transportadora: `/app/agendar` (também `/app/agendamento/agendamentos`)
  */
 export function normalizeAgendamentoAppRoute(raw: string | null | undefined): string | null {
   if (raw == null) return null;
@@ -31,7 +33,7 @@ export function normalizeAgendamentoAppRoute(raw: string | null | undefined): st
     lower === '/app/agendamento/agendamentos' ||
     lower.startsWith('/app/agendamento/agendamentos/')
   ) {
-    return AGENDAMENTO_ROUTE;
+    return AGENDAR_ROUTE;
   }
   if (lower === AGENDAR_LEGACY_ROUTE || lower.startsWith(`${AGENDAR_LEGACY_ROUTE}/`)) {
     return AGENDAR_ROUTE;

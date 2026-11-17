@@ -1,0 +1,145 @@
+@if (aberto()) {
+  <div class="modal-overlay modal-overlay--frota" (click)="fechar()" role="presentation">
+    <div
+      class="modal-content modal-content--frota modal-content--agendamento-novo"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-agendamento-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h2 id="modal-agendamento-title">Novo agendamento</h2>
+        <button type="button" class="modal-close" aria-label="Fechar" (click)="fechar()">
+          &times;
+        </button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="salvar()">
+        <div class="modal-body modal-body--frota-compact ag-novo-body">
+          <div class="form-row ag-novo-field">
+            <label>Data/hora <span class="required">*</span></label>
+            <app-agendamento-data-hora-picker
+              [value]="form.controls.dataAgendamento.value || ''"
+              (valueChange)="onDataHoraChange($event)"
+            />
+          </div>
+
+          @if (podeEscolherTransportadora()) {
+            <div class="form-row ag-novo-field">
+              <label>Transportadora <span class="required">*</span></label>
+              <div class="ag-lookup">
+                <button
+                  type="button"
+                  class="input-control ag-lookup__trigger"
+                  (click)="abrirBuscaTransportadora()"
+                  [attr.aria-label]="
+                    transportadoraFormNome()
+                      ? 'Trocar transportadora: ' + transportadoraFormNome()
+                      : 'Buscar transportadora'
+                  "
+                >
+                  <span
+                    class="ag-lookup__value"
+                    [class.ag-lookup__value--placeholder]="!transportadoraFormNome()"
+                  >
+                    {{ transportadoraFormNome() || 'Buscar transportadora…' }}
+                  </span>
+                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">search</span>
+                </button>
+                @if (transportadoraFormId()) {
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--sm ag-lookup__clear"
+                    (click)="limparTransportadoraForm()"
+                    title="Limpar transportadora"
+                  >
+                    Limpar
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="form-row ag-novo-field ag-placas-field">
+            <label>Placas <span class="required">*</span></label>
+            <div class="ag-placas-field__control">
+              <div class="ag-lookup">
+                <button
+                  type="button"
+                  class="input-control ag-lookup__trigger"
+                  (click)="abrirBuscaPlaca()"
+                  [disabled]="!transportadoraFormId()"
+                  aria-label="Buscar placa"
+                >
+                  <span class="ag-lookup__value ag-lookup__value--placeholder">
+                    {{
+                      transportadoraFormId()
+                        ? 'Buscar placa no cadastro…'
+                        : 'Selecione a transportadora para buscar placas'
+                    }}
+                  </span>
+                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">search</span>
+                </button>
+              </div>
+
+              @if (placasSelecionadas().length) {
+                <ul class="ag-placa-chips" aria-label="Placas selecionadas">
+                  @for (p of placasSelecionadas(); track p.id) {
+                    <li class="ag-placa-chip">
+                      <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
+                      @if (p.marcaModelo) {
+                        <span class="ag-placa-chip__modelo">{{ p.marcaModelo }}</span>
+                      }
+                      <button
+                        type="button"
+                        class="ag-placa-chip__remove"
+                        (click)="removerPlacaSelecionada(p.id)"
+                        [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+
+          <div class="form-row ag-novo-field ag-novo-field--obs">
+            <label for="ag-novo-obs">Observação</label>
+            <textarea
+              id="ag-novo-obs"
+              class="input-control ag-novo-obs"
+              formControlName="observacao"
+              rows="3"
+              maxlength="200"
+              placeholder="Opcional"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="fechar()">Fechar</button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="form.invalid || salvando() || placasSelecionadas().length === 0"
+          >
+            {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<app-modal-busca-transportadora
+  [aberto]="buscaTransportadoraAberta()"
+  (fechar)="fecharBuscaTransportadora()"
+  (itemSelecionado)="onTransportadoraBuscaSelecionada($event)"
+/>
+
+<app-modal-busca-veiculo
+  [aberto]="buscaPlacaAberta()"
+  [transportadoraId]="transportadoraFormId() ?? undefined"
+  (fechar)="fecharBuscaPlaca()"
+  (itemSelecionado)="onPlacaBuscaSelecionada($event)"
+/>

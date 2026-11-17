@@ -76,6 +76,8 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'entradasaida.alterar',
     'entradasaida.excluir',
   ],
+  // Mesmas claims para /app/agendar (transportadora) e /app/agendamento (pátio).
+  // Separação de tela = menu/rota no Gerenciamento → Menu, não claim distinto.
   Agendamento: [
     'agendamento.visualizar',
     'agendamento.gravar',

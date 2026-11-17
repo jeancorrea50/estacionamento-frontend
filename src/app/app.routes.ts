@@ -120,6 +120,12 @@ export const routes: Routes = [
 				pathMatch: 'full',
 				redirectTo: 'agendar',
 			},
+			/** Legado: lista transportadora `/app/agendamento/agendamentos` → `/app/agendar`. */
+			{
+				path: 'agendamento/agendamentos',
+				pathMatch: 'full',
+				redirectTo: 'agendar',
+			},
 			// 5b1. AGENDAR (menu próprio)
 			{
 				path: 'agendar',

@@ -120,8 +120,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   'custos gerenciais': '/app/gerenciamento/custos',
   custogerencial: '/app/gerenciamento/custos',
   'custo gerencial': '/app/gerenciamento/custos',
+  /** Singular = painel do Pátio; plural/legado = tela Agendar (transportadora). */
   agendamento: '/app/agendamento',
-  agendamentos: '/app/agendamento',
+  agendamentos: '/app/agendar',
   agendar: '/app/agendar',
   'rede credenciada': REDE_CREDENCIADA_ROUTE,
   redecredenciada: REDE_CREDENCIADA_ROUTE,

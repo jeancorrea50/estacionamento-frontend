@@ -161,4 +161,13 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
       error: () => this.toast.error('Falha ao inativar reserva.'),
     });
   }
+
+  /** Percentual disponível (0–100) para a barra dos KPIs. */
+  pctDisponivel(disponiveis: number | null | undefined, capacidade: number | null | undefined): number {
+    const cap = Number(capacidade);
+    const disp = Number(disponiveis);
+    if (!Number.isFinite(cap) || cap <= 0) return 0;
+    if (!Number.isFinite(disp) || disp <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((disp / cap) * 100)));
+  }
 }

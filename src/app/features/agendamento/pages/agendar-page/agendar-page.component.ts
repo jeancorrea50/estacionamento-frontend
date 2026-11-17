@@ -1,11 +1,12 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { EstSummaryMetricComponent } from '../../../cadastro/components/est-summary-metric/est-summary-metric.component';
 import { AGENDAR_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
 import {
@@ -24,7 +25,13 @@ import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidad
 @Component({
   selector: 'app-agendar-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, AgendamentoNovoModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DatePipe,
+    EstSummaryMetricComponent,
+    AgendamentoNovoModalComponent,
+  ],
   templateUrl: './agendar-page.component.html',
   styleUrls: ['./agendar-page.component.scss'],
 })
@@ -44,22 +51,28 @@ export class AgendarPageComponent implements OnInit {
   readonly erro = signal<string | null>(null);
   readonly showForm = signal(false);
 
+  readonly kpiDisponiveisEst = computed(() => this.vagas()?.vagasDisponiveisEstacionamento ?? 0);
+  readonly kpiDisponiveisLimp = computed(() => this.vagas()?.vagasDisponiveisLimpeza ?? 0);
+  readonly kpiReservadasEst = computed(() => this.vagas()?.vagasReservadasEstacionamento ?? 0);
+  readonly kpiReservadasLimp = computed(() => this.vagas()?.vagasReservadasLimpeza ?? 0);
+  readonly kpiMeusAgendamentos = computed(() => this.totalCount());
+
   get canVisualizar(): boolean {
     return (
       this.sessionAccess.canAccessRoute(AGENDAR_ROUTE) ||
-      this.permissions.allows('agendar', 'visualizar')
+      this.permissions.allows('agendar', 'visualizar') ||
+      this.permissions.allows('agendamentos', 'visualizar')
     );
   }
 
-  /** POST — claim exclusiva desta tela: `agendar.gravar`. */
   get podeCriar(): boolean {
-    return this.canVisualizar && this.permissions.allows('agendar', 'gravar');
+    return (
+      this.canVisualizar &&
+      (this.permissions.allows('agendar', 'gravar') ||
+        this.permissions.allows('agendamentos', 'gravar'))
+    );
   }
 
-  /**
-   * Quem não é transportadora (ou é admin) escolhe a transportadora no modal.
-   * Perfil transportadora usa a da sessão automaticamente.
-   */
   get podeEscolherTransportadora(): boolean {
     return this.auth.isAdmin() || !this.auth.isTransportadoraRole();
   }

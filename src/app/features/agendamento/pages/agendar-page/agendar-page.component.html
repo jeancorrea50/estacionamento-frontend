@@ -1,104 +1,125 @@
-<div class="agendar-page">
-  <header class="agendar-page__head">
-    <div>
-      <h1 class="agendar-page__title">Agendar</h1>
-      <p class="agendar-page__sub">
-        Consulte vagas liberadas pelo estacionamento e registre seus agendamentos.
-      </p>
-    </div>
-    <div class="agendar-page__actions">
-      @if (podeCriar) {
-        <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+<div class="agendar-page page-container">
+  <div class="page-content">
+    <header class="agendar-page__head" aria-labelledby="agendar-title">
+      <div class="agendar-page__copy">
+        <h1 id="agendar-title" class="agendar-page__title">Agendar</h1>
+        <p class="agendar-page__sub">
+          Consulte vagas liberadas e registre agendamentos conforme sua permissão.
+        </p>
+      </div>
+      <div class="agendar-page__actions">
+        <button type="button" class="btn btn-secondary" (click)="carregar(); carregarVagas()">
+          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          Atualizar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="abrirNovo()"
+          [disabled]="!podeCriar"
+          [attr.title]="podeCriar ? null : 'Requer permissão agendar.gravar'"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
           Novo agendamento
         </button>
-      }
-      <button type="button" class="btn btn-secondary" (click)="carregar(); carregarVagas()">
-        Atualizar
-      </button>
-    </div>
-  </header>
+      </div>
+    </header>
 
-  @if (erro()) {
-    <p class="error-msg" role="alert">{{ erro() }}</p>
-  } @else {
-    <section class="agendar-kpis" aria-label="Disponibilidade de vagas">
-      @if (loadingVagas()) {
-        <p class="loading-msg">Carregando vagas…</p>
-      } @else if (vagas(); as v) {
-        @if (!v.controleAtivo) {
-          <p class="empty-msg">
-            Este estacionamento ainda não disponibilizou controle de vagas para transportadoras.
-          </p>
-        } @else {
-          <article class="agendar-kpi">
-            <span class="agendar-kpi__label">Vagas estacionamento</span>
-            <strong class="agendar-kpi__value">
-              {{ v.vagasDisponiveisEstacionamento ?? '—' }}
-              <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
-            </strong>
-            <span class="agendar-kpi__hint">Reservadas: {{ v.vagasReservadasEstacionamento }}</span>
-          </article>
-          <article class="agendar-kpi">
-            <span class="agendar-kpi__label">Vagas limpeza</span>
-            <strong class="agendar-kpi__value">
-              {{ v.vagasDisponiveisLimpeza ?? '—' }}
-              <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
-            </strong>
-            <span class="agendar-kpi__hint">Reservadas: {{ v.vagasReservadasLimpeza }}</span>
-          </article>
-        }
-      } @else {
-        <p class="empty-msg">Disponibilidade de vagas indisponível no momento.</p>
-      }
-    </section>
-
-    <section class="agendar-lista" aria-label="Meus agendamentos">
-      <div class="agendar-lista__head">
-        <h2>Meus agendamentos</h2>
+    @if (erro()) {
+      <div class="trn-list-banner trn-list-banner--error" role="alert">
+        <p class="error-msg">{{ erro() }}</p>
+      </div>
+    } @else {
+      <div class="agendar-kpi-grid" aria-label="Indicadores">
+        <app-est-summary-metric
+          icon="event"
+          label="Meus agendamentos"
+          [value]="kpiMeusAgendamentos()"
+          variant="info"
+        />
+        <app-est-summary-metric
+          icon="local_parking"
+          label="Vagas estacionamento"
+          [value]="kpiDisponiveisEst()"
+          variant="success"
+          [hint]="'Reservadas: ' + kpiReservadasEst()"
+        />
+        <app-est-summary-metric
+          icon="water_drop"
+          label="Vagas limpeza"
+          [value]="kpiDisponiveisLimp()"
+          variant="info"
+          [hint]="'Reservadas: ' + kpiReservadasLimp()"
+        />
+        <app-est-summary-metric
+          icon="garage"
+          label="Controle ativo"
+          [value]="vagas()?.controleAtivo ? 'Sim' : 'Não'"
+          [variant]="vagas()?.controleAtivo ? 'success' : 'warning'"
+        />
       </div>
 
-      @if (loading()) {
-        <p class="loading-msg">Carregando…</p>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Placa</th>
-                <th>Motorista</th>
-                <th>Status</th>
-                <th>Observação</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of items(); track item.id) {
+      @if (loadingVagas()) {
+        <p class="loading-msg">Carregando disponibilidade de vagas…</p>
+      } @else if (vagas(); as v) {
+        @if (!v.controleAtivo) {
+          <p class="agendar-note">
+            Este estacionamento ainda não disponibilizou controle de vagas para transportadoras.
+          </p>
+        }
+      }
+
+      <section class="agendar-lista agendar-card" aria-label="Meus agendamentos">
+        <div class="agendar-lista__head">
+          <h2>Meus agendamentos</h2>
+          <span class="agendar-lista__count">{{ totalCount() }}</span>
+        </div>
+
+        @if (loading()) {
+          <p class="loading-msg">Carregando…</p>
+        } @else {
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
-                  <td>{{ item.placaVeiculo }}</td>
-                  <td>{{ item.nomeMotorista }}</td>
-                  <td>{{ statusLabel(item) }}</td>
-                  <td>{{ item.observacao || '—' }}</td>
+                  <th>Data</th>
+                  <th>Placa</th>
+                  <th>Motorista</th>
+                  <th>Status</th>
+                  <th>Observação</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-          @if (items().length === 0) {
-            <div class="empty-state empty-state--compact">
-              <span class="material-symbols-outlined" aria-hidden="true">event_available</span>
-              <p class="empty-msg">Nenhum agendamento encontrado.</p>
-              @if (podeCriar) {
-                <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+              </thead>
+              <tbody>
+                @for (item of items(); track item.id) {
+                  <tr>
+                    <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ item.placaVeiculo }}</td>
+                    <td>{{ item.nomeMotorista }}</td>
+                    <td>{{ statusLabel(item) }}</td>
+                    <td>{{ item.observacao || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if (items().length === 0) {
+              <div class="empty-state empty-state--compact">
+                <span class="material-symbols-outlined" aria-hidden="true">event_available</span>
+                <p class="empty-msg">Nenhum agendamento encontrado.</p>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="abrirNovo()"
+                  [disabled]="!podeCriar"
+                >
                   Criar primeiro agendamento
                 </button>
-              }
-            </div>
-          }
-        </div>
-        <p class="agendar-pager">{{ totalCount() }} registro(s)</p>
-      }
-    </section>
-  }
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
 
   <app-agendamento-novo-modal
     [aberto]="showForm()"

@@ -88,9 +88,16 @@ export class AgendamentosPageComponent implements OnInit {
     );
   }
 
-  /** POST /Agendamento — claim da tela Pátio `agendamentos.gravar`. */
+  /**
+   * POST /Agendamento — claim da tela Pátio `agendamentos.gravar`
+   * (aceita também `agendar.gravar` se o perfil só tiver a outra tela).
+   */
   get podeCriar(): boolean {
-    return this.canVisualizar && this.permissions.allows('agendamentos', 'gravar');
+    return (
+      this.canVisualizar &&
+      (this.permissions.allows('agendamentos', 'gravar') ||
+        this.permissions.allows('agendar', 'gravar'))
+    );
   }
 
   /** PATCH cancelar — claim `agendamentos.alterar|excluir`. */
@@ -311,7 +318,10 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   abrirNovo(): void {
-    if (!this.podeCriar) return;
+    if (!this.podeCriar) {
+      this.toast.error('Sem permissão para criar agendamento (agendamentos.gravar).');
+      return;
+    }
     this.showForm.set(true);
   }
 

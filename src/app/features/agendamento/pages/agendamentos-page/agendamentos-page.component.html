@@ -93,17 +93,17 @@
                 Destinar vaga
               </button>
             }
-            @if (podeCriar) {
-              <button
-                type="button"
-                class="est-dash-btn est-dash-btn--primary"
-                (click)="abrirNovo()"
-                aria-label="Novo agendamento"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                Novo
-              </button>
-            }
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--primary"
+              (click)="abrirNovo()"
+              aria-label="Novo agendamento"
+              [disabled]="!podeCriar"
+              [attr.title]="podeCriar ? null : 'Requer permissão agendamentos.gravar'"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              Novo
+            </button>
           </div>
         </section>
 

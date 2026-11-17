@@ -62,8 +62,9 @@
             />
           </label>
           <app-periodo-data-picker
-            emptyLabel="Qualquer período"
-            ariaLabel="Selecionar período"
+            emptyLabel="Qualquer dia"
+            ariaLabel="Selecionar dia"
+            [modoDiaUnico]="true"
             [dataInicial]="filtroDataInicial"
             [dataFinal]="filtroDataFinal"
             (periodoChange)="onPeriodoChange($event)"

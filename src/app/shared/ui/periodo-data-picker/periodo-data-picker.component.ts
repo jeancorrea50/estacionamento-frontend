@@ -57,6 +57,11 @@ export class PeriodoDataPickerComponent {
   readonly emptyLabel = input('Data');
   /** aria-label do trigger. */
   readonly ariaLabel = input('Selecionar período');
+  /**
+   * Quando true: um clique seleciona o dia, emite e fecha o painel
+   * (sem intervalo “entre” / 2º clique).
+   */
+  readonly modoDiaUnico = input(false);
   /** ISO yyyy-MM-dd — sincroniza o estado interno (ex.: limpar filtros). */
   readonly dataInicial = input<string>('');
   readonly dataFinal = input<string>('');
@@ -117,16 +122,25 @@ export class PeriodoDataPickerComponent {
       const ini = parseIsoLocal(iniIso);
       const fim = parseIsoLocal(fimIso || iniIso);
       if (!ini || !fim) return;
+      const diaUnico = this.modoDiaUnico();
+      const alvoIni = toIsoDate(ini);
+      const alvoFim = diaUnico ? alvoIni : toIsoDate(fim);
       const curIni = this.periodoAtivo() ? toIsoDate(this.dataInicio()) : '';
       const curFim = this.periodoAtivo() ? toIsoDate(this.dataFim()) : '';
-      if (curIni === toIsoDate(ini) && curFim === toIsoDate(fim)) return;
+      if (curIni === alvoIni && curFim === alvoFim) return;
       this.syncingFromParent = true;
       this.periodoAtivo.set(true);
-      this.dataInicio.set(ini);
-      this.dataFim.set(fim);
+      if (diaUnico) {
+        this.dataInicio.set(ini);
+        this.dataFim.set(ini);
+        this.granularidade.set('dia');
+      } else {
+        this.dataInicio.set(ini);
+        this.dataFim.set(fim);
+        this.inferirGranularidade(ini, fim);
+      }
       this.calendarioAno.set(ini.getFullYear());
       this.calendarioMes.set(ini.getMonth());
-      this.inferirGranularidade(ini, fim);
       this.limparPendencias();
       this.syncingFromParent = false;
     });
@@ -142,6 +156,9 @@ export class PeriodoDataPickerComponent {
   }
 
   dicaSelecao(): string {
+    if (this.modoDiaUnico()) {
+      return 'Selecione o dia. O calendário fecha ao clicar.';
+    }
     const g = this.granularidade();
     if (g === 'dia') {
       return this.pendenteInicio()
@@ -162,14 +179,24 @@ export class PeriodoDataPickerComponent {
     event.stopPropagation();
     const abrir = !this.panelAberto();
     this.panelAberto.set(abrir);
-    if (abrir) this.limparPendencias();
+    if (abrir) {
+      if (this.modoDiaUnico()) this.granularidade.set('dia');
+      this.limparPendencias();
+    }
   }
 
   limparPeriodo(event?: MouseEvent): void {
     event?.stopPropagation();
-    this.periodoAtivo.set(false);
     this.panelAberto.set(false);
     this.limparPendencias();
+    // Em modo dia único, "limpar" volta para hoje (sempre há um dia ativo).
+    if (this.modoDiaUnico()) {
+      const hoje = criarDataHoje();
+      this.granularidade.set('dia');
+      this.aplicarRange(hoje, hoje);
+      return;
+    }
+    this.periodoAtivo.set(false);
     this.emitPeriodo();
   }
 
@@ -230,6 +257,15 @@ export class PeriodoDataPickerComponent {
     event.stopPropagation();
     this.navegarParaMesDoDia(cell);
     const dia = cloneDia(cell.date);
+
+    if (this.modoDiaUnico()) {
+      this.granularidade.set('dia');
+      this.aplicarRange(dia, dia);
+      this.limparPendencias();
+      this.panelAberto.set(false);
+      return;
+    }
+
     const pendente = this.pendenteInicio();
 
     if (!pendente) {

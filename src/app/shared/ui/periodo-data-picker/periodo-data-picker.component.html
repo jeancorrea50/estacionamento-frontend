@@ -13,23 +13,29 @@
     </button>
 
     @if (panelAberto()) {
-      <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar período">
+      <div
+        class="rec-data-picker__panel"
+        role="dialog"
+        [attr.aria-label]="modoDiaUnico() ? 'Selecionar dia' : 'Selecionar período'"
+      >
         <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
           <h3 class="rec-cal__titulo">Calendário</h3>
-          <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
-            @for (g of periodoGranularidadeOpcoes; track g.id) {
-              <button
-                type="button"
-                class="rec-data-picker__mode"
-                role="tab"
-                [class.rec-data-picker__mode--active]="granularidade() === g.id"
-                [attr.aria-selected]="granularidade() === g.id"
-                (click)="setPeriodoGranularidade(g.id)"
-              >
-                {{ g.label }}
-              </button>
-            }
-          </div>
+          @if (!modoDiaUnico()) {
+            <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de período">
+              @for (g of periodoGranularidadeOpcoes; track g.id) {
+                <button
+                  type="button"
+                  class="rec-data-picker__mode"
+                  role="tab"
+                  [class.rec-data-picker__mode--active]="granularidade() === g.id"
+                  [attr.aria-selected]="granularidade() === g.id"
+                  (click)="setPeriodoGranularidade(g.id)"
+                >
+                  {{ g.label }}
+                </button>
+              }
+            </div>
+          }
 
           <p class="periodo-data-picker__hint" role="status">{{ dicaSelecao() }}</p>
 

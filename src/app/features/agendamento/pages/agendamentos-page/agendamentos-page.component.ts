@@ -178,7 +178,6 @@ export class AgendamentosPageComponent implements OnInit {
     }
 
     this.aplicarDataSelecionadaNoFiltro(this.dataSelecionadaIso(), false);
-    this.carregarVagas();
     this.onBuscar();
   }
 
@@ -218,8 +217,15 @@ export class AgendamentosPageComponent implements OnInit {
     if (buscar) this.onBuscar();
   }
 
-  private carregarVagas(): void {
-    this.vagasApi.resumoParaTransportadora().subscribe({
+  private dataDashboardIso(): string {
+    const filtro = (this.filtroDataInicial || this.filtroDataFinal || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(filtro)) return filtro;
+    return this.dataSelecionadaIso();
+  }
+
+  private carregarVagas(dataIso?: string | null): void {
+    const data = (dataIso ?? this.dataDashboardIso()).trim();
+    this.vagasApi.resumoParaTransportadora(data).subscribe({
       next: (r) => this.vagasResumo.set(r),
       error: () => this.vagasResumo.set(null),
     });
@@ -240,16 +246,21 @@ export class AgendamentosPageComponent implements OnInit {
   onBuscar(): void {
     this.numeroPagina.set(1);
     this.carregar();
+    this.carregarVagas();
   }
 
   onPeriodoChange(periodo: PeriodoDataSelecionado): void {
-    this.filtroDataInicial = periodo.ativo ? periodo.dataInicial : '';
-    this.filtroDataFinal = periodo.ativo ? periodo.dataFinal : '';
-    if (periodo.ativo && periodo.dataInicial && periodo.dataInicial === periodo.dataFinal) {
-      this.dataSelecionadaIso.set(periodo.dataInicial);
-      const d = parseIsoDateLocal(periodo.dataInicial);
-      this.mesCalendario.set(new Date(d.getFullYear(), d.getMonth(), 1));
-    }
+    const diaBruto = periodo.ativo
+      ? (periodo.dataInicial || periodo.dataFinal || '').trim()
+      : toIsoDateLocal(new Date());
+    // Contrato da tela: filtro sempre de um único dia (não intervalo).
+    const dia = /^\d{4}-\d{2}-\d{2}$/.test(diaBruto) ? diaBruto : toIsoDateLocal(new Date());
+    this.filtroDataInicial = dia;
+    this.filtroDataFinal = dia;
+    this.dataSelecionadaIso.set(dia);
+    const d = parseIsoDateLocal(dia);
+    this.mesCalendario.set(new Date(d.getFullYear(), d.getMonth(), 1));
+    this.onBuscar();
   }
 
   flexBar(value: number): number {
@@ -333,8 +344,7 @@ export class AgendamentosPageComponent implements OnInit {
 
   onNovoSalvo(): void {
     this.showForm.set(false);
-    this.carregar();
-    this.carregarVagas();
+    this.onBuscar();
   }
 
   podeConfirmarItem(item: AgendamentoSearchItem): boolean {
@@ -453,7 +463,7 @@ export class AgendamentosPageComponent implements OnInit {
             return;
           }
           this.toast.success(res.message || 'Entrada confirmada.');
-          this.carregar();
+          this.onBuscar();
         },
         error: () => this.toast.error('Não foi possível confirmar a entrada.'),
       });
@@ -487,7 +497,7 @@ export class AgendamentosPageComponent implements OnInit {
             return;
           }
           this.toast.success(res.message || 'Agendamento cancelado.');
-          this.carregar();
+          this.onBuscar();
         },
         error: () => this.toast.error('Não foi possível cancelar.'),
       });

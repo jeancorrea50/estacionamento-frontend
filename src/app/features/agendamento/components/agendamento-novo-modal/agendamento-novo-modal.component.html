@@ -131,15 +131,17 @@
   </div>
 }
 
-<app-modal-busca-transportadora
-  [aberto]="buscaTransportadoraAberta()"
-  (fechar)="fecharBuscaTransportadora()"
-  (itemSelecionado)="onTransportadoraBuscaSelecionada($event)"
-/>
+@if (aberto() || buscaTransportadoraAberta() || buscaPlacaAberta()) {
+  <app-modal-busca-transportadora
+    [aberto]="buscaTransportadoraAberta()"
+    (fechar)="fecharBuscaTransportadora()"
+    (itemSelecionado)="onTransportadoraBuscaSelecionada($event)"
+  />
 
-<app-modal-busca-veiculo
-  [aberto]="buscaPlacaAberta()"
-  [transportadoraId]="transportadoraFormId() ?? undefined"
-  (fechar)="fecharBuscaPlaca()"
-  (itemSelecionado)="onPlacaBuscaSelecionada($event)"
-/>
+  <app-modal-busca-veiculo
+    [aberto]="buscaPlacaAberta()"
+    [transportadoraId]="transportadoraFormId() ?? undefined"
+    (fechar)="fecharBuscaPlaca()"
+    (itemSelecionado)="onPlacaBuscaSelecionada($event)"
+  />
+}

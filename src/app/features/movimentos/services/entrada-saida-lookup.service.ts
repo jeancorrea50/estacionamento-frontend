@@ -79,14 +79,26 @@ export class EntradaSaidaLookupService {
       TamanhoPagina: tamanhoPagina
     }).pipe(
       map((paged) => ({
-        items: paged.items.map((item) => ({
-          id: item.id,
-          titulo: item.placa,
-          campo2: item.marcaModelo || '—',
-          campo3: String(item.anoModelo ?? item.anoFabricacao ?? '—'),
-          campo4: item.cor || '—',
-          campo5: item.ativo ? 'Sim' : 'Não'
-        })),
+        items: paged.items.map((item) => {
+          const principal =
+            item.motoristas?.find((m) => m.principal === true) ?? item.motoristas?.[0];
+          return {
+            id: item.id,
+            titulo: item.placa,
+            campo2: item.marcaModelo || '—',
+            campo3: String(item.anoModelo ?? item.anoFabricacao ?? '—'),
+            campo4: item.cor || '—',
+            campo5: item.ativo ? 'Sim' : 'Não',
+            meta:
+              principal && principal.id > 0
+                ? {
+                    motoristaId: principal.id,
+                    motoristaNome: principal.nome || null,
+                    motoristaCpf: principal.cpf || null,
+                  }
+                : undefined,
+          };
+        }),
         totalCount: paged.totalCount,
         numeroPagina: paged.numeroPagina,
         tamanhoPagina: paged.tamanhoPagina

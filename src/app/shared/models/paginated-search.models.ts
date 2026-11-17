@@ -6,6 +6,8 @@ export interface PaginatedSearchItem {
   campo3?: string;
   campo4?: string;
   campo5?: string;
+  /** Metadados opcionais do item (ex.: motorista vinculado ao veículo). */
+  meta?: Record<string, unknown>;
 }
 
 export interface PaginatedSearchResult {

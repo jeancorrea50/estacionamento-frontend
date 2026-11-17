@@ -1,6 +1,14 @@
-/* Overlay e conteúdo self-contained (não depender de SCSS encapsulado de outras páginas). */
+/* Host fixo transparente: não bloqueia a página quando inativo (pointer-events: none). */
 :host {
-  display: contents;
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  pointer-events: none;
+}
+
+:host(.ag-novo-modal--ativo) {
+  pointer-events: auto;
 }
 
 .modal-overlay {
@@ -14,6 +22,7 @@
   box-sizing: border-box;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(2px);
+  pointer-events: auto;
 }
 
 .modal-content {

@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin, of } from 'rxjs';
-import { catchError, finalize, map, switchMap } from 'rxjs/operators';
+import { forkJoin, Observable, of, Subject } from 'rxjs';
+import { catchError, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
 import { ModalBuscaTransportadoraComponent } from '../../../movimentos/entrada-saida/components/modal-busca-transportadora/modal-busca-transportadora.component';
 import { ModalBuscaVeiculoComponent } from '../../../movimentos/entrada-saida/components/modal-busca-veiculo/modal-busca-veiculo.component';
@@ -19,7 +20,14 @@ interface AgendamentoPlacaSelecionada {
   id: number;
   placa: string;
   marcaModelo?: string;
+  motoristaId?: number | null;
+  motoristaNome?: string | null;
+  motoristaCpf?: string | null;
 }
+
+type ResolvePlacaResult =
+  | { ok: true; payload: AgendamentoPostInput }
+  | { ok: false; message: string };
 
 /**
  * Modal compartilhado de criação de agendamento (Pátio e Agendar/transportadora).
@@ -36,10 +44,15 @@ interface AgendamentoPlacaSelecionada {
   ],
   templateUrl: './agendamento-novo-modal.component.html',
   styleUrls: ['./agendamento-novo-modal.component.scss'],
+  host: {
+    '[class.ag-novo-modal--ativo]': 'overlayAtivo()',
+    '[attr.aria-hidden]': 'overlayAtivo() ? null : "true"',
+  },
 })
 export class AgendamentoNovoModalComponent {
   private readonly auth = inject(AuthService);
   private readonly api = inject(AgendamentoService);
+  private readonly veiculoApi = inject(VeiculoService);
   private readonly toast = inject(ToastService);
   private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly fb = inject(FormBuilder);
@@ -59,6 +72,10 @@ export class AgendamentoNovoModalComponent {
   readonly buscaTransportadoraAberta = signal(false);
   readonly buscaPlacaAberta = signal(false);
 
+  /** Cancela resoluções de placa em voo (troca de transportadora / fechar modal). */
+  private readonly cancelarResolucaoPlaca$ = new Subject<void>();
+  private geracaoSelecaoPlaca = 0;
+
   readonly form = this.fb.group({
     dataAgendamento: ['', Validators.required],
     transportadoraId: [null as number | null],
@@ -72,7 +89,18 @@ export class AgendamentoNovoModalComponent {
     });
   }
 
+  private invalidarResolucoesPendentes(): void {
+    this.geracaoSelecaoPlaca += 1;
+    this.cancelarResolucaoPlaca$.next();
+  }
+
+  /** Host cobre a viewport só enquanto algum overlay deste modal está ativo. */
+  overlayAtivo(): boolean {
+    return this.aberto() || this.buscaTransportadoraAberta() || this.buscaPlacaAberta();
+  }
+
   private resetForm(): void {
+    this.invalidarResolucoesPendentes();
     const tid =
       !this.podeEscolherTransportadora() && this.auth.isTransportadoraRole() && !this.auth.isAdmin()
         ? this.auth.resolveTransportadoraId()
@@ -90,6 +118,7 @@ export class AgendamentoNovoModalComponent {
   }
 
   fechar(): void {
+    this.invalidarResolucoesPendentes();
     this.buscaTransportadoraAberta.set(false);
     this.buscaPlacaAberta.set(false);
     this.fechado.emit();
@@ -112,6 +141,7 @@ export class AgendamentoNovoModalComponent {
   onTransportadoraBuscaSelecionada(item: PaginatedSearchItem): void {
     const id = Number(item.id);
     if (!Number.isFinite(id) || id <= 0) return;
+    this.invalidarResolucoesPendentes();
     this.form.controls.transportadoraId.setValue(id);
     this.form.controls.transportadoraId.markAsDirty();
     this.transportadoraFormId.set(id);
@@ -122,6 +152,7 @@ export class AgendamentoNovoModalComponent {
 
   limparTransportadoraForm(): void {
     if (!this.podeEscolherTransportadora()) return;
+    this.invalidarResolucoesPendentes();
     this.form.controls.transportadoraId.setValue(null);
     this.transportadoraFormId.set(null);
     this.transportadoraFormNome.set('');
@@ -161,15 +192,53 @@ export class AgendamentoNovoModalComponent {
       return;
     }
 
-    this.placasSelecionadas.update((lista) => [
-      ...lista,
-      {
-        id,
-        placa,
-        marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
-      },
-    ]);
+    const metaMotoristaId = Number(item.meta?.['motoristaId'] ?? 0);
+    const metaNome =
+      item.meta?.['motoristaNome'] != null ? String(item.meta['motoristaNome']) : null;
+    const metaCpf =
+      item.meta?.['motoristaCpf'] != null ? String(item.meta['motoristaCpf']) : null;
+
+    const base: AgendamentoPlacaSelecionada = {
+      id,
+      placa,
+      marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
+      motoristaId: metaMotoristaId > 0 ? metaMotoristaId : null,
+      motoristaNome: metaNome,
+      motoristaCpf: metaCpf,
+    };
+
     this.buscaPlacaAberta.set(false);
+
+    const geracao = ++this.geracaoSelecaoPlaca;
+    const tidEsperada = this.transportadoraFormId() ?? 0;
+
+    // Confirma/enriquece motorista via por-placa (e fallback CRUD) antes de fixar o chip.
+    this.resolverMotoristaDaPlaca(base, tidEsperada)
+      .pipe(takeUntil(this.cancelarResolucaoPlaca$))
+      .subscribe({
+        next: (resolved) => {
+          if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
+          if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
+          if (!resolved.motoristaId || resolved.motoristaId <= 0) {
+            this.toast.error(
+              `A placa ${formatPlacaDisplay(placa) || placa} não possui motorista vinculado. Vincule um motorista no cadastro do veículo.`
+            );
+            return;
+          }
+          this.placasSelecionadas.update((lista) => [...lista, resolved]);
+        },
+        error: () => {
+          if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
+          if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
+          if (base.motoristaId && base.motoristaId > 0) {
+            this.placasSelecionadas.update((lista) => [...lista, base]);
+            return;
+          }
+          this.toast.error(
+            `Não foi possível validar o motorista da placa ${formatPlacaDisplay(placa) || placa}.`
+          );
+        },
+      });
   }
 
   removerPlacaSelecionada(veiculoId: number): void {
@@ -219,15 +288,15 @@ export class AgendamentoNovoModalComponent {
     forkJoin(
       selecionados.map((veiculo) =>
         this.resolverPayloadPlaca(veiculo, tid, dataAgendamento, observacao, isTransportadora, isAdmin).pipe(
-          switchMap((payload) => {
-            if (!payload) {
+          switchMap((resolved) => {
+            if (!resolved.ok) {
               return of({
                 success: false as const,
                 placa: veiculo.placa,
-                message: 'Veículo sem motorista vinculado ou placa inválida.',
+                message: resolved.message,
               });
             }
-            return this.api.gravar(payload).pipe(
+            return this.api.gravar(resolved.payload).pipe(
               map((res) => ({
                 success: res.success,
                 placa: veiculo.placa,
@@ -288,49 +357,136 @@ export class AgendamentoNovoModalComponent {
   }
 
   private resolverPayloadPlaca(
-    veiculo: { id: number; placa: string },
+    veiculo: AgendamentoPlacaSelecionada,
     transportadoraId: number,
     dataAgendamento: string,
     observacao: string | null,
     isTransportadora: boolean,
     isAdmin: boolean
-  ) {
+  ): Observable<ResolvePlacaResult> {
     const placa = normalizePlaca(veiculo.placa);
     if (!placaCompleta(placa)) {
-      return of(null);
+      return of({
+        ok: false,
+        message: `Placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} inválida.`,
+      });
     }
 
-    return this.api.obterPorPlaca(placa).pipe(
-      map((agg) => {
-        const motoristaId = agg?.motoristaId && agg.motoristaId > 0 ? agg.motoristaId : null;
-        if (!motoristaId || motoristaId <= 0) return null;
-
-        if (
-          isTransportadora &&
-          !isAdmin &&
-          agg?.transportadoraId &&
-          agg.transportadoraId !== transportadoraId
-        ) {
-          return null;
+    return this.resolverMotoristaDaPlaca(veiculo, transportadoraId).pipe(
+      map((resolved) => {
+        const motoristaId = resolved.motoristaId && resolved.motoristaId > 0 ? resolved.motoristaId : null;
+        if (!motoristaId) {
+          return {
+            ok: false as const,
+            message: `A placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} não possui motorista vinculado. Vincule um motorista no cadastro do veículo.`,
+          };
         }
 
-        const payload: AgendamentoPostInput = {
-          dataAgendamento,
-          observacao,
-          transportadoraId,
-          motorista: {
-            id: motoristaId,
-            cpf: agg?.motoristaCpf || null,
-            nome: agg?.motoristaNome || null,
-          },
-          veiculo: {
-            id: agg?.veiculoId || veiculo.id,
-            placa,
-          },
+        return {
+          ok: true as const,
+          payload: {
+            dataAgendamento,
+            observacao,
+            transportadoraId,
+            motorista: {
+              id: motoristaId,
+              cpf: resolved.motoristaCpf || null,
+              nome: resolved.motoristaNome || null,
+            },
+            veiculo: {
+              id: resolved.id,
+              placa,
+            },
+          } satisfies AgendamentoPostInput,
         };
-        return payload;
       }),
-      catchError(() => of(null))
+      switchMap((result) => {
+        if (!result.ok) return of(result);
+        if (!(isTransportadora && !isAdmin)) return of(result);
+
+        // Garante que a placa pertence à transportadora da sessão.
+        return this.api.obterPorPlaca(placa).pipe(
+          map((agg) => {
+            if (!agg) {
+              return {
+                ok: false as const,
+                message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
+              };
+            }
+            if (agg.transportadoraId && agg.transportadoraId !== transportadoraId) {
+              return {
+                ok: false as const,
+                message: `A placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} não pertence à transportadora da sessão.`,
+              };
+            }
+            return result;
+          }),
+          catchError(() =>
+            of({
+              ok: false as const,
+              message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
+            })
+          )
+        );
+      }),
+      catchError(() =>
+        of({
+          ok: false as const,
+          message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
+        })
+      )
+    );
+  }
+
+  /**
+   * Resolve motorista: chip/meta → GET Agendamento/por-placa → GET Veiculo por id.
+   */
+  private resolverMotoristaDaPlaca(
+    veiculo: AgendamentoPlacaSelecionada,
+    transportadoraId: number
+  ): Observable<AgendamentoPlacaSelecionada> {
+    if (veiculo.motoristaId && veiculo.motoristaId > 0) {
+      return of(veiculo);
+    }
+
+    const placa = normalizePlaca(veiculo.placa);
+    return this.api.obterPorPlaca(placa).pipe(
+      switchMap((agg) => {
+        if (agg?.motoristaId && agg.motoristaId > 0) {
+          return of({
+            ...veiculo,
+            id: agg.veiculoId > 0 ? agg.veiculoId : veiculo.id,
+            motoristaId: agg.motoristaId,
+            motoristaNome: agg.motoristaNome || veiculo.motoristaNome || null,
+            motoristaCpf: agg.motoristaCpf || veiculo.motoristaCpf || null,
+          });
+        }
+
+        if (!(transportadoraId > 0 && veiculo.id > 0)) {
+          return of(veiculo);
+        }
+
+        return this.veiculoApi.obterPorId(veiculo.id, transportadoraId).pipe(
+          map((detalhe) => {
+            if (!detalhe) return veiculo;
+            const vinculo =
+              detalhe.motoristasVinculos?.find((m) => m.principal === true) ??
+              detalhe.motoristasVinculos?.[0];
+            const mid =
+              (detalhe.motoristaId && detalhe.motoristaId > 0 ? detalhe.motoristaId : null) ??
+              (vinculo && vinculo.id > 0 ? vinculo.id : null);
+            if (!mid) return veiculo;
+            return {
+              ...veiculo,
+              motoristaId: mid,
+              motoristaNome: detalhe.motoristaNome || vinculo?.nome || veiculo.motoristaNome || null,
+              motoristaCpf: vinculo?.cpf || veiculo.motoristaCpf || null,
+            };
+          }),
+          catchError(() => of(veiculo))
+        );
+      }),
+      catchError(() => of(veiculo))
     );
   }
 }

@@ -16,7 +16,6 @@
           type="button"
           class="btn btn-primary"
           (click)="abrirNovo()"
-          [disabled]="!podeCriar"
           [attr.title]="podeCriar ? null : 'Requer permissão agendar.gravar'"
         >
           <span class="material-symbols-outlined" aria-hidden="true">add</span>
@@ -105,12 +104,7 @@
               <div class="empty-state empty-state--compact">
                 <span class="material-symbols-outlined" aria-hidden="true">event_available</span>
                 <p class="empty-msg">Nenhum agendamento encontrado.</p>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  (click)="abrirNovo()"
-                  [disabled]="!podeCriar"
-                >
+                <button type="button" class="btn btn-primary" (click)="abrirNovo()">
                   Criar primeiro agendamento
                 </button>
               </div>

@@ -28,16 +28,41 @@ function pickRecord(o: unknown): Record<string, unknown> | null {
 
 /**
  * Contrato `EntradaSaidaVinculoOutput`: `motorista` pode ser lista (principal primeiro)
- * ou objeto único em payloads legados.
+ * ou objeto único; aceita também `motoristas` (plural) de listagens/CRUD.
  */
 function pickMotoristaRecord(root: Record<string, unknown>): Record<string, unknown> | null {
-  const raw = root['motorista'] ?? root['Motorista'] ?? root['condutor'] ?? root['Condutor'];
-  if (Array.isArray(raw)) {
-    for (const item of raw) {
+  const veiculo =
+    pickRecord(root['veiculo']) ?? pickRecord(root['Veiculo']) ?? pickRecord(root['veículo']);
+  const raw =
+    root['motorista'] ??
+    root['Motorista'] ??
+    root['motoristas'] ??
+    root['Motoristas'] ??
+    root['condutor'] ??
+    root['Condutor'] ??
+    veiculo?.['motorista'] ??
+    veiculo?.['Motorista'] ??
+    veiculo?.['motoristas'] ??
+    veiculo?.['Motoristas'];
+
+  const lista =
+    Array.isArray(raw)
+      ? raw
+      : raw != null && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>)['$values'])
+        ? ((raw as Record<string, unknown>)['$values'] as unknown[])
+        : null;
+
+  if (lista) {
+    // Preferir motorista marcado como principal.
+    let primeiro: Record<string, unknown> | null = null;
+    for (const item of lista) {
       const rec = pickRecord(item);
-      if (rec) return rec;
+      if (!rec) continue;
+      if (!primeiro) primeiro = rec;
+      const principal = rec['principal'] ?? rec['Principal'];
+      if (principal === true) return rec;
     }
-    return null;
+    return primeiro;
   }
   return pickRecord(raw);
 }

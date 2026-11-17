@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
-import { AGENDAMENTOS_PATH, AGENDAR_PATH } from './agendamento-rotas';
+import { AGENDAMENTOS_PATH } from './agendamento-rotas';
 
+/** Painel operacional: `/app/agendamento` (submenu do Pátio). */
 export const AGENDAMENTO_ROUTES: Routes = [
   {
     path: '',
@@ -10,12 +11,16 @@ export const AGENDAMENTO_ROUTES: Routes = [
       ),
     title: 'Agendamentos',
   },
+  /** Legado: `/app/agendamento/agendamentos` → `/app/agendamento`. */
+  { path: AGENDAMENTOS_PATH, pathMatch: 'full', redirectTo: '' },
+];
+
+/** Menu Agendar: `/app/agendar`. */
+export const AGENDAR_ROUTES: Routes = [
   {
-    path: AGENDAR_PATH,
+    path: '',
     loadComponent: () =>
       import('./pages/agendar-page/agendar-page.component').then((m) => m.AgendarPageComponent),
     title: 'Agendar',
   },
-  /** Legado: `/app/agendamento/agendamentos` → `/app/agendamento`. */
-  { path: AGENDAMENTOS_PATH, pathMatch: 'full', redirectTo: '' },
 ];

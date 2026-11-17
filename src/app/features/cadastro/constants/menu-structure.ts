@@ -30,7 +30,13 @@ import {
   PATIO_MOVIMENTACOES_ROUTE,
   PATIO_ROUTE,
 } from '../../patio/patio-rotas';
-import { AGENDAMENTO_ROUTE, AGENDAR_LABEL, AGENDAR_ROUTE } from '../../agendamento/agendamento-rotas';
+import {
+  AGENDAMENTO_LABEL,
+  AGENDAMENTO_ROUTE,
+  AGENDAR_LABEL,
+  AGENDAR_ROUTE,
+} from '../../agendamento/agendamento-rotas';
+
 import {
   ADMINISTRACAO_ROUTE,
   ADMINISTRACAO_USUARIO_ROUTE,
@@ -79,20 +85,14 @@ export const MENU_STRUCTURE: MenuNode[] = [
         ],
       },
       { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
+      { id: 'sub-agendamento', label: AGENDAMENTO_LABEL, route: AGENDAMENTO_ROUTE },
     ],
   },
   {
-    id: 'menu-agendamento',
-    label: 'Agendamento',
-    route: AGENDAMENTO_ROUTE,
-    icon: 'calendar_month',
-    children: [
-      {
-        id: 'sub-agendar',
-        label: AGENDAR_LABEL,
-        route: AGENDAR_ROUTE,
-      },
-    ],
+    id: 'menu-agendar',
+    label: AGENDAR_LABEL,
+    route: AGENDAR_ROUTE,
+    icon: 'event_available',
   },
   {
     id: 'menu-rede-credenciada',

@@ -37,14 +37,16 @@ export class FaturamentoDataPickerPanelDirective implements AfterViewInit, OnDes
     const panelWidth = Math.min(304, window.innerWidth - margin * 2);
     const rect = trigger.getBoundingClientRect();
 
+    // Alinha à esquerda do trigger (evita painel “flutuando” à direita em campos largos/modais).
+    const preferredLeft = rect.left;
+    const maxLeft = window.innerWidth - panelWidth - margin;
+    const left = Math.min(Math.max(margin, preferredLeft), Math.max(margin, maxLeft));
+
     panel.style.position = 'fixed';
     panel.style.width = `${panelWidth}px`;
-    panel.style.left = `${Math.min(
-      Math.max(margin, rect.right - panelWidth),
-      window.innerWidth - panelWidth - margin
-    )}px`;
+    panel.style.left = `${left}px`;
     panel.style.right = 'auto';
-    panel.style.zIndex = '1300';
+    panel.style.zIndex = '10120';
 
     const cal = panel.querySelector('.rec-cal') as HTMLElement | null;
     if (cal) {

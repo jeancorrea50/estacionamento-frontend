@@ -20,9 +20,28 @@
 }
 
 .ag-dh-picker__control .rec-data-picker__trigger {
+  display: flex;
+  justify-content: space-between;
   height: 40px;
   min-height: 40px;
   width: 100%;
+  text-align: left;
+  padding-inline: 12px 10px;
+  font-weight: 500;
+}
+
+.ag-dh-picker__control .rec-data-picker__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-dh-picker__control .rec-data-picker__panel {
+  /* Garante painel acima do overlay do modal de agendamento. */
+  z-index: 10120;
 }
 
 .ag-dh-picker__hora {

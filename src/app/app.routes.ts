@@ -17,7 +17,11 @@ import {
 } from './features/financeiro/faturamento-rotas';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
-import { AGENDAMENTO_ROUTES } from './features/agendamento/agendamento.routes';
+import {
+	AGENDAMENTO_ROUTES,
+	AGENDAR_ROUTES,
+} from './features/agendamento/agendamento.routes';
+
 import { ADMINISTRACAO_ROUTES } from './features/administracao/administracao.routes';
 import { REDE_CREDENCIADA_ROUTES } from './features/rede-credenciada/rede-credenciada.routes';
 import { authGuard } from './core/guards/auth.guard';
@@ -105,10 +109,21 @@ export const routes: Routes = [
 				path: 'financeiro',
 				children: FINANCEIRO_APP_ROUTES
 			},
-			// 5b. AGENDAMENTO
+			// 5b. AGENDAMENTO (submenu do Pátio na sidebar; rota canônica mantida)
 			{
 				path: 'agendamento',
 				children: AGENDAMENTO_ROUTES,
+			},
+			/** Legado: `/app/agendamento/agendar` → `/app/agendar`. */
+			{
+				path: 'agendamento/agendar',
+				pathMatch: 'full',
+				redirectTo: 'agendar',
+			},
+			// 5b1. AGENDAR (menu próprio)
+			{
+				path: 'agendar',
+				children: AGENDAR_ROUTES,
 			},
 			// 5b2. REDE CREDENCIADA (mapa de estacionamentos)
 			{

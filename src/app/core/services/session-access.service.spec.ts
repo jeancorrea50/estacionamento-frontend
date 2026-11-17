@@ -83,19 +83,11 @@ describe('SessionAccessService sidebar filter', () => {
       },
       {
         id: 2033,
-        descricao: 'Agendamento',
+        descricao: 'Agendar',
         ativo: true,
         ordem: 3,
-        rota: '/app/agendamento',
-        subMenus: [
-          {
-            id: 3060,
-            descricao: 'agendamentos',
-            rota: '/app/agendamento',
-            ativo: true,
-            ordem: 0,
-          },
-        ],
+        rota: '/app/agendar',
+        subMenus: [],
       },
     ]);
 
@@ -106,11 +98,12 @@ describe('SessionAccessService sidebar filter', () => {
         children: [
           { label: 'Movimentações', route: '/app/patio/movimentacoes' },
           { label: 'Entrada e Saída', route: '/app/patio/entrada-saida' },
+          { label: 'Agendamento', route: '/app/agendamento' },
         ],
       },
       {
-        label: 'Agendamento',
-        route: '/app/agendamento',
+        label: 'Agendar',
+        route: '/app/agendar',
       },
       {
         label: 'Cadastro',
@@ -123,17 +116,18 @@ describe('SessionAccessService sidebar filter', () => {
       },
     ]);
 
-    expect(filtered.map((i) => i.label)).toEqual(['Pátio', 'Agendamento', 'Cadastro']);
+    expect(filtered.map((i) => i.label)).toEqual(['Pátio', 'Agendar', 'Cadastro']);
     expect(filtered.find((i) => i.label === 'Pátio')?.children?.map((c) => c.route)).toEqual([
       '/app/patio/movimentacoes',
     ]);
-    expect(filtered.find((i) => i.label === 'Agendamento')?.route).toBe('/app/agendamento');
-    expect(filtered.find((i) => i.label === 'Agendamento')?.children).toBeUndefined();
+    expect(filtered.find((i) => i.label === 'Agendar')?.route).toBe('/app/agendar');
+    expect(filtered.find((i) => i.label === 'Agendar')?.children).toBeUndefined();
     expect(filtered.find((i) => i.label === 'Cadastro')?.children?.map((c) => c.route)).toEqual([
       '/app/cadastro/transportadoras',
     ]);
     expect(service.canAccessRoute('/app/cadastro/transportadoras')).toBe(true);
-    expect(service.canAccessRoute('/app/agendamento')).toBe(true);
+    expect(service.canAccessRoute('/app/agendar')).toBe(true);
+    expect(service.canAccessRoute('/app/agendamento')).toBe(false);
     expect(service.canAccessRoute('/app/cadastro/veiculos')).toBe(false);
     expect(service.canAccessRoute('/app/cadastro/motoristas')).toBe(false);
     expect(service.canAccessRoute('/app/patio/entrada-saida')).toBe(false);

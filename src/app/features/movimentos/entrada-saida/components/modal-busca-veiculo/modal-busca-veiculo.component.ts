@@ -11,6 +11,7 @@ import { PaginatedEntitySearchHostComponent } from '../paginated-entity-search-h
       kind="veiculo"
       [aberto]="aberto()"
       [termoAoAbrir]="termoCampo()"
+      [transportadoraId]="transportadoraId()"
       (fechar)="fechar.emit()"
       (selecionar)="itemSelecionado.emit($event)"
     />
@@ -19,6 +20,8 @@ import { PaginatedEntitySearchHostComponent } from '../paginated-entity-search-h
 export class ModalBuscaVeiculoComponent {
   aberto = input(false);
   termoCampo = input('');
+  /** Filtra frota pela transportadora (obrigatório para listar placas no backend). */
+  transportadoraId = input<number | undefined>(undefined);
   fechar = output<void>();
   itemSelecionado = output<PaginatedSearchItem>();
 }

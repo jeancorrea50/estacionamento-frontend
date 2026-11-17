@@ -165,7 +165,7 @@ export class SidebarComponent implements OnInit {
   }
 
   onParentClick(item: MenuItem, event: MouseEvent): void {
-    // Pai com rota própria (ex.: Agendamento) abre a tela atual e expande o submenu.
+    // Pai com rota própria (ex.: Pátio) abre a tela atual e expande o submenu.
     if (item.route && !this.canShowRailFlyout()) {
       void this.router.navigateByUrl(item.route);
     }

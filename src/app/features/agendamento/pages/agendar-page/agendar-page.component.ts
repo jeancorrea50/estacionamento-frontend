@@ -18,7 +18,7 @@ import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidad
 
 /**
  * Visão transportadora: próprios agendamentos + vagas liberadas pelo estacionamento.
- * Rota: `/app/agendamento/agendar`.
+ * Rota: `/app/agendar`.
  */
 @Component({
   selector: 'app-agendar-page',

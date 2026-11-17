@@ -1,6 +1,7 @@
-/** Módulo Agendamento — rota canônica (painel operador/estacionamento). */
+/** Módulo Agendamento — painel operador/estacionamento (submenu do Pátio). */
 export const AGENDAMENTO_ROUTE = '/app/agendamento';
 export const AGENDAMENTO_PATH = 'agendamento';
+export const AGENDAMENTO_LABEL = 'Agendamento';
 
 /**
  * Alias legado da lista (`/app/agendamento/agendamentos`).
@@ -9,12 +10,17 @@ export const AGENDAMENTO_PATH = 'agendamento';
 export const AGENDAMENTOS_ROUTE = AGENDAMENTO_ROUTE;
 export const AGENDAMENTOS_PATH = 'agendamentos';
 
-/** Submenu transportadora: visão dos próprios agendamentos + vagas liberadas. */
-export const AGENDAR_ROUTE = '/app/agendamento/agendar';
+/** Menu próprio: visão transportadora (próprios agendamentos + vagas liberadas). */
+export const AGENDAR_ROUTE = '/app/agendar';
 export const AGENDAR_PATH = 'agendar';
 export const AGENDAR_LABEL = 'Agendar';
 
-/** Normaliza URL legada de agendamento para o canônico `/app/agendamento`. */
+/** Legado: `/app/agendamento/agendar`. */
+export const AGENDAR_LEGACY_ROUTE = '/app/agendamento/agendar';
+
+/**
+ * Normaliza URLs legadas de agendamento/agendar para as rotas canônicas.
+ */
 export function normalizeAgendamentoAppRoute(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   const trimmed = String(raw).trim();
@@ -26,6 +32,9 @@ export function normalizeAgendamentoAppRoute(raw: string | null | undefined): st
     lower.startsWith('/app/agendamento/agendamentos/')
   ) {
     return AGENDAMENTO_ROUTE;
+  }
+  if (lower === AGENDAR_LEGACY_ROUTE || lower.startsWith(`${AGENDAR_LEGACY_ROUTE}/`)) {
+    return AGENDAR_ROUTE;
   }
   return null;
 }

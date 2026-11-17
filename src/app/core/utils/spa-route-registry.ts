@@ -82,6 +82,7 @@ function collectStaticRoutes(): void {
     '/app/agendamento',
     '/app/agendamento/agendamentos',
     '/app/agendamento/agendar',
+    '/app/agendar',
     '/app/administracao',
     '/app/administracao/usuario',
     '/app/administracao/permissao',

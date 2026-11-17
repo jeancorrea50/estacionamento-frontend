@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -11,7 +11,6 @@ import { PermissionCacheService } from '../../../../core/services/permission-cac
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
-import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
 import { VeiculoListItemDTO } from '../../../cadastro/models/veiculo.dto';
@@ -24,6 +23,9 @@ import {
 import { AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
 import { PortariaAlertasStore } from '../../../movimentos/services/portaria-alertas.store';
+import { ModalBuscaTransportadoraComponent } from '../../../movimentos/entrada-saida/components/modal-busca-transportadora/modal-busca-transportadora.component';
+import { ModalBuscaVeiculoComponent } from '../../../movimentos/entrada-saida/components/modal-busca-veiculo/modal-busca-veiculo.component';
+import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 import {
   AgendamentoPostInput,
   AgendamentoSearchItem,
@@ -57,6 +59,12 @@ import {
   type AgendamentoModalidadeUi,
 } from './agendamento-dashboard.util';
 
+interface AgendamentoPlacaSelecionada {
+  id: number;
+  placa: string;
+  marcaModelo?: string;
+}
+
 @Component({
   selector: 'app-agendamentos-page',
   standalone: true,
@@ -68,6 +76,8 @@ import {
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
     AgendamentoDataHoraPickerComponent,
+    ModalBuscaTransportadoraComponent,
+    ModalBuscaVeiculoComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],
@@ -80,7 +90,6 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly api = inject(AgendamentoService);
   private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly transportadoraService = inject(TransportadoraService);
-  private readonly veiculoService = inject(VeiculoService);
   private readonly estacionamentoService = inject(EstacionamentoService);
   private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly toast = inject(ToastService);
@@ -125,21 +134,12 @@ export class AgendamentosPageComponent implements OnInit {
   readonly erroList = signal<string | null>(null);
   readonly salvando = signal(false);
   readonly showForm = signal(false);
-  readonly loadingFrota = signal(false);
-  readonly frotaVeiculos = signal<VeiculoListItemDTO[]>([]);
-  readonly placasSelecionadasIds = signal<number[]>([]);
-  /** Busca local na lista de placas do modal. */
-  readonly filtroPlacaFrota = signal('');
-  readonly placasDropdownAberto = signal(false);
   /** Transportadora do modal (signal para UI zoneless). */
   readonly transportadoraFormId = signal<number | null>(null);
-
-  readonly frotaVeiculosFiltrados = computed(() => {
-    const termo = normalizePlaca(this.filtroPlacaFrota());
-    const lista = this.frotaVeiculos();
-    if (!termo) return lista;
-    return lista.filter((v) => normalizePlaca(v.placa).includes(termo));
-  });
+  readonly transportadoraFormNome = signal('');
+  readonly placasSelecionadas = signal<AgendamentoPlacaSelecionada[]>([]);
+  readonly buscaTransportadoraAberta = signal(false);
+  readonly buscaPlacaAberta = signal(false);
 
   readonly items = signal<AgendamentoSearchItem[]>([]);
   readonly totalCount = signal(0);
@@ -282,66 +282,80 @@ export class AgendamentosPageComponent implements OnInit {
     this.form.controls.dataAgendamento.markAsDirty();
   }
 
-  onTransportadoraFormChange(): void {
-    const tid = Number(this.form.controls.transportadoraId.value);
-    this.transportadoraFormId.set(Number.isFinite(tid) && tid > 0 ? tid : null);
-    this.placasSelecionadasIds.set([]);
-    this.filtroPlacaFrota.set('');
-    this.placasDropdownAberto.set(false);
-    this.carregarFrota();
+  abrirBuscaTransportadora(): void {
+    if (!this.podeOperarPatio) return;
+    this.buscaTransportadoraAberta.set(true);
   }
 
-  onFiltroPlacaFrotaChange(valor: string): void {
-    this.filtroPlacaFrota.set(valor ?? '');
+  fecharBuscaTransportadora(): void {
+    this.buscaTransportadoraAberta.set(false);
   }
 
-  togglePlacasDropdown(event?: MouseEvent): void {
-    event?.stopPropagation();
-    if (!this.transportadoraFormId() || this.frotaVeiculos().length === 0) return;
-    this.placasDropdownAberto.update((v) => !v);
-    if (this.placasDropdownAberto()) {
-      this.filtroPlacaFrota.set('');
-      // Garante que a lista abaixo do campo fique visível (rola o body do modal).
-      queueMicrotask(() => {
-        const panel = document.querySelector('.ag-placa-combo__panel');
-        panel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      });
+  onTransportadoraBuscaSelecionada(item: PaginatedSearchItem): void {
+    const id = Number(item.id);
+    if (!Number.isFinite(id) || id <= 0) return;
+    this.form.controls.transportadoraId.setValue(id);
+    this.form.controls.transportadoraId.markAsDirty();
+    this.transportadoraFormId.set(id);
+    this.transportadoraFormNome.set((item.titulo || '').trim());
+    this.placasSelecionadas.set([]);
+    this.buscaTransportadoraAberta.set(false);
+  }
+
+  limparTransportadoraForm(): void {
+    if (!this.podeOperarPatio) return;
+    this.form.controls.transportadoraId.setValue(null);
+    this.transportadoraFormId.set(null);
+    this.transportadoraFormNome.set('');
+    this.placasSelecionadas.set([]);
+  }
+
+  abrirBuscaPlaca(): void {
+    const tid = this.transportadoraFormId();
+    if (!tid) {
+      this.toast.error('Selecione a transportadora antes de buscar placas.');
+      return;
     }
+    this.buscaPlacaAberta.set(true);
   }
 
-  @HostListener('document:click')
-  fecharPlacasDropdown(): void {
-    if (this.placasDropdownAberto()) {
-      this.placasDropdownAberto.set(false);
+  fecharBuscaPlaca(): void {
+    this.buscaPlacaAberta.set(false);
+  }
+
+  onPlacaBuscaSelecionada(item: PaginatedSearchItem): void {
+    const id = Number(item.id);
+    const placa = String(item.titulo || '').trim();
+    if (!Number.isFinite(id) || id <= 0 || !placa) return;
+
+    if ((item.campo5 || '').trim().toLowerCase() === 'não') {
+      this.toast.error('Esta placa está inativa e não pode ser agendada.');
+      return;
     }
-  }
 
-  labelPlacasSelecionadas(): string {
-    const ids = this.placasSelecionadasIds();
-    if (!ids.length) return 'Selecione as placas';
-    if (ids.length === 1) {
-      const unico = this.frotaVeiculos().find((v) => v.id === ids[0]);
-      return unico ? this.formatPlaca(unico.placa) : '1 placa selecionada';
+    const placaNorm = normalizePlaca(placa);
+    const jaExiste = this.placasSelecionadas().some(
+      (p) => p.id === id || normalizePlaca(p.placa) === placaNorm
+    );
+    if (jaExiste) {
+      this.toast.warning(`A placa ${formatPlacaDisplay(placa) || placa} já está na lista.`);
+      this.buscaPlacaAberta.set(false);
+      return;
     }
-    return `${ids.length} placas selecionadas`;
+
+    this.placasSelecionadas.update((lista) => [
+      ...lista,
+      {
+        id,
+        placa,
+        marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
+      },
+    ]);
+    this.buscaPlacaAberta.set(false);
   }
 
-  placaSelecionada(veiculoId: number): boolean {
-    return this.placasSelecionadasIds().includes(veiculoId);
-  }
-
-  togglePlaca(veiculoId: number, event: Event): void {
-    const checked = (event.target as HTMLInputElement | null)?.checked === true;
-    this.aplicarSelecaoPlaca(veiculoId, checked);
-  }
-
-  private aplicarSelecaoPlaca(veiculoId: number, checked: boolean): void {
-    this.placasSelecionadasIds.update((ids) => {
-      if (checked) {
-        return ids.includes(veiculoId) ? ids : [...ids, veiculoId];
-      }
-      return ids.filter((id) => id !== veiculoId);
-    });
+  removerPlacaSelecionada(veiculoId: number): void {
+    this.placasSelecionadas.update((lista) => lista.filter((p) => p.id !== veiculoId));
   }
 
   carregar(): void {
@@ -418,16 +432,16 @@ export class AgendamentosPageComponent implements OnInit {
       observacao: '',
     });
     this.transportadoraFormId.set(tid && tid > 0 ? tid : null);
-    this.placasSelecionadasIds.set([]);
-    this.filtroPlacaFrota.set('');
-    this.placasDropdownAberto.set(false);
-    this.frotaVeiculos.set([]);
+    this.transportadoraFormNome.set('');
+    this.placasSelecionadas.set([]);
+    this.buscaTransportadoraAberta.set(false);
+    this.buscaPlacaAberta.set(false);
     this.showForm.set(true);
-    this.carregarFrota();
   }
 
   fecharForm(): void {
-    this.placasDropdownAberto.set(false);
+    this.buscaTransportadoraAberta.set(false);
+    this.buscaPlacaAberta.set(false);
     this.showForm.set(false);
   }
 
@@ -538,9 +552,7 @@ export class AgendamentosPageComponent implements OnInit {
       return;
     }
 
-    const selecionados = this.frotaVeiculos().filter((v) =>
-      this.placasSelecionadasIds().includes(v.id)
-    );
+    const selecionados = this.placasSelecionadas();
     if (!selecionados.length) {
       this.toast.error('Selecione ao menos uma placa cadastrada.');
       return;
@@ -594,6 +606,7 @@ export class AgendamentosPageComponent implements OnInit {
 
           if (ok.length) {
             const transportadoraLabel =
+              this.transportadoraFormNome().trim() ||
               this.transportadoras().find((t) => t.id === tid)?.razaoSocial?.trim() ||
               this.transportadoras().find((t) => t.id === tid)?.nomeFantasia?.trim() ||
               '—';
@@ -723,7 +736,7 @@ export class AgendamentosPageComponent implements OnInit {
   }
 
   private resolverPayloadPlaca(
-    veiculo: VeiculoListItemDTO,
+    veiculo: Pick<VeiculoListItemDTO, 'id' | 'placa'>,
     transportadoraId: number,
     dataAgendamento: string,
     observacao: string | null
@@ -733,12 +746,9 @@ export class AgendamentosPageComponent implements OnInit {
       return of(null);
     }
 
-    const motoristaLista =
-      veiculo.motoristas?.find((m) => m.principal) || veiculo.motoristas?.[0] || null;
-
     return this.api.obterPorPlaca(placa).pipe(
       map((agg) => {
-        const motoristaId = agg?.motoristaId && agg.motoristaId > 0 ? agg.motoristaId : motoristaLista?.id;
+        const motoristaId = agg?.motoristaId && agg.motoristaId > 0 ? agg.motoristaId : null;
         if (!motoristaId || motoristaId <= 0) return null;
 
         if (
@@ -756,8 +766,8 @@ export class AgendamentosPageComponent implements OnInit {
           transportadoraId,
           motorista: {
             id: motoristaId,
-            cpf: agg?.motoristaCpf || motoristaLista?.cpf || null,
-            nome: agg?.motoristaNome || motoristaLista?.nome || null,
+            cpf: agg?.motoristaCpf || null,
+            nome: agg?.motoristaNome || null,
           },
           veiculo: {
             id: agg?.veiculoId || veiculo.id,
@@ -766,62 +776,8 @@ export class AgendamentosPageComponent implements OnInit {
         };
         return payload;
       }),
-      catchError(() => {
-        if (!motoristaLista?.id) return of(null);
-        const payload: AgendamentoPostInput = {
-          dataAgendamento,
-          observacao,
-          transportadoraId,
-          motorista: {
-            id: motoristaLista.id,
-            cpf: motoristaLista.cpf || null,
-            nome: motoristaLista.nome || null,
-          },
-          veiculo: { id: veiculo.id, placa },
-        };
-        return of(payload);
-      })
+      catchError(() => of(null))
     );
-  }
-
-  private carregarFrota(): void {
-    const tid = this.transportadoraFormId();
-    if (!tid) {
-      this.frotaVeiculos.set([]);
-      return;
-    }
-
-    this.loadingFrota.set(true);
-    this.veiculoService
-      .buscar({
-        TransportadoraId: tid,
-        NumeroPagina: 1,
-        TamanhoPagina: 200,
-      })
-      .pipe(finalize(() => this.loadingFrota.set(false)))
-      .subscribe({
-        next: (res) => {
-          const ativos = (res.items ?? []).filter((v) => v.ativo !== false);
-          this.frotaVeiculos.set(this.dedupeVeiculosPorPlaca(ativos));
-        },
-        error: () => {
-          this.frotaVeiculos.set([]);
-          this.toast.error('Não foi possível carregar as placas da transportadora.');
-        },
-      });
-  }
-
-  /** Remove veículos com a mesma placa (mantém o primeiro). */
-  private dedupeVeiculosPorPlaca(lista: VeiculoListItemDTO[]): VeiculoListItemDTO[] {
-    const vistos = new Set<string>();
-    const unicos: VeiculoListItemDTO[] = [];
-    for (const item of lista) {
-      const chave = normalizePlaca(item.placa);
-      if (!chave || vistos.has(chave)) continue;
-      vistos.add(chave);
-      unicos.push(item);
-    }
-    return unicos;
   }
 
   private isStatusAgendado(item: AgendamentoSearchItem): boolean {

@@ -19,7 +19,7 @@ import {
   toIsoDate,
 } from '../../../../movimentos/pages/movimentos-page/movimentos-filtros.util';
 
-/** Valor no formato `YYYY-MM-DDTHH:mm` (datetime-local). */
+/** Valor no formato `YYYY-MM-DDTHH:mm` (datetime-local) ou `YYYY-MM-DD` quando `somenteData`. */
 export type AgendamentoDataHoraValue = string;
 
 function parseDateTimeLocal(value: string | null | undefined): {
@@ -28,6 +28,15 @@ function parseDateTimeLocal(value: string | null | undefined): {
   minute: number;
 } | null {
   const raw = String(value ?? '').trim();
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (dateOnly) {
+    const y = Number(dateOnly[1]);
+    const mo = Number(dateOnly[2]) - 1;
+    const d = Number(dateOnly[3]);
+    const date = new Date(y, mo, d);
+    if (date.getFullYear() !== y || date.getMonth() !== mo || date.getDate() !== d) return null;
+    return { date, hour: 0, minute: 0 };
+  }
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(raw);
   if (!m) return null;
   const y = Number(m[1]);
@@ -60,9 +69,11 @@ function toDateTimeLocal(date: Date, hour: number, minute: number): string {
 export class AgendamentoDataHoraPickerComponent {
   private readonly themeService = inject(ThemeService);
 
-  /** Valor controlado pelo formulário (`YYYY-MM-DDTHH:mm`). */
+  /** Valor controlado pelo formulário (`YYYY-MM-DDTHH:mm` ou `YYYY-MM-DD` se `somenteData`). */
   readonly value = input<AgendamentoDataHoraValue>('');
   readonly ariaLabel = input('Selecionar data e hora');
+  /** Quando true, oculta hora/minuto e emite só `YYYY-MM-DD`. */
+  readonly somenteData = input(false);
 
   readonly valueChange = output<AgendamentoDataHoraValue>();
 
@@ -109,6 +120,7 @@ export class AgendamentoDataHoraPickerComponent {
     const dd = pad2(d.getDate());
     const mm = pad2(d.getMonth() + 1);
     const yyyy = d.getFullYear();
+    if (this.somenteData()) return `${dd}/${mm}/${yyyy}`;
     return `${dd}/${mm}/${yyyy} ${pad2(this.hora())}:${pad2(this.minuto())}`;
   }
 
@@ -206,6 +218,7 @@ export class AgendamentoDataHoraPickerComponent {
     }
     this.dataSelecionada.set(new Date(cell.date.getFullYear(), cell.date.getMonth(), cell.date.getDate()));
     this.emitir();
+    if (this.somenteData()) this.panelAberto.set(false);
   }
 
   onMesClick(mes: number, event: MouseEvent): void {
@@ -243,6 +256,10 @@ export class AgendamentoDataHoraPickerComponent {
   }
 
   private emitir(): void {
+    if (this.somenteData()) {
+      this.valueChange.emit(toIsoDate(this.dataSelecionada()));
+      return;
+    }
     this.valueChange.emit(toDateTimeLocal(this.dataSelecionada(), this.hora(), this.minuto()));
   }
 }

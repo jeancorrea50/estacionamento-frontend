@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -19,11 +19,23 @@ export class VagaDisponibilidadeService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.API_BASE_URL}/Agendamento/vagas`;
 
-  resumoParaTransportadora(): Observable<VagaDisponibilidadeResumo | null> {
-    return this.http.get<ApiEnvelope<VagaDisponibilidadeResumo>>(`${this.base}/disponibilidade`).pipe(
-      map((r) => r.result ?? null),
-      catchError(() => of(null))
-    );
+  /**
+   * GET `/Agendamento/vagas/disponibilidade?data=yyyy-MM-dd`
+   * Sem `data`, o backend usa o dia atual do estacionamento.
+   */
+  resumoParaTransportadora(dataIso?: string | null): Observable<VagaDisponibilidadeResumo | null> {
+    let params = new HttpParams();
+    const data = (dataIso ?? '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      params = params.set('data', data);
+    }
+
+    return this.http
+      .get<ApiEnvelope<VagaDisponibilidadeResumo>>(`${this.base}/disponibilidade`, { params })
+      .pipe(
+        map((r) => r.result ?? null),
+        catchError(() => of(null))
+      );
   }
 
   listarReservas(): Observable<VagaReservaTransportadoraItem[]> {

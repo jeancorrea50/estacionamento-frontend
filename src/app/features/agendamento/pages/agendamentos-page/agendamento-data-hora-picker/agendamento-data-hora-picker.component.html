@@ -16,11 +16,11 @@
       <div
         class="rec-data-picker__panel"
         role="dialog"
-        aria-label="Selecionar data e hora"
+        [attr.aria-label]="somenteData() ? 'Selecionar data' : 'Selecionar data e hora'"
         appFaturamentoDataPickerPanel
       >
         <div class="rec-cal" [class.rec-cal--dark]="isDarkTheme()">
-          <h3 class="rec-cal__titulo">Data e hora</h3>
+          <h3 class="rec-cal__titulo">{{ somenteData() ? 'Data' : 'Data e hora' }}</h3>
           <div class="rec-data-picker__modes" role="tablist" aria-label="Tipo de seleção">
             @for (g of periodoGranularidadeOpcoes; track g.id) {
               <button
@@ -111,34 +111,36 @@
             </div>
           }
 
-          <div class="ag-dh-picker__hora" aria-label="Horário">
-            <label class="ag-dh-picker__hora-field">
-              <span>Hora</span>
-              <select
-                class="input-control input-control--select"
-                [ngModel]="hora()"
-                (ngModelChange)="onHoraChange($event)"
-                (click)="$event.stopPropagation()"
-              >
-                @for (h of horasOpcoes; track h) {
-                  <option [ngValue]="h">{{ h < 10 ? '0' + h : h }}</option>
-                }
-              </select>
-            </label>
-            <label class="ag-dh-picker__hora-field">
-              <span>Minuto</span>
-              <select
-                class="input-control input-control--select"
-                [ngModel]="minuto()"
-                (ngModelChange)="onMinutoChange($event)"
-                (click)="$event.stopPropagation()"
-              >
-                @for (m of minutosOpcoes; track m) {
-                  <option [ngValue]="m">{{ m < 10 ? '0' + m : m }}</option>
-                }
-              </select>
-            </label>
-          </div>
+          @if (!somenteData()) {
+            <div class="ag-dh-picker__hora" aria-label="Horário">
+              <label class="ag-dh-picker__hora-field">
+                <span>Hora</span>
+                <select
+                  class="input-control input-control--select"
+                  [ngModel]="hora()"
+                  (ngModelChange)="onHoraChange($event)"
+                  (click)="$event.stopPropagation()"
+                >
+                  @for (h of horasOpcoes; track h) {
+                    <option [ngValue]="h">{{ h < 10 ? '0' + h : h }}</option>
+                  }
+                </select>
+              </label>
+              <label class="ag-dh-picker__hora-field">
+                <span>Minuto</span>
+                <select
+                  class="input-control input-control--select"
+                  [ngModel]="minuto()"
+                  (ngModelChange)="onMinutoChange($event)"
+                  (click)="$event.stopPropagation()"
+                >
+                  @for (m of minutosOpcoes; track m) {
+                    <option [ngValue]="m">{{ m < 10 ? '0' + m : m }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+          }
         </div>
       </div>
     }

@@ -36,6 +36,33 @@
     </div>
   }
 
+  <div class="vaga-reserva-panel__filtro" aria-label="Filtro de disponibilidade por data">
+    <div class="vaga-reserva-panel__filtro-copy">
+      <span class="vaga-reserva-panel__filtro-label">Disponibilidade em</span>
+      <strong class="vaga-reserva-panel__filtro-dia">{{ dataConsultaLabel() }}</strong>
+      <span class="vaga-reserva-panel__filtro-hint">
+        Totalizadores (disponíveis / reservadas) do dia selecionado
+      </span>
+    </div>
+    <div class="vaga-reserva-panel__filtro-actions">
+      <app-agendamento-data-hora-picker
+        [value]="dataConsulta()"
+        [somenteData]="true"
+        ariaLabel="Selecionar data da disponibilidade"
+        (valueChange)="onDataConsultaChange($event)"
+      />
+      <button
+        type="button"
+        class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+        (click)="irParaHoje()"
+        [disabled]="loading()"
+        title="Ir para hoje"
+      >
+        Hoje
+      </button>
+    </div>
+  </div>
+
   @if (loading()) {
     <p class="vaga-reserva-panel__msg">Carregando disponibilidade…</p>
   } @else if (resumo(); as v) {
@@ -52,7 +79,7 @@
         <div class="vaga-kpi__bar" aria-hidden="true">
           <span [style.width.%]="pctDisponivel(v.vagasDisponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
         </div>
-        <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasEstacionamento }}</em>
+        <em class="vaga-kpi__hint">Reservadas em {{ dataConsultaLabel() }}: {{ v.vagasReservadasEstacionamento }}</em>
       </article>
       <article class="vaga-kpi vaga-kpi--limp">
         <div class="vaga-kpi__top">
@@ -66,7 +93,7 @@
         <div class="vaga-kpi__bar" aria-hidden="true">
           <span [style.width.%]="pctDisponivel(v.vagasDisponiveisLimpeza, v.capacidadeLimpeza)"></span>
         </div>
-        <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasLimpeza }}</em>
+        <em class="vaga-kpi__hint">Reservadas em {{ dataConsultaLabel() }}: {{ v.vagasReservadasLimpeza }}</em>
       </article>
     </div>
     @if (!v.controleAtivo) {

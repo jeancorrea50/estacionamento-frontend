@@ -1,10 +1,11 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, Input, OnChanges, OnInit, SimpleChanges, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin, of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { forkJoin, of, Subject } from 'rxjs';
+import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import type { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
+import { AgendamentoDataHoraPickerComponent } from '../../pages/agendamentos-page/agendamento-data-hora-picker/agendamento-data-hora-picker.component';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 import type {
   ModalidadeVagaAgendamento,
@@ -14,13 +15,29 @@ import type {
   VagaReservaTransportadoraItem,
 } from '../../models/vaga-disponibilidade.models';
 
+function toIsoDateLocal(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function parseIsoDateLocal(iso: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((iso || '').trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const date = new Date(y, mo, d);
+  if (date.getFullYear() !== y || date.getMonth() !== mo || date.getDate() !== d) return null;
+  return date;
+}
+
 /**
  * Painel do operador/pátio: destina vagas (estacionamento/limpeza) para transportadoras.
  */
 @Component({
   selector: 'app-vaga-reserva-panel',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePipe],
+  imports: [CommonModule, ReactiveFormsModule, DatePipe, AgendamentoDataHoraPickerComponent],
   templateUrl: './vaga-reserva-panel.component.html',
   styleUrls: ['./vaga-reserva-panel.component.scss'],
 })
@@ -38,6 +55,10 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
   readonly salvando = signal(false);
   readonly resumo = signal<VagaDisponibilidadeResumo | null>(null);
   readonly reservas = signal<VagaReservaTransportadoraItem[]>([]);
+  /** Dia de consulta dos totalizadores (`YYYY-MM-DD`). */
+  readonly dataConsulta = signal(toIsoDateLocal());
+  private readonly cancelarCarregar$ = new Subject<void>();
+  private geracaoCarregar = 0;
 
   readonly modalidades: { value: ModalidadeVagaAgendamento; label: string }[] = [
     { value: 1, label: 'Estacionamento' },
@@ -77,6 +98,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
         ctrl.enable({ emitEvent: false });
       }
     });
+    // Prefill início da nova destinação com o dia consultado.
+    this.form.controls.dataInicio.setValue(this.dataConsulta(), { emitEvent: false });
     this.carregar();
   }
 
@@ -88,19 +111,53 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
     }
   }
 
+  onDataConsultaChange(value: string): void {
+    const iso = (value || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+    if (iso === this.dataConsulta()) return;
+    this.dataConsulta.set(iso);
+    // Ajuda o operador: nova destinação começa no dia filtrado.
+    if (!this.form.controls.dataInicio.dirty) {
+      this.form.controls.dataInicio.setValue(iso, { emitEvent: false });
+    }
+    this.carregar();
+  }
+
+  irParaHoje(): void {
+    this.onDataConsultaChange(toIsoDateLocal());
+  }
+
+  dataConsultaLabel(): string {
+    const d = parseIsoDateLocal(this.dataConsulta());
+    if (!d) return this.dataConsulta();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  }
+
   carregar(): void {
+    this.cancelarCarregar$.next();
+    const geracao = ++this.geracaoCarregar;
+    const data = this.dataConsulta();
     this.loading.set(true);
     forkJoin({
-      resumo: this.api.resumoParaTransportadora().pipe(catchError(() => of(null))),
+      resumo: this.api.resumoParaTransportadora(data).pipe(catchError(() => of(null))),
       reservas: this.api.listarReservas().pipe(catchError(() => of([] as VagaReservaTransportadoraItem[]))),
     })
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(
+        takeUntil(this.cancelarCarregar$),
+        finalize(() => {
+          if (geracao === this.geracaoCarregar) this.loading.set(false);
+        })
+      )
       .subscribe({
         next: ({ resumo, reservas }) => {
+          if (geracao !== this.geracaoCarregar || data !== this.dataConsulta()) return;
           this.resumo.set(resumo);
+          // Lista completa para gestão; KPIs já vêm filtrados pelo dia.
           this.reservas.set(reservas?.length ? reservas : resumo?.reservas ?? []);
         },
         error: () => {
+          if (geracao !== this.geracaoCarregar || data !== this.dataConsulta()) return;
           this.resumo.set(null);
           this.reservas.set([]);
         },
@@ -141,6 +198,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
           }
           this.toast.success('Reserva de vaga criada.');
           this.form.patchValue({ quantidade: 1, dataFim: '', periodoDia: null, avulso: false });
+          this.form.controls.dataInicio.markAsPristine();
           this.carregar();
         },
         error: () => this.toast.error('Falha ao criar reserva de vaga.'),

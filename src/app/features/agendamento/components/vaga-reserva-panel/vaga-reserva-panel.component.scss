@@ -42,6 +42,61 @@
   max-width: 42rem;
 }
 
+.vaga-reserva-panel__filtro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0 0 0.95rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle, var(--border, #e2e8f0));
+  background: color-mix(in srgb, var(--surface-2, var(--card-bg, #f8fafc)) 88%, transparent);
+}
+
+.vaga-reserva-panel__filtro-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.vaga-reserva-panel__filtro-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.vaga-reserva-panel__filtro-dia {
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.vaga-reserva-panel__filtro-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.vaga-reserva-panel__filtro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: min(100%, 16rem);
+}
+
+.vaga-reserva-panel__filtro-actions app-agendamento-data-hora-picker {
+  flex: 1 1 12rem;
+  min-width: 11rem;
+  max-width: 16rem;
+}
+
 .vaga-reserva-panel__msg {
   margin: 0.65rem 0;
   color: var(--muted);

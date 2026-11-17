@@ -1,0 +1,39 @@
+<div class="trn-lookup" [class.trn-lookup--disabled]="disabled()">
+  <button
+    type="button"
+    class="input-control trn-lookup__trigger"
+    (click)="abrir()"
+    [disabled]="disabled()"
+    [attr.aria-label]="
+      transportadoraNome()
+        ? 'Trocar transportadora: ' + transportadoraNome()
+        : ariaLabel()
+    "
+  >
+    <span
+      class="trn-lookup__value"
+      [class.trn-lookup__value--placeholder]="!transportadoraNome()"
+    >
+      {{ transportadoraNome() || placeholder() }}
+    </span>
+    <span class="material-symbols-outlined trn-lookup__ico" aria-hidden="true">search</span>
+  </button>
+
+  @if (showClear() && transportadoraId()) {
+    <button
+      type="button"
+      class="btn btn-secondary btn--sm trn-lookup__clear"
+      (click)="limpar($event)"
+      [disabled]="disabled()"
+      title="Limpar transportadora"
+    >
+      Limpar
+    </button>
+  }
+</div>
+
+<app-modal-busca-transportadora
+  [aberto]="buscaAberta()"
+  (fechar)="fechar()"
+  (itemSelecionado)="onSelecionada($event)"
+/>

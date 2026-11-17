@@ -111,15 +111,17 @@
       </div>
 
       <div class="vaga-reserva-panel__form-grid">
-        <label class="vaga-field vaga-field--wide">
+        <div class="vaga-field vaga-field--wide">
           <span>Transportadora</span>
-          <select class="input-control input-control--select" formControlName="transportadoraId">
-            <option [ngValue]="0">Selecione…</option>
-            @for (t of transportadoras; track t.id) {
-              <option [ngValue]="t.id">{{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}</option>
-            }
-          </select>
-        </label>
+          <app-transportadora-lookup-field
+            [transportadoraId]="transportadoraFormId()"
+            [transportadoraNome]="transportadoraFormNome()"
+            [disabled]="!podeGerenciar || !!form.controls.avulso.value"
+            placeholder="Buscar por CNPJ, razão social ou fantasia…"
+            (transportadoraIdChange)="onTransportadoraIdChange($event)"
+            (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
+          />
+        </div>
 
         <label class="vaga-field vaga-field--check">
           <input type="checkbox" formControlName="avulso" />

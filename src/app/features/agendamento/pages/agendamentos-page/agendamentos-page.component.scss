@@ -9,6 +9,12 @@
 @import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
 
 /* Barra de filtros: uma linha alinhada (mesmo ritmo do dash de cadastro). */
+.ag-dash-filter .est-dash-filter__lookup-wrap {
+  flex: 1 1 220px;
+  min-width: min(100%, 14rem);
+  max-width: 22rem;
+}
+
 .ag-dash-filter.est-dash-filter {
   align-items: center;
   gap: 10px;

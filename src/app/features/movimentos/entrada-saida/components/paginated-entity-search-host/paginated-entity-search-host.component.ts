@@ -66,7 +66,7 @@ export class PaginatedEntitySearchHostComponent {
       case 'motorista':
         return 'Nome do motorista...';
       case 'transportadora':
-        return 'Nome fantasia ou razão social...';
+        return 'CNPJ, razão social ou fantasia...';
       case 'veiculo':
         return 'Placa ou modelo...';
       default:
@@ -78,6 +78,8 @@ export class PaginatedEntitySearchHostComponent {
     switch (this.kind()) {
       case 'veiculo':
         return 'Placa';
+      case 'transportadora':
+        return 'Fantasia';
       default:
         return 'Descrição';
     }
@@ -101,7 +103,7 @@ export class PaginatedEntitySearchHostComponent {
       case 'motorista':
         return 'CNH';
       case 'transportadora':
-        return 'Extra';
+        return 'Razão social';
       case 'veiculo':
         return 'Ano';
       default:

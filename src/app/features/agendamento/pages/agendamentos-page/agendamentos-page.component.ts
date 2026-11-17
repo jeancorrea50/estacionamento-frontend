@@ -9,11 +9,10 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
-import { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
 import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 import { EstSummaryMetricComponent } from '../../../cadastro/components/est-summary-metric/est-summary-metric.component';
+import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
@@ -61,6 +60,7 @@ import {
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
     AgendamentoNovoModalComponent,
+    TransportadoraLookupFieldComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],
@@ -71,7 +71,6 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly permissions = inject(PermissionCacheService);
   private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
-  private readonly transportadoraService = inject(TransportadoraService);
   private readonly estacionamentoService = inject(EstacionamentoService);
   private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly toast = inject(ToastService);
@@ -127,7 +126,6 @@ export class AgendamentosPageComponent implements OnInit {
   readonly totalCount = signal(0);
   readonly numeroPagina = signal(1);
   readonly tamanhoPagina = signal(20);
-  readonly transportadoras = signal<TransportadoraListItemDTO[]>([]);
   readonly vagasResumo = signal<VagaDisponibilidadeResumo | null>(null);
   readonly modalidadeUi = signal<AgendamentoModalidadeUi>('estacionamento');
   readonly dataSelecionadaIso = signal(toIsoDateLocal(new Date()));
@@ -162,6 +160,7 @@ export class AgendamentosPageComponent implements OnInit {
   filtroDataInicial = '';
   filtroDataFinal = '';
   filtroTransportadoraId: number | null = null;
+  filtroTransportadoraNome = '';
   readonly gerandoReciboId = signal<number | null>(null);
 
   ngOnInit(): void {
@@ -178,13 +177,17 @@ export class AgendamentosPageComponent implements OnInit {
       this.filtroTransportadoraId = this.auth.resolveTransportadoraId();
     }
 
-    if (this.podeOperarPatio) {
-      this.carregarTransportadoras();
-    }
-
     this.aplicarDataSelecionadaNoFiltro(this.dataSelecionadaIso(), false);
     this.carregarVagas();
     this.onBuscar();
+  }
+
+  onFiltroTransportadoraId(id: number | null): void {
+    this.filtroTransportadoraId = id && id > 0 ? id : null;
+  }
+
+  onFiltroTransportadoraNome(nome: string): void {
+    this.filtroTransportadoraNome = nome || '';
   }
 
   selecionarModalidade(ui: AgendamentoModalidadeUi): void {
@@ -308,7 +311,6 @@ export class AgendamentosPageComponent implements OnInit {
         autoFocus: false,
         panelClass: 'vaga-reserva-dialog-panel',
         data: {
-          transportadoras: this.transportadoras(),
           podeGerenciar:
             this.podeCriar || this.permissions.allows('agendamentos', 'alterar'),
         } satisfies VagaReservaDialogData,
@@ -517,14 +519,4 @@ export class AgendamentosPageComponent implements OnInit {
     return parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado;
   }
 
-  private carregarTransportadoras(): void {
-    this.transportadoraService.buscar({ NumeroPagina: 1, TamanhoPagina: 200 }).subscribe({
-      next: (res) => {
-        this.transportadoras.set(res.items ?? []);
-      },
-      error: () => {
-        this.transportadoras.set([]);
-      },
-    });
-  }
 }

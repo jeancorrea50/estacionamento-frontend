@@ -1,11 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import type { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
 import { VagaReservaPanelComponent } from '../vaga-reserva-panel/vaga-reserva-panel.component';
 
 export interface VagaReservaDialogData {
-  transportadoras: TransportadoraListItemDTO[];
   podeGerenciar: boolean;
 }
 

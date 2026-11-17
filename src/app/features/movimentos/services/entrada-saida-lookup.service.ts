@@ -49,11 +49,18 @@ export class EntradaSaidaLookupService {
       TamanhoPagina: tamanhoPagina
     }).pipe(
       map((paged) => ({
-        items: paged.items.map((item) => ({
-          id: item.id,
-          titulo: item.nomeFantasia || item.razaoSocial || 'Transportadora',
-          subtitulo: item.cnpj ? `CNPJ: ${item.cnpj}` : undefined
-        })),
+        items: paged.items.map((item) => {
+          const fantasia = (item.nomeFantasia || '').trim();
+          const razao = (item.razaoSocial || '').trim();
+          const cnpj = (item.cnpj || '').trim();
+          return {
+            id: item.id,
+            titulo: fantasia || razao || 'Transportadora',
+            campo2: cnpj || '—',
+            campo3: fantasia && razao && fantasia !== razao ? razao : razao || fantasia || '—',
+            subtitulo: cnpj ? `CNPJ: ${cnpj}` : undefined,
+          };
+        }),
         totalCount: paged.totalCount,
         numeroPagina: paged.numeroPagina ?? numeroPagina,
         tamanhoPagina: paged.tamanhoPagina ?? tamanhoPagina

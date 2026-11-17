@@ -7,7 +7,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
-import { ModalBuscaTransportadoraComponent } from '../../../movimentos/entrada-saida/components/modal-busca-transportadora/modal-busca-transportadora.component';
+import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import { ModalBuscaVeiculoComponent } from '../../../movimentos/entrada-saida/components/modal-busca-veiculo/modal-busca-veiculo.component';
 import { PortariaAlertasStore } from '../../../movimentos/services/portaria-alertas.store';
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
@@ -39,7 +39,7 @@ type ResolvePlacaResult =
     CommonModule,
     ReactiveFormsModule,
     AgendamentoDataHoraPickerComponent,
-    ModalBuscaTransportadoraComponent,
+    TransportadoraLookupFieldComponent,
     ModalBuscaVeiculoComponent,
   ],
   templateUrl: './agendamento-novo-modal.component.html',
@@ -69,7 +69,6 @@ export class AgendamentoNovoModalComponent {
   readonly transportadoraFormId = signal<number | null>(null);
   readonly transportadoraFormNome = signal('');
   readonly placasSelecionadas = signal<AgendamentoPlacaSelecionada[]>([]);
-  readonly buscaTransportadoraAberta = signal(false);
   readonly buscaPlacaAberta = signal(false);
 
   /** Cancela resoluções de placa em voo (troca de transportadora / fechar modal). */
@@ -96,7 +95,7 @@ export class AgendamentoNovoModalComponent {
 
   /** Host cobre a viewport só enquanto algum overlay deste modal está ativo. */
   overlayAtivo(): boolean {
-    return this.aberto() || this.buscaTransportadoraAberta() || this.buscaPlacaAberta();
+    return this.aberto() || this.buscaPlacaAberta();
   }
 
   private resetForm(): void {
@@ -113,13 +112,11 @@ export class AgendamentoNovoModalComponent {
     this.transportadoraFormId.set(tid && tid > 0 ? tid : null);
     this.transportadoraFormNome.set('');
     this.placasSelecionadas.set([]);
-    this.buscaTransportadoraAberta.set(false);
     this.buscaPlacaAberta.set(false);
   }
 
   fechar(): void {
     this.invalidarResolucoesPendentes();
-    this.buscaTransportadoraAberta.set(false);
     this.buscaPlacaAberta.set(false);
     this.fechado.emit();
   }
@@ -129,34 +126,18 @@ export class AgendamentoNovoModalComponent {
     this.form.controls.dataAgendamento.markAsDirty();
   }
 
-  abrirBuscaTransportadora(): void {
+  onTransportadoraIdChange(id: number | null): void {
     if (!this.podeEscolherTransportadora()) return;
-    this.buscaTransportadoraAberta.set(true);
-  }
-
-  fecharBuscaTransportadora(): void {
-    this.buscaTransportadoraAberta.set(false);
-  }
-
-  onTransportadoraBuscaSelecionada(item: PaginatedSearchItem): void {
-    const id = Number(item.id);
-    if (!Number.isFinite(id) || id <= 0) return;
     this.invalidarResolucoesPendentes();
-    this.form.controls.transportadoraId.setValue(id);
-    this.form.controls.transportadoraId.markAsDirty();
     this.transportadoraFormId.set(id);
-    this.transportadoraFormNome.set((item.titulo || '').trim());
+    this.form.controls.transportadoraId.setValue(id && id > 0 ? id : null);
+    this.form.controls.transportadoraId.markAsDirty();
     this.placasSelecionadas.set([]);
-    this.buscaTransportadoraAberta.set(false);
   }
 
-  limparTransportadoraForm(): void {
+  onTransportadoraNomeChange(nome: string): void {
     if (!this.podeEscolherTransportadora()) return;
-    this.invalidarResolucoesPendentes();
-    this.form.controls.transportadoraId.setValue(null);
-    this.transportadoraFormId.set(null);
-    this.transportadoraFormNome.set('');
-    this.placasSelecionadas.set([]);
+    this.transportadoraFormNome.set(nome || '');
   }
 
   abrirBuscaPlaca(): void {

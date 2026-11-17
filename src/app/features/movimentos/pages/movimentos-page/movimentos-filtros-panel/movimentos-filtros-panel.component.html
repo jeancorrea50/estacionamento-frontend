@@ -80,39 +80,16 @@
       </label>
 
       @if (!ocultarTransportadora()) {
-        <label class="mov-filtros__field mov-filtros__field--lookup">
+        <div class="mov-filtros__field mov-filtros__field--lookup">
           <span class="mov-filtros__label">Transportadora</span>
-          <div class="mov-filtros__lookup">
-            <input
-              type="search"
-              class="mov-filtros__input"
-              placeholder="Buscar transportadora..."
-              autocomplete="off"
-              [ngModel]="draft().transportadoraLabel"
-              (ngModelChange)="onTransportadoraTermo($event)"
-              [ngModelOptions]="{ standalone: true }"
-            />
-            @if (draft().transportadoraId) {
-              <button type="button" class="mov-filtros__clear-ico" aria-label="Limpar transportadora" (click)="limparTransportadora()">
-                <span class="material-symbols-outlined" aria-hidden="true">close</span>
-              </button>
-            }
-          </div>
-          @if (transportadoraBuscando()) {
-            <span class="mov-filtros__hint">Buscando...</span>
-          }
-          @if (transportadoraOpcoes().length > 0) {
-            <ul class="mov-filtros__suggest" role="listbox">
-              @for (opt of transportadoraOpcoes(); track opt.id) {
-                <li role="option">
-                  <button type="button" class="mov-filtros__suggest-item" (click)="selecionarTransportadora(opt)">
-                    {{ opt.label }}
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-        </label>
+          <app-transportadora-lookup-field
+            [transportadoraId]="draft().transportadoraId"
+            [transportadoraNome]="draft().transportadoraLabel"
+            placeholder="Buscar por CNPJ, razão social ou fantasia…"
+            (transportadoraIdChange)="onTransportadoraIdChange($event)"
+            (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
+          />
+        </div>
       }
 
       <div class="mov-filtros__field">

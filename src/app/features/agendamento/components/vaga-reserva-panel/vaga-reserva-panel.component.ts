@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin, of, Subject } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import type { TransportadoraListItemDTO } from '../../../cadastro/models/transportadora.dto';
+import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import { AgendamentoDataHoraPickerComponent } from '../../pages/agendamentos-page/agendamento-data-hora-picker/agendamento-data-hora-picker.component';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 import type {
@@ -37,7 +37,13 @@ function parseIsoDateLocal(iso: string): Date | null {
 @Component({
   selector: 'app-vaga-reserva-panel',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePipe, AgendamentoDataHoraPickerComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DatePipe,
+    AgendamentoDataHoraPickerComponent,
+    TransportadoraLookupFieldComponent,
+  ],
   templateUrl: './vaga-reserva-panel.component.html',
   styleUrls: ['./vaga-reserva-panel.component.scss'],
 })
@@ -46,7 +52,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
 
-  @Input() transportadoras: TransportadoraListItemDTO[] = [];
   @Input() podeGerenciar = false;
   /** Quando true, omite título externo (uso dentro de modal). */
   @Input() embedded = false;
@@ -57,6 +62,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
   readonly reservas = signal<VagaReservaTransportadoraItem[]>([]);
   /** Dia de consulta dos totalizadores (`YYYY-MM-DD`). */
   readonly dataConsulta = signal(toIsoDateLocal());
+  readonly transportadoraFormId = signal<number | null>(null);
+  readonly transportadoraFormNome = signal('');
   private readonly cancelarCarregar$ = new Subject<void>();
   private geracaoCarregar = 0;
 
@@ -90,17 +97,32 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.form.controls.avulso.valueChanges.subscribe((avulso) => {
-      const ctrl = this.form.controls.transportadoraId;
       if (avulso) {
-        ctrl.setValue(0, { emitEvent: false });
-        ctrl.disable({ emitEvent: false });
-      } else {
-        ctrl.enable({ emitEvent: false });
+        this.limparTransportadoraSelecionada();
       }
     });
     // Prefill início da nova destinação com o dia consultado.
     this.form.controls.dataInicio.setValue(this.dataConsulta(), { emitEvent: false });
     this.carregar();
+  }
+
+  onTransportadoraIdChange(id: number | null): void {
+    this.transportadoraFormId.set(id);
+    this.form.controls.transportadoraId.setValue(id && id > 0 ? id : 0);
+    this.form.controls.transportadoraId.markAsDirty();
+    if (id && id > 0 && this.form.controls.avulso.value) {
+      this.form.controls.avulso.setValue(false, { emitEvent: false });
+    }
+  }
+
+  onTransportadoraNomeChange(nome: string): void {
+    this.transportadoraFormNome.set(nome || '');
+  }
+
+  private limparTransportadoraSelecionada(): void {
+    this.transportadoraFormId.set(null);
+    this.transportadoraFormNome.set('');
+    this.form.controls.transportadoraId.setValue(0, { emitEvent: false });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -198,6 +220,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
           }
           this.toast.success('Reserva de vaga criada.');
           this.form.patchValue({ quantidade: 1, dataFim: '', periodoDia: null, avulso: false });
+          this.limparTransportadoraSelecionada();
           this.form.controls.dataInicio.markAsPristine();
           this.carregar();
         },

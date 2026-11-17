@@ -26,36 +26,13 @@
           @if (podeEscolherTransportadora()) {
             <div class="form-row ag-novo-field">
               <label>Transportadora <span class="required">*</span></label>
-              <div class="ag-lookup">
-                <button
-                  type="button"
-                  class="input-control ag-lookup__trigger"
-                  (click)="abrirBuscaTransportadora()"
-                  [attr.aria-label]="
-                    transportadoraFormNome()
-                      ? 'Trocar transportadora: ' + transportadoraFormNome()
-                      : 'Buscar transportadora'
-                  "
-                >
-                  <span
-                    class="ag-lookup__value"
-                    [class.ag-lookup__value--placeholder]="!transportadoraFormNome()"
-                  >
-                    {{ transportadoraFormNome() || 'Buscar transportadora…' }}
-                  </span>
-                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">search</span>
-                </button>
-                @if (transportadoraFormId()) {
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn--sm ag-lookup__clear"
-                    (click)="limparTransportadoraForm()"
-                    title="Limpar transportadora"
-                  >
-                    Limpar
-                  </button>
-                }
-              </div>
+              <app-transportadora-lookup-field
+                [transportadoraId]="transportadoraFormId()"
+                [transportadoraNome]="transportadoraFormNome()"
+                placeholder="Buscar por CNPJ, razão social ou fantasia…"
+                (transportadoraIdChange)="onTransportadoraIdChange($event)"
+                (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
+              />
             </div>
           }
 
@@ -131,13 +108,7 @@
   </div>
 }
 
-@if (aberto() || buscaTransportadoraAberta() || buscaPlacaAberta()) {
-  <app-modal-busca-transportadora
-    [aberto]="buscaTransportadoraAberta()"
-    (fechar)="fecharBuscaTransportadora()"
-    (itemSelecionado)="onTransportadoraBuscaSelecionada($event)"
-  />
-
+@if (aberto() || buscaPlacaAberta()) {
   <app-modal-busca-veiculo
     [aberto]="buscaPlacaAberta()"
     [transportadoraId]="transportadoraFormId() ?? undefined"

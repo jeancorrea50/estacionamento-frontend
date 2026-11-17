@@ -36,19 +36,15 @@
           aria-label="Filtros da listagem"
         >
           @if (podeOperarPatio) {
-            <div class="est-dash-filter__select-wrap">
-              <select
-                class="est-dash-filter__select input-control trn-dash-filter__select"
-                [(ngModel)]="filtroTransportadoraId"
-                aria-label="Transportadora"
-              >
-                <option [ngValue]="null">Todas as transportadoras</option>
-                @for (t of transportadoras(); track t.id) {
-                  <option [ngValue]="t.id">
-                    {{ t.nomeFantasia || t.razaoSocial || 'ID ' + t.id }}
-                  </option>
-                }
-              </select>
+            <div class="est-dash-filter__lookup-wrap">
+              <app-transportadora-lookup-field
+                [transportadoraId]="filtroTransportadoraId"
+                [transportadoraNome]="filtroTransportadoraNome"
+                placeholder="Todas as transportadoras"
+                ariaLabel="Filtrar por transportadora"
+                (transportadoraIdChange)="onFiltroTransportadoraId($event)"
+                (transportadoraNomeChange)="onFiltroTransportadoraNome($event)"
+              />
             </div>
           }
           <label class="est-dash-filter__search ag-dash-filter__search">

@@ -13,11 +13,10 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
 import { ThemeService } from '../../../../../core/services/theme.service';
 import { MotoristaService } from '../../../../cadastro/services/motorista.service';
-import { TransportadoraService } from '../../../../cadastro/services/transportadora.service';
 import { FaturamentoDataPickerPanelDirective } from '../../../../financeiro/pages/faturamento-page/shared/faturamento-data-picker-panel.directive';
+import { TransportadoraLookupFieldComponent } from '../../../entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import { MovimentosFiltrosDropdownPanelDirective } from './movimentos-filtros-dropdown-panel.directive';
 import { MotoristaListItemDTO } from '../../../../cadastro/models/motorista.dto';
-import { TransportadoraListItemDTO } from '../../../../cadastro/models/transportadora.dto';
 import {
   MovimentosExcedenteFiltro,
   MovimentosFiltrosAvancados,
@@ -46,13 +45,18 @@ interface PeriodoGranularidadeOpcao {
 @Component({
   selector: 'app-movimentos-filtros-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, FaturamentoDataPickerPanelDirective, MovimentosFiltrosDropdownPanelDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    FaturamentoDataPickerPanelDirective,
+    MovimentosFiltrosDropdownPanelDirective,
+    TransportadoraLookupFieldComponent,
+  ],
   templateUrl: './movimentos-filtros-panel.component.html',
   styleUrls: ['./movimentos-filtros-panel.component.scss']
 })
 export class MovimentosFiltrosPanelComponent {
   private readonly motoristaService = inject(MotoristaService);
-  private readonly transportadoraService = inject(TransportadoraService);
   private readonly themeService = inject(ThemeService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -69,9 +73,7 @@ export class MovimentosFiltrosPanelComponent {
   readonly panelDataAberto = signal(false);
 
   readonly motoristaOpcoes = signal<LookupOption[]>([]);
-  readonly transportadoraOpcoes = signal<LookupOption[]>([]);
   readonly motoristaBuscando = signal(false);
-  readonly transportadoraBuscando = signal(false);
 
   readonly calendarioAno = signal(new Date().getFullYear());
   readonly calendarioMes = signal(new Date().getMonth());
@@ -92,7 +94,6 @@ export class MovimentosFiltrosPanelComponent {
   ];
 
   private readonly motoristaTermo$ = new Subject<string>();
-  private readonly transportadoraTermo$ = new Subject<string>();
 
   constructor() {
     this.motoristaTermo$
@@ -121,38 +122,6 @@ export class MovimentosFiltrosPanelComponent {
           label: m.nomeCompleto?.trim() || `Motorista #${m.id}`
         }));
         this.motoristaOpcoes.set(items);
-      });
-
-    this.transportadoraTermo$
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((termo) => {
-          const q = termo.trim();
-          if (q.length < 2) {
-            this.transportadoraOpcoes.set([]);
-            this.transportadoraBuscando.set(false);
-            return of(null);
-          }
-          this.transportadoraBuscando.set(true);
-          return this.transportadoraService
-            .listarTransportadoras({ Termo: q, NumeroPagina: 1, TamanhoPagina: 20 })
-            .pipe(
-              catchError(() =>
-                of({ items: [] as TransportadoraListItemDTO[], totalCount: 0, numeroPagina: 1, tamanhoPagina: 20 })
-              )
-            );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((res) => {
-        this.transportadoraBuscando.set(false);
-        if (!res) return;
-        const items = (res.items ?? []).map((t: TransportadoraListItemDTO) => ({
-          id: t.id,
-          label: (t.nomeFantasia || t.razaoSocial || '').trim() || `Transportadora #${t.id}`
-        }));
-        this.transportadoraOpcoes.set(items);
       });
   }
 
@@ -195,6 +164,10 @@ export class MovimentosFiltrosPanelComponent {
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
     if (!target) return;
+    // Não fecha o painel ao interagir com o modal compartilhado de transportadora.
+    if (target.closest('.modal-overlay') || target.closest('app-modal-busca-transportadora')) {
+      return;
+    }
     if (!target.closest('.mov-filtros')) {
       this.fecharPanel();
     }
@@ -231,22 +204,16 @@ export class MovimentosFiltrosPanelComponent {
     this.motoristaOpcoes.set([]);
   }
 
-  onTransportadoraTermo(value: string): void {
+  onTransportadoraIdChange(id: number | null): void {
+    const nextId = id && id > 0 ? id : null;
     this.patchDraft({
-      transportadoraLabel: value,
-      transportadoraId: null
+      transportadoraId: nextId,
+      transportadoraLabel: nextId ? this.draft().transportadoraLabel : '',
     });
-    this.transportadoraTermo$.next(value);
   }
 
-  selecionarTransportadora(opt: LookupOption): void {
-    this.patchDraft({ transportadoraId: opt.id, transportadoraLabel: opt.label });
-    this.transportadoraOpcoes.set([]);
-  }
-
-  limparTransportadora(): void {
-    this.patchDraft({ transportadoraId: null, transportadoraLabel: '' });
-    this.transportadoraOpcoes.set([]);
+  onTransportadoraNomeChange(nome: string): void {
+    this.patchDraft({ transportadoraLabel: nome || '' });
   }
 
   onExcedenteChange(value: MovimentosExcedenteFiltro): void {

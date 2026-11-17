@@ -109,24 +109,12 @@ export const routes: Routes = [
 				path: 'financeiro',
 				children: FINANCEIRO_APP_ROUTES
 			},
-			// 5b. AGENDAMENTO (submenu do Pátio na sidebar; rota canônica mantida)
+			/** Legado: `/app/agendamento/*` → canônicos (`/app/patio/agendamentos` ou `/app/agendar`). */
 			{
 				path: 'agendamento',
 				children: AGENDAMENTO_ROUTES,
 			},
-			/** Legado: `/app/agendamento/agendar` → `/app/agendar`. */
-			{
-				path: 'agendamento/agendar',
-				pathMatch: 'full',
-				redirectTo: 'agendar',
-			},
-			/** Legado: lista transportadora `/app/agendamento/agendamentos` → `/app/agendar`. */
-			{
-				path: 'agendamento/agendamentos',
-				pathMatch: 'full',
-				redirectTo: 'agendar',
-			},
-			// 5b1. AGENDAR (menu próprio)
+			// Agendar (menu próprio; claims `agendar.*`)
 			{
 				path: 'agendar',
 				children: AGENDAR_ROUTES,

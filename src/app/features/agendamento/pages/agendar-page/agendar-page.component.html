@@ -102,7 +102,7 @@
 
   <app-agendamento-novo-modal
     [aberto]="showForm()"
-    [podeEscolherTransportadora]="false"
+    [podeEscolherTransportadora]="podeEscolherTransportadora"
     (fechado)="fecharForm()"
     (salvo)="onNovoSalvo()"
   />

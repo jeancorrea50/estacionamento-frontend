@@ -6,7 +6,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { AGENDAR_ROUTE, AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
+import { AGENDAR_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
 import {
   AgendamentoSearchItem,
@@ -18,12 +18,8 @@ import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.
 import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
 
 /**
- * Visão transportadora: criar/consultar próprios agendamentos + vagas liberadas.
- * Rota: `/app/agendar`.
- *
- * Claims (mesmas do painel): `agendamentos.visualizar|gravar|alterar|excluir`
- * (alias singular `agendamento.*` também aceito).
- * Separação de tela vs Pátio → Agendamento é por **menu/rota**, não por claim distinto.
+ * Tela Agendar (`/app/agendar`) — claims `agendar.*` (distintas de `agendamentos.*` do Pátio).
+ * Foco transportadora, mas qualquer perfil com menu/claim pode operar conforme a permissão.
  */
 @Component({
   selector: 'app-agendar-page',
@@ -51,23 +47,27 @@ export class AgendarPageComponent implements OnInit {
   get canVisualizar(): boolean {
     return (
       this.sessionAccess.canAccessRoute(AGENDAR_ROUTE) ||
-      this.sessionAccess.canAccessRoute(AGENDAMENTO_ROUTE)
+      this.permissions.allows('agendar', 'visualizar')
     );
   }
 
-  /** POST /Agendamento — claim `agendamento.gravar` / `agendamentos.gravar`. */
+  /** POST — claim exclusiva desta tela: `agendar.gravar`. */
   get podeCriar(): boolean {
-    return this.canVisualizar && this.permissions.allows('agendamento', 'gravar');
+    return this.canVisualizar && this.permissions.allows('agendar', 'gravar');
   }
 
-  get isTransportadora(): boolean {
-    return this.auth.isTransportadoraRole();
+  /**
+   * Quem não é transportadora (ou é admin) escolhe a transportadora no modal.
+   * Perfil transportadora usa a da sessão automaticamente.
+   */
+  get podeEscolherTransportadora(): boolean {
+    return this.auth.isAdmin() || !this.auth.isTransportadoraRole();
   }
 
   ngOnInit(): void {
     if (!this.canVisualizar) {
       this.erro.set(
-        'Sem permissão de menu para Agendar. Libere a rota /app/agendar (ou item Agendamentos) no perfil.'
+        'Sem permissão para Agendar. Libere o menu /app/agendar e a claim agendar.visualizar no perfil.'
       );
       return;
     }
@@ -81,7 +81,7 @@ export class AgendarPageComponent implements OnInit {
 
   abrirNovo(): void {
     if (!this.podeCriar) {
-      this.toast.error('Sem permissão para criar agendamento (agendamentos.gravar).');
+      this.toast.error('Sem permissão para criar agendamento (agendar.gravar).');
       return;
     }
     this.showForm.set(true);

@@ -85,7 +85,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
         ],
       },
       { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
-      { id: 'sub-agendamento', label: AGENDAMENTO_LABEL, route: AGENDAMENTO_ROUTE },
+      { id: 'sub-agendamentos', label: AGENDAMENTO_LABEL, route: AGENDAMENTO_ROUTE },
     ],
   },
   {

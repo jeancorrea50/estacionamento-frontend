@@ -19,6 +19,11 @@ export const PATIO_MOVIMENTACOES_RELATORIO_LABEL = 'Relatório';
 export const PATIO_ENTRADA_SAIDA_ROUTE = '/app/patio/entrada-saida';
 export const PATIO_ENTRADA_SAIDA_PATH = 'entrada-saida';
 
+/** Painel de agendamentos do pátio (claims `agendamentos.*`). */
+export const PATIO_AGENDAMENTOS_ROUTE = '/app/patio/agendamentos';
+export const PATIO_AGENDAMENTOS_PATH = 'agendamentos';
+export const PATIO_AGENDAMENTOS_LABEL = 'Agendamentos';
+
 const LEGACY_MOVIMENTOS_PREFIX = '/app/movimentos';
 
 function normalizePath(raw: string): string {

@@ -3,6 +3,7 @@ import { EntradaSaidaShellComponent } from '../movimentos/entrada-saida/entrada-
 import { EntradaSaidaFormComponent } from '../movimentos/entrada-saida/entrada-saida-form.component';
 import { MovimentosPageComponent } from '../movimentos/pages/movimentos-page/movimentos-page.component';
 import {
+  PATIO_AGENDAMENTOS_PATH,
   PATIO_ENTRADA_SAIDA_PATH,
   PATIO_MOVIMENTACOES_PATH,
   PATIO_MOVIMENTACOES_RELATORIO_PATH,
@@ -45,6 +46,14 @@ export const PATIO_ROUTES: Routes = [
         title: 'Entrada e Saída',
       },
     ],
+  },
+  {
+    path: PATIO_AGENDAMENTOS_PATH,
+    loadComponent: () =>
+      import('../agendamento/pages/agendamentos-page/agendamentos-page.component').then(
+        (m) => m.AgendamentosPageComponent
+      ),
+    title: 'Agendamentos',
   },
   {
     path: '**',

@@ -98,7 +98,7 @@ describe('SessionAccessService sidebar filter', () => {
         children: [
           { label: 'Movimentações', route: '/app/patio/movimentacoes' },
           { label: 'Entrada e Saída', route: '/app/patio/entrada-saida' },
-          { label: 'Agendamento', route: '/app/agendamento' },
+          { label: 'Agendamentos', route: '/app/patio/agendamentos' },
         ],
       },
       {
@@ -127,6 +127,7 @@ describe('SessionAccessService sidebar filter', () => {
     ]);
     expect(service.canAccessRoute('/app/cadastro/transportadoras')).toBe(true);
     expect(service.canAccessRoute('/app/agendar')).toBe(true);
+    expect(service.canAccessRoute('/app/patio/agendamentos')).toBe(false);
     expect(service.canAccessRoute('/app/agendamento')).toBe(false);
     expect(service.canAccessRoute('/app/cadastro/veiculos')).toBe(false);
     expect(service.canAccessRoute('/app/cadastro/motoristas')).toBe(false);
@@ -172,7 +173,8 @@ describe('SessionAccessService sidebar filter', () => {
         ],
       },
       { label: 'Pátio', route: '/app/patio' },
-      { label: 'Agendamento', route: '/app/agendamento' },
+      { label: 'Agendamentos', route: '/app/patio/agendamentos' },
+      { label: 'Agendar', route: '/app/agendar' },
       { label: 'Rede credenciada', route: '/app/rede-credenciada' },
     ]);
 
@@ -185,7 +187,8 @@ describe('SessionAccessService sidebar filter', () => {
     expect(service.canAccessRoute('/app/cadastro/transportadoras/convites')).toBe(false);
     expect(service.canAccessRoute('/app/cadastro/transportadoras/relatorio')).toBe(false);
     expect(service.canAccessRoute('/app/patio')).toBe(false);
-    expect(service.canAccessRoute('/app/agendamento')).toBe(false);
+    expect(service.canAccessRoute('/app/patio/agendamentos')).toBe(false);
+    expect(service.canAccessRoute('/app/agendar')).toBe(false);
     expect(service.canAccessRoute('/app/rede-credenciada')).toBe(false);
   });
 

@@ -120,9 +120,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   'custos gerenciais': '/app/gerenciamento/custos',
   custogerencial: '/app/gerenciamento/custos',
   'custo gerencial': '/app/gerenciamento/custos',
-  /** Singular = painel do Pátio; plural/legado = tela Agendar (transportadora). */
-  agendamento: '/app/agendamento',
-  agendamentos: '/app/agendar',
+  /** Pátio → Agendamentos; menu raiz Agendar (claims distintas). */
+  agendamento: '/app/patio/agendamentos',
+  agendamentos: '/app/patio/agendamentos',
   agendar: '/app/agendar',
   'rede credenciada': REDE_CREDENCIADA_ROUTE,
   redecredenciada: REDE_CREDENCIADA_ROUTE,
@@ -138,6 +138,10 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/patio': PATIO_ROUTE,
   '/app/agendamento/agendar': '/app/agendar',
   '/app/agendar': '/app/agendar',
+  '/app/agendamento': '/app/patio/agendamentos',
+  '/app/agendamento/agendamentos': '/app/patio/agendamentos',
+  '/app/patio/agendamentos': '/app/patio/agendamentos',
+  '/app/patio/agendamento': '/app/patio/agendamentos',
   '/app/cadastro': CADASTRO_ROUTE,
   '/app/cadastro/transportadora': CADASTRO_TRANSPORTADORAS_ROUTE,
   '/app/cadastro/motorista': CADASTRO_MOTORISTAS_ROUTE,

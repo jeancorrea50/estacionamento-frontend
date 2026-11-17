@@ -14,7 +14,8 @@ export const PERMISSION_MODULES = [
   'Usuários',
   'Movimentações',
   'Movimentos',
-  'Agendamento',
+  'Agendamentos',
+  'Agendar',
   'Financeiro',
   'Relatórios',
   'Fotos',
@@ -76,18 +77,24 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'entradasaida.alterar',
     'entradasaida.excluir',
   ],
-  // Mesmas claims para /app/agendar (transportadora) e /app/agendamento (pátio).
-  // Separação de tela = menu/rota no Gerenciamento → Menu, não claim distinto.
-  Agendamento: [
-    'agendamento.visualizar',
-    'agendamento.gravar',
-    'agendamento.alterar',
-    'agendamento.excluir',
-    // JWT/submenu "Agendamentos" (plural)
+  // Pátio → Agendamentos (`/app/patio/agendamentos`)
+  Agendamentos: [
     'agendamentos.visualizar',
     'agendamentos.gravar',
     'agendamentos.alterar',
     'agendamentos.excluir',
+    // alias singular legado
+    'agendamento.visualizar',
+    'agendamento.gravar',
+    'agendamento.alterar',
+    'agendamento.excluir',
+  ],
+  // Menu Agendar (`/app/agendar`) — claims distintas; API aceita qualquer uma das duas.
+  Agendar: [
+    'agendar.visualizar',
+    'agendar.gravar',
+    'agendar.alterar',
+    'agendar.excluir',
   ],
   Financeiro: [
     'financeiro.ver',

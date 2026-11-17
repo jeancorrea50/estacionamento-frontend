@@ -459,7 +459,7 @@ export const QUALIDADE_INVENTARIO: QualidadeModulo[] = [
       {
         id: 'tela-agendamento',
         titulo: 'Agendamentos',
-        rota: '/app/agendamento',
+        rota: '/app/patio/agendamentos',
         funcionalidades: [
           {
             id: 'fn-ag',
@@ -475,7 +475,7 @@ export const QUALIDADE_INVENTARIO: QualidadeModulo[] = [
                 camada: 'manual',
                 severidade: 'alta',
                 tipoCobertura: 'sem_cobertura',
-                rotas: ['/app/agendamento'],
+                rotas: ['/app/patio/agendamentos', '/app/agendar'],
                 endpoints: ['/api/Agendamento'],
               },
             ],

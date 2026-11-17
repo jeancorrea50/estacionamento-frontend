@@ -7,8 +7,9 @@ function normalizePermissionKey(value: string | null | undefined): string {
 }
 
 /**
- * Backend/JWT pode emitir o recurso no singular (catálogo) ou no plural (label do submenu).
- * Ex.: tela checa `agendamento.gravar`; claim vem `agendamentos.gravar`.
+ * Alias singular/plural do mesmo recurso de menu.
+ * Não misturar `agendar` com `agendamentos`: são telas distintas
+ * (`/app/agendar` vs `/app/patio/agendamentos`); a API no backend faz o OR.
  */
 const RECURSO_ALIASES: Readonly<Record<string, readonly string[]>> = {
   agendamento: ['agendamentos'],

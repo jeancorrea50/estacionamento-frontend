@@ -18,7 +18,7 @@ import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
-import { AGENDAMENTO_ROUTE, AGENDAR_ROUTE } from '../../agendamento-rotas';
+import { AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
 import {
   AgendamentoSearchItem,
@@ -84,21 +84,21 @@ export class AgendamentosPageComponent implements OnInit {
     return (
       this.sessionAccess.canAccessRoute(this.router.url) ||
       this.sessionAccess.canAccessRoute(AGENDAMENTO_ROUTE) ||
-      this.sessionAccess.canAccessRoute(AGENDAR_ROUTE)
+      this.permissions.allows('agendamentos', 'visualizar')
     );
   }
 
-  /** POST /Agendamento — claim `agendamento.gravar` (Visualizar sozinho não cria). */
+  /** POST /Agendamento — claim da tela Pátio `agendamentos.gravar`. */
   get podeCriar(): boolean {
-    return this.canVisualizar && this.permissions.allows('agendamento', 'gravar');
+    return this.canVisualizar && this.permissions.allows('agendamentos', 'gravar');
   }
 
-  /** PATCH cancelar — claim `agendamentos.alterar` (API) / alias singular. */
+  /** PATCH cancelar — claim `agendamentos.alterar|excluir`. */
   get podeCancelar(): boolean {
     return (
       this.canVisualizar &&
-      (this.permissions.allows('agendamento', 'alterar') ||
-        this.permissions.allows('agendamento', 'excluir'))
+      (this.permissions.allows('agendamentos', 'alterar') ||
+        this.permissions.allows('agendamentos', 'excluir'))
     );
   }
 
@@ -106,9 +106,9 @@ export class AgendamentosPageComponent implements OnInit {
     return this.canVisualizar && !this.isTransportadora;
   }
 
-  /** PATCH confirmar-entrada — claim `agendamento.alterar` + operação de pátio. */
+  /** PATCH confirmar-entrada — claim `agendamentos.alterar` + operação de pátio. */
   get podeConfirmarEntrada(): boolean {
-    return this.podeOperarPatio && this.permissions.allows('agendamento', 'alterar');
+    return this.podeOperarPatio && this.permissions.allows('agendamentos', 'alterar');
   }
 
   readonly loadingList = signal(false);
@@ -303,7 +303,7 @@ export class AgendamentosPageComponent implements OnInit {
         data: {
           transportadoras: this.transportadoras(),
           podeGerenciar:
-            this.podeCriar || this.permissions.allows('agendamento', 'alterar'),
+            this.podeCriar || this.permissions.allows('agendamentos', 'alterar'),
         } satisfies VagaReservaDialogData,
       })
       .afterClosed()

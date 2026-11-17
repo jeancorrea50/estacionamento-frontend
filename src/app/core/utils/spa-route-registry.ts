@@ -79,6 +79,7 @@ function collectStaticRoutes(): void {
     '/app/movimentos/entrada-saida',
     '/app/movimentos/lista',
     '/app/relatorios',
+    '/app/patio/agendamentos',
     '/app/agendamento',
     '/app/agendamento/agendamentos',
     '/app/agendamento/agendar',

@@ -1,46 +1,21 @@
-import type {
-  ModalidadeVagaAgendamento,
-  PeriodoDiaVaga,
-  VagaDisponibilidadeResumo,
-  VagaReservaTransportadoraItem,
-} from '../../models/vaga-disponibilidade.models';
-import type { AgendamentoSearchItem } from '../../models/agendamento.models';
-import {
-  EntradaSaidaStatus,
-  parseEntradaSaidaStatus,
-} from '../../../movimentos/models/entrada-saida.models';
+import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
+import type { JanelaSlotDisponivel, ModalidadeJanela } from '../../models/janela-agendamento.models';
 
 export type AgendamentoModalidadeUi = 'estacionamento' | 'limpeza';
 
-export interface AgendamentoCalendarioDia {
-  iso: string;
-  dia: number;
-  foraDoMes: boolean;
-  hoje: boolean;
-  selecionado: boolean;
-}
-
-export interface AgendamentoFaixaHoraria {
-  inicio: number;
-  fim: number;
+/** Slot da linha do tempo do dia (a partir de `GET JanelaAgendamento/disponibilidade`). */
+export interface AgendamentoTimelineSlot {
+  key: string;
   label: string;
-  total: number;
+  horaInicio: string;
+  horaFim: string;
+  /** Capacidade cadastrada na janela/slot. */
+  cadastrado: number;
+  /** Já agendado / ocupado neste slot (contrato `ocupadas`). */
+  agendado: number;
   disponiveis: number;
-  reservadas: number;
-  ocupadas: number;
   ocupacaoPct: number;
 }
-
-const FAIXAS: ReadonlyArray<{ inicio: number; fim: number }> = [
-  { inicio: 6, fim: 8 },
-  { inicio: 8, fim: 10 },
-  { inicio: 10, fim: 12 },
-  { inicio: 12, fim: 14 },
-  { inicio: 14, fim: 16 },
-  { inicio: 16, fim: 18 },
-  { inicio: 18, fim: 20 },
-  { inicio: 20, fim: 22 },
-];
 
 export function toIsoDateLocal(d: Date): string {
   const y = d.getFullYear();
@@ -60,7 +35,7 @@ export function formatIsoDateBr(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function modalidadeApi(ui: AgendamentoModalidadeUi): ModalidadeVagaAgendamento {
+export function modalidadeApi(ui: AgendamentoModalidadeUi): ModalidadeJanela {
   return ui === 'limpeza' ? 2 : 1;
 }
 
@@ -96,107 +71,43 @@ export function reservadasDaModalidade(
     : resumo.vagasReservadasEstacionamento;
 }
 
-function periodoCobreHora(periodo: PeriodoDiaVaga, hora: number): boolean {
-  if (periodo == null) return true;
-  if (periodo === 1) return hora >= 6 && hora < 12;
-  if (periodo === 2) return hora >= 12 && hora < 18;
-  if (periodo === 3) return hora >= 18 || hora < 6;
-  return true;
+function slotKey(s: JanelaSlotDisponivel): string {
+  return `${s.janelaAgendamentoId}|${s.horaInicio}|${s.horaFim}`;
 }
 
-function reservaCobreData(r: VagaReservaTransportadoraItem, iso: string): boolean {
-  if (!r.ativo) return false;
-  const ini = String(r.dataInicio ?? '').slice(0, 10);
-  const fim = r.dataFim ? String(r.dataFim).slice(0, 10) : null;
-  if (ini && iso < ini) return false;
-  if (fim && iso > fim) return false;
-  return true;
+function formatHoraLabel(inicio: string, fim: string, labelApi: string): string {
+  const limpo = (labelApi || '').trim();
+  if (limpo) return limpo.replace(/\s*-\s*/g, '–');
+  return `${inicio}–${fim}`;
 }
 
-function reservaNaModalidade(
-  r: VagaReservaTransportadoraItem,
-  ui: AgendamentoModalidadeUi
-): boolean {
-  const m = r.modalidade;
-  if (ui === 'limpeza') return m === 2 || m === 3;
-  return m === 1 || m === 3;
-}
-
-function horaDoItem(item: AgendamentoSearchItem): number | null {
-  const raw = String(item.dataHoraEntrada ?? '');
-  const m = raw.match(/T(\d{2})/);
-  if (!m) return null;
-  const h = Number(m[1]);
-  return Number.isFinite(h) ? h : null;
-}
-
-export function montarFaixasHorarias(input: {
-  isoData: string;
-  ui: AgendamentoModalidadeUi;
-  resumo: VagaDisponibilidadeResumo | null;
-  items: AgendamentoSearchItem[];
-}): AgendamentoFaixaHoraria[] {
-  const total = capacidadeDaModalidade(input.resumo, input.ui);
-  const reservas = (input.resumo?.reservas ?? []).filter(
-    (r) => reservaNaModalidade(r, input.ui) && reservaCobreData(r, input.isoData)
-  );
-
-  return FAIXAS.map(({ inicio, fim }) => {
-    const reservadas = reservas
-      .filter((r) => periodoCobreHora(r.periodoDia, inicio))
-      .reduce((acc, r) => acc + Math.max(0, Number(r.quantidade) || 0), 0);
-
-    // Ocupada = já no pátio (entrada confirmada / suspenso). Agendado ainda não entrou.
-    const ocupadas = input.items.filter((item) => {
-      const h = horaDoItem(item);
-      if (h == null || h < inicio || h >= fim) return false;
-      const status = parseEntradaSaidaStatus(item.status);
-      return status === EntradaSaidaStatus.Entrada || status === EntradaSaidaStatus.Suspenso;
-    }).length;
-
-    const disponiveis =
-      total > 0 ? Math.max(0, total - Math.max(reservadas, ocupadas)) : Math.max(0, total - ocupadas);
-    const ocupacaoPct = total > 0 ? Math.min(100, Math.round((ocupadas / total) * 100)) : 0;
-
-    return {
-      inicio,
-      fim,
-      label: `${String(inicio).padStart(2, '0')}:00-${String(fim).padStart(2, '0')}:00`,
-      total,
-      disponiveis,
-      reservadas,
-      ocupadas,
-      ocupacaoPct,
-    };
-  });
-}
-
-export function montarCalendarioMes(
-  referencia: Date,
-  selecionadoIso: string
-): AgendamentoCalendarioDia[] {
-  const ano = referencia.getFullYear();
-  const mes = referencia.getMonth();
-  const primeiro = new Date(ano, mes, 1);
-  const inicioGrade = new Date(ano, mes, 1 - ((primeiro.getDay() + 6) % 7)); // segunda
-  const hojeIso = toIsoDateLocal(new Date());
-  const dias: AgendamentoCalendarioDia[] = [];
-
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(inicioGrade);
-    d.setDate(inicioGrade.getDate() + i);
-    const iso = toIsoDateLocal(d);
-    dias.push({
-      iso,
-      dia: d.getDate(),
-      foraDoMes: d.getMonth() !== mes,
-      hoje: iso === hojeIso,
-      selecionado: iso === selecionadoIso,
+/** Ordena e normaliza slots da disponibilidade do dia para a timeline. */
+export function mapTimelineSlots(slots: JanelaSlotDisponivel[]): AgendamentoTimelineSlot[] {
+  return [...slots]
+    .sort((a, b) => {
+      const byHora = a.horaInicio.localeCompare(b.horaInicio);
+      if (byHora !== 0) return byHora;
+      return a.horaFim.localeCompare(b.horaFim);
+    })
+    .map((s) => {
+      const cadastrado = Math.max(0, Number(s.capacidade) || 0);
+      const agendado = Math.max(0, Number(s.ocupadas) || 0);
+      const disponiveis = Math.max(0, Number(s.disponiveis) || 0);
+      const ocupacaoPct =
+        cadastrado > 0 ? Math.min(100, Math.round((agendado / cadastrado) * 100)) : 0;
+      return {
+        key: slotKey(s),
+        label: formatHoraLabel(s.horaInicio, s.horaFim, s.label),
+        horaInicio: s.horaInicio,
+        horaFim: s.horaFim,
+        cadastrado,
+        agendado,
+        disponiveis,
+        ocupacaoPct,
+      };
     });
-  }
-  return dias;
 }
 
-export function nomeMesAno(referencia: Date): string {
-  return referencia.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+export function flexBar(value: number): number {
+  return Math.max(0, Number(value) || 0);
 }

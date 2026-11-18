@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
-import { of } from 'rxjs';
+import { Subscription, of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
@@ -37,18 +37,20 @@ import {
 } from '../../components/vaga-reserva-dialog/vaga-reserva-dialog.component';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
+import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
+import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
 import {
   capacidadeDaModalidade,
   disponiveisDaModalidade,
   formatIsoDateBr,
-  montarCalendarioMes,
-  montarFaixasHorarias,
-  nomeMesAno,
-  parseIsoDateLocal,
+  mapTimelineSlots,
+  modalidadeApi,
   reservadasDaModalidade,
   toIsoDateLocal,
   type AgendamentoModalidadeUi,
+  type AgendamentoTimelineSlot,
 } from './agendamento-dashboard.util';
+import { AgendamentoDiaTimelineComponent } from './agendamento-dia-timeline/agendamento-dia-timeline.component';
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -62,11 +64,12 @@ import {
     PeriodoDataPickerComponent,
     AgendamentoNovoModalComponent,
     TransportadoraLookupFieldComponent,
+    AgendamentoDiaTimelineComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
   styleUrls: ['./agendamentos-page.component.scss'],
 })
-export class AgendamentosPageComponent implements OnInit {
+export class AgendamentosPageComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly permissions = inject(PermissionCacheService);
@@ -74,8 +77,11 @@ export class AgendamentosPageComponent implements OnInit {
   private readonly api = inject(AgendamentoService);
   private readonly estacionamentoService = inject(EstacionamentoService);
   private readonly vagasApi = inject(VagaDisponibilidadeService);
+  private readonly janelasApi = inject(JanelaAgendamentoService);
+  private readonly janelasRealtime = inject(JanelaDisponibilidadeRealtimeService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
+  private timelineSub?: Subscription;
 
   readonly isAdmin = this.auth.isAdmin();
   readonly isTransportadora = this.auth.isTransportadoraRole();
@@ -141,21 +147,11 @@ export class AgendamentosPageComponent implements OnInit {
   readonly vagasResumo = signal<VagaDisponibilidadeResumo | null>(null);
   readonly modalidadeUi = signal<AgendamentoModalidadeUi>('estacionamento');
   readonly dataSelecionadaIso = signal(toIsoDateLocal(new Date()));
-  readonly mesCalendario = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  readonly timelineSlots = signal<AgendamentoTimelineSlot[]>([]);
+  readonly loadingTimeline = signal(false);
+  readonly erroTimeline = signal<string | null>(null);
 
-  readonly calendarioDias = computed(() =>
-    montarCalendarioMes(this.mesCalendario(), this.dataSelecionadaIso())
-  );
-  readonly mesCalendarioLabel = computed(() => nomeMesAno(this.mesCalendario()));
   readonly dataSelecionadaLabel = computed(() => formatIsoDateBr(this.dataSelecionadaIso()));
-  readonly faixasHorarias = computed(() =>
-    montarFaixasHorarias({
-      isoData: this.dataSelecionadaIso(),
-      ui: this.modalidadeUi(),
-      resumo: this.vagasResumo(),
-      items: this.items(),
-    })
-  );
   readonly kpiAgendados = computed(() => this.totalCount());
   readonly kpiDisponiveis = computed(() =>
     disponiveisDaModalidade(this.vagasResumo(), this.modalidadeUi())
@@ -175,6 +171,20 @@ export class AgendamentosPageComponent implements OnInit {
   filtroTransportadoraNome = '';
   readonly gerandoReciboId = signal<number | null>(null);
 
+  constructor() {
+    // Recarrega a timeline ao mudar modalidade/data ou quando janelas mudarem (hub/CRUD).
+    effect((onCleanup) => {
+      const data = this.dataSelecionadaIso();
+      const modalidade = this.modalidadeUi();
+      this.janelasRealtime.versao();
+      onCleanup(() => this.timelineSub?.unsubscribe());
+      untracked(() => {
+        if (!this.canVisualizar) return;
+        this.carregarTimeline(data, modalidade);
+      });
+    });
+  }
+
   ngOnInit(): void {
     if (!this.canVisualizar) return;
 
@@ -193,6 +203,10 @@ export class AgendamentosPageComponent implements OnInit {
     this.onBuscar();
   }
 
+  ngOnDestroy(): void {
+    this.timelineSub?.unsubscribe();
+  }
+
   onFiltroTransportadoraId(id: number | null): void {
     this.filtroTransportadoraId = id && id > 0 ? id : null;
   }
@@ -203,24 +217,6 @@ export class AgendamentosPageComponent implements OnInit {
 
   selecionarModalidade(ui: AgendamentoModalidadeUi): void {
     this.modalidadeUi.set(ui);
-  }
-
-  selecionarDiaCalendario(iso: string): void {
-    if (!iso) return;
-    this.dataSelecionadaIso.set(iso);
-    const d = parseIsoDateLocal(iso);
-    this.mesCalendario.set(new Date(d.getFullYear(), d.getMonth(), 1));
-    this.aplicarDataSelecionadaNoFiltro(iso, true);
-  }
-
-  mesAnterior(): void {
-    const base = this.mesCalendario();
-    this.mesCalendario.set(new Date(base.getFullYear(), base.getMonth() - 1, 1));
-  }
-
-  mesSeguinte(): void {
-    const base = this.mesCalendario();
-    this.mesCalendario.set(new Date(base.getFullYear(), base.getMonth() + 1, 1));
   }
 
   private aplicarDataSelecionadaNoFiltro(iso: string, buscar: boolean): void {
@@ -243,6 +239,43 @@ export class AgendamentosPageComponent implements OnInit {
     });
   }
 
+  private carregarTimeline(dataIso: string, ui: AgendamentoModalidadeUi): void {
+    const data = (dataIso || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      this.timelineSlots.set([]);
+      this.erroTimeline.set(null);
+      this.loadingTimeline.set(false);
+      return;
+    }
+
+    // Transportadora autenticada: backend resolve destinacão; passa id da sessão.
+    const transportadoraId =
+      this.isTransportadora && !this.isAdmin
+        ? this.auth.resolveTransportadoraId()
+        : null;
+
+    this.loadingTimeline.set(true);
+    this.erroTimeline.set(null);
+    this.timelineSub?.unsubscribe();
+    this.timelineSub = this.janelasApi
+      .disponibilidade(data, modalidadeApi(ui), transportadoraId)
+      .pipe(finalize(() => this.loadingTimeline.set(false)))
+      .subscribe({
+        next: (res) => {
+          this.timelineSlots.set(mapTimelineSlots(res.slots ?? []));
+          this.erroTimeline.set(null);
+        },
+        error: (err: { message?: string } | unknown) => {
+          this.timelineSlots.set([]);
+          const msg =
+            err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+              ? err.message
+              : 'Não foi possível carregar as janelas do dia.';
+          this.erroTimeline.set(msg);
+        },
+      });
+  }
+
   get totalPaginas(): number {
     return Math.max(1, Math.ceil(this.totalCount() / this.tamanhoPagina()));
   }
@@ -259,6 +292,8 @@ export class AgendamentosPageComponent implements OnInit {
     this.numeroPagina.set(1);
     this.carregar();
     this.carregarVagas();
+    // Ocupação das grades acompanha a busca (novo/cancelamento/confirmação).
+    this.carregarTimeline(this.dataSelecionadaIso(), this.modalidadeUi());
   }
 
   onPeriodoChange(periodo: PeriodoDataSelecionado): void {
@@ -270,13 +305,7 @@ export class AgendamentosPageComponent implements OnInit {
     this.filtroDataInicial = dia;
     this.filtroDataFinal = dia;
     this.dataSelecionadaIso.set(dia);
-    const d = parseIsoDateLocal(dia);
-    this.mesCalendario.set(new Date(d.getFullYear(), d.getMonth(), 1));
     this.onBuscar();
-  }
-
-  flexBar(value: number): number {
-    return Math.max(0, Number(value) || 0);
   }
 
   carregar(): void {

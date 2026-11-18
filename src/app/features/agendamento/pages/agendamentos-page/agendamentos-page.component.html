@@ -137,83 +137,14 @@
         </div>
 
         <div class="ag-dash-mid">
-          <section class="ag-cal-card" aria-label="Selecionar data">
-            <div class="ag-cal-card__head">
-              <h2>Selecionar data</h2>
-              <div class="ag-cal-card__nav">
-                <button type="button" class="ag-cal-card__nav-btn" (click)="mesAnterior()" aria-label="Mês anterior">
-                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-                </button>
-                <span class="ag-cal-card__month">{{ mesCalendarioLabel() }}</span>
-                <button type="button" class="ag-cal-card__nav-btn" (click)="mesSeguinte()" aria-label="Próximo mês">
-                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-                </button>
-              </div>
-            </div>
-            <div class="ag-cal-card__weekdays" aria-hidden="true">
-              <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
-            </div>
-            <div class="ag-cal-card__grid" role="grid">
-              @for (d of calendarioDias(); track d.iso) {
-                <button
-                  type="button"
-                  class="ag-cal-card__day"
-                  [class.is-out]="d.foraDoMes"
-                  [class.is-today]="d.hoje"
-                  [class.is-selected]="d.selecionado"
-                  (click)="selecionarDiaCalendario(d.iso)"
-                >
-                  {{ d.dia }}
-                </button>
-              }
-            </div>
-          </section>
-
-          <section class="ag-slots-card" aria-label="Controle visual de vagas por horário">
-            <div class="ag-slots-card__head">
-              <h2>Controle visual de vagas por horário</h2>
-              <span class="ag-slots-card__hint">{{ dataSelecionadaLabel() }}</span>
-            </div>
-            <div class="ag-slots-card__scroll">
-              <table class="ag-slots-table">
-                <thead>
-                  <tr>
-                    <th>Horário</th>
-                    <th>Total</th>
-                    <th>Disponíveis</th>
-                    <th>Reservadas</th>
-                    <th>Ocupadas</th>
-                    <th>Ocupação</th>
-                    <th>%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (f of faixasHorarias(); track f.label) {
-                    <tr>
-                      <td>{{ f.label }}</td>
-                      <td>{{ f.total || '—' }}</td>
-                      <td>{{ f.disponiveis }}</td>
-                      <td>{{ f.reservadas }}</td>
-                      <td>{{ f.ocupadas }}</td>
-                      <td>
-                        <div class="ag-occ-bar" aria-hidden="true">
-                          <span class="ag-occ-bar__disp" [style.flex]="flexBar(f.disponiveis)"></span>
-                          <span class="ag-occ-bar__res" [style.flex]="flexBar(f.reservadas)"></span>
-                          <span class="ag-occ-bar__occ" [style.flex]="flexBar(f.ocupadas)"></span>
-                        </div>
-                      </td>
-                      <td>{{ f.ocupacaoPct }}%</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-            <div class="ag-slots-legend" aria-hidden="true">
-              <span><i class="ag-dot ag-dot--disp"></i> Disponível</span>
-              <span><i class="ag-dot ag-dot--res"></i> Reservada</span>
-              <span><i class="ag-dot ag-dot--occ"></i> Ocupada</span>
-            </div>
-          </section>
+          <app-agendamento-dia-timeline
+            [dataLabel]="dataSelecionadaLabel()"
+            [slots]="timelineSlots()"
+            [loading]="loadingTimeline()"
+            [erro]="erroTimeline()"
+            [janelasRoute]="janelasRoute"
+            [podeVerJanelas]="podeVerJanelas"
+          />
         </div>
 
         @if (loadingList()) {

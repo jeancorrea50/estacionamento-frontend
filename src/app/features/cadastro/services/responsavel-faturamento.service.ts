@@ -146,7 +146,6 @@ export class ResponsavelFaturamentoService {
       id: rootId,
       nomeFantasia: fantasia || razao,
       responsavelLegal: String(dto.responsavelLegal ?? '').trim(),
-      responsavelCpf: onlyDigits(dto.responsavelCpf),
       responsavelEmail: String(dto.responsavelEmail ?? '').trim(),
       responsavelTelefone: onlyDigits(dto.responsavelTelefone),
       pessoaJuridica,
@@ -258,7 +257,6 @@ export class ResponsavelFaturamentoService {
       cnpj: String(g('cnpj') ?? gp('cnpj') ?? ''),
       ativo: ativoRaw === undefined || ativoRaw === null ? true : ativoRaw !== false && ativoRaw !== 0 && String(ativoRaw).toLowerCase() !== 'false',
       responsavelLegal: String(g('responsavelLegal') ?? '') || undefined,
-      responsavelCpf: String(g('responsavelCpf') ?? '') || undefined,
       responsavelEmail: String(g('responsavelEmail') ?? '') || undefined,
       responsavelTelefone: String(g('responsavelTelefone') ?? '') || undefined,
       endereco: end

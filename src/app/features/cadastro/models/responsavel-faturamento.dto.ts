@@ -52,7 +52,6 @@ export interface ResponsavelFaturamentoDTO {
   cnpj: string;
   ativo: boolean;
   responsavelLegal?: string;
-  responsavelCpf?: string;
   responsavelEmail?: string;
   responsavelTelefone?: string;
   endereco?: ResponsavelFaturamentoEnderecoDTO;

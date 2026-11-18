@@ -1,12 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CepFormatDirective, formatCep } from '../../directives/cep-format.directive';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
-import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import type { ResponsavelFaturamentoDTO } from '../../models/responsavel-faturamento.dto';
 import { ResponsavelFaturamentoService } from '../../services/responsavel-faturamento.service';
@@ -27,6 +26,23 @@ export interface ResponsavelFaturamentoFormDialogResult {
   dto: ResponsavelFaturamentoDTO;
 }
 
+function onlyDigits(value: string | null | undefined): string {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
+function cnpjValidator(control: AbstractControl): ValidationErrors | null {
+  return onlyDigits(control.value).length === 14 ? null : { cnpj: true };
+}
+
+function telefoneValidator(control: AbstractControl): ValidationErrors | null {
+  const len = onlyDigits(control.value).length;
+  return len >= 10 && len <= 11 ? null : { telefone: true };
+}
+
+function cepValidator(control: AbstractControl): ValidationErrors | null {
+  return onlyDigits(control.value).length === 8 ? null : { cep: true };
+}
+
 @Component({
   selector: 'app-responsavel-faturamento-form-dialog',
   standalone: true,
@@ -37,7 +53,6 @@ export interface ResponsavelFaturamentoFormDialogResult {
     MatButtonModule,
     MatSlideToggleModule,
     CnpjFormatDirective,
-    CpfFormatDirective,
     TelefoneFormatDirective,
     CepFormatDirective,
   ],
@@ -63,22 +78,21 @@ export class ResponsavelFaturamentoFormDialogComponent implements OnInit {
     id: this.fb.control<number | null>(null),
     pessoaId: this.fb.control<number | null>(null),
     razaoSocial: ['', [Validators.required, Validators.maxLength(150)]],
-    nomeFantasia: ['', [Validators.maxLength(150)]],
-    cnpj: ['', [Validators.required]],
+    nomeFantasia: ['', [Validators.required, Validators.maxLength(150)]],
+    cnpj: ['', [Validators.required, cnpjValidator]],
     ativo: [true],
-    responsavelLegal: ['', [Validators.maxLength(150)]],
-    responsavelCpf: [''],
-    responsavelEmail: ['', [Validators.email, Validators.maxLength(150)]],
-    responsavelTelefone: [''],
+    responsavelLegal: ['', [Validators.required, Validators.maxLength(150)]],
+    responsavelEmail: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
+    responsavelTelefone: ['', [Validators.required, telefoneValidator]],
     endereco: this.fb.nonNullable.group({
       id: this.fb.control<number | null>(null),
-      cep: [''],
-      logradouro: [''],
-      numero: [''],
-      bairro: [''],
-      cidade: [''],
-      estado: ['', [Validators.maxLength(2)]],
-      complemento: [''],
+      cep: ['', [Validators.required, cepValidator]],
+      logradouro: ['', [Validators.required, Validators.maxLength(200)]],
+      numero: ['', [Validators.required, Validators.maxLength(30)]],
+      bairro: ['', [Validators.required, Validators.maxLength(120)]],
+      cidade: ['', [Validators.required, Validators.maxLength(120)]],
+      estado: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2)]],
+      complemento: ['', [Validators.maxLength(150)]],
     }),
   });
 
@@ -123,14 +137,8 @@ export class ResponsavelFaturamentoFormDialogComponent implements OnInit {
   salvar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.aba = 'empresa';
-      this.toast.warning('Preencha os campos obrigatórios (razão social e CNPJ).');
-      return;
-    }
-    const cnpjDigits = String(this.form.controls.cnpj.value ?? '').replace(/\D/g, '');
-    if (cnpjDigits.length !== 14) {
-      this.toast.warning('CNPJ deve ter 14 dígitos.');
-      this.aba = 'empresa';
+      this.aba = this.primeiraAbaInvalida();
+      this.toast.warning('Preencha todos os campos obrigatórios da empresa.');
       return;
     }
 
@@ -143,18 +151,17 @@ export class ResponsavelFaturamentoFormDialogComponent implements OnInit {
       cnpj: raw.cnpj,
       ativo: raw.ativo,
       responsavelLegal: raw.responsavelLegal.trim(),
-      responsavelCpf: raw.responsavelCpf,
       responsavelEmail: raw.responsavelEmail.trim(),
       responsavelTelefone: raw.responsavelTelefone,
       endereco: {
         id: raw.endereco.id ?? undefined,
         cep: raw.endereco.cep,
-        logradouro: raw.endereco.logradouro,
-        numero: raw.endereco.numero,
-        bairro: raw.endereco.bairro,
-        cidade: raw.endereco.cidade,
-        estado: raw.endereco.estado,
-        complemento: raw.endereco.complemento,
+        logradouro: raw.endereco.logradouro.trim(),
+        numero: raw.endereco.numero.trim(),
+        bairro: raw.endereco.bairro.trim(),
+        cidade: raw.endereco.cidade.trim(),
+        estado: raw.endereco.estado.trim().toUpperCase(),
+        complemento: raw.endereco.complemento.trim(),
       },
     };
 
@@ -179,6 +186,12 @@ export class ResponsavelFaturamentoFormDialogComponent implements OnInit {
     });
   }
 
+  private primeiraAbaInvalida(): ResponsavelFaturamentoFormAba {
+    const c = this.form.controls;
+    if (c.razaoSocial.invalid || c.nomeFantasia.invalid || c.cnpj.invalid) return 'empresa';
+    return 'adicional';
+  }
+
   private carregar(id: number): void {
     this.carregando = true;
     this.service.obterPorIdComRaw(id).subscribe({
@@ -199,7 +212,6 @@ export class ResponsavelFaturamentoFormDialogComponent implements OnInit {
           cnpj: formatCnpj(d.cnpj),
           ativo: d.ativo !== false,
           responsavelLegal: d.responsavelLegal ?? '',
-          responsavelCpf: formatCpf(d.responsavelCpf ?? ''),
           responsavelEmail: d.responsavelEmail ?? '',
           responsavelTelefone: formatTelefone(d.responsavelTelefone ?? ''),
           endereco: {

@@ -11,6 +11,7 @@ import {
 import {
   CADASTRO_ESTACIONAMENTOS_ROUTE,
   CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_RESPONSAVEIS_FATURAMENTO_ROUTE,
   CADASTRO_ROUTE,
   CADASTRO_TRANSPORTADORAS_ROUTE,
   CADASTRO_VEICULOS_ROUTE,
@@ -60,6 +61,7 @@ function collectCadastroRoutes(): void {
   addRoute(CADASTRO_TRANSPORTADORAS_ROUTE);
   addRoute(CADASTRO_VEICULOS_ROUTE);
   addRoute(CADASTRO_MOTORISTAS_ROUTE);
+  addRoute(CADASTRO_RESPONSAVEIS_FATURAMENTO_ROUTE);
   addRoute(CADASTRO_ESTACIONAMENTOS_ROUTE);
 }
 
@@ -104,6 +106,7 @@ function collectStaticRoutes(): void {
     '/app/cadastro/transportadoras',
     '/app/cadastro/veiculos',
     '/app/cadastro/motoristas',
+    '/app/cadastro/responsaveis-faturamento',
     '/app/cadastro/estacionamentos',
     '/app/cadastro/transportadora',
     '/app/cadastro/estacionamento',

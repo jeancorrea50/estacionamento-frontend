@@ -26,6 +26,18 @@ export enum RegraFechamento {
   DiaFixo = 2
 }
 
+/** Quem paga a fatura no contrato. */
+export enum TipoPagadorCobranca {
+  Transportadora = 1,
+  Terceiro = 2
+}
+
+/** Derivado do pagador: Transportadora = CIF, Terceiro = FOB. */
+export enum TipoOperacaoFaturamento {
+  Cif = 1,
+  Fob = 2
+}
+
 /** Vagas contratadas por mês e regra de excedente quando a modalidade é Acordo. */
 export interface ConfiguracaoCobrancaAcordo {
   vagasJaneiro: number | null;
@@ -78,6 +90,10 @@ export interface ConfiguracaoCobrancaSearchOutput {
   transportadoraNome: string;
   estacionamentoId: number;
   estacionamentoNome: string;
+  tipoPagadorCobranca?: TipoPagadorCobranca;
+  responsavelFaturamentoId?: number | null;
+  responsavelFaturamentoNome?: string | null;
+  tipoOperacaoFaturamento?: TipoOperacaoFaturamento;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
   diaFechamento: number | null;
@@ -98,6 +114,10 @@ export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicos
   transportadoraNome: string;
   estacionamentoId: number;
   estacionamentoNome: string;
+  tipoPagadorCobranca?: TipoPagadorCobranca;
+  responsavelFaturamentoId?: number | null;
+  responsavelFaturamentoNome?: string | null;
+  tipoOperacaoFaturamento?: TipoOperacaoFaturamento;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
   diaFechamento: number | null;
@@ -126,6 +146,8 @@ export interface ConfiguracaoCobrancaOutput extends ConfiguracaoCobrancaServicos
 export interface ConfiguracaoCobrancaPostInput extends ConfiguracaoCobrancaServicosAdicionais, ConfiguracaoCobrancaAcordo {
   id?: number;
   transportadoraId: number;
+  tipoPagadorCobranca: TipoPagadorCobranca;
+  responsavelFaturamentoId: number | null;
   status: StatusConfiguracaoCobranca;
   modalidadeCobranca: ModalidadeCobranca;
   diaFechamento: number | null;

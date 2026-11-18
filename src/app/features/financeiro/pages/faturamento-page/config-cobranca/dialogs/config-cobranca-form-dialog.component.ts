@@ -13,6 +13,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { formatCnpj } from '../../../../../cadastro/directives/cnpj-format.directive';
 import {
+  ResponsavelFaturamentoFormDialogComponent,
+  type ResponsavelFaturamentoFormDialogResult
+} from '../../../../../cadastro/components/responsavel-faturamento-form-dialog/responsavel-faturamento-form-dialog.component';
+import { ResponsavelFaturamentoLookupFieldComponent } from '../../../../../cadastro/components/responsavel-faturamento-lookup-field/responsavel-faturamento-lookup-field.component';
+import { TransportadoraLookupFieldComponent } from '../../../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
+import {
   acordoTemConteudo,
   acordoVazio,
   cloneAcordo,
@@ -53,7 +59,8 @@ import type {
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
   ConfigCobrancaServicos,
-  ConfigCobrancaStatus
+  ConfigCobrancaStatus,
+  ConfigCobrancaTipoPagador
 } from '../faturamento-config-cobranca.types';
 import { ConfigCobrancaAcordoDialogComponent } from './config-cobranca-acordo-dialog.component';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
@@ -67,7 +74,7 @@ class ValorCobrancaErrorStateMatcher implements ErrorStateMatcher {
   }
 }
 
-export type ConfigCobrancaFormAba = 'regras' | 'valores';
+export type ConfigCobrancaFormAba = 'regras' | 'valores' | 'responsavel';
 
 export type ConfigCobrancaFormMode = 'create' | 'edit' | 'duplicate';
 
@@ -102,7 +109,9 @@ interface ServicoOpcao {
     MatInputModule,
     MatSelectModule,
     MatSlideToggleModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    TransportadoraLookupFieldComponent,
+    ResponsavelFaturamentoLookupFieldComponent
   ],
   templateUrl: './config-cobranca-form-dialog.component.html',
   styleUrl: './config-cobranca-form-dialog.component.scss'
@@ -142,6 +151,10 @@ export class ConfigCobrancaFormDialogComponent {
   ];
 
   transportadoraId: number | null = null;
+  transportadoraNome = '';
+  tipoPagador: ConfigCobrancaTipoPagador = 'transportadora';
+  responsavelFaturamentoId: number | null = null;
+  responsavelFaturamentoNome = '';
   modalidade: ConfigCobrancaModalidade | '' = '';
   /** ISO `yyyy-MM-dd`, exigida apenas na modalidade personalizada. */
   dataCobranca: string | null = null;
@@ -193,6 +206,14 @@ export class ConfigCobrancaFormDialogComponent {
     return selecionada?.cnpj?.trim() || '—';
   }
 
+  get tipoOperacaoLabel(): 'CIF' | 'FOB' {
+    return this.tipoPagador === 'terceiro' ? 'FOB' : 'CIF';
+  }
+
+  get transportadoraResumoLabel(): string {
+    return (this.transportadoraNome || '').trim() || 'Transportadora das Regras';
+  }
+
   get exigeDataCobranca(): boolean {
     return this.modalidade === 'Personalizada';
   }
@@ -241,6 +262,10 @@ export class ConfigCobrancaFormDialogComponent {
     const r = this.data.item;
     if (r) {
       this.transportadoraId = r.transportadoraId || null;
+      this.transportadoraNome = (r.transportadora || '').trim();
+      this.tipoPagador = r.tipoPagador === 'terceiro' ? 'terceiro' : 'transportadora';
+      this.responsavelFaturamentoId = r.responsavelFaturamentoId ?? null;
+      this.responsavelFaturamentoNome = (r.responsavelFaturamentoNome || '').trim();
       this.modalidade = r.modalidade;
       this.dataCobranca = r.dataCobranca ?? null;
       this.diaFechamento = r.diaFechamento;
@@ -291,6 +316,56 @@ export class ConfigCobrancaFormDialogComponent {
 
   selecionarAba(aba: ConfigCobrancaFormAba): void {
     this.abaAtiva = aba;
+  }
+
+  onTransportadoraLookupId(id: number | null): void {
+    this.transportadoraId = id && id > 0 ? id : null;
+    if (!this.transportadoraId) {
+      this.transportadoraNome = '';
+      return;
+    }
+    const opt = this.data.transportadoras.find((t) => t.id === this.transportadoraId);
+    if (opt?.label) this.transportadoraNome = opt.label;
+  }
+
+  onTransportadoraLookupNome(nome: string): void {
+    this.transportadoraNome = (nome || '').trim();
+  }
+
+  selecionarTipoPagador(tipo: ConfigCobrancaTipoPagador): void {
+    this.tipoPagador = tipo;
+    if (tipo === 'transportadora') {
+      this.responsavelFaturamentoId = null;
+      this.responsavelFaturamentoNome = '';
+    }
+  }
+
+  onResponsavelLookupId(id: number | null): void {
+    this.responsavelFaturamentoId = id && id > 0 ? id : null;
+    if (!this.responsavelFaturamentoId) this.responsavelFaturamentoNome = '';
+  }
+
+  onResponsavelLookupNome(nome: string): void {
+    this.responsavelFaturamentoNome = (nome || '').trim();
+  }
+
+  abrirNovoResponsavel(): void {
+    this.dialog
+      .open(ResponsavelFaturamentoFormDialogComponent, {
+        width: '720px',
+        maxWidth: '96vw',
+        autoFocus: false,
+        panelClass: 'cfg-form-dialog-panel',
+        data: {}
+      })
+      .afterClosed()
+      .subscribe((res: ResponsavelFaturamentoFormDialogResult | undefined) => {
+        if (!res?.saved || !res.dto?.id) return;
+        this.tipoPagador = 'terceiro';
+        this.responsavelFaturamentoId = res.dto.id;
+        this.responsavelFaturamentoNome =
+          (res.dto.nomeFantasia || res.dto.razaoSocial || '').trim() || `Responsável #${res.dto.id}`;
+      });
   }
 
   /** Trocar a regra descarta valores específicos da modalidade anterior. */
@@ -493,6 +568,8 @@ export class ConfigCobrancaFormDialogComponent {
     }
     const v = validarFormularioConfig({
       transportadoraId: this.transportadoraId ?? 0,
+      tipoPagador: this.tipoPagador,
+      responsavelFaturamentoId: this.responsavelFaturamentoId,
       modalidade: this.modalidade,
       dataCobranca: this.dataCobranca,
       regraFechamento: this.regraFechamento,
@@ -554,6 +631,9 @@ export class ConfigCobrancaFormDialogComponent {
 
   private abaParaMensagemErro(mensagem: string): ConfigCobrancaFormAba {
     const texto = mensagem.toLowerCase();
+    if (texto.includes('responsável') || texto.includes('terceiro') || texto.includes('pagador')) {
+      return 'responsavel';
+    }
     if (
       texto.includes('excedente') ||
       texto.includes('valor') ||
@@ -579,7 +659,10 @@ export class ConfigCobrancaFormDialogComponent {
     return montarRegistroDoFormulario({
       id,
       transportadoraId: this.transportadoraId ?? 0,
-      transportadoraNome: transportadora?.label ?? '',
+      transportadoraNome: (this.transportadoraNome || transportadora?.label || '').trim(),
+      tipoPagador: this.tipoPagador,
+      responsavelFaturamentoId: this.responsavelFaturamentoId,
+      responsavelFaturamentoNome: this.responsavelFaturamentoNome,
       status: this.status === 'Inativa' ? 'Inativa' : 'Ativa',
       modalidade: this.modalidade as ConfigCobrancaModalidade,
       dataCobranca: this.dataCobranca,

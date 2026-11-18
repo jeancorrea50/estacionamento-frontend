@@ -10,7 +10,8 @@ import type {
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
   ConfigCobrancaServicos,
-  ConfigCobrancaStatus
+  ConfigCobrancaStatus,
+  ConfigCobrancaTipoPagador
 } from './faturamento-config-cobranca.types';
 import {
   ModalidadeCobranca,
@@ -177,6 +178,8 @@ export function valorInformado(valor: number | null | undefined): boolean {
 
 export function validarFormularioConfig(input: {
   transportadoraId: number;
+  tipoPagador?: ConfigCobrancaTipoPagador;
+  responsavelFaturamentoId?: number | null;
   modalidade: ConfigCobrancaModalidade | '';
   dataCobranca: string | null;
   regraFechamento: number;
@@ -204,6 +207,9 @@ export function validarFormularioConfig(input: {
   const regraAtiva = input.gerarFaturaAutomaticamente !== false;
 
   if (!input.transportadoraId || input.transportadoraId <= 0) m.push('Informe a transportadora.');
+  if (input.tipoPagador === 'terceiro' && !(input.responsavelFaturamentoId && input.responsavelFaturamentoId > 0)) {
+    m.push('Selecione o responsável financeiro (terceiro).');
+  }
   if (!input.modalidade || !MODALIDADES_OFERTADAS.includes(input.modalidade)) {
     m.push('Selecione a regra de cobrança.');
   }
@@ -241,8 +247,10 @@ export function validarFormularioConfig(input: {
     }
   }
 
+  // Em FOB (terceiro), o destinatário da fatura é o e-mail do responsável cadastrado.
+  const exigeEmailConfig = input.envioAutomaticoEmail !== false && input.tipoPagador !== 'terceiro';
   const erroEmail = mensagemEmailsFinanceirosInvalidos(input.email, {
-    obrigatorio: input.envioAutomaticoEmail !== false
+    obrigatorio: exigeEmailConfig
   });
   if (erroEmail) m.push(erroEmail);
 
@@ -273,6 +281,9 @@ export function montarRegistroDoFormulario(campos: {
   id: number;
   transportadoraId: number;
   transportadoraNome: string;
+  tipoPagador?: ConfigCobrancaTipoPagador;
+  responsavelFaturamentoId?: number | null;
+  responsavelFaturamentoNome?: string;
   estacionamentoId?: number;
   estacionamentoNome?: string;
   status: ConfigCobrancaStatus;
@@ -338,10 +349,22 @@ export function montarRegistroDoFormulario(campos: {
     servicos[key] = { habilitado: true, valor: atual.valor ?? null };
   }
 
+  const tipoPagador: ConfigCobrancaTipoPagador =
+    campos.tipoPagador === 'terceiro' ? 'terceiro' : 'transportadora';
+  const responsavelFaturamentoId =
+    tipoPagador === 'terceiro' && campos.responsavelFaturamentoId && campos.responsavelFaturamentoId > 0
+      ? campos.responsavelFaturamentoId
+      : null;
+
   return {
     id: campos.id,
     transportadoraId: campos.transportadoraId,
     estacionamentoId: campos.estacionamentoId ?? 0,
+    tipoPagador,
+    responsavelFaturamentoId,
+    responsavelFaturamentoNome:
+      tipoPagador === 'terceiro' ? (campos.responsavelFaturamentoNome ?? '').trim() : '',
+    tipoOperacao: tipoPagador === 'terceiro' ? 'FOB' : 'CIF',
     transportadora: campos.transportadoraNome.trim(),
     estacionamento: (campos.estacionamentoNome ?? '').trim() || '—',
     modalidade: campos.modalidade,

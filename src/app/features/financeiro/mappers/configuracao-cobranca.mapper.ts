@@ -6,10 +6,12 @@ import {
   ModalidadeCobranca,
   RegraFechamento,
   StatusConfiguracaoCobranca,
-  TipoCobrancaExcedente
+  TipoCobrancaExcedente,
+  TipoOperacaoFaturamento,
+  TipoPagadorCobranca
 } from '../models/configuracao-cobranca.models';
 
-export { ModalidadeCobranca, RegraFechamento, StatusConfiguracaoCobranca };
+export { ModalidadeCobranca, RegraFechamento, StatusConfiguracaoCobranca, TipoPagadorCobranca, TipoOperacaoFaturamento };
 import type {
   ConfigCobrancaAcordo,
   ConfigCobrancaListaItem,
@@ -229,11 +231,35 @@ export function servicosFromOutput(dto: ConfiguracaoCobrancaOutput): ConfigCobra
   };
 }
 
+function mapPagadorFromDto(dto: {
+  tipoPagadorCobranca?: TipoPagadorCobranca | number | null;
+  responsavelFaturamentoId?: number | null;
+  responsavelFaturamentoNome?: string | null;
+  tipoOperacaoFaturamento?: TipoOperacaoFaturamento | number | null;
+}): Pick<
+  ConfigCobrancaListaItem,
+  'tipoPagador' | 'responsavelFaturamentoId' | 'responsavelFaturamentoNome' | 'tipoOperacao'
+> {
+  const tipoPagador =
+    Number(dto.tipoPagadorCobranca) === TipoPagadorCobranca.Terceiro ? 'terceiro' : 'transportadora';
+  const responsavelFaturamentoId =
+    tipoPagador === 'terceiro' && dto.responsavelFaturamentoId && dto.responsavelFaturamentoId > 0
+      ? Number(dto.responsavelFaturamentoId)
+      : null;
+  return {
+    tipoPagador,
+    responsavelFaturamentoId,
+    responsavelFaturamentoNome: (dto.responsavelFaturamentoNome || '').trim(),
+    tipoOperacao: tipoPagador === 'terceiro' ? 'FOB' : 'CIF'
+  };
+}
+
 export function mapSearchToListaItem(dto: ConfiguracaoCobrancaSearchOutput): ConfigCobrancaListaItem {
   return {
     id: dto.id,
     transportadoraId: dto.transportadoraId,
     estacionamentoId: dto.estacionamentoId,
+    ...mapPagadorFromDto(dto),
     transportadora: dto.transportadoraNome || '—',
     estacionamento: dto.estacionamentoNome || '—',
     modalidade: modalidadeLabel(dto.modalidadeCobranca),
@@ -271,6 +297,7 @@ export function mapOutputToListaItem(dto: ConfiguracaoCobrancaOutput): ConfigCob
     id: dto.id,
     transportadoraId: dto.transportadoraId,
     estacionamentoId: dto.estacionamentoId,
+    ...mapPagadorFromDto(dto),
     transportadora: dto.transportadoraNome || '—',
     estacionamento: dto.estacionamentoNome || '—',
     modalidade: modalidadeLabel(dto.modalidadeCobranca),
@@ -314,9 +341,17 @@ export function mapListaItemToPostInput(item: ConfigCobrancaListaItem): Configur
   const servicos = item.servicos ?? servicosVazios();
   const acordo = acordoToPayload(item, isAcordo);
 
+  const tipoPagador =
+    item.tipoPagador === 'terceiro' ? TipoPagadorCobranca.Terceiro : TipoPagadorCobranca.Transportadora;
+
   return {
     id: item.id > 0 ? item.id : 0,
     transportadoraId: item.transportadoraId,
+    tipoPagadorCobranca: tipoPagador,
+    responsavelFaturamentoId:
+      tipoPagador === TipoPagadorCobranca.Terceiro && item.responsavelFaturamentoId
+        ? item.responsavelFaturamentoId
+        : null,
     status: statusFromLabel(item.status),
     modalidadeCobranca,
     diaFechamento: dia,
@@ -431,6 +466,18 @@ export function mapRawSearchItem(row: Record<string, unknown>): ConfiguracaoCobr
     transportadoraNome: pickString(row, 'transportadoraNome', 'TransportadoraNome'),
     estacionamentoId: pickNumber(row, 'estacionamentoId', 'EstacionamentoId'),
     estacionamentoNome: pickString(row, 'estacionamentoNome', 'EstacionamentoNome'),
+    tipoPagadorCobranca: pickNumber(row, 'tipoPagadorCobranca', 'TipoPagadorCobranca') as TipoPagadorCobranca,
+    responsavelFaturamentoId: pickNumberOrNull(row, 'responsavelFaturamentoId', 'ResponsavelFaturamentoId'),
+    responsavelFaturamentoNome: pickStringOrNull(
+      row,
+      'responsavelFaturamentoNome',
+      'ResponsavelFaturamentoNome'
+    ),
+    tipoOperacaoFaturamento: pickNumber(
+      row,
+      'tipoOperacaoFaturamento',
+      'TipoOperacaoFaturamento'
+    ) as TipoOperacaoFaturamento,
     status: pickNumber(row, 'status', 'Status') as StatusConfiguracaoCobranca,
     modalidadeCobranca: pickNumber(row, 'modalidadeCobranca', 'ModalidadeCobranca') as ModalidadeCobranca,
     diaFechamento: pickNumberOrNull(row, 'diaFechamento', 'DiaFechamento'),
@@ -466,6 +513,18 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     transportadoraNome,
     estacionamentoId: pickNumber(row, 'estacionamentoId', 'EstacionamentoId'),
     estacionamentoNome,
+    tipoPagadorCobranca: pickNumber(row, 'tipoPagadorCobranca', 'TipoPagadorCobranca') as TipoPagadorCobranca,
+    responsavelFaturamentoId: pickNumberOrNull(row, 'responsavelFaturamentoId', 'ResponsavelFaturamentoId'),
+    responsavelFaturamentoNome: pickStringOrNull(
+      row,
+      'responsavelFaturamentoNome',
+      'ResponsavelFaturamentoNome'
+    ),
+    tipoOperacaoFaturamento: pickNumber(
+      row,
+      'tipoOperacaoFaturamento',
+      'TipoOperacaoFaturamento'
+    ) as TipoOperacaoFaturamento,
     status: pickNumber(row, 'status', 'Status') as StatusConfiguracaoCobranca,
     modalidadeCobranca: pickNumber(row, 'modalidadeCobranca', 'ModalidadeCobranca') as ModalidadeCobranca,
     diaFechamento: pickNumberOrNull(row, 'diaFechamento', 'DiaFechamento'),

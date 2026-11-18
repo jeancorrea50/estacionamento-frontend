@@ -58,10 +58,17 @@ export interface ConfigCobrancaAcordo {
   tipoCobrancaExcedente: number;
 }
 
+export type ConfigCobrancaTipoPagador = 'transportadora' | 'terceiro';
+export type ConfigCobrancaTipoOperacao = 'CIF' | 'FOB';
+
 export interface ConfigCobrancaListaItem {
   id: number;
   transportadoraId: number;
   estacionamentoId: number;
+  tipoPagador: ConfigCobrancaTipoPagador;
+  responsavelFaturamentoId: number | null;
+  responsavelFaturamentoNome: string;
+  tipoOperacao: ConfigCobrancaTipoOperacao;
   transportadora: string;
   estacionamento: string;
   modalidade: ConfigCobrancaModalidade;

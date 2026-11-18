@@ -1043,3 +1043,141 @@
     justify-content: center;
   }
 }
+
+.cfg-block__head--plain {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.cfg-block__head-ico {
+  color: var(--cfg-primary);
+  font-size: 28px;
+}
+
+.cfg-block__sub {
+  margin: 4px 0 0;
+  color: var(--cfg-muted);
+  font-size: 0.9rem;
+}
+
+.cfg-pagador {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.cfg-pagador__opt {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--cfg-border);
+  border-radius: var(--cfg-radius-sm);
+  background: var(--cfg-option-bg);
+  color: inherit;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.cfg-pagador__opt:hover {
+  background: var(--cfg-option-hover);
+}
+
+.cfg-pagador__opt--active {
+  border-color: var(--cfg-border-strong);
+  background: var(--cfg-option-active);
+}
+
+.cfg-pagador__radio {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border-radius: 50%;
+  border: 2px solid var(--cfg-muted);
+  flex: 0 0 auto;
+}
+
+.cfg-pagador__opt--active .cfg-pagador__radio {
+  border-color: var(--cfg-primary);
+  box-shadow: inset 0 0 0 3px var(--cfg-primary);
+}
+
+.cfg-pagador__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cfg-pagador__copy strong {
+  font-weight: 600;
+}
+
+.cfg-pagador__copy small {
+  color: var(--cfg-muted);
+}
+
+.cfg-field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: var(--cfg-muted);
+}
+
+.cfg-readonly {
+  border: 1px solid var(--cfg-input-border);
+  background: var(--cfg-input-bg);
+  border-radius: var(--cfg-radius-sm);
+  padding: 12px 14px;
+}
+
+.cfg-lookup-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cfg-lookup-row__field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cfg-btn--icon {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--cfg-radius-sm);
+  border: 1px solid var(--cfg-border);
+  background: var(--cfg-primary-soft);
+  color: var(--cfg-primary);
+  cursor: pointer;
+}
+
+.cfg-hint {
+  margin: 8px 0 0;
+  color: var(--cfg-muted);
+  font-size: 0.82rem;
+}
+
+.cfg-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: var(--cfg-radius-sm);
+  border: 1px solid var(--cfg-obs-border);
+  background: var(--cfg-obs-bg);
+  color: var(--cfg-obs-text);
+  font-size: 0.85rem;
+}
+
+.cfg-info .material-symbols-outlined {
+  font-size: 18px;
+  margin-top: 1px;
+}

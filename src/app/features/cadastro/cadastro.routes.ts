@@ -3,6 +3,7 @@ import { EstacionamentoLayoutComponent } from './estacionamento-layout.component
 import {
   CADASTRO_ESTACIONAMENTOS_PATH,
   CADASTRO_MOTORISTAS_PATH,
+  CADASTRO_RESPONSAVEIS_FATURAMENTO_PATH,
   CADASTRO_TRANSPORTADORAS_CONVITES_PATH,
   CADASTRO_TRANSPORTADORAS_PATH,
   CADASTRO_TRANSPORTADORAS_RELATORIO_PATH,
@@ -88,6 +89,14 @@ export const CADASTRO_ROUTES: Routes = [
   {
     path: CADASTRO_MOTORISTAS_PATH,
     loadComponent: motoristasPage,
+  },
+  {
+    path: CADASTRO_RESPONSAVEIS_FATURAMENTO_PATH,
+    loadComponent: () =>
+      import('./pages/cadastro-responsavel-faturamento-page/cadastro-responsavel-faturamento-page.component').then(
+        (m) => m.CadastroResponsavelFaturamentoPageComponent
+      ),
+    title: 'Responsável de Faturamento',
   },
   // Legado: rotas singulares → canônico plural
   {

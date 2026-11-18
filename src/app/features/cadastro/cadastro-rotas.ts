@@ -24,6 +24,10 @@ export const CADASTRO_VEICULOS_PATH = 'veiculos';
 export const CADASTRO_MOTORISTAS_ROUTE = '/app/cadastro/motoristas';
 export const CADASTRO_MOTORISTAS_PATH = 'motoristas';
 
+export const CADASTRO_RESPONSAVEIS_FATURAMENTO_ROUTE = '/app/cadastro/responsaveis-faturamento';
+export const CADASTRO_RESPONSAVEIS_FATURAMENTO_PATH = 'responsaveis-faturamento';
+export const CADASTRO_RESPONSAVEIS_FATURAMENTO_LABEL = 'Responsável de Faturamento';
+
 export const CADASTRO_ESTACIONAMENTOS_ROUTE = '/app/cadastro/estacionamentos';
 export const CADASTRO_ESTACIONAMENTOS_PATH = 'estacionamentos';
 

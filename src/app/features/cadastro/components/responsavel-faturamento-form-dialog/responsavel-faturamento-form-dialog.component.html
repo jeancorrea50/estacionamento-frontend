@@ -1,0 +1,126 @@
+<div class="rfat-modal">
+  <header class="rfat-modal__header">
+    <div class="rfat-modal__titles">
+      <h2 class="rfat-modal__title" mat-dialog-title>{{ titulo }}</h2>
+      <p class="rfat-modal__subtitle">Cadastre a empresa e os dados de contato do responsável.</p>
+    </div>
+    <button type="button" class="rfat-modal__close" aria-label="Fechar" (click)="cancelar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <nav class="rfat-tabs" role="tablist" aria-label="Seções do formulário">
+    <button
+      type="button"
+      role="tab"
+      class="rfat-tabs__tab"
+      [class.rfat-tabs__tab--active]="aba === 'empresa'"
+      [attr.aria-selected]="aba === 'empresa'"
+      (click)="selecionarAba('empresa')"
+    >
+      Dados da empresa
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="rfat-tabs__tab"
+      [class.rfat-tabs__tab--active]="aba === 'adicional'"
+      [attr.aria-selected]="aba === 'adicional'"
+      (click)="selecionarAba('adicional')"
+    >
+      Informações adicionais
+    </button>
+  </nav>
+
+  <mat-dialog-content class="rfat-modal__body">
+    @if (carregando) {
+      <p class="loading-msg">Carregando…</p>
+    } @else {
+      <form [formGroup]="form" class="rfat-form" autocomplete="off">
+        @if (aba === 'empresa') {
+          <div class="rfat-grid rfat-grid--2">
+            <label class="field">
+              <span class="field__label">Razão social *</span>
+              <input class="input-control" type="text" formControlName="razaoSocial" maxlength="200" />
+            </label>
+            <label class="field">
+              <span class="field__label">Nome fantasia</span>
+              <input class="input-control" type="text" formControlName="nomeFantasia" maxlength="200" />
+            </label>
+            <label class="field">
+              <span class="field__label">CNPJ *</span>
+              <input class="input-control" type="text" formControlName="cnpj" appCnpjFormat maxlength="18" placeholder="00.000.000/0000-00" />
+            </label>
+            <div class="field field--toggle">
+              <span class="field__label">Ativo</span>
+              <mat-slide-toggle formControlName="ativo" color="primary">{{ form.controls.ativo.value ? 'Sim' : 'Não' }}</mat-slide-toggle>
+            </div>
+          </div>
+        } @else {
+          <div class="rfat-grid rfat-grid--2">
+            <label class="field">
+              <span class="field__label">Responsável legal</span>
+              <input class="input-control" type="text" formControlName="responsavelLegal" maxlength="200" />
+            </label>
+            <label class="field">
+              <span class="field__label">CPF</span>
+              <input class="input-control" type="text" formControlName="responsavelCpf" appCpfFormat maxlength="14" placeholder="000.000.000-00" />
+            </label>
+            <label class="field">
+              <span class="field__label">E-mail</span>
+              <input class="input-control" type="email" formControlName="responsavelEmail" maxlength="200" />
+            </label>
+            <label class="field">
+              <span class="field__label">Telefone</span>
+              <input class="input-control" type="text" formControlName="responsavelTelefone" appTelefoneFormat maxlength="16" placeholder="(00) 00000-0000" />
+            </label>
+          </div>
+
+          <fieldset class="rfat-endereco" formGroupName="endereco">
+            <legend class="rfat-endereco__legend">Endereço</legend>
+            <div class="rfat-grid rfat-grid--3">
+              <label class="field">
+                <span class="field__label">CEP</span>
+                <div class="rfat-cep">
+                  <input class="input-control" type="text" formControlName="cep" appCepFormat maxlength="9" placeholder="00000-000" (blur)="buscarCep()" />
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="buscarCep()">Buscar</button>
+                </div>
+              </label>
+              <label class="field rfat-span-2">
+                <span class="field__label">Logradouro</span>
+                <input class="input-control" type="text" formControlName="logradouro" />
+              </label>
+              <label class="field">
+                <span class="field__label">Número</span>
+                <input class="input-control" type="text" formControlName="numero" />
+              </label>
+              <label class="field">
+                <span class="field__label">Bairro</span>
+                <input class="input-control" type="text" formControlName="bairro" />
+              </label>
+              <label class="field">
+                <span class="field__label">Cidade</span>
+                <input class="input-control" type="text" formControlName="cidade" />
+              </label>
+              <label class="field">
+                <span class="field__label">UF</span>
+                <input class="input-control" type="text" formControlName="estado" maxlength="2" placeholder="UF" />
+              </label>
+              <label class="field rfat-span-2">
+                <span class="field__label">Complemento</span>
+                <input class="input-control" type="text" formControlName="complemento" />
+              </label>
+            </div>
+          </fieldset>
+        }
+      </form>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="rfat-modal__actions" align="end">
+    <button type="button" mat-button (click)="cancelar()" [disabled]="salvando">Cancelar</button>
+    <button type="button" mat-flat-button color="primary" (click)="salvar()" [disabled]="salvando || carregando">
+      {{ salvando ? 'Salvando…' : 'Salvar' }}
+    </button>
+  </mat-dialog-actions>
+</div>

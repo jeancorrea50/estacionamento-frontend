@@ -1,0 +1,49 @@
+<div class="rfat-busca">
+  <header class="rfat-busca__header">
+    <h2 mat-dialog-title class="rfat-busca__title">Buscar responsável de faturamento</h2>
+    <button type="button" class="rfat-busca__close" aria-label="Fechar" (click)="fechar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <mat-dialog-content class="rfat-busca__body">
+    <div class="rfat-busca__filter">
+      <input
+        class="input-control"
+        type="text"
+        [(ngModel)]="termo"
+        (keyup.enter)="buscar()"
+        placeholder="Nome ou CNPJ…"
+        aria-label="Termo de busca"
+        autocomplete="off"
+      />
+      <button type="button" class="btn btn-secondary" (click)="buscar()" [disabled]="loading">Buscar</button>
+    </div>
+
+    @if (erro) {
+      <p class="error-msg">{{ erro }}</p>
+    }
+    @if (loading) {
+      <p class="loading-msg">Carregando…</p>
+    } @else if (!erro && itens.length === 0) {
+      <p class="empty-msg">Nenhum responsável encontrado.</p>
+    } @else {
+      <ul class="rfat-busca__list" role="listbox" aria-label="Resultados">
+        @for (item of itens; track item.id) {
+          <li>
+            <button type="button" class="rfat-busca__item" (click)="selecionar(item)">
+              <span class="rfat-busca__item-title">{{ item.nomeFantasia || item.razaoSocial || ('#' + item.id) }}</span>
+              <span class="rfat-busca__item-meta">
+                {{ item.razaoSocial || '—' }} · {{ formatCnpj(item.cnpj) }}
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button type="button" mat-button (click)="fechar()">Cancelar</button>
+  </mat-dialog-actions>
+</div>

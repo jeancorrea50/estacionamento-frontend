@@ -10,6 +10,7 @@ export const PERMISSION_MODULES = [
   'Transportadora',
   'Veículo',
   'Veículo modelo',
+  'Cadastro',
   'Permissão',
   'Usuários',
   'Movimentações',
@@ -54,6 +55,12 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'veiculoModelo.gravar',
     'veiculoModelo.alterar',
     'veiculoModelo.excluir',
+  ],
+  Cadastro: [
+    'responsavelfaturamento.visualizar',
+    'responsavelfaturamento.gravar',
+    'responsavelfaturamento.alterar',
+    'responsavelfaturamento.excluir',
   ],
   'Permissão': [
     'permissao.visualizar',

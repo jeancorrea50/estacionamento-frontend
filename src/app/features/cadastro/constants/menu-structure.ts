@@ -15,6 +15,8 @@ import {
 } from '../../financeiro/faturamento-rotas';
 import {
   CADASTRO_MOTORISTAS_ROUTE,
+  CADASTRO_RESPONSAVEIS_FATURAMENTO_LABEL,
+  CADASTRO_RESPONSAVEIS_FATURAMENTO_ROUTE,
   CADASTRO_ROUTE,
   CADASTRO_TRANSPORTADORAS_CONVITES_LABEL,
   CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
@@ -161,6 +163,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
             route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
           },
         ],
+      },
+      {
+        id: 'sub-responsaveis-faturamento',
+        label: CADASTRO_RESPONSAVEIS_FATURAMENTO_LABEL,
+        route: CADASTRO_RESPONSAVEIS_FATURAMENTO_ROUTE,
       },
     ],
   },

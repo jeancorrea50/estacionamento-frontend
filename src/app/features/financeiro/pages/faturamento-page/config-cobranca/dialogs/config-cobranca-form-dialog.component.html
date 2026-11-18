@@ -37,6 +37,17 @@
       <span class="material-symbols-outlined" aria-hidden="true">payments</span>
       Valores
     </button>
+    <button
+      type="button"
+      role="tab"
+      class="cfg-topbar__tab"
+      [class.cfg-topbar__tab--active]="abaAtiva === 'responsavel'"
+      [attr.aria-selected]="abaAtiva === 'responsavel'"
+      (click)="selecionarAba('responsavel')"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+      Responsável
+    </button>
   </nav>
 
   @if (errosVisiveis.length) {
@@ -59,14 +70,18 @@
           <h3 class="cfg-block__title">Transportadora</h3>
         </div>
         <div class="cfg-block__grid cfg-block__grid--3">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-            <mat-label>Transportadora</mat-label>
-            <mat-select name="transportadoraId" [(ngModel)]="transportadoraId" required>
-              @for (t of data.transportadoras; track t.id) {
-                <mat-option [value]="t.id">{{ t.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <div class="cfg-field cfg-field--lookup">
+            <label class="cfg-field__label" for="cfg-trn-lookup">Transportadora</label>
+            <app-transportadora-lookup-field
+              id="cfg-trn-lookup"
+              [transportadoraId]="transportadoraId"
+              [transportadoraNome]="transportadoraNome"
+              placeholder="Buscar transportadora…"
+              ariaLabel="Selecionar transportadora"
+              (transportadoraIdChange)="onTransportadoraLookupId($event)"
+              (transportadoraNomeChange)="onTransportadoraLookupNome($event)"
+            />
+          </div>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
             <mat-label>CNPJ</mat-label>
             <input
@@ -514,6 +529,88 @@
             </div>
           }
         </div>
+      </section>
+    }
+
+    @if (abaAtiva === 'responsavel') {
+      <section class="cfg-block cfg-block--responsavel">
+        <div class="cfg-block__head cfg-block__head--plain">
+          <span class="material-symbols-outlined cfg-block__head-ico" aria-hidden="true">receipt_long</span>
+          <div>
+            <h3 class="cfg-block__title">Responsável pelo faturamento</h3>
+            <p class="cfg-block__sub">Defina quem será responsável pela cobrança</p>
+          </div>
+        </div>
+
+        <div class="cfg-pagador" role="radiogroup" aria-label="Pagador da fatura">
+          <button
+            type="button"
+            class="cfg-pagador__opt"
+            role="radio"
+            [attr.aria-checked]="tipoPagador === 'transportadora'"
+            [class.cfg-pagador__opt--active]="tipoPagador === 'transportadora'"
+            (click)="selecionarTipoPagador('transportadora')"
+          >
+            <span class="cfg-pagador__radio" aria-hidden="true"></span>
+            <span class="cfg-pagador__copy">
+              <strong>Transportadora</strong>
+              <small>O serviço será cobrado da própria transportadora</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="cfg-pagador__opt"
+            role="radio"
+            [attr.aria-checked]="tipoPagador === 'terceiro'"
+            [class.cfg-pagador__opt--active]="tipoPagador === 'terceiro'"
+            (click)="selecionarTipoPagador('terceiro')"
+          >
+            <span class="cfg-pagador__radio" aria-hidden="true"></span>
+            <span class="cfg-pagador__copy">
+              <strong>Terceiro / Local de carregamento</strong>
+              <small>O serviço será cobrado de outra empresa vinculada à operação</small>
+            </span>
+          </button>
+        </div>
+
+        @if (tipoPagador === 'transportadora') {
+          <div class="cfg-field">
+            <label class="cfg-field__label">Responsável financeiro</label>
+            <div class="cfg-readonly">{{ transportadoraResumoLabel }}</div>
+            <p class="cfg-hint">Pré-preenchido com a transportadora selecionada em Regras. Operação: {{ tipoOperacaoLabel }}.</p>
+          </div>
+        } @else {
+          <div class="cfg-field cfg-field--lookup-row">
+            <label class="cfg-field__label">Responsável financeiro</label>
+            <div class="cfg-lookup-row">
+              <app-responsavel-faturamento-lookup-field
+                class="cfg-lookup-row__field"
+                [responsavelId]="responsavelFaturamentoId"
+                [responsavelNome]="responsavelFaturamentoNome"
+                placeholder="Buscar responsável…"
+                ariaLabel="Selecionar responsável financeiro"
+                (responsavelIdChange)="onResponsavelLookupId($event)"
+                (responsavelNomeChange)="onResponsavelLookupNome($event)"
+              />
+              <button
+                type="button"
+                class="cfg-btn cfg-btn--icon"
+                aria-label="Adicionar responsável"
+                title="Adicionar responsável"
+                (click)="abrirNovoResponsavel()"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              </button>
+            </div>
+            <p class="cfg-hint">Operação automática: {{ tipoOperacaoLabel }} (terceiro).</p>
+          </div>
+        }
+
+        <p class="cfg-info" role="note">
+          <span class="material-symbols-outlined" aria-hidden="true">info</span>
+          Os responsáveis financeiros serão selecionados entre os cadastros disponíveis. Um responsável pode
+          atender vários contratos.
+        </p>
       </section>
     }
   </mat-dialog-content>

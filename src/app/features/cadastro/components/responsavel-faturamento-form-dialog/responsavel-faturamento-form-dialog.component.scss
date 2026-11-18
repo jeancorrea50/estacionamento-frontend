@@ -1,0 +1,145 @@
+.rfat-modal {
+  display: flex;
+  flex-direction: column;
+  min-width: min(100vw - 32px, 720px);
+  max-width: 760px;
+  color: var(--text, #e2e8f0);
+}
+
+.rfat-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 8px;
+}
+
+.rfat-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.rfat-modal__subtitle {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--muted, #94a3b8);
+}
+
+.rfat-modal__close {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.rfat-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.rfat-tabs__tab {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+
+.rfat-tabs__tab--active {
+  color: var(--primary, #4d7cfe);
+  border-bottom-color: var(--primary, #4d7cfe);
+}
+
+.rfat-modal__body {
+  padding: 16px 20px !important;
+  max-height: min(70vh, 560px);
+}
+
+.rfat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rfat-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.rfat-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rfat-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rfat-span-2 {
+  grid-column: span 2;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field__label {
+  font-size: 0.8125rem;
+  color: var(--muted, #94a3b8);
+}
+
+.field--toggle {
+  justify-content: center;
+}
+
+.rfat-cep {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rfat-cep .input-control {
+  flex: 1 1 auto;
+}
+
+.rfat-endereco {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+}
+
+.rfat-endereco__legend {
+  padding: 0 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+}
+
+.rfat-modal__actions {
+  padding: 12px 16px 16px !important;
+  gap: 8px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+@media (max-width: 640px) {
+  .rfat-grid--2,
+  .rfat-grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .rfat-span-2 {
+    grid-column: auto;
+  }
+}

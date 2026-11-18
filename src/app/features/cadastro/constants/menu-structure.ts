@@ -34,6 +34,8 @@ import {
 } from '../../patio/patio-rotas';
 import {
   AGENDAMENTO_LABEL,
+  AGENDAMENTO_PAINEL_LABEL,
+  AGENDAMENTO_PAINEL_ROUTE,
   AGENDAMENTO_ROUTE,
   AGENDAR_LABEL,
   AGENDAR_ROUTE,
@@ -94,7 +96,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
         label: AGENDAMENTO_LABEL,
         route: AGENDAMENTO_ROUTE,
         children: [
-          { id: 'sub-agendamentos-lista', label: 'Painel', route: AGENDAMENTO_ROUTE },
+          {
+            id: 'sub-agendamentos-painel',
+            label: AGENDAMENTO_PAINEL_LABEL,
+            route: AGENDAMENTO_PAINEL_ROUTE,
+          },
           { id: 'sub-agendamentos-janelas', label: JANELAS_LABEL, route: JANELAS_ROUTE },
         ],
       },

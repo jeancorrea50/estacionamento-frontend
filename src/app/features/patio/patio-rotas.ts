@@ -19,10 +19,15 @@ export const PATIO_MOVIMENTACOES_RELATORIO_LABEL = 'Relatório';
 export const PATIO_ENTRADA_SAIDA_ROUTE = '/app/patio/entrada-saida';
 export const PATIO_ENTRADA_SAIDA_PATH = 'entrada-saida';
 
-/** Painel de agendamentos do pátio (claims `agendamentos.*`). */
+/** Agrupador Agendamentos (sem tela) — filhos: Painel e Janelas. */
 export const PATIO_AGENDAMENTOS_ROUTE = '/app/patio/agendamentos';
 export const PATIO_AGENDAMENTOS_PATH = 'agendamentos';
 export const PATIO_AGENDAMENTOS_LABEL = 'Agendamentos';
+
+/** Painel de agendamentos (claims `agendamentos.*`). */
+export const PATIO_AGENDAMENTOS_PAINEL_ROUTE = '/app/patio/agendamentos/painel';
+export const PATIO_AGENDAMENTOS_PAINEL_PATH = 'agendamentos/painel';
+export const PATIO_AGENDAMENTOS_PAINEL_LABEL = 'Painel';
 
 /** Janelas de agendamento (claims `janelas.*`) — filha de Agendamentos. */
 export const PATIO_AGENDAMENTOS_JANELAS_ROUTE = '/app/patio/agendamentos/janelas';

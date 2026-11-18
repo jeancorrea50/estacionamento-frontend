@@ -1,14 +1,14 @@
 import { Routes } from '@angular/router';
-import { AGENDAMENTOS_PATH } from './agendamento-rotas';
+import { AGENDAMENTOS_PATH, AGENDAMENTO_PAINEL_ROUTE } from './agendamento-rotas';
 
 /**
  * Legado sob `/app/agendamento/*` — redireciona para as rotas canônicas.
- * Painel do pátio: `/app/patio/agendamentos`
+ * Painel do pátio: `/app/patio/agendamentos/painel`
  * Agendar: `/app/agendar`
  */
 export const AGENDAMENTO_ROUTES: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: '/app/patio/agendamentos' },
-  { path: AGENDAMENTOS_PATH, pathMatch: 'full', redirectTo: '/app/patio/agendamentos' },
+  { path: '', pathMatch: 'full', redirectTo: AGENDAMENTO_PAINEL_ROUTE },
+  { path: AGENDAMENTOS_PATH, pathMatch: 'full', redirectTo: AGENDAMENTO_PAINEL_ROUTE },
   { path: 'agendar', pathMatch: 'full', redirectTo: '/app/agendar' },
 ];
 

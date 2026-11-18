@@ -136,7 +136,7 @@ export const ECOSSISTEMA_NOS: EcossistemaNo[] = [
     grupo: 'estacionamento',
     finalidade: 'Reservar uso do pátio e confirmar entrada a partir do agendamento.',
     quemUsa: ['Pátio', 'Transportadora (conforme permissão)'],
-    rota: '/app/patio/agendamentos',
+    rota: '/app/patio/agendamentos/painel',
     permissionKey: null,
     informacoesNecessarias: ['Data/hora', 'Veículo', 'Transportadora', 'Estacionamento'],
     acoes: ['Criar/alterar', 'Cancelar', 'Confirmar entrada', 'Consultar por placa'],

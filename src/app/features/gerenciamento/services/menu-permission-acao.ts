@@ -50,6 +50,10 @@ export function buildPermissaoAcaoPorRota(
   if (r.endsWith('/patio/movimentacoes/relatorio')) {
     return `relatoriodemovimentacoes.${suffix}`;
   }
+  // "Painel" sob Agendamentos usa claims `agendamentos.*` (não `painel.*`).
+  if (r.endsWith('/patio/agendamentos/painel') || r === '/app/patio/agendamentos') {
+    return `agendamentos.${suffix}`;
+  }
   if (r.endsWith('/financeiro/pagamento/relatorio') || r.endsWith('/financeiro/pagamentos/relatorio')) {
     return `relatoriodepagamentos.${suffix}`;
   }

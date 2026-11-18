@@ -85,7 +85,7 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'entradasaida.alterar',
     'entradasaida.excluir',
   ],
-  // Pátio → Agendamentos (`/app/patio/agendamentos`)
+  // Pátio → Agendamentos → Painel (`/app/patio/agendamentos/painel`)
   Agendamentos: [
     'agendamentos.visualizar',
     'agendamentos.gravar',

@@ -17,7 +17,7 @@ import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
-import { AGENDAMENTO_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
+import { AGENDAMENTO_PAINEL_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
 import {
   AgendamentoSearchItem,
@@ -83,7 +83,7 @@ export class AgendamentosPageComponent implements OnInit {
   get canVisualizar(): boolean {
     return (
       this.sessionAccess.canAccessRoute(this.router.url) ||
-      this.sessionAccess.canAccessRoute(AGENDAMENTO_ROUTE) ||
+      this.sessionAccess.canAccessRoute(AGENDAMENTO_PAINEL_ROUTE) ||
       this.permissions.allows('agendamentos', 'visualizar')
     );
   }

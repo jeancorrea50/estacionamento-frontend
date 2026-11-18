@@ -235,7 +235,15 @@
   <div class="modal-overlay dk-modal-overlay" (click)="!salvandoSubModal() && subModalOpen.set(false)">
     <div class="modal-content modal-content--form dk-modal-content" role="dialog" (click)="$event.stopPropagation()">
       <div class="modal-header dk-modal-header">
-        <h2>{{ subEditId() === null ? 'Novo submenu' : 'Editar submenu' }}</h2>
+        <h2>
+          {{
+            subEditId() !== null
+              ? 'Editar submenu'
+              : subModalParentSubId() != null
+                ? 'Novo submenu filho'
+                : 'Novo submenu'
+          }}
+        </h2>
       </div>
       <div class="modal-body dk-modal-body">
         <div class="form-group">
@@ -383,7 +391,12 @@
       </div>
     </div>
     <div class="sub-row__actions">
-      <button type="button" class="btn btn--icon btn--sm" (click)="openNovoSubmenu(menuId, sub.id)" title="Novo submenu filho">
+      <button
+        type="button"
+        class="btn btn--icon btn--sm"
+        (click)="$event.stopPropagation(); openNovoSubmenu(menuId, sub.id)"
+        title="Novo submenu filho"
+      >
         <span class="material-symbols-outlined">add</span>
       </button>
       <button type="button" class="btn btn--icon" (click)="openEditSub(menuId, sub)" title="Editar submenu">

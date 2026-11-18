@@ -25,6 +25,7 @@ import {
   type SessionSubMenuAccess,
 } from '../../../core/services/session-access.service';
 import {
+  appendSubMenuToTree,
   findSubMenuById,
   nestSubMenusByRoute,
   removeSubMenuFromTree,
@@ -506,23 +507,33 @@ export class MenuAdminService {
 
   // ——— Submenus ———
 
-  addSubMenu(menuId: number, nome: string, rota: string): void {
+  addSubMenu(
+    menuId: number,
+    nome: string,
+    rota: string,
+    parentSubId: number | null = null
+  ): number | null {
+    let createdId: number | null = null;
     this.patch((s) => {
       const menu = s.menus.find((x) => x.id === menuId);
       if (!menu) return;
       const id = s.nextId++;
+      createdId = id;
       const normalized = rota.trim();
       const path = normalized.startsWith('/app') ? normalized : `/app/${normalized.replace(/^\//, '')}`;
-      menu.subMenus.push({
+      const novo: SubMenuAdmin = {
         id,
         nome,
-        ordem: menu.subMenus.length,
+        ordem: 0,
         rota: path,
         ativo: true,
         exibirNoSidebar: defaultExibirNoSidebar(path),
         permissions: [],
-      });
+        subMenus: [],
+      };
+      menu.subMenus = appendSubMenuToTree(menu.subMenus, parentSubId, novo);
     });
+    return createdId;
   }
 
   updateSubMenu(

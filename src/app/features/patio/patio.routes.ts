@@ -4,6 +4,7 @@ import { EntradaSaidaFormComponent } from '../movimentos/entrada-saida/entrada-s
 import { MovimentosPageComponent } from '../movimentos/pages/movimentos-page/movimentos-page.component';
 import {
   PATIO_AGENDAMENTOS_JANELAS_PATH,
+  PATIO_AGENDAMENTOS_PAINEL_PATH,
   PATIO_AGENDAMENTOS_PATH,
   PATIO_ENTRADA_SAIDA_PATH,
   PATIO_MOVIMENTACOES_PATH,
@@ -48,7 +49,7 @@ export const PATIO_ROUTES: Routes = [
       },
     ],
   },
-  // Janelas ANTES de `agendamentos` (ordem importa: path mais específico primeiro).
+  // Filhos ANTES do agrupador (path mais específico primeiro).
   {
     path: PATIO_AGENDAMENTOS_JANELAS_PATH,
     loadComponent: () =>
@@ -58,12 +59,18 @@ export const PATIO_ROUTES: Routes = [
     title: 'Janelas de agendamento',
   },
   {
-    path: PATIO_AGENDAMENTOS_PATH,
+    path: PATIO_AGENDAMENTOS_PAINEL_PATH,
     loadComponent: () =>
       import('../agendamento/pages/agendamentos-page/agendamentos-page.component').then(
         (m) => m.AgendamentosPageComponent
       ),
-    title: 'Agendamentos',
+    title: 'Painel de agendamentos',
+  },
+  // Agrupador sem tela → redireciona para o Painel.
+  {
+    path: PATIO_AGENDAMENTOS_PATH,
+    redirectTo: PATIO_AGENDAMENTOS_PAINEL_PATH,
+    pathMatch: 'full',
   },
   {
     path: '**',

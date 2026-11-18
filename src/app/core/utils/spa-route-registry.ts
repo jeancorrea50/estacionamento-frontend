@@ -82,6 +82,7 @@ function collectStaticRoutes(): void {
     '/app/movimentos/lista',
     '/app/relatorios',
     '/app/patio/agendamentos',
+    '/app/patio/agendamentos/painel',
     '/app/patio/agendamentos/janelas',
     '/app/agendamento',
     '/app/agendamento/agendamentos',

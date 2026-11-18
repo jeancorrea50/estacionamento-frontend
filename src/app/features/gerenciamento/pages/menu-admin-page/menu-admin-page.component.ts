@@ -806,9 +806,12 @@ export class MenuAdminPageComponent implements OnInit {
         return;
       }
 
-      this.admin.addSubMenu(menuId, nome, rota);
-      const subs = this.admin.getSnapshot().menus.find((x) => x.id === menuId)?.subMenus ?? [];
-      const created = subs.length > 0 ? subs[subs.length - 1] : undefined;
+      const createdId = this.admin.addSubMenu(menuId, nome, rota, parentSubId);
+      const menuAfter = this.admin.getSnapshot().menus.find((x) => x.id === menuId);
+      const created =
+        createdId != null && menuAfter
+          ? findSubMenuById(menuAfter.subMenus, createdId)?.sub
+          : undefined;
       if (created) {
         this.admin.setSubMenuPermissions(
           menuId,

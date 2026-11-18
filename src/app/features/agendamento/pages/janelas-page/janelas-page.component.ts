@@ -10,7 +10,7 @@ import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
-import { AGENDAMENTO_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
+import { AGENDAMENTO_PAINEL_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
 import {
   JanelaDuplicarDialogComponent,
   JanelaDuplicarDialogData,
@@ -56,7 +56,7 @@ export class JanelasPageComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly agendamentosRoute = AGENDAMENTO_ROUTE;
+  readonly agendamentosRoute = AGENDAMENTO_PAINEL_ROUTE;
   readonly modalidadeOpcoes = MODALIDADE_JANELA_OPCOES;
   readonly modalidadeLabel = modalidadeJanelaLabel;
 

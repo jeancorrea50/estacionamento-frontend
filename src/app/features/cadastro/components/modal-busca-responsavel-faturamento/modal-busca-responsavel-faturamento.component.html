@@ -11,25 +11,26 @@
       <input
         class="input-control"
         type="text"
-        [(ngModel)]="termo"
+        [ngModel]="termo()"
+        (ngModelChange)="termo.set($event)"
         (keyup.enter)="buscar()"
         placeholder="Nome ou CNPJ…"
         aria-label="Termo de busca"
         autocomplete="off"
       />
-      <button type="button" class="btn btn-secondary" (click)="buscar()" [disabled]="loading">Buscar</button>
+      <button type="button" class="btn btn-secondary" (click)="buscar()" [disabled]="loading()">Buscar</button>
     </div>
 
-    @if (erro) {
-      <p class="error-msg">{{ erro }}</p>
+    @if (erro(); as errMsg) {
+      <p class="error-msg">{{ errMsg }}</p>
     }
-    @if (loading) {
+    @if (loading()) {
       <p class="loading-msg">Carregando…</p>
-    } @else if (!erro && itens.length === 0) {
+    } @else if (!erro() && itens().length === 0) {
       <p class="empty-msg">Nenhum responsável encontrado.</p>
     } @else {
       <ul class="rfat-busca__list" role="listbox" aria-label="Resultados">
-        @for (item of itens; track item.id) {
+        @for (item of itens(); track item.id) {
           <li>
             <button type="button" class="rfat-busca__item" (click)="selecionar(item)">
               <span class="rfat-busca__item-title">{{ item.nomeFantasia || item.razaoSocial || ('#' + item.id) }}</span>

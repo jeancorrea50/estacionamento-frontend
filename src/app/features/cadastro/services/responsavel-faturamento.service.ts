@@ -160,26 +160,41 @@ export class ResponsavelFaturamentoService {
     let list: unknown[] = [];
     let total = 0;
     const root = body as Record<string, unknown> | unknown[];
+
     if (Array.isArray(root)) {
       list = root;
       total = root.length;
     } else if (root && typeof root === 'object') {
+      // Envelope: { success, result: { results|Results, rowCount } } ou página na raiz.
       const wrapped = root['result'] ?? root['Result'];
-      const source =
-        wrapped && typeof wrapped === 'object' && !Array.isArray(wrapped)
-          ? (wrapped as Record<string, unknown>)
-          : root;
-      if (Array.isArray(source['results'])) {
-        list = source['results'] as unknown[];
-        total = Number(source['rowCount'] ?? source['RowCount'] ?? list.length) || list.length;
-      } else if (Array.isArray(source['items'])) {
-        list = source['items'] as unknown[];
-        total = Number(source['totalCount'] ?? list.length) || list.length;
-      } else if (Array.isArray(wrapped)) {
-        list = wrapped as unknown[];
-        total = list.length;
+      const candidates: unknown[] = [];
+      if (wrapped != null) candidates.push(wrapped);
+      candidates.push(root);
+
+      for (const candidate of candidates) {
+        if (Array.isArray(candidate)) {
+          list = candidate;
+          total = candidate.length;
+          break;
+        }
+        if (!candidate || typeof candidate !== 'object') continue;
+        const source = candidate as Record<string, unknown>;
+        const results = source['results'] ?? source['Results'] ?? source['items'] ?? source['Items'];
+        if (Array.isArray(results)) {
+          list = results;
+          total =
+            Number(
+              source['rowCount'] ??
+                source['RowCount'] ??
+                source['totalCount'] ??
+                source['TotalCount'] ??
+                list.length
+            ) || list.length;
+          break;
+        }
       }
     }
+
     return {
       items: list.map((row) => this.mapListItem(row as Record<string, unknown>)),
       totalCount: total,

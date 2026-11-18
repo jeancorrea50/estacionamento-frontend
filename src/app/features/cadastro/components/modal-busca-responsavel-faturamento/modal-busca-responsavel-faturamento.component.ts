@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { finalize } from 'rxjs';
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import type { ResponsavelFaturamentoListItemDTO } from '../../models/responsavel-faturamento.dto';
 import { ResponsavelFaturamentoService } from '../../services/responsavel-faturamento.service';
@@ -29,13 +30,14 @@ export class ModalBuscaResponsavelFaturamentoComponent implements OnInit {
   readonly data = inject<ModalBuscaResponsavelFaturamentoData>(MAT_DIALOG_DATA, { optional: true }) ?? {};
   private readonly service = inject(ResponsavelFaturamentoService);
 
-  termo = '';
-  loading = false;
-  erro: string | null = null;
-  itens: ResponsavelFaturamentoListItemDTO[] = [];
+  /** Signals: app zoneless não re-renderiza com campo mutável puro após HTTP. */
+  readonly termo = signal('');
+  readonly loading = signal(false);
+  readonly erro = signal<string | null>(null);
+  readonly itens = signal<ResponsavelFaturamentoListItemDTO[]>([]);
 
   ngOnInit(): void {
-    this.termo = String(this.data.termoInicial ?? '').trim();
+    this.termo.set(String(this.data.termoInicial ?? '').trim());
     this.buscar();
   }
 
@@ -44,9 +46,9 @@ export class ModalBuscaResponsavelFaturamentoComponent implements OnInit {
   }
 
   buscar(): void {
-    this.loading = true;
-    this.erro = null;
-    const t = this.termo.trim();
+    this.loading.set(true);
+    this.erro.set(null);
+    const t = this.termo().trim();
     const digits = t.replace(/\D/g, '');
     const pareceCnpj = digits.length >= 8 && /^\d[\d.\-/]*$/.test(t);
 
@@ -58,14 +60,14 @@ export class ModalBuscaResponsavelFaturamentoComponent implements OnInit {
         NumeroPagina: 1,
         TamanhoPagina: 30,
       })
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (paged) => {
-          this.itens = paged.items;
-          this.loading = false;
+          this.itens.set(paged.items ?? []);
         },
         error: () => {
-          this.loading = false;
-          this.erro = 'Falha ao buscar responsáveis.';
+          this.itens.set([]);
+          this.erro.set('Falha ao buscar responsáveis.');
         },
       });
   }

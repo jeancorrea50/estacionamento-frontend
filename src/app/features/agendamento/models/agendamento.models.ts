@@ -44,6 +44,8 @@ export interface AgendamentoPostInput {
   dataAgendamento: string;
   observacao?: string | null;
   transportadoraId?: number | null;
+  /** 1 = Estacionamento (padrão do backend), 2 = Limpeza. Coincide com a modalidade da janela escolhida. */
+  modalidadeAgendamento?: number;
   motorista: {
     id?: number | null;
     cpf?: string | null;

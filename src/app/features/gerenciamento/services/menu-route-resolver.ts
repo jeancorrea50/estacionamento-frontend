@@ -123,6 +123,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   /** Pátio → Agendamentos; menu raiz Agendar (claims distintas). */
   agendamento: '/app/patio/agendamentos',
   agendamentos: '/app/patio/agendamentos',
+  janelas: '/app/patio/agendamentos/janelas',
+  janela: '/app/patio/agendamentos/janelas',
+  'janelas de agendamento': '/app/patio/agendamentos/janelas',
   agendar: '/app/agendar',
   'rede credenciada': REDE_CREDENCIADA_ROUTE,
   redecredenciada: REDE_CREDENCIADA_ROUTE,
@@ -141,6 +144,7 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/agendamento': '/app/patio/agendamentos',
   '/app/agendamento/agendamentos': '/app/patio/agendamentos',
   '/app/patio/agendamentos': '/app/patio/agendamentos',
+  '/app/patio/agendamentos/janelas': '/app/patio/agendamentos/janelas',
   '/app/patio/agendamento': '/app/patio/agendamentos',
   '/app/cadastro': CADASTRO_ROUTE,
   '/app/cadastro/transportadora': CADASTRO_TRANSPORTADORAS_ROUTE,

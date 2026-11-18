@@ -11,10 +11,14 @@ import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-
 import { ModalBuscaVeiculoComponent } from '../../../movimentos/entrada-saida/components/modal-busca-veiculo/modal-busca-veiculo.component';
 import { PortariaAlertasStore } from '../../../movimentos/services/portaria-alertas.store';
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
-import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../../shared/utils/local-iso-datetime';
+import { datetimeLocalInputToApiIso } from '../../../../shared/utils/local-iso-datetime';
 import { AgendamentoDataHoraPickerComponent } from '../../pages/agendamentos-page/agendamento-data-hora-picker/agendamento-data-hora-picker.component';
+import { toIsoDateLocal } from '../../pages/agendamentos-page/agendamento-dashboard.util';
 import { AgendamentoPostInput } from '../../models/agendamento.models';
+import { JanelaSlotDisponivel, ModalidadeJanela } from '../../models/janela-agendamento.models';
 import { AgendamentoService } from '../../services/agendamento.service';
+import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
+import { JanelaSlotSelectComponent } from '../janela-slot-select/janela-slot-select.component';
 
 interface AgendamentoPlacaSelecionada {
   id: number;
@@ -39,6 +43,7 @@ type ResolvePlacaResult =
     CommonModule,
     ReactiveFormsModule,
     AgendamentoDataHoraPickerComponent,
+    JanelaSlotSelectComponent,
     TransportadoraLookupFieldComponent,
     ModalBuscaVeiculoComponent,
   ],
@@ -55,6 +60,7 @@ export class AgendamentoNovoModalComponent {
   private readonly veiculoApi = inject(VeiculoService);
   private readonly toast = inject(ToastService);
   private readonly portariaAlertas = inject(PortariaAlertasStore);
+  private readonly realtime = inject(JanelaDisponibilidadeRealtimeService);
   private readonly fb = inject(FormBuilder);
 
   /** Quando true, exibe o modal e reinicia o formulário. */
@@ -71,6 +77,12 @@ export class AgendamentoNovoModalComponent {
   readonly placasSelecionadas = signal<AgendamentoPlacaSelecionada[]>([]);
   readonly buscaPlacaAberta = signal(false);
 
+  /** Dia escolhido (`yyyy-MM-dd`) — espelha o form para o `app-janela-slot-select`. */
+  readonly dataSelecionada = signal('');
+  readonly modalidadeJanela = signal<ModalidadeJanela>(1);
+  /** Slot escolhido na janela; define a hora do agendamento. */
+  readonly slotSelecionado = signal<JanelaSlotDisponivel | null>(null);
+
   /** Cancela resoluções de placa em voo (troca de transportadora / fechar modal). */
   private readonly cancelarResolucaoPlaca$ = new Subject<void>();
   private geracaoSelecaoPlaca = 0;
@@ -83,8 +95,15 @@ export class AgendamentoNovoModalComponent {
 
   constructor() {
     effect(() => {
-      if (!this.aberto()) return;
-      untracked(() => this.resetForm());
+      if (!this.aberto()) {
+        // Hub só enquanto o modal está aberto (no-op se nunca conectou).
+        untracked(() => void this.realtime.disconnect());
+        return;
+      }
+      untracked(() => {
+        this.resetForm();
+        void this.realtime.connect();
+      });
     });
   }
 
@@ -104,11 +123,15 @@ export class AgendamentoNovoModalComponent {
       !this.podeEscolherTransportadora() && this.auth.isTransportadoraRole() && !this.auth.isAdmin()
         ? this.auth.resolveTransportadoraId()
         : null;
+    const hoje = toIsoDateLocal(new Date());
     this.form.reset({
-      dataAgendamento: toDateTimeLocalInputValue(),
+      dataAgendamento: hoje,
       transportadoraId: tid,
       observacao: '',
     });
+    this.dataSelecionada.set(hoje);
+    this.modalidadeJanela.set(1);
+    this.slotSelecionado.set(null);
     this.transportadoraFormId.set(tid && tid > 0 ? tid : null);
     this.transportadoraFormNome.set('');
     this.placasSelecionadas.set([]);
@@ -124,6 +147,7 @@ export class AgendamentoNovoModalComponent {
   onDataHoraChange(value: string): void {
     this.form.controls.dataAgendamento.setValue(value);
     this.form.controls.dataAgendamento.markAsDirty();
+    this.dataSelecionada.set(value);
   }
 
   onTransportadoraIdChange(id: number | null): void {
@@ -277,7 +301,7 @@ export class AgendamentoNovoModalComponent {
   salvar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('Informe a data/hora do agendamento.');
+      this.toast.error('Informe a data do agendamento.');
       return;
     }
 
@@ -297,13 +321,27 @@ export class AgendamentoNovoModalComponent {
       return;
     }
 
+    const slot = this.slotSelecionado();
+    if (!slot) {
+      this.toast.error('Selecione o horário do agendamento.');
+      return;
+    }
+    if (selecionados.length > slot.disponiveis) {
+      this.toast.error(
+        `O horário ${slot.label} tem ${slot.disponiveis} vaga(s) disponível(is); remova placas para continuar.`
+      );
+      return;
+    }
+
+    // API só recebe `DataAgendamento`: dia escolhido + hora de início do slot.
     const dataAgendamento = datetimeLocalInputToApiIso(
-      String(this.form.controls.dataAgendamento.value ?? '')
+      `${String(this.form.controls.dataAgendamento.value ?? '').slice(0, 10)}T${slot.horaInicio}`
     );
     if (!dataAgendamento) {
       this.toast.error('Data/hora inválida.');
       return;
     }
+    const modalidadeAgendamento = this.modalidadeJanela();
 
     const observacao = (this.form.controls.observacao.value ?? '').trim() || null;
     const isTransportadora = this.auth.isTransportadoraRole();
@@ -321,7 +359,7 @@ export class AgendamentoNovoModalComponent {
                 message: resolved.message,
               });
             }
-            return this.api.gravar(resolved.payload).pipe(
+            return this.api.gravar({ ...resolved.payload, modalidadeAgendamento }).pipe(
               map((res) => ({
                 success: res.success,
                 placa: veiculo.placa,

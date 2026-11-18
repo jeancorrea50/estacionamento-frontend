@@ -1,0 +1,56 @@
+/* Dois campos no mesmo grid do modal de novo agendamento (rótulo 120px + controle). */
+:host {
+  display: contents;
+}
+
+.jsl__field {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  margin: 0;
+}
+
+.jsl__field > label {
+  margin: 0;
+  padding-top: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+
+.jsl__control {
+  min-width: 0;
+  width: 100%;
+}
+
+.jsl__control select {
+  width: 100%;
+}
+
+.jsl__msg {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--muted, #94a3b8);
+}
+
+.jsl__msg--erro {
+  color: #ef4444;
+}
+
+.required {
+  color: #ef4444;
+}
+
+@media (max-width: 560px) {
+  .jsl__field {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .jsl__field > label {
+    padding-top: 0;
+  }
+}

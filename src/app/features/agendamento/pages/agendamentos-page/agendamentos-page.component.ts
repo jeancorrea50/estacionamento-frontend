@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -17,7 +17,7 @@ import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
-import { AGENDAMENTO_ROUTE } from '../../agendamento-rotas';
+import { AGENDAMENTO_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
 import {
   AgendamentoSearchItem,
@@ -57,6 +57,7 @@ import {
     CommonModule,
     FormsModule,
     MatDialogModule,
+    RouterLink,
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
     AgendamentoNovoModalComponent,
@@ -110,6 +111,17 @@ export class AgendamentosPageComponent implements OnInit {
 
   get podeOperarPatio(): boolean {
     return this.canVisualizar && !this.isTransportadora;
+  }
+
+  readonly janelasRoute = JANELAS_ROUTE;
+
+  /** Atalho para Janelas: operador de pátio com acesso à rota/claim `janelas.visualizar`. */
+  get podeVerJanelas(): boolean {
+    return (
+      this.podeOperarPatio &&
+      (this.sessionAccess.canAccessRoute(JANELAS_ROUTE) ||
+        this.permissions.allows('janelas', 'visualizar'))
+    );
   }
 
   /** PATCH confirmar-entrada — claim `agendamentos.alterar` + operação de pátio. */

@@ -1,0 +1,205 @@
+<div class="jan-modal">
+  <header class="jan-modal__header">
+    <div class="jan-modal__header-main">
+      <div class="jan-modal__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">schedule</span>
+      </div>
+      <div class="jan-modal__titles">
+        <h2 class="jan-modal__title" mat-dialog-title>{{ titulo() }}</h2>
+        <p class="jan-modal__subtitle">
+          Defina os horários, a capacidade e as regras de recorrência dos slots de agendamento.
+        </p>
+      </div>
+    </div>
+    <button type="button" class="jan-modal__close" aria-label="Fechar" (click)="cancelar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <section class="jan-modal__head-form" aria-label="Dados da janela">
+    <div class="jan-grid">
+      <div class="jan-field jan-field--wide">
+        <label class="jan-label" for="jan-nome">Nome <span class="required">*</span></label>
+        <input
+          id="jan-nome"
+          class="jan-input"
+          type="text"
+          maxlength="150"
+          autocomplete="off"
+          [value]="nome()"
+          (input)="onTexto('nome', $event)"
+        />
+      </div>
+      <div class="jan-field">
+        <label class="jan-label" for="jan-modalidade">Modalidade</label>
+        <select
+          id="jan-modalidade"
+          class="jan-input"
+          [disabled]="editando"
+          [attr.title]="editando ? 'A modalidade não pode ser alterada após a criação.' : null"
+          (change)="onModalidade($any($event.target).value)"
+        >
+          @for (m of modalidades; track m.value) {
+            <option [value]="m.value" [selected]="m.value === modalidade()">{{ m.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="jan-field">
+        <label class="jan-label" for="jan-vig-ini">Vigência início <span class="required">*</span></label>
+        <input
+          id="jan-vig-ini"
+          class="jan-input"
+          type="date"
+          [value]="vigenciaInicio()"
+          (input)="onTexto('vigenciaInicio', $event)"
+        />
+      </div>
+      <div class="jan-field">
+        <label class="jan-label" for="jan-vig-fim">Vigência fim</label>
+        <input
+          id="jan-vig-fim"
+          class="jan-input"
+          type="date"
+          [value]="vigenciaFim()"
+          [attr.min]="vigenciaInicio() || null"
+          (input)="onTexto('vigenciaFim', $event)"
+        />
+      </div>
+      <label class="jan-check jan-modal__ativo">
+        <input type="checkbox" [checked]="ativo()" (change)="ativo.set($any($event.target).checked)" />
+        Janela ativa
+      </label>
+      <div class="jan-field jan-field--full">
+        <label class="jan-label" for="jan-descricao">Descrição</label>
+        <input
+          id="jan-descricao"
+          class="jan-input"
+          type="text"
+          maxlength="200"
+          placeholder="Opcional"
+          autocomplete="off"
+          [value]="descricao()"
+          (input)="onTexto('descricao', $event)"
+        />
+      </div>
+    </div>
+  </section>
+
+  <nav class="jan-topbar" role="tablist" aria-label="Seções da janela">
+    <button
+      type="button"
+      role="tab"
+      class="jan-topbar__tab"
+      [class.jan-topbar__tab--active]="aba() === 'horarios'"
+      [class.jan-topbar__tab--erro]="temErroNaAba('horarios')"
+      [attr.aria-selected]="aba() === 'horarios'"
+      (click)="selecionarAba('horarios')"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+      Horários ({{ faixas().length }})
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="jan-topbar__tab"
+      [class.jan-topbar__tab--active]="aba() === 'capacidade'"
+      [class.jan-topbar__tab--erro]="temErroNaAba('capacidade')"
+      [attr.aria-selected]="aba() === 'capacidade'"
+      (click)="selecionarAba('capacidade')"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">garage</span>
+      Capacidade
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="jan-topbar__tab"
+      [class.jan-topbar__tab--active]="aba() === 'excecoes'"
+      [class.jan-topbar__tab--erro]="temErroNaAba('excecoes')"
+      [attr.aria-selected]="aba() === 'excecoes'"
+      (click)="selecionarAba('excecoes')"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
+      Exceções ({{ excecoes().length }})
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="jan-topbar__tab"
+      [class.jan-topbar__tab--active]="aba() === 'periodicidade'"
+      [class.jan-topbar__tab--erro]="temErroNaAba('periodicidade')"
+      [attr.aria-selected]="aba() === 'periodicidade'"
+      (click)="selecionarAba('periodicidade')"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">repeat</span>
+      Periodicidade ({{ periodicidades().length }})
+    </button>
+  </nav>
+
+  @if (erros().length) {
+    <div class="jan-modal__erros" role="alert">
+      <span class="material-symbols-outlined" aria-hidden="true">error</span>
+      <div class="jan-modal__erros-list">
+        @for (e of erros(); track $index) {
+          <span>{{ e.mensagem }}</span>
+        }
+      </div>
+    </div>
+  }
+
+  <mat-dialog-content class="jan-modal__body">
+    @switch (aba()) {
+      @case ('horarios') {
+        <app-janela-horarios-tab
+          [(faixas)]="faixas"
+          [(unidade)]="unidade"
+          [(valor)]="valorSlot"
+        />
+      }
+      @case ('capacidade') {
+        <section class="jan-section">
+          <div class="jan-grid">
+            <div class="jan-field">
+              <label class="jan-label" for="jan-vagas">
+                Vagas por slot ({{ modalidadeLabel() }}) <span class="required">*</span>
+              </label>
+              <input
+                id="jan-vagas"
+                class="jan-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                maxlength="5"
+                [value]="vagasPorSlot() ?? ''"
+                (input)="onVagas($event)"
+              />
+            </div>
+          </div>
+          <p class="jan-hint">
+            Quantidade de veículos que podem ser agendados em cada slot. O valor não pode exceder a
+            capacidade do pátio para a modalidade (Estacionamento ou Limpeza) cadastrada no
+            estacionamento; o servidor valida ao salvar, inclusive os ajustes de capacidade das
+            exceções.
+          </p>
+        </section>
+      }
+      @case ('excecoes') {
+        <app-janela-excecoes-tab [(excecoes)]="excecoes" [dataPadrao]="vigenciaInicio()" />
+      }
+      @case ('periodicidade') {
+        <app-janela-periodicidades-tab
+          [(periodicidades)]="periodicidades"
+          [dataPadrao]="vigenciaInicio()"
+        />
+      }
+    }
+  </mat-dialog-content>
+
+  <footer class="jan-modal__footer">
+    <button type="button" class="jan-btn" (click)="cancelar()" [disabled]="salvando()">Cancelar</button>
+    <button type="button" class="jan-btn jan-btn--primary" (click)="salvar()" [disabled]="salvando()">
+      <span class="material-symbols-outlined" aria-hidden="true">save</span>
+      {{ salvando() ? 'Salvando...' : 'Salvar' }}
+    </button>
+  </footer>
+</div>

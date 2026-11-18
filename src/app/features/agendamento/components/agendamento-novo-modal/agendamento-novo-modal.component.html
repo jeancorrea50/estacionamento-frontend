@@ -16,12 +16,22 @@
       <form [formGroup]="form" (ngSubmit)="salvar()">
         <div class="modal-body modal-body--frota-compact ag-novo-body">
           <div class="form-row ag-novo-field">
-            <label>Data/hora <span class="required">*</span></label>
+            <label>Data <span class="required">*</span></label>
             <app-agendamento-data-hora-picker
+              [somenteData]="true"
+              ariaLabel="Selecionar data do agendamento"
               [value]="form.controls.dataAgendamento.value || ''"
               (valueChange)="onDataHoraChange($event)"
             />
           </div>
+
+          <app-janela-slot-select
+            [ativo]="aberto()"
+            [data]="dataSelecionada()"
+            [transportadoraId]="transportadoraFormId()"
+            [(modalidade)]="modalidadeJanela"
+            [(slot)]="slotSelecionado"
+          />
 
           @if (podeEscolherTransportadora()) {
             <div class="form-row ag-novo-field">
@@ -98,7 +108,7 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="form.invalid || salvando() || placasSelecionadas().length === 0"
+            [disabled]="form.invalid || salvando() || placasSelecionadas().length === 0 || !slotSelecionado()"
           >
             {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
           </button>

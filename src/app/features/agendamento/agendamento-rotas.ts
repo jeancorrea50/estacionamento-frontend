@@ -6,6 +6,13 @@ export const AGENDAMENTO_ROUTE = '/app/patio/agendamentos';
 export const AGENDAMENTO_PATH = 'agendamentos';
 export const AGENDAMENTO_LABEL = 'Agendamentos';
 
+/**
+ * Janelas de agendamento (slots por modalidade) — submenu de Agendamentos.
+ * Canônico: `/app/patio/agendamentos/janelas` — claims `janelas.*`.
+ */
+export const JANELAS_LABEL = 'Janelas';
+export const JANELAS_PATH = 'janelas';
+export const JANELAS_ROUTE = '/app/patio/agendamentos/janelas';
 /** Alias legado da lista sob `/app/agendamento/...`. */
 export const AGENDAMENTOS_ROUTE = AGENDAMENTO_ROUTE;
 export const AGENDAMENTOS_PATH = 'agendamentos';
@@ -41,6 +48,10 @@ export function normalizeAgendamentoAppRoute(raw: string | null | undefined): st
   }
   if (lower === AGENDAR_ROUTE || lower.startsWith(`${AGENDAR_ROUTE}/`)) {
     return AGENDAR_ROUTE;
+  }
+  // Janelas antes do painel: `/app/patio/agendamentos/janelas` ≠ `/app/patio/agendamentos`.
+  if (lower === JANELAS_ROUTE || lower.startsWith(`${JANELAS_ROUTE}/`)) {
+    return JANELAS_ROUTE;
   }
   if (
     lower === AGENDAMENTO_ROUTE ||

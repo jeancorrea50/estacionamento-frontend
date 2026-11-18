@@ -16,6 +16,7 @@ export const PERMISSION_MODULES = [
   'Movimentações',
   'Movimentos',
   'Agendamentos',
+  'Janelas',
   'Agendar',
   'Financeiro',
   'Relatórios',
@@ -95,6 +96,14 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'agendamento.gravar',
     'agendamento.alterar',
     'agendamento.excluir',
+  ],
+  // Pátio → Agendamentos → Janelas (`/app/patio/agendamentos/janelas`).
+  // A consulta de disponibilidade (GET janela/disponibilidade) usa `agendamentos.visualizar`/`agendar.*`.
+  Janelas: [
+    'janelas.visualizar',
+    'janelas.gravar',
+    'janelas.alterar',
+    'janelas.excluir',
   ],
   // Menu Agendar (`/app/agendar`) — claims distintas; API aceita qualquer uma das duas.
   Agendar: [

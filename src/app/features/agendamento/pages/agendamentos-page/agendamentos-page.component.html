@@ -79,6 +79,16 @@
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
               Buscar
             </button>
+            @if (podeVerJanelas) {
+              <a
+                class="est-dash-btn est-dash-btn--neutral"
+                [routerLink]="janelasRoute"
+                aria-label="Configurar janelas de agendamento"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+                Configurar Janelas
+              </a>
+            }
             @if (podeOperarPatio) {
               <button
                 type="button"

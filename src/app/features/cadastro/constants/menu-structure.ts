@@ -37,6 +37,8 @@ import {
   AGENDAMENTO_ROUTE,
   AGENDAR_LABEL,
   AGENDAR_ROUTE,
+  JANELAS_LABEL,
+  JANELAS_ROUTE,
 } from '../../agendamento/agendamento-rotas';
 
 import {
@@ -87,7 +89,15 @@ export const MENU_STRUCTURE: MenuNode[] = [
         ],
       },
       { id: 'sub-entrada-saida', label: 'Entrada e Saída', route: PATIO_ENTRADA_SAIDA_ROUTE },
-      { id: 'sub-agendamentos', label: AGENDAMENTO_LABEL, route: AGENDAMENTO_ROUTE },
+      {
+        id: 'sub-agendamentos',
+        label: AGENDAMENTO_LABEL,
+        route: AGENDAMENTO_ROUTE,
+        children: [
+          { id: 'sub-agendamentos-lista', label: 'Painel', route: AGENDAMENTO_ROUTE },
+          { id: 'sub-agendamentos-janelas', label: JANELAS_LABEL, route: JANELAS_ROUTE },
+        ],
+      },
     ],
   },
   {

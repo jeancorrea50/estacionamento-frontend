@@ -218,7 +218,9 @@ export class AgendamentoDataHoraPickerComponent {
     }
     this.dataSelecionada.set(new Date(cell.date.getFullYear(), cell.date.getMonth(), cell.date.getDate()));
     this.emitir();
-    if (this.somenteData()) this.panelAberto.set(false);
+    // Fecha o painel ao escolher o dia (data ou data/hora). Hora/minuto
+    // continuam editáveis reabrindo o picker pelo trigger.
+    this.panelAberto.set(false);
   }
 
   onMesClick(mes: number, event: MouseEvent): void {

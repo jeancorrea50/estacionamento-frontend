@@ -16,6 +16,7 @@ import {
   rotuloPermanenciaRelatorio,
   type MovimentacaoRelatorioPdfEntrada,
 } from './movimentacao-relatorio-pdf';
+import { filtrarItensEntradaReal } from './movimentacao-relatorio-pdf.helpers';
 
 const resumoVazio: MovimentacaoRelatorioResumo = {
   quantidade: 0,
@@ -100,6 +101,51 @@ describe('movimentacao-relatorio-pdf', () => {
         })
       )
     ).toBe(45);
+  });
+
+  it('não conta permanência para Agendado/Cancelado (DataHoraEntrada é previsão)', () => {
+    expect(
+      minutosPermanenciaRelatorio(
+        item({
+          status: EntradaSaidaStatus.Agendado,
+          statusDescricao: 'Agendado',
+          tempoPermanenciaMinutos: 120,
+          dataHoraEntrada: '2026-11-17T23:00:00',
+          dataHoraSaida: null,
+        })
+      )
+    ).toBeNull();
+    expect(
+      rotuloPermanenciaRelatorio(
+        item({
+          status: EntradaSaidaStatus.Cancelado,
+          statusDescricao: 'Cancelado',
+          tempoPermanenciaMinutos: null,
+          dataHoraEntrada: '2026-11-17T10:00:00',
+          dataHoraSaida: '2026-11-17T12:00:00',
+        })
+      )
+    ).toBe('—');
+  });
+
+  it('filtrarItensEntradaReal remove Agendado/Cancelado e zera esses totais no resumo', () => {
+    const { itens, resumo } = filtrarItensEntradaReal([
+      item({ id: 1, status: EntradaSaidaStatus.Entrada, statusDescricao: 'Entrada' }),
+      item({ id: 2, status: EntradaSaidaStatus.Agendado, statusDescricao: 'Agendado' }),
+      item({
+        id: 3,
+        status: EntradaSaidaStatus.Saida,
+        statusDescricao: 'Saida',
+        dataHoraSaida: '2026-10-15T12:00:00',
+      }),
+      item({ id: 4, status: EntradaSaidaStatus.Cancelado, statusDescricao: 'Cancelado' }),
+    ]);
+    expect(itens.map((i) => i.id)).toEqual([1, 3]);
+    expect(resumo.quantidade).toBe(2);
+    expect(resumo.qtdEntrada).toBe(1);
+    expect(resumo.qtdSaida).toBe(1);
+    expect(resumo.qtdAgendado).toBe(0);
+    expect(resumo.qtdCancelado).toBe(0);
   });
 
   it('formata a data do filtro sem deslocar o dia e o horário no fuso do pátio', () => {

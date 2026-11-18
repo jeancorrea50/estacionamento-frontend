@@ -129,6 +129,38 @@
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.modal-actions__resumo {
+  margin-right: auto;
+  color: var(--muted, var(--color-text-secondary, #6b7280));
+  font-size: 0.8125rem;
+}
+
+.lista-head__check,
+.linha__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.linha__check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary, #3b82f6);
+  pointer-events: none;
+}
+
+.linha--selecionada {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 12%, transparent);
+}
+
+.linha--bloqueada {
+  opacity: 0.72;
+  cursor: default;
 }
 
 /* Dark: lista e modal no mesmo tom (sem linhas brancas) */
@@ -172,12 +204,20 @@
     background: color-mix(in srgb, var(--primary, #3b82f6) 16%, transparent);
   }
 
+  .linha--selecionada {
+    background: color-mix(in srgb, var(--primary, #3b82f6) 20%, transparent);
+  }
+
   .linha__col {
     color: var(--muted, rgba(255, 255, 255, 0.72));
   }
 
   .linha__col--titulo {
     color: var(--text, rgba(255, 255, 255, 0.95));
+  }
+
+  .modal-actions__resumo {
+    color: var(--muted, rgba(255, 255, 255, 0.7));
   }
 }
 

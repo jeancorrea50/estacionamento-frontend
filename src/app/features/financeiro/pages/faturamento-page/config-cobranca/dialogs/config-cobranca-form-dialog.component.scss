@@ -679,7 +679,13 @@
 }
 
 ::ng-deep .cfg-acordo-meses-panel.mat-mdc-select-panel {
-  max-height: 240px;
+  max-height: 280px;
+}
+
+::ng-deep .cfg-acordo-meses-panel .cfg-acordo-meses-todos {
+  border-bottom: 1px solid var(--border-subtle, #363642);
+  font-weight: 600;
+  color: var(--primary, #3d8bff);
 }
 
 /* ── Valores + observação ──────────────────────────────────────────── */

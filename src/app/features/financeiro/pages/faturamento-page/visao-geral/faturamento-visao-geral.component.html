@@ -332,25 +332,29 @@
       </mat-card-header>
       <mat-card-content class="visao-bottom-card__pad visao-bottom-card__pad--alerts">
         <div class="visao-alert-kpi-grid" aria-label="Alertas do faturamento">
-          @for (a of visaoAlertas(); track a.id) {
-            <a
-              class="visao-alert-kpi"
-              [class.visao-alert-kpi--danger]="a.id === 'fat' && a.quantidade > 0"
-              [routerLink]="a.route"
-              [queryParams]="a.queryParams ?? {}"
-              [attr.aria-label]="a.titulo + ': ' + a.quantidade + ' — abrir detalhes'"
-            >
-              <div class="visao-alert-kpi__head">
-                <span class="material-symbols-outlined visao-alert-kpi__ico" aria-hidden="true">{{ a.icon }}</span>
-                <span class="visao-alert-kpi__title">{{ a.titulo }}</span>
-                <span class="material-symbols-outlined visao-alert-kpi__chev" aria-hidden="true">chevron_right</span>
-              </div>
-              <p class="visao-alert-kpi__value">{{ a.quantidade }}</p>
-              <p class="visao-alert-kpi__meta">{{ a.detalhe }}</p>
-              @if (a.detalheSecundario) {
-                <p class="visao-alert-kpi__compare">{{ a.detalheSecundario }}</p>
-              }
-            </a>
+          @if (visaoAlertas().length === 0) {
+            <p class="visao-alert-kpi-empty">Nenhum alerta com registros para exibir.</p>
+          } @else {
+            @for (a of visaoAlertas(); track a.id) {
+              <a
+                class="visao-alert-kpi"
+                [class.visao-alert-kpi--danger]="a.id === 'fat' && a.quantidade > 0"
+                [routerLink]="a.route"
+                [queryParams]="a.queryParams ?? {}"
+                [attr.aria-label]="a.titulo + ': ' + a.quantidade + ' — abrir detalhes'"
+              >
+                <div class="visao-alert-kpi__head">
+                  <span class="material-symbols-outlined visao-alert-kpi__ico" aria-hidden="true">{{ a.icon }}</span>
+                  <span class="visao-alert-kpi__title">{{ a.titulo }}</span>
+                  <span class="material-symbols-outlined visao-alert-kpi__chev" aria-hidden="true">chevron_right</span>
+                </div>
+                <p class="visao-alert-kpi__value">{{ a.quantidade }}</p>
+                <p class="visao-alert-kpi__meta">{{ a.detalhe }}</p>
+                @if (a.detalheSecundario) {
+                  <p class="visao-alert-kpi__compare">{{ a.detalheSecundario }}</p>
+                }
+              </a>
+            }
           }
         </div>
       </mat-card-content>

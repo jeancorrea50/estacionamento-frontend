@@ -60,6 +60,8 @@ export class FaturamentoRelatorioComponent implements OnInit {
   });
   readonly truncado = signal(false);
   readonly limiteAplicado = signal(0);
+  /** UI: painel de filtros avançados (não altera contrato/API). */
+  readonly filtrosAvancadosAbertos = signal(false);
 
   transportadoras: Array<{ id: number; label: string }> = [];
 
@@ -97,6 +99,25 @@ export class FaturamentoRelatorioComponent implements OnInit {
   onPeriodoPagamento(periodo: PeriodoDataSelecionado): void {
     this.dataPagamentoInicial = periodo.ativo ? periodo.dataInicial : '';
     this.dataPagamentoFinal = periodo.ativo ? periodo.dataFinal : '';
+  }
+
+  toggleFiltrosAvancados(): void {
+    this.filtrosAvancadosAbertos.update((v) => !v);
+  }
+
+  /** Quantidade de filtros avançados preenchidos (badge do botão). */
+  filtrosAvancadosAtivosCount(): number {
+    let c = 0;
+    if (this.status != null) c += 1;
+    if (this.modalidadeRecebimento != null) c += 1;
+    if (this.tipoFatura != null) c += 1;
+    if (this.numero.trim()) c += 1;
+    if (this.descricao.trim()) c += 1;
+    if (this.dataVencimentoInicial || this.dataVencimentoFinal) c += 1;
+    if (this.dataPagamentoInicial || this.dataPagamentoFinal) c += 1;
+    if (this.valorMinimo != null) c += 1;
+    if (this.valorMaximo != null) c += 1;
+    return c;
   }
 
   limparFiltros(): void {

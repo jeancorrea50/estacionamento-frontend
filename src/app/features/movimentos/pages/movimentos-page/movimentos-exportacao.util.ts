@@ -72,6 +72,8 @@ export function montarFiltroMovimentacoesExportacao(
   }
 
   // Mesma regra da lista: chips de status só em suspensos/agendados.
+  // "Entradas hoje" NÃO manda Status único — precisa Entrada|Saída|Suspenso
+  // (Agendado/Cancelado saem no pós-filtro FE; ver `exportacaoExigeEntradaReal`).
   // "No pátio" = Em aberto (não forçar Status=Entrada — excluiria Saída e divergiria da tela).
   let status: number | null = null;
   if (chip === 'suspensos') status = EntradaSaidaStatus.Suspenso;
@@ -98,6 +100,11 @@ export function montarFiltroMovimentacoesExportacao(
   };
 }
 
+/** Chip cuja exportação deve excluir Agendado/Cancelado após o GET. */
+export function exportacaoExigeEntradaReal(chip: FiltroResumoChipExport): boolean {
+  return chip === 'entradasHoje';
+}
+
 export function rotulosFiltroMovimentacoesExportacao(
   filtro: MovimentacaoRelatorioFiltro,
   chip: FiltroResumoChipExport
@@ -106,8 +113,10 @@ export function rotulosFiltroMovimentacoesExportacao(
 
   if (chip === 'noPatio') rotulos.push('No pátio');
   else if (chip === 'suspensos') rotulos.push('Suspensos');
-  else if (chip === 'entradasHoje') rotulos.push('Entradas hoje');
-  else if (chip === 'agendados') rotulos.push('Agendados');
+  else if (chip === 'entradasHoje') {
+    rotulos.push('Entradas hoje');
+    rotulos.push('Somente entrada real (sem Agendado/Cancelado)');
+  } else if (chip === 'agendados') rotulos.push('Agendados');
   else if (chip === 'todos') rotulos.push('Todos');
 
   rotulos.push(`Em aberto: ${filtro.somenteEmAberto ? 'Sim' : 'Não'}`);

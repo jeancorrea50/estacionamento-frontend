@@ -45,15 +45,11 @@ export interface FechamentoResumo {
   comDivergencia: number;
 }
 
+/** Prévia do fechamento selecionado — só campos presentes em `GET /fechamentos`. */
 export interface FechamentoDetalheResumo {
-  diarias: number;
-  mensalistas: number;
-  lavagens: number;
-  servicosExtras: number;
-  descontos: number;
-  acrescimos: number;
-  beneficios: number;
-  totalEstimado: number;
+  movimentacoes: number;
+  divergencias: number;
+  valorEstimado: number;
 }
 
 export interface FechamentoValidacaoAlerta {

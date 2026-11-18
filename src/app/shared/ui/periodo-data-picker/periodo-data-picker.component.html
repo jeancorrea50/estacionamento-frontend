@@ -103,6 +103,25 @@
               }
             </div>
           }
+
+          @if (exigirConfirmacao()) {
+            <div class="periodo-data-picker__footer">
+              <p
+                class="periodo-data-picker__resumo"
+                [class.periodo-data-picker__resumo--vazio]="!periodoAtivo()"
+              >
+                {{ periodoResumoPainel() }}
+              </p>
+              <button
+                type="button"
+                class="btn btn-primary periodo-data-picker__confirmar"
+                [disabled]="!podeConfirmar()"
+                (click)="confirmarPeriodo($event)"
+              >
+                Confirmar
+              </button>
+            </div>
+          }
         </div>
       </div>
     }

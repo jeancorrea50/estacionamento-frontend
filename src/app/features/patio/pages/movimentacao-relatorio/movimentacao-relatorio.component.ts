@@ -24,7 +24,10 @@ import type {
   MovimentacaoRelatorioItem,
   MovimentacaoRelatorioResumo,
 } from './movimentacao-relatorio.types';
-import { formatarValorRelatorio } from './movimentacao-relatorio-pdf.helpers';
+import {
+  formatarValorRelatorio,
+  rotuloPermanenciaRelatorio,
+} from './movimentacao-relatorio-pdf.helpers';
 import { RELATORIO_BOOL_OPCOES, RELATORIO_MOV_STATUS_OPCOES } from './movimentacao-relatorio.types';
 
 @Component({
@@ -63,6 +66,8 @@ export class MovimentacaoRelatorioComponent implements OnInit {
   readonly limiteAplicado = signal(0);
   /** Fuso do pátio (`EstacionamentoConfiguracao.timeZoneId`). Vazio usa o fuso do navegador. */
   readonly timeZoneId = signal<string | null>(null);
+  /** UI: painel de filtros avançados (não altera contrato/API). */
+  readonly filtrosAvancadosAbertos = signal(false);
 
   transportadoras: Array<{ id: number; label: string }> = [];
 
@@ -90,6 +95,11 @@ export class MovimentacaoRelatorioComponent implements OnInit {
     return formatarValorRelatorio(valor);
   }
 
+  /** Agendado/Cancelado → "—"; demais usam API ou entrada→saída/agora. */
+  rotuloPermanencia(item: MovimentacaoRelatorioItem): string {
+    return rotuloPermanenciaRelatorio(item);
+  }
+
   rotuloStatus(item: MovimentacaoRelatorioItem): string {
     if (item.statusDescricao?.trim()) {
       const desc = item.statusDescricao.trim();
@@ -114,6 +124,21 @@ export class MovimentacaoRelatorioComponent implements OnInit {
   onPeriodo(periodo: PeriodoDataSelecionado): void {
     this.dataInicial = periodo.ativo ? periodo.dataInicial : '';
     this.dataFinal = periodo.ativo ? periodo.dataFinal : '';
+  }
+
+  toggleFiltrosAvancados(): void {
+    this.filtrosAvancadosAbertos.update((v) => !v);
+  }
+
+  /** Quantidade de filtros avançados preenchidos (badge do botão). */
+  filtrosAvancadosAtivosCount(): number {
+    let c = 0;
+    if (this.status != null) c += 1;
+    if (this.faturado != null) c += 1;
+    if (this.ehExcedente != null) c += 1;
+    if (this.avulso != null) c += 1;
+    if (this.descricao.trim()) c += 1;
+    return c;
   }
 
   limparFiltros(): void {

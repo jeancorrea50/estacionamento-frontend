@@ -112,7 +112,9 @@
   <app-modal-busca-veiculo
     [aberto]="buscaPlacaAberta()"
     [transportadoraId]="transportadoraFormId() ?? undefined"
+    [selecaoMultipla]="true"
+    [idsJaSelecionados]="idsPlacasJaSelecionadas()"
     (fechar)="fecharBuscaPlaca()"
-    (itemSelecionado)="onPlacaBuscaSelecionada($event)"
+    (itensSelecionados)="onPlacasBuscaSelecionadas($event)"
   />
 }

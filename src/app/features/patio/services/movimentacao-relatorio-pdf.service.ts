@@ -8,6 +8,7 @@ import {
   formatarDataFiltro,
   resolverTransportadoraEscopo,
 } from '../pages/movimentacao-relatorio/movimentacao-relatorio-pdf';
+import { filtrarItensEntradaReal } from '../pages/movimentacao-relatorio/movimentacao-relatorio-pdf.helpers';
 import type { MovimentacaoRelatorioFiltro } from '../pages/movimentacao-relatorio/movimentacao-relatorio.types';
 import { MovimentacaoRelatorioService } from './movimentacao-relatorio.service';
 
@@ -17,6 +18,14 @@ export interface MovimentacaoRelatorioPdfResultado {
   blob: Blob;
   truncado: boolean;
   limiteAplicado: number;
+}
+
+export interface MovimentacaoRelatorioPdfOpcoes {
+  /**
+   * Exclui Agendado/Cancelado após o GET (contrato Status é singular).
+   * Usado pelo chip "Entradas hoje" da lista de Movimentações.
+   */
+  somenteEntradaReal?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,7 +41,8 @@ export class MovimentacaoRelatorioPdfService {
   gerar(
     filtro: MovimentacaoRelatorioFiltro,
     filtrosAplicados: string[],
-    timeZoneId?: string | null
+    timeZoneId?: string | null,
+    opcoes?: MovimentacaoRelatorioPdfOpcoes
   ): Observable<MovimentacaoRelatorioPdfResultado> {
     const estacionamentoId = filtro.estacionamentoId ?? this.auth.resolveEstacionamentoId();
     const consulta: MovimentacaoRelatorioFiltro = {
@@ -53,8 +63,11 @@ export class MovimentacaoRelatorioPdfService {
       timeZoneId: fuso$,
     }).pipe(
       map(({ relatorio, timeZoneId: fuso }) => {
+        const filtrado = opcoes?.somenteEntradaReal
+          ? filtrarItensEntradaReal(relatorio.itens)
+          : { itens: relatorio.itens, resumo: relatorio.resumo };
         const sessao = this.auth.getSessionEstacionamento();
-        const transportadoraEscopo = resolverTransportadoraEscopo(relatorio.itens);
+        const transportadoraEscopo = resolverTransportadoraEscopo(filtrado.itens);
         const doc = criarPdfMovimentacoes({
           estacionamentoNome:
             sessao?.razaoSocial?.trim() || sessao?.nome?.trim() || 'Estacionamento',
@@ -67,8 +80,8 @@ export class MovimentacaoRelatorioPdfService {
               ? periodo(consulta.dataSaidaInicial, consulta.dataSaidaFinal)
               : null,
           filtrosAplicados,
-          resumo: relatorio.resumo,
-          itens: relatorio.itens,
+          resumo: filtrado.resumo,
+          itens: filtrado.itens,
           truncado: relatorio.truncado,
           limiteAplicado: relatorio.limiteAplicado,
           emitidoEm: new Date(),

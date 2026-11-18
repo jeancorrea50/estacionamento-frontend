@@ -691,6 +691,15 @@ html.theme-dark .visao-resumo__footer {
   }
 }
 
+.visao-alert-kpi-empty {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding: 8px 2px 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted, #94a3b8);
+}
+
 .visao-alert-kpi {
   display: flex;
   flex-direction: column;

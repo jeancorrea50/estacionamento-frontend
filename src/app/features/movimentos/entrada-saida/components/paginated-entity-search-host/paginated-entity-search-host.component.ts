@@ -25,8 +25,13 @@ export class PaginatedEntitySearchHostComponent {
   /** Quando informado, GET /Motorista filtra por transportadora (cadastro transportadora / frota). */
   transportadoraId = input<number | undefined>(undefined);
 
+  /** Multi-seleção (Agendar). Default false = seleção única (entrada/saída). */
+  selecaoMultipla = input(false);
+  idsJaSelecionados = input<Array<string | number>>([]);
+
   fechar = output<void>();
   selecionar = output<PaginatedSearchItem>();
+  selecionarVarios = output<PaginatedSearchItem[]>();
 
   readonly loading = signal(false);
   readonly itens = signal<PaginatedSearchItem[]>([]);

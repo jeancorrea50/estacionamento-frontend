@@ -296,20 +296,14 @@
         </div>
         <mat-divider class="fat-fech__summary-divider" />
         <dl class="fat-fech__summary-dl">
-          <div><dt>Diárias</dt><dd>{{ formatCurrency(d.diarias) }}</dd></div>
-          <div><dt>Mensalistas</dt><dd>{{ formatCurrency(d.mensalistas) }}</dd></div>
-          <div><dt>Lavagens</dt><dd>{{ formatCurrency(d.lavagens) }}</dd></div>
-          <div><dt>Serviços extras</dt><dd>{{ formatCurrency(d.servicosExtras) }}</dd></div>
-          <div><dt>Descontos</dt><dd>{{ formatCurrency(d.descontos) }}</dd></div>
-          <div><dt>Acréscimos</dt><dd>{{ formatCurrency(d.acrescimos) }}</dd></div>
-          <div><dt>Benefícios aplicados</dt><dd>{{ formatCurrency(d.beneficios) }}</dd></div>
-          <div class="fat-fech__summary-dl--total"><dt>Total estimado</dt><dd>{{ formatCurrency(d.totalEstimado) }}</dd></div>
+          <div><dt>Movimentações</dt><dd>{{ d.movimentacoes }}</dd></div>
+          <div><dt>Divergências</dt><dd>{{ d.divergencias }}</dd></div>
+          <div class="fat-fech__summary-dl--total"><dt>Valor estimado</dt><dd>{{ formatCurrency(d.valorEstimado) }}</dd></div>
         </dl>
+        <p class="fat-fech__summary-hint">
+          Valores detalhados por serviço (diárias, lavagens etc.) ainda não vêm no contrato de fechamentos.
+        </p>
         <div class="fat-fech__summary-actions">
-          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('previsualizar', row)">
-            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
-            Visualizar prévia completa
-          </button>
           <button
             type="button"
             class="btn btn-secondary fat-mat-btn"
@@ -328,31 +322,31 @@
             <span class="material-symbols-outlined" aria-hidden="true">send</span>
             Gerar e enviar
           </button>
-          <button type="button" class="btn btn-secondary fat-mat-btn" (click)="acaoMock('recalcular', row)">
-            <span class="material-symbols-outlined" aria-hidden="true">calculate</span>
-            Recalcular
-          </button>
         </div>
       }
     </mat-card-content>
   </mat-card>
 
-  <!-- Validações do período -->
+  <!-- Validações derivadas dos dados reais de GET /fechamentos -->
   <mat-card class="fat-fech__valid-card" appearance="outlined">
     <mat-card-header>
       <mat-card-title>Validações do período</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <ul class="fat-fech__valid-list">
-        @for (v of validacoes; track v.id) {
-          <li [class]="v.severidade === 'critico' ? 'fat-fech__valid-item fat-fech__valid-item--critico' : 'fat-fech__valid-item'">
-            <span class="material-symbols-outlined fat-fech__valid-ico" aria-hidden="true">{{
-              v.severidade === 'critico' ? 'error' : 'warning'
-            }}</span>
-            <span>{{ v.texto }}</span>
-          </li>
-        }
-      </ul>
+      @if (validacoes().length === 0) {
+        <p class="fat-fech__valid-empty">Nenhuma inconsistência nos fechamentos carregados.</p>
+      } @else {
+        <ul class="fat-fech__valid-list">
+          @for (v of validacoes(); track v.id) {
+            <li [class]="v.severidade === 'critico' ? 'fat-fech__valid-item fat-fech__valid-item--critico' : 'fat-fech__valid-item'">
+              <span class="material-symbols-outlined fat-fech__valid-ico" aria-hidden="true">{{
+                v.severidade === 'critico' ? 'error' : 'warning'
+              }}</span>
+              <span>{{ v.texto }}</span>
+            </li>
+          }
+        </ul>
+      }
     </mat-card-content>
   </mat-card>
 

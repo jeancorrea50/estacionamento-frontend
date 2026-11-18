@@ -66,6 +66,7 @@ import {
   toIsoDateTimeStart
 } from './movimentos-filtros.util';
 import {
+  exportacaoExigeEntradaReal,
   montarFiltroMovimentacoesExportacao,
   rotulosFiltroMovimentacoesExportacao,
 } from './movimentos-exportacao.util';
@@ -77,6 +78,7 @@ import type {
   MovimentacaoRelatorioFiltro,
   MovimentacaoRelatorioOutput
 } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio.types';
+import { filtrarItensEntradaReal } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio-pdf.helpers';
 import {
   contarPorDia,
   diasRetroativos,
@@ -245,7 +247,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         (item) => parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado
       );
     } else if (chip === 'entradasHoje') {
-      filtered = items.filter((item) => this.isEntradaHoje(item.dataHoraEntrada));
+      // Entrada real do dia — Agendado/Cancelado não contam como entrada no pátio.
+      filtered = items.filter(
+        (item) => this.isEntradaHoje(item.dataHoraEntrada) && this.contaComoEntradaReal(item.status)
+      );
     }
     // Fallback local se a API ainda não filtrar por ehExcedente.
     if (excedente === 'sim') {
@@ -585,21 +590,36 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           ? avancados.transportadoraId
           : undefined;
 
+    const chip = this.filtroResumoChip();
+    // Chips pedem Status/data na API para paginação coerente; filtro local permanece como rede de segurança.
+    let statusChip: EntradaSaidaStatus | undefined;
+    if (chip === 'suspensos') statusChip = EntradaSaidaStatus.Suspenso;
+    else if (chip === 'agendados') statusChip = EntradaSaidaStatus.Agendado;
+
+    let dataInicial = avancados.periodoAtivo
+      ? toIsoDateTimeStart(avancados.dataInicio)
+      : undefined;
+    let dataFinal = avancados.periodoAtivo
+      ? toIsoDateTimeEnd(avancados.dataFim)
+      : undefined;
+    if (chip === 'entradasHoje' && !avancados.periodoAtivo) {
+      const hoje = criarDataHoje();
+      dataInicial = toIsoDateTimeStart(hoje);
+      dataFinal = toIsoDateTimeEnd(hoje);
+    }
+
     const filtroBusca: EntradaSaidaFiltro = {
       placa: placa || undefined,
       somenteEmAberto: this.filtro.somenteEmAberto,
+      status: statusChip,
       motoristaId:
         avancados.motoristaId != null && avancados.motoristaId > 0
           ? avancados.motoristaId
           : undefined,
       transportadoraId,
       estacionamentoId: this.estacionamentoIdDaSessao() ?? undefined,
-      dataInicial: avancados.periodoAtivo
-        ? toIsoDateTimeStart(avancados.dataInicio)
-        : undefined,
-      dataFinal: avancados.periodoAtivo
-        ? toIsoDateTimeEnd(avancados.dataFim)
-        : undefined,
+      dataInicial,
+      dataFinal,
       numeroPagina: this.numeroPagina(),
       tamanhoPagina: this.tamanhoPagina(),
       propriedade: this.mapSortColToPropriedade(col),
@@ -769,9 +789,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
     this.exportando.set(true);
     const filtro = this.montarFiltroExportacao();
+    const chip = this.filtroResumoChip();
+    const somenteEntradaReal = exportacaoExigeEntradaReal(chip);
     if (tipo === 'pdf') {
       this.movimentacaoRelatorioPdf
-        .gerar(filtro, this.rotulosFiltroExportacao(filtro))
+        .gerar(filtro, this.rotulosFiltroExportacao(filtro), undefined, { somenteEntradaReal })
         .pipe(finalize(() => this.exportando.set(false)))
         .subscribe({
           next: (resultado) => {
@@ -787,6 +809,29 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Entradas hoje: Excel do backend não filtra multi-status — gera planilha local pós-filtro.
+    if (somenteEntradaReal) {
+      this.movimentacaoRelatorio
+        .buscar(filtro)
+        .pipe(finalize(() => this.exportando.set(false)))
+        .subscribe({
+          next: (relatorio) => {
+            const { itens } = filtrarItensEntradaReal(relatorio.itens);
+            this.downloadBlob(
+              this.montarExcelEntradaReal(itens),
+              'movimentacoes-entradas-hoje.xls'
+            );
+            if (relatorio.truncado) {
+              this.toast.error(
+                `Excel limitado a ${relatorio.limiteAplicado} registros. Refine os filtros para exportar tudo.`
+              );
+            }
+          },
+          error: () => this.toast.error('Falha ao gerar EXCEL.')
+        });
+      return;
+    }
+
     this.movimentacaoRelatorio
       .baixarExcel(filtro)
       .pipe(finalize(() => this.exportando.set(false)))
@@ -794,6 +839,30 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         next: (blob) => this.downloadBlob(blob, 'movimentacoes.xlsx'),
         error: () => this.toast.error('Falha ao gerar EXCEL.')
       });
+  }
+
+  /** Planilha HTML simples (abre no Excel) só com entrada real. */
+  private montarExcelEntradaReal(
+    itens: MovimentacaoRelatorioOutput['itens']
+  ): Blob {
+    const esc = (v: string) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const linhas = itens
+      .map(
+        (i) =>
+          `<tr><td>${esc(i.placaVeiculo)}</td><td>${esc(i.nomeMotorista)}</td><td>${esc(
+            i.nomeTransportadora
+          )}</td><td>${esc(i.statusDescricao || String(i.status))}</td><td>${esc(
+            i.dataHoraEntrada || ''
+          )}</td><td>${esc(i.dataHoraSaida || '')}</td></tr>`
+      )
+      .join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table><thead><tr><th>Placa</th><th>Motorista</th><th>Transportadora</th><th>Status</th><th>Entrada</th><th>Saída</th></tr></thead><tbody>${linhas}</tbody></table></body></html>`;
+    return new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
   }
 
   private rotulosFiltroExportacao(filtro: MovimentacaoRelatorioFiltro): string[] {
@@ -1102,8 +1171,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return 'status-pill';
   }
 
-  /** Permanência entre entrada e saída, ou até o horário atual se ainda no pátio. */
+  /**
+   * Permanência entre entrada efetiva e saída, ou até agora se ainda no pátio.
+   * Agendado/Cancelado usam DataHoraEntrada só como previsão — não contam tempo no pátio.
+   */
   tempoNoPatioItem(item: EntradaSaidaSearchOutput): string {
+    if (!this.contaComoEntradaReal(item.status)) return '—';
     if (!item.dataHoraEntrada) return '—';
     const inicio = new Date(item.dataHoraEntrada).getTime();
     if (!Number.isFinite(inicio)) return '—';
@@ -1994,6 +2067,21 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Movimento que já passou pela portaria (entrada efetiva).
+   * Agendado/Cancelado usam DataHoraEntrada só como horário previsto — não contam como entrada.
+   */
+  private contaComoEntradaReal(
+    status: EntradaSaidaStatus | number | string | null | undefined
+  ): boolean {
+    const parsed = parseEntradaSaidaStatus(status);
+    return (
+      parsed === EntradaSaidaStatus.Entrada ||
+      parsed === EntradaSaidaStatus.Saida ||
+      parsed === EntradaSaidaStatus.Suspenso
+    );
+  }
+
   private confirmarSaidaComRecibo(item: EntradaSaidaOutput): void {
     const placa = this.placaSelecionada();
     if (!placa || placa === '—') {
@@ -2783,10 +2871,13 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         this.veiculosSuspensos.set(totais.suspensos);
         this.veiculosAgendadosHoje.set(totais.agendados);
 
+        // Agendamento grava DataHoraEntrada com Status=Agendado, mas ainda não entrou no pátio.
         const serieEntradas =
           totais.entradas && !totais.entradas.truncado
             ? contarPorDia(
-                totais.entradas.itens.map((item) => item.dataHoraEntrada),
+                totais.entradas.itens
+                  .filter((item) => this.contaComoEntradaReal(item.status))
+                  .map((item) => item.dataHoraEntrada),
                 dias
               )
             : [];
@@ -2801,7 +2892,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           totais.entradas && !totais.entradas.truncado
             ? contarPorDia(
                 totais.entradas.itens
-                  .filter((item) => item.status === EntradaSaidaStatus.Agendado)
+                  .filter((item) => parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado)
                   .map((item) => item.dataHoraEntrada),
                 dias
               )

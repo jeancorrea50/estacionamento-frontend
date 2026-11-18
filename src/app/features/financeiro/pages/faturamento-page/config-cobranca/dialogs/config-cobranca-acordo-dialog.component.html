@@ -18,15 +18,19 @@
   }
 
   <mat-dialog-content class="cfg-acordo-dlg__body">
-    <div class="cfg-acordo-dlg__grid">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-        <mat-label>Data início</mat-label>
-        <input matInput type="date" name="acordoDataInicio" [(ngModel)]="acordo.dataInicio" required />
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-        <mat-label>Data fim</mat-label>
-        <input matInput type="date" name="acordoDataFim" [(ngModel)]="acordo.dataFim" required />
-      </mat-form-field>
+    <div class="cfg-acordo-dlg__periodo">
+      <span class="cfg-acordo-dlg__periodo-label">Período</span>
+      <app-periodo-data-picker
+        emptyLabel="Selecione o período"
+        ariaLabel="Selecionar período do acordo"
+        [exigirConfirmacao]="true"
+        [dataInicial]="acordo.dataInicio || ''"
+        [dataFinal]="acordo.dataFim || ''"
+        (periodoChange)="onPeriodoChange($event)"
+      />
+      <p class="cfg-acordo-dlg__hint-text">
+        Escolha início e fim no calendário (dia, mês ou ano) e confirme a seleção.
+      </p>
     </div>
 
     @for (listagem of acordo.listagens; track listagem.id; let i = $index) {
@@ -43,23 +47,32 @@
           }
         </div>
         <div class="cfg-acordo-dlg__grid">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-            <mat-label>Meses</mat-label>
-            <mat-select
-              multiple
-              [name]="'mesesListagem' + listagem.id"
-              [(ngModel)]="listagem.meses"
-              panelClass="cfg-acordo-meses-panel"
-              (ngModelChange)="onMesesChange(listagem, $event)"
-              required
-            >
-              @for (m of mesesAcordo; track m.mes) {
-                <mat-option [value]="m.mes" [disabled]="mesOcupado(listagem, m.mes)">
-                  {{ m.label }}
+          <div class="cfg-acordo-dlg__meses">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+              <mat-label>Meses</mat-label>
+              <mat-select
+                multiple
+                [name]="'mesesListagem' + listagem.id"
+                [(ngModel)]="listagem.meses"
+                panelClass="cfg-acordo-meses-panel"
+                (ngModelChange)="onMesesChange(listagem, $event)"
+                required
+              >
+                <mat-option
+                  class="cfg-acordo-meses-todos"
+                  [value]="todosMesesSentinel"
+                  [disabled]="mesesDisponiveis(listagem).length === 0"
+                >
+                  {{ todosMesesSelecionados(listagem) ? 'Limpar todos' : 'Selecionar todos' }}
                 </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+                @for (m of mesesAcordo; track m.mes) {
+                  <mat-option [value]="m.mes" [disabled]="mesOcupado(listagem, m.mes)">
+                    {{ m.label }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
             <mat-label>Quantidade de vagas</mat-label>
             <input

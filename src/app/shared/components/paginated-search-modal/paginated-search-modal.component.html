@@ -18,6 +18,9 @@
       } @else {
         @if (itens().length > 0) {
           <div class="lista-head" [style.grid-template-columns]="gridCols()">
+            @if (selecaoMultipla()) {
+              <span class="lista-head__check" aria-hidden="true"></span>
+            }
             <span>{{ coluna1Label() }}</span>
             <span>{{ coluna2Label() }}</span>
             <span>{{ coluna3Label() }}</span>
@@ -31,7 +34,26 @@
         }
         <div class="lista">
           @for (item of itens(); track item.id) {
-            <button class="linha" type="button" (click)="onSelecionar(item)" [style.grid-template-columns]="gridCols()">
+            <button
+              class="linha"
+              type="button"
+              (click)="onSelecionar(item)"
+              [style.grid-template-columns]="gridCols()"
+              [class.linha--selecionada]="selecaoMultipla() && isChecked(item)"
+              [class.linha--bloqueada]="selecaoMultipla() && isJaSelecionado(item)"
+              [attr.aria-pressed]="selecaoMultipla() ? isChecked(item) : null"
+            >
+              @if (selecaoMultipla()) {
+                <span class="linha__check" (click)="toggleItem(item, $event)">
+                  <input
+                    type="checkbox"
+                    [checked]="isChecked(item)"
+                    [disabled]="isJaSelecionado(item)"
+                    tabindex="-1"
+                    aria-hidden="true"
+                  />
+                </span>
+              }
               <span class="linha__col linha__col--titulo">{{ item.titulo }}</span>
               <span class="linha__col">{{ item.campo2 ?? item.subtitulo ?? '—' }}</span>
               <span class="linha__col">{{ item.campo3 ?? '—' }}</span>
@@ -58,7 +80,28 @@
       </div>
 
       <div class="modal-actions">
+        @if (selecaoMultipla()) {
+          <span class="modal-actions__resumo" aria-live="polite">
+            {{
+              quantidadeNovasSelecoes() === 0
+                ? 'Nenhuma placa nova marcada'
+                : quantidadeNovasSelecoes() === 1
+                  ? '1 placa marcada'
+                  : quantidadeNovasSelecoes() + ' placas marcadas'
+            }}
+          </span>
+        }
         <button class="btn btn-secondary" type="button" (click)="fechar.emit()">Fechar</button>
+        @if (selecaoMultipla()) {
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="quantidadeNovasSelecoes() === 0"
+            (click)="confirmarSelecaoMultipla()"
+          >
+            Adicionar selecionadas
+          </button>
+        }
       </div>
     </div>
   </div>

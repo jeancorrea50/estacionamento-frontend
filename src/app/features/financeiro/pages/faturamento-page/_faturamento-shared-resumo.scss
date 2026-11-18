@@ -101,6 +101,14 @@
   font-size: 18px;
 }
 
+.fat-fech__summary-hint,
+.fat-fech__valid-empty {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
 .fat-fech__valid-card .mat-mdc-card-header {
   padding: 12px 14px 0 !important;
 }

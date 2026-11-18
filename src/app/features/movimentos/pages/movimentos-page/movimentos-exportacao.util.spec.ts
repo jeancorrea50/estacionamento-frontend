@@ -1,6 +1,7 @@
 import { EntradaSaidaStatus } from '../../models/entrada-saida.models';
 import { criarFiltrosAvancadosVazios } from './movimentos-filtros.util';
 import {
+  exportacaoExigeEntradaReal,
   montarFiltroMovimentacoesExportacao,
   rotulosFiltroMovimentacoesExportacao,
 } from './movimentos-exportacao.util';
@@ -63,5 +64,21 @@ describe('movimentos-exportacao.util', () => {
     expect(rotulos).toContain('Todos');
     expect(rotulos).toContain('Em aberto: Não');
     expect(rotulos.some((r) => r.startsWith('Status'))).toBe(false);
+  });
+
+  it('Entradas hoje: data de hoje, sem Status único, exige pós-filtro de entrada real', () => {
+    const filtro = montarFiltroMovimentacoesExportacao({
+      ...base,
+      somenteEmAberto: false,
+      chip: 'entradasHoje',
+    });
+    expect(filtro.status).toBeNull();
+    expect(filtro.dataInicial).toBeTruthy();
+    expect(filtro.dataFinal).toBe(filtro.dataInicial);
+    expect(exportacaoExigeEntradaReal('entradasHoje')).toBe(true);
+    expect(exportacaoExigeEntradaReal('suspensos')).toBe(false);
+    const rotulos = rotulosFiltroMovimentacoesExportacao(filtro, 'entradasHoje');
+    expect(rotulos).toContain('Entradas hoje');
+    expect(rotulos).toContain('Somente entrada real (sem Agendado/Cancelado)');
   });
 });

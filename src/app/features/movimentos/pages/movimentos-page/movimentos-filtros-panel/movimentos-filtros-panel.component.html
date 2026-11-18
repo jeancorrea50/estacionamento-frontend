@@ -118,8 +118,8 @@
                         type="button"
                         class="rec-data-picker__mode"
                         role="tab"
-                        [class.rec-data-picker__mode--active]="draft().granularidade === g.id"
-                        [attr.aria-selected]="draft().granularidade === g.id"
+                        [class.rec-data-picker__mode--active]="calendarioGranularidade() === g.id"
+                        [attr.aria-selected]="calendarioGranularidade() === g.id"
                         (click)="setPeriodoGranularidade(g.id)"
                       >
                         {{ g.label }}
@@ -127,7 +127,7 @@
                     }
                   </div>
 
-                  @if (draft().granularidade === 'ano') {
+                  @if (calendarioGranularidade() === 'ano') {
                     <div class="rec-cal__nav">
                       <button type="button" class="rec-cal__nav-btn" aria-label="Anos anteriores" (click)="anoCalendarioAnterior()">
                         <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
@@ -137,14 +137,23 @@
                         <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
                       </button>
                     </div>
-                    <div class="rec-cal__anos-grid">
+                    <div
+                      class="rec-cal__anos-grid"
+                      (mouseleave)="onDocumentMouseUp()"
+                    >
                       @for (ano of calendarioAnosOpcoes(); track ano) {
-                        <button type="button" class="rec-cal__ano" [ngClass]="anoCalendarioModificadores(ano)" (click)="selecionarAnoCalendario(ano)">
+                        <button
+                          type="button"
+                          class="rec-cal__ano"
+                          [ngClass]="anoCalendarioModificadores(ano)"
+                          (mousedown)="onAnoCalendarioPointerDown(ano, $event)"
+                          (mouseenter)="onAnoCalendarioPointerEnter(ano)"
+                        >
                           {{ ano }}
                         </button>
                       }
                     </div>
-                  } @else if (draft().granularidade === 'mes') {
+                  } @else if (calendarioGranularidade() === 'mes') {
                     <div class="rec-cal__nav">
                       <button type="button" class="rec-cal__nav-btn" aria-label="Ano anterior" (click)="anoCalendarioAnterior()">
                         <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
@@ -154,9 +163,18 @@
                         <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
                       </button>
                     </div>
-                    <div class="rec-cal__meses-grid">
+                    <div
+                      class="rec-cal__meses-grid"
+                      (mouseleave)="onDocumentMouseUp()"
+                    >
                       @for (mes of mesesLabels; track mes; let i = $index) {
-                        <button type="button" class="rec-cal__mes" [ngClass]="mesCalendarioModificadores(i)" (click)="selecionarMesCalendario(i)">
+                        <button
+                          type="button"
+                          class="rec-cal__mes"
+                          [ngClass]="mesCalendarioModificadores(i)"
+                          (mousedown)="onMesCalendarioPointerDown(i, $event)"
+                          (mouseenter)="onMesCalendarioPointerEnter(i)"
+                        >
                           {{ mes }}
                         </button>
                       }
@@ -192,6 +210,20 @@
                       }
                     </div>
                   }
+
+                  <div class="mov-cal__footer">
+                    <p class="mov-cal__resumo" [class.mov-cal__resumo--vazio]="!periodoPendente()">
+                      {{ periodoPendenteResumo() }}
+                    </p>
+                    <button
+                      type="button"
+                      class="btn btn-primary mov-cal__confirmar"
+                      [disabled]="!periodoPendente()"
+                      (click)="confirmarPeriodo($event)"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
                 </div>
               </div>
             }

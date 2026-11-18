@@ -108,6 +108,28 @@
   width: 100%;
 }
 
+.cfg-acordo-dlg__periodo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.cfg-acordo-dlg__periodo-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+}
+
+.cfg-acordo-dlg__meses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .cfg-acordo-dlg__prefix {
   font-weight: 600;
   font-size: 0.8125rem;

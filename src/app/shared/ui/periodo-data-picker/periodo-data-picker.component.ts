@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { ThemeService } from '../../../core/services/theme.service';
 import { FaturamentoDataPickerPanelDirective } from '../../../features/financeiro/pages/faturamento-page/shared/faturamento-data-picker-panel.directive';
@@ -62,6 +63,11 @@ export class PeriodoDataPickerComponent {
    * (sem intervalo “entre” / 2º clique).
    */
   readonly modoDiaUnico = input(false);
+  /**
+   * Quando true: a seleção só é emitida ao clicar em Confirmar no rodapé
+   * (mesmo padrão do filtro de Movimentações).
+   */
+  readonly exigirConfirmacao = input(false);
   /** ISO yyyy-MM-dd — sincroniza o estado interno (ex.: limpar filtros). */
   readonly dataInicial = input<string>('');
   readonly dataFinal = input<string>('');
@@ -108,41 +114,53 @@ export class PeriodoDataPickerComponent {
   ];
 
   constructor() {
+    // Só reage aos inputs do pai. Leituras/escritas locais ficam em untracked
+    // para não apagar o rascunho ao selecionar fim com exigirConfirmacao.
     effect(() => {
       const iniIso = this.dataInicial().trim();
       const fimIso = this.dataFinal().trim();
-      if (!iniIso && !fimIso) {
-        if (this.periodoAtivo()) {
-          this.syncingFromParent = true;
-          this.periodoAtivo.set(false);
-          this.syncingFromParent = false;
-        }
-        return;
-      }
-      const ini = parseIsoLocal(iniIso);
-      const fim = parseIsoLocal(fimIso || iniIso);
-      if (!ini || !fim) return;
       const diaUnico = this.modoDiaUnico();
-      const alvoIni = toIsoDate(ini);
-      const alvoFim = diaUnico ? alvoIni : toIsoDate(fim);
-      const curIni = this.periodoAtivo() ? toIsoDate(this.dataInicio()) : '';
-      const curFim = this.periodoAtivo() ? toIsoDate(this.dataFim()) : '';
-      if (curIni === alvoIni && curFim === alvoFim) return;
-      this.syncingFromParent = true;
-      this.periodoAtivo.set(true);
-      if (diaUnico) {
-        this.dataInicio.set(ini);
-        this.dataFim.set(ini);
-        this.granularidade.set('dia');
-      } else {
-        this.dataInicio.set(ini);
-        this.dataFim.set(fim);
-        this.inferirGranularidade(ini, fim);
-      }
-      this.calendarioAno.set(ini.getFullYear());
-      this.calendarioMes.set(ini.getMonth());
-      this.limparPendencias();
-      this.syncingFromParent = false;
+
+      untracked(() => {
+        if (!iniIso && !fimIso) {
+          if (this.exigirConfirmacao() && this.panelAberto()) return;
+          if (this.periodoAtivo()) {
+            this.syncingFromParent = true;
+            this.periodoAtivo.set(false);
+            this.syncingFromParent = false;
+          }
+          return;
+        }
+
+        const ini = parseIsoLocal(iniIso);
+        const fim = parseIsoLocal(fimIso || iniIso);
+        if (!ini || !fim) return;
+
+        const alvoIni = toIsoDate(ini);
+        const alvoFim = diaUnico ? alvoIni : toIsoDate(fim);
+        const curIni = this.periodoAtivo() ? toIsoDate(this.dataInicio()) : '';
+        const curFim = this.periodoAtivo() ? toIsoDate(this.dataFim()) : '';
+        if (curIni === alvoIni && curFim === alvoFim) return;
+
+        // Enquanto edita com confirmação, não sobrescreve o rascunho com o valor antigo do pai.
+        if (this.exigirConfirmacao() && this.panelAberto()) return;
+
+        this.syncingFromParent = true;
+        this.periodoAtivo.set(true);
+        if (diaUnico) {
+          this.dataInicio.set(ini);
+          this.dataFim.set(ini);
+          this.granularidade.set('dia');
+        } else {
+          this.dataInicio.set(ini);
+          this.dataFim.set(fim);
+          this.inferirGranularidade(ini, fim);
+        }
+        this.calendarioAno.set(ini.getFullYear());
+        this.calendarioMes.set(ini.getMonth());
+        this.limparPendencias();
+        this.syncingFromParent = false;
+      });
     });
   }
 
@@ -177,12 +195,32 @@ export class PeriodoDataPickerComponent {
 
   togglePanel(event: MouseEvent): void {
     event.stopPropagation();
-    const abrir = !this.panelAberto();
-    this.panelAberto.set(abrir);
-    if (abrir) {
-      if (this.modoDiaUnico()) this.granularidade.set('dia');
-      this.limparPendencias();
+    if (this.panelAberto()) {
+      this.fecharPainel({ descartar: this.exigirConfirmacao() });
+      return;
     }
+    if (this.modoDiaUnico()) this.granularidade.set('dia');
+    this.limparPendencias();
+    this.panelAberto.set(true);
+  }
+
+  confirmarPeriodo(event: MouseEvent): void {
+    event.stopPropagation();
+    if (!this.podeConfirmar()) return;
+    this.emitPeriodo();
+    this.limparPendencias();
+    this.panelAberto.set(false);
+  }
+
+  podeConfirmar(): boolean {
+    if (!this.periodoAtivo()) return false;
+    if (this.pendenteInicio() || this.pendenteMes() || this.pendenteAno() != null) return false;
+    return true;
+  }
+
+  periodoResumoPainel(): string {
+    if (!this.periodoAtivo()) return 'Selecione um período';
+    return formatarPeriodoLabel(this.dataInicio(), this.dataFim(), this.granularidade());
   }
 
   limparPeriodo(event?: MouseEvent): void {
@@ -275,7 +313,7 @@ export class PeriodoDataPickerComponent {
 
     this.definirIntervaloDias(pendente, dia);
     this.limparPendencias();
-    this.panelAberto.set(false);
+    this.fecharAposSelecaoSeNecessario();
   }
 
   selecionarMesCalendario(mesIndex: number): void {
@@ -296,7 +334,7 @@ export class PeriodoDataPickerComponent {
     this.granularidade.set('mes');
     this.aplicarRange(ini.inicio, fim.fim);
     this.limparPendencias();
-    this.panelAberto.set(false);
+    this.fecharAposSelecaoSeNecessario();
   }
 
   selecionarAnoCalendario(ano: number): void {
@@ -314,7 +352,7 @@ export class PeriodoDataPickerComponent {
     this.granularidade.set('ano');
     this.aplicarRange(ini.inicio, fim.fim);
     this.limparPendencias();
-    this.panelAberto.set(false);
+    this.fecharAposSelecaoSeNecessario();
   }
 
   diaCalendarioModificadores(cell: MovimentosPeriodoCelula): Record<string, boolean> {
@@ -387,15 +425,14 @@ export class PeriodoDataPickerComponent {
       this.limparPendencias();
       return;
     }
-    this.panelAberto.set(false);
+    this.fecharPainel({ descartar: this.exigirConfirmacao() });
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
     if (!target?.closest('.periodo-data-picker')) {
-      this.panelAberto.set(false);
-      this.limparPendencias();
+      this.fecharPainel({ descartar: this.exigirConfirmacao() });
     }
   }
 
@@ -403,7 +440,44 @@ export class PeriodoDataPickerComponent {
     this.periodoAtivo.set(true);
     this.dataInicio.set(inicio);
     this.dataFim.set(fim);
+    if (this.exigirConfirmacao()) return;
     this.emitPeriodo();
+  }
+
+  private fecharAposSelecaoSeNecessario(): void {
+    if (this.exigirConfirmacao()) return;
+    this.panelAberto.set(false);
+  }
+
+  private fecharPainel(opts: { descartar: boolean }): void {
+    if (!this.panelAberto()) return;
+    if (opts.descartar) this.reverterDoInputPai();
+    this.limparPendencias();
+    this.panelAberto.set(false);
+  }
+
+  private reverterDoInputPai(): void {
+    const iniIso = this.dataInicial().trim();
+    const fimIso = this.dataFinal().trim();
+    this.syncingFromParent = true;
+    if (!iniIso && !fimIso) {
+      this.periodoAtivo.set(false);
+      this.syncingFromParent = false;
+      return;
+    }
+    const ini = parseIsoLocal(iniIso);
+    const fim = parseIsoLocal(fimIso || iniIso);
+    if (!ini || !fim) {
+      this.syncingFromParent = false;
+      return;
+    }
+    this.periodoAtivo.set(true);
+    this.dataInicio.set(ini);
+    this.dataFim.set(fim);
+    this.inferirGranularidade(ini, fim);
+    this.calendarioAno.set(ini.getFullYear());
+    this.calendarioMes.set(ini.getMonth());
+    this.syncingFromParent = false;
   }
 
   private definirIntervaloDias(a: Date, b: Date): void {

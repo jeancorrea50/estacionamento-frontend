@@ -23,11 +23,12 @@ import {
   MovimentosPeriodoCelula,
   MovimentosPeriodoGranularidade,
   aplicarGranularidadeAno,
-  aplicarGranularidadeAoSelecionarDia,
   aplicarGranularidadeMes,
   contarFiltrosAvancadosAtivos,
   criarFiltrosAvancadosVazios,
+  fimSemana,
   formatarPeriodoLabel,
+  inicioSemana,
   montarGradeCalendario,
   toIsoDate
 } from '../movimentos-filtros.util';
@@ -40,6 +41,18 @@ interface LookupOption {
 interface PeriodoGranularidadeOpcao {
   id: MovimentosPeriodoGranularidade;
   label: string;
+}
+
+/** Seleção ainda não gravada no rascunho do filtro. Só entra no draft ao confirmar. */
+interface PeriodoPendente {
+  granularidade: MovimentosPeriodoGranularidade;
+  dataInicio: Date;
+  dataFim: Date;
+}
+
+interface MesAnchor {
+  ano: number;
+  mes: number;
 }
 
 @Component({
@@ -77,8 +90,14 @@ export class MovimentosFiltrosPanelComponent {
 
   readonly calendarioAno = signal(new Date().getFullYear());
   readonly calendarioMes = signal(new Date().getMonth());
+  /** Aba visível do calendário. Não altera o filtro até Confirmar. */
+  readonly calendarioGranularidade = signal<MovimentosPeriodoGranularidade>('dia');
+  /** Intervalo marcado no calendário, ainda não confirmado. */
+  readonly periodoPendente = signal<PeriodoPendente | null>(null);
   readonly arrastandoPeriodo = signal(false);
-  private arrasteAnchor: Date | null = null;
+  private arrasteDiaAnchor: Date | null = null;
+  private arrasteMesAnchor: MesAnchor | null = null;
+  private arrasteAnoAnchor: number | null = null;
 
   readonly periodoGranularidadeOpcoes: PeriodoGranularidadeOpcao[] = [
     { id: 'dia', label: 'Dia' },
@@ -141,20 +160,20 @@ export class MovimentosFiltrosPanelComponent {
       const d = this.draft();
       this.calendarioAno.set(d.dataInicio.getFullYear());
       this.calendarioMes.set(d.dataInicio.getMonth());
-      this.panelDataAberto.set(false);
     }
+    this.fecharCalendario();
     this.aberto.set(abrindo);
   }
 
   fecharPanel(): void {
     this.aberto.set(false);
-    this.panelDataAberto.set(false);
+    this.fecharCalendario();
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.panelDataAberto()) {
-      this.panelDataAberto.set(false);
+      this.fecharCalendario();
       return;
     }
     if (this.aberto()) this.fecharPanel();
@@ -172,14 +191,13 @@ export class MovimentosFiltrosPanelComponent {
       this.fecharPanel();
     }
     if (!target.closest('.rec-data-picker')) {
-      this.panelDataAberto.set(false);
+      this.fecharCalendario();
     }
   }
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
-    this.arrastandoPeriodo.set(false);
-    this.arrasteAnchor = null;
+    this.encerrarArrastePeriodo();
   }
 
   onPlacaChange(value: string): void {
@@ -222,19 +240,53 @@ export class MovimentosFiltrosPanelComponent {
 
   togglePanelData(event: MouseEvent): void {
     event.stopPropagation();
-    this.panelDataAberto.update((v) => !v);
+    if (this.panelDataAberto()) {
+      this.fecharCalendario();
+      return;
+    }
+    this.iniciarEdicaoCalendario();
+    this.panelDataAberto.set(true);
   }
 
   limparPeriodo(): void {
     this.patchDraft({ periodoAtivo: false });
-    this.panelDataAberto.set(false);
+    this.fecharCalendario();
   }
 
   setPeriodoGranularidade(id: MovimentosPeriodoGranularidade): void {
-    const d = this.draft();
-    this.patchDraft({ granularidade: id });
-    this.calendarioAno.set(d.dataInicio.getFullYear());
-    this.calendarioMes.set(d.dataInicio.getMonth());
+    this.calendarioGranularidade.set(id);
+    this.limparAncorasArraste();
+    this.periodoPendente.set(null);
+    const ref = this.draft();
+    this.calendarioAno.set(ref.dataInicio.getFullYear());
+    this.calendarioMes.set(ref.dataInicio.getMonth());
+  }
+
+  periodoPendenteResumo(): string {
+    const p = this.periodoPendente();
+    if (!p) return 'Selecione um período';
+    const label = formatarPeriodoLabel(p.dataInicio, p.dataFim, p.granularidade);
+    const aguardandoFimMes =
+      !!this.arrasteMesAnchor &&
+      !this.arrastandoPeriodo() &&
+      p.granularidade === 'mes' &&
+      p.dataInicio.getFullYear() === p.dataFim.getFullYear() &&
+      p.dataInicio.getMonth() === p.dataFim.getMonth();
+    const aguardandoFimAno =
+      this.arrasteAnoAnchor != null &&
+      !this.arrastandoPeriodo() &&
+      p.granularidade === 'ano' &&
+      p.dataInicio.getFullYear() === p.dataFim.getFullYear();
+    if (aguardandoFimMes || aguardandoFimAno) {
+      return `${label} · selecione o fim`;
+    }
+    return label;
+  }
+
+  confirmarPeriodo(event: MouseEvent): void {
+    event.stopPropagation();
+    if (!this.gravarPeriodoPendenteNoDraft()) return;
+    this.fecharCalendario();
   }
 
   periodoLabel(): string {
@@ -292,60 +344,95 @@ export class MovimentosFiltrosPanelComponent {
     event.preventDefault();
     event.stopPropagation();
     this.navegarParaMesDoDia(cell);
-    const g = this.draft().granularidade;
+    const g = this.calendarioGranularidade();
+    if (g !== 'dia' && g !== 'semana') return;
+
+    this.arrastandoPeriodo.set(true);
+    this.arrasteDiaAnchor = cell.date;
+    this.arrasteMesAnchor = null;
+    this.arrasteAnoAnchor = null;
+
     if (g === 'dia') {
-      this.arrastandoPeriodo.set(true);
-      this.arrasteAnchor = cell.date;
       this.definirIntervaloDias(cell.date, cell.date);
-    } else {
-      const range = aplicarGranularidadeAoSelecionarDia(g, cell.date);
-      this.patchDraft({
-        periodoAtivo: true,
-        dataInicio: range.inicio,
-        dataFim: range.fim
-      });
+      return;
     }
+    this.definirIntervaloSemanas(cell.date, cell.date);
   }
 
   onDiaCalendarioPointerEnter(cell: MovimentosPeriodoCelula): void {
-    if (!this.arrastandoPeriodo() || this.draft().granularidade !== 'dia') return;
-    const anchor = this.arrasteAnchor;
-    if (!anchor) return;
+    if (!this.arrastandoPeriodo()) return;
+    const g = this.calendarioGranularidade();
+    const anchor = this.arrasteDiaAnchor;
+    if (!anchor || (g !== 'dia' && g !== 'semana')) return;
     this.navegarParaMesDoDia(cell);
-    this.definirIntervaloDias(anchor, cell.date);
+    if (g === 'dia') {
+      this.definirIntervaloDias(anchor, cell.date);
+      return;
+    }
+    this.definirIntervaloSemanas(anchor, cell.date);
   }
 
-  selecionarMesCalendario(mesIndex: number): void {
-    const ano = this.calendarioAno();
-    const range = aplicarGranularidadeMes(ano, mesIndex);
+  onMesCalendarioPointerDown(mesIndex: number, event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const atual: MesAnchor = { ano: this.calendarioAno(), mes: mesIndex };
+
+    // Segundo clique (após soltar o primeiro): completa o intervalo, inclusive entre anos.
+    if (this.arrasteMesAnchor && !this.arrastandoPeriodo()) {
+      this.definirIntervaloMeses(this.arrasteMesAnchor, atual);
+      this.arrasteMesAnchor = null;
+      return;
+    }
+
+    this.arrastandoPeriodo.set(true);
+    this.arrasteMesAnchor = atual;
+    this.arrasteDiaAnchor = null;
+    this.arrasteAnoAnchor = null;
     this.calendarioMes.set(mesIndex);
-    this.patchDraft({
-      granularidade: 'mes',
-      periodoAtivo: true,
-      dataInicio: range.inicio,
-      dataFim: range.fim
-    });
+    this.definirIntervaloMeses(atual, atual);
   }
 
-  selecionarAnoCalendario(ano: number): void {
-    const range = aplicarGranularidadeAno(ano);
+  onMesCalendarioPointerEnter(mesIndex: number): void {
+    if (!this.arrastandoPeriodo() || this.calendarioGranularidade() !== 'mes') return;
+    const anchor = this.arrasteMesAnchor;
+    if (!anchor) return;
+    this.definirIntervaloMeses(anchor, { ano: this.calendarioAno(), mes: mesIndex });
+  }
+
+  onAnoCalendarioPointerDown(ano: number, event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Segundo clique (após soltar o primeiro): completa o intervalo.
+    if (this.arrasteAnoAnchor != null && !this.arrastandoPeriodo()) {
+      this.definirIntervaloAnos(this.arrasteAnoAnchor, ano);
+      this.arrasteAnoAnchor = null;
+      return;
+    }
+
+    this.arrastandoPeriodo.set(true);
+    this.arrasteAnoAnchor = ano;
+    this.arrasteDiaAnchor = null;
+    this.arrasteMesAnchor = null;
     this.calendarioAno.set(ano);
-    this.patchDraft({
-      granularidade: 'ano',
-      periodoAtivo: true,
-      dataInicio: range.inicio,
-      dataFim: range.fim
-    });
+    this.definirIntervaloAnos(ano, ano);
+  }
+
+  onAnoCalendarioPointerEnter(ano: number): void {
+    if (!this.arrastandoPeriodo() || this.calendarioGranularidade() !== 'ano') return;
+    const anchor = this.arrasteAnoAnchor;
+    if (anchor == null) return;
+    this.definirIntervaloAnos(anchor, ano);
   }
 
   diaCalendarioModificadores(cell: MovimentosPeriodoCelula): Record<string, boolean> {
-    const d = this.draft();
-    if (!d.periodoAtivo) {
+    const p = this.periodoPendente();
+    if (!p) {
       return { 'rec-cal__dia--fora': !cell.inMonth };
     }
     const iso = cell.iso;
-    const ini = toIsoDate(d.dataInicio);
-    const fim = toIsoDate(d.dataFim);
+    const ini = toIsoDate(p.dataInicio);
+    const fim = toIsoDate(p.dataFim);
     const noIntervalo = iso >= ini && iso <= fim;
     const unico = ini === fim;
     return {
@@ -358,22 +445,28 @@ export class MovimentosFiltrosPanelComponent {
   }
 
   mesCalendarioModificadores(mesIndex: number): Record<string, boolean> {
-    const d = this.draft();
-    const ativo =
-      d.periodoAtivo &&
-      d.granularidade === 'mes' &&
-      d.dataInicio.getFullYear() === this.calendarioAno() &&
-      d.dataInicio.getMonth() === mesIndex;
-    return { 'rec-cal__mes--ativo': ativo };
+    const p = this.periodoPendente();
+    if (!p || p.granularidade !== 'mes') {
+      return { 'rec-cal__mes--ativo': false };
+    }
+    const atual = new Date(this.calendarioAno(), mesIndex, 1).getTime();
+    const iniT = new Date(p.dataInicio.getFullYear(), p.dataInicio.getMonth(), 1).getTime();
+    const fimT = new Date(p.dataFim.getFullYear(), p.dataFim.getMonth(), 1).getTime();
+    return { 'rec-cal__mes--ativo': atual >= iniT && atual <= fimT };
   }
 
   anoCalendarioModificadores(ano: number): Record<string, boolean> {
-    const d = this.draft();
-    const ativo = d.periodoAtivo && d.granularidade === 'ano' && d.dataInicio.getFullYear() === ano;
-    return { 'rec-cal__ano--ativo': ativo };
+    const p = this.periodoPendente();
+    if (!p || p.granularidade !== 'ano') {
+      return { 'rec-cal__ano--ativo': false };
+    }
+    const ini = p.dataInicio.getFullYear();
+    const fim = p.dataFim.getFullYear();
+    return { 'rec-cal__ano--ativo': ano >= ini && ano <= fim };
   }
 
   onAplicar(): void {
+    this.gravarPeriodoPendenteNoDraft();
     const d = this.cloneFiltros(this.draft());
     d.placa = d.placa.trim() ? d.placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
     this.aplicar.emit(d);
@@ -391,11 +484,108 @@ export class MovimentosFiltrosPanelComponent {
     const bT = b.getTime();
     const inicio = new Date(Math.min(aT, bT));
     const fim = new Date(Math.max(aT, bT));
+    this.definirPeriodoPendente('dia', inicio, fim);
+  }
+
+  private definirIntervaloSemanas(a: Date, b: Date): void {
+    const iniA = inicioSemana(a);
+    const fimA = fimSemana(a);
+    const iniB = inicioSemana(b);
+    const fimB = fimSemana(b);
+    const inicio = iniA.getTime() <= iniB.getTime() ? iniA : iniB;
+    const fim = fimA.getTime() >= fimB.getTime() ? fimA : fimB;
+    this.definirPeriodoPendente('semana', inicio, fim);
+  }
+
+  private definirIntervaloMeses(a: MesAnchor, b: MesAnchor): void {
+    const aT = new Date(a.ano, a.mes, 1).getTime();
+    const bT = new Date(b.ano, b.mes, 1).getTime();
+    const iniRef = aT <= bT ? a : b;
+    const fimRef = aT <= bT ? b : a;
+    const ini = aplicarGranularidadeMes(iniRef.ano, iniRef.mes);
+    const fim = aplicarGranularidadeMes(fimRef.ano, fimRef.mes);
+    this.definirPeriodoPendente('mes', ini.inicio, fim.fim);
+  }
+
+  private definirIntervaloAnos(a: number, b: number): void {
+    const iniAno = Math.min(a, b);
+    const fimAno = Math.max(a, b);
+    const ini = aplicarGranularidadeAno(iniAno);
+    const fim = aplicarGranularidadeAno(fimAno);
+    this.definirPeriodoPendente('ano', ini.inicio, fim.fim);
+  }
+
+  private encerrarArrastePeriodo(): void {
+    const estavaArrastando = this.arrastandoPeriodo();
+    this.arrastandoPeriodo.set(false);
+    this.arrasteDiaAnchor = null;
+
+    if (!estavaArrastando) return;
+
+    // Arraste com vários meses/anos: intervalo já completo.
+    // Clique simples: mantém âncora para o segundo clique completar o intervalo.
+    const p = this.periodoPendente();
+    if (this.arrasteMesAnchor && p?.granularidade === 'mes') {
+      const multiMes =
+        p.dataInicio.getFullYear() !== p.dataFim.getFullYear() ||
+        p.dataInicio.getMonth() !== p.dataFim.getMonth();
+      if (multiMes) this.arrasteMesAnchor = null;
+    }
+
+    if (this.arrasteAnoAnchor != null && p?.granularidade === 'ano') {
+      const multiAno = p.dataInicio.getFullYear() !== p.dataFim.getFullYear();
+      if (multiAno) this.arrasteAnoAnchor = null;
+    }
+  }
+
+  private limparAncorasArraste(): void {
+    this.arrastandoPeriodo.set(false);
+    this.arrasteDiaAnchor = null;
+    this.arrasteMesAnchor = null;
+    this.arrasteAnoAnchor = null;
+  }
+
+  private gravarPeriodoPendenteNoDraft(): boolean {
+    const p = this.periodoPendente();
+    if (!p) return false;
     this.patchDraft({
       periodoAtivo: true,
+      granularidade: p.granularidade,
+      dataInicio: p.dataInicio,
+      dataFim: p.dataFim
+    });
+    return true;
+  }
+
+  private definirPeriodoPendente(
+    granularidade: MovimentosPeriodoGranularidade,
+    inicio: Date,
+    fim: Date
+  ): void {
+    this.periodoPendente.set({
+      granularidade,
       dataInicio: new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()),
       dataFim: new Date(fim.getFullYear(), fim.getMonth(), fim.getDate())
     });
+  }
+
+  private iniciarEdicaoCalendario(): void {
+    const d = this.draft();
+    this.calendarioGranularidade.set(d.granularidade);
+    this.calendarioAno.set(d.dataInicio.getFullYear());
+    this.calendarioMes.set(d.dataInicio.getMonth());
+    this.limparAncorasArraste();
+    if (d.periodoAtivo) {
+      this.definirPeriodoPendente(d.granularidade, d.dataInicio, d.dataFim);
+      return;
+    }
+    this.periodoPendente.set(null);
+  }
+
+  private fecharCalendario(): void {
+    this.periodoPendente.set(null);
+    this.limparAncorasArraste();
+    this.panelDataAberto.set(false);
   }
 
   private navegarParaMesDoDia(cell: MovimentosPeriodoCelula): void {

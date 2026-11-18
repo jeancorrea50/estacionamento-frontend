@@ -1,8 +1,12 @@
 import {
+  EntradaSaidaStatus,
   ENTRADA_SAIDA_STATUS_LABEL,
   parseEntradaSaidaStatus,
 } from '../../../movimentos/models/entrada-saida.models';
-import type { MovimentacaoRelatorioItem } from './movimentacao-relatorio.types';
+import type {
+  MovimentacaoRelatorioItem,
+  MovimentacaoRelatorioResumo,
+} from './movimentacao-relatorio.types';
 
 /** Mesma forma de `formatarMinutos` da tela de movimentos. Não recalcula suspensão. */
 export function formatarPermanenciaRelatorio(minutos: number | null): string {
@@ -14,15 +18,63 @@ export function formatarPermanenciaRelatorio(minutos: number | null): string {
   return resto ? `${horas}h ${resto}min` : `${horas}h`;
 }
 
+/** Entrada efetiva no pátio — Agendado/Cancelado não geram permanência. */
+export function contaComoPermanenciaRelatorio(item: MovimentacaoRelatorioItem): boolean {
+  const status = parseEntradaSaidaStatus(item.status);
+  return (
+    status === EntradaSaidaStatus.Entrada ||
+    status === EntradaSaidaStatus.Saida ||
+    status === EntradaSaidaStatus.Suspenso
+  );
+}
+
 /**
- * Preferência: `tempoPermanenciaMinutos` da API.
- * Fallback (igual à lista de Movimentações): diferença entrada→saída, ou entrada→agora se em aberto.
- * Não desconta suspensão — mesmo critério da tela operacional.
+ * Remove Agendado/Cancelado e recalcula o resumo a partir dos itens restantes.
+ * Usado na exportação "Entradas hoje" (contrato de Status é singular — não dá para
+ * pedir Entrada|Saída|Suspenso numa única query).
+ */
+export function filtrarItensEntradaReal(
+  itens: MovimentacaoRelatorioItem[]
+): { itens: MovimentacaoRelatorioItem[]; resumo: MovimentacaoRelatorioResumo } {
+  const filtrados = itens.filter((item) => contaComoPermanenciaRelatorio(item));
+  let qtdEntrada = 0;
+  let qtdSaida = 0;
+  let qtdSuspenso = 0;
+  let qtdFaturado = 0;
+  let qtdExcedente = 0;
+  for (const item of filtrados) {
+    const status = parseEntradaSaidaStatus(item.status);
+    if (status === EntradaSaidaStatus.Entrada) qtdEntrada += 1;
+    else if (status === EntradaSaidaStatus.Saida) qtdSaida += 1;
+    else if (status === EntradaSaidaStatus.Suspenso) qtdSuspenso += 1;
+    if (item.faturado) qtdFaturado += 1;
+    if (item.ehExcedente) qtdExcedente += 1;
+  }
+  return {
+    itens: filtrados,
+    resumo: {
+      quantidade: filtrados.length,
+      qtdEntrada,
+      qtdSaida,
+      qtdSuspenso,
+      qtdAgendado: 0,
+      qtdCancelado: 0,
+      qtdFaturado,
+      qtdExcedente,
+    },
+  };
+}
+
+/**
+ * Preferência: `tempoPermanenciaMinutos` da API (só se já houve entrada real).
+ * Fallback: diferença entrada→saída, ou entrada→agora se em aberto.
+ * Agendado/Cancelado → null (DataHoraEntrada é só previsão).
  */
 export function minutosPermanenciaRelatorio(
   item: MovimentacaoRelatorioItem,
   referenciaFim?: Date | null
 ): number | null {
+  if (!contaComoPermanenciaRelatorio(item)) return null;
   if (item.tempoPermanenciaMinutos != null && Number.isFinite(item.tempoPermanenciaMinutos)) {
     return item.tempoPermanenciaMinutos;
   }

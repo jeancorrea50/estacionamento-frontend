@@ -4,8 +4,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin, of, Subject } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado,
+} from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
-import { AgendamentoDataHoraPickerComponent } from '../../pages/agendamentos-page/agendamento-data-hora-picker/agendamento-data-hora-picker.component';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 import type {
   ModalidadeVagaAgendamento,
@@ -41,7 +44,7 @@ function parseIsoDateLocal(iso: string): Date | null {
     CommonModule,
     ReactiveFormsModule,
     DatePipe,
-    AgendamentoDataHoraPickerComponent,
+    PeriodoDataPickerComponent,
     TransportadoraLookupFieldComponent,
   ],
   templateUrl: './vaga-reserva-panel.component.html',
@@ -60,6 +63,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
   readonly salvando = signal(false);
   readonly resumo = signal<VagaDisponibilidadeResumo | null>(null);
   readonly reservas = signal<VagaReservaTransportadoraItem[]>([]);
+  /** Lista de reservas expansível (somente UI). */
+  readonly reservasAbertas = signal(true);
   /** Dia de consulta dos totalizadores (`YYYY-MM-DD`). */
   readonly dataConsulta = signal(toIsoDateLocal());
   readonly transportadoraFormId = signal<number | null>(null);
@@ -72,11 +77,15 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
     { value: 2, label: 'Limpeza' },
     { value: 3, label: 'Ambos' },
   ];
-  readonly periodicidades: { value: PeriodicidadeVagaReserva; label: string }[] = [
-    { value: 1, label: 'Diário' },
-    { value: 2, label: 'Semanal' },
-    { value: 3, label: 'Mensal' },
-    { value: 4, label: 'Período' },
+  /**
+   * Recorrência no contrato atual (`periodicidade`):
+   * 1=Diario, 2=Semanal, 3=Mensal, 4=Periodo.
+   */
+  readonly recorrencias: { value: PeriodicidadeVagaReserva; label: string; hint: string }[] = [
+    { value: 1, label: 'Todos os dias', hint: 'Repete todos os dias na vigência.' },
+    { value: 2, label: 'Toda semana', hint: 'Repete a cada semana na vigência.' },
+    { value: 3, label: 'Todo mês', hint: 'Repete a cada mês na vigência.' },
+    { value: 4, label: 'Período contínuo', hint: 'Sem repetição por dia/semana/mês.' },
   ];
   readonly periodosDia: { value: PeriodoDiaVaga; label: string }[] = [
     { value: 1, label: 'Matutino' },
@@ -101,8 +110,9 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
         this.limparTransportadoraSelecionada();
       }
     });
-    // Prefill início da nova destinação com o dia consultado.
+    // Prefill vigência da nova destinação com o dia consultado.
     this.form.controls.dataInicio.setValue(this.dataConsulta(), { emitEvent: false });
+    this.form.controls.dataFim.setValue(this.dataConsulta(), { emitEvent: false });
     this.carregar();
   }
 
@@ -141,8 +151,42 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
     // Ajuda o operador: nova destinação começa no dia filtrado.
     if (!this.form.controls.dataInicio.dirty) {
       this.form.controls.dataInicio.setValue(iso, { emitEvent: false });
+      if (!this.form.controls.dataFim.dirty) {
+        this.form.controls.dataFim.setValue(iso, { emitEvent: false });
+      }
     }
     this.carregar();
+  }
+
+  onFiltroPeriodoChange(periodo: PeriodoDataSelecionado): void {
+    if (!periodo.ativo || !periodo.dataInicial) return;
+    this.onDataConsultaChange(periodo.dataInicial);
+  }
+
+  /** Vigência (`dataInicio`/`dataFim`) via calendário — contrato inalterado. */
+  onVigenciaPeriodoChange(periodo: PeriodoDataSelecionado): void {
+    if (!periodo.ativo || !periodo.dataInicial) {
+      this.form.patchValue({ dataInicio: '', dataFim: '' });
+      this.form.controls.dataInicio.markAsDirty();
+      this.form.controls.dataFim.markAsDirty();
+      return;
+    }
+    const fim = periodo.dataFinal || periodo.dataInicial;
+    this.form.patchValue({
+      dataInicio: periodo.dataInicial,
+      dataFim: fim,
+    });
+    this.form.controls.dataInicio.markAsDirty();
+    this.form.controls.dataFim.markAsDirty();
+  }
+
+  recorrenciaHint(): string {
+    const atual = this.form.controls.periodicidade.value;
+    return this.recorrencias.find((r) => r.value === atual)?.hint ?? '';
+  }
+
+  toggleReservas(): void {
+    this.reservasAbertas.update((v) => !v);
   }
 
   irParaHoje(): void {
@@ -199,14 +243,30 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
       return;
     }
 
+    const dataInicio = (raw.dataInicio || '').trim().slice(0, 10);
+    const dataFim = (raw.dataFim || '').trim().slice(0, 10) || null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dataInicio)) {
+      this.toast.error('Selecione o período de vigência no calendário.');
+      return;
+    }
+    if (dataFim && dataFim < dataInicio) {
+      this.toast.error('A data fim deve ser igual ou posterior à data início.');
+      return;
+    }
+    // Recorrência dia/semana/mês precisa de intervalo (fim) para fazer sentido na vigência.
+    if (raw.periodicidade !== 4 && !dataFim) {
+      this.toast.error('Informe o fim da vigência para a recorrência escolhida.');
+      return;
+    }
+
     this.salvando.set(true);
     this.api
       .criarReserva({
         transportadoraId: raw.avulso ? 0 : raw.transportadoraId,
         modalidade: raw.modalidade,
         quantidade: raw.quantidade,
-        dataInicio: raw.dataInicio,
-        dataFim: raw.dataFim || null,
+        dataInicio,
+        dataFim,
         periodicidade: raw.periodicidade,
         periodoDia: raw.periodoDia,
         avulso: raw.avulso,
@@ -219,9 +279,18 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges {
             return;
           }
           this.toast.success('Reserva de vaga criada.');
-          this.form.patchValue({ quantidade: 1, dataFim: '', periodoDia: null, avulso: false });
+          const dia = this.dataConsulta();
+          this.form.patchValue({
+            quantidade: 1,
+            dataInicio: dia,
+            dataFim: dia,
+            periodoDia: null,
+            avulso: false,
+            periodicidade: 1,
+          });
           this.limparTransportadoraSelecionada();
           this.form.controls.dataInicio.markAsPristine();
+          this.form.controls.dataFim.markAsPristine();
           this.carregar();
         },
         error: () => this.toast.error('Falha ao criar reserva de vaga.'),

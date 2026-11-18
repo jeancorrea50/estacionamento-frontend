@@ -7,6 +7,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado
+} from '../../../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
+import {
   cloneAcordo,
   MESES_ACORDO,
   mensagensValidacaoAcordo,
@@ -35,7 +39,8 @@ export interface ConfigCobrancaAcordoDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    PeriodoDataPickerComponent
   ],
   templateUrl: './config-cobranca-acordo-dialog.component.html',
   styleUrl: './config-cobranca-acordo-dialog.component.scss'
@@ -46,6 +51,8 @@ export class ConfigCobrancaAcordoDialogComponent {
   private readonly snack = inject(MatSnackBar);
 
   readonly mesesAcordo = MESES_ACORDO;
+  /** Sentinela só do UI; nunca entra nas vagas/API (meses válidos: 1–12). */
+  readonly todosMesesSentinel = 0;
 
   acordo: ConfigCobrancaAcordo = (() => {
     const rascunho = cloneAcordo(this.data.acordo);
@@ -72,9 +79,39 @@ export class ConfigCobrancaAcordoDialogComponent {
     return mesesOcupados(this.acordo, listagem.id).has(mes);
   }
 
-  onMesesChange(listagem: ConfigCobrancaAcordoListagem, meses: ConfigCobrancaMesAcordo[]): void {
+  mesesDisponiveis(listagem: ConfigCobrancaAcordoListagem): ConfigCobrancaMesAcordo[] {
     const ocupados = mesesOcupados(this.acordo, listagem.id);
-    listagem.meses = (meses ?? []).filter((mes) => !ocupados.has(mes)).sort((a, b) => a - b);
+    return this.mesesAcordo.map((m) => m.mes).filter((mes) => !ocupados.has(mes));
+  }
+
+  todosMesesSelecionados(listagem: ConfigCobrancaAcordoListagem): boolean {
+    const disponiveis = this.mesesDisponiveis(listagem);
+    return disponiveis.length > 0 && disponiveis.every((mes) => listagem.meses.includes(mes));
+  }
+
+  onMesesChange(listagem: ConfigCobrancaAcordoListagem, meses: Array<ConfigCobrancaMesAcordo | number>): void {
+    const ocupados = mesesOcupados(this.acordo, listagem.id);
+    const raw = meses ?? [];
+    const pediuTodos = raw.some((mes) => Number(mes) === this.todosMesesSentinel);
+    if (pediuTodos) {
+      listagem.meses = this.todosMesesSelecionados(listagem) ? [] : [...this.mesesDisponiveis(listagem)];
+      return;
+    }
+    listagem.meses = raw
+      .map((mes) => Number(mes))
+      .filter((mes): mes is ConfigCobrancaMesAcordo => mes >= 1 && mes <= 12 && !ocupados.has(mes))
+      .sort((a, b) => a - b);
+  }
+
+  /** Mantém `dataInicio`/`dataFim` em ISO `yyyy-MM-dd` (contrato `dataInicioAcordo`/`dataFimAcordo`). */
+  onPeriodoChange(periodo: PeriodoDataSelecionado): void {
+    if (!periodo.ativo || !periodo.dataInicial || !periodo.dataFinal) {
+      this.acordo.dataInicio = null;
+      this.acordo.dataFim = null;
+      return;
+    }
+    this.acordo.dataInicio = periodo.dataInicial;
+    this.acordo.dataFim = periodo.dataFinal;
   }
 
   cancelar(): void {

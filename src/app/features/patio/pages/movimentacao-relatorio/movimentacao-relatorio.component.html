@@ -1,5 +1,5 @@
 <div class="rel-page-shell">
-  <div class="page-container rel-page">
+  <div class="page-container rel-page rel-page--mov">
     <header class="cfg-page-head">
       <div class="cfg-page-head__icon" aria-hidden="true">
         <span class="material-symbols-outlined">description</span>
@@ -10,8 +10,8 @@
       </div>
     </header>
 
-    <section class="rel-toolbar" aria-label="Filtros do relatório de movimentações">
-      <div class="rel-filters__grid">
+    <section class="rel-toolbar rel-toolbar--compact" aria-label="Filtros do relatório de movimentações">
+      <div class="rel-filters__primary">
         <div class="rel-field rel-field--periodo">
           <span class="rel-field__label">Período</span>
           <app-periodo-data-picker
@@ -43,81 +43,105 @@
           </select>
         </label>
 
-        <label class="rel-field">
-          <span class="rel-field__label">Status</span>
-          <select class="rel-field__control" [(ngModel)]="status">
-            <option [ngValue]="null">Todos</option>
-            @for (s of statusOpcoes; track s.value) {
-              <option [ngValue]="s.value">{{ s.label }}</option>
+        <div class="rel-filters__actions">
+          <button type="button" class="btn btn-secondary" (click)="buscar()" [disabled]="loading()">
+            <span class="material-symbols-outlined" aria-hidden="true">search</span>
+            Buscar
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary rel-filters__mais"
+            [class.rel-filters__mais--ativo]="filtrosAvancadosAbertos()"
+            [attr.aria-expanded]="filtrosAvancadosAbertos()"
+            aria-controls="rel-filtros-avancados"
+            (click)="toggleFiltrosAvancados()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+            Mais filtros
+            @if (filtrosAvancadosAtivosCount() > 0) {
+              <span class="rel-filters__badge" aria-hidden="true">{{ filtrosAvancadosAtivosCount() }}</span>
             }
-          </select>
-        </label>
-
-        <label class="rel-field">
-          <span class="rel-field__label">Faturado</span>
-          <select class="rel-field__control" [(ngModel)]="faturado">
-            @for (o of boolOpcoes; track $index) {
-              <option [ngValue]="o.value">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="rel-field">
-          <span class="rel-field__label">Excedente</span>
-          <select class="rel-field__control" [(ngModel)]="ehExcedente">
-            @for (o of boolOpcoes; track $index) {
-              <option [ngValue]="o.value">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="rel-field">
-          <span class="rel-field__label">Avulso</span>
-          <select class="rel-field__control" [(ngModel)]="avulso">
-            @for (o of boolOpcoes; track $index) {
-              <option [ngValue]="o.value">{{ o.label }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="rel-field rel-field--wide">
-          <span class="rel-field__label">Busca (descrição / observação)</span>
-          <input
-            type="text"
-            class="rel-field__control"
-            [(ngModel)]="descricao"
-            placeholder="Texto livre"
-          />
-        </label>
+          </button>
+          <span class="rel-filters__divider" aria-hidden="true"></span>
+          <button type="button" class="btn btn-secondary" (click)="limparFiltros()" [disabled]="loading()">
+            Limpar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="imprimirPdf()"
+            [disabled]="loading() || exportando()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+            PDF
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="exportarExcel()"
+            [disabled]="loading() || exportando()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+            Excel
+          </button>
+        </div>
       </div>
 
-      <div class="rel-filters__actions">
-        <button type="button" class="btn btn-secondary" (click)="limparFiltros()" [disabled]="loading()">
-          Limpar
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="buscar()" [disabled]="loading()">
-          <span class="material-symbols-outlined" aria-hidden="true">search</span>
-          Buscar
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="imprimirPdf()"
-          [disabled]="loading() || exportando()"
+      @if (filtrosAvancadosAbertos()) {
+        <div
+          id="rel-filtros-avancados"
+          class="rel-filters__advanced"
+          role="region"
+          aria-label="Filtros avançados"
         >
-          <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-          PDF
-        </button>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          (click)="exportarExcel()"
-          [disabled]="loading() || exportando()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
-          Excel
-        </button>
-      </div>
+          <label class="rel-field">
+            <span class="rel-field__label">Status</span>
+            <select class="rel-field__control" [(ngModel)]="status">
+              <option [ngValue]="null">Todos</option>
+              @for (s of statusOpcoes; track s.value) {
+                <option [ngValue]="s.value">{{ s.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="rel-field">
+            <span class="rel-field__label">Faturado</span>
+            <select class="rel-field__control" [(ngModel)]="faturado">
+              @for (o of boolOpcoes; track $index) {
+                <option [ngValue]="o.value">{{ o.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="rel-field">
+            <span class="rel-field__label">Excedente</span>
+            <select class="rel-field__control" [(ngModel)]="ehExcedente">
+              @for (o of boolOpcoes; track $index) {
+                <option [ngValue]="o.value">{{ o.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="rel-field">
+            <span class="rel-field__label">Avulso</span>
+            <select class="rel-field__control" [(ngModel)]="avulso">
+              @for (o of boolOpcoes; track $index) {
+                <option [ngValue]="o.value">{{ o.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="rel-field rel-field--wide">
+            <span class="rel-field__label">Busca (descrição / observação)</span>
+            <input
+              type="text"
+              class="rel-field__control"
+              [(ngModel)]="descricao"
+              placeholder="Texto livre"
+            />
+          </label>
+        </div>
+      }
     </section>
 
     @if (loading()) {
@@ -135,7 +159,7 @@
     }
 
     @if (jaBuscou() && !loading()) {
-      <section class="rel-kpi" aria-label="Resumo do relatório">
+      <section class="rel-kpi rel-kpi--compact" aria-label="Resumo do relatório">
         <article class="rel-kpi__chip">
           <span class="rel-kpi__label">Movimentações</span>
           <strong class="rel-kpi__value">{{ resumo().quantidade }}</strong>
@@ -177,7 +201,7 @@
         </p>
       }
 
-      <div class="rel-results-card">
+      <div class="rel-results-card rel-results-card--dense">
         <div class="rel-results-card__scroll">
           <table class="data-table">
             <thead>
@@ -188,6 +212,7 @@
                 <th>Status</th>
                 <th>Entrada</th>
                 <th>Saída</th>
+                <th>Permanência</th>
                 <th>Faturado</th>
                 <th>Avulso</th>
                 <th>Excedente</th>
@@ -203,19 +228,22 @@
                   <td>
                     <span [class]="pillStatusClasse(item)">{{ rotuloStatus(item) }}</span>
                   </td>
-                  <td>
+                  <td class="rel-dt">
                     {{
                       item.dataHoraEntrada
                         ? (item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' : (timeZoneId() || undefined))
                         : '—'
                     }}
                   </td>
-                  <td>
+                  <td class="rel-dt">
                     {{
                       item.dataHoraSaida
                         ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm' : (timeZoneId() || undefined))
                         : '—'
                     }}
+                  </td>
+                  <td class="rel-dt rel-perm" [title]="rotuloPermanencia(item)">
+                    {{ rotuloPermanencia(item) }}
                   </td>
                   <td>
                     <span
@@ -245,7 +273,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="10" class="rel-empty-row">
+                  <td colspan="11" class="rel-empty-row">
                     Nenhuma movimentação encontrada com os filtros informados.
                   </td>
                 </tr>

@@ -199,6 +199,8 @@ export function mapVisaoProximosVencimentos(
  * - fech → `fechamentosPendentes` (totalCount EmAndamento)
  * - emi → `faturasEmitidas` do mês atual + detalhe do mês passado
  * - transp → `transportadorasFaturadas` (total, sem comparativo)
+ *
+ * Só retorna cards com quantidade > 0 (não exibe zerados como se fossem alerta).
  */
 export function mapVisaoAlertas(
   dto: FaturaVisaoGeralOutput,
@@ -209,33 +211,39 @@ export function mapVisaoAlertas(
   const mesAtual = extras.mesAtual ?? null;
   const mesAnterior = extras.mesAnterior ?? null;
 
-  return base.map((a) => {
-    if (a.id === 'fat') {
-      return { ...a, quantidade: dto.faturasVencidas, detalheSecundario: null };
-    }
-    if (a.id === 'cob') {
-      return { ...a, quantidade: dto.cobrancasPendentes, detalheSecundario: null };
-    }
-    if (a.id === 'fech') {
-      return { ...a, quantidade: fechamentosPendentes, detalheSecundario: null };
-    }
-    if (a.id === 'emi') {
-      const qtdMes = mesAtual?.faturasEmitidas ?? 0;
-      const qtdAnt = mesAnterior?.faturasEmitidas ?? 0;
-      return {
-        ...a,
-        quantidade: qtdMes,
-        detalhe: 'No mês atual',
-        detalheSecundario: mesAnterior ? `Mês passado: ${qtdAnt}` : null
-      };
-    }
-    if (a.id === 'transp') {
-      return {
-        ...a,
-        quantidade: dto.transportadorasFaturadas,
-        detalheSecundario: null
-      };
-    }
-    return { ...a, quantidade: 0, detalheSecundario: null };
-  });
+  return base
+    .map((a) => {
+      if (a.id === 'fat') {
+        return { ...a, quantidade: Math.max(0, Number(dto.faturasVencidas) || 0), detalheSecundario: null };
+      }
+      if (a.id === 'cob') {
+        return {
+          ...a,
+          quantidade: Math.max(0, Number(dto.cobrancasPendentes) || 0),
+          detalheSecundario: null
+        };
+      }
+      if (a.id === 'fech') {
+        return { ...a, quantidade: fechamentosPendentes, detalheSecundario: null };
+      }
+      if (a.id === 'emi') {
+        const qtdMes = Math.max(0, Number(mesAtual?.faturasEmitidas) || 0);
+        const qtdAnt = Math.max(0, Number(mesAnterior?.faturasEmitidas) || 0);
+        return {
+          ...a,
+          quantidade: qtdMes,
+          detalhe: 'No mês atual',
+          detalheSecundario: qtdAnt > 0 ? `Mês passado: ${qtdAnt}` : null
+        };
+      }
+      if (a.id === 'transp') {
+        return {
+          ...a,
+          quantidade: Math.max(0, Number(dto.transportadorasFaturadas) || 0),
+          detalheSecundario: null
+        };
+      }
+      return { ...a, quantidade: 0, detalheSecundario: null };
+    })
+    .filter((a) => a.quantidade > 0);
 }

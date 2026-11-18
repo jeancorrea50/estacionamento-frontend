@@ -153,25 +153,99 @@ export class AgendamentoNovoModalComponent {
     this.buscaPlacaAberta.set(false);
   }
 
-  onPlacaBuscaSelecionada(item: PaginatedSearchItem): void {
+  /** IDs já no formulário — o modal marca como bloqueados. */
+  idsPlacasJaSelecionadas(): number[] {
+    return this.placasSelecionadas().map((p) => p.id);
+  }
+
+  /**
+   * Confirmação em lote do modal de busca (Agendar).
+   * Backend: 1 POST /Agendamento por placa; o save já faz forkJoin.
+   */
+  onPlacasBuscaSelecionadas(itens: PaginatedSearchItem[]): void {
+    if (!itens?.length) return;
+    this.buscaPlacaAberta.set(false);
+
+    const geracao = ++this.geracaoSelecaoPlaca;
+    const tidEsperada = this.transportadoraFormId() ?? 0;
+    let ignoradasInativas = 0;
+    let candidatas = 0;
+
+    for (const item of itens) {
+      const preparado = this.prepararPlacaDaBusca(item);
+      if (!preparado.ok) {
+        if (preparado.motivo === 'inativa') ignoradasInativas += 1;
+        continue;
+      }
+
+      candidatas += 1;
+      this.resolverMotoristaDaPlaca(preparado.base, tidEsperada)
+        .pipe(takeUntil(this.cancelarResolucaoPlaca$))
+        .subscribe({
+          next: (resolved) => {
+            if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
+            if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
+            if (!resolved.motoristaId || resolved.motoristaId <= 0) {
+              this.toast.error(
+                `A placa ${formatPlacaDisplay(resolved.placa) || resolved.placa} não possui motorista vinculado. Vincule um motorista no cadastro do veículo.`
+              );
+              return;
+            }
+            const jaNaLista = this.placasSelecionadas().some(
+              (p) =>
+                p.id === resolved.id ||
+                normalizePlaca(p.placa) === normalizePlaca(resolved.placa)
+            );
+            if (jaNaLista) return;
+            this.placasSelecionadas.update((lista) => [...lista, resolved]);
+          },
+          error: () => {
+            if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
+            if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
+            if (preparado.base.motoristaId && preparado.base.motoristaId > 0) {
+              const jaNaLista = this.placasSelecionadas().some((p) => p.id === preparado.base.id);
+              if (!jaNaLista) {
+                this.placasSelecionadas.update((lista) => [...lista, preparado.base]);
+              }
+              return;
+            }
+            this.toast.error(
+              `Não foi possível validar o motorista da placa ${formatPlacaDisplay(preparado.base.placa) || preparado.base.placa}.`
+            );
+          },
+        });
+    }
+
+    if (ignoradasInativas) {
+      this.toast.warning(
+        ignoradasInativas === 1
+          ? '1 placa inativa foi ignorada.'
+          : `${ignoradasInativas} placas inativas foram ignoradas.`
+      );
+    }
+    if (!candidatas && !ignoradasInativas) {
+      this.toast.warning('As placas selecionadas já estavam na lista.');
+    }
+  }
+
+  private prepararPlacaDaBusca(
+    item: PaginatedSearchItem
+  ):
+    | { ok: true; base: AgendamentoPlacaSelecionada }
+    | { ok: false; motivo: 'invalida' | 'inativa' | 'duplicada' } {
     const id = Number(item.id);
     const placa = String(item.titulo || '').trim();
-    if (!Number.isFinite(id) || id <= 0 || !placa) return;
+    if (!Number.isFinite(id) || id <= 0 || !placa) return { ok: false, motivo: 'invalida' };
 
     if ((item.campo5 || '').trim().toLowerCase() === 'não') {
-      this.toast.error('Esta placa está inativa e não pode ser agendada.');
-      return;
+      return { ok: false, motivo: 'inativa' };
     }
 
     const placaNorm = normalizePlaca(placa);
     const jaExiste = this.placasSelecionadas().some(
       (p) => p.id === id || normalizePlaca(p.placa) === placaNorm
     );
-    if (jaExiste) {
-      this.toast.warning(`A placa ${formatPlacaDisplay(placa) || placa} já está na lista.`);
-      this.buscaPlacaAberta.set(false);
-      return;
-    }
+    if (jaExiste) return { ok: false, motivo: 'duplicada' };
 
     const metaMotoristaId = Number(item.meta?.['motoristaId'] ?? 0);
     const metaNome =
@@ -179,47 +253,17 @@ export class AgendamentoNovoModalComponent {
     const metaCpf =
       item.meta?.['motoristaCpf'] != null ? String(item.meta['motoristaCpf']) : null;
 
-    const base: AgendamentoPlacaSelecionada = {
-      id,
-      placa,
-      marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
-      motoristaId: metaMotoristaId > 0 ? metaMotoristaId : null,
-      motoristaNome: metaNome,
-      motoristaCpf: metaCpf,
+    return {
+      ok: true,
+      base: {
+        id,
+        placa,
+        marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
+        motoristaId: metaMotoristaId > 0 ? metaMotoristaId : null,
+        motoristaNome: metaNome,
+        motoristaCpf: metaCpf,
+      },
     };
-
-    this.buscaPlacaAberta.set(false);
-
-    const geracao = ++this.geracaoSelecaoPlaca;
-    const tidEsperada = this.transportadoraFormId() ?? 0;
-
-    // Confirma/enriquece motorista via por-placa (e fallback CRUD) antes de fixar o chip.
-    this.resolverMotoristaDaPlaca(base, tidEsperada)
-      .pipe(takeUntil(this.cancelarResolucaoPlaca$))
-      .subscribe({
-        next: (resolved) => {
-          if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
-          if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
-          if (!resolved.motoristaId || resolved.motoristaId <= 0) {
-            this.toast.error(
-              `A placa ${formatPlacaDisplay(placa) || placa} não possui motorista vinculado. Vincule um motorista no cadastro do veículo.`
-            );
-            return;
-          }
-          this.placasSelecionadas.update((lista) => [...lista, resolved]);
-        },
-        error: () => {
-          if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
-          if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
-          if (base.motoristaId && base.motoristaId > 0) {
-            this.placasSelecionadas.update((lista) => [...lista, base]);
-            return;
-          }
-          this.toast.error(
-            `Não foi possível validar o motorista da placa ${formatPlacaDisplay(placa) || placa}.`
-          );
-        },
-      });
   }
 
   removerPlacaSelecionada(veiculoId: number): void {

@@ -5,6 +5,10 @@ import type {
   VagaReservaTransportadoraItem,
 } from '../../models/vaga-disponibilidade.models';
 import type { AgendamentoSearchItem } from '../../models/agendamento.models';
+import {
+  EntradaSaidaStatus,
+  parseEntradaSaidaStatus,
+} from '../../../movimentos/models/entrada-saida.models';
 
 export type AgendamentoModalidadeUi = 'estacionamento' | 'limpeza';
 
@@ -142,9 +146,12 @@ export function montarFaixasHorarias(input: {
       .filter((r) => periodoCobreHora(r.periodoDia, inicio))
       .reduce((acc, r) => acc + Math.max(0, Number(r.quantidade) || 0), 0);
 
+    // Ocupada = já no pátio (entrada confirmada / suspenso). Agendado ainda não entrou.
     const ocupadas = input.items.filter((item) => {
       const h = horaDoItem(item);
-      return h != null && h >= inicio && h < fim;
+      if (h == null || h < inicio || h >= fim) return false;
+      const status = parseEntradaSaidaStatus(item.status);
+      return status === EntradaSaidaStatus.Entrada || status === EntradaSaidaStatus.Suspenso;
     }).length;
 
     const disponiveis =

@@ -105,13 +105,6 @@ export class FaturamentoFechamentosComponent implements OnInit {
     { id: 'cancelados', label: 'Cancelados' }
   ];
 
-  readonly validacoes: FechamentoValidacaoAlerta[] = [
-    { id: 'v1', texto: '3 movimentações sem transportadora vinculada', severidade: 'atencao' },
-    { id: 'v2', texto: '2 placas sem vínculo com cadastro', severidade: 'atencao' },
-    { id: 'v3', texto: '1 item com valor zerado', severidade: 'atencao' },
-    { id: 'v4', texto: '2 movimentações já faturadas anteriormente', severidade: 'critico' }
-  ];
-
   /* ── Filtros ──────────────────────────────────────────────────────── */
   readonly transportadoraFiltro = signal<string>('all');
   readonly estacionamentoFiltro = signal<string>('all');
@@ -218,7 +211,69 @@ export class FaturamentoFechamentosComponent implements OnInit {
   readonly detalheResumo = computed(() => {
     const row = this.resumoSelecionado();
     if (!row) return null;
-    return this.buildDetalhe(row);
+    return {
+      movimentacoes: row.movimentacoes,
+      divergencias: row.divergencias,
+      valorEstimado: row.valorEstimado
+    } satisfies FechamentoDetalheResumo;
+  });
+
+  /**
+   * Alertas derivados só dos dados de `GET /fechamentos` (lista + resumo).
+   * Sem textos inventados — o contrato atual não envia validações detalhadas.
+   */
+  readonly validacoes = computed((): FechamentoValidacaoAlerta[] => {
+    const rows = this.items();
+    const resumo = this.resumo();
+    const alerts: FechamentoValidacaoAlerta[] = [];
+
+    const comDivergencia = rows.filter((r) => r.divergencias > 0 || r.situacao === 'Com divergência');
+    const totalDivergencias = comDivergencia.reduce((acc, r) => acc + Math.max(0, r.divergencias), 0);
+    const qtdDivergencia =
+      resumo.comDivergencia > 0 ? resumo.comDivergencia : comDivergencia.length;
+    if (qtdDivergencia > 0) {
+      alerts.push({
+        id: 'divergencias',
+        texto:
+          totalDivergencias > 0
+            ? `${qtdDivergencia} fechamento(s) com ${totalDivergencias} divergência(s)`
+            : `${qtdDivergencia} fechamento(s) com divergência`,
+        severidade: 'critico'
+      });
+    }
+
+    const valorZerado = rows.filter(
+      (r) => r.valorEstimado <= 0 && r.situacao !== 'Cancelado' && r.situacao !== 'Faturado'
+    );
+    if (valorZerado.length > 0) {
+      alerts.push({
+        id: 'valor-zerado',
+        texto:
+          valorZerado.length === 1
+            ? '1 item com valor estimado zerado'
+            : `${valorZerado.length} itens com valor estimado zerado`,
+        severidade: 'atencao'
+      });
+    }
+
+    const semMovimentos = rows.filter(
+      (r) =>
+        r.movimentacoes <= 0 &&
+        r.situacao !== 'Cancelado' &&
+        r.situacao !== 'Faturado'
+    );
+    if (semMovimentos.length > 0) {
+      alerts.push({
+        id: 'sem-movimentos',
+        texto:
+          semMovimentos.length === 1
+            ? '1 fechamento sem movimentações no período'
+            : `${semMovimentos.length} fechamentos sem movimentações no período`,
+        severidade: 'atencao'
+      });
+    }
+
+    return alerts;
   });
 
   @HostListener('document:click', ['$event'])
@@ -467,39 +522,6 @@ export class FaturamentoFechamentosComponent implements OnInit {
     }
 
     return rows;
-  }
-
-  private buildDetalhe(row: FechamentoListaItem): FechamentoDetalheResumo {
-    const t = row.valorEstimado;
-    if (t <= 0) {
-      return {
-        diarias: 0,
-        mensalistas: 0,
-        lavagens: 0,
-        servicosExtras: 0,
-        descontos: 0,
-        acrescimos: 0,
-        beneficios: 0,
-        totalEstimado: 0
-      };
-    }
-    const diarias = Math.round(t * 0.55);
-    const mensalistas = Math.round(t * 0.2);
-    const lavagens = Math.round(t * 0.1);
-    const servicosExtras = Math.round(t * 0.08);
-    const descontos = -Math.round(t * 0.03);
-    const acrescimos = Math.round(t * 0.05);
-    const beneficios = Math.round(t * 0.02);
-    return {
-      diarias,
-      mensalistas,
-      lavagens,
-      servicosExtras,
-      descontos,
-      acrescimos,
-      beneficios,
-      totalEstimado: diarias + mensalistas + lavagens + servicosExtras + descontos + acrescimos + beneficios
-    };
   }
 
   private mensagemErro(err: unknown, fallback: string): string {

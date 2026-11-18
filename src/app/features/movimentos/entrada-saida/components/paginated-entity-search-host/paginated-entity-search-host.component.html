@@ -13,8 +13,11 @@
   [totalCount]="totalCount()"
   [numeroPagina]="numeroPagina()"
   [tamanhoPagina]="tamanhoPagina()"
+  [selecaoMultipla]="selecaoMultipla()"
+  [idsJaSelecionados]="idsJaSelecionados()"
   (fechar)="fechar.emit()"
   (pesquisar)="onPesquisar($event)"
   (mudarPagina)="onMudarPagina($event)"
   (selecionar)="onSelecionar($event)"
+  (selecionarVarios)="selecionarVarios.emit($event)"
 />

@@ -7,28 +7,13 @@
     <div class="vaga-reserva-panel__head">
       <div>
         <h2 class="vaga-reserva-panel__title">Vagas para transportadoras</h2>
-        <p class="vaga-reserva-panel__sub">
-          Destine vagas de estacionamento e limpeza por periodicidade.
-        </p>
+        <p class="vaga-reserva-panel__sub">Destine estacionamento e limpeza por vigência e recorrência.</p>
       </div>
       <button
         type="button"
-        class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost"
-        (click)="carregar()"
-        [disabled]="loading()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-        Atualizar
-      </button>
-    </div>
-  } @else {
-    <div class="vaga-reserva-panel__toolbar">
-      <button
-        type="button"
         class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
         (click)="carregar()"
         [disabled]="loading()"
-        title="Atualizar"
       >
         <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
         Atualizar
@@ -36,73 +21,86 @@
     </div>
   }
 
-  <div class="vaga-reserva-panel__filtro" aria-label="Filtro de disponibilidade por data">
-    <div class="vaga-reserva-panel__filtro-copy">
-      <span class="vaga-reserva-panel__filtro-label">Disponibilidade em</span>
-      <strong class="vaga-reserva-panel__filtro-dia">{{ dataConsultaLabel() }}</strong>
-      <span class="vaga-reserva-panel__filtro-hint">
-        Totalizadores (disponíveis / reservadas) do dia selecionado
-      </span>
+  <div class="vaga-reserva-panel__top">
+    <div class="vaga-reserva-panel__filtro" aria-label="Filtro de disponibilidade por data">
+      <div class="vaga-reserva-panel__filtro-copy">
+        <span class="vaga-reserva-panel__filtro-label">Disponibilidade</span>
+        <strong class="vaga-reserva-panel__filtro-dia">{{ dataConsultaLabel() }}</strong>
+      </div>
+      <div class="vaga-reserva-panel__filtro-actions">
+        <app-periodo-data-picker
+          class="vaga-reserva-panel__filtro-picker"
+          emptyLabel="Selecionar dia"
+          ariaLabel="Selecionar data da disponibilidade"
+          [modoDiaUnico]="true"
+          [dataInicial]="dataConsulta()"
+          [dataFinal]="dataConsulta()"
+          (periodoChange)="onFiltroPeriodoChange($event)"
+        />
+        <button
+          type="button"
+          class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+          (click)="irParaHoje()"
+          [disabled]="loading()"
+          title="Ir para hoje"
+        >
+          Hoje
+        </button>
+        @if (embedded) {
+          <button
+            type="button"
+            class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+            (click)="carregar()"
+            [disabled]="loading()"
+            title="Atualizar"
+            aria-label="Atualizar"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          </button>
+        }
+      </div>
     </div>
-    <div class="vaga-reserva-panel__filtro-actions">
-      <app-agendamento-data-hora-picker
-        [value]="dataConsulta()"
-        [somenteData]="true"
-        ariaLabel="Selecionar data da disponibilidade"
-        (valueChange)="onDataConsultaChange($event)"
-      />
-      <button
-        type="button"
-        class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
-        (click)="irParaHoje()"
-        [disabled]="loading()"
-        title="Ir para hoje"
-      >
-        Hoje
-      </button>
-    </div>
-  </div>
 
-  @if (loading()) {
-    <p class="vaga-reserva-panel__msg">Carregando disponibilidade…</p>
-  } @else if (resumo(); as v) {
-    <div class="vaga-reserva-panel__kpis">
-      <article class="vaga-kpi vaga-kpi--est">
-        <div class="vaga-kpi__top">
-          <span class="vaga-kpi__icon material-symbols-outlined" aria-hidden="true">local_parking</span>
-          <span class="vaga-kpi__label">Estacionamento</span>
-        </div>
-        <strong class="vaga-kpi__value">
-          {{ v.vagasDisponiveisEstacionamento ?? '—' }}
-          <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
-        </strong>
-        <div class="vaga-kpi__bar" aria-hidden="true">
-          <span [style.width.%]="pctDisponivel(v.vagasDisponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
-        </div>
-        <em class="vaga-kpi__hint">Reservadas em {{ dataConsultaLabel() }}: {{ v.vagasReservadasEstacionamento }}</em>
-      </article>
-      <article class="vaga-kpi vaga-kpi--limp">
-        <div class="vaga-kpi__top">
-          <span class="vaga-kpi__icon material-symbols-outlined" aria-hidden="true">water_drop</span>
-          <span class="vaga-kpi__label">Limpeza</span>
-        </div>
-        <strong class="vaga-kpi__value">
-          {{ v.vagasDisponiveisLimpeza ?? '—' }}
-          <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
-        </strong>
-        <div class="vaga-kpi__bar" aria-hidden="true">
-          <span [style.width.%]="pctDisponivel(v.vagasDisponiveisLimpeza, v.capacidadeLimpeza)"></span>
-        </div>
-        <em class="vaga-kpi__hint">Reservadas em {{ dataConsultaLabel() }}: {{ v.vagasReservadasLimpeza }}</em>
-      </article>
-    </div>
-    @if (!v.controleAtivo) {
-      <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
-        Defina a capacidade de veículos e/ou limpeza no cadastro do estacionamento para ativar o
-        controle.
-      </p>
+    @if (loading()) {
+      <p class="vaga-reserva-panel__msg">Carregando…</p>
+    } @else if (resumo(); as v) {
+      <div class="vaga-reserva-panel__kpis">
+        <article class="vaga-kpi vaga-kpi--est">
+          <div class="vaga-kpi__top">
+            <span class="vaga-kpi__icon material-symbols-outlined" aria-hidden="true">local_parking</span>
+            <span class="vaga-kpi__label">Estacionamento</span>
+          </div>
+          <strong class="vaga-kpi__value">
+            {{ v.vagasDisponiveisEstacionamento ?? '—' }}
+            <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
+          </strong>
+          <div class="vaga-kpi__bar" aria-hidden="true">
+            <span [style.width.%]="pctDisponivel(v.vagasDisponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
+          </div>
+          <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasEstacionamento }}</em>
+        </article>
+        <article class="vaga-kpi vaga-kpi--limp">
+          <div class="vaga-kpi__top">
+            <span class="vaga-kpi__icon material-symbols-outlined" aria-hidden="true">water_drop</span>
+            <span class="vaga-kpi__label">Limpeza</span>
+          </div>
+          <strong class="vaga-kpi__value">
+            {{ v.vagasDisponiveisLimpeza ?? '—' }}
+            <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
+          </strong>
+          <div class="vaga-kpi__bar" aria-hidden="true">
+            <span [style.width.%]="pctDisponivel(v.vagasDisponiveisLimpeza, v.capacidadeLimpeza)"></span>
+          </div>
+          <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasLimpeza }}</em>
+        </article>
+      </div>
+      @if (!v.controleAtivo) {
+        <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
+          Defina a capacidade no cadastro do estacionamento para ativar o controle.
+        </p>
+      }
     }
-  }
+  </div>
 
   @if (podeGerenciar) {
     <form class="vaga-reserva-panel__form" [formGroup]="form" (ngSubmit)="salvar()">
@@ -111,13 +109,13 @@
       </div>
 
       <div class="vaga-reserva-panel__form-grid">
-        <div class="vaga-field vaga-field--wide">
+        <div class="vaga-field vaga-field--transportadora">
           <span>Transportadora</span>
           <app-transportadora-lookup-field
             [transportadoraId]="transportadoraFormId()"
             [transportadoraNome]="transportadoraFormNome()"
             [disabled]="!podeGerenciar || !!form.controls.avulso.value"
-            placeholder="Buscar por CNPJ, razão social ou fantasia…"
+            placeholder="CNPJ, razão social ou fantasia…"
             (transportadoraIdChange)="onTransportadoraIdChange($event)"
             (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
           />
@@ -125,7 +123,7 @@
 
         <label class="vaga-field vaga-field--check">
           <input type="checkbox" formControlName="avulso" />
-          <span>Avulso (sem transportadora)</span>
+          <span>Avulso</span>
         </label>
 
         <label class="vaga-field">
@@ -137,31 +135,34 @@
           </select>
         </label>
 
-        <label class="vaga-field">
+        <label class="vaga-field vaga-field--qtd">
           <span>Quantidade</span>
           <input class="input-control" type="number" min="1" formControlName="quantidade" />
         </label>
 
-        <label class="vaga-field">
-          <span>Início</span>
-          <input class="input-control" type="date" formControlName="dataInicio" />
-        </label>
+        <div class="vaga-field vaga-field--vigencia vaga-field--periodo">
+          <span>Vigência</span>
+          <app-periodo-data-picker
+            emptyLabel="Selecione o período"
+            ariaLabel="Selecionar vigência da destinação"
+            [exigirConfirmacao]="true"
+            [dataInicial]="form.controls.dataInicio.value"
+            [dataFinal]="form.controls.dataFim.value || form.controls.dataInicio.value"
+            (periodoChange)="onVigenciaPeriodoChange($event)"
+          />
+        </div>
 
-        <label class="vaga-field">
-          <span>Fim</span>
-          <input class="input-control" type="date" formControlName="dataFim" />
-        </label>
-
-        <label class="vaga-field">
-          <span>Periodicidade</span>
+        <label class="vaga-field vaga-field--recorrencia">
+          <span>Recorrência</span>
           <select class="input-control input-control--select" formControlName="periodicidade">
-            @for (p of periodicidades; track p.value) {
+            @for (p of recorrencias; track p.value) {
               <option [ngValue]="p.value">{{ p.label }}</option>
             }
           </select>
+          <small class="vaga-field__hint">{{ recorrenciaHint() }}</small>
         </label>
 
-        <label class="vaga-field">
+        <label class="vaga-field vaga-field--periodo-dia">
           <span>Período do dia</span>
           <select class="input-control input-control--select" formControlName="periodoDia">
             <option [ngValue]="null">Qualquer</option>
@@ -185,70 +186,85 @@
   }
 
   <div class="vaga-reserva-panel__list">
-    <div class="vaga-reserva-panel__list-head">
-      <h3>Reservas</h3>
-      <span class="vaga-reserva-panel__count">{{ reservas().length }}</span>
-    </div>
+    <button
+      type="button"
+      class="vaga-reserva-panel__list-toggle"
+      (click)="toggleReservas()"
+      [attr.aria-expanded]="reservasAbertas()"
+    >
+      <span class="vaga-reserva-panel__list-toggle-main">
+        <span class="material-symbols-outlined vaga-reserva-panel__list-chevron" aria-hidden="true">
+          {{ reservasAbertas() ? 'expand_less' : 'expand_more' }}
+        </span>
+        <strong>Reservas</strong>
+        <span class="vaga-reserva-panel__count">{{ reservas().length }}</span>
+      </span>
+      <span class="vaga-reserva-panel__list-toggle-hint">
+        {{ reservasAbertas() ? 'Recolher' : 'Expandir' }}
+      </span>
+    </button>
 
-    <div class="vaga-reserva-panel__table-wrap">
-      <table class="vaga-reserva-panel__table">
-        <thead>
-          <tr>
-            <th>Transportadora</th>
-            <th>Modalidade</th>
-            <th>Qtd</th>
-            <th>Vigência</th>
-            <th>Periodicidade</th>
-            <th>Período</th>
-            <th>Situação</th>
-            @if (podeGerenciar) {
-              <th></th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of reservas(); track r.id) {
-            <tr [class.is-inactive]="!r.ativo">
-              <td>{{ r.transportadoraNome || (r.avulso ? 'Avulso' : '—') }}</td>
-              <td>{{ r.modalidadeLabel }}</td>
-              <td>{{ r.quantidade }}</td>
-              <td>
-                {{ r.dataInicio | date: 'dd/MM/yyyy' }}
-                @if (r.dataFim) {
-                  — {{ r.dataFim | date: 'dd/MM/yyyy' }}
-                }
-              </td>
-              <td>{{ r.periodicidadeLabel }}</td>
-              <td>{{ r.periodoDiaLabel || '—' }}</td>
-              <td>
-                <span
-                  class="vaga-status"
-                  [class.vaga-status--on]="r.ativo"
-                  [class.vaga-status--off]="!r.ativo"
-                >
-                  {{ r.ativo ? 'Ativa' : 'Inativa' }}
-                </span>
-              </td>
+    @if (reservasAbertas()) {
+      <div class="vaga-reserva-panel__table-wrap">
+        <table class="vaga-reserva-panel__table">
+          <thead>
+            <tr>
+              <th>Transportadora</th>
+              <th>Modalidade</th>
+              <th>Qtd</th>
+              <th>Vigência</th>
+              <th>Recorrência</th>
+              <th>Período</th>
+              <th>Situação</th>
               @if (podeGerenciar) {
-                <td>
-                  @if (r.ativo) {
-                    <button
-                      type="button"
-                      class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
-                      (click)="inativar(r.id)"
-                    >
-                      Inativar
-                    </button>
-                  }
-                </td>
+                <th></th>
               }
             </tr>
-          }
-        </tbody>
-      </table>
-      @if (reservas().length === 0) {
-        <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--empty">Nenhuma reserva cadastrada.</p>
-      }
-    </div>
+          </thead>
+          <tbody>
+            @for (r of reservas(); track r.id) {
+              <tr [class.is-inactive]="!r.ativo">
+                <td>{{ r.transportadoraNome || (r.avulso ? 'Avulso' : '—') }}</td>
+                <td>{{ r.modalidadeLabel }}</td>
+                <td>{{ r.quantidade }}</td>
+                <td>
+                  {{ r.dataInicio | date: 'dd/MM/yyyy' }}
+                  @if (r.dataFim) {
+                    — {{ r.dataFim | date: 'dd/MM/yyyy' }}
+                  }
+                </td>
+                <td>{{ r.periodicidadeLabel }}</td>
+                <td>{{ r.periodoDiaLabel || '—' }}</td>
+                <td>
+                  <span
+                    class="vaga-status"
+                    [class.vaga-status--on]="r.ativo"
+                    [class.vaga-status--off]="!r.ativo"
+                  >
+                    {{ r.ativo ? 'Ativa' : 'Inativa' }}
+                  </span>
+                </td>
+                @if (podeGerenciar) {
+                  <td>
+                    @if (r.ativo) {
+                      <button
+                        type="button"
+                        class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+                        (click)="inativar(r.id)"
+                      >
+                        Inativar
+                      </button>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (reservas().length === 0) {
+          <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--empty">Nenhuma reserva cadastrada.</p>
+        }
+      </div>
+    }
   </div>
 </section>

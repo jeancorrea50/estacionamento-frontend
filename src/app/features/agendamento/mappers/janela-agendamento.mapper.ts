@@ -11,6 +11,7 @@ import {
   JanelaPeriodicidade,
   JanelaSlotDisponivel,
   ModalidadeJanela,
+  parseModalidadeAgendamento,
   PeriodicidadeTipo,
 } from '../models/janela-agendamento.models';
 
@@ -179,7 +180,7 @@ export function mapJanelaDisponibilidade(source: unknown): JanelaDisponibilidade
   const root: Row = isRow(source) ? source : {};
   return {
     data: toIsoDate(pick(root, 'data')),
-    modalidade: modalidade(root),
+    modalidade: parseModalidadeAgendamento(pick(root, 'modalidade')),
     usouDestinacao: bool(root, 'usouDestinacao', false),
     slots: list(root, 'slots').map(mapSlot),
   };

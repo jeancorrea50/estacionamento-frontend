@@ -16,6 +16,7 @@ import {
   JanelaDisponibilidade,
   JanelaDuplicarInput,
   JanelaPagedResult,
+  ModalidadeAgendamento,
   ModalidadeJanela,
 } from '../models/janela-agendamento.models';
 import { JanelaDisponibilidadeRealtimeService } from './janela-disponibilidade-realtime.service';
@@ -93,10 +94,10 @@ export class JanelaAgendamentoService {
     );
   }
 
-  /** Slots disponíveis (o backend já omite `disponiveis = 0`). */
+  /** Slots disponíveis (o backend já omite `disponiveis = 0`). Aceita Ambos (3). */
   disponibilidade(
     data: string,
-    modalidade: ModalidadeJanela,
+    modalidade: ModalidadeJanela | ModalidadeAgendamento,
     transportadoraId?: number | null
   ): Observable<JanelaDisponibilidade> {
     let params = new HttpParams().set('data', data).set('modalidade', String(modalidade));

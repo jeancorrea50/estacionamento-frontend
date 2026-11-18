@@ -15,7 +15,7 @@ import { datetimeLocalInputToApiIso } from '../../../../shared/utils/local-iso-d
 import { AgendamentoDataHoraPickerComponent } from '../../pages/agendamentos-page/agendamento-data-hora-picker/agendamento-data-hora-picker.component';
 import { toIsoDateLocal } from '../../pages/agendamentos-page/agendamento-dashboard.util';
 import { AgendamentoPostInput } from '../../models/agendamento.models';
-import { JanelaSlotDisponivel, ModalidadeJanela } from '../../models/janela-agendamento.models';
+import { JanelaSlotDisponivel, ModalidadeAgendamento } from '../../models/janela-agendamento.models';
 import { AgendamentoService } from '../../services/agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
 import { JanelaSlotSelectComponent } from '../janela-slot-select/janela-slot-select.component';
@@ -79,7 +79,7 @@ export class AgendamentoNovoModalComponent {
 
   /** Dia escolhido (`yyyy-MM-dd`) — espelha o form para o `app-janela-slot-select`. */
   readonly dataSelecionada = signal('');
-  readonly modalidadeJanela = signal<ModalidadeJanela>(1);
+  readonly modalidadeJanela = signal<ModalidadeAgendamento>(1);
   /** Slot escolhido na janela; define a hora do agendamento. */
   readonly slotSelecionado = signal<JanelaSlotDisponivel | null>(null);
 

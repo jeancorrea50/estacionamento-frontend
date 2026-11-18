@@ -4,8 +4,9 @@ import { finalize } from 'rxjs/operators';
 import { ApiError } from '../../../../core/api/models';
 import {
   JanelaSlotDisponivel,
-  MODALIDADE_JANELA_OPCOES,
-  ModalidadeJanela,
+  MODALIDADE_AGENDAMENTO_OPCOES,
+  ModalidadeAgendamento,
+  parseModalidadeAgendamento,
 } from '../../models/janela-agendamento.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
@@ -20,6 +21,7 @@ function slotKey(s: JanelaSlotDisponivel): string {
  * Carrega `GET JanelaAgendamento/disponibilidade` ao mudar data/modalidade/transportadora e
  * sempre que `JanelaDisponibilidadeRealtimeService.versao` mudar (hub ou CRUD local).
  * O backend já omite slots com `disponiveis = 0`.
+ * Modalidade Ambos (3) exige vaga no mesmo intervalo em Estacionamento e Limpeza.
  */
 @Component({
   selector: 'app-janela-slot-select',
@@ -32,7 +34,7 @@ function slotKey(s: JanelaSlotDisponivel): string {
       <select
         id="jsl-modalidade"
         class="input-control"
-        (change)="modalidade.set($any($event.target).value === '2' ? 2 : 1)"
+        (change)="modalidade.set(parseModalidade($any($event.target).value))"
       >
         @for (m of modalidades; track m.value) {
           <option [value]="m.value" [selected]="m.value === modalidade()">{{ m.label }}</option>
@@ -83,12 +85,13 @@ export class JanelaSlotSelectComponent {
   /** Destinação por transportadora (operador de pátio); transportadora logada é resolvida no backend. */
   readonly transportadoraId = input<number | null>(null);
 
-  readonly modalidade = model<ModalidadeJanela>(1);
+  readonly modalidade = model<ModalidadeAgendamento>(1);
   /** Slot escolhido (`null` = nenhum). */
   readonly slot = model<JanelaSlotDisponivel | null>(null);
 
-  readonly modalidades = MODALIDADE_JANELA_OPCOES;
+  readonly modalidades = MODALIDADE_AGENDAMENTO_OPCOES;
   readonly chave = slotKey;
+  readonly parseModalidade = parseModalidadeAgendamento;
 
   readonly slots = signal<JanelaSlotDisponivel[]>([]);
   readonly carregando = signal(false);
@@ -131,7 +134,11 @@ export class JanelaSlotSelectComponent {
     this.carregando.set(false);
   }
 
-  private carregar(data: string, modalidade: ModalidadeJanela, transportadoraId: number | null): void {
+  private carregar(
+    data: string,
+    modalidade: ModalidadeAgendamento,
+    transportadoraId: number | null
+  ): void {
     const anterior = this.slot();
     this.carregando.set(true);
     this.erro.set(null);

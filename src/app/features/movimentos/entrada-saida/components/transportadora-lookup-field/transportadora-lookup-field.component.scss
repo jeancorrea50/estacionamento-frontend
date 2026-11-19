@@ -1,3 +1,9 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .trn-lookup {
   display: flex;
   align-items: center;
@@ -11,7 +17,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  width: 100% !important;
+  /* Não usar width:100% — esmaga o botão Limpar quando o nome é longo. */
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto !important;
   max-width: 100%;
   text-align: left;
   cursor: pointer;
@@ -45,5 +54,8 @@
 
 .trn-lookup__clear {
   flex: 0 0 auto;
+  flex-shrink: 0;
   white-space: nowrap;
+  min-height: 34px;
+  padding-inline: 10px;
 }

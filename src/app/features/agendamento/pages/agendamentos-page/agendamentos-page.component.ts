@@ -51,6 +51,10 @@ import {
   type AgendamentoTimelineSlot,
 } from './agendamento-dashboard.util';
 import { AgendamentoDiaTimelineComponent } from './agendamento-dia-timeline/agendamento-dia-timeline.component';
+import {
+  exportarPainelAgendamentosExcel,
+  exportarPainelAgendamentosPdf,
+} from './agendamento-painel-export';
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -170,6 +174,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   filtroTransportadoraId: number | null = null;
   filtroTransportadoraNome = '';
   readonly gerandoReciboId = signal<number | null>(null);
+  readonly exportando = signal(false);
 
   constructor() {
     // Recarrega a timeline ao mudar modalidade/data ou quando janelas mudarem (hub/CRUD).
@@ -294,6 +299,54 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     this.carregarVagas();
     // Ocupação das grades acompanha a busca (novo/cancelamento/confirmação).
     this.carregarTimeline(this.dataSelecionadaIso(), this.modalidadeUi());
+  }
+
+  exportarPdf(): void {
+    this.executarExportacao('pdf');
+  }
+
+  exportarExcel(): void {
+    this.executarExportacao('excel');
+  }
+
+  private executarExportacao(tipo: 'pdf' | 'excel'): void {
+    if (!this.canVisualizar || this.exportando()) return;
+    if (this.loadingTimeline() || this.loadingList()) {
+      this.toast.error('Aguarde o carregamento dos dados da tela antes de exportar.');
+      return;
+    }
+
+    const entrada = {
+      dataLabel: this.dataSelecionadaLabel(),
+      modalidadeLabel: this.modalidadeUi() === 'limpeza' ? 'Limpeza' : 'Estacionamento',
+      transportadoraNome: this.filtroTransportadoraNome.trim() || null,
+      busca: this.filtroBusca.trim() || null,
+      kpis: {
+        agendados: this.kpiAgendados(),
+        disponiveis: this.kpiDisponiveis(),
+        ocupados: this.kpiOcupados(),
+        limpeza: this.kpiLimpeza(),
+      },
+      slots: this.timelineSlots(),
+      emitidoEm: new Date(),
+    };
+
+    this.exportando.set(true);
+    try {
+      if (tipo === 'pdf') {
+        exportarPainelAgendamentosPdf(entrada);
+        this.toast.success('Abra a impressão do navegador e salve como PDF.');
+      } else {
+        exportarPainelAgendamentosExcel(entrada);
+        this.toast.success('Excel gerado.');
+      }
+    } catch {
+      this.toast.error(
+        tipo === 'pdf' ? 'Não foi possível gerar o PDF.' : 'Não foi possível gerar o Excel.'
+      );
+    } finally {
+      this.exportando.set(false);
+    }
   }
 
   onPeriodoChange(periodo: PeriodoDataSelecionado): void {

@@ -77,8 +77,18 @@ function slotKey(s: JanelaSlotDisponivel): string {
 
 function formatHoraLabel(inicio: string, fim: string, labelApi: string): string {
   const limpo = (labelApi || '').trim();
-  if (limpo) return limpo.replace(/\s*-\s*/g, '–');
-  return `${inicio}–${fim}`;
+  if (limpo) {
+    // Remove sufixo "(N vagas…)" — a disponibilidade já aparece nas métricas/subtítulo.
+    const semVagas = limpo
+      .replace(/\s*\([^)]*vagas[^)]*\)\s*$/i, '')
+      .replace(/\s*-\s*/g, '–')
+      .trim();
+    if (semVagas) return semVagas;
+  }
+  const hi = (inicio || '').trim();
+  const hf = (fim || '').trim();
+  if (hi && hf) return `${hi} às ${hf}`;
+  return hi || hf || '—';
 }
 
 /** Ordena e normaliza slots da disponibilidade do dia para a timeline. */

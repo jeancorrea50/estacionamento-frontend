@@ -79,6 +79,28 @@
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
               Buscar
             </button>
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral"
+              (click)="exportarPdf()"
+              [disabled]="exportando()"
+              aria-label="Exportar painel em PDF"
+              title="Exportar dados da tela em PDF"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+              PDF
+            </button>
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral"
+              (click)="exportarExcel()"
+              [disabled]="exportando()"
+              aria-label="Exportar painel em Excel"
+              title="Exportar dados da tela em Excel"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+              Excel
+            </button>
             @if (podeVerJanelas) {
               <a
                 class="est-dash-btn est-dash-btn--neutral"

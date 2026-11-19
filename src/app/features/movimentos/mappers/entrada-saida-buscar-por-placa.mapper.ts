@@ -7,7 +7,11 @@ import {
   EntradaSaidaMotoristaVinculoItem,
   RegistroRapidoPorPlacaCampos
 } from '../models/entrada-saida-buscar-por-placa.models';
-import { EntradaSaidaOutput } from '../models/entrada-saida.models';
+import {
+  EntradaSaidaOutput,
+  EntradaSaidaStatus,
+  parseEntradaSaidaStatus
+} from '../models/entrada-saida.models';
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value != null && typeof value === 'object' && !Array.isArray(value)
@@ -209,8 +213,17 @@ export function mapBuscarPorPlacaParaRegistroRapido(
   const tipoCargaRaw = pickStr([veiculo, root], 'tipoCarga', 'tipoCargaDescricao');
   const tipoCargaLabelResolved = mapearTipoCargaEnumParaLabel(tipoCargaRaw);
 
-  const existeEntradaEmAberto =
+  // Agendado não é entrada em aberto — a portaria deve converter o agendamento em entrada.
+  const statusParsed = parseEntradaSaidaStatus(
+    root['status'] as number | string | null | undefined ??
+      (root['Status'] as number | string | null | undefined)
+  );
+  const existeEntradaEmAbertoFlag =
     Boolean(root['existeEntradaEmAberto'] ?? root['ExisteEntradaEmAberto']) === true;
+  const existeEntradaEmAberto =
+    existeEntradaEmAbertoFlag &&
+    statusParsed !== EntradaSaidaStatus.Agendado &&
+    statusParsed !== EntradaSaidaStatus.Cancelado;
 
   const acordo = asRecord(root['acordo'] ?? root['Acordo']);
   const geraExcedente = Boolean(

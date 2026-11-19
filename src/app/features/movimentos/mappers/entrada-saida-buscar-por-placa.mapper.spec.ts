@@ -87,6 +87,16 @@ describe('mapBuscarPorPlacaParaRegistroRapido', () => {
     expect(campos.existeEntradaEmAberto).toBe(true);
   });
 
+  it('não bloqueia entrada quando Status=Agendado mesmo com flag legado', () => {
+    const campos = mapBuscarPorPlacaParaRegistroRapido({
+      placa: 'JGG7468',
+      ExisteEntradaEmAberto: true,
+      Status: 3
+    });
+    expect(campos.existeEntradaEmAberto).toBe(false);
+    expect(campos.placa).toBe('JGG-7468');
+  });
+
   it('deve preencher Registro Rápido a partir do contrato flat (placa/transportadora na raiz)', () => {
     const campos = mapBuscarPorPlacaParaRegistroRapido({
       veiculoId: 1,

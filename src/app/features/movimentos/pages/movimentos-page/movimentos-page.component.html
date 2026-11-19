@@ -934,6 +934,10 @@
             <p class="registro-acordo-alerta" role="status">
               Já existe entrada em aberto para esta placa. Não é possível registrar outra entrada.
             </p>
+          } @else if (placaComAgendamentoPendente) {
+            <p class="registro-acordo-alerta" role="status">
+              Placa com agendamento neste pátio. Confirmar entrada converterá o agendamento em entrada.
+            </p>
           }
         </div>
 

@@ -387,6 +387,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
   existeEntradaEmAbertoPorPlaca = false;
+  /** Placa possui agendamento no pátio da sessão (entrada permitida — converte o agendamento). */
+  placaComAgendamentoPendente = false;
   /** Movimento em aberto da placa consultada está com permanência suspensa. */
   registroRapidoSuspenso = false;
   alertaAcordoRegistroRapido = '';
@@ -936,6 +938,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.registroRapido.placa = placaFormatada;
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.placaComAgendamentoPendente = false;
     const placaNorm = normalizePlaca(placaFormatada);
     if (!placaCompleta(placaNorm)) {
       this.ultimaPlacaConsultadaRegistroRapido = '';
@@ -1491,7 +1494,13 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           next: (page) => {
             const lote = (page.items ?? [])
               .filter((item) => !item.dataHoraSaida)
-              .filter((item) => this.itemPertenceAoPatioSessao(item));
+              .filter((item) => this.itemPertenceAoPatioSessao(item))
+              .filter((item) => {
+                const st = parseEntradaSaidaStatus(item.status);
+                return (
+                  st === EntradaSaidaStatus.Entrada || st === EntradaSaidaStatus.Suspenso
+                );
+              });
             const todos = [...acumulado, ...lote];
             const total = Number(page.totalCount) || todos.length;
             const temMais = todos.length < total && lote.length > 0;
@@ -1671,6 +1680,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.ultimaPlacaConsultadaRegistroRapido = '';
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.placaComAgendamentoPendente = false;
     this.registroRapidoSuspenso = false;
     this.alertaAcordoRegistroRapido = '';
     this.alertaAcordoExcedente = false;
@@ -2602,6 +2612,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.consultaCnpjSequencia++;
     this.camposBloqueadosPorPlaca = false;
     this.existeEntradaEmAbertoPorPlaca = false;
+    this.placaComAgendamentoPendente = false;
     this.registroRapidoSuspenso = false;
     this.alertaAcordoRegistroRapido = '';
     this.alertaAcordoExcedente = false;
@@ -2658,6 +2669,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.tipoCarga = campos.tipoCargaLabel;
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.placaComAgendamentoPendente =
+      !campos.existeEntradaEmAberto &&
+      parseEntradaSaidaStatus(entrada.status) === EntradaSaidaStatus.Agendado;
     this.registroRapidoSuspenso = campos.existeEntradaEmAberto && this.estaSuspenso(entrada);
     this.aplicarAlertaAcordoRegistroRapido(campos);
     this.camposBloqueadosPorPlaca = true;
@@ -2711,6 +2725,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.tipoCarga = campos.tipoCargaLabel;
     }
     this.existeEntradaEmAbertoPorPlaca = campos.existeEntradaEmAberto;
+    this.placaComAgendamentoPendente =
+      !campos.existeEntradaEmAberto &&
+      parseEntradaSaidaStatus(entrada.status) === EntradaSaidaStatus.Agendado;
     this.registroRapidoSuspenso = campos.existeEntradaEmAberto && this.estaSuspenso(entrada);
     this.aplicarAlertaAcordoRegistroRapido(campos);
     this.camposBloqueadosPorPlaca = true;

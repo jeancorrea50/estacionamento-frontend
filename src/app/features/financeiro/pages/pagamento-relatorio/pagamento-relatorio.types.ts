@@ -60,4 +60,5 @@ export const PAGAMENTO_RELATORIO_FORMA_OPCOES: { value: number; label: string }[
   { value: 2, label: 'Boleto' },
   { value: 3, label: 'Transferência' },
   { value: 4, label: 'Cartão' },
+  { value: 5, label: 'Dinheiro' },
 ];

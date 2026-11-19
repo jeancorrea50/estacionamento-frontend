@@ -1,11 +1,18 @@
 import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentoService } from '../../entrada-saida/movimento.service';
 import { PATIO_ENTRADA_SAIDA_ROUTE } from '../../../patio/patio-rotas';
+import {
+  SaidaPagamentoDialogComponent,
+  type SaidaPagamentoDialogResult
+} from '../../components/saida-pagamento-dialog/saida-pagamento-dialog.component';
+import { FaturaService } from '../../../financeiro/services/fatura.service';
+import { ModalidadeRecebimento } from '../../../financeiro/models/fatura.models';
 import {
   EntradaSaidaFiltro,
   EntradaSaidaOutput,
@@ -142,6 +149,7 @@ interface AlertaItemVm {
   imports: [
     CommonModule,
     FormsModule,
+    MatDialogModule,
     CameraPreviewComponent,
     TelefoneFormatDirective,
     MovimentosFiltrosPanelComponent,
@@ -166,6 +174,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly movimentacaoRelatorio = inject(MovimentacaoRelatorioService);
   private readonly movimentacaoRelatorioPdf = inject(MovimentacaoRelatorioPdfService);
   private readonly reciboPdf = inject(ReciboPdfService);
+  private readonly dialog = inject(MatDialog);
+  private readonly faturaApi = inject(FaturaService);
 
   /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
   private get service(): EntradaSaidaService {
@@ -1129,7 +1139,45 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.toast.error('Registro sem id válido para atualizar permanência.');
       return;
     }
-    this.confirmarSaidaComRecibo(item);
+
+    const tipoCobranca = this.saidaTipoCobranca();
+    const faturamento = isModalidadeFaturamento({
+      tipoCobranca,
+      acordoCobrancaId: item.acordoCobrancaId,
+      ehExcedente: item.ehExcedente
+    });
+
+    // Cobrança faturada/contrato: não há recebimento na portaria.
+    if (faturamento) {
+      this.confirmarSaidaComRecibo(item, null);
+      return;
+    }
+
+    const valor = this.saidaValor();
+    if (valor == null || !Number.isFinite(valor) || valor < 0) {
+      this.toast.error(
+        this.saidaTipoTarifa() === 1
+          ? 'Informe o valor da hora para calcular o total do recibo.'
+          : 'Informe o valor da diária para calcular o total do recibo.'
+      );
+      return;
+    }
+
+    const ref = this.dialog.open(SaidaPagamentoDialogComponent, {
+      width: '560px',
+      maxWidth: '96vw',
+      autoFocus: 'dialog',
+      panelClass: 'saida-pagamento-dialog-panel',
+      data: {
+        placa: this.formatarPlaca(this.placaSelecionada()),
+        valor
+      }
+    });
+
+    ref.afterClosed().subscribe((result: SaidaPagamentoDialogResult | undefined) => {
+      if (!result?.modalidadeRecebimento) return;
+      this.confirmarSaidaComRecibo(item, result.modalidadeRecebimento);
+    });
   }
 
   excluir(item: EntradaSaidaSearchOutput): void {
@@ -2092,7 +2140,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private confirmarSaidaComRecibo(item: EntradaSaidaOutput): void {
+  private confirmarSaidaComRecibo(
+    item: EntradaSaidaOutput,
+    modalidadeRecebimento: ModalidadeRecebimento | null
+  ): void {
     const placa = this.placaSelecionada();
     if (!placa || placa === '—') {
       this.toast.error('Placa não encontrada para registrar a saída.');
@@ -2118,22 +2169,55 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.saidaProcessando.set(true);
     this.service
       .saida(placa)
-      .pipe(finalize(() => this.saidaProcessando.set(false)))
+      .pipe(
+        finalize(() => this.saidaProcessando.set(false))
+      )
       .subscribe({
         next: () => {
-          void this.ofertarReciboAposOperacao({
-            id: item.id,
-            modo: ModoRecibo.Saida,
-            valor: faturamento ? null : valor,
-            placa,
-            tipoCobranca,
-            tipoTarifa: this.saidaTipoTarifa(),
-            ehExcedente: item.ehExcedente === true,
-            acordoCobrancaId: item.acordoCobrancaId ?? null,
-            mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
-          });
-          this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
-          this.limparRegistroRapido();
+          const concluir = () => {
+            void this.ofertarReciboAposOperacao({
+              id: item.id,
+              modo: ModoRecibo.Saida,
+              valor: faturamento ? null : valor,
+              placa,
+              tipoCobranca,
+              tipoTarifa: this.saidaTipoTarifa(),
+              ehExcedente: item.ehExcedente === true,
+              avulso: faturamento ? false : true,
+              acordoCobrancaId: item.acordoCobrancaId ?? null,
+              mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
+            });
+            this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
+            this.limparRegistroRapido();
+          };
+
+          // Avulso: grava fatura Pago com a forma escolhida (Financeiro/Pagamento).
+          if (
+            !faturamento &&
+            modalidadeRecebimento != null &&
+            valor != null &&
+            Number.isFinite(valor)
+          ) {
+            this.faturaApi
+              .gerarAvulso({
+                entradaSaidaId: item.id,
+                valor,
+                modalidadeRecebimento
+              })
+              .subscribe({
+                next: () => concluir(),
+                error: (err: ApiError) => {
+                  this.handleApiError(
+                    err,
+                    'Saída ok, mas falhou ao registrar o pagamento avulso.'
+                  );
+                  concluir();
+                }
+              });
+            return;
+          }
+
+          concluir();
         },
         error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
       });

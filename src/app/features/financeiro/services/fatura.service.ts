@@ -18,6 +18,7 @@ import type {
   FaturaAcordoInadimplenciaInput,
   FaturaWhatsAppCobrancaOutput,
   HistoricoCobrancaItemOutput,
+  ModalidadeRecebimento,
   StatusCobrancaFatura
 } from '../models/fatura.models';
 import {
@@ -100,6 +101,25 @@ export class FaturaService {
   /** DELETE `/api/financeiro/Fatura/{id}` */
   excluir(id: number): Observable<void> {
     return this.http.delete<unknown>(`${API}/${id}`).pipe(map(() => undefined));
+  }
+
+  /**
+   * POST `/api/financeiro/Fatura/avulso` — fatura avulsa já como Pago,
+   * com forma de pagamento (portaria / recibo de saída).
+   */
+  gerarAvulso(input: {
+    entradaSaidaId: number;
+    valor: number;
+    modalidadeRecebimento?: ModalidadeRecebimento | null;
+  }): Observable<FaturaListaItem | null> {
+    const body: Record<string, unknown> = {
+      entradaSaidaId: input.entradaSaidaId,
+      valor: input.valor
+    };
+    if (input.modalidadeRecebimento != null && input.modalidadeRecebimento > 0) {
+      body['modalidadeRecebimento'] = input.modalidadeRecebimento;
+    }
+    return this.http.post<unknown>(`${API}/avulso`, body).pipe(map((res) => this.mapMutationBody(res)));
   }
 
   /** GET `/api/financeiro/Fatura/{id}/report` — PDF blob. */

@@ -800,6 +800,8 @@ export class FaturamentoVisaoGeralComponent implements OnInit {
         return ModalidadeRecebimento.Transferencia;
       case 'Cartão':
         return ModalidadeRecebimento.Cartao;
+      case 'Dinheiro':
+        return ModalidadeRecebimento.Dinheiro;
       default:
         return undefined;
     }

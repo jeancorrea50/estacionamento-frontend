@@ -1,0 +1,73 @@
+<div class="saida-pag" role="dialog" aria-labelledby="saida-pag-titulo">
+  <header class="saida-pag__header">
+    <div>
+      <h2 id="saida-pag-titulo" class="saida-pag__title">Forma de pagamento</h2>
+      <p class="saida-pag__sub">
+        Placa <strong>{{ data.placa }}</strong> · Total
+        <strong class="saida-pag__valor">{{ valorFormatado }}</strong>
+      </p>
+    </div>
+    <button type="button" class="saida-pag__close" aria-label="Fechar" (click)="cancelar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <div class="saida-pag__formas" role="group" aria-label="Selecione a forma de pagamento">
+    @for (f of formas; track f.value) {
+      <button
+        type="button"
+        class="saida-pag__card"
+        [class.saida-pag__card--active]="formaSelecionada() === f.value"
+        (click)="selecionar(f.value)"
+      >
+        <span class="material-symbols-outlined saida-pag__card-ico" aria-hidden="true">{{ f.icon }}</span>
+        <span class="saida-pag__card-label">{{ f.label }}</span>
+        <span class="saida-pag__card-hint">{{ f.hint }}</span>
+      </button>
+    }
+  </div>
+
+  @if (formaSelecionada() === ModalidadeRecebimento.Pix) {
+    <section class="saida-pag__pix" aria-label="Pagamento Pix">
+      @if (pixLoading()) {
+        <p class="saida-pag__pix-status" role="status">Carregando QR Code…</p>
+      } @else if (pixErro()) {
+        <p class="saida-pag__pix-erro" role="alert">{{ pixErro() }}</p>
+      } @else {
+        <div class="saida-pag__pix-grid">
+          @if (pixQrSrc(); as src) {
+            <img class="saida-pag__qr" [src]="src" alt="QR Code Pix do estacionamento" width="180" height="180" />
+          }
+          <div class="saida-pag__pix-info">
+            @if (pixTitular()) {
+              <p><span class="saida-pag__pix-k">Recebedor</span> {{ pixTitular() }}</p>
+            }
+            @if (pixChave()) {
+              <p><span class="saida-pag__pix-k">Chave Pix</span> {{ pixChave() }}</p>
+            }
+            @if (pixPayload()) {
+              <button type="button" class="saida-pag__copia" (click)="copiarPayload()">
+                <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                Copiar Pix copia e cola
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+
+  <footer class="saida-pag__footer">
+    <button type="button" mat-button class="saida-pag__btn" (click)="cancelar()">Cancelar</button>
+    <button
+      type="button"
+      mat-flat-button
+      color="primary"
+      class="saida-pag__btn saida-pag__btn--ok"
+      [disabled]="formaSelecionada() == null"
+      (click)="confirmar()"
+    >
+      Confirmar pagamento
+    </button>
+  </footer>
+</div>

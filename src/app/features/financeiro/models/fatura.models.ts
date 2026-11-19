@@ -13,7 +13,8 @@ export enum ModalidadeRecebimento {
   Pix = 1,
   Boleto = 2,
   Transferencia = 3,
-  Cartao = 4
+  Cartao = 4,
+  Dinheiro = 5
 }
 
 /** Alinhado a `Estac.Domain.Models.Enuns.TipoFatura`. */

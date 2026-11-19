@@ -8,7 +8,7 @@ export type FaturaStatusLabel =
   | 'Aguardando envio'
   | 'Cancelada';
 
-export type ModalidadeRecebimentoLabel = 'Pix' | 'Boleto' | 'Transferência' | 'Cartão';
+export type ModalidadeRecebimentoLabel = 'Pix' | 'Boleto' | 'Transferência' | 'Cartão' | 'Dinheiro';
 
 export type TipoFaturaLabel = 'Avulso' | 'Cobrança';
 

@@ -49,6 +49,8 @@ export function mapPagamentoFormaPagamento(
       return 'Transfer\u00eancia';
     case ModalidadeRecebimento.Cartao:
       return 'Cart\u00e3o';
+    case ModalidadeRecebimento.Dinheiro:
+      return 'Dinheiro';
     default:
       return null;
   }

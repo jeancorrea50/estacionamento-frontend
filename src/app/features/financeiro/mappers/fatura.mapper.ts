@@ -95,6 +95,8 @@ export function modalidadeRecebimentoLabel(
       return 'Transfer\u00eancia';
     case ModalidadeRecebimento.Cartao:
       return 'Cart\u00e3o';
+    case ModalidadeRecebimento.Dinheiro:
+      return 'Dinheiro';
     default:
       return '\u2014';
   }
@@ -112,6 +114,8 @@ export function modalidadeRecebimentoFromLabel(
       return ModalidadeRecebimento.Transferencia;
     case 'Cart\u00e3o':
       return ModalidadeRecebimento.Cartao;
+    case 'Dinheiro':
+      return ModalidadeRecebimento.Dinheiro;
     default:
       return null;
   }

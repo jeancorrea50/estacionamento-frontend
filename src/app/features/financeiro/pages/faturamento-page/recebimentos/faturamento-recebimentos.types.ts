@@ -19,8 +19,7 @@ export type RecebimentoFormaPagamento =
   | 'Boleto'
   | 'Transferência'
   | 'Cartão'
-  | 'Dinheiro'
-  | 'Outros';
+  | 'Dinheiro';
 
 export type RecebimentoPeriodoGranularidade = 'dia' | 'mes' | 'ano';
 

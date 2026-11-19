@@ -20,6 +20,16 @@ import type { PontoMapa } from '../../../shared/maps/ponto-mapa.model';
 const API_BASE = environment.API_BASE_URL;
 const Estacionamento = `${API_BASE}/Estacionamento`;
 
+/** GET `/api/Estacionamento/sessao/pix-qrcode` — QR da conta do pátio da sessão. */
+export interface EstacionamentoPixQrDto {
+  temChavePix: boolean;
+  chavePix: string | null;
+  titular: string | null;
+  payload: string | null;
+  qrCodeBase64: string | null;
+  valor: number | null;
+}
+
 /** Objeto no formato do formulário (para patchValue) após carregar ObterPorId */
 export interface EstacionamentoFormValue {
   id: number;
@@ -88,6 +98,51 @@ export interface EstacionamentoFormValue {
 })
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
+
+  /** GET `/api/Estacionamento/sessao/pix-qrcode` — QR Pix do pátio da sessão. */
+  obterPixQrCodeSessao(valor?: number | null): Observable<EstacionamentoPixQrDto> {
+    let params = new HttpParams();
+    if (valor != null && Number.isFinite(valor) && valor >= 0) {
+      params = params.set('valor', String(valor));
+    }
+    return this.http.get<unknown>(`${Estacionamento}/sessao/pix-qrcode`, { params }).pipe(
+      timeout(15000),
+      map((body) => this.mapPixQrResponse(body)),
+      catchError(() =>
+        of({
+          temChavePix: false,
+          chavePix: null,
+          titular: null,
+          payload: null,
+          qrCodeBase64: null,
+          valor: valor ?? null
+        } satisfies EstacionamentoPixQrDto)
+      )
+    );
+  }
+
+  private mapPixQrResponse(body: unknown): EstacionamentoPixQrDto {
+    const peeled = this.peelApiEnvelope(body);
+    const row =
+      peeled && typeof peeled === 'object' ? (peeled as Record<string, unknown>) : {};
+    const tem =
+      row['temChavePix'] === true ||
+      row['TemChavePix'] === true ||
+      !!(row['chavePix'] ?? row['ChavePix']);
+    const qr = String(row['qrCodeBase64'] ?? row['QrCodeBase64'] ?? '').trim() || null;
+    const valorRaw = row['valor'] ?? row['Valor'];
+    return {
+      temChavePix: tem,
+      chavePix: String(row['chavePix'] ?? row['ChavePix'] ?? '').trim() || null,
+      titular: String(row['titular'] ?? row['Titular'] ?? '').trim() || null,
+      payload: String(row['payload'] ?? row['Payload'] ?? '').trim() || null,
+      qrCodeBase64: qr,
+      valor:
+        valorRaw == null || valorRaw === ''
+          ? null
+          : Number(valorRaw)
+    };
+  }
 
   /** GET /api/Estacionamento/mapa — pátios com latitude e longitude. Sem permissão extra. */
   listarMapa(): Observable<PontoMapa[]> {

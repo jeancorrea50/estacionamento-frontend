@@ -1,10 +1,10 @@
 import {
+  ModalidadeRecebimento,
   StatusFatura,
   type FaturaProximoVencimentoOutput,
   type FaturaVisaoGeralOutput
 } from '../../../models/fatura.models';
-import { statusFaturaLabel } from '../../../mappers/fatura.mapper';
-import { ModalidadeCobranca, modalidadeLabel } from '../../../mappers/configuracao-cobranca.mapper';
+import { modalidadeRecebimentoLabel, statusFaturaLabel } from '../../../mappers/fatura.mapper';
 import type { FaturaStatusVisao } from '../faturamento-visao.types';
 import type { AlertaResumoBase, ProximoVencimentoBase } from './faturamento-visao-alertas';
 
@@ -45,43 +45,16 @@ const STATUS_ORDEM: StatusFatura[] = [
   StatusFatura.Cancelada
 ];
 
-/** Ordem das regras de cobrança (igual ao cadastro) + Avulso no início. */
-const MODALIDADE_COBRANCA_ORDEM: ModalidadeCobranca[] = [
-  ModalidadeCobranca.Diaria,
-  ModalidadeCobranca.Semanal,
-  ModalidadeCobranca.Quinzenal,
-  ModalidadeCobranca.Mensal,
-  ModalidadeCobranca.Personalizado,
-  ModalidadeCobranca.Acordo
-];
-
-/** Código reservado no agregado FE para faturas sem configuração de cobrança. */
-const MODALIDADE_AVULSO = 0;
-
 const MES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] as const;
 
-function labelModalidadeCobrancaChart(codigo: number): string {
-  if (codigo === MODALIDADE_AVULSO) return 'Avulso';
-  if (Number(codigo) === ModalidadeCobranca.Personalizado) return 'Data personalizada';
-  return String(modalidadeLabel(codigo));
-}
-
-function normalizarCodigoModalidadeCobranca(raw: number): number {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return MODALIDADE_AVULSO;
-  if (
-    n === ModalidadeCobranca.Diaria ||
-    n === ModalidadeCobranca.Semanal ||
-    n === ModalidadeCobranca.Quinzenal ||
-    n === ModalidadeCobranca.Mensal ||
-    n === ModalidadeCobranca.Personalizado ||
-    n === ModalidadeCobranca.Acordo
-  ) {
-    return n;
-  }
-  // Código fora do enum de cobrança → trata como Avulso (sem config válida).
-  return MODALIDADE_AVULSO;
-}
+/** Ordem do gráfico de recebimentos por forma de pagamento (BE: ModalidadeRecebimento). */
+const MODALIDADE_RECEBIMENTO_ORDEM: ModalidadeRecebimento[] = [
+  ModalidadeRecebimento.Pix,
+  ModalidadeRecebimento.Cartao,
+  ModalidadeRecebimento.Dinheiro,
+  ModalidadeRecebimento.Boleto,
+  ModalidadeRecebimento.Transferencia
+];
 
 export function mapVisaoResumoFinanceiro(dto: FaturaVisaoGeralOutput): VisaoResumoFinanceiroVm {
   const totalReceber = Number(dto.totalAReceber) || 0;
@@ -120,26 +93,34 @@ export function mapVisaoPorStatus(dto: FaturaVisaoGeralOutput): StatusContagem[]
 }
 
 /**
- * Valor gerado por modalidade de **cobrança** (cadastro Config. cobrança).
- * Sem configuração → **Avulso** (`modalidade` 0/ausente/inválida).
- * Só retorna linhas com valor > 0 vindas do backend (não inventa modalidades zeradas).
+ * Recebimentos agrupados por forma de pagamento (`ModalidadeRecebimento` no BE).
+ * Só retorna linhas com valor > 0.
  */
 export function mapVisaoPorModalidade(dto: FaturaVisaoGeralOutput): ModalidadeValor[] {
   const byMod = new Map<number, number>();
   for (const row of dto.recebimentosPorModalidade) {
-    const key = normalizarCodigoModalidadeCobranca(Number(row.modalidade));
+    const key = Number(row.modalidade);
     const valor = Number(row.valor) || 0;
-    if (valor <= 0) continue;
+    if (!Number.isFinite(key) || key <= 0 || valor <= 0) continue;
     byMod.set(key, (byMod.get(key) ?? 0) + valor);
   }
 
-  const ordem = [MODALIDADE_AVULSO, ...MODALIDADE_COBRANCA_ORDEM];
-  return ordem
-    .filter((codigo) => (byMod.get(codigo) ?? 0) > 0)
-    .map((codigo) => ({
-      modalidade: labelModalidadeCobrancaChart(codigo),
+  const ordenados = MODALIDADE_RECEBIMENTO_ORDEM.filter((codigo) => (byMod.get(codigo) ?? 0) > 0).map(
+    (codigo) => ({
+      modalidade: String(modalidadeRecebimentoLabel(codigo)),
       valor: byMod.get(codigo) ?? 0
-    }));
+    })
+  );
+
+  // Códigos futuros / não listados na ordem fixa.
+  for (const [codigo, valor] of byMod) {
+    if (MODALIDADE_RECEBIMENTO_ORDEM.includes(codigo as ModalidadeRecebimento)) continue;
+    const label = modalidadeRecebimentoLabel(codigo);
+    if (label === '\u2014') continue;
+    ordenados.push({ modalidade: String(label), valor });
+  }
+
+  return ordenados;
 }
 
 /** Contagens extras que não vêm no snapshot “total” de `/visao-geral`. */

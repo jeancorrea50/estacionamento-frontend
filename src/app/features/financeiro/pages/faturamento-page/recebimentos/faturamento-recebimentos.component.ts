@@ -115,7 +115,7 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     'Cancelada'
   ];
 
-  readonly formasPagamento = ['PIX', 'Boleto', 'Transferência', 'Cartão', 'Dinheiro', 'Outros'] as const;
+  readonly formasPagamento = ['PIX', 'Boleto', 'Transferência', 'Cartão', 'Dinheiro'] as const;
 
   readonly periodoGranularidade = signal<RecebimentoPeriodoGranularidade>('dia');
   readonly periodoDataInicio = signal<Date>(this.criarDataHoje());
@@ -165,6 +165,7 @@ export class FaturamentoRecebimentosComponent implements OnInit {
     'valorRecebido',
     'saldoRestante',
     'dataPagamento',
+    'formaPagamento',
     'status',
     'acoes'
   ];
@@ -688,6 +689,8 @@ export class FaturamentoRecebimentosComponent implements OnInit {
       case 'Cartão':
       case 'Cartao':
         return ModalidadeRecebimento.Cartao;
+      case 'Dinheiro':
+        return ModalidadeRecebimento.Dinheiro;
       default:
         return null;
     }

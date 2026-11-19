@@ -72,7 +72,8 @@ export class FaturaFormDialogComponent {
     'Pix',
     'Boleto',
     'Transferência',
-    'Cartão'
+    'Cartão',
+    'Dinheiro'
   ];
 
   transportadoraId: number | null = this.data.item?.transportadoraId ?? null;

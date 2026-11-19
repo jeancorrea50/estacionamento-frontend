@@ -178,11 +178,18 @@ function mapSlot(row: Row): JanelaSlotDisponivel {
 
 export function mapJanelaDisponibilidade(source: unknown): JanelaDisponibilidade {
   const root: Row = isRow(source) ? source : {};
+  const slots = list(root, 'slots').map(mapSlot);
+  const totalCapacidade = numOrNull(root, 'totalCapacidade');
+  const totalOcupadas = numOrNull(root, 'totalOcupadas');
+  const totalDisponiveis = numOrNull(root, 'totalDisponiveis');
   return {
     data: toIsoDate(pick(root, 'data')),
     modalidade: parseModalidadeAgendamento(pick(root, 'modalidade')),
     usouDestinacao: bool(root, 'usouDestinacao', false),
-    slots: list(root, 'slots').map(mapSlot),
+    ...(totalCapacidade != null ? { totalCapacidade } : {}),
+    ...(totalOcupadas != null ? { totalOcupadas } : {}),
+    ...(totalDisponiveis != null ? { totalDisponiveis } : {}),
+    slots,
   };
 }
 

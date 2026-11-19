@@ -242,5 +242,12 @@ export interface JanelaDisponibilidade {
   data: string;
   modalidade: ModalidadeAgendamento;
   usouDestinacao: boolean;
+  /**
+   * Totais do dia (BE): incluem slots esgotados omitidos de `slots`.
+   * Ausentes em clientes antigos → FE soma a partir de `slots`.
+   */
+  totalCapacidade?: number;
+  totalOcupadas?: number;
+  totalDisponiveis?: number;
   slots: JanelaSlotDisponivel[];
 }

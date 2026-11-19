@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untrack
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
-import { Subscription, of } from 'rxjs';
+import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
@@ -35,17 +35,13 @@ import {
   VagaReservaDialogComponent,
   type VagaReservaDialogData,
 } from '../../components/vaga-reserva-dialog/vaga-reserva-dialog.component';
-import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
-import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
 import {
-  capacidadeDaModalidade,
-  disponiveisDaModalidade,
   formatIsoDateBr,
   mapTimelineSlots,
   modalidadeApi,
-  reservadasDaModalidade,
+  resolverKpiJanelasDia,
   toIsoDateLocal,
   type AgendamentoModalidadeUi,
   type AgendamentoTimelineSlot,
@@ -80,7 +76,6 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly api = inject(AgendamentoService);
   private readonly estacionamentoService = inject(EstacionamentoService);
-  private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly janelasApi = inject(JanelaAgendamentoService);
   private readonly janelasRealtime = inject(JanelaDisponibilidadeRealtimeService);
   private readonly toast = inject(ToastService);
@@ -148,24 +143,32 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   readonly totalCount = signal(0);
   readonly numeroPagina = signal(1);
   readonly tamanhoPagina = signal(20);
-  readonly vagasResumo = signal<VagaDisponibilidadeResumo | null>(null);
   readonly modalidadeUi = signal<AgendamentoModalidadeUi>('estacionamento');
   readonly dataSelecionadaIso = signal(toIsoDateLocal(new Date()));
   readonly timelineSlots = signal<AgendamentoTimelineSlot[]>([]);
+  /** Totais do dia (BE) da modalidade ativa — preferidos aos somatórios parciais da lista. */
+  readonly kpiJanelasDia = signal<{ disponiveis: number; ocupados: number }>({
+    disponiveis: 0,
+    ocupados: 0,
+  });
+  /** Agendados em janelas de limpeza do dia (card "Limpeza agendada"). */
+  readonly kpiLimpezaJanelas = signal(0);
   readonly loadingTimeline = signal(false);
   readonly erroTimeline = signal<string | null>(null);
 
   readonly dataSelecionadaLabel = computed(() => formatIsoDateBr(this.dataSelecionadaIso()));
+  /** Lista filtrada (dia + busca + transportadora) — status Agendado no pátio da sessão. */
   readonly kpiAgendados = computed(() => this.totalCount());
-  readonly kpiDisponiveis = computed(() =>
-    disponiveisDaModalidade(this.vagasResumo(), this.modalidadeUi())
-  );
-  readonly kpiOcupados = computed(() => {
-    const cap = capacidadeDaModalidade(this.vagasResumo(), this.modalidadeUi());
-    const disp = this.kpiDisponiveis();
-    return Math.max(0, cap - disp);
-  });
-  readonly kpiLimpeza = computed(() => reservadasDaModalidade(this.vagasResumo(), 'limpeza'));
+  /**
+   * Soma de disponíveis das janelas do dia/modalidade (mesma fonte da timeline).
+   * Sem janelas → 0. Não usa capacidade de destinação do pátio.
+   * Filtro de transportadora do painel (operador) não altera este KPI — capacidade das janelas.
+   */
+  readonly kpiDisponiveis = computed(() => this.kpiJanelasDia().disponiveis);
+  /** Ocupação nas janelas do dia/modalidade (totais BE ou soma dos slots). */
+  readonly kpiOcupados = computed(() => this.kpiJanelasDia().ocupados);
+  /** Agendamentos de limpeza nas janelas do dia selecionado. */
+  readonly kpiLimpeza = computed(() => this.kpiLimpezaJanelas());
 
   /** Placa, nome do motorista ou CPF. */
   filtroBusca = '';
@@ -230,30 +233,19 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     if (buscar) this.onBuscar();
   }
 
-  private dataDashboardIso(): string {
-    const filtro = (this.filtroDataInicial || this.filtroDataFinal || '').trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(filtro)) return filtro;
-    return this.dataSelecionadaIso();
-  }
-
-  private carregarVagas(dataIso?: string | null): void {
-    const data = (dataIso ?? this.dataDashboardIso()).trim();
-    this.vagasApi.resumoParaTransportadora(data).subscribe({
-      next: (r) => this.vagasResumo.set(r),
-      error: () => this.vagasResumo.set(null),
-    });
-  }
-
   private carregarTimeline(dataIso: string, ui: AgendamentoModalidadeUi): void {
     const data = (dataIso || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
       this.timelineSlots.set([]);
+      this.kpiJanelasDia.set({ disponiveis: 0, ocupados: 0 });
+      this.kpiLimpezaJanelas.set(0);
       this.erroTimeline.set(null);
       this.loadingTimeline.set(false);
       return;
     }
 
     // Transportadora autenticada: backend resolve destinacão; passa id da sessão.
+    // Filtro de transportadora do operador NÃO entra aqui — KPIs de vagas = janelas do pátio.
     const transportadoraId =
       this.isTransportadora && !this.isAdmin
         ? this.auth.resolveTransportadoraId()
@@ -262,16 +254,56 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     this.loadingTimeline.set(true);
     this.erroTimeline.set(null);
     this.timelineSub?.unsubscribe();
-    this.timelineSub = this.janelasApi
-      .disponibilidade(data, modalidadeApi(ui), transportadoraId)
+
+    const modalidadeAtual = modalidadeApi(ui);
+    const atual$ = this.janelasApi.disponibilidade(data, modalidadeAtual, transportadoraId);
+    // Card "Limpeza agendada" sempre reflete janelas de limpeza do dia.
+    const limpeza$ =
+      ui === 'limpeza'
+        ? of(null)
+        : this.janelasApi.disponibilidade(data, 2, transportadoraId).pipe(
+            catchError(() => of(null))
+          );
+
+    this.timelineSub = forkJoin({ atual: atual$, limpeza: limpeza$ })
       .pipe(finalize(() => this.loadingTimeline.set(false)))
       .subscribe({
-        next: (res) => {
-          this.timelineSlots.set(mapTimelineSlots(res.slots ?? []));
+        next: ({ atual, limpeza }) => {
+          const slots = mapTimelineSlots(atual.slots ?? []);
+          this.timelineSlots.set(slots);
+          this.kpiJanelasDia.set(
+            resolverKpiJanelasDia({
+              totalDisponiveis: atual.totalDisponiveis,
+              totalOcupadas: atual.totalOcupadas,
+              slots,
+            })
+          );
+          if (ui === 'limpeza') {
+            this.kpiLimpezaJanelas.set(
+              resolverKpiJanelasDia({
+                totalDisponiveis: atual.totalDisponiveis,
+                totalOcupadas: atual.totalOcupadas,
+                slots,
+              }).ocupados
+            );
+          } else if (limpeza) {
+            const limpSlots = mapTimelineSlots(limpeza.slots ?? []);
+            this.kpiLimpezaJanelas.set(
+              resolverKpiJanelasDia({
+                totalDisponiveis: limpeza.totalDisponiveis,
+                totalOcupadas: limpeza.totalOcupadas,
+                slots: limpSlots,
+              }).ocupados
+            );
+          } else {
+            this.kpiLimpezaJanelas.set(0);
+          }
           this.erroTimeline.set(null);
         },
         error: (err: { message?: string } | unknown) => {
           this.timelineSlots.set([]);
+          this.kpiJanelasDia.set({ disponiveis: 0, ocupados: 0 });
+          this.kpiLimpezaJanelas.set(0);
           const msg =
             err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
               ? err.message
@@ -296,8 +328,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   onBuscar(): void {
     this.numeroPagina.set(1);
     this.carregar();
-    this.carregarVagas();
-    // Ocupação das grades acompanha a busca (novo/cancelamento/confirmação).
+    // Ocupação das grades e KPIs de janelas acompanham a busca (novo/cancelamento/confirmação).
     this.carregarTimeline(this.dataSelecionadaIso(), this.modalidadeUi());
   }
 
@@ -421,7 +452,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
         } satisfies VagaReservaDialogData,
       })
       .afterClosed()
-      .subscribe(() => this.carregarVagas());
+      .subscribe(() => this.onBuscar());
   }
 
   abrirNovo(): void {

@@ -90,24 +90,30 @@ export function exportarPainelAgendamentosPdf(entrada: AgendamentoPainelExportEn
   <style>
     body { font-family: Segoe UI, Arial, sans-serif; color: #0f172a; margin: 24px; }
     h1 { font-size: 18px; margin: 0 0 8px; }
+    h2 { font-size: 13px; margin: 16px 0 8px; color: #334155; }
     .meta p { margin: 2px 0; font-size: 12px; color: #475569; }
-    .kpis { margin: 14px 0; font-size: 12px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 18px; }
+    .kpi-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; background: #f8fafc; }
+    .kpi-card__label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+    .kpi-card__value { display: block; margin-top: 4px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; }
     th { background: #f1f5f9; }
     td.num { text-align: right; font-variant-numeric: tabular-nums; }
-    @media print { body { margin: 12px; } }
+    @media print { body { margin: 12px; } .kpi-grid { break-inside: avoid; } }
   </style>
 </head>
 <body>
   <h1>Agendamentos — Painel do dia</h1>
   <div class="meta">${meta}</div>
-  <p class="kpis"><strong>KPIs</strong> —
-    Agendados: ${htmlEscape(entrada.kpis.agendados)} |
-    Disponíveis: ${htmlEscape(entrada.kpis.disponiveis)} |
-    Ocupados: ${htmlEscape(entrada.kpis.ocupados)} |
-    Limpeza: ${htmlEscape(entrada.kpis.limpeza)}
-  </p>
+  <h2>Dashboard</h2>
+  <div class="kpi-grid" aria-label="Indicadores do painel">
+    <div class="kpi-card"><span class="kpi-card__label">Agendados</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.agendados)}</span></div>
+    <div class="kpi-card"><span class="kpi-card__label">Vagas disponíveis</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.disponiveis)}</span></div>
+    <div class="kpi-card"><span class="kpi-card__label">Ocupados</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.ocupados)}</span></div>
+    <div class="kpi-card"><span class="kpi-card__label">Limpeza agendada</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.limpeza)}</span></div>
+  </div>
+  <h2>Linha do tempo do dia</h2>
   <table>
     <thead>
       <tr>
@@ -148,12 +154,14 @@ export function exportarPainelAgendamentosExcel(entrada: AgendamentoPainelExport
     ['Transportadora', entrada.transportadoraNome || 'Todas'],
     ['Busca', entrada.busca || '—'],
     [],
-    ['KPI', 'Valor'],
+    ['Dashboard'],
+    ['Indicador', 'Valor'],
     ['Agendados', String(entrada.kpis.agendados)],
     ['Vagas disponíveis', String(entrada.kpis.disponiveis)],
     ['Ocupados', String(entrada.kpis.ocupados)],
     ['Limpeza agendada', String(entrada.kpis.limpeza)],
     [],
+    ['Linha do tempo do dia'],
     ['Horário', 'Cadastrado', 'Agendado', 'Disponível', 'Ocupação %'],
     ...entrada.slots.map((s) => [
       s.label,

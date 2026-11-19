@@ -1,4 +1,3 @@
-import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
 import type { JanelaSlotDisponivel, ModalidadeJanela } from '../../models/janela-agendamento.models';
 
 export type AgendamentoModalidadeUi = 'estacionamento' | 'limpeza';
@@ -37,38 +36,6 @@ export function formatIsoDateBr(iso: string): string {
 
 export function modalidadeApi(ui: AgendamentoModalidadeUi): ModalidadeJanela {
   return ui === 'limpeza' ? 2 : 1;
-}
-
-export function capacidadeDaModalidade(
-  resumo: VagaDisponibilidadeResumo | null,
-  ui: AgendamentoModalidadeUi
-): number {
-  if (!resumo) return 0;
-  const raw =
-    ui === 'limpeza' ? resumo.capacidadeLimpeza : resumo.capacidadeEstacionamento;
-  return Number.isFinite(Number(raw)) ? Math.max(0, Number(raw)) : 0;
-}
-
-export function disponiveisDaModalidade(
-  resumo: VagaDisponibilidadeResumo | null,
-  ui: AgendamentoModalidadeUi
-): number {
-  if (!resumo) return 0;
-  const raw =
-    ui === 'limpeza'
-      ? resumo.vagasDisponiveisLimpeza
-      : resumo.vagasDisponiveisEstacionamento;
-  return Number.isFinite(Number(raw)) ? Math.max(0, Number(raw)) : 0;
-}
-
-export function reservadasDaModalidade(
-  resumo: VagaDisponibilidadeResumo | null,
-  ui: AgendamentoModalidadeUi
-): number {
-  if (!resumo) return 0;
-  return ui === 'limpeza'
-    ? resumo.vagasReservadasLimpeza
-    : resumo.vagasReservadasEstacionamento;
 }
 
 function slotKey(s: JanelaSlotDisponivel): string {
@@ -116,6 +83,43 @@ export function mapTimelineSlots(slots: JanelaSlotDisponivel[]): AgendamentoTime
         ocupacaoPct,
       };
     });
+}
+
+/**
+ * Soma vagas disponíveis das janelas do dia.
+ * Sem slots → 0. N janelas no mesmo dia → soma (fonte de verdade da timeline).
+ */
+export function somarDisponiveisSlots(
+  slots: ReadonlyArray<Pick<AgendamentoTimelineSlot, 'disponiveis'>>
+): number {
+  return slots.reduce((acc, s) => acc + Math.max(0, Number(s.disponiveis) || 0), 0);
+}
+
+/** Soma ocupação (agendado) das janelas do dia. Sem slots → 0. */
+export function somarAgendadosSlots(
+  slots: ReadonlyArray<Pick<AgendamentoTimelineSlot, 'agendado'>>
+): number {
+  return slots.reduce((acc, s) => acc + Math.max(0, Number(s.agendado) || 0), 0);
+}
+
+/**
+ * Preferência: totais do BE (incluem slots esgotados omitidos da lista).
+ * Fallback: soma dos slots já mapeados na timeline.
+ */
+export function resolverKpiJanelasDia(opts: {
+  totalDisponiveis?: number | null;
+  totalOcupadas?: number | null;
+  slots: ReadonlyArray<Pick<AgendamentoTimelineSlot, 'disponiveis' | 'agendado'>>;
+}): { disponiveis: number; ocupados: number } {
+  const disponiveis =
+    opts.totalDisponiveis != null && Number.isFinite(Number(opts.totalDisponiveis))
+      ? Math.max(0, Number(opts.totalDisponiveis))
+      : somarDisponiveisSlots(opts.slots);
+  const ocupados =
+    opts.totalOcupadas != null && Number.isFinite(Number(opts.totalOcupadas))
+      ? Math.max(0, Number(opts.totalOcupadas))
+      : somarAgendadosSlots(opts.slots);
+  return { disponiveis, ocupados };
 }
 
 export function flexBar(value: number): number {

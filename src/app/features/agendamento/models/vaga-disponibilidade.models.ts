@@ -4,6 +4,7 @@ export type ModalidadeVagaAgendamento = 1 | 2 | 3;
 export type PeriodicidadeVagaReserva = 1 | 2 | 3 | 4;
 /** 1=Diario, 2=Semanal, 3=Mensal, 4=Periodo */
 
+/** @deprecated Preferir horaInicio/horaFim do slot da janela. */
 export type PeriodoDiaVaga = 1 | 2 | 3 | null;
 /** 1=Matutino, 2=Vespertino, 3=Noturno */
 
@@ -31,6 +32,10 @@ export interface VagaReservaTransportadoraItem {
   periodicidadeLabel: string;
   periodoDia: PeriodoDiaVaga;
   periodoDiaLabel: string | null;
+  horaInicio?: string | null;
+  horaFim?: string | null;
+  responsavelFaturamentoId?: number | null;
+  responsavelFaturamentoNome?: string | null;
   avulso: boolean;
   ativo: boolean;
 }
@@ -42,6 +47,10 @@ export interface VagaReservaTransportadoraInput {
   dataInicio: string;
   dataFim?: string | null;
   periodicidade: PeriodicidadeVagaReserva;
+  /** Mantido por compatibilidade; preferir horaInicio/horaFim. */
   periodoDia?: PeriodoDiaVaga;
+  horaInicio: string;
+  horaFim: string;
+  responsavelFaturamentoId?: number | null;
   avulso?: boolean;
 }

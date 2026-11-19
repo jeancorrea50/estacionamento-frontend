@@ -291,8 +291,122 @@
   grid-column: 1 / 3;
 }
 
-.vaga-field--periodo-dia {
+.vaga-field--janela {
   grid-column: 3 / 5;
+}
+
+.vaga-field--pagador {
+  grid-column: 1 / -1;
+}
+
+.vaga-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: color-mix(in srgb, var(--surface-2, var(--card-bg)) 65%, transparent);
+}
+
+.vaga-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.vaga-cal__titulo {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.vaga-cal__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+
+.vaga-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+
+  &.is-loading {
+    opacity: 0.65;
+  }
+}
+
+.vaga-cal__day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  min-height: 2.15rem;
+  margin: 0;
+  padding: 0.2rem 0.1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--primary, #3d8bff) 10%, transparent);
+  }
+
+  &.is-out {
+    opacity: 0.28;
+    cursor: default;
+  }
+
+  &.is-selected {
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 55%, var(--border-subtle));
+    background: color-mix(in srgb, var(--primary, #3d8bff) 14%, transparent);
+  }
+
+  &.is-ok .vaga-cal__dot {
+    background: var(--success, #36c98f);
+  }
+
+  &.is-parcial .vaga-cal__dot {
+    background: var(--warning, #e8a23a);
+  }
+
+  &.is-vazio .vaga-cal__dot {
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+  }
+}
+
+.vaga-cal__num {
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.vaga-cal__dot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+
+.vaga-cal__legend {
+  margin: 0.1rem 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.3;
 }
 
 .vaga-field__hint {
@@ -506,7 +620,8 @@
   .vaga-field--qtd,
   .vaga-field--vigencia,
   .vaga-field--recorrencia,
-  .vaga-field--periodo-dia {
+  .vaga-field--janela,
+  .vaga-field--pagador {
     grid-column: auto;
   }
 
@@ -520,7 +635,9 @@
   }
 
   .vaga-field--vigencia,
-  .vaga-field--recorrencia {
+  .vaga-field--recorrencia,
+  .vaga-field--janela,
+  .vaga-field--pagador {
     grid-column: 1 / -1;
   }
 }
@@ -534,7 +651,8 @@
     grid-template-columns: 1fr;
   }
 
-  .vaga-field--periodo-dia {
+  .vaga-field--janela,
+  .vaga-field--pagador {
     grid-column: 1 / -1;
   }
 }

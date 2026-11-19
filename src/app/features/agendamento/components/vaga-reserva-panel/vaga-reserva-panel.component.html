@@ -12,7 +12,7 @@
       <button
         type="button"
         class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
-        (click)="carregar()"
+        (click)="carregar(); carregarSlots(); carregarCalendario()"
         [disabled]="loading()"
       >
         <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
@@ -50,7 +50,7 @@
           <button
             type="button"
             class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
-            (click)="carregar()"
+            (click)="carregar(); carregarSlots(); carregarCalendario()"
             [disabled]="loading()"
             title="Atualizar"
             aria-label="Atualizar"
@@ -100,6 +100,61 @@
         </p>
       }
     }
+
+    <div class="vaga-cal" aria-label="Calendário de disponibilidade do estacionamento">
+      <div class="vaga-cal__head">
+        <button
+          type="button"
+          class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+          (click)="mesAnterior()"
+          aria-label="Mês anterior"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+        </button>
+        <strong class="vaga-cal__titulo">{{ calendarioTitulo() }}</strong>
+        <button
+          type="button"
+          class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+          (click)="mesProximo()"
+          aria-label="Próximo mês"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+        </button>
+      </div>
+      <div class="vaga-cal__weekdays" aria-hidden="true">
+        <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div class="vaga-cal__grid" [class.is-loading]="loadingCalendario()">
+        @for (d of calendarioDias(); track d.iso) {
+          <button
+            type="button"
+            class="vaga-cal__day"
+            [class.is-out]="d.foraDoMes"
+            [class.is-selected]="d.iso === dataConsulta()"
+            [class.is-ok]="d.status === 'ok'"
+            [class.is-parcial]="d.status === 'parcial'"
+            [class.is-vazio]="d.status === 'vazio'"
+            [disabled]="d.foraDoMes"
+            (click)="selecionarDiaCalendario(d.iso)"
+            [title]="
+              d.foraDoMes
+                ? ''
+                : d.disponiveis == null
+                  ? d.iso
+                  : d.iso + ' — ' + d.disponiveis + ' vaga(s) nas janelas'
+            "
+          >
+            <span class="vaga-cal__num">{{ d.dia }}</span>
+            @if (!d.foraDoMes && d.disponiveis != null) {
+              <span class="vaga-cal__dot" aria-hidden="true"></span>
+            }
+          </button>
+        }
+      </div>
+      <p class="vaga-cal__legend">
+        Visão do pátio (estacionamento): verde = vagas, âmbar = poucas, cinza = esgotado.
+      </p>
+    </div>
   </div>
 
   @if (podeGerenciar) {
@@ -137,7 +192,24 @@
 
         <label class="vaga-field vaga-field--qtd">
           <span>Quantidade</span>
-          <input class="input-control" type="number" min="1" formControlName="quantidade" />
+          <input
+            class="input-control"
+            type="number"
+            min="1"
+            [attr.max]="maxQuantidade() ?? null"
+            formControlName="quantidade"
+          />
+          @if (maxQuantidade() != null) {
+            <small class="vaga-field__hint">
+              Máx. {{ maxQuantidade() }}
+              @if (slotAtual(); as s) {
+                · janela {{ s.disponiveis }}
+              }
+              @if (vagasAcordoMes() != null) {
+                · acordo {{ vagasAcordoMes() }}
+              }
+            </small>
+          }
         </label>
 
         <div class="vaga-field vaga-field--vigencia vaga-field--periodo">
@@ -162,22 +234,55 @@
           <small class="vaga-field__hint">{{ recorrenciaHint() }}</small>
         </label>
 
-        <label class="vaga-field vaga-field--periodo-dia">
-          <span>Período do dia</span>
-          <select class="input-control input-control--select" formControlName="periodoDia">
-            <option [ngValue]="null">Qualquer</option>
-            @for (p of periodosDia; track p.value) {
-              <option [ngValue]="p.value">{{ p.label }}</option>
+        <label class="vaga-field vaga-field--janela">
+          <span>Horário da janela</span>
+          <select
+            class="input-control input-control--select"
+            [disabled]="loadingSlots() || slots().length === 0"
+            [ngModel]="slotSelecionadoKey()"
+            [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="onSlotChange($event)"
+          >
+            <option [ngValue]="null">
+              {{
+                loadingSlots()
+                  ? 'Carregando horários…'
+                  : slots().length
+                    ? 'Selecione o horário'
+                    : 'Nenhum horário disponível'
+              }}
+            </option>
+            @for (s of slots(); track chaveSlot(s)) {
+              <option [ngValue]="chaveSlot(s)">{{ slotOptionLabel(s) }}</option>
             }
           </select>
+          @if (!loadingSlots() && slots().length === 0) {
+            <small class="vaga-field__hint">
+              Só aparecem janelas com vaga livre neste dia/modalidade.
+            </small>
+          }
         </label>
+
+        @if (exigePagador()) {
+          <div class="vaga-field vaga-field--pagador">
+            <span>Pagador (faturamento)</span>
+            <app-responsavel-faturamento-lookup-field
+              [responsavelId]="pagadorId()"
+              (responsavelIdChange)="onPagadorIdChange($event)"
+              [responsavelNome]="pagadorNome()"
+              (responsavelNomeChange)="onPagadorNomeChange($event)"
+              placeholder="Buscar terceiro pagador…"
+            />
+            <small class="vaga-field__hint">Exigido pelo acordo de cobrança (terceiro).</small>
+          </div>
+        }
       </div>
 
       <div class="vaga-reserva-panel__form-actions">
         <button
           type="submit"
           class="vaga-reserva-panel__btn vaga-reserva-panel__btn--primary"
-          [disabled]="salvando()"
+          [disabled]="salvando() || loadingSlots()"
         >
           {{ salvando() ? 'Salvando…' : 'Destinar vagas' }}
         </button>
@@ -214,7 +319,8 @@
               <th>Qtd</th>
               <th>Vigência</th>
               <th>Recorrência</th>
-              <th>Período</th>
+              <th>Horário</th>
+              <th>Pagador</th>
               <th>Situação</th>
               @if (podeGerenciar) {
                 <th></th>
@@ -234,7 +340,8 @@
                   }
                 </td>
                 <td>{{ r.periodicidadeLabel }}</td>
-                <td>{{ r.periodoDiaLabel || '—' }}</td>
+                <td>{{ horarioReservaLabel(r) }}</td>
+                <td>{{ r.responsavelFaturamentoNome || '—' }}</td>
                 <td>
                   <span
                     class="vaga-status"

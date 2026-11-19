@@ -1,33 +1,9 @@
-<div class="trn-lookup" [class.trn-lookup--disabled]="disabled()">
-  <button
-    type="button"
-    class="input-control trn-lookup__trigger"
-    (click)="abrir()"
-    [disabled]="disabled()"
-    [attr.aria-label]="
-      responsavelNome()
-        ? 'Trocar responsável: ' + responsavelNome()
-        : ariaLabel()
-    "
-  >
-    <span
-      class="trn-lookup__value"
-      [class.trn-lookup__value--placeholder]="!responsavelNome()"
-    >
-      {{ responsavelNome() || placeholder() }}
-    </span>
-    <span class="material-symbols-outlined trn-lookup__ico" aria-hidden="true">search</span>
-  </button>
-
-  @if (showClear() && responsavelId()) {
-    <button
-      type="button"
-      class="btn btn-secondary btn--sm trn-lookup__clear"
-      (click)="limpar($event)"
-      [disabled]="disabled()"
-      title="Limpar responsável"
-    >
-      Limpar
-    </button>
-  }
-</div>
+<app-entity-lookup-field
+  [valueLabel]="responsavelNome()"
+  [placeholder]="placeholder()"
+  [disabled]="disabled()"
+  [showClear]="showClear()"
+  [ariaLabel]="ariaLabel()"
+  (openSearch)="abrir()"
+  (clear)="limpar()"
+/>

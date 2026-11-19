@@ -1,4 +1,5 @@
 import type { JanelaSlotDisponivel, ModalidadeJanela } from '../../models/janela-agendamento.models';
+import type { VagaReservaTransportadoraItem } from '../../models/vaga-disponibilidade.models';
 
 export type AgendamentoModalidadeUi = 'estacionamento' | 'limpeza';
 
@@ -124,4 +125,47 @@ export function resolverKpiJanelasDia(opts: {
 
 export function flexBar(value: number): number {
   return Math.max(0, Number(value) || 0);
+}
+
+function isoDateOnly(value: string | null | undefined): string {
+  return (value || '').trim().slice(0, 10);
+}
+
+/** Reserva ativa cobrindo o dia (vigência início/fim; fim nulo = aberto a partir do início). */
+export function reservaCobreDia(
+  reserva: Pick<VagaReservaTransportadoraItem, 'ativo' | 'dataInicio' | 'dataFim'>,
+  dataIso: string
+): boolean {
+  if (!reserva?.ativo) return false;
+  const dia = isoDateOnly(dataIso);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return false;
+  const inicio = isoDateOnly(reserva.dataInicio);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || inicio > dia) return false;
+  const fim = isoDateOnly(reserva.dataFim);
+  if (!fim) return true;
+  return fim >= dia;
+}
+
+/**
+ * Soma vagas destinadas CIF/FOB (Geral = todas modalidades) para o dia.
+ * CIF = sem responsável de faturamento; FOB = com terceiro.
+ * Filtro opcional de transportadora.
+ */
+export function somarDestinacaoCifFob(
+  reservas: ReadonlyArray<VagaReservaTransportadoraItem>,
+  opts: { dataIso: string; transportadoraId?: number | null }
+): { cif: number; fob: number } {
+  const tid =
+    opts.transportadoraId != null && opts.transportadoraId > 0 ? opts.transportadoraId : null;
+  let cif = 0;
+  let fob = 0;
+  for (const r of reservas ?? []) {
+    if (!reservaCobreDia(r, opts.dataIso)) continue;
+    if (tid != null && Number(r.transportadoraId) !== tid) continue;
+    const qtd = Math.max(0, Math.trunc(Number(r.quantidade) || 0));
+    const pagadorId = Number(r.responsavelFaturamentoId ?? 0);
+    if (Number.isFinite(pagadorId) && pagadorId > 0) fob += qtd;
+    else cif += qtd;
+  }
+  return { cif, fob };
 }

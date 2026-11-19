@@ -13,7 +13,7 @@ import {
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Subject, forkJoin, of } from 'rxjs';
-import { catchError, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
+import { catchError, finalize, switchMap, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import {
@@ -51,6 +51,8 @@ export interface ResumoJanelasDia {
   ocupadasLimpeza: number;
   temJanelas: boolean;
 }
+
+export type TipoPagadorDestinacao = 'cif' | 'fob';
 
 function totaisJanela(disp: JanelaDisponibilidade | null | undefined): {
   capacidade: number;
@@ -125,18 +127,9 @@ function vagasAcordoDoMes(cfg: ConfiguracaoCobrancaOutput | null, mes1a12: numbe
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.trunc(v) : null;
 }
 
-export interface CalendarioDiaVaga {
-  iso: string;
-  dia: number;
-  foraDoMes: boolean;
-  disponiveis: number | null;
-  /** null = ainda não consultado / falha */
-  status: 'ok' | 'vazio' | 'parcial' | 'cheio' | 'desconhecido';
-}
-
 /**
  * Painel do operador/pátio: destina vagas (estacionamento/limpeza) para transportadoras.
- * Slots vêm das janelas; teto considera acordo de cobrança; pagador aparece se terceiro.
+ * Slots vêm das janelas; teto considera acordo; pagador CIF/FOB escolhido por reserva.
  */
 @Component({
   selector: 'app-vaga-reserva-panel',
@@ -168,7 +161,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   readonly loading = signal(false);
   readonly loadingSlots = signal(false);
-  readonly loadingCalendario = signal(false);
   readonly salvando = signal(false);
   /** KPIs do dia = soma das janelas (Estacionamento / Limpeza), sem cadastro do pátio. */
   readonly resumoJanelas = signal<ResumoJanelasDia | null>(null);
@@ -180,25 +172,17 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
   readonly slots = signal<JanelaSlotDisponivel[]>([]);
   readonly slotSelecionadoKey = signal<string | null>(null);
   readonly acordo = signal<ConfiguracaoCobrancaOutput | null>(null);
+  readonly tipoPagador = signal<TipoPagadorDestinacao>('cif');
   readonly pagadorId = signal<number | null>(null);
   readonly pagadorNome = signal('');
-  readonly calendarioMes = signal<{ ano: number; mes: number }>(
-    (() => {
-      const d = parseIsoDateLocal(toIsoDateLocal()) ?? new Date();
-      return { ano: d.getFullYear(), mes: d.getMonth() };
-    })()
-  );
-  readonly calendarioDias = signal<CalendarioDiaVaga[]>([]);
 
   private readonly destroy$ = new Subject<void>();
   private readonly cancelarCarregar$ = new Subject<void>();
   private readonly cancelarSlots$ = new Subject<void>();
   private readonly cancelarAcordo$ = new Subject<void>();
-  private readonly cancelarCalendario$ = new Subject<void>();
   private geracaoCarregar = 0;
   private geracaoSlots = 0;
   private geracaoAcordo = 0;
-  private geracaoCalendario = 0;
 
   readonly modalidades: { value: ModalidadeVagaAgendamento; label: string }[] = [
     { value: 1, label: 'Estacionamento' },
@@ -223,9 +207,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     transferenciaAutomaticaSaldo: [false],
   });
 
-  readonly exigePagador = computed(
-    () => this.acordo()?.tipoPagadorCobranca === TipoPagadorCobranca.Terceiro
-  );
+  readonly exigePagadorFob = computed(() => this.tipoPagador() === 'fob');
 
   readonly vagasAcordoMes = computed(() => {
     const cfg = this.acordo();
@@ -251,12 +233,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     return Math.min(dispJanela, acordoVagas);
   });
 
-  readonly calendarioTitulo = computed(() => {
-    const { ano, mes } = this.calendarioMes();
-    const nome = new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    return nome.charAt(0).toUpperCase() + nome.slice(1);
-  });
-
   ngOnInit(): void {
     this.form.controls.avulso.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((avulso) => {
       if (avulso) {
@@ -269,19 +245,14 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.carregarSlots();
     });
     this.form.controls.dataInicio.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      // Recalcula teto do acordo (mês da vigência).
       this.aplicarTetoQuantidade();
     });
 
     this.form.controls.dataInicio.setValue(this.dataConsulta(), { emitEvent: false });
     this.form.controls.dataFim.setValue(this.dataConsulta(), { emitEvent: false });
 
-    const d = parseIsoDateLocal(this.dataConsulta()) ?? new Date();
-    this.calendarioMes.set({ ano: d.getFullYear(), mes: d.getMonth() });
-
     this.carregar();
     this.carregarSlots();
-    this.carregarCalendario();
   }
 
   ngOnDestroy(): void {
@@ -293,8 +264,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.cancelarSlots$.complete();
     this.cancelarAcordo$.next();
     this.cancelarAcordo$.complete();
-    this.cancelarCalendario$.next();
-    this.cancelarCalendario$.complete();
   }
 
   onTransportadoraIdChange(id: number | null): void {
@@ -313,6 +282,14 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.transportadoraFormNome.set(nome || '');
   }
 
+  selecionarTipoPagador(tipo: TipoPagadorDestinacao): void {
+    this.tipoPagador.set(tipo);
+    if (tipo === 'cif') {
+      this.pagadorId.set(null);
+      this.pagadorNome.set('');
+    }
+  }
+
   onPagadorIdChange(id: number | null): void {
     this.pagadorId.set(id);
   }
@@ -329,6 +306,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   private limparAcordoEPagador(): void {
     this.acordo.set(null);
+    this.tipoPagador.set('cif');
     this.pagadorId.set(null);
     this.pagadorNome.set('');
   }
@@ -350,14 +328,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.form.controls.dataInicio.setValue(iso, { emitEvent: false });
       if (!this.form.controls.dataFim.dirty) {
         this.form.controls.dataFim.setValue(iso, { emitEvent: false });
-      }
-    }
-    const d = parseIsoDateLocal(iso);
-    if (d) {
-      const atual = this.calendarioMes();
-      if (atual.ano !== d.getFullYear() || atual.mes !== d.getMonth()) {
-        this.calendarioMes.set({ ano: d.getFullYear(), mes: d.getMonth() });
-        this.carregarCalendario();
       }
     }
     this.slotSelecionadoKey.set(null);
@@ -384,6 +354,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     });
     this.form.controls.dataInicio.markAsDirty();
     this.form.controls.dataFim.markAsDirty();
+    // Alinha disponibilidade/slots ao início da vigência (não depende do “hoje”).
+    this.onDataConsultaChange(periodo.dataInicial);
     this.aplicarTetoQuantidade();
   }
 
@@ -393,23 +365,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.aplicarTetoQuantidade();
   }
 
-  selecionarDiaCalendario(iso: string): void {
-    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
-    this.onDataConsultaChange(iso);
-  }
-
-  mesAnterior(): void {
-    const { ano, mes } = this.calendarioMes();
-    const d = new Date(ano, mes - 1, 1);
-    this.calendarioMes.set({ ano: d.getFullYear(), mes: d.getMonth() });
-    this.carregarCalendario();
-  }
-
-  mesProximo(): void {
-    const { ano, mes } = this.calendarioMes();
-    const d = new Date(ano, mes + 1, 1);
-    this.calendarioMes.set({ ano: d.getFullYear(), mes: d.getMonth() });
-    this.carregarCalendario();
+  selecionarSlot(s: JanelaSlotDisponivel): void {
+    this.onSlotChange(slotKey(s));
   }
 
   recorrenciaHint(): string {
@@ -437,9 +394,23 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     return `${base} (${s.disponiveis} vaga${s.disponiveis === 1 ? '' : 's'})`;
   }
 
+  slotHoraLabel(s: JanelaSlotDisponivel): string {
+    const limpo = (s.label || '').trim().replace(/\s*\([^)]*vagas[^)]*\)\s*$/i, '').trim();
+    if (limpo) return limpo.replace(/\s*-\s*/g, '–');
+    return `${s.horaInicio} – ${s.horaFim}`;
+  }
+
   horarioReservaLabel(r: VagaReservaTransportadoraItem): string {
     if (r.horaInicio && r.horaFim) return `${r.horaInicio} — ${r.horaFim}`;
     return r.periodoDiaLabel || '—';
+  }
+
+  pagadorReservaLabel(r: VagaReservaTransportadoraItem): string {
+    const id = Number(r.responsavelFaturamentoId ?? 0);
+    if (Number.isFinite(id) && id > 0) {
+      return (r.responsavelFaturamentoNome || '').trim() || 'FOB';
+    }
+    return 'CIF';
   }
 
   chaveSlot(s: JanelaSlotDisponivel): string {
@@ -554,75 +525,16 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
         if (geracao !== this.geracaoAcordo) return;
         this.acordo.set(cfg);
         if (cfg?.tipoPagadorCobranca === TipoPagadorCobranca.Terceiro) {
+          this.tipoPagador.set('fob');
           const id = cfg.responsavelFaturamentoId ?? null;
           this.pagadorId.set(id && id > 0 ? id : null);
           this.pagadorNome.set((cfg.responsavelFaturamentoNome || '').trim());
+        } else {
+          this.tipoPagador.set('cif');
+          this.pagadorId.set(null);
+          this.pagadorNome.set('');
         }
         this.aplicarTetoQuantidade();
-      });
-  }
-
-  carregarCalendario(): void {
-    this.cancelarCalendario$.next();
-    const geracao = ++this.geracaoCalendario;
-    const { ano, mes } = this.calendarioMes();
-    const primeiro = new Date(ano, mes, 1);
-    const inicioGrade = new Date(primeiro);
-    inicioGrade.setDate(primeiro.getDate() - ((primeiro.getDay() + 6) % 7)); // segunda
-    const dias: CalendarioDiaVaga[] = [];
-    const cursor = new Date(inicioGrade);
-    for (let i = 0; i < 42; i++) {
-      const iso = toIsoDateLocal(cursor);
-      const fora = cursor.getMonth() !== mes;
-      dias.push({
-        iso,
-        dia: cursor.getDate(),
-        foraDoMes: fora,
-        disponiveis: null,
-        status: 'desconhecido',
-      });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    this.calendarioDias.set(dias);
-
-    const doMes = dias.filter((d) => !d.foraDoMes);
-    this.loadingCalendario.set(true);
-
-    const reqs = doMes.map((d) =>
-      this.janelasApi.disponibilidade(d.iso, 1, null).pipe(
-        map((disp) => ({
-          iso: d.iso,
-          disponiveis:
-            typeof disp.totalDisponiveis === 'number'
-              ? disp.totalDisponiveis
-              : (disp.slots ?? []).reduce((acc, s) => acc + (s.disponiveis || 0), 0),
-        })),
-        catchError(() => of({ iso: d.iso, disponiveis: null as number | null }))
-      )
-    );
-
-    forkJoin(reqs)
-      .pipe(
-        takeUntil(this.cancelarCalendario$),
-        finalize(() => {
-          if (geracao === this.geracaoCalendario) this.loadingCalendario.set(false);
-        })
-      )
-      .subscribe((resultados) => {
-        if (geracao !== this.geracaoCalendario) return;
-        const mapa = new Map(resultados.map((r) => [r.iso, r.disponiveis]));
-        this.calendarioDias.update((lista) =>
-          lista.map((d) => {
-            if (d.foraDoMes) return d;
-            const disp = mapa.get(d.iso);
-            if (disp == null) return { ...d, disponiveis: null, status: 'desconhecido' as const };
-            let status: CalendarioDiaVaga['status'] = 'ok';
-            if (disp <= 0) status = 'vazio';
-            else if (disp <= 3) status = 'parcial';
-            else status = 'ok';
-            return { ...d, disponiveis: disp, status };
-          })
-        );
       });
   }
 
@@ -654,15 +566,16 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    if (this.exigePagador() && (!this.pagadorId() || this.pagadorId()! <= 0)) {
-      this.toast.error('Selecione o pagador (terceiro) conforme o acordo de cobrança.');
+    const fob = this.tipoPagador() === 'fob';
+    if (fob && (!this.pagadorId() || this.pagadorId()! <= 0)) {
+      this.toast.error('Selecione o pagador (terceiro) para faturamento FOB.');
       return;
     }
 
     const dataInicio = (raw.dataInicio || '').trim().slice(0, 10);
     const dataFim = (raw.dataFim || '').trim().slice(0, 10) || null;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dataInicio)) {
-      this.toast.error('Selecione o período de vigência no calendário.');
+      this.toast.error('Selecione o período de vigência.');
       return;
     }
     if (dataFim && dataFim < dataInicio) {
@@ -695,7 +608,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
         periodicidade: raw.periodicidade,
         horaInicio: slot.horaInicio,
         horaFim: slot.horaFim,
-        responsavelFaturamentoId: this.exigePagador() ? this.pagadorId() : null,
+        responsavelFaturamentoId: fob ? this.pagadorId() : null,
         avulso: raw.avulso,
         transferenciaAutomaticaSaldo: !!raw.transferenciaAutomaticaSaldo,
       })
@@ -723,7 +636,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
           this.form.controls.dataFim.markAsPristine();
           this.carregar();
           this.carregarSlots();
-          this.carregarCalendario();
         },
         error: () => this.toast.error('Falha ao criar reserva de vaga.'),
       });
@@ -740,7 +652,6 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
         this.toast.success('Reserva inativada.');
         this.carregar();
         this.carregarSlots();
-        this.carregarCalendario();
       },
       error: () => this.toast.error('Falha ao inativar reserva.'),
     });

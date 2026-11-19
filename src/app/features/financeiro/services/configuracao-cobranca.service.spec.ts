@@ -5,13 +5,16 @@ import {
   ConfiguracaoCobrancaPostInput,
   ModalidadeCobranca,
   RegraFechamento,
-  StatusConfiguracaoCobranca
+  StatusConfiguracaoCobranca,
+  TipoPagadorCobranca
 } from '../models/configuracao-cobranca.models';
 import { ConfiguracaoCobrancaService } from './configuracao-cobranca.service';
 
 function postInput(overrides: Partial<ConfiguracaoCobrancaPostInput> = {}): ConfiguracaoCobrancaPostInput {
   return {
     transportadoraId: 1,
+    tipoPagadorCobranca: TipoPagadorCobranca.Transportadora,
+    responsavelFaturamentoId: null,
     status: StatusConfiguracaoCobranca.Ativa,
     modalidadeCobranca: ModalidadeCobranca.Mensal,
     diaFechamento: null,

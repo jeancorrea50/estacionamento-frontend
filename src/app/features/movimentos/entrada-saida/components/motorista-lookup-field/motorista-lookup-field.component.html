@@ -1,0 +1,19 @@
+<app-entity-lookup-field
+  [valueLabel]="motoristaNome()"
+  [placeholder]="placeholder()"
+  [disabled]="disabled()"
+  [searchDisabled]="searchDisabled()"
+  [showClear]="showClear()"
+  [ariaLabel]="ariaLabel()"
+  [searchIcon]="searchIcon()"
+  (openSearch)="abrir()"
+  (clear)="limpar()"
+/>
+
+<app-modal-busca-motorista
+  [aberto]="buscaAberta()"
+  [termoCampo]="motoristaNome()"
+  [transportadoraId]="transportadoraId() ?? undefined"
+  (fechar)="fechar()"
+  (itemSelecionado)="onSelecionado($event)"
+/>

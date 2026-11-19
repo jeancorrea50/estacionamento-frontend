@@ -70,42 +70,22 @@
                 <label class="avm-motorista">
                   <span class="avm-motorista__label">Motorista <span class="required">*</span></span>
                   <div
-                    class="avm-motorista__control"
-                    [class.avm-motorista__control--locked]="p.motoristaBloqueado && !!p.motoristaId"
+                    class="avm-motorista__lookup"
+                    [class.avm-motorista__lookup--locked]="!!(p.motoristaBloqueado && p.motoristaId)"
                   >
-                    <button
-                      type="button"
-                      class="avm-motorista__trigger"
-                      (click)="abrirBuscaMotorista(p.id)"
-                      [disabled]="!!(p.motoristaBloqueado && p.motoristaId)"
-                      [attr.aria-label]="'Buscar motorista da placa ' + formatPlaca(p.placa)"
-                    >
-                      <span
-                        class="avm-motorista__value"
-                        [class.avm-motorista__value--placeholder]="!labelMotorista(p)"
-                      >
-                        {{
-                          labelMotorista(p) ||
-                            (p.motoristaBloqueado
-                              ? 'Sem motorista vinculado'
-                              : 'Buscar motorista da transportadora…')
-                        }}
-                      </span>
-                      <span class="material-symbols-outlined avm-motorista__ico" aria-hidden="true">
-                        {{ p.motoristaBloqueado && p.motoristaId ? 'lock' : 'search' }}
-                      </span>
-                    </button>
-                    @if (p.motoristaId) {
-                      <button
-                        type="button"
-                        class="avm-motorista__clear"
-                        (click)="limparMotorista(p.id)"
-                        [attr.aria-label]="'Limpar motorista da placa ' + formatPlaca(p.placa)"
-                        title="Trocar motorista"
-                      >
-                        &times;
-                      </button>
-                    }
+                    <app-entity-lookup-field
+                      [valueLabel]="labelMotorista(p)"
+                      [placeholder]="
+                        p.motoristaBloqueado
+                          ? 'Sem motorista vinculado'
+                          : 'Buscar motorista da transportadora…'
+                      "
+                      [searchDisabled]="!!(p.motoristaBloqueado && p.motoristaId)"
+                      [searchIcon]="p.motoristaBloqueado && p.motoristaId ? 'lock' : 'search'"
+                      [ariaLabel]="'Buscar motorista da placa ' + formatPlaca(p.placa)"
+                      (openSearch)="abrirBuscaMotorista(p.id)"
+                      (clear)="limparMotorista(p.id)"
+                    />
                   </div>
                   @if (p.motoristaBloqueado && p.motoristaId) {
                     <small class="avm-motorista__hint">

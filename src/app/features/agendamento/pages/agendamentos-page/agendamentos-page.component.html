@@ -156,6 +156,20 @@
             [value]="kpiLimpeza()"
             variant="info"
           />
+          @if (podeOperarPatio) {
+            <app-est-summary-metric
+              icon="payments"
+              label="CIF (Geral)"
+              [value]="kpiCifGeral()"
+              variant="success"
+            />
+            <app-est-summary-metric
+              icon="handshake"
+              label="FOB (Geral)"
+              [value]="kpiFobGeral()"
+              variant="warning"
+            />
+          }
         </div>
 
         <div class="ag-dash-mid">

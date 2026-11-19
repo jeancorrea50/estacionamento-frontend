@@ -210,77 +210,10 @@
   color: var(--muted, #94a3b8);
 }
 
-.avm-motorista__control {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  min-width: 0;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--border-subtle, #334155) 90%, transparent);
-  background: var(--input-bg, color-mix(in srgb, var(--surface, #111) 80%, transparent));
-  overflow: hidden;
-}
-
-.avm-motorista__control--locked {
+.avm-motorista__lookup--locked {
   opacity: 0.92;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--muted, #64748b) 10%, transparent);
-}
-
-.avm-motorista__trigger {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 10px 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.avm-motorista__trigger:disabled {
-  cursor: default;
-}
-
-.avm-motorista__value {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.875rem;
-}
-
-.avm-motorista__value--placeholder {
-  color: var(--muted, #94a3b8);
-}
-
-.avm-motorista__ico {
-  flex: 0 0 auto;
-  font-size: 18px;
-  color: var(--primary, #4d7cfe);
-}
-
-.avm-motorista__clear {
-  appearance: none;
-  border: 0;
-  border-left: 1px solid color-mix(in srgb, var(--border-subtle, #334155) 90%, transparent);
-  background: transparent;
-  color: var(--muted, #94a3b8);
-  width: 40px;
-  flex: 0 0 40px;
-  font-size: 1.35rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.avm-motorista__clear:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
 .avm-motorista__hint {

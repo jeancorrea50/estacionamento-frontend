@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, input, model } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { EntityLookupFieldComponent } from '../../../../shared/components/entity-lookup-field/entity-lookup-field.component';
 import {
   ModalBuscaResponsavelFaturamentoComponent,
   type ModalBuscaResponsavelFaturamentoResult,
@@ -13,7 +14,7 @@ import {
 @Component({
   selector: 'app-responsavel-faturamento-lookup-field',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, EntityLookupFieldComponent],
   templateUrl: './responsavel-faturamento-lookup-field.component.html',
   styleUrls: ['./responsavel-faturamento-lookup-field.component.scss'],
 })
@@ -45,8 +46,7 @@ export class ResponsavelFaturamentoLookupFieldComponent {
     });
   }
 
-  limpar(event?: Event): void {
-    event?.stopPropagation();
+  limpar(): void {
     if (this.disabled()) return;
     this.responsavelId.set(null);
     this.responsavelNome.set('');

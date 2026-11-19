@@ -3,6 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import type {
+  ModalidadeVagaAgendamento,
+  PeriodicidadeVagaReserva,
+  PeriodoDiaVaga,
   VagaDisponibilidadeResumo,
   VagaReservaTransportadoraInput,
   VagaReservaTransportadoraItem,
@@ -53,6 +56,10 @@ export class VagaDisponibilidadeService {
     const payload: VagaReservaTransportadoraInput = {
       ...input,
       transferenciaAutomaticaSaldo: !!input.transferenciaAutomaticaSaldo,
+      responsavelFaturamentoId:
+        input.responsavelFaturamentoId != null && input.responsavelFaturamentoId > 0
+          ? input.responsavelFaturamentoId
+          : null,
     };
     return this.http
       .post<ApiEnvelope<VagaReservaTransportadoraItem | Record<string, unknown>>>(
@@ -77,13 +84,49 @@ export class VagaDisponibilidadeService {
   ): VagaReservaTransportadoraItem {
     const r = row as Record<string, unknown>;
     const base = row as VagaReservaTransportadoraItem;
+    const responsavelFaturamentoId = this.pickNumberOrNull(
+      r,
+      'responsavelFaturamentoId',
+      'ResponsavelFaturamentoId'
+    );
     return {
       ...base,
+      id: this.pickNumber(r, 'id', 'Id') || base.id,
+      transportadoraId: this.pickNumber(r, 'transportadoraId', 'TransportadoraId') || base.transportadoraId || 0,
+      transportadoraNome:
+        this.pickString(r, 'transportadoraNome', 'TransportadoraNome') || base.transportadoraNome || '',
+      modalidade: (this.pickNumber(r, 'modalidade', 'Modalidade') ||
+        base.modalidade ||
+        1) as ModalidadeVagaAgendamento,
+      modalidadeLabel:
+        this.pickString(r, 'modalidadeLabel', 'ModalidadeLabel') || base.modalidadeLabel || '',
+      quantidade: this.pickNumber(r, 'quantidade', 'Quantidade') || base.quantidade || 0,
+      dataInicio: this.pickString(r, 'dataInicio', 'DataInicio') || base.dataInicio || '',
+      dataFim: this.pickStringOrNull(r, 'dataFim', 'DataFim') ?? base.dataFim ?? null,
+      periodicidade: (this.pickNumber(r, 'periodicidade', 'Periodicidade') ||
+        base.periodicidade ||
+        1) as PeriodicidadeVagaReserva,
+      periodicidadeLabel:
+        this.pickString(r, 'periodicidadeLabel', 'PeriodicidadeLabel') || base.periodicidadeLabel || '',
+      periodoDia: (this.pickNumberOrNull(r, 'periodoDia', 'PeriodoDia') ??
+        base.periodoDia ??
+        null) as PeriodoDiaVaga,
+      periodoDiaLabel:
+        this.pickStringOrNull(r, 'periodoDiaLabel', 'PeriodoDiaLabel') ?? base.periodoDiaLabel ?? null,
+      horaInicio: this.pickStringOrNull(r, 'horaInicio', 'HoraInicio') ?? base.horaInicio ?? null,
+      horaFim: this.pickStringOrNull(r, 'horaFim', 'HoraFim') ?? base.horaFim ?? null,
+      responsavelFaturamentoId,
+      responsavelFaturamentoNome:
+        this.pickStringOrNull(r, 'responsavelFaturamentoNome', 'ResponsavelFaturamentoNome') ??
+        base.responsavelFaturamentoNome ??
+        null,
+      avulso: this.pickBool(r, 'avulso', 'Avulso') || !!base.avulso,
       transferenciaAutomaticaSaldo: this.pickBool(
         r,
         'transferenciaAutomaticaSaldo',
         'TransferenciaAutomaticaSaldo'
       ),
+      ativo: 'ativo' in r || 'Ativo' in r ? this.pickBool(r, 'ativo', 'Ativo') : base.ativo !== false,
     };
   }
 
@@ -96,5 +139,43 @@ export class VagaDisponibilidadeService {
       return s === 'true' || s === '1';
     }
     return false;
+  }
+
+  private pickNumber(row: Record<string, unknown>, camel: string, pascal: string): number {
+    const v = row[camel] ?? row[pascal];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim()) {
+      const n = Number(v);
+      if (Number.isFinite(n)) return n;
+    }
+    return 0;
+  }
+
+  private pickNumberOrNull(row: Record<string, unknown>, camel: string, pascal: string): number | null {
+    if (!(camel in row) && !(pascal in row)) return null;
+    const v = row[camel] ?? row[pascal];
+    if (v == null || v === '') return null;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim()) {
+      const n = Number(v);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }
+
+  private pickString(row: Record<string, unknown>, camel: string, pascal: string): string {
+    const v = row[camel] ?? row[pascal];
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+    return '';
+  }
+
+  private pickStringOrNull(row: Record<string, unknown>, camel: string, pascal: string): string | null {
+    if (!(camel in row) && !(pascal in row)) return null;
+    const v = row[camel] ?? row[pascal];
+    if (v == null) return null;
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+    return null;
   }
 }

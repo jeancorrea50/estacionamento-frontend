@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, input, model, signal } from '@angular/core';
+import { EntityLookupFieldComponent } from '../../../../../shared/components/entity-lookup-field/entity-lookup-field.component';
 import { PaginatedSearchItem } from '../../../../../shared/models/paginated-search.models';
 import { ModalBuscaTransportadoraComponent } from '../modal-busca-transportadora/modal-busca-transportadora.component';
 
@@ -10,7 +11,7 @@ import { ModalBuscaTransportadoraComponent } from '../modal-busca-transportadora
 @Component({
   selector: 'app-transportadora-lookup-field',
   standalone: true,
-  imports: [CommonModule, ModalBuscaTransportadoraComponent],
+  imports: [CommonModule, EntityLookupFieldComponent, ModalBuscaTransportadoraComponent],
   templateUrl: './transportadora-lookup-field.component.html',
   styleUrls: ['./transportadora-lookup-field.component.scss'],
 })
@@ -33,8 +34,7 @@ export class TransportadoraLookupFieldComponent {
     this.buscaAberta.set(false);
   }
 
-  limpar(event?: Event): void {
-    event?.stopPropagation();
+  limpar(): void {
     if (this.disabled()) return;
     this.transportadoraId.set(null);
     this.transportadoraNome.set('');

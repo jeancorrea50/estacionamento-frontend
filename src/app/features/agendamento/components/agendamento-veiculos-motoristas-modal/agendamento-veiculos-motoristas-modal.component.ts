@@ -3,6 +3,7 @@ import { Component, effect, inject, input, output, signal, untracked } from '@an
 import { Subject, of } from 'rxjs';
 import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { EntityLookupFieldComponent } from '../../../../shared/components/entity-lookup-field/entity-lookup-field.component';
 import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 import { formatPlacaDisplay, normalizePlaca } from '../../../cadastro/utils/placa-br';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
@@ -18,7 +19,12 @@ import type { AgendamentoPlacaSelecionada } from '../agendamento-novo-modal/agen
 @Component({
   selector: 'app-agendamento-veiculos-motoristas-modal',
   standalone: true,
-  imports: [CommonModule, ModalBuscaVeiculoComponent, ModalBuscaMotoristaComponent],
+  imports: [
+    CommonModule,
+    EntityLookupFieldComponent,
+    ModalBuscaVeiculoComponent,
+    ModalBuscaMotoristaComponent,
+  ],
   templateUrl: './agendamento-veiculos-motoristas-modal.component.html',
   styleUrl: './agendamento-veiculos-motoristas-modal.component.scss',
 })

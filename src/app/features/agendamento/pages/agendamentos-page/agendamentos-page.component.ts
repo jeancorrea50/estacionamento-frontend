@@ -37,11 +37,13 @@ import {
 } from '../../components/vaga-reserva-dialog/vaga-reserva-dialog.component';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
+import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 import {
   formatIsoDateBr,
   mapTimelineSlots,
   modalidadeApi,
   resolverKpiJanelasDia,
+  somarDestinacaoCifFob,
   toIsoDateLocal,
   type AgendamentoModalidadeUi,
   type AgendamentoTimelineSlot,
@@ -78,9 +80,11 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   private readonly estacionamentoService = inject(EstacionamentoService);
   private readonly janelasApi = inject(JanelaAgendamentoService);
   private readonly janelasRealtime = inject(JanelaDisponibilidadeRealtimeService);
+  private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private timelineSub?: Subscription;
+  private destinacaoSub?: Subscription;
 
   readonly isAdmin = this.auth.isAdmin();
   readonly isTransportadora = this.auth.isTransportadoraRole();
@@ -153,6 +157,8 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   });
   /** Agendados em janelas de limpeza do dia (card "Limpeza agendada"). */
   readonly kpiLimpezaJanelas = signal(0);
+  /** Destinação CIF/FOB (Geral) — soma de reservas ativas no dia/filtro. */
+  readonly kpiDestinacaoCifFob = signal<{ cif: number; fob: number }>({ cif: 0, fob: 0 });
   readonly loadingTimeline = signal(false);
   readonly erroTimeline = signal<string | null>(null);
 
@@ -169,6 +175,8 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   readonly kpiOcupados = computed(() => this.kpiJanelasDia().ocupados);
   /** Agendamentos de limpeza nas janelas do dia selecionado. */
   readonly kpiLimpeza = computed(() => this.kpiLimpezaJanelas());
+  readonly kpiCifGeral = computed(() => this.kpiDestinacaoCifFob().cif);
+  readonly kpiFobGeral = computed(() => this.kpiDestinacaoCifFob().fob);
 
   /** Placa, nome do motorista ou CPF. */
   filtroBusca = '';
@@ -213,6 +221,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.timelineSub?.unsubscribe();
+    this.destinacaoSub?.unsubscribe();
   }
 
   onFiltroTransportadoraId(id: number | null): void {
@@ -330,6 +339,32 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     this.carregar();
     // Ocupação das grades e KPIs de janelas acompanham a busca (novo/cancelamento/confirmação).
     this.carregarTimeline(this.dataSelecionadaIso(), this.modalidadeUi());
+    this.carregarKpisDestinacao();
+  }
+
+  private carregarKpisDestinacao(): void {
+    if (!this.podeOperarPatio) {
+      this.kpiDestinacaoCifFob.set({ cif: 0, fob: 0 });
+      return;
+    }
+    const dataIso = this.dataSelecionadaIso();
+    const transportadoraId =
+      this.isTransportadora && !this.isAdmin
+        ? this.auth.resolveTransportadoraId()
+        : this.filtroTransportadoraId;
+
+    this.destinacaoSub?.unsubscribe();
+    this.destinacaoSub = this.vagasApi.listarReservas().subscribe({
+      next: (reservas) => {
+        this.kpiDestinacaoCifFob.set(
+          somarDestinacaoCifFob(reservas, {
+            dataIso,
+            transportadoraId,
+          })
+        );
+      },
+      error: () => this.kpiDestinacaoCifFob.set({ cif: 0, fob: 0 }),
+    });
   }
 
   exportarPdf(): void {

@@ -17,6 +17,7 @@ import {
   StatusFatura,
   TipoFatura
 } from '../models/fatura.models';
+import { ModalidadeCobranca } from '../models/configuracao-cobranca.models';
 
 describe('fatura.mapper', () => {
   it('mapeia status e modalidade para labels', () => {

@@ -63,7 +63,7 @@
 
     @if (loading()) {
       <p class="vaga-reserva-panel__msg">Carregando…</p>
-    } @else if (resumo(); as v) {
+    } @else if (resumoJanelas(); as v) {
       <div class="vaga-reserva-panel__kpis">
         <article class="vaga-kpi vaga-kpi--est">
           <div class="vaga-kpi__top">
@@ -71,13 +71,13 @@
             <span class="vaga-kpi__label">Estacionamento</span>
           </div>
           <strong class="vaga-kpi__value">
-            {{ v.vagasDisponiveisEstacionamento ?? '—' }}
-            <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
+            {{ v.disponiveisEstacionamento }}
+            <small>/ {{ v.capacidadeEstacionamento }}</small>
           </strong>
           <div class="vaga-kpi__bar" aria-hidden="true">
-            <span [style.width.%]="pctDisponivel(v.vagasDisponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
+            <span [style.width.%]="pctDisponivel(v.disponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
           </div>
-          <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasEstacionamento }}</em>
+          <em class="vaga-kpi__hint">Ocupadas nas janelas: {{ v.ocupadasEstacionamento }}</em>
         </article>
         <article class="vaga-kpi vaga-kpi--limp">
           <div class="vaga-kpi__top">
@@ -85,18 +85,18 @@
             <span class="vaga-kpi__label">Limpeza</span>
           </div>
           <strong class="vaga-kpi__value">
-            {{ v.vagasDisponiveisLimpeza ?? '—' }}
-            <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
+            {{ v.disponiveisLimpeza }}
+            <small>/ {{ v.capacidadeLimpeza }}</small>
           </strong>
           <div class="vaga-kpi__bar" aria-hidden="true">
-            <span [style.width.%]="pctDisponivel(v.vagasDisponiveisLimpeza, v.capacidadeLimpeza)"></span>
+            <span [style.width.%]="pctDisponivel(v.disponiveisLimpeza, v.capacidadeLimpeza)"></span>
           </div>
-          <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasLimpeza }}</em>
+          <em class="vaga-kpi__hint">Ocupadas nas janelas: {{ v.ocupadasLimpeza }}</em>
         </article>
       </div>
-      @if (!v.controleAtivo) {
+      @if (!v.temJanelas) {
         <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
-          Defina a capacidade no cadastro do estacionamento para ativar o controle.
+          Nenhuma janela ativa para este dia. Configure as janelas de agendamento para liberar vagas.
         </p>
       }
     }

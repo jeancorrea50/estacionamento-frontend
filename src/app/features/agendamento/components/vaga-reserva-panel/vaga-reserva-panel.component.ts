@@ -28,15 +28,61 @@ import {
 } from '../../../financeiro/models/configuracao-cobranca.models';
 import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
 import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
-import type { JanelaSlotDisponivel } from '../../models/janela-agendamento.models';
+import type {
+  JanelaDisponibilidade,
+  JanelaSlotDisponivel,
+} from '../../models/janela-agendamento.models';
 import type {
   ModalidadeVagaAgendamento,
   PeriodicidadeVagaReserva,
-  VagaDisponibilidadeResumo,
   VagaReservaTransportadoraItem,
 } from '../../models/vaga-disponibilidade.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
+
+/** Totais do dia a partir das janelas (não usa CapacidadeVeiculo do cadastro). */
+export interface ResumoJanelasDia {
+  capacidadeEstacionamento: number;
+  disponiveisEstacionamento: number;
+  ocupadasEstacionamento: number;
+  capacidadeLimpeza: number;
+  disponiveisLimpeza: number;
+  ocupadasLimpeza: number;
+  temJanelas: boolean;
+}
+
+function totaisJanela(disp: JanelaDisponibilidade | null | undefined): {
+  capacidade: number;
+  disponiveis: number;
+  ocupadas: number;
+  slots: number;
+} {
+  if (!disp) return { capacidade: 0, disponiveis: 0, ocupadas: 0, slots: 0 };
+  const slots = disp.slots ?? [];
+  const capacidade =
+    typeof disp.totalCapacidade === 'number'
+      ? disp.totalCapacidade
+      : slots.reduce((acc, s) => acc + (s.capacidade || 0), 0);
+  const disponiveis =
+    typeof disp.totalDisponiveis === 'number'
+      ? disp.totalDisponiveis
+      : slots.reduce((acc, s) => acc + (s.disponiveis || 0), 0);
+  const ocupadas =
+    typeof disp.totalOcupadas === 'number'
+      ? disp.totalOcupadas
+      : slots.reduce((acc, s) => acc + (s.ocupadas || 0), 0);
+  return { capacidade, disponiveis, ocupadas, slots: slots.length };
+}
+
+const DISP_VAZIA: JanelaDisponibilidade = {
+  data: '',
+  modalidade: 1,
+  usouDestinacao: false,
+  totalCapacidade: 0,
+  totalOcupadas: 0,
+  totalDisponiveis: 0,
+  slots: [],
+};
 
 function toIsoDateLocal(date: Date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -122,7 +168,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
   readonly loadingSlots = signal(false);
   readonly loadingCalendario = signal(false);
   readonly salvando = signal(false);
-  readonly resumo = signal<VagaDisponibilidadeResumo | null>(null);
+  /** KPIs do dia = soma das janelas (Estacionamento / Limpeza), sem cadastro do pátio. */
+  readonly resumoJanelas = signal<ResumoJanelasDia | null>(null);
   readonly reservas = signal<VagaReservaTransportadoraItem[]>([]);
   readonly reservasAbertas = signal(true);
   readonly dataConsulta = signal(toIsoDateLocal());
@@ -402,7 +449,8 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     const data = this.dataConsulta();
     this.loading.set(true);
     forkJoin({
-      resumo: this.api.resumoParaTransportadora(data).pipe(catchError(() => of(null))),
+      est: this.janelasApi.disponibilidade(data, 1).pipe(catchError(() => of(DISP_VAZIA))),
+      limp: this.janelasApi.disponibilidade(data, 2).pipe(catchError(() => of(DISP_VAZIA))),
       reservas: this.api.listarReservas().pipe(catchError(() => of([] as VagaReservaTransportadoraItem[]))),
     })
       .pipe(
@@ -412,14 +460,24 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
         })
       )
       .subscribe({
-        next: ({ resumo, reservas }) => {
+        next: ({ est, limp, reservas }) => {
           if (geracao !== this.geracaoCarregar || data !== this.dataConsulta()) return;
-          this.resumo.set(resumo);
-          this.reservas.set(reservas?.length ? reservas : resumo?.reservas ?? []);
+          const tEst = totaisJanela(est);
+          const tLimp = totaisJanela(limp);
+          this.resumoJanelas.set({
+            capacidadeEstacionamento: tEst.capacidade,
+            disponiveisEstacionamento: tEst.disponiveis,
+            ocupadasEstacionamento: tEst.ocupadas,
+            capacidadeLimpeza: tLimp.capacidade,
+            disponiveisLimpeza: tLimp.disponiveis,
+            ocupadasLimpeza: tLimp.ocupadas,
+            temJanelas: tEst.capacidade > 0 || tLimp.capacidade > 0 || tEst.slots > 0 || tLimp.slots > 0,
+          });
+          this.reservas.set(reservas ?? []);
         },
         error: () => {
           if (geracao !== this.geracaoCarregar || data !== this.dataConsulta()) return;
-          this.resumo.set(null);
+          this.resumoJanelas.set(null);
           this.reservas.set([]);
         },
       });

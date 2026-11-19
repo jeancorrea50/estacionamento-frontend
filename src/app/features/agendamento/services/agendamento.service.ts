@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { ApiError } from '../../../core/api/models';
 import { unwrapServiceResult } from '../../../core/api/utils/service-result.util';
 import { mapMotoristaPorPlacaResponse } from '../../cadastro/mappers/motorista-por-placa.mapper';
 import { MotoristaPorPlacaAggregateVm } from '../../cadastro/models/motorista-por-placa.vm';
@@ -13,6 +14,13 @@ import {
   AgendamentoSearchItem,
   parseEntradaSaidaStatus,
 } from '../models/agendamento.models';
+
+export type AgendamentoMutationResult = {
+  success: boolean;
+  message?: string;
+  /** true quando o errorInterceptor já exibiu o toast. */
+  toastShown?: boolean;
+};
 
 @Injectable({ providedIn: 'root' })
 export class AgendamentoService {
@@ -60,45 +68,25 @@ export class AgendamentoService {
     );
   }
 
-  gravar(input: AgendamentoPostInput): Observable<{ success: boolean; message?: string }> {
+  gravar(input: AgendamentoPostInput): Observable<AgendamentoMutationResult> {
     return this.http.post<unknown>(this.apiRoot, input).pipe(
       map((body) => this.readSuccess(body, 'Agendamento criado.')),
       catchError((err: unknown) => of(this.readHttpFailure(err)))
     );
   }
 
-  cancelar(id: number): Observable<{ success: boolean; message?: string }> {
-    // Swagger: 200 sem content — evita erro de parse JSON em body vazio.
-    return this.http
-      .patch(`${this.apiRoot}/${id}/cancelar`, {}, { responseType: 'text' })
-      .pipe(
-        map((body) => this.readPatchResult(body, 'Agendamento cancelado.')),
-        catchError((err: unknown) => of(this.readHttpFailure(err)))
-      );
+  cancelar(id: number): Observable<AgendamentoMutationResult> {
+    return this.http.patch<unknown>(`${this.apiRoot}/${id}/cancelar`, {}).pipe(
+      map((body) => this.readSuccess(body ?? {}, 'Agendamento cancelado.')),
+      catchError((err: unknown) => of(this.readHttpFailure(err)))
+    );
   }
 
-  confirmarEntrada(id: number): Observable<{ success: boolean; message?: string }> {
-    // Swagger: 200 sem content — evita erro de parse JSON em body vazio.
-    return this.http
-      .patch(`${this.apiRoot}/${id}/confirmar-entrada`, {}, { responseType: 'text' })
-      .pipe(
-        map((body) => this.readPatchResult(body, 'Entrada confirmada.')),
-        catchError((err: unknown) => of(this.readHttpFailure(err)))
-      );
-  }
-
-  /** Aceita body vazio, texto ou JSON do ServiceResult. */
-  private readPatchResult(
-    body: string | null | undefined,
-    fallback: string
-  ): { success: boolean; message?: string } {
-    const raw = String(body ?? '').trim();
-    if (!raw) return { success: true, message: fallback };
-    try {
-      return this.readSuccess(JSON.parse(raw) as unknown, fallback);
-    } catch {
-      return { success: true, message: fallback };
-    }
+  confirmarEntrada(id: number): Observable<AgendamentoMutationResult> {
+    return this.http.patch<unknown>(`${this.apiRoot}/${id}/confirmar-entrada`, {}).pipe(
+      map((body) => this.readSuccess(body ?? {}, 'Entrada confirmada.')),
+      catchError((err: unknown) => of(this.readHttpFailure(err)))
+    );
   }
 
   private normalizePaged(
@@ -164,10 +152,7 @@ export class AgendamentoService {
     }
   }
 
-  private readSuccess(
-    body: unknown,
-    fallback: string
-  ): { success: boolean; message?: string } {
+  private readSuccess(body: unknown, fallback: string): AgendamentoMutationResult {
     if (body && typeof body === 'object') {
       const b = body as Record<string, unknown>;
       const success = b['success'] ?? b['Success'];
@@ -180,15 +165,34 @@ export class AgendamentoService {
             : 'Operação rejeitada.';
         return { success: false, message };
       }
-      const message = String(b['message'] ?? b['Message'] ?? fallback).trim() || fallback;
+      const notesOk = b['notifications'] ?? b['Notifications'];
+      const fromNotes = Array.isArray(notesOk)
+        ? notesOk.filter((n): n is string => typeof n === 'string').join(' ').trim()
+        : typeof notesOk === 'string'
+          ? notesOk.trim()
+          : '';
+      const message =
+        fromNotes || String(b['message'] ?? b['Message'] ?? fallback).trim() || fallback;
       return { success: true, message };
     }
     return { success: true, message: fallback };
   }
 
-  private readHttpFailure(err: unknown): { success: boolean; message?: string } {
-    if (err && typeof err === 'object' && 'error' in err) {
-      let e = (err as { error?: unknown }).error;
+  private readHttpFailure(err: unknown): AgendamentoMutationResult {
+    // errorInterceptor já converteu HttpErrorResponse → ApiError.
+    if (err && typeof err === 'object' && !(err instanceof HttpErrorResponse)) {
+      const api = err as ApiError;
+      if (typeof api.message === 'string' && api.message.trim()) {
+        return {
+          success: false,
+          message: api.message.trim(),
+          toastShown: api.toastShown === true,
+        };
+      }
+    }
+
+    if (err instanceof HttpErrorResponse) {
+      let e: unknown = err.error;
       if (typeof e === 'string') {
         const raw = e.trim();
         if (raw) {
@@ -213,6 +217,7 @@ export class AgendamentoService {
         }
       }
     }
+
     return { success: false, message: 'Não foi possível concluir a operação.' };
   }
 

@@ -584,7 +584,10 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
       this.api.confirmarEntrada(item.id).subscribe({
         next: (res) => {
           if (!res.success) {
-            this.toast.error(res.message || 'Não foi possível confirmar a entrada.');
+            if (!res.toastShown) {
+              this.toast.error(res.message || 'Não foi possível confirmar a entrada.');
+            }
+            this.onBuscar();
             return;
           }
           this.toast.success(res.message || 'Entrada confirmada.');
@@ -618,7 +621,10 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
       this.api.cancelar(item.id).subscribe({
         next: (res) => {
           if (!res.success) {
-            this.toast.error(res.message || 'Não foi possível cancelar.');
+            if (!res.toastShown) {
+              this.toast.error(res.message || 'Não foi possível cancelar.');
+            }
+            this.onBuscar();
             return;
           }
           this.toast.success(res.message || 'Agendamento cancelado.');

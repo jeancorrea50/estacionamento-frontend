@@ -60,33 +60,49 @@ function sanitizeErrorMessage(candidate: string | undefined, status: number, fal
   return text;
 }
 
+function extractNotificationsMessage(
+  body: ApiErrorResponseBody & { notifications?: string[] | string; Notifications?: string[] | string }
+): string | undefined {
+  const nRaw = body.notifications ?? body.Notifications;
+  if (Array.isArray(nRaw) && nRaw.length > 0) {
+    const fromNotifications = nRaw.filter((n): n is string => typeof n === 'string').join(' ').trim();
+    if (fromNotifications) return fromNotifications;
+  }
+  if (typeof nRaw === 'string' && nRaw.trim()) return nRaw.trim();
+
+  const msg =
+    body.message ??
+    body.title ??
+    (body as { erro?: string }).erro ??
+    (body as { Message?: string }).Message ??
+    (body as { Title?: string }).Title ??
+    (body as { Erro?: string }).Erro;
+  return typeof msg === 'string' && msg.trim() ? msg.trim() : undefined;
+}
+
 function toApiError(res: HttpErrorResponse): ApiError {
   const status = res.status;
   const fallback = DEFAULT_MESSAGES[status] ?? `Erro na requisição (${status}).`;
   let message = fallback;
   let fieldErrors: Record<string, string[]> | undefined;
 
-  const body = res.error;
+  let body: unknown = res.error;
+  // responseType: 'text' (ou proxies) devolvem o JSON de erro como string.
+  if (typeof body === 'string' && body.trim()) {
+    const raw = body.trim();
+    try {
+      body = JSON.parse(raw) as unknown;
+    } catch {
+      message = sanitizeErrorMessage(raw, status, fallback);
+      return { message, status, fieldErrors };
+    }
+  }
+
   if (body && typeof body === 'object' && !(body instanceof ProgressEvent)) {
     const b = body as ApiErrorResponseBody & { notifications?: string[] | string; Notifications?: string[] | string };
-    const nRaw = b.notifications ?? b.Notifications;
-    if (Array.isArray(nRaw) && nRaw.length > 0) {
-      const fromNotifications = nRaw.filter((n): n is string => typeof n === 'string').join(' ').trim();
-      if (fromNotifications) message = sanitizeErrorMessage(fromNotifications, status, fallback);
-    } else if (typeof nRaw === 'string' && nRaw.trim()) {
-      message = sanitizeErrorMessage(nRaw, status, fallback);
-    } else {
-      const msg =
-        b.message ??
-        b.title ??
-        (b as { erro?: string }).erro ??
-        (b as { Message?: string }).Message ??
-        (b as { Title?: string }).Title ??
-        (b as { Erro?: string }).Erro;
-      if (typeof msg === 'string' && msg.trim()) {
-        message = sanitizeErrorMessage(msg, status, fallback);
-      }
-    }
+    const fromBody = extractNotificationsMessage(b);
+    if (fromBody) message = sanitizeErrorMessage(fromBody, status, fallback);
+
     if (b.errors) fieldErrors = parseFieldErrors(b.errors as Record<string, string[]> | string[]);
     if (fieldErrors && Object.keys(fieldErrors).length > 0) {
       const flat = Object.values(fieldErrors)
@@ -99,8 +115,6 @@ function toApiError(res: HttpErrorResponse): ApiError {
         message = sanitizeErrorMessage(flat.join(' '), status, fallback);
       }
     }
-  } else if (typeof body === 'string' && body.trim()) {
-    message = sanitizeErrorMessage(body, status, fallback);
   }
 
   return { message, status, fieldErrors };

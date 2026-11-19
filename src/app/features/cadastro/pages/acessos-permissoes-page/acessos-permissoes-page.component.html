@@ -71,7 +71,7 @@
 </div>
 
 @if (novaPermissaoOpen()) {
-  <div class="modal-overlay" (click)="fecharNovaPermissao()">
+  <div class="modal-overlay">
     <div
       class="modal-content modal-content--nova"
       role="dialog"
@@ -177,7 +177,7 @@
 }
 
 @if (isModalOpen()) {
-  <div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-overlay">
     <div
       class="modal-content"
       role="dialog"

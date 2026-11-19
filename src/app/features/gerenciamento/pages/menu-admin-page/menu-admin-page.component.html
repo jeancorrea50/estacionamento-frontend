@@ -157,7 +157,7 @@
 </div>
 
 @if (menuModalOpen()) {
-  <div class="modal-overlay dk-modal-overlay" (click)="!salvandoMenuModal() && menuModalOpen.set(false)">
+  <div class="modal-overlay dk-modal-overlay">
     <div class="modal-content modal-content--form dk-modal-content" role="dialog" (click)="$event.stopPropagation()">
       <div class="modal-header dk-modal-header">
         <h2>{{ menuEditId() === null ? 'Novo menu' : 'Editar menu' }}</h2>
@@ -232,7 +232,7 @@
 }
 
 @if (subModalOpen()) {
-  <div class="modal-overlay dk-modal-overlay" (click)="!salvandoSubModal() && subModalOpen.set(false)">
+  <div class="modal-overlay dk-modal-overlay">
     <div class="modal-content modal-content--form dk-modal-content" role="dialog" (click)="$event.stopPropagation()">
       <div class="modal-header dk-modal-header">
         <h2>

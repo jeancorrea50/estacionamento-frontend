@@ -187,7 +187,7 @@
   </div>
 
   @if (showVeiculoForm) {
-    <div class="modal-overlay modal-overlay--frota" (click)="onBackdropVeiculoClick($event)" role="presentation">
+    <div class="modal-overlay modal-overlay--frota" role="presentation">
       <div class="modal-content modal-content--frota" role="dialog" aria-modal="true" aria-labelledby="modal-frota-title" (click)="$event.stopPropagation()">
         <div class="modal-header modal-header--frota">
           <div class="modal-header__main">
@@ -327,7 +327,7 @@
   }
 
   @if (showImportarFrota) {
-    <div class="modal-overlay" (click)="fecharImportarFrota()" role="dialog" aria-modal="true">
+    <div class="modal-overlay" role="dialog" aria-modal="true">
       <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
         <div class="modal__header">
           <h2 class="modal__title">Importar frota</h2>

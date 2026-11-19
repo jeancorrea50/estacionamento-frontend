@@ -11,7 +11,7 @@
   </button>
 
   @if (aberto()) {
-    <div class="est-mapa__backdrop" [class.est-mapa__backdrop--cheia]="telaCheia()" (click)="fechar()">
+    <div class="est-mapa__backdrop" [class.est-mapa__backdrop--cheia]="telaCheia()">
       <section
         class="est-mapa__panel"
         [class.est-mapa__panel--cheia]="telaCheia()"

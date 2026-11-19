@@ -1458,12 +1458,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.agendarAbrirModalVeiculo();
   }
 
-  /** Backdrop: fecha só se o clique foi no overlay (não no card). */
-  onBackdropVeiculoClick(event: MouseEvent): void {
-    if (event.target !== event.currentTarget) return;
-    this.fecharModalFrota(event);
-  }
-
   /** Mesmo padrão dos outros modais da página (Importar / Motorista): flag + detecção síncrona. */
   private agendarAbrirModalVeiculo(): void {
     this.bloquearFecharModalAte = Date.now() + 500;

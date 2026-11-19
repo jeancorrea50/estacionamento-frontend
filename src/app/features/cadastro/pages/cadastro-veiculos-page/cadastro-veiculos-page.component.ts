@@ -601,11 +601,6 @@ export class CadastroVeiculosPageComponent implements OnInit {
     this.modalFrotaTab = 'veiculo';
   }
 
-  onBackdropVeiculoClick(event: MouseEvent): void {
-    if (event.target !== event.currentTarget) return;
-    this.fecharModalFrota(event);
-  }
-
   abrirImportarFrota(): void {
     if (!this.canGravar) return;
     this.fileFrota = null;

@@ -1054,7 +1054,7 @@
           </div>
           @if (fotoAmpliadaUrl) {
             <div class="foto-ampliada" role="dialog" aria-modal="true" aria-label="Foto em tamanho maior">
-              <div class="foto-ampliada__backdrop" (click)="fecharFotoAmpliada()"></div>
+              <div class="foto-ampliada__backdrop"></div>
               <div class="foto-ampliada__content">
                 <img [src]="fotoAmpliadaUrl" alt="Foto ampliada" />
                 <button type="button" class="foto-ampliada__close" (click)="fecharFotoAmpliada()" aria-label="Fechar">Fechar</button>

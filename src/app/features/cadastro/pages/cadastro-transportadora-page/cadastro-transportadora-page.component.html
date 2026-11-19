@@ -889,7 +889,6 @@
 @if (showVeiculoForm) {
     <div
       class="modal-overlay modal-overlay--frota"
-      (click)="onBackdropVeiculoClick($event)"
       role="presentation"
     >
       <div
@@ -1117,7 +1116,7 @@
   }
 
   @if (showCondutorForm) {
-    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalCondutor()" role="presentation">
+    <div class="modal-overlay modal-overlay--frota" role="presentation">
       <div
         class="modal-content modal-content--frota"
         role="dialog"
@@ -1234,7 +1233,7 @@
   }
 
   @if (showImportarDados) {
-    <div class="modal-overlay" (click)="fecharImportarDados()" role="dialog" aria-modal="true" aria-labelledby="importar-dados-title">
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="importar-dados-title">
       <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
         <div class="modal__header">
           <h2 id="importar-dados-title" class="modal__title">Importar transportadoras</h2>
@@ -1264,7 +1263,7 @@
   }
 
   @if (showImportarFrota) {
-    <div class="modal-overlay" (click)="fecharImportarFrota()" role="dialog" aria-modal="true" aria-labelledby="importar-frota-title">
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="importar-frota-title">
       <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
         <div class="modal__header">
           <h2 id="importar-frota-title" class="modal__title">Importar frota</h2>
@@ -1291,7 +1290,7 @@
   }
 
   @if (showImportarCondutores) {
-    <div class="modal-overlay" (click)="fecharImportarCondutores()" role="dialog" aria-modal="true" aria-labelledby="importar-condutores-title">
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="importar-condutores-title">
       <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
         <div class="modal__header">
           <h2 id="importar-condutores-title" class="modal__title">Importar motoristas</h2>

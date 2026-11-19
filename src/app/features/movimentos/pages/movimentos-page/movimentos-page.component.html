@@ -755,7 +755,6 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="entradaModalTitle"
-      (click)="fecharModalEntrada()"
     >
       <div class="modal-content es-modal es-modal--entrada" (click)="$event.stopPropagation()">
         <header class="es-modal__header">
@@ -976,7 +975,6 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="saidaModalTitle"
-      (click)="fecharModalSaida()"
     >
       <div class="modal-content es-modal es-modal--saida-lista" (click)="$event.stopPropagation()">
         <header class="es-modal__header">
@@ -1176,7 +1174,7 @@
   }
 
   @if (permanenciaOpen() && registroSelecionado(); as registroModal) {
-    <div class="modal-overlay" (click)="fecharPermanencia()">
+    <div class="modal-overlay">
       <div
         class="modal-content"
         [class.modal-content--saida]="permanenciaAcao === 'finalizar'"
@@ -1321,7 +1319,6 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="reciboPreviewTitle"
-      (click)="fecharPreviewRecibo()"
     >
       <div class="modal-content recibo-preview-modal" (click)="$event.stopPropagation()">
         <div class="recibo-preview-modal__header">
@@ -1359,7 +1356,6 @@
   @if (showSelecionarMotoristaPlaca()) {
     <div
       class="modal-overlay"
-      (click)="fecharSelecionarMotoristaPlaca()"
       role="dialog"
       aria-modal="true"
       aria-labelledby="selecionar-motorista-placa-title"
@@ -1372,8 +1368,8 @@
           <button
             type="button"
             class="modal-close"
-            (click)="fecharSelecionarMotoristaPlaca()"
             aria-label="Fechar"
+            (click)="fecharSelecionarMotoristaPlaca()"
           >
             &times;
           </button>

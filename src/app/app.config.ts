@@ -6,6 +6,7 @@ import {
 import { NavigationError, provideRouter, withNavigationErrorHandler } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
@@ -31,6 +32,11 @@ export const appConfig: ApplicationConfig = {
     ),
     /** Angular Material + PrimeNG (ripple, overlays, etc.) */
     provideAnimationsAsync(),
+    /** Modais: fecham só por X / Cancelar / Voltar — não por clique no backdrop nem Esc. */
+    {
+      provide: MAT_DIALOG_DEFAULT_OPTIONS,
+      useValue: { disableClose: true },
+    },
     providePrimeNG({
       theme: {
         preset: Aura,

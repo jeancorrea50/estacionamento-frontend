@@ -105,48 +105,42 @@
         <li class="ag-timeline__slot">
           <div class="ag-timeline__time">
             <span class="ag-timeline__marker" aria-hidden="true"></span>
-            <div class="ag-timeline__time-stack">
-              <time class="ag-timeline__hora" [attr.datetime]="s.horaInicio">{{ s.label }}</time>
-              <span class="ag-timeline__vagas">
-                {{ s.disponiveis }}
-                {{ s.disponiveis === 1 ? 'vaga disponível' : 'vagas disponíveis' }}
-              </span>
+            <time class="ag-timeline__hora" [attr.datetime]="s.horaInicio">{{ s.label }}</time>
+          </div>
+
+          <div class="ag-timeline__totals" aria-label="Totalizadores do horário">
+            <div class="ag-timeline__stat">
+              <span class="ag-timeline__stat-label">Cad.</span>
+              <span class="ag-timeline__stat-value">{{ s.cadastrado }}</span>
+            </div>
+            <div class="ag-timeline__stat">
+              <span class="ag-timeline__stat-label">Agend.</span>
+              <span class="ag-timeline__stat-value">{{ s.agendado }}</span>
+            </div>
+            <div class="ag-timeline__stat">
+              <span class="ag-timeline__stat-label">Disp.</span>
+              <span class="ag-timeline__stat-value">{{ s.disponiveis }}</span>
+            </div>
+            <div class="ag-timeline__stat ag-timeline__stat--pct">
+              <span class="ag-timeline__stat-label">Ocup.</span>
+              <span class="ag-timeline__stat-value">{{ s.ocupacaoPct }}%</span>
             </div>
           </div>
-          <div class="ag-timeline__body">
-            <div class="ag-timeline__totals" aria-label="Totalizadores do horário">
-              <div class="ag-timeline__stat">
-                <span class="ag-timeline__stat-label">Cadastrado</span>
-                <span class="ag-timeline__stat-value">{{ s.cadastrado }}</span>
-              </div>
-              <div class="ag-timeline__stat">
-                <span class="ag-timeline__stat-label">Agendado</span>
-                <span class="ag-timeline__stat-value">{{ s.agendado }}</span>
-              </div>
-              <div class="ag-timeline__stat">
-                <span class="ag-timeline__stat-label">Disponível</span>
-                <span class="ag-timeline__stat-value">{{ s.disponiveis }}</span>
-              </div>
-              <div class="ag-timeline__stat ag-timeline__stat--pct">
-                <span class="ag-timeline__stat-label">Ocupação</span>
-                <span class="ag-timeline__stat-value">{{ s.ocupacaoPct }}%</span>
-              </div>
-            </div>
-            <div
-              class="ag-occ-bar"
-              role="img"
-              [attr.aria-label]="
-                'Ocupação: ' +
-                s.agendado +
-                ' agendados, ' +
-                s.disponiveis +
-                ' disponíveis de ' +
-                s.cadastrado
-              "
-            >
-              <span class="ag-occ-bar__agd" [style.flex]="flexBar(s.agendado)"></span>
-              <span class="ag-occ-bar__disp" [style.flex]="flexBar(s.disponiveis)"></span>
-            </div>
+
+          <div
+            class="ag-occ-bar"
+            role="img"
+            [attr.aria-label]="
+              'Ocupação: ' +
+              s.agendado +
+              ' agendados, ' +
+              s.disponiveis +
+              ' disponíveis de ' +
+              s.cadastrado
+            "
+          >
+            <span class="ag-occ-bar__agd" [style.flex]="flexBar(s.agendado)"></span>
+            <span class="ag-occ-bar__disp" [style.flex]="flexBar(s.disponiveis)"></span>
           </div>
         </li>
       }

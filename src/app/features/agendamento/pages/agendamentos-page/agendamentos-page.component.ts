@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Router, RouterLink } from '@angular/router';
-import { Subscription, forkJoin, of } from 'rxjs';
+import { Router } from '@angular/router';
+import { Subscription, of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
@@ -61,7 +61,6 @@ import {
     CommonModule,
     FormsModule,
     MatDialogModule,
-    RouterLink,
     EstSummaryMetricComponent,
     PeriodoDataPickerComponent,
     AgendamentoNovoModalComponent,
@@ -155,9 +154,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     disponiveis: 0,
     ocupados: 0,
   });
-  /** Agendados em janelas de limpeza do dia (card "Limpeza agendada"). */
-  readonly kpiLimpezaJanelas = signal(0);
-  /** Destinação CIF/FOB (Geral) — soma de reservas ativas no dia/filtro. */
+  /** Destinação CIF/FOB — soma de reservas ativas no dia/filtro. */
   readonly kpiDestinacaoCifFob = signal<{ cif: number; fob: number }>({ cif: 0, fob: 0 });
   readonly loadingTimeline = signal(false);
   readonly erroTimeline = signal<string | null>(null);
@@ -173,8 +170,6 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   readonly kpiDisponiveis = computed(() => this.kpiJanelasDia().disponiveis);
   /** Ocupação nas janelas do dia/modalidade (totais BE ou soma dos slots). */
   readonly kpiOcupados = computed(() => this.kpiJanelasDia().ocupados);
-  /** Agendamentos de limpeza nas janelas do dia selecionado. */
-  readonly kpiLimpeza = computed(() => this.kpiLimpezaJanelas());
   readonly kpiCifGeral = computed(() => this.kpiDestinacaoCifFob().cif);
   readonly kpiFobGeral = computed(() => this.kpiDestinacaoCifFob().fob);
 
@@ -247,7 +242,6 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
       this.timelineSlots.set([]);
       this.kpiJanelasDia.set({ disponiveis: 0, ocupados: 0 });
-      this.kpiLimpezaJanelas.set(0);
       this.erroTimeline.set(null);
       this.loadingTimeline.set(false);
       return;
@@ -265,19 +259,11 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     this.timelineSub?.unsubscribe();
 
     const modalidadeAtual = modalidadeApi(ui);
-    const atual$ = this.janelasApi.disponibilidade(data, modalidadeAtual, transportadoraId);
-    // Card "Limpeza agendada" sempre reflete janelas de limpeza do dia.
-    const limpeza$ =
-      ui === 'limpeza'
-        ? of(null)
-        : this.janelasApi.disponibilidade(data, 2, transportadoraId).pipe(
-            catchError(() => of(null))
-          );
-
-    this.timelineSub = forkJoin({ atual: atual$, limpeza: limpeza$ })
+    this.timelineSub = this.janelasApi
+      .disponibilidade(data, modalidadeAtual, transportadoraId)
       .pipe(finalize(() => this.loadingTimeline.set(false)))
       .subscribe({
-        next: ({ atual, limpeza }) => {
+        next: (atual) => {
           const slots = mapTimelineSlots(atual.slots ?? []);
           this.timelineSlots.set(slots);
           this.kpiJanelasDia.set(
@@ -287,32 +273,11 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
               slots,
             })
           );
-          if (ui === 'limpeza') {
-            this.kpiLimpezaJanelas.set(
-              resolverKpiJanelasDia({
-                totalDisponiveis: atual.totalDisponiveis,
-                totalOcupadas: atual.totalOcupadas,
-                slots,
-              }).ocupados
-            );
-          } else if (limpeza) {
-            const limpSlots = mapTimelineSlots(limpeza.slots ?? []);
-            this.kpiLimpezaJanelas.set(
-              resolverKpiJanelasDia({
-                totalDisponiveis: limpeza.totalDisponiveis,
-                totalOcupadas: limpeza.totalOcupadas,
-                slots: limpSlots,
-              }).ocupados
-            );
-          } else {
-            this.kpiLimpezaJanelas.set(0);
-          }
           this.erroTimeline.set(null);
         },
         error: (err: { message?: string } | unknown) => {
           this.timelineSlots.set([]);
           this.kpiJanelasDia.set({ disponiveis: 0, ocupados: 0 });
-          this.kpiLimpezaJanelas.set(0);
           const msg =
             err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
               ? err.message
@@ -391,7 +356,8 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
         agendados: this.kpiAgendados(),
         disponiveis: this.kpiDisponiveis(),
         ocupados: this.kpiOcupados(),
-        limpeza: this.kpiLimpeza(),
+        cif: this.kpiCifGeral(),
+        fob: this.kpiFobGeral(),
       },
       slots: this.timelineSlots(),
       emitidoEm: new Date(),

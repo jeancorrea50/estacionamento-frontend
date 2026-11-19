@@ -4,7 +4,8 @@ export interface AgendamentoPainelExportKpis {
   agendados: number;
   disponiveis: number;
   ocupados: number;
-  limpeza: number;
+  cif: number;
+  fob: number;
 }
 
 export interface AgendamentoPainelExportEntrada {
@@ -92,7 +93,7 @@ export function exportarPainelAgendamentosPdf(entrada: AgendamentoPainelExportEn
     h1 { font-size: 18px; margin: 0 0 8px; }
     h2 { font-size: 13px; margin: 16px 0 8px; color: #334155; }
     .meta p { margin: 2px 0; font-size: 12px; color: #475569; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 18px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0 18px; }
     .kpi-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; background: #f8fafc; }
     .kpi-card__label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
     .kpi-card__value { display: block; margin-top: 4px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -111,7 +112,8 @@ export function exportarPainelAgendamentosPdf(entrada: AgendamentoPainelExportEn
     <div class="kpi-card"><span class="kpi-card__label">Agendados</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.agendados)}</span></div>
     <div class="kpi-card"><span class="kpi-card__label">Vagas disponíveis</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.disponiveis)}</span></div>
     <div class="kpi-card"><span class="kpi-card__label">Ocupados</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.ocupados)}</span></div>
-    <div class="kpi-card"><span class="kpi-card__label">Limpeza agendada</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.limpeza)}</span></div>
+    <div class="kpi-card"><span class="kpi-card__label">CIF</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.cif)}</span></div>
+    <div class="kpi-card"><span class="kpi-card__label">FOB</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.fob)}</span></div>
   </div>
   <h2>Linha do tempo do dia</h2>
   <table>
@@ -159,7 +161,8 @@ export function exportarPainelAgendamentosExcel(entrada: AgendamentoPainelExport
     ['Agendados', String(entrada.kpis.agendados)],
     ['Vagas disponíveis', String(entrada.kpis.disponiveis)],
     ['Ocupados', String(entrada.kpis.ocupados)],
-    ['Limpeza agendada', String(entrada.kpis.limpeza)],
+    ['CIF', String(entrada.kpis.cif)],
+    ['FOB', String(entrada.kpis.fob)],
     [],
     ['Linha do tempo do dia'],
     ['Horário', 'Cadastrado', 'Agendado', 'Disponível', 'Ocupação %'],

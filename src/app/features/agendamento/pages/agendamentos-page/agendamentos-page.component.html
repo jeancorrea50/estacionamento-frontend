@@ -6,24 +6,27 @@
           <h1 id="ag-dash-title" class="ag-dash-top__title">Agendamentos</h1>
           <p class="ag-dash-top__sub">Controle visual de vagas e veículos agendados no pátio.</p>
         </div>
-        <div class="ag-modalidade-toggle" role="group" aria-label="Modalidade">
-          <button
-            type="button"
-            class="ag-modalidade-toggle__btn"
-            [class.is-active]="modalidadeUi() === 'estacionamento'"
-            (click)="selecionarModalidade('estacionamento')"
-          >
-            Estacionamento
-          </button>
-          <button
-            type="button"
-            class="ag-modalidade-toggle__btn"
-            [class.is-active]="modalidadeUi() === 'limpeza'"
-            (click)="selecionarModalidade('limpeza')"
-          >
-            Limpeza
-          </button>
+        <div class="ag-dash-top__tabs">
+          <div class="ag-modalidade-toggle" role="group" aria-label="Modalidade">
+            <button
+              type="button"
+              class="ag-modalidade-toggle__btn"
+              [class.is-active]="modalidadeUi() === 'estacionamento'"
+              (click)="selecionarModalidade('estacionamento')"
+            >
+              Estacionamento
+            </button>
+            <button
+              type="button"
+              class="ag-modalidade-toggle__btn"
+              [class.is-active]="modalidadeUi() === 'limpeza'"
+              (click)="selecionarModalidade('limpeza')"
+            >
+              Limpeza
+            </button>
+          </div>
         </div>
+        <div class="ag-dash-top__spacer" aria-hidden="true"></div>
       </header>
 
       @if (!canVisualizar) {
@@ -101,16 +104,6 @@
               <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
               Excel
             </button>
-            @if (podeVerJanelas) {
-              <a
-                class="est-dash-btn est-dash-btn--neutral"
-                [routerLink]="janelasRoute"
-                aria-label="Configurar janelas de agendamento"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
-                Configurar Janelas
-              </a>
-            }
             @if (podeOperarPatio) {
               <button
                 type="button"
@@ -150,22 +143,16 @@
             variant="success"
           />
           <app-est-summary-metric icon="garage" label="Ocupados" [value]="kpiOcupados()" variant="danger" />
-          <app-est-summary-metric
-            icon="cleaning_services"
-            label="Limpeza agendada"
-            [value]="kpiLimpeza()"
-            variant="info"
-          />
           @if (podeOperarPatio) {
             <app-est-summary-metric
               icon="payments"
-              label="CIF (Geral)"
+              label="CIF"
               [value]="kpiCifGeral()"
               variant="success"
             />
             <app-est-summary-metric
               icon="handshake"
-              label="FOB (Geral)"
+              label="FOB"
               [value]="kpiFobGeral()"
               variant="warning"
             />

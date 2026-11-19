@@ -417,6 +417,50 @@
   font-weight: 500;
 }
 
+.vaga-reserva-panel__transfer {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  background: color-mix(in srgb, var(--surface, var(--card-bg)) 72%, transparent);
+}
+
+.vaga-reserva-panel__transfer-toggle {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+
+  ::ng-deep .mdc-label {
+    margin-left: 0.65rem;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.vaga-reserva-panel__transfer-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.vaga-reserva-panel__transfer-title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.vaga-reserva-panel__transfer-desc {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .vaga-reserva-panel__form-actions {
   display: flex;
   justify-content: flex-end;
@@ -552,6 +596,11 @@
 .vaga-status--off {
   color: var(--muted);
   background: color-mix(in srgb, var(--muted) 16%, transparent);
+}
+
+.vaga-status--transfer {
+  color: var(--primary, #2563eb);
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
 }
 
 .is-inactive td {

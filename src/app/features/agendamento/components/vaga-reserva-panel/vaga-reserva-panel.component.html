@@ -278,6 +278,21 @@
         }
       </div>
 
+      <div class="vaga-reserva-panel__transfer">
+        <mat-slide-toggle
+          class="vaga-reserva-panel__transfer-toggle"
+          color="primary"
+          formControlName="transferenciaAutomaticaSaldo"
+        >
+          <span class="vaga-reserva-panel__transfer-copy">
+            <strong class="vaga-reserva-panel__transfer-title">Transferência automática de saldo</strong>
+            <span class="vaga-reserva-panel__transfer-desc">
+              O saldo não utilizado pode ser transferido para a próxima janela, respeitando a capacidade.
+            </span>
+          </span>
+        </mat-slide-toggle>
+      </div>
+
       <div class="vaga-reserva-panel__form-actions">
         <button
           type="submit"
@@ -321,6 +336,7 @@
               <th>Recorrência</th>
               <th>Horário</th>
               <th>Pagador</th>
+              <th>Transf. saldo</th>
               <th>Situação</th>
               @if (podeGerenciar) {
                 <th></th>
@@ -342,6 +358,18 @@
                 <td>{{ r.periodicidadeLabel }}</td>
                 <td>{{ horarioReservaLabel(r) }}</td>
                 <td>{{ r.responsavelFaturamentoNome || '—' }}</td>
+                <td>
+                  @if (r.transferenciaAutomaticaSaldo) {
+                    <span
+                      class="vaga-status vaga-status--transfer"
+                      title="Transferência automática de saldo ativa"
+                    >
+                      Sim
+                    </span>
+                  } @else {
+                    <span class="vaga-status vaga-status--off">Não</span>
+                  }
+                </td>
                 <td>
                   <span
                     class="vaga-status"

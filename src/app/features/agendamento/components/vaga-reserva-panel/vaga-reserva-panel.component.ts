@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
@@ -144,6 +145,7 @@ export interface CalendarioDiaVaga {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    MatSlideToggleModule,
     DatePipe,
     PeriodoDataPickerComponent,
     TransportadoraLookupFieldComponent,
@@ -218,6 +220,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
     dataFim: [''],
     periodicidade: [1 as PeriodicidadeVagaReserva, Validators.required],
     avulso: [false],
+    transferenciaAutomaticaSaldo: [false],
   });
 
   readonly exigePagador = computed(
@@ -694,6 +697,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
         horaFim: slot.horaFim,
         responsavelFaturamentoId: this.exigePagador() ? this.pagadorId() : null,
         avulso: raw.avulso,
+        transferenciaAutomaticaSaldo: !!raw.transferenciaAutomaticaSaldo,
       })
       .pipe(finalize(() => this.salvando.set(false)))
       .subscribe({
@@ -710,6 +714,7 @@ export class VagaReservaPanelComponent implements OnInit, OnChanges, OnDestroy {
             dataFim: dia,
             avulso: false,
             periodicidade: 1,
+            transferenciaAutomaticaSaldo: false,
           });
           this.limparTransportadoraSelecionada();
           this.limparAcordoEPagador();

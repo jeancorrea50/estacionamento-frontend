@@ -40,18 +40,27 @@ export class VagaDisponibilidadeService {
 
   listarReservas(): Observable<VagaReservaTransportadoraItem[]> {
     return this.http
-      .get<ApiEnvelope<VagaReservaTransportadoraItem[]>>(`${this.base}/reservas`)
+      .get<ApiEnvelope<VagaReservaTransportadoraItem[] | Record<string, unknown>[]>>(
+        `${this.base}/reservas`
+      )
       .pipe(
-        map((r) => r.result ?? []),
+        map((r) => (r.result ?? []).map((row) => this.mapReserva(row))),
         catchError(() => of([]))
       );
   }
 
   criarReserva(input: VagaReservaTransportadoraInput): Observable<VagaReservaTransportadoraItem | null> {
+    const payload: VagaReservaTransportadoraInput = {
+      ...input,
+      transferenciaAutomaticaSaldo: !!input.transferenciaAutomaticaSaldo,
+    };
     return this.http
-      .post<ApiEnvelope<VagaReservaTransportadoraItem>>(`${this.base}/reservas`, input)
+      .post<ApiEnvelope<VagaReservaTransportadoraItem | Record<string, unknown>>>(
+        `${this.base}/reservas`,
+        payload
+      )
       .pipe(
-        map((r) => r.result ?? null),
+        map((r) => (r.result != null ? this.mapReserva(r.result) : null)),
         catchError(() => of(null))
       );
   }
@@ -61,5 +70,31 @@ export class VagaDisponibilidadeService {
       map((r) => r.success !== false),
       catchError(() => of(false))
     );
+  }
+
+  private mapReserva(
+    row: VagaReservaTransportadoraItem | Record<string, unknown>
+  ): VagaReservaTransportadoraItem {
+    const r = row as Record<string, unknown>;
+    const base = row as VagaReservaTransportadoraItem;
+    return {
+      ...base,
+      transferenciaAutomaticaSaldo: this.pickBool(
+        r,
+        'transferenciaAutomaticaSaldo',
+        'TransferenciaAutomaticaSaldo'
+      ),
+    };
+  }
+
+  private pickBool(row: Record<string, unknown>, camel: string, pascal: string): boolean {
+    const v = row[camel] ?? row[pascal];
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v !== 0;
+    if (typeof v === 'string') {
+      const s = v.trim().toLowerCase();
+      return s === 'true' || s === '1';
+    }
+    return false;
   }
 }

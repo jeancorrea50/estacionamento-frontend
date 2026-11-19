@@ -37,6 +37,8 @@ export interface VagaReservaTransportadoraItem {
   responsavelFaturamentoId?: number | null;
   responsavelFaturamentoNome?: string | null;
   avulso: boolean;
+  /** Quando true, job pode transferir saldo não usado para a próxima janela do dia. */
+  transferenciaAutomaticaSaldo: boolean;
   ativo: boolean;
 }
 
@@ -53,4 +55,6 @@ export interface VagaReservaTransportadoraInput {
   horaFim: string;
   responsavelFaturamentoId?: number | null;
   avulso?: boolean;
+  /** Default false; ativa monitoramento/transferência automática de saldo. */
+  transferenciaAutomaticaSaldo?: boolean;
 }

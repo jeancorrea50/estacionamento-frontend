@@ -82,14 +82,17 @@
                       class="ag-placa-chip"
                       [class.ag-placa-chip--sem-motorista]="!(p.motoristaId && p.motoristaId > 0)"
                     >
-                      <div class="ag-placa-chip__main">
+                      <button
+                        type="button"
+                        class="ag-placa-chip__main"
+                        (click)="abrirFrotaModal()"
+                        [attr.aria-label]="'Editar motorista da placa ' + formatPlaca(p.placa)"
+                      >
                         <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
                         <span class="ag-placa-chip__motorista">
-                          {{
-                            labelMotorista(p) || 'Sem motorista'
-                          }}
+                          {{ labelMotorista(p) || 'Sem motorista' }}
                         </span>
-                      </div>
+                      </button>
                       <button
                         type="button"
                         class="ag-placa-chip__remove"
@@ -104,6 +107,13 @@
                 @if (!todasPlacasComMotorista()) {
                   <p class="ag-placas-field__warn">
                     Há placa(s) sem motorista. Abra o gerenciador para vincular.
+                  </p>
+                }
+                @if (placasExcedemVagas() && slotSelecionado(); as slot) {
+                  <p class="ag-placas-field__warn">
+                    Você selecionou {{ placasSelecionadas().length }} veículos, mas o horário
+                    {{ slot.label }} tem apenas {{ slot.disponiveis }} vaga(s). Remova placas ou
+                    escolha outro horário.
                   </p>
                 }
               }
@@ -132,7 +142,8 @@
               salvando() ||
               placasSelecionadas().length === 0 ||
               !slotSelecionado() ||
-              !todasPlacasComMotorista()
+              !todasPlacasComMotorista() ||
+              placasExcedemVagas()
             "
           >
             {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}

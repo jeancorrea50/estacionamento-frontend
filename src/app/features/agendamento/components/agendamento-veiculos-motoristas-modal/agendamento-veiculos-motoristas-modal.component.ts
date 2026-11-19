@@ -93,41 +93,41 @@ export class AgendamentoVeiculosMotoristasModalComponent {
     const tid = this.transportadoraId() ?? 0;
     const geracao = ++this.geracaoResolucao;
     let ignoradasInativas = 0;
-    let candidatas = 0;
-    let pendentes = 0;
+    let duplicadas = 0;
 
-    this.resolvendoPlacas.set(true);
+    /** Aceitas neste lote (evita colisão entre itens do mesmo confirm). */
+    const idsLote = new Set<number>();
+    const placasLote = new Set<string>();
+    const aceitas: AgendamentoPlacaSelecionada[] = [];
 
     for (const item of itens) {
-      const preparado = this.prepararPlacaDaBusca(item);
+      const preparado = this.prepararPlacaDaBusca(item, idsLote, placasLote);
       if (!preparado.ok) {
         if (preparado.motivo === 'inativa') ignoradasInativas += 1;
+        if (preparado.motivo === 'duplicada') duplicadas += 1;
         continue;
       }
+      idsLote.add(preparado.base.id);
+      placasLote.add(normalizePlaca(preparado.base.placa));
+      aceitas.push(preparado.base);
+    }
 
-      candidatas += 1;
-      pendentes += 1;
-      this.resolverMotoristaDaPlaca(preparado.base, tid)
-        .pipe(takeUntil(this.cancelarResolucao$))
-        .subscribe({
-          next: (resolved) => {
-            if (!this.aberto() || geracao !== this.geracaoResolucao) return;
-            if (tid !== (this.transportadoraId() ?? 0)) return;
-            const comFlag: AgendamentoPlacaSelecionada = {
-              ...resolved,
-              motoristaBloqueado: !!(resolved.motoristaId && resolved.motoristaId > 0),
-            };
-            this.mesclarPlaca(comFlag);
-            pendentes -= 1;
-            if (pendentes <= 0) this.resolvendoPlacas.set(false);
-          },
-          error: () => {
-            if (!this.aberto() || geracao !== this.geracaoResolucao) return;
-            this.mesclarPlaca({ ...preparado.base, motoristaBloqueado: false });
-            pendentes -= 1;
-            if (pendentes <= 0) this.resolvendoPlacas.set(false);
-          },
-        });
+    if (!aceitas.length) {
+      if (ignoradasInativas) {
+        this.toast.warning(
+          ignoradasInativas === 1
+            ? '1 placa inativa foi ignorada.'
+            : `${ignoradasInativas} placas inativas foram ignoradas.`
+        );
+      } else if (duplicadas) {
+        this.toast.warning('As placas selecionadas já estavam na lista.');
+      }
+      return;
+    }
+
+    // Inclui todas as placas imediatamente (multi-seleção N) e depois enriquece motorista.
+    for (const base of aceitas) {
+      this.mesclarPlaca({ ...base });
     }
 
     if (ignoradasInativas) {
@@ -137,12 +137,31 @@ export class AgendamentoVeiculosMotoristasModalComponent {
           : `${ignoradasInativas} placas inativas foram ignoradas.`
       );
     }
-    if (!candidatas && !ignoradasInativas) {
-      this.toast.warning('As placas selecionadas já estavam na lista.');
-      this.resolvendoPlacas.set(false);
-    }
-    if (candidatas === 0) {
-      this.resolvendoPlacas.set(false);
+
+    let pendentes = aceitas.length;
+    this.resolvendoPlacas.set(true);
+
+    for (const base of aceitas) {
+      this.resolverMotoristaDaPlaca(base, tid)
+        .pipe(takeUntil(this.cancelarResolucao$))
+        .subscribe({
+          next: (resolved) => {
+            if (!this.aberto() || geracao !== this.geracaoResolucao) return;
+            if (tid !== (this.transportadoraId() ?? 0)) return;
+            this.mesclarPlaca({
+              ...resolved,
+              motoristaBloqueado: !!(resolved.motoristaId && resolved.motoristaId > 0),
+            });
+            pendentes -= 1;
+            if (pendentes <= 0) this.resolvendoPlacas.set(false);
+          },
+          error: () => {
+            if (!this.aberto() || geracao !== this.geracaoResolucao) return;
+            this.mesclarPlaca({ ...base, motoristaBloqueado: false });
+            pendentes -= 1;
+            if (pendentes <= 0) this.resolvendoPlacas.set(false);
+          },
+        });
     }
   }
 
@@ -212,7 +231,21 @@ export class AgendamentoVeiculosMotoristasModalComponent {
   }
 
   onConfirmar(): void {
-    this.confirmar.emit(this.rascunho().map((p) => ({ ...p })));
+    const lista = this.rascunho();
+    if (!lista.length) {
+      this.toast.error('Adicione ao menos uma placa.');
+      return;
+    }
+    const semMotorista = lista.filter((p) => !(p.motoristaId && p.motoristaId > 0));
+    if (semMotorista.length) {
+      this.toast.error(
+        semMotorista.length === 1
+          ? `Defina o motorista da placa ${this.formatPlaca(semMotorista[0].placa)}.`
+          : `Defina o motorista de ${semMotorista.length} placas antes de confirmar.`
+      );
+      return;
+    }
+    this.confirmar.emit(lista.map((p) => ({ ...p })));
   }
 
   onVoltar(): void {
@@ -235,7 +268,9 @@ export class AgendamentoVeiculosMotoristasModalComponent {
   }
 
   private prepararPlacaDaBusca(
-    item: PaginatedSearchItem
+    item: PaginatedSearchItem,
+    idsLote?: Set<number>,
+    placasLote?: Set<string>
   ):
     | { ok: true; base: AgendamentoPlacaSelecionada }
     | { ok: false; motivo: 'invalida' | 'inativa' | 'duplicada' } {
@@ -248,9 +283,10 @@ export class AgendamentoVeiculosMotoristasModalComponent {
     }
 
     const placaNorm = normalizePlaca(placa);
-    const jaExiste = this.rascunho().some(
-      (p) => p.id === id || normalizePlaca(p.placa) === placaNorm
-    );
+    const jaExiste =
+      this.rascunho().some((p) => p.id === id || normalizePlaca(p.placa) === placaNorm) ||
+      !!idsLote?.has(id) ||
+      !!placasLote?.has(placaNorm);
     if (jaExiste) return { ok: false, motivo: 'duplicada' };
 
     const metaMotoristaId = Number(item.meta?.['motoristaId'] ?? 0);

@@ -226,10 +226,21 @@
 }
 
 .ag-placa-chip__main {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ag-placa-chip__main:hover .ag-placa-chip__placa {
+  text-decoration: underline;
 }
 
 .ag-placa-chip__placa {

@@ -125,7 +125,12 @@
 
       <footer class="avm-modal__footer">
         <button type="button" class="btn btn-secondary" (click)="onVoltar()">Voltar</button>
-        <button type="button" class="btn btn-primary" (click)="onConfirmar()">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="onConfirmar()"
+          [disabled]="resolvendoPlacas() || !rascunho().length || pendentesMotorista() > 0"
+        >
           Confirmar frota
           @if (rascunho().length) {
             ({{ rascunho().length }})

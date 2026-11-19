@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, finalize, map, switchMap } from 'rxjs/operators';
+import { Observable, from, of } from 'rxjs';
+import { catchError, concatMap, finalize, map, switchMap, toArray } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
@@ -126,6 +126,13 @@ export class AgendamentoNovoModalComponent {
     return lista.length > 0 && lista.every((p) => !!p.motoristaId && p.motoristaId > 0);
   }
 
+  /** Excede a capacidade do horário selecionado (aviso UI; bloqueia no salvar). */
+  placasExcedemVagas(): boolean {
+    const slot = this.slotSelecionado();
+    if (!slot) return false;
+    return this.placasSelecionadas().length > slot.disponiveis;
+  }
+
   labelMotorista(p: AgendamentoPlacaSelecionada): string {
     const nome = (p.motoristaNome || '').trim();
     if (nome) return nome;
@@ -233,36 +240,46 @@ export class AgendamentoNovoModalComponent {
     const isAdmin = this.auth.isAdmin();
 
     this.salvando.set(true);
-    forkJoin(
-      selecionados.map((veiculo) =>
-        this.resolverPayloadPlaca(veiculo, tid, dataAgendamento, observacao, isTransportadora, isAdmin).pipe(
-          switchMap((resolved) => {
-            if (!resolved.ok) {
-              return of({
+    // Sequencial: evita corrida de vagas ao gravar N placas no mesmo horário.
+    from(selecionados)
+      .pipe(
+        concatMap((veiculo) =>
+          this.resolverPayloadPlaca(
+            veiculo,
+            tid,
+            dataAgendamento,
+            observacao,
+            isTransportadora,
+            isAdmin
+          ).pipe(
+            switchMap((resolved) => {
+              if (!resolved.ok) {
+                return of({
+                  success: false as const,
+                  placa: veiculo.placa,
+                  message: resolved.message,
+                });
+              }
+              return this.api.gravar({ ...resolved.payload, modalidadeAgendamento }).pipe(
+                map((res) => ({
+                  success: res.success,
+                  placa: veiculo.placa,
+                  message: res.message,
+                }))
+              );
+            }),
+            catchError(() =>
+              of({
                 success: false as const,
                 placa: veiculo.placa,
-                message: resolved.message,
-              });
-            }
-            return this.api.gravar({ ...resolved.payload, modalidadeAgendamento }).pipe(
-              map((res) => ({
-                success: res.success,
-                placa: veiculo.placa,
-                message: res.message,
-              }))
-            );
-          }),
-          catchError(() =>
-            of({
-              success: false as const,
-              placa: veiculo.placa,
-              message: 'Falha ao criar agendamento.',
-            })
+                message: 'Falha ao criar agendamento.',
+              })
+            )
           )
-        )
+        ),
+        toArray(),
+        finalize(() => this.salvando.set(false))
       )
-    )
-      .pipe(finalize(() => this.salvando.set(false)))
       .subscribe({
         next: (results) => {
           const ok = results.filter((r) => r.success);

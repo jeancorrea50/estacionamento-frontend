@@ -311,6 +311,9 @@ export class EntradaSaidaService {
       dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
       ehExcedente: this.pickBool(row, 'ehExcedente', 'EhExcedente'),
       acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId'),
+      status: parseEntradaSaidaStatus(
+        this.pickRaw(row, 'status', 'Status', 'situacao', 'Situacao') as number | string | undefined
+      ),
       suspensoes: Array.isArray(suspensoesRaw)
         ? (suspensoesRaw as EntradaSaidaOutput['suspensoes'])
         : [],

@@ -176,6 +176,11 @@ export interface EntradaSaidaOutput {
   dataFaturado?: string | null;
   ehExcedente?: boolean;
   acordoCobrancaId?: number | null;
+  /**
+   * Enum byte do backend (`EntradaSaidaStatus`).
+   * Aceita número/string cru da API; preferir `parseEntradaSaidaStatus` no consumo.
+   */
+  status?: EntradaSaidaStatus | number | string;
   suspensoes: EntradaSaidaSuspensaoOutput[];
   /** Objetos aninhados do GET buscar-por-placa / detalhe (contrato Registro Rápido). */
   motorista?:

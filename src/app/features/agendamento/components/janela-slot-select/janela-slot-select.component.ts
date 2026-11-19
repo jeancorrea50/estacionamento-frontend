@@ -17,6 +17,30 @@ function slotKey(s: JanelaSlotDisponivel): string {
 }
 
 /**
+ * Só permite slots cujo início ainda não passou (hora local do navegador).
+ * Datas futuras: todos; data de hoje: a partir de agora; datas passadas: nenhum.
+ */
+function slotAindaNoFuturo(dataIso: string, horaInicio: string, agora = new Date()): boolean {
+  const dia = String(dataIso ?? '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return false;
+  const [yy, mm, dd] = dia.split('-').map((n) => Number(n));
+  const partes = String(horaInicio ?? '')
+    .trim()
+    .split(':')
+    .map((n) => Number(n));
+  if (!Number.isFinite(yy) || !Number.isFinite(mm) || !Number.isFinite(dd)) return false;
+  const h = Number.isFinite(partes[0]) ? partes[0] : NaN;
+  const min = Number.isFinite(partes[1]) ? partes[1] : 0;
+  const sec = Number.isFinite(partes[2]) ? partes[2] : 0;
+  if (!Number.isFinite(h)) return false;
+  const inicio = new Date(yy, mm - 1, dd, h, min, sec, 0);
+  // Compara em minutos para evitar flutuação de segundos no meio do segundo atual.
+  const inicioMin = Math.floor(inicio.getTime() / 60_000);
+  const agoraMin = Math.floor(agora.getTime() / 60_000);
+  return inicioMin >= agoraMin;
+}
+
+/**
  * Modalidade + horário (slot) do agendamento.
  * Carrega `GET JanelaAgendamento/disponibilidade` ao mudar data/modalidade/transportadora e
  * sempre que `JanelaDisponibilidadeRealtimeService.versao` mudar (hub ou CRUD local).
@@ -64,8 +88,11 @@ function slotKey(s: JanelaSlotDisponivel): string {
           <p class="jsl__msg jsl__msg--erro" role="alert">{{ msg }}</p>
         } @else if (!carregando() && ativo() && data() && slots().length === 0) {
           <p class="jsl__msg">
-            Nenhum horário disponível para esta data e modalidade. Escolha outra data ou verifique as
-            Janelas configuradas.
+            {{
+              soHorariosPassados()
+                ? 'Todos os horários desta data já passaram. Escolha outra data.'
+                : 'Nenhum horário disponível para esta data e modalidade. Escolha outra data ou verifique as Janelas configuradas.'
+            }}
           </p>
         } @else if (slot(); as s) {
           <p class="jsl__msg">{{ s.disponiveis }} vaga(s) disponível(is) neste horário.</p>
@@ -96,8 +123,14 @@ export class JanelaSlotSelectComponent {
   readonly slots = signal<JanelaSlotDisponivel[]>([]);
   readonly carregando = signal(false);
   readonly erro = signal<string | null>(null);
+  /** API trouxe slots, mas todos já passaram (hoje). */
+  readonly soHorariosPassados = signal(false);
 
   private sub?: Subscription;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
+  /** Snapshot bruto da última resposta (para refiltrar sem novo GET a cada minuto). */
+  private ultimoBruto: JanelaSlotDisponivel[] = [];
+  private ultimaData = '';
 
   constructor() {
     effect((onCleanup) => {
@@ -106,13 +139,17 @@ export class JanelaSlotSelectComponent {
       const modalidade = this.modalidade();
       const transportadoraId = this.transportadoraId();
       this.realtime.versao(); // dependência: refaz o GET quando alguma janela mudar
-      onCleanup(() => this.sub?.unsubscribe());
+      onCleanup(() => {
+        this.sub?.unsubscribe();
+        this.pararTick();
+      });
       untracked(() => {
         if (!ativo || !data) {
           this.limpar();
           return;
         }
         this.carregar(data, modalidade, transportadoraId);
+        this.iniciarTickSeHoje(data);
       });
     });
   }
@@ -132,6 +169,49 @@ export class JanelaSlotSelectComponent {
     this.slot.set(null);
     this.erro.set(null);
     this.carregando.set(false);
+    this.soHorariosPassados.set(false);
+    this.ultimoBruto = [];
+    this.ultimaData = '';
+    this.pararTick();
+  }
+
+  private iniciarTickSeHoje(data: string): void {
+    this.pararTick();
+    const hoje = this.hojeIsoLocal();
+    if (data !== hoje) return;
+    // A cada minuto remove slots que acabaram de passar sem novo round-trip.
+    this.tickTimer = setInterval(() => this.aplicarFiltroFuturo(this.ultimaData, this.ultimoBruto), 60_000);
+  }
+
+  private pararTick(): void {
+    if (this.tickTimer != null) {
+      clearInterval(this.tickTimer);
+      this.tickTimer = null;
+    }
+  }
+
+  private hojeIsoLocal(): string {
+    const n = new Date();
+    const y = n.getFullYear();
+    const m = String(n.getMonth() + 1).padStart(2, '0');
+    const d = String(n.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private aplicarFiltroFuturo(data: string, bruto: JanelaSlotDisponivel[]): void {
+    if (!data) {
+      this.slots.set([]);
+      this.soHorariosPassados.set(false);
+      return;
+    }
+    const agora = new Date();
+    const futuros = bruto.filter((s) => slotAindaNoFuturo(data, s.horaInicio, agora));
+    this.soHorariosPassados.set(bruto.length > 0 && futuros.length === 0);
+    this.slots.set(futuros);
+    const atual = this.slot();
+    if (atual && !futuros.some((s) => slotKey(s) === slotKey(atual))) {
+      this.slot.set(null);
+    }
   }
 
   private carregar(
@@ -147,14 +227,21 @@ export class JanelaSlotSelectComponent {
       .pipe(finalize(() => this.carregando.set(false)))
       .subscribe({
         next: (res) => {
-          this.slots.set(res.slots);
-          // Mantém a escolha só se o slot continua disponível (ex.: após evento do hub).
-          const mantido = anterior ? res.slots.find((s) => slotKey(s) === slotKey(anterior)) : undefined;
+          this.ultimoBruto = res.slots ?? [];
+          this.ultimaData = data;
+          this.aplicarFiltroFuturo(data, this.ultimoBruto);
+          // Mantém a escolha só se o slot continua disponível e ainda não passou.
+          const mantido = anterior
+            ? this.slots().find((s) => slotKey(s) === slotKey(anterior))
+            : undefined;
           this.slot.set(mantido ?? null);
         },
         error: (err: ApiError) => {
+          this.ultimoBruto = [];
+          this.ultimaData = '';
           this.slots.set([]);
           this.slot.set(null);
+          this.soHorariosPassados.set(false);
           this.erro.set(err?.message || 'Não foi possível consultar os horários disponíveis.');
         },
       });

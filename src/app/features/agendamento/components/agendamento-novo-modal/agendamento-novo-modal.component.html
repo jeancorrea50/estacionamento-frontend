@@ -47,35 +47,49 @@
           }
 
           <div class="form-row ag-novo-field ag-placas-field">
-            <label>Placas <span class="required">*</span></label>
+            <label>Veículos <span class="required">*</span></label>
             <div class="ag-placas-field__control">
               <div class="ag-lookup">
                 <button
                   type="button"
                   class="input-control ag-lookup__trigger"
-                  (click)="abrirBuscaPlaca()"
+                  (click)="abrirFrotaModal()"
                   [disabled]="!transportadoraFormId()"
-                  aria-label="Buscar placa"
+                  aria-label="Gerenciar veículos e motoristas"
                 >
-                  <span class="ag-lookup__value ag-lookup__value--placeholder">
+                  <span class="ag-lookup__value" [class.ag-lookup__value--placeholder]="!placasSelecionadas().length">
                     {{
-                      transportadoraFormId()
-                        ? 'Buscar placa no cadastro…'
-                        : 'Selecione a transportadora para buscar placas'
+                      !transportadoraFormId()
+                        ? 'Selecione a transportadora para gerenciar veículos'
+                        : placasSelecionadas().length
+                          ? placasSelecionadas().length +
+                            (placasSelecionadas().length === 1
+                              ? ' veículo — clicar para editar'
+                              : ' veículos — clicar para editar')
+                          : 'Gerenciar veículos e motoristas…'
                     }}
                   </span>
-                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">search</span>
+                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">
+                    {{ placasSelecionadas().length ? 'edit' : 'garage' }}
+                  </span>
                 </button>
               </div>
 
               @if (placasSelecionadas().length) {
-                <ul class="ag-placa-chips" aria-label="Placas selecionadas">
+                <ul class="ag-placa-chips" aria-label="Veículos selecionados">
                   @for (p of placasSelecionadas(); track p.id) {
-                    <li class="ag-placa-chip">
-                      <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
-                      @if (p.marcaModelo) {
-                        <span class="ag-placa-chip__modelo">{{ p.marcaModelo }}</span>
-                      }
+                    <li
+                      class="ag-placa-chip"
+                      [class.ag-placa-chip--sem-motorista]="!(p.motoristaId && p.motoristaId > 0)"
+                    >
+                      <div class="ag-placa-chip__main">
+                        <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
+                        <span class="ag-placa-chip__motorista">
+                          {{
+                            labelMotorista(p) || 'Sem motorista'
+                          }}
+                        </span>
+                      </div>
                       <button
                         type="button"
                         class="ag-placa-chip__remove"
@@ -87,6 +101,11 @@
                     </li>
                   }
                 </ul>
+                @if (!todasPlacasComMotorista()) {
+                  <p class="ag-placas-field__warn">
+                    Há placa(s) sem motorista. Abra o gerenciador para vincular.
+                  </p>
+                }
               }
             </div>
           </div>
@@ -108,7 +127,13 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="form.invalid || salvando() || placasSelecionadas().length === 0 || !slotSelecionado()"
+            [disabled]="
+              form.invalid ||
+              salvando() ||
+              placasSelecionadas().length === 0 ||
+              !slotSelecionado() ||
+              !todasPlacasComMotorista()
+            "
           >
             {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
           </button>
@@ -118,13 +143,10 @@
   </div>
 }
 
-@if (aberto() || buscaPlacaAberta()) {
-  <app-modal-busca-veiculo
-    [aberto]="buscaPlacaAberta()"
-    [transportadoraId]="transportadoraFormId() ?? undefined"
-    [selecaoMultipla]="true"
-    [idsJaSelecionados]="idsPlacasJaSelecionadas()"
-    (fechar)="fecharBuscaPlaca()"
-    (itensSelecionados)="onPlacasBuscaSelecionadas($event)"
-  />
-}
+<app-agendamento-veiculos-motoristas-modal
+  [aberto]="frotaModalAberto()"
+  [transportadoraId]="transportadoraFormId()"
+  [placas]="placasSelecionadas()"
+  (fechar)="fecharFrotaModal()"
+  (confirmar)="onFrotaConfirmada($event)"
+/>

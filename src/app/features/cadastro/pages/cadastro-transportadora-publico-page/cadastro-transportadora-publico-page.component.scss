@@ -1,0 +1,215 @@
+.pub-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  background:
+    radial-gradient(ellipse at top, color-mix(in srgb, #3b82f6 18%, transparent), transparent 55%),
+    var(--bg, #121218);
+  box-sizing: border-box;
+}
+
+.pub-card {
+  width: min(920px, 100%);
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle, #363642) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-2, #252530) 94%, #000);
+  color: var(--text, #f1f1f5);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+}
+
+.pub-card__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.pub-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #3b82f6 16%, transparent);
+  border: 1px solid color-mix(in srgb, #3b82f6 40%, transparent);
+  color: #93c5fd;
+  flex-shrink: 0;
+
+  .material-symbols-outlined {
+    font-size: 26px;
+  }
+}
+
+.pub-card__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.5rem);
+  font-weight: 700;
+}
+
+.pub-card__subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--muted, #92929f);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.pub-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  color: var(--muted, #92929f);
+}
+
+.pub-section {
+  margin-bottom: 1.25rem;
+
+  h2 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 650;
+  }
+}
+
+.pub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.85rem;
+}
+
+.pub-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted, #92929f);
+
+  input {
+    min-height: 40px;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle, #363642);
+    background: color-mix(in srgb, #1c1c24 92%, #000);
+    color: var(--text, #f1f1f5);
+    font-size: 0.875rem;
+    font-weight: 400;
+    outline: none;
+
+    &:focus {
+      border-color: color-mix(in srgb, #3b82f6 70%, var(--border-subtle, #363642));
+      box-shadow: 0 0 0 3px color-mix(in srgb, #3b82f6 20%, transparent);
+    }
+  }
+}
+
+.pub-field--full {
+  grid-column: 1 / -1;
+}
+
+.pub-field--wide {
+  grid-column: span 1;
+}
+
+.pub-hint {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--muted, #92929f);
+  line-height: 1.45;
+}
+
+.pub-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.pub-btn {
+  min-height: 42px;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.pub-btn--ghost {
+  background: color-mix(in srgb, #3f3f4a 75%, transparent);
+  border-color: var(--border-subtle, #363642);
+  color: var(--text, #f1f1f5);
+}
+
+.pub-btn--primary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.pub-msg {
+  color: var(--muted, #92929f);
+}
+
+.pub-banner {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  margin-bottom: 0.85rem;
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+}
+
+.pub-banner--error {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 40%, transparent);
+  color: #fecaca;
+}
+
+.pub-banner--ok {
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  border: 1px solid color-mix(in srgb, #22c55e 40%, transparent);
+  color: #bbf7d0;
+}
+
+.pub-banner--info {
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  border: 1px solid color-mix(in srgb, #3b82f6 40%, transparent);
+  color: #bfdbfe;
+}
+
+.pub-link {
+  color: #93c5fd;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+@media (max-width: 720px) {
+  .pub-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pub-actions {
+    flex-direction: column-reverse;
+
+    .pub-btn {
+      width: 100%;
+    }
+  }
+}

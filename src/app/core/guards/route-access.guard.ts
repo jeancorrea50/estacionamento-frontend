@@ -1,15 +1,8 @@
-import { inject } from '@angular/core';
-import { CanActivateChildFn, Router } from '@angular/router';
-import { SessionAccessService } from '../services/session-access.service';
+import { CanActivateChildFn } from '@angular/router';
 
-export const routeAccessGuard: CanActivateChildFn = (_route, state) => {
-  const sessionAccess = inject(SessionAccessService);
-  const router = inject(Router);
-
-  if (sessionAccess.canAccessRoute(state.url)) {
-    return true;
-  }
-
-  const fallback = sessionAccess.getDefaultRoute() ?? '/';
-  return router.parseUrl(fallback);
-};
+/**
+ * O bloqueio por menu da sessão é feito nas páginas (`SessionAccessService.canAccessRoute`),
+ * exibindo mensagem de sem acesso quando o usuário navega para rota fora do payload `menus` do login.
+ * O guard mantém apenas autenticação (pai `authGuard`).
+ */
+export const routeAccessGuard: CanActivateChildFn = () => true;

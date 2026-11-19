@@ -1,0 +1,399 @@
+<section
+  class="vaga-reserva-panel"
+  [class.vaga-reserva-panel--embedded]="embedded"
+  aria-label="Destinação de vagas"
+>
+  @if (!embedded) {
+    <div class="vaga-reserva-panel__head">
+      <div>
+        <h2 class="vaga-reserva-panel__title">Vagas para transportadoras</h2>
+        <p class="vaga-reserva-panel__sub">Destine estacionamento e limpeza por vigência e recorrência.</p>
+      </div>
+      <button
+        type="button"
+        class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+        (click)="carregar(); carregarSlots()"
+        [disabled]="loading()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+        Atualizar
+      </button>
+    </div>
+  }
+
+  <div class="vaga-reserva-panel__top">
+    <div class="vaga-reserva-panel__filtro" aria-label="Filtro de disponibilidade por data">
+      <div class="vaga-reserva-panel__filtro-copy">
+        <span class="vaga-reserva-panel__filtro-label">Disponibilidade</span>
+        <strong class="vaga-reserva-panel__filtro-dia">{{ dataConsultaLabel() }}</strong>
+      </div>
+      <div class="vaga-reserva-panel__filtro-actions">
+        <app-periodo-data-picker
+          class="vaga-reserva-panel__filtro-picker"
+          emptyLabel="Selecionar dia"
+          ariaLabel="Selecionar data da disponibilidade"
+          [modoDiaUnico]="true"
+          [dataInicial]="dataConsulta()"
+          [dataFinal]="dataConsulta()"
+          (periodoChange)="onFiltroPeriodoChange($event)"
+        />
+        <button
+          type="button"
+          class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+          (click)="irParaHoje()"
+          [disabled]="loading()"
+          title="Ir para hoje"
+        >
+          Hoje
+        </button>
+        @if (embedded) {
+          <button
+            type="button"
+            class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+            (click)="carregar(); carregarSlots()"
+            [disabled]="loading()"
+            title="Atualizar"
+            aria-label="Atualizar"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="vaga-reserva-panel__msg">Carregando…</p>
+    } @else if (resumoJanelas(); as v) {
+      <div class="vaga-reserva-panel__kpis">
+        <article class="vaga-kpi vaga-kpi--est">
+          <div class="vaga-kpi__top">
+            <span class="vaga-kpi__icon material-symbols-outlined" aria-hidden="true">local_parking</span>
+            <span class="vaga-kpi__label">Estacionamento</span>
+          </div>
+          <strong class="vaga-kpi__value">
+            {{ v.disponiveisEstacionamento }}
+            <small>/ {{ v.capacidadeEstacionamento }}</small>
+          </strong>
+          <div class="vaga-kpi__bar" aria-hidden="true">
+            <span [style.width.%]="pctDisponivel(v.disponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
+          </div>
+          <em class="vaga-kpi__hint">Ocupadas nas janelas: {{ v.ocupadasEstacionamento }}</em>
+        </article>
+        <article class="vaga-kpi vaga-kpi--limp">
+          <div class="vaga-kpi__top">
+            <span class="vaga-kpi__icon material-symbols-outlined" aria-hidden="true">water_drop</span>
+            <span class="vaga-kpi__label">Limpeza</span>
+          </div>
+          <strong class="vaga-kpi__value">
+            {{ v.disponiveisLimpeza }}
+            <small>/ {{ v.capacidadeLimpeza }}</small>
+          </strong>
+          <div class="vaga-kpi__bar" aria-hidden="true">
+            <span [style.width.%]="pctDisponivel(v.disponiveisLimpeza, v.capacidadeLimpeza)"></span>
+          </div>
+          <em class="vaga-kpi__hint">Ocupadas nas janelas: {{ v.ocupadasLimpeza }}</em>
+        </article>
+      </div>
+      @if (!v.temJanelas) {
+        <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
+          Nenhuma janela ativa para este dia. Configure as janelas de agendamento para liberar vagas.
+        </p>
+      }
+    }
+  </div>
+
+  @if (podeGerenciar) {
+    <form class="vaga-reserva-panel__form" [formGroup]="form" (ngSubmit)="salvar()">
+      <div class="vaga-reserva-panel__form-head">
+        <h3>Nova destinação</h3>
+      </div>
+
+      <div class="vaga-reserva-panel__form-grid">
+        <div class="vaga-field vaga-field--transportadora">
+          <span>Transportadora</span>
+          <app-transportadora-lookup-field
+            [transportadoraId]="transportadoraFormId()"
+            [transportadoraNome]="transportadoraFormNome()"
+            [disabled]="!podeGerenciar || !!form.controls.avulso.value"
+            placeholder="CNPJ, razão social ou fantasia…"
+            (transportadoraIdChange)="onTransportadoraIdChange($event)"
+            (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
+          />
+        </div>
+
+        <label class="vaga-field vaga-field--check">
+          <input type="checkbox" formControlName="avulso" />
+          <span>Avulso</span>
+        </label>
+
+        <label class="vaga-field">
+          <span>Modalidade</span>
+          <select class="input-control input-control--select" formControlName="modalidade">
+            @for (m of modalidades; track m.value) {
+              <option [ngValue]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="vaga-field vaga-field--qtd">
+          <span>Quantidade</span>
+          <input
+            class="input-control"
+            type="number"
+            min="1"
+            [attr.max]="maxQuantidade() ?? null"
+            formControlName="quantidade"
+          />
+          @if (maxQuantidade() != null) {
+            <small class="vaga-field__hint">
+              Máx. {{ maxQuantidade() }}
+              @if (slotAtual(); as s) {
+                · janela {{ s.disponiveis }}
+              }
+              @if (vagasAcordoMes() != null) {
+                · acordo {{ vagasAcordoMes() }}
+              }
+            </small>
+          }
+        </label>
+
+        <div class="vaga-field vaga-field--vigencia vaga-field--periodo">
+          <span>Vigência</span>
+          <app-periodo-data-picker
+            emptyLabel="Selecione o período"
+            ariaLabel="Selecionar vigência da destinação"
+            [exigirConfirmacao]="true"
+            [dataInicial]="form.controls.dataInicio.value"
+            [dataFinal]="form.controls.dataFim.value || form.controls.dataInicio.value"
+            (periodoChange)="onVigenciaPeriodoChange($event)"
+          />
+        </div>
+
+        <label class="vaga-field vaga-field--recorrencia">
+          <span>Recorrência</span>
+          <select class="input-control input-control--select" formControlName="periodicidade">
+            @for (p of recorrencias; track p.value) {
+              <option [ngValue]="p.value">{{ p.label }}</option>
+            }
+          </select>
+          <small class="vaga-field__hint">{{ recorrenciaHint() }}</small>
+        </label>
+
+        <div class="vaga-field vaga-field--pagador-tipo">
+          <span>Faturamento</span>
+          <div class="vaga-pagador-tipo" role="radiogroup" aria-label="Tipo de faturamento">
+            <button
+              type="button"
+              class="vaga-pagador-tipo__opt"
+              [class.is-active]="tipoPagador() === 'cif'"
+              [attr.aria-checked]="tipoPagador() === 'cif'"
+              role="radio"
+              (click)="selecionarTipoPagador('cif')"
+            >
+              <strong>CIF</strong>
+              <span>Transportadora</span>
+            </button>
+            <button
+              type="button"
+              class="vaga-pagador-tipo__opt"
+              [class.is-active]="tipoPagador() === 'fob'"
+              [attr.aria-checked]="tipoPagador() === 'fob'"
+              role="radio"
+              (click)="selecionarTipoPagador('fob')"
+            >
+              <strong>FOB</strong>
+              <span>Terceiro</span>
+            </button>
+          </div>
+        </div>
+
+        @if (exigePagadorFob()) {
+          <div class="vaga-field vaga-field--pagador">
+            <span>Pagador (terceiro)</span>
+            <app-responsavel-faturamento-lookup-field
+              [responsavelId]="pagadorId()"
+              (responsavelIdChange)="onPagadorIdChange($event)"
+              [responsavelNome]="pagadorNome()"
+              (responsavelNomeChange)="onPagadorNomeChange($event)"
+              placeholder="Buscar terceiro pagador…"
+            />
+            <small class="vaga-field__hint">Obrigatório para faturamento FOB.</small>
+          </div>
+        }
+      </div>
+
+      <div class="vaga-slots" aria-label="Horários disponíveis no dia">
+        <div class="vaga-slots__head">
+          <strong>Horários com vaga — {{ dataConsultaLabel() }}</strong>
+          <span class="vaga-slots__hint">Selecione o slot da destinação</span>
+        </div>
+
+        @if (loadingSlots()) {
+          <p class="vaga-reserva-panel__msg">Carregando horários…</p>
+        } @else if (slots().length === 0) {
+          <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
+            Nenhum horário com vaga livre neste dia/modalidade. Ajuste a data, a modalidade ou configure
+            as janelas.
+          </p>
+        } @else {
+          <div class="vaga-slots__grid" role="listbox" aria-label="Slots disponíveis">
+            @for (s of slots(); track chaveSlot(s)) {
+              <button
+                type="button"
+                class="vaga-slot-card"
+                role="option"
+                [class.is-selected]="chaveSlot(s) === slotSelecionadoKey()"
+                [attr.aria-selected]="chaveSlot(s) === slotSelecionadoKey()"
+                (click)="selecionarSlot(s)"
+              >
+                <span class="vaga-slot-card__hora">{{ slotHoraLabel(s) }}</span>
+                <strong class="vaga-slot-card__disp">
+                  {{ s.disponiveis }}
+                  <small>/ {{ s.capacidade }}</small>
+                </strong>
+                <div class="vaga-slot-card__bar" aria-hidden="true">
+                  <span [style.width.%]="pctDisponivel(s.disponiveis, s.capacidade)"></span>
+                </div>
+                <em class="vaga-slot-card__meta">
+                  {{ s.disponiveis === 1 ? '1 vaga livre' : s.disponiveis + ' vagas livres' }}
+                  · ocupadas {{ s.ocupadas }}
+                </em>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="vaga-reserva-panel__transfer">
+        <mat-slide-toggle
+          class="vaga-reserva-panel__transfer-toggle"
+          color="primary"
+          formControlName="transferenciaAutomaticaSaldo"
+        >
+          <span class="vaga-reserva-panel__transfer-copy">
+            <strong class="vaga-reserva-panel__transfer-title">Transferência automática de saldo</strong>
+            <span class="vaga-reserva-panel__transfer-desc">
+              O saldo não utilizado pode ser transferido para a próxima janela, respeitando a capacidade.
+            </span>
+          </span>
+        </mat-slide-toggle>
+      </div>
+
+      <div class="vaga-reserva-panel__form-actions">
+        <button
+          type="submit"
+          class="vaga-reserva-panel__btn vaga-reserva-panel__btn--primary"
+          [disabled]="salvando() || loadingSlots()"
+        >
+          {{ salvando() ? 'Salvando…' : 'Destinar vagas' }}
+        </button>
+      </div>
+    </form>
+  }
+
+  <div class="vaga-reserva-panel__list">
+    <button
+      type="button"
+      class="vaga-reserva-panel__list-toggle"
+      (click)="toggleReservas()"
+      [attr.aria-expanded]="reservasAbertas()"
+    >
+      <span class="vaga-reserva-panel__list-toggle-main">
+        <span class="material-symbols-outlined vaga-reserva-panel__list-chevron" aria-hidden="true">
+          {{ reservasAbertas() ? 'expand_less' : 'expand_more' }}
+        </span>
+        <strong>Reservas</strong>
+        <span class="vaga-reserva-panel__count">{{ reservas().length }}</span>
+      </span>
+      <span class="vaga-reserva-panel__list-toggle-hint">
+        {{ reservasAbertas() ? 'Recolher' : 'Expandir' }}
+      </span>
+    </button>
+
+    @if (reservasAbertas()) {
+      <div class="vaga-reserva-panel__table-wrap">
+        <table class="vaga-reserva-panel__table">
+          <thead>
+            <tr>
+              <th>Transportadora</th>
+              <th>Modalidade</th>
+              <th>Qtd</th>
+              <th>Vigência</th>
+              <th>Recorrência</th>
+              <th>Horário</th>
+              <th>Pagador</th>
+              <th>Transf. saldo</th>
+              <th>Situação</th>
+              @if (podeGerenciar) {
+                <th></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of reservas(); track r.id) {
+              <tr [class.is-inactive]="!r.ativo">
+                <td>{{ r.transportadoraNome || (r.avulso ? 'Avulso' : '—') }}</td>
+                <td>{{ r.modalidadeLabel }}</td>
+                <td>{{ r.quantidade }}</td>
+                <td>
+                  {{ r.dataInicio | date: 'dd/MM/yyyy' }}
+                  @if (r.dataFim) {
+                    — {{ r.dataFim | date: 'dd/MM/yyyy' }}
+                  }
+                </td>
+                <td>{{ r.periodicidadeLabel }}</td>
+                <td>{{ horarioReservaLabel(r) }}</td>
+                <td>
+                  @if (pagadorReservaLabel(r) === 'CIF') {
+                    <span class="vaga-status vaga-status--cif" title="Faturamento CIF">CIF</span>
+                  } @else {
+                    <span class="vaga-status vaga-status--fob" [title]="pagadorReservaLabel(r)">
+                      {{ pagadorReservaLabel(r) }}
+                    </span>
+                  }
+                </td>
+                <td>
+                  @if (r.transferenciaAutomaticaSaldo) {
+                    <span
+                      class="vaga-status vaga-status--transfer"
+                      title="Transferência automática de saldo ativa"
+                    >
+                      Sim
+                    </span>
+                  } @else {
+                    <span class="vaga-status vaga-status--off">Não</span>
+                  }
+                </td>
+                <td>
+                  <span
+                    class="vaga-status"
+                    [class.vaga-status--on]="r.ativo"
+                    [class.vaga-status--off]="!r.ativo"
+                  >
+                    {{ r.ativo ? 'Ativa' : 'Inativa' }}
+                  </span>
+                </td>
+                @if (podeGerenciar) {
+                  <td>
+                    @if (r.ativo) {
+                      <button
+                        type="button"
+                        class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
+                        (click)="inativar(r.id)"
+                      >
+                        Inativar
+                      </button>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (reservas().length === 0) {
+          <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--empty">Nenhuma reserva cadastrada.</p>
+        }
+      </div>
+    }
+  </div>
+</section>

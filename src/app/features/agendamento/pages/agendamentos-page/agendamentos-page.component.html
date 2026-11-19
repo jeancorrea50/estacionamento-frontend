@@ -1,0 +1,329 @@
+<div class="cadastro-transportadora-shell">
+  <div class="page-container">
+    <div class="page-content trn-page-content--dashboard">
+      <header class="ag-dash-top" aria-labelledby="ag-dash-title">
+        <div class="ag-dash-top__copy">
+          <h1 id="ag-dash-title" class="ag-dash-top__title">Agendamentos</h1>
+          <p class="ag-dash-top__sub">Controle visual de vagas e veículos agendados no pátio.</p>
+        </div>
+        <div class="ag-dash-top__tabs">
+          <div class="ag-modalidade-toggle" role="group" aria-label="Modalidade">
+            <button
+              type="button"
+              class="ag-modalidade-toggle__btn"
+              [class.is-active]="modalidadeUi() === 'estacionamento'"
+              (click)="selecionarModalidade('estacionamento')"
+            >
+              Estacionamento
+            </button>
+            <button
+              type="button"
+              class="ag-modalidade-toggle__btn"
+              [class.is-active]="modalidadeUi() === 'limpeza'"
+              (click)="selecionarModalidade('limpeza')"
+            >
+              Limpeza
+            </button>
+          </div>
+        </div>
+        <div class="ag-dash-top__spacer" aria-hidden="true"></div>
+      </header>
+
+      @if (!canVisualizar) {
+        <div class="trn-list-banner trn-list-banner--error" role="status">
+          <p class="error-msg">Sem permissão para visualizar Agendamentos.</p>
+        </div>
+      } @else {
+        <section
+          class="est-dash-filter trn-dash-filter ag-dash-filter"
+          aria-label="Filtros da listagem"
+        >
+          @if (podeOperarPatio) {
+            <div class="est-dash-filter__lookup-wrap">
+              <app-transportadora-lookup-field
+                [transportadoraId]="filtroTransportadoraId"
+                [transportadoraNome]="filtroTransportadoraNome"
+                placeholder="Todas as transportadoras"
+                ariaLabel="Filtrar por transportadora"
+                (transportadoraIdChange)="onFiltroTransportadoraId($event)"
+                (transportadoraNomeChange)="onFiltroTransportadoraNome($event)"
+              />
+            </div>
+          }
+          <label class="est-dash-filter__search ag-dash-filter__search">
+            <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true"
+              >search</span
+            >
+            <input
+              type="text"
+              class="est-dash-filter__search-input"
+              placeholder="Placa, motorista ou CPF…"
+              [(ngModel)]="filtroBusca"
+              (keyup.enter)="onBuscar()"
+              autocomplete="off"
+              aria-label="Buscar por placa, motorista ou CPF"
+            />
+          </label>
+          <app-periodo-data-picker
+            emptyLabel="Qualquer dia"
+            ariaLabel="Selecionar dia"
+            [modoDiaUnico]="true"
+            [dataInicial]="filtroDataInicial"
+            [dataFinal]="filtroDataFinal"
+            (periodoChange)="onPeriodoChange($event)"
+          />
+          <div class="ag-dash-filter__actions">
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar"
+              (click)="onBuscar()"
+              aria-label="Buscar agendamentos"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              Buscar
+            </button>
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral"
+              (click)="exportarPdf()"
+              [disabled]="exportando()"
+              aria-label="Exportar painel em PDF"
+              title="Exportar dados da tela em PDF"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+              PDF
+            </button>
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--neutral"
+              (click)="exportarExcel()"
+              [disabled]="exportando()"
+              aria-label="Exportar painel em Excel"
+              title="Exportar dados da tela em Excel"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
+              Excel
+            </button>
+            @if (podeOperarPatio) {
+              <button
+                type="button"
+                class="est-dash-btn est-dash-btn--neutral"
+                (click)="abrirDestinarVagas()"
+                aria-label="Destinar vaga"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">garage</span>
+                Destinar vaga
+              </button>
+            }
+            <button
+              type="button"
+              class="est-dash-btn est-dash-btn--primary"
+              (click)="abrirNovo()"
+              aria-label="Novo agendamento"
+              [attr.title]="podeCriar ? null : 'Requer permissão agendamentos.gravar'"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              Novo
+            </button>
+          </div>
+        </section>
+
+        @if (erroList(); as erro) {
+          <div class="trn-list-banner trn-list-banner--error" role="alert">
+            <p class="error-msg">{{ erro }}</p>
+          </div>
+        }
+
+        <div class="ag-kpi-grid" aria-label="Indicadores">
+          <app-est-summary-metric icon="event" label="Agendados" [value]="kpiAgendados()" variant="info" />
+          <app-est-summary-metric
+            icon="event_available"
+            label="Vagas disponíveis"
+            [value]="kpiDisponiveis()"
+            variant="success"
+          />
+          <app-est-summary-metric icon="garage" label="Ocupados" [value]="kpiOcupados()" variant="danger" />
+          @if (podeOperarPatio) {
+            <app-est-summary-metric
+              icon="payments"
+              label="CIF"
+              [value]="kpiCifGeral()"
+              variant="success"
+            />
+            <app-est-summary-metric
+              icon="handshake"
+              label="FOB"
+              [value]="kpiFobGeral()"
+              variant="warning"
+            />
+          }
+        </div>
+
+        <div class="ag-dash-mid">
+          <app-agendamento-dia-timeline
+            [dataLabel]="dataSelecionadaLabel()"
+            [slots]="timelineSlots()"
+            [loading]="loadingTimeline()"
+            [erro]="erroTimeline()"
+            [janelasRoute]="janelasRoute"
+            [podeVerJanelas]="podeVerJanelas"
+          />
+        </div>
+
+        @if (loadingList()) {
+          <p class="loading-msg trn-loading">Carregando...</p>
+        }
+
+        @if (jaBuscou() && !loadingList() && !erroList()) {
+          <div class="trn-list-table-card ag-list-card">
+            <div class="ag-list-card__head">
+              <h2>Veículos agendados para {{ dataSelecionadaLabel() }}</h2>
+            </div>
+            <div class="trn-list-table-scroll">
+              <table class="data-table trn-table">
+                <thead>
+                  <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Placa</th>
+                    <th scope="col">Motorista</th>
+                    @if (podeOperarPatio) {
+                      <th scope="col">Transportadora</th>
+                    }
+                    <th scope="col">Data agendada</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Observação</th>
+                    <th scope="col" class="trn-table__th-acoes">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of items(); track item.id) {
+                    <tr class="trn-table__row">
+                      <td>{{ item.id }}</td>
+                      <td>{{ formatPlaca(item.placaVeiculo) }}</td>
+                      <td>{{ item.nomeMotorista || '—' }}</td>
+                      @if (podeOperarPatio) {
+                        <td>{{ item.nomeTransportadora || '—' }}</td>
+                      }
+                      <td>{{ formatDateTime(item.dataHoraEntrada) }}</td>
+                      <td>
+                        <span class="ag-status-pill">{{ statusLabel(item.status) }}</span>
+                      </td>
+                      <td>{{ item.observacao || '—' }}</td>
+                      <td class="trn-table__acoes">
+                        @if (temAcoes(item)) {
+                          <div
+                            class="trn-act-btns"
+                            role="group"
+                            [attr.aria-label]="'Ações para agendamento ' + item.id"
+                          >
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--neutral"
+                              title="Recibo A4"
+                              aria-label="Gerar recibo do agendamento"
+                              [disabled]="gerandoReciboId() === item.id"
+                              (click)="emitirRecibo(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+                            </button>
+                            @if (podeConfirmarItem(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--accent"
+                                title="Confirmar entrada"
+                                (click)="confirmarEntrada(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">login</span>
+                              </button>
+                            }
+                            @if (podeCancelarItem(item)) {
+                              <button
+                                type="button"
+                                class="trn-act-btn trn-act-btn--danger"
+                                title="Cancelar agendamento"
+                                (click)="cancelar(item)"
+                              >
+                                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
+                              </button>
+                            }
+                          </div>
+                        } @else {
+                          <span class="ag-acoes-vazio" aria-hidden="true">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (items().length === 0) {
+              <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+                <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
+                <p class="empty-msg">Nenhum agendamento encontrado.</p>
+              </div>
+            }
+          </div>
+
+          <footer class="trn-list-footer">
+            <p class="trn-list-footer__info">
+              Mostrando <strong>{{ intervaloLista.de }}</strong> a
+              <strong>{{ intervaloLista.ate }}</strong> de
+              <strong>{{ totalCount() }}</strong>
+              {{ totalCount() === 1 ? 'agendamento' : 'agendamentos' }}
+            </p>
+            <div class="trn-list-footer__right">
+              <div class="trn-footer-pager" aria-label="Paginação">
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() <= 1 || totalCount() === 0"
+                  (click)="irParaPagina(1)"
+                  aria-label="Primeira página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+                </button>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() <= 1 || totalCount() === 0"
+                  (click)="irParaPagina(numeroPagina() - 1)"
+                  aria-label="Página anterior"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="trn-foot-current" aria-current="page">{{
+                  totalCount() === 0 ? 0 : numeroPagina()
+                }}</span>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() >= totalPaginas || totalCount() === 0"
+                  (click)="irParaPagina(numeroPagina() + 1)"
+                  aria-label="Próxima página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() >= totalPaginas || totalCount() === 0"
+                  (click)="irParaPagina(totalPaginas)"
+                  aria-label="Última página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+                </button>
+              </div>
+            </div>
+          </footer>
+        }
+      }
+    </div>
+  </div>
+
+  <app-agendamento-novo-modal
+    [aberto]="showForm()"
+    [podeEscolherTransportadora]="podeOperarPatio"
+    (fechado)="fecharForm()"
+    (salvo)="onNovoSalvo()"
+  />
+</div>

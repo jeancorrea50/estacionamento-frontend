@@ -1,0 +1,149 @@
+<section class="ag-timeline" aria-label="Linha do tempo de vagas por horário">
+  <header class="ag-timeline__head">
+    <div class="ag-timeline__titles">
+      <h2>{{ vista() === 'grafico' ? 'Gráfico do dia' : 'Linha do tempo do dia' }}</h2>
+      <p class="ag-timeline__sub">Janelas e ocupação de {{ dataLabel() }}</p>
+    </div>
+    <div class="ag-timeline__head-actions">
+      <div class="ag-vista-toggle" role="group" aria-label="Visualização do dia">
+        <button
+          type="button"
+          class="ag-vista-toggle__btn"
+          [class.is-active]="vista() === 'timeline'"
+          (click)="definirVista('timeline')"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">view_timeline</span>
+          Timeline
+        </button>
+        <button
+          type="button"
+          class="ag-vista-toggle__btn"
+          [class.is-active]="vista() === 'grafico'"
+          (click)="definirVista('grafico')"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">bar_chart</span>
+          Gráfico
+        </button>
+      </div>
+      <div class="ag-timeline__legend" aria-hidden="true">
+        <span><i class="ag-dot ag-dot--disp"></i> Disponível</span>
+        <span><i class="ag-dot ag-dot--agd"></i> Agendado</span>
+      </div>
+    </div>
+  </header>
+
+  @if (erro(); as msg) {
+    <div class="ag-timeline__banner ag-timeline__banner--error" role="alert">
+      <p>{{ msg }}</p>
+    </div>
+  } @else if (loading() && slots().length === 0) {
+    <p class="ag-timeline__loading">Carregando grades do dia…</p>
+  } @else if (!loading() && slots().length === 0) {
+    <div class="ag-timeline__empty" role="status">
+      <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+      <div>
+        <p class="ag-timeline__empty-title">Nenhuma janela para este dia</p>
+        <p class="ag-timeline__empty-msg">
+          Não há grades de horário configuradas (ou com vagas) para a data e modalidade
+          selecionadas.
+          @if (podeVerJanelas() && janelasRoute()) {
+            Ajuste em
+            <a [routerLink]="janelasRoute()!">Configurar Janelas</a>.
+          } @else {
+            Verifique as Janelas configuradas para o estacionamento.
+          }
+        </p>
+      </div>
+    </div>
+  } @else if (vista() === 'grafico') {
+    <div class="ag-chart" [attr.aria-busy]="loading()" role="img" aria-label="Gráfico de ocupação por horário">
+      <div class="ag-chart__y" aria-hidden="true">
+        <span>{{ maxEixo() }}</span>
+        <span>{{ meioEixo() }}</span>
+        <span>0</span>
+      </div>
+      <div class="ag-chart__plot">
+        <div class="ag-chart__grid" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <ul class="ag-chart__bars">
+          @for (s of slots(); track s.key) {
+            <li class="ag-chart__col">
+              <div
+                class="ag-chart__stack"
+                [attr.title]="
+                  s.label +
+                  ' — cadastrado ' +
+                  s.cadastrado +
+                  ', agendado ' +
+                  s.agendado +
+                  ', disponível ' +
+                  s.disponiveis
+                "
+              >
+                <span
+                  class="ag-chart__seg ag-chart__seg--agd"
+                  [style.height.%]="alturaPct(s.agendado)"
+                ></span>
+                <span
+                  class="ag-chart__seg ag-chart__seg--disp"
+                  [style.height.%]="alturaPct(s.disponiveis)"
+                ></span>
+              </div>
+              <span class="ag-chart__label">{{ rotuloCurto(s) }}</span>
+              <span class="ag-chart__meta">{{ s.ocupacaoPct }}%</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  } @else {
+    <ol class="ag-timeline__rail" [attr.aria-busy]="loading()">
+      @for (s of slots(); track s.key) {
+        <li class="ag-timeline__slot">
+          <div class="ag-timeline__time">
+            <span class="ag-timeline__marker" aria-hidden="true"></span>
+            <time class="ag-timeline__hora" [attr.datetime]="s.horaInicio">{{ s.label }}</time>
+          </div>
+
+          <div class="ag-timeline__totals" aria-label="Totalizadores do horário">
+            <div class="ag-timeline__stat">
+              <span class="ag-timeline__stat-label">Cad.</span>
+              <span class="ag-timeline__stat-value">{{ s.cadastrado }}</span>
+            </div>
+            <div class="ag-timeline__stat">
+              <span class="ag-timeline__stat-label">Agend.</span>
+              <span class="ag-timeline__stat-value">{{ s.agendado }}</span>
+            </div>
+            <div class="ag-timeline__stat">
+              <span class="ag-timeline__stat-label">Disp.</span>
+              <span class="ag-timeline__stat-value">{{ s.disponiveis }}</span>
+            </div>
+            <div class="ag-timeline__stat ag-timeline__stat--pct">
+              <span class="ag-timeline__stat-label">Ocup.</span>
+              <span class="ag-timeline__stat-value">{{ s.ocupacaoPct }}%</span>
+            </div>
+          </div>
+
+          <div
+            class="ag-occ-bar"
+            role="img"
+            [attr.aria-label]="
+              'Ocupação: ' +
+              s.agendado +
+              ' agendados, ' +
+              s.disponiveis +
+              ' disponíveis de ' +
+              s.cadastrado
+            "
+          >
+            <span class="ag-occ-bar__agd" [style.flex]="flexBar(s.agendado)"></span>
+            <span class="ag-occ-bar__disp" [style.flex]="flexBar(s.disponiveis)"></span>
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</section>

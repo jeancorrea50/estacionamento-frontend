@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/services/theme.service';
+import { GlobalSubmitGuardService } from './core/ui/global-submit-guard.service';
 import { ToastComponent } from './shared/components/toast/toast.component';
 
 @Component({
@@ -12,7 +13,10 @@ import { ToastComponent } from './shared/components/toast/toast.component';
 export class App {
   protected readonly title = signal('GTS-FrontEnd');
 
-  constructor(private themeService: ThemeService) {
+  constructor() {
     // Aplica o tema ao carregar (incluindo na tela de login)
+    inject(ThemeService);
+    // Bloqueio global de double-click em Salvar/Gravar/Alterar
+    inject(GlobalSubmitGuardService).start();
   }
 }

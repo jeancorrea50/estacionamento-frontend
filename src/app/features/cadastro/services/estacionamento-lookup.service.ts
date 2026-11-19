@@ -1,61 +1,121 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, timeout, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
+import { AuthService } from '../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../core/services/permission-cache.service';
 
 const API_BASE = environment.API_BASE_URL;
-const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
+const Estacionamento = `${API_BASE}/Estacionamento`;
 
 /** Opção para select/autocomplete (lookup). */
 export interface LookupOption {
   id: number;
   label: string;
   cnpj: string;
+  /** Nome / razão social sem CNPJ concatenado (compatível com selects legados). */
+  nome?: string | null;
+  /** Nome fantasia (endpoint: nomeFantasia / descricaoPessoa). */
+  fantasia?: string | null;
+  /** Razão social (endpoint: nomeRazaoSocial). */
+  razaoSocial?: string | null;
+  cidade?: string | null;
+  bairro?: string | null;
+  estado?: string | null;
+  codExportacao?: string | null;
+  /** Ambiente do perfil de conexão (1=Dev, 2=Homologação, 3=Produção). */
+  ambiente?: number | null;
+  ambienteDescricao?: string | null;
+}
+
+export interface EstacionamentoListOptions {
+  /** Força GET na API (ex.: modal Admin), mesmo sem claim na sessão. */
+  forceApi?: boolean;
 }
 
 /**
- * Lookup de Estacionamentos para formulários (ex.: usuário com perfil ESTACIONAMENTO).
- * Usa GET /api/Estacionamento/Buscar (Swagger: parâmetro Descricao).
- * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json
+ * Lookup de Estacionamentos para formulários/filtros.
+ * - Com claim `estacionamentos.visualizar` (ou Admin / forceApi): GET /api/Estacionamento
+ * - Sem essa claim, mas com EmpresaId na sessão: devolve só o estacionamento do login/sessão
  */
 @Injectable({ providedIn: 'root' })
 export class EstacionamentoLookupService {
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly permissions = inject(PermissionCacheService);
 
-  /**
-   * Lista estacionamentos (primeira página) para combobox/listagem.
-   * Swagger: GET /api/Estacionamento/Buscar?NumeroPagina=1&TamanhoPagina=100
-   */
-  list(): Observable<LookupOption[]> {
+  list(options?: EstacionamentoListOptions): Observable<LookupOption[]> {
+    if (!options?.forceApi) {
+      const fromSession = this.trySessionOnlyOption();
+      if (fromSession) {
+        return of([fromSession]);
+      }
+    }
+
     const params = new URLSearchParams();
     params.set('NumeroPagina', '1');
-    params.set('TamanhoPagina', '100');
-    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${params.toString()}`;
+    params.set('TamanhoPagina', '200');
+    const listUrl = EstacionamentoPaths.buscar
+      ? `${Estacionamento}/${EstacionamentoPaths.buscar}`
+      : Estacionamento;
+    const url = `${listUrl}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
     );
   }
 
-  /**
-   * Busca estacionamentos por Descricao (Razão Social / texto).
-   * Swagger: GET /api/Estacionamento/Buscar?Descricao=term&NumeroPagina=1&TamanhoPagina=20
-   */
   search(term: string): Observable<LookupOption[]> {
     const t = (term ?? '').trim();
     if (!t) {
       return of([]);
     }
+
+    const fromSession = this.trySessionOnlyOption();
+    if (fromSession) {
+      const hay = `${fromSession.label} ${fromSession.fantasia ?? ''} ${fromSession.razaoSocial ?? ''} ${fromSession.nome ?? ''} ${fromSession.id} ${fromSession.cnpj} ${fromSession.codExportacao ?? ''}`.toLowerCase();
+      return of(hay.includes(t.toLowerCase()) ? [fromSession] : []);
+    }
+
     const params = new URLSearchParams();
     params.set('Descricao', t);
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '20');
-    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${params.toString()}`;
+    const listUrl = EstacionamentoPaths.buscar
+      ? `${Estacionamento}/${EstacionamentoPaths.buscar}`
+      : Estacionamento;
+    const url = `${listUrl}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
     );
+  }
+
+  private trySessionOnlyOption(): LookupOption | null {
+    if (this.auth.isAdmin() || this.permissions.has('estacionamentos.visualizar')) {
+      return null;
+    }
+
+    const id = this.auth.resolveEstacionamentoId();
+    if (id == null || id <= 0) {
+      return null;
+    }
+
+    const session = this.auth.getSessionEstacionamento();
+    const label =
+      session?.nome?.trim() ||
+      (this.auth.isEstacionamentoRole() ? 'Meu estacionamento' : `Estacionamento #${id}`);
+
+    return {
+      id,
+      nome: label,
+      fantasia: label,
+      razaoSocial: null,
+      label,
+      cnpj: '',
+      codExportacao: session?.codExportacao ?? this.auth.resolveCodExportacao(),
+    };
   }
 
   private normalizeToOptions(body: unknown): LookupOption[] {
@@ -83,13 +143,54 @@ export class EstacionamentoLookupService {
   }
 
   private itemToOption(row: Record<string, unknown>): LookupOption {
-    const id = Number(row['id']) || 0;
-    const nomeRazao = String(row['nomeRazaoSocial'] ?? row['descricao'] ?? '');
-    const doc = String(row['documento'] ?? '');
+    const id = Number(row['id'] ?? row['Id']) || 0;
+    const fantasia = String(
+      row['nomeFantasia'] ??
+        row['NomeFantasia'] ??
+        row['descricaoPessoa'] ??
+        row['DescricaoPessoa'] ??
+        row['fantasia'] ??
+        row['Fantasia'] ??
+        row['descricao'] ??
+        row['Descricao'] ??
+        ''
+    ).trim();
+    const razaoSocial = String(
+      row['nomeRazaoSocial'] ?? row['NomeRazaoSocial'] ?? row['razaoSocial'] ?? row['RazaoSocial'] ?? ''
+    ).trim();
+    const nomePrincipal = fantasia || razaoSocial;
+    const cnpj = String(row['cnpj'] ?? row['Cnpj'] ?? row['documento'] ?? '').trim();
+    const codExportacao = String(row['codExportacao'] ?? row['CodExportacao'] ?? '').trim() || null;
+    const ambienteRaw = row['ambiente'] ?? row['Ambiente'];
+    const ambiente =
+      ambienteRaw === null || ambienteRaw === undefined || ambienteRaw === ''
+        ? null
+        : Number(ambienteRaw);
+    const ambienteDescricao =
+      String(row['ambienteDescricao'] ?? row['AmbienteDescricao'] ?? '').trim() ||
+      (ambiente === 1
+        ? 'Desenvolvimento'
+        : ambiente === 2
+          ? 'Homologação'
+          : ambiente === 3
+            ? 'Produção'
+            : null);
+    const cidade = String(row['cidade'] ?? row['Cidade'] ?? row['cidadeCatalogo'] ?? row['CidadeCatalogo'] ?? '').trim();
+    const bairro = String(row['bairro'] ?? row['Bairro'] ?? row['bairroCatalogo'] ?? row['BairroCatalogo'] ?? '').trim();
+    const estado = String(row['estado'] ?? row['Estado'] ?? row['estadoCatalogo'] ?? row['EstadoCatalogo'] ?? '').trim();
     return {
       id,
-      label: nomeRazao ? `${nomeRazao} — ${doc || '-'}` : String(id),
-      cnpj: doc,
+      nome: nomePrincipal || null,
+      fantasia: fantasia || null,
+      razaoSocial: razaoSocial || null,
+      label: nomePrincipal ? `${nomePrincipal} — ${cnpj || '-'}` : String(id),
+      cnpj,
+      cidade: cidade || null,
+      bairro: bairro || null,
+      estado: estado || null,
+      codExportacao,
+      ambiente: Number.isFinite(ambiente as number) ? (ambiente as number) : null,
+      ambienteDescricao,
     };
   }
 }

@@ -1,0 +1,15 @@
+<app-entity-lookup-field
+  [valueLabel]="transportadoraNome()"
+  [placeholder]="placeholder()"
+  [disabled]="disabled()"
+  [showClear]="showClear()"
+  [ariaLabel]="ariaLabel()"
+  (openSearch)="abrir()"
+  (clear)="limpar()"
+/>
+
+<app-modal-busca-transportadora
+  [aberto]="buscaAberta()"
+  (fechar)="fechar()"
+  (itemSelecionado)="onSelecionada($event)"
+/>

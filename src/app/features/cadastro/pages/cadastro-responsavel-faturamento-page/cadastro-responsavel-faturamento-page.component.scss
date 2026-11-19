@@ -1,0 +1,9 @@
+@use '../../styles/cadastro-est-shared' as *;
+@use '../../styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+@import '../cadastro-transportadora-page/cadastro-transportadora-page.component.scss';

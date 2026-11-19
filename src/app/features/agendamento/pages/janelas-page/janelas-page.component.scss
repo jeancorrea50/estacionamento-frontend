@@ -1,0 +1,173 @@
+@use '../../../cadastro/styles/cadastro-est-shared' as *;
+@use '../../../cadastro/styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+/* Casca/tabela/paginação compartilhadas com as demais listagens (mesmo padrão de Agendamentos). */
+@import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
+
+.jan-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.jan-top__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.jan-top__back:hover {
+  color: var(--text);
+}
+
+.jan-top__back .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.jan-top__title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.jan-top__sub {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.jan-modalidade-toggle {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  gap: 4px;
+}
+
+.jan-modalidade-toggle__btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.jan-modalidade-toggle__btn.is-active {
+  background: var(--primary, #2563eb);
+  color: var(--on-primary, #fff);
+}
+
+.jan-filter.est-dash-filter {
+  align-items: center;
+  gap: 10px;
+}
+
+.jan-filter__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jan-filter__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.jan-filter__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.jan-filter .est-dash-btn {
+  height: 42px;
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.jan-nome {
+  display: block;
+  font-weight: 600;
+}
+
+.jan-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.jan-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #16a34a 16%, transparent);
+  color: #16a34a;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.jan-pill--off {
+  background: color-mix(in srgb, var(--muted, #94a3b8) 18%, transparent);
+  color: var(--muted, #94a3b8);
+}
+
+.trn-table__acoes,
+.trn-act-btns {
+  overflow: visible;
+}
+
+.trn-act-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .jan-filter.est-dash-filter {
+    align-items: stretch;
+  }
+
+  .jan-filter__actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .jan-filter .est-dash-btn {
+    flex: 1 1 calc(50% - 5px);
+  }
+
+  .trn-list-table-card,
+  .trn-list-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .trn-table {
+    min-width: 640px;
+  }
+}

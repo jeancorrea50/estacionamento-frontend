@@ -1,0 +1,230 @@
+/*
+ * Estilos compartilhados do dialog de Janela e das abas.
+ * Variáveis `--cfg-form-*` vêm do painel global `cfg-form-dialog-panel` (tema claro/escuro).
+ */
+:host {
+  --jan-text: var(--cfg-form-text, #1f2937);
+  --jan-muted: color-mix(in srgb, var(--jan-text) 62%, transparent);
+  --jan-border: var(--cfg-form-border, #dce3ec);
+  --jan-input-bg: var(--cfg-form-input-bg, #ffffff);
+  --jan-input-border: var(--cfg-form-input-border, #cbd5e1);
+  --jan-focus: var(--cfg-form-focus, #2563eb);
+  --jan-focus-ring: var(--cfg-form-focus-ring, 0 0 0 2px rgba(37, 99, 235, 0.25));
+  --jan-danger: #ef4444;
+  color: var(--jan-text);
+}
+
+.jan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.jan-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+}
+
+.jan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.jan-field--full {
+  grid-column: 1 / -1;
+}
+
+.jan-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jan-muted);
+}
+
+.jan-label .required {
+  color: var(--jan-danger);
+}
+
+.jan-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--jan-input-border);
+  background: var(--jan-input-bg);
+  color: var(--jan-text);
+  font: inherit;
+  font-size: 0.875rem;
+  color-scheme: light dark;
+}
+
+textarea.jan-input {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+.jan-input:focus {
+  outline: none;
+  border-color: var(--jan-focus);
+  box-shadow: var(--jan-focus-ring);
+}
+
+.jan-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.jan-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--jan-muted);
+}
+
+.jan-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.jan-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.jan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--jan-border);
+  background: var(--jan-input-bg);
+  color: var(--jan-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jan-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.jan-btn:hover:not(:disabled) {
+  border-color: var(--jan-focus);
+}
+
+.jan-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.jan-icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--jan-border);
+  background: transparent;
+  color: var(--jan-muted);
+  cursor: pointer;
+}
+
+.jan-icon-btn:hover {
+  color: var(--jan-danger);
+  border-color: var(--jan-danger);
+}
+
+.jan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jan-item {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--jan-border);
+}
+
+.jan-item__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.jan-empty {
+  margin: 0;
+  padding: 18px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--jan-muted);
+  border: 1px dashed var(--jan-border);
+  border-radius: 10px;
+}
+
+.jan-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.jan-check input {
+  accent-color: var(--jan-focus);
+}
+
+.jan-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.jan-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--jan-border);
+  background: transparent;
+  color: var(--jan-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.jan-chip--on {
+  background: var(--jan-focus);
+  border-color: var(--jan-focus);
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .jan-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jan-icon-btn {
+    align-self: flex-end;
+  }
+}

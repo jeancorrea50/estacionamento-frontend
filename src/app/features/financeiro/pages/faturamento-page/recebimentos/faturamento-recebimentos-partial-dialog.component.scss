@@ -1,0 +1,6 @@
+@use '../faturamento-shared-modal';
+
+:host {
+  display: block;
+  min-width: min(100vw - 32px, 760px);
+}

@@ -9,6 +9,8 @@ export interface ApiError {
   status?: number;
   /** Erros por campo quando o backend retorna validação (ex.: { email: ['E-mail inválido'] }). */
   fieldErrors?: Record<string, string[]>;
+  /** true quando o ErrorInterceptor já exibiu o toast (evita sobrescrever com genérico). */
+  toastShown?: boolean;
 }
 
 /**

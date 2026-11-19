@@ -1,0 +1,376 @@
+/**
+ * Tema WHITE — contraste e legibilidade.
+ * Tokens base em styles.css (html.theme-light).
+ * Aqui: overrides globais de componentes compartilhados (tabelas, chips, badges, inputs).
+ * Não altera layout, sidebar azul nem identidade.
+ */
+
+html.theme-light {
+  /* Aliases pedidos (tokens white) */
+  --white-bg: var(--color-bg-main);
+  --surface: var(--color-bg-card);
+  --surface-secondary: var(--color-bg-card-secondary);
+
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+
+  --border-primary: var(--color-border);
+  --border-secondary: var(--color-border-light);
+
+  --primary: var(--color-primary);
+  --primary-dark: var(--color-primary-dark);
+
+  --danger-bg: #fee2e2;
+  --danger-text: #dc2626;
+  --danger-border: #fca5a5;
+
+  --warning-bg: #fef3c7;
+  --warning-text: #b45309;
+  --warning-border: #fcd34d;
+
+  --success-bg: #dcfce7;
+  --success-text: #15803d;
+  --success-border: #86efac;
+
+  --info-bg: #eef2ff;
+  --info-text: #4f46e5;
+  --info-border: #c7d2fe;
+
+  --neutral-badge-bg: #f1f5f9;
+  --neutral-badge-text: #475569;
+  --neutral-badge-border: #cbd5e1;
+
+  --chip-bg: #f1f5f9;
+  --chip-text: #475569;
+  --chip-border: #e2e8f0;
+  --chip-active-bg: #eff6ff;
+  --chip-active-text: #2563eb;
+  --chip-active-border: #93c5fd;
+
+  --icon-action: #475569;
+  --icon-action-disabled: #94a3b8;
+
+  /* Badges semânticos (Inadimplência e afins) — sem opacity no chip */
+  --badge-neutral-bg: #f1f5f9;
+  --badge-neutral-text: #475569;
+  --badge-neutral-border: #cbd5e1;
+
+  --badge-info-bg: #eef2ff;
+  --badge-info-text: #4f46e5;
+  --badge-info-border: #c7d2fe;
+
+  --badge-primary-soft-bg: #eff6ff;
+  --badge-primary-soft-text: #1d4ed8;
+  --badge-primary-soft-border: #93c5fd;
+
+  --badge-warning-bg: #fef3c7;
+  --badge-warning-text: #b45309;
+  --badge-warning-border: #fcd34d;
+
+  --badge-warning-strong-bg: #fef3c7;
+  --badge-warning-strong-text: #b45309;
+  --badge-warning-strong-border: #fcd34d;
+
+  --badge-success-bg: #dcfce7;
+  --badge-success-text: #15803d;
+  --badge-success-border: #86efac;
+
+  --badge-danger-bg: #fee2e2;
+  --badge-danger-text: #dc2626;
+  --badge-danger-border: #fca5a5;
+
+  --badge-danger-strong-bg: #fee2e2;
+  --badge-danger-strong-text: #dc2626;
+  --badge-danger-strong-border: #fca5a5;
+}
+
+/* ── Tipografia secundária / subtítulos ───────────────────────────── */
+html.theme-light .page-subtitle,
+html.theme-light .dk-page-subtitle,
+html.theme-light .cfg-page-head__sub,
+html.theme-light .est-dash-hero__subtitle,
+html.theme-light .trn-dash-hero__subtitle,
+html.theme-light .rec-hero-titles__subtitle,
+html.theme-light .fat-page-sub,
+html.theme-light .kpi-card__label,
+html.theme-light .rec-kpi-card__label,
+html.theme-light .visao-metric__label,
+html.theme-light .cfg-metric__label,
+html.theme-light .inad-kpi__label {
+  color: var(--text-secondary) !important;
+}
+
+html.theme-light .page-title,
+html.theme-light .dk-page-title,
+html.theme-light .cfg-page-head__title,
+html.theme-light .est-dash-hero__title {
+  color: var(--text-primary) !important;
+}
+
+/* ── Placeholders ─────────────────────────────────────────────────── */
+html.theme-light ::placeholder {
+  color: var(--input-placeholder, #64748b) !important;
+  opacity: 1 !important;
+}
+
+html.theme-light .mat-mdc-form-field .mat-mdc-input-element::placeholder,
+html.theme-light .mat-mdc-form-field .mat-mdc-select-placeholder,
+html.theme-light input::placeholder,
+html.theme-light textarea::placeholder {
+  color: var(--input-placeholder, #64748b) !important;
+  opacity: 1 !important;
+}
+
+/* ── Inputs / selects ─────────────────────────────────────────────── */
+html.theme-light .input-control,
+html.theme-light .form-control,
+html.theme-light .dk-input,
+html.theme-light .cfg-search-bar__search-input,
+html.theme-light .cfg-search-bar__select,
+html.theme-light .est-dash-filter__select,
+html.theme-light .est-dash-filter__search,
+html.theme-light select.input-control {
+  border-color: var(--input-border, #cbd5e1) !important;
+  color: var(--text-primary) !important;
+  background: var(--surface, #ffffff) !important;
+}
+
+html.theme-light .input-control:hover,
+html.theme-light .form-control:hover,
+html.theme-light .cfg-search-bar__search-input:hover,
+html.theme-light .cfg-search-bar__select:hover,
+html.theme-light .est-dash-filter__select:hover,
+html.theme-light .est-dash-filter__search:hover {
+  border-color: #94a3b8 !important;
+}
+
+html.theme-light .input-control:focus,
+html.theme-light .form-control:focus,
+html.theme-light .cfg-search-bar__search-input:focus,
+html.theme-light .cfg-search-bar__select:focus,
+html.theme-light .est-dash-filter__select:focus,
+html.theme-light .est-dash-filter__search:focus-within {
+  border-color: #3b82f6 !important;
+}
+
+/* ── Cards / containers / filtros ─────────────────────────────────── */
+html.theme-light .card,
+html.theme-light .content-card,
+html.theme-light .ui-panel,
+html.theme-light .data-card,
+html.theme-light .filter-card,
+html.theme-light .est-dash-filter,
+html.theme-light .trn-dash-filter,
+html.theme-light .rec-painel-card,
+html.theme-light .mat-mdc-card {
+  border-color: var(--border-primary, #dce3ec) !important;
+}
+
+/* ── Tabelas (native + Material) ──────────────────────────────────── */
+html.theme-light .data-table th,
+html.theme-light .dk-table th,
+html.theme-light .trn-table th,
+html.theme-light .mat-mdc-header-cell,
+html.theme-light .mat-mdc-table .mat-mdc-header-cell {
+  color: #475569 !important;
+  font-weight: 600 !important;
+  background: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html.theme-light .data-table td,
+html.theme-light .dk-table td,
+html.theme-light .trn-table td,
+html.theme-light .mat-mdc-cell,
+html.theme-light .mat-mdc-footer-cell {
+  color: var(--text-primary) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html.theme-light .data-table tbody tr,
+html.theme-light .dk-table tbody tr,
+html.theme-light .mat-mdc-row {
+  background: #ffffff;
+}
+
+html.theme-light .data-table tbody tr:hover,
+html.theme-light .dk-table tbody tr:hover,
+html.theme-light .mat-mdc-row:hover {
+  background: #f8fafc !important;
+}
+
+html.theme-light .table-wrap,
+html.theme-light .dk-table-wrap,
+html.theme-light .trn-list-table-card,
+html.theme-light .mat-mdc-table {
+  border-color: #e2e8f0 !important;
+}
+
+/* ── Chips de filtro rápido ───────────────────────────────────────── */
+html.theme-light .fat-quick-chip,
+html.theme-light .rec-status-tabs__tab,
+html.theme-light .rec-quick__chip {
+  background: var(--chip-bg) !important;
+  color: var(--chip-text) !important;
+  border: 1px solid var(--chip-border) !important;
+}
+
+html.theme-light .fat-quick-chip:hover,
+html.theme-light .rec-status-tabs__tab:hover,
+html.theme-light .rec-quick__chip:hover {
+  border-color: #cbd5e1 !important;
+  color: var(--text-primary) !important;
+}
+
+html.theme-light .fat-quick-chip--active,
+html.theme-light .rec-status-tabs__tab--active,
+html.theme-light .rec-quick__chip--active {
+  background: var(--chip-active-bg) !important;
+  color: var(--chip-active-text) !important;
+  border-color: var(--chip-active-border) !important;
+}
+
+html.theme-light .fat-quick-chip__count,
+html.theme-light .rec-status-tabs__count,
+html.theme-light .rec-quick__badge {
+  color: inherit !important;
+  opacity: 1 !important;
+}
+
+/* ── Abas (Faturamento etc.) ──────────────────────────────────────── */
+html.theme-light .fat-nav-tab,
+html.theme-light .fat-tabs a,
+html.theme-light .fat-tabs button,
+html.theme-light .faturamento-tabs a,
+html.theme-light .faturamento-tabs button,
+html.theme-light .mat-mdc-tab .mdc-tab__text-label {
+  color: #64748b !important;
+}
+
+html.theme-light .fat-nav-tab--active,
+html.theme-light .tab--active,
+html.theme-light .fat-tabs a.active,
+html.theme-light .fat-tabs button.active,
+html.theme-light .fat-tabs .active,
+html.theme-light .faturamento-tabs .active,
+html.theme-light .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: #1e40af !important;
+  font-weight: 600 !important;
+}
+
+html.theme-light .fat-nav-tab--active {
+  border-bottom-color: #2563eb !important;
+}
+
+/* ── Ícones de ação em tabelas ────────────────────────────────────── */
+html.theme-light .trn-act-btn .material-symbols-outlined,
+html.theme-light .data-table .material-symbols-outlined,
+html.theme-light .mat-mdc-table .material-symbols-outlined,
+html.theme-light .inad-actions .material-symbols-outlined,
+html.theme-light .cfg-row-actions .material-symbols-outlined {
+  color: var(--icon-action);
+}
+
+html.theme-light button:disabled .material-symbols-outlined,
+html.theme-light .trn-act-btn:disabled .material-symbols-outlined {
+  color: var(--icon-action-disabled) !important;
+}
+
+/* ── Badges de inadimplência (dias / status) ──────────────────────── */
+/* Tokens --badge-* já aplicados via herança; reforço com !important
+   quando estilos encapsulados ou color-mix antigos competem. */
+html.theme-light .inad-chip--nao-enviada {
+  background: var(--badge-neutral-bg) !important;
+  color: var(--badge-neutral-text) !important;
+  border-color: var(--badge-neutral-border) !important;
+}
+
+html.theme-light .inad-chip--enviada {
+  background: var(--badge-primary-soft-bg) !important;
+  color: var(--badge-primary-soft-text) !important;
+  border-color: var(--badge-primary-soft-border) !important;
+}
+
+html.theme-light .inad-chip--reenviada {
+  background: var(--badge-info-bg) !important;
+  color: var(--badge-info-text) !important;
+  border-color: var(--badge-info-border) !important;
+}
+
+html.theme-light .inad-chip--negociacao {
+  background: var(--badge-warning-strong-bg) !important;
+  color: var(--badge-warning-strong-text) !important;
+  border-color: var(--badge-warning-strong-border) !important;
+}
+
+html.theme-light .inad-chip--acordo {
+  background: var(--badge-success-bg) !important;
+  color: var(--badge-success-text) !important;
+  border-color: var(--badge-success-border) !important;
+}
+
+html.theme-light .inad-chip--sem-retorno {
+  background: var(--badge-danger-bg) !important;
+  color: var(--badge-danger-text) !important;
+  border-color: var(--badge-danger-border) !important;
+}
+
+/* Alerta (poucos dias) */
+html.theme-light .inad-chip--dias-1,
+html.theme-light .inad-chip--dias-8 {
+  background: var(--badge-warning-bg) !important;
+  color: var(--badge-warning-text) !important;
+  border-color: var(--badge-warning-border) !important;
+}
+
+/* Atrasado */
+html.theme-light .inad-chip--dias-16,
+html.theme-light .inad-chip--dias-30 {
+  background: var(--badge-danger-bg) !important;
+  color: var(--badge-danger-text) !important;
+  border-color: var(--badge-danger-border) !important;
+}
+
+/* ── Pills de cobrança (modalidade / envio) no white ──────────────── */
+html.theme-light .cfg-chip--mod-diaria,
+html.theme-light .cfg-chip--mod-semanal,
+html.theme-light .cfg-chip--mod-quinzenal,
+html.theme-light .cfg-chip--mod-mensal,
+html.theme-light .cfg-chip--mod-personal,
+html.theme-light .cfg-chip--mod-acordo,
+html.theme-light .cfg-chip--envio-sim {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+}
+
+html.theme-light .cfg-chip--envio-nao {
+  background: var(--neutral-badge-bg) !important;
+  color: var(--neutral-badge-text) !important;
+  border-color: var(--neutral-badge-border) !important;
+}
+
+/* ── KPI cards ────────────────────────────────────────────────────── */
+html.theme-light .rec-kpi-card__label,
+html.theme-light .kpi-card__label,
+html.theme-light .visao-metric__label,
+html.theme-light .cfg-metric__label,
+html.theme-light .inad-kpi__label,
+html.theme-light .fat-kpi__label {
+  color: #64748b !important;
+}
+
+html.theme-light .cfg-table th,
+html.theme-light .cfg-data-table th {
+  color: #475569 !important;
+  font-weight: 600 !important;
+  background: #f8fafc !important;
+}
+
+/* ── Footer de listagem ───────────────────────────────────────────── */
+html.theme-light .trn-list-footer__info,
+html.theme-light .list-footer__info,
+html.theme-light .pagination-info {
+  color: var(--text-secondary) !important;
+}

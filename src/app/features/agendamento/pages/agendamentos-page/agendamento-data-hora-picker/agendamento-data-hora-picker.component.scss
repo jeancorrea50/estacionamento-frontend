@@ -1,0 +1,67 @@
+/* Mesmo padrão visual de Movimentações / PeriodoDataPicker (rec-cal). */
+@use '../../../../financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: block;
+  position: relative;
+  z-index: 50;
+  overflow: visible;
+  width: 100%;
+}
+
+.ag-dh-picker {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.ag-dh-picker__control {
+  width: 100%;
+}
+
+.ag-dh-picker__control .rec-data-picker__trigger {
+  display: flex;
+  justify-content: space-between;
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  text-align: left;
+  padding-inline: 12px 10px;
+  font-weight: 500;
+}
+
+.ag-dh-picker__control .rec-data-picker__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-dh-picker__control .rec-data-picker__panel {
+  /* Garante painel acima do overlay do modal de agendamento. */
+  z-index: 10120;
+}
+
+.ag-dh-picker__hora {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-color, #cbd5e1) 70%, transparent);
+}
+
+.ag-dh-picker__hora-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+}
+
+.ag-dh-picker__hora-field .input-control {
+  height: 36px;
+  min-height: 36px;
+}

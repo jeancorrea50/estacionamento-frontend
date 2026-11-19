@@ -1,0 +1,10 @@
+<article class="est-metric" [ngClass]="'est-metric--' + variant">
+  <span class="est-metric__icon material-symbols-outlined" aria-hidden="true">{{ icon }}</span>
+  <div class="est-metric__text">
+    <span class="est-metric__label">{{ label }}</span>
+    <strong class="est-metric__value">{{ value }}</strong>
+    @if (hint) {
+      <span class="est-metric__hint">{{ hint }}</span>
+    }
+  </div>
+</article>

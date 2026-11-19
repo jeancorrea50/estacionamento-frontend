@@ -1,0 +1,71 @@
+<div class="login-page">
+  <div class="card" role="main" aria-labelledby="redefinir-title">
+    <div class="login-header">
+      <h1 id="redefinir-title" class="title">Redefinir senha</h1>
+    </div>
+
+    @if (linkInvalido) {
+      <div class="invalid-link" role="alert">
+        <p>Este link é inválido ou está incompleto (faltam e-mail ou token).</p>
+        <p>Solicite um novo e-mail de redefinição.</p>
+        <a routerLink="/auth/esqueci-senha" class="btn-link-inline">Esqueci minha senha</a>
+        <p class="mt">
+          <a routerLink="/">Voltar ao login</a>
+        </p>
+      </div>
+    } @else {
+      <p class="hint-email">E-mail: <strong>{{ emailParam }}</strong></p>
+      <p class="policy-hint">
+        A senha deve ter no mínimo 6 caracteres, incluindo pelo menos uma letra maiúscula, uma minúscula e um número
+        (conforme política usual do servidor).
+      </p>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="form">
+        <div class="field">
+          <label for="newPassword">Nova senha</label>
+          <input
+            id="newPassword"
+            type="password"
+            formControlName="newPassword"
+            autocomplete="new-password"
+            aria-describedby="np-error"
+          />
+          <div id="np-error" class="error" *ngIf="newPassword?.touched && newPassword?.invalid">
+            <small *ngIf="newPassword?.errors?.['required']">Campo obrigatório.</small>
+            <small *ngIf="newPassword?.errors?.['minlength']">Mínimo de 6 caracteres.</small>
+            <small *ngIf="newPassword?.errors?.['pattern']">Inclua maiúscula, minúscula e número.</small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="confirmPassword">Confirmar senha</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+            aria-describedby="cp-error"
+          />
+          <div id="cp-error" class="error" *ngIf="confirmPassword?.touched && confirmPassword?.invalid">
+            <small *ngIf="confirmPassword?.errors?.['required']">Confirmação obrigatória.</small>
+          </div>
+          <div class="error" *ngIf="form.touched && form.errors?.['mismatch']">
+            <small>As senhas não coincidem.</small>
+          </div>
+        </div>
+
+        <div class="global-error error" *ngIf="errorMessage">
+          <small>{{ errorMessage }}</small>
+        </div>
+
+        <button class="btn" type="submit" [disabled]="form.invalid || loading">
+          {{ loading ? 'Salvando...' : 'Redefinir senha' }}
+        </button>
+
+        <p class="footer-link">
+          <a routerLink="/">Voltar ao login</a>
+        </p>
+      </form>
+    }
+  </div>
+</div>

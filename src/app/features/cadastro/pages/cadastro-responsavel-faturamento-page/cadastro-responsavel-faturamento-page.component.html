@@ -1,0 +1,154 @@
+<div class="cadastro-transportadora-shell">
+  <div class="page-container">
+    <div class="page-content trn-page-content--dashboard">
+      <header class="est-dash-hero trn-dash-hero" aria-labelledby="rfat-dash-title">
+        <div class="est-dash-hero__icon trn-dash-hero__icon" aria-hidden="true">
+          <span class="material-symbols-outlined">account_balance</span>
+        </div>
+        <div class="est-dash-hero__copy">
+          <h1 id="rfat-dash-title" class="est-dash-hero__title">Responsável de Faturamento</h1>
+          <p class="est-dash-hero__subtitle">Consulte e gerencie as empresas responsáveis pelo faturamento.</p>
+        </div>
+      </header>
+
+      <section class="est-dash-filter trn-dash-filter" aria-label="Filtros da listagem">
+        <div class="est-dash-filter__select-wrap">
+          <select class="est-dash-filter__select input-control trn-dash-filter__select" [(ngModel)]="filtroAtivo" aria-label="Status">
+            <option [ngValue]="null">Todos os status</option>
+            <option [ngValue]="true">Ativos</option>
+            <option [ngValue]="false">Inativos</option>
+          </select>
+        </div>
+        <label class="est-dash-filter__search">
+          <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true">search</span>
+          <input
+            type="text"
+            class="est-dash-filter__search-input"
+            placeholder="Buscar por nome ou CNPJ…"
+            [(ngModel)]="termoBusca"
+            (keyup.enter)="onBuscar()"
+            autocomplete="off"
+            aria-label="Termo de busca"
+          />
+        </label>
+        <button type="button" class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar" (click)="onBuscar()">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          Buscar
+        </button>
+        @if (canGravar) {
+          <button type="button" class="est-dash-btn est-dash-btn--primary" (click)="abrirNovo()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Novo
+          </button>
+        }
+      </section>
+
+      @if (erroList) {
+        <div class="trn-list-banner trn-list-banner--error" role="alert">
+          <p class="error-msg">{{ erroList }}</p>
+        </div>
+      }
+      @if (loadingList) {
+        <p class="loading-msg trn-loading">Carregando...</p>
+      }
+
+      @if (jaBuscou && !loadingList && !erroList) {
+        <div class="trn-list-metrics" aria-label="Resumo da consulta">
+          <app-est-summary-metric icon="groups" label="Total" [value]="totalCount" variant="neutral" />
+          <app-est-summary-metric icon="check_circle" label="Ativos" [value]="countAtivosPagina" variant="success" [hint]="resumoListaPaginaHint" />
+          <app-est-summary-metric icon="cancel" label="Inativos" [value]="countInativosPagina" variant="danger" [hint]="resumoListaPaginaHint" />
+        </div>
+
+        <div class="trn-list-table-card">
+          <div class="trn-list-table-scroll">
+            <table class="data-table trn-table">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Razão social</th>
+                  <th scope="col">Nome fantasia</th>
+                  <th scope="col">CNPJ</th>
+                  <th scope="col">Responsável</th>
+                  <th scope="col">Telefone</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="trn-table__th-acoes">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of itens; track item.id) {
+                  <tr class="trn-table__row">
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.razaoSocial || '—' }}</td>
+                    <td>{{ item.nomeFantasia || '—' }}</td>
+                    <td>{{ formatCnpjItem(item.cnpj) }}</td>
+                    <td>{{ item.responsavelLegal || '—' }}</td>
+                    <td>{{ formatTelItem(item.responsavelTelefone || item.telefone) }}</td>
+                    <td>
+                      <app-est-status-pill-estacionamento [ativo]="item.ativo" />
+                    </td>
+                    <td class="trn-table__acoes">
+                      <div class="trn-act-btns" role="group" [attr.aria-label]="'Ações para ' + item.id">
+                        @if (canAlterar) {
+                          <button type="button" class="trn-act-btn trn-act-btn--accent" title="Editar" (click)="editar(item)">
+                            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                          </button>
+                        }
+                        @if (canExcluir) {
+                          <button type="button" class="trn-act-btn trn-act-btn--danger" title="Excluir" (click)="excluir(item)">
+                            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (itens.length === 0) {
+            <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+              <span class="material-symbols-outlined" aria-hidden="true">account_balance</span>
+              <p class="empty-msg">Nenhum responsável encontrado.</p>
+            </div>
+          }
+        </div>
+
+        <footer class="trn-list-footer">
+          <p class="trn-list-footer__info">
+            Mostrando <strong>{{ intervaloLista.de }}</strong> a <strong>{{ intervaloLista.ate }}</strong> de
+            <strong>{{ totalCount }}</strong>
+            {{ totalCount === 1 ? 'registro' : 'registros' }}
+          </p>
+          <div class="trn-list-footer__right">
+            <label class="trn-page-size">
+              <span class="trn-page-size__label">Linhas por página</span>
+              <select
+                class="trn-page-size__select input-control"
+                [ngModel]="tamanhoPaginaLista"
+                (ngModelChange)="onTamanhoPaginaChange($event)"
+              >
+                @for (n of opcoesTamanhoPaginaLista; track n) {
+                  <option [ngValue]="n">{{ n }}</option>
+                }
+              </select>
+            </label>
+            <div class="trn-pager">
+              <button type="button" class="trn-pager__btn" [disabled]="numeroPagina <= 1" (click)="irParaPagina(numeroPagina - 1)">
+                Anterior
+              </button>
+              <span class="trn-pager__page">{{ numeroPagina }} / {{ totalPaginasLista }}</span>
+              <button
+                type="button"
+                class="trn-pager__btn"
+                [disabled]="numeroPagina >= totalPaginasLista"
+                (click)="irParaPagina(numeroPagina + 1)"
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        </footer>
+      }
+    </div>
+  </div>
+</div>

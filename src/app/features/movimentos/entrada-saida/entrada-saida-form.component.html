@@ -1,0 +1,320 @@
+<div class="es-form-page">
+  <div class="es-form-page__inner es-form-page__inner--wide">
+    <header class="es-form-page__header dk-page-header">
+      <h1 class="es-form-page__title dk-page-title">{{ tituloPagina() }}</h1>
+      <p class="es-form-page__subtitle dk-page-subtitle">
+        Informe a placa para buscar vínculos ou preencha manualmente com os botões de pesquisa.
+      </p>
+    </header>
+
+    @if (carregandoRegistro) {
+      <div class="es-skeleton-block" aria-busy="true">
+        <span class="es-spinner es-spinner--lg" aria-hidden="true"></span>
+        <p class="es-form-page__loading">Carregando registro...</p>
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="salvar()" class="es-flow">
+        <!-- Ordem: Veículo (placa) → Motorista → Transportadora -->
+        <section class="es-panel" aria-labelledby="es-veiculo-title">
+          <div class="es-panel__head">
+            <span class="material-symbols-outlined es-panel__ico" aria-hidden="true">directions_car</span>
+            <div class="es-panel__titles">
+              <h2 id="es-veiculo-title" class="es-panel__title">Veículo</h2>
+              <p class="es-panel__hint">A placa dispara a busca automática (debounce 500 ms ou ao sair do campo).</p>
+            </div>
+            @if (autoFillAtivo()) {
+              <span class="es-badge">Preenchido automaticamente</span>
+            }
+          </div>
+          <div class="es-panel__body">
+            <div class="es-grid es-grid--2">
+              <div class="es-float es-float--with-status">
+                <div class="es-placa-wrap">
+                  <input
+                    #placaInput
+                    id="placaVeiculo"
+                    type="text"
+                    class="input-control es-float__input"
+                    placeholder=" "
+                    formControlName="placaVeiculo"
+                    (input)="onPlacaInput()"
+                    (blur)="onPlacaBlurBusca()"
+                    [readonly]="!modoNovo()"
+                    maxlength="8"
+                    autocomplete="off"
+                  />
+                  <label class="es-float__label" for="placaVeiculo">Placa do veículo</label>
+                  @if (consultandoPlaca) {
+                    <span class="es-spinner es-spinner--field" aria-label="Consultando placa"></span>
+                  }
+                </div>
+              </div>
+              <div class="es-float">
+                <input
+                  id="veiculoModelo"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.veiculoModelo"
+                  (input)="onCampoVeiculoModelo($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="veiculoModelo">Modelo</label>
+              </div>
+              <div class="es-float">
+                <input
+                  id="veiculoMarca"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.veiculoMarca"
+                  (input)="onCampoVeiculoMarca($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="veiculoMarca">Marca</label>
+              </div>
+              <div class="es-float">
+                <input
+                  id="veiculoAno"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.veiculoAno"
+                  (input)="onCampoVeiculoAno($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="veiculoAno">Ano</label>
+              </div>
+            </div>
+            @if (placaSemRegistro && modoNovo()) {
+              <p class="es-inline-alert" role="status">Nenhum registro encontrado para a placa informada.</p>
+            }
+            <div class="es-toolbar">
+              <button type="button" class="btn btn-secondary btn--sm" (click)="abrirVeiculo()" title="Buscar veículo">
+                <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                Buscar
+              </button>
+              <button type="button" class="btn btn-secondary btn--sm" (click)="limparVeiculo()">Limpar</button>
+              @if (autoFillAtivo()) {
+                <button type="button" class="btn btn-secondary btn--sm" (click)="liberarEdicaoAutofill()">
+                  Liberar edição dos campos
+                </button>
+              }
+              @if (veiculoInvalido()) {
+                <span class="es-field__error es-field__error--inline">Veículo é obrigatório.</span>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="es-panel" aria-labelledby="es-motorista-title">
+          <div class="es-panel__head">
+            <span class="material-symbols-outlined es-panel__ico" aria-hidden="true">person</span>
+            <div class="es-panel__titles">
+              <h2 id="es-motorista-title" class="es-panel__title">Motorista</h2>
+              <p class="es-panel__hint">Preenchido pela busca da placa ou manualmente (Buscar / Limpar).</p>
+            </div>
+            @if (autoFillAtivo()) {
+              <span class="es-badge">Preenchido automaticamente</span>
+            }
+          </div>
+          <div class="es-panel__body">
+            <div class="es-grid es-grid--2">
+              <div class="es-float">
+                <input
+                  #motoristaInput
+                  id="motoristaNome"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.motoristaTexto"
+                  (input)="onCampoMotoristaNome($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="name"
+                />
+                <label class="es-float__label" for="motoristaNome">Nome</label>
+              </div>
+              <div class="es-float">
+                <input
+                  id="motoristaCpf"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.motoristaCpf"
+                  (input)="onCampoMotoristaCpf($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="motoristaCpf">CPF</label>
+              </div>
+              <div class="es-float">
+                <input
+                  id="motoristaTel"
+                  type="tel"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.motoristaTelefone"
+                  (input)="onCampoMotoristaTel($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="tel"
+                />
+                <label class="es-float__label" for="motoristaTel">Telefone</label>
+              </div>
+              <div class="es-float">
+                <input
+                  id="motoristaCnh"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.motoristaCnh"
+                  (input)="onCampoMotoristaCnh($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="motoristaCnh">CNH</label>
+              </div>
+            </div>
+            <div class="es-toolbar">
+              <button type="button" class="btn btn-secondary btn--sm" (click)="abrirMotorista()" title="Buscar motorista">
+                <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                Buscar
+              </button>
+              <button type="button" class="btn btn-secondary btn--sm" (click)="limparMotorista()">Limpar</button>
+              @if (motoristaInvalido()) {
+                <span class="es-field__error es-field__error--inline">Selecione ou informe um motorista válido.</span>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="es-panel" aria-labelledby="es-transp-title">
+          <div class="es-panel__head">
+            <span class="material-symbols-outlined es-panel__ico" aria-hidden="true">domain</span>
+            <div class="es-panel__titles">
+              <h2 id="es-transp-title" class="es-panel__title">Transportadora</h2>
+            </div>
+            @if (autoFillAtivo()) {
+              <span class="es-badge">Preenchido automaticamente</span>
+            }
+          </div>
+          <div class="es-panel__body">
+            <div class="es-grid es-grid--2">
+              <div class="es-float">
+                <input
+                  id="transportadoraNome"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.transportadoraTexto"
+                  (input)="onCampoTransportadoraNome($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="organization"
+                />
+                <label class="es-float__label" for="transportadoraNome">Nome / Razão social</label>
+              </div>
+              <div class="es-float">
+                <input
+                  id="transportadoraCnpj"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.transportadoraCnpj"
+                  (input)="onCampoTransportadoraCnpj($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="transportadoraCnpj">CNPJ</label>
+              </div>
+              <div class="es-float es-span-2">
+                <input
+                  id="transportadoraContato"
+                  type="text"
+                  class="input-control es-float__input"
+                  placeholder=" "
+                  [value]="detalhe.transportadoraContato"
+                  (input)="onCampoTransportadoraContato($event)"
+                  [readonly]="readonlyPorAutofill"
+                  autocomplete="off"
+                />
+                <label class="es-float__label" for="transportadoraContato">Contato</label>
+              </div>
+            </div>
+            <div class="es-toolbar">
+              <button type="button" class="btn btn-secondary btn--sm" (click)="abrirTransportadora()" title="Buscar transportadora">
+                <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                Buscar
+              </button>
+              <button type="button" class="btn btn-secondary btn--sm" (click)="limparTransportadora()">Limpar</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="es-panel es-panel--compact" aria-labelledby="es-periodo-title">
+          <div class="es-panel__head es-panel__head--compact">
+            <span class="material-symbols-outlined es-panel__ico" aria-hidden="true">schedule</span>
+            <h2 id="es-periodo-title" class="es-panel__title">Permanência</h2>
+          </div>
+          <div class="es-panel__body">
+            <div class="es-grid es-grid--2">
+              <div class="es-float">
+                <input id="dataHoraEntrada" type="datetime-local" class="input-control es-float__input" formControlName="dataHoraEntrada" />
+                <label class="es-float__label es-float__label--static" for="dataHoraEntrada">Data entrada *</label>
+              </div>
+              <div class="es-float">
+                <input id="dataHoraSaida" type="datetime-local" class="input-control es-float__input" formControlName="dataHoraSaida" />
+                <label class="es-float__label es-float__label--static" for="dataHoraSaida">Data saída</label>
+              </div>
+            </div>
+            @if (form.controls.dataHoraEntrada.touched && form.controls.dataHoraEntrada.invalid) {
+              <p class="es-field__error">Informe a data/hora de entrada.</p>
+            }
+            @if (form.errors?.['dataSaidaMenor']) {
+              <p class="es-field__error es-field__error--block">Data/Hora de saída deve ser maior ou igual à entrada.</p>
+            }
+            <div class="es-field es-row--mt">
+              <label class="es-field-label" for="observacao">Observação</label>
+              <textarea
+                id="observacao"
+                class="input-control es-textarea"
+                rows="3"
+                formControlName="observacao"
+                placeholder="Observações opcionais"
+              ></textarea>
+            </div>
+          </div>
+        </section>
+
+        <div class="es-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelar()" [disabled]="salvando">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="salvando || form.invalid">
+            {{ salvando ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>
+
+<app-modal-busca-motorista
+  [aberto]="motoristaModalAberto"
+  [termoCampo]="motoristaTexto"
+  (fechar)="motoristaModalAberto = false"
+  (itemSelecionado)="onMotoristaSelecionado($event)"
+/>
+
+<app-modal-busca-transportadora
+  [aberto]="transportadoraModalAberto"
+  [termoCampo]="transportadoraTexto"
+  (fechar)="transportadoraModalAberto = false"
+  (itemSelecionado)="onTransportadoraSelecionada($event)"
+/>
+
+<app-modal-busca-veiculo
+  [aberto]="veiculoModalAberto"
+  [termoCampo]="veiculoTexto"
+  (fechar)="veiculoModalAberto = false"
+  (itemSelecionado)="onVeiculoSelecionado($event)"
+/>

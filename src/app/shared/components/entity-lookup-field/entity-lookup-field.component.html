@@ -1,0 +1,46 @@
+<div class="entity-lookup" [class.entity-lookup--disabled]="disabled()">
+  <div
+    class="input-control entity-lookup__field"
+    [class.entity-lookup__field--disabled]="disabled()"
+    [attr.aria-disabled]="disabled()"
+  >
+    <button
+      type="button"
+      class="entity-lookup__value-btn"
+      (click)="onAbrir($event)"
+      [disabled]="!podeAbrir"
+      [attr.aria-label]="temValor ? ariaLabel() + ': ' + valueLabel() : ariaLabel()"
+    >
+      <span
+        class="entity-lookup__value"
+        [class.entity-lookup__value--placeholder]="!temValor"
+      >
+        {{ temValor ? valueLabel() : placeholder() }}
+      </span>
+    </button>
+
+    <div class="entity-lookup__actions">
+      @if (podeLimpar) {
+        <button
+          type="button"
+          class="entity-lookup__action entity-lookup__action--clear"
+          (click)="onLimpar($event)"
+          aria-label="Limpar seleção"
+          title="Limpar"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      }
+      <button
+        type="button"
+        class="entity-lookup__action entity-lookup__action--search"
+        (click)="onAbrir($event)"
+        [disabled]="!podeAbrir"
+        [attr.aria-label]="ariaLabel()"
+        [attr.title]="podeAbrir ? 'Buscar' : 'Bloqueado'"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">{{ searchIcon() }}</span>
+      </button>
+    </div>
+  </div>
+</div>

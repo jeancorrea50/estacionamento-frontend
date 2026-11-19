@@ -23,7 +23,7 @@ export interface PermissionInput {
   acao?: string | null;
 }
 
-/** Swagger: SubMenuCreateInput — estendido com rota/ativo usados pelo front. */
+/** Swagger: SubMenuCreateInput — estendido com rota/ativo/sidebar usados pelo front. */
 export interface SubMenuCreateInput {
   id?: number;
   nome?: string | null;
@@ -37,6 +37,9 @@ export interface SubMenuCreateInput {
   isAtivo?: boolean;
   /** Compatibilidade com contratos que usam isActive no submódulo. */
   isActive?: boolean;
+  /** Exibir item na sidebar (campo estendido — o backend pode ignorar se ainda não existir). */
+  exibirNoSidebar?: boolean;
+  mostrarSidebar?: boolean;
 }
 
 export interface MenuCreateInput {
@@ -45,7 +48,12 @@ export interface MenuCreateInput {
   nome?: string | null;
   descricao?: string | null;
   ordem?: number;
+  /** Rota base do menu no SPA (ex.: `/app/configuracoes`). */
+  rota?: string | null;
   ativo?: boolean;
+  /** Exibir item na sidebar (campo estendido). */
+  exibirNoSidebar?: boolean;
+  mostrarSidebar?: boolean;
   subMenus?: SubMenuCreateInput[] | null;
 }
 
@@ -55,11 +63,14 @@ export interface MenuUpdateInput {
   /** Alguns backends usam/validam descricao também no Alterar. */
   descricao?: string | null;
   ordem?: number;
+  rota?: string | null;
   ativo?: boolean;
+  exibirNoSidebar?: boolean;
+  mostrarSidebar?: boolean;
   subMenus?: SubMenuCreateInput[] | null;
 }
 
-/** Corpo de PUT /api/auth/Menu/OrganizarMenus — apenas ordem de menus e submenus já persistidos. */
+/** Corpo de PUT /api/auth/Menu/OrganizarMenus — ordem dos menus e, por menu, ordem dos submenus (lista de ids por pai). */
 export interface SubMenuOrdemInput {
   id: number;
   ordem: number;

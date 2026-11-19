@@ -1,8 +1,47 @@
 {
-  "/api": {
-    "target": "https://localhost:44317",
+  "/estac/worker": {
+    "target": "https://gtsistema.com",
+    "secure": true,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "warn"
+  },
+  "/estac/notification": {
+    "target": "https://gtsistema.com",
+    "secure": true,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "warn"
+  },
+  "/estac/report": {
+    "target": "https://gtsistema.com",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/gerenc": {
+    "target": "http://localhost:5204",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "logLevel": "warn",
+    "pathRewrite": {
+      "^/gerenc": ""
+    }
+  },
+  "/estac": {
+    "target": "https://gtsistema.com",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/api": {
+    "target": "https://gtsistema.com",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "warn",
+    "pathRewrite": {
+      "^/api": "/estac/api"
+    }
   },
   "/viacep": {
     "target": "https://viacep.com.br",

@@ -1,0 +1,163 @@
+@if (aberto()) {
+  <div class="modal-overlay modal-overlay--frota" role="presentation">
+    <div
+      class="modal-content modal-content--frota modal-content--agendamento-novo"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-agendamento-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h2 id="modal-agendamento-title">Novo agendamento</h2>
+        <button type="button" class="modal-close" aria-label="Fechar" (click)="fechar()">
+          &times;
+        </button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="salvar()">
+        <div class="modal-body modal-body--frota-compact ag-novo-body">
+          <div class="form-row ag-novo-field">
+            <label>Data <span class="required">*</span></label>
+            <app-agendamento-data-hora-picker
+              [somenteData]="true"
+              ariaLabel="Selecionar data do agendamento"
+              [value]="form.controls.dataAgendamento.value || ''"
+              (valueChange)="onDataHoraChange($event)"
+            />
+          </div>
+
+          <app-janela-slot-select
+            [ativo]="aberto()"
+            [data]="dataSelecionada()"
+            [transportadoraId]="transportadoraFormId()"
+            [(modalidade)]="modalidadeJanela"
+            [(slot)]="slotSelecionado"
+          />
+
+          @if (podeEscolherTransportadora()) {
+            <div class="form-row ag-novo-field">
+              <label>Transportadora <span class="required">*</span></label>
+              <app-transportadora-lookup-field
+                [transportadoraId]="transportadoraFormId()"
+                [transportadoraNome]="transportadoraFormNome()"
+                placeholder="Buscar por CNPJ, razão social ou fantasia…"
+                (transportadoraIdChange)="onTransportadoraIdChange($event)"
+                (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
+              />
+            </div>
+          }
+
+          <div class="form-row ag-novo-field ag-placas-field">
+            <label>Veículos <span class="required">*</span></label>
+            <div class="ag-placas-field__control">
+              <div class="ag-lookup">
+                <button
+                  type="button"
+                  class="input-control ag-lookup__trigger"
+                  (click)="abrirFrotaModal()"
+                  [disabled]="!transportadoraFormId()"
+                  aria-label="Gerenciar veículos e motoristas"
+                >
+                  <span class="ag-lookup__value" [class.ag-lookup__value--placeholder]="!placasSelecionadas().length">
+                    {{
+                      !transportadoraFormId()
+                        ? 'Selecione a transportadora para gerenciar veículos'
+                        : placasSelecionadas().length
+                          ? placasSelecionadas().length +
+                            (placasSelecionadas().length === 1
+                              ? ' veículo — clicar para editar'
+                              : ' veículos — clicar para editar')
+                          : 'Gerenciar veículos e motoristas…'
+                    }}
+                  </span>
+                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">
+                    {{ placasSelecionadas().length ? 'edit' : 'garage' }}
+                  </span>
+                </button>
+              </div>
+
+              @if (placasSelecionadas().length) {
+                <ul class="ag-placa-chips" aria-label="Veículos selecionados">
+                  @for (p of placasSelecionadas(); track p.id) {
+                    <li
+                      class="ag-placa-chip"
+                      [class.ag-placa-chip--sem-motorista]="!(p.motoristaId && p.motoristaId > 0)"
+                    >
+                      <button
+                        type="button"
+                        class="ag-placa-chip__main"
+                        (click)="abrirFrotaModal()"
+                        [attr.aria-label]="'Editar motorista da placa ' + formatPlaca(p.placa)"
+                      >
+                        <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
+                        <span class="ag-placa-chip__motorista">
+                          {{ labelMotorista(p) || 'Sem motorista' }}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        class="ag-placa-chip__remove"
+                        (click)="removerPlacaSelecionada(p.id)"
+                        [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+                @if (!todasPlacasComMotorista()) {
+                  <p class="ag-placas-field__warn">
+                    Há placa(s) sem motorista. Abra o gerenciador para vincular.
+                  </p>
+                }
+                @if (placasExcedemVagas() && slotSelecionado(); as slot) {
+                  <p class="ag-placas-field__warn">
+                    Você selecionou {{ placasSelecionadas().length }} veículos, mas o horário
+                    {{ slot.label }} tem apenas {{ slot.disponiveis }} vaga(s). Remova placas ou
+                    escolha outro horário.
+                  </p>
+                }
+              }
+            </div>
+          </div>
+
+          <div class="form-row ag-novo-field ag-novo-field--obs">
+            <label for="ag-novo-obs">Observação</label>
+            <textarea
+              id="ag-novo-obs"
+              class="input-control ag-novo-obs"
+              formControlName="observacao"
+              rows="3"
+              maxlength="200"
+              placeholder="Opcional"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="fechar()">Fechar</button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="
+              form.invalid ||
+              salvando() ||
+              placasSelecionadas().length === 0 ||
+              !slotSelecionado() ||
+              !todasPlacasComMotorista() ||
+              placasExcedemVagas()
+            "
+          >
+            {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<app-agendamento-veiculos-motoristas-modal
+  [aberto]="frotaModalAberto()"
+  [transportadoraId]="transportadoraFormId()"
+  [placas]="placasSelecionadas()"
+  (fechar)="fecharFrotaModal()"
+  (confirmar)="onFrotaConfirmada($event)"
+/>

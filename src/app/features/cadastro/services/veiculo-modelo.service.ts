@@ -4,7 +4,7 @@ import { Observable, catchError, map, of, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { VeiculoModeloListItemDTO } from '../models/veiculo-modelo.dto';
 
-/** Base da API do backend. Todas as requisições de modelo de veículo (dropdown Frota) usam estes endpoints. */
+/** Contrato: GET/POST/PUT `/api/VeiculoModelo`, GET/DELETE `/api/VeiculoModelo/{id}`. */
 const API_BASE = environment.API_BASE_URL;
 const VEICULO_MODELO = `${API_BASE}/VeiculoModelo`;
 
@@ -14,13 +14,13 @@ const VEICULO_MODELO = `${API_BASE}/VeiculoModelo`;
 export class VeiculoModeloService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/VeiculoModelo/Buscar — backend (dropdown marca/modelo). */
+  /** GET /api/VeiculoModelo?Descricao=...&... */
   buscar(termo?: string): Observable<VeiculoModeloListItemDTO[]> {
     const query = new URLSearchParams();
-    if (termo?.trim()) query.set('Termo', termo.trim());
+    if (termo?.trim()) query.set('Descricao', termo.trim());
     query.set('NumeroPagina', '1');
     query.set('TamanhoPagina', '500');
-    const url = `${VEICULO_MODELO}/Buscar?${query.toString()}`;
+    const url = `${VEICULO_MODELO}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeList(body)),
@@ -52,9 +52,9 @@ export class VeiculoModeloService {
     };
   }
 
-  /** GET /api/VeiculoModelo/ObterPorId/{id} — backend. */
+  /** GET /api/VeiculoModelo/{id} */
   obterPorId(id: number): Observable<VeiculoModeloListItemDTO | null> {
-    return this.http.get<unknown>(`${VEICULO_MODELO}/ObterPorId/${id}`).pipe(
+    return this.http.get<unknown>(`${VEICULO_MODELO}/${id}`).pipe(
       timeout(15000),
       map((body) => {
         const res = body as Record<string, unknown>;

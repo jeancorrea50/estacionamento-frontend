@@ -1,0 +1,420 @@
+@use '../../../../cadastro/styles/cadastro-dash-list' as *;
+@use '../faturamento-shared-form-list';
+@use '../faturamento-shared-painel';
+
+:host {
+  display: block;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* Cabeçalho — mesmo padrão da Configuração de Cobrança */
+.cfg-cta-card.mat-mdc-card {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle) !important;
+  background: var(--card-bg, var(--surface));
+  box-shadow: none;
+}
+
+.cfg-cta-card__content {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px !important;
+}
+
+.cfg-cta-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--font-weight-section, 600);
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+/* Barra de consulta */
+.cfg-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, #000);
+  box-shadow: none;
+}
+
+.cfg-search-bar--dates {
+  margin-top: -2px;
+}
+
+.cfg-search-bar__select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.cfg-search-bar__select {
+  height: 42px;
+  min-width: 150px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 90%, #000);
+  color: var(--text);
+  appearance: auto;
+  cursor: pointer;
+}
+
+.cfg-search-bar__search {
+  flex: 1;
+  min-width: min(100%, 220px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 90%, #000);
+  box-sizing: border-box;
+  color: var(--text);
+}
+
+.cfg-search-bar__search-ico {
+  flex: 0 0 auto;
+  font-size: var(--font-page-title, 18px) !important;
+  color: var(--muted);
+}
+
+.cfg-search-bar__search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.cfg-search-bar__search-input::placeholder {
+  color: color-mix(in srgb, var(--muted) 88%, var(--text));
+}
+
+.cfg-search-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.cfg-search-bar__btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cfg-search-bar__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cfg-search-bar__btn--neutral {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 88%, #000);
+  border-color: var(--border-subtle);
+}
+
+.cfg-search-bar__btn--neutral:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--est-primary, #3b82f6) 40%, var(--border-subtle));
+}
+
+.cfg-search-bar__btn--primary {
+  color: #fff;
+  background: var(--est-primary, #2563eb);
+  border-color: var(--est-primary, #2563eb);
+}
+
+.cfg-search-bar__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.cfg-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cfg-date-field__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.cfg-before-search {
+  min-height: 190px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--card-bg, var(--surface));
+  box-shadow: none;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.cfg-before-search .material-symbols-outlined {
+  font-size: 30px;
+  opacity: 0.7;
+}
+
+.cfg-before-search p,
+.cfg-loading {
+  margin: 0;
+}
+
+.cfg-before-search strong {
+  color: var(--text);
+}
+
+.cfg-loading {
+  padding: 16px;
+  color: var(--muted);
+}
+
+/* Chips de situação: estilos em _faturamento-shared-painel.scss (.fat-quick-*) */
+
+.fat-batch-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--est-primary, #3b82f6) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--est-primary, #2563eb) 8%, transparent);
+}
+
+.fat-batch-bar__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fat-batch-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fat-batch-bar__actions .cfg-search-bar__btn {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+}
+
+.fat-table {
+  min-width: 980px;
+}
+
+/* Força linhas sólidas (anula zebra global de .data-table no light) */
+:host ::ng-deep .fat-table.trn-table tbody tr,
+:host ::ng-deep .fat-table.trn-table tbody tr:nth-child(odd),
+:host ::ng-deep .fat-table.trn-table tbody tr:nth-child(even),
+:host ::ng-deep table.data-table.fat-table tbody tr,
+:host ::ng-deep table.data-table.fat-table tbody tr:nth-child(odd),
+:host ::ng-deep table.data-table.fat-table tbody tr:nth-child(even) {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .fat-table.trn-table tbody td,
+:host ::ng-deep table.data-table.fat-table tbody td {
+  background: var(--fat-list-surface, var(--surface, #ffffff)) !important;
+}
+
+:host ::ng-deep .fat-table.trn-table tbody tr:hover,
+:host ::ng-deep table.data-table.fat-table tbody tr:hover {
+  background: var(--fat-table-row-hover, var(--table-row-hover, color-mix(in srgb, var(--primary) 8%, transparent))) !important;
+}
+
+:host ::ng-deep .fat-table.trn-table tbody tr:hover td,
+:host ::ng-deep table.data-table.fat-table tbody tr:hover td {
+  background: transparent !important;
+}
+
+.fat-table__th-select,
+.fat-table__td-select {
+  width: 48px;
+  text-align: center;
+}
+
+.fat-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fat-table__nowrap {
+  white-space: nowrap;
+}
+
+.fat-table__mono {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.fat-faturas-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.fat-faturas-chip--pago {
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.fat-faturas-chip--aberto {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.fat-faturas-chip--vencido {
+  background: rgba(248, 113, 113, 0.14);
+  color: #dc2626;
+  border-color: rgba(248, 113, 113, 0.28);
+}
+
+.fat-faturas-chip--parcial {
+  background: rgba(251, 146, 60, 0.14);
+  color: #ea580c;
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+.fat-faturas-chip--aguardando {
+  background: rgba(100, 116, 139, 0.14);
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.28);
+}
+
+.fat-faturas-chip--cancelada {
+  background: rgba(71, 85, 105, 0.14);
+  color: #64748b;
+  border-color: rgba(71, 85, 105, 0.25);
+}
+
+.fat-menu-ico {
+  font-size: 18px;
+  margin-right: 10px;
+  vertical-align: middle;
+  opacity: 0.92;
+}
+
+.fat-menu-danger {
+  color: #dc2626 !important;
+}
+
+@media (max-width: 900px) {
+  .fat-table__col-mod {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .cfg-cta-card__content {
+    padding: 12px 14px !important;
+  }
+
+  .cfg-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cfg-search-bar__select-wrap,
+  .cfg-search-bar__select,
+  .cfg-search-bar__btn {
+    width: 100%;
+  }
+}
+
+html.theme-dark .cfg-cta-card.mat-mdc-card,
+html.theme-dark .cfg-search-bar,
+html.theme-dark .cfg-before-search {
+  background: var(--fat-card-bg);
+  border-color: var(--fat-card-border);
+}
+
+html.theme-dark .cfg-search-bar__select,
+html.theme-dark .cfg-search-bar__search,
+html.theme-dark .cfg-search-bar__btn--neutral {
+  background: var(--input-bg, #24242e);
+  border-color: var(--fat-card-border);
+  color: var(--fat-card-value, var(--text));
+}
+
+html.theme-dark .fat-batch-bar {
+  background: var(--fat-card-bg-elevated);
+  border-color: var(--fat-card-border);
+}
+
+html.theme-dark .fat-faturas-chip--pago {
+  color: var(--fat-success, #36c98f);
+}
+
+html.theme-dark .fat-faturas-chip--aberto {
+  color: var(--fat-primary, #3d8bff);
+}
+
+html.theme-dark .fat-faturas-chip--vencido {
+  color: var(--fat-danger, #f06468);
+}
+
+html.theme-dark .fat-faturas-chip--parcial {
+  color: var(--fat-warning, #f2b84b);
+}
+
+html.theme-dark .fat-faturas-chip--aguardando,
+html.theme-dark .fat-faturas-chip--cancelada {
+  color: var(--muted);
+}
+
+html.theme-dark .cfg-cta-card__title,
+html.theme-dark .fat-batch-bar__count,
+html.theme-dark .fat-table__mono {
+  color: var(--fat-card-value, var(--text));
+}
+
+html.theme-dark .fat-menu-danger {
+  color: var(--fat-danger, #f06468) !important;
+}

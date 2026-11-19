@@ -1,0 +1,12 @@
+@use '../faturamento-shared-modal';
+
+:host {
+  display: block;
+  min-width: min(100vw - 32px, 720px);
+}
+
+@media (max-width: 720px) {
+  .fat-dlg__kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

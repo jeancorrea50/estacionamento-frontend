@@ -8,6 +8,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
+import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentosPageComponent } from './movimentos-page.component';
@@ -75,7 +76,15 @@ describe('MovimentosPageComponent', () => {
     reconnectForSession: vi.fn().mockResolvedValue(undefined)
   };
   const estacionamentoConfigMock = {
-    obterAtual: vi.fn().mockReturnValue(of({ timeZoneId: 'America/Cuiaba' })),
+    obterAtual: vi.fn().mockReturnValue(
+      of({
+        timeZoneId: 'America/Cuiaba',
+        minutosToleranciaPermanencia: 15
+      })
+    ),
+  };
+  const estacionamentoServiceMock = {
+    obterPorId: vi.fn().mockReturnValue(of(null)),
   };
 
   beforeEach(async () => {
@@ -91,6 +100,7 @@ describe('MovimentosPageComponent', () => {
         { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: SignalrDashboardService, useValue: signalrDashboardServiceMock },
         { provide: EstacionamentoConfiguracaoService, useValue: estacionamentoConfigMock },
+        { provide: EstacionamentoService, useValue: estacionamentoServiceMock },
         { provide: ActivatedRoute, useValue: { parent: {}, snapshot: { data: {} } } }
       ]
     }).compileComponents();
@@ -174,6 +184,55 @@ describe('MovimentosPageComponent', () => {
     component.onPermanenciaDataHoraChange('2026-08-03T12:00');
     expect(component.saidaQuantidadeDiarias()).toBe(3);
     expect(component.saidaValor()).toBe(75);
+  });
+
+  it('dentro da tolerância do estacionamento deve zerar horas e total na saída', () => {
+    entradaSaidaServiceMock.getById.mockReturnValue(
+      of({
+        id: 6123,
+        finalizado: false,
+        transportadoraId: 0,
+        dataHoraEntrada: '2026-11-22T15:56:00'
+      })
+    );
+    entradaSaidaServiceMock.obterValorEstacionamento.mockReturnValue(
+      of({
+        entradaSaidaId: 6123,
+        estacionamentoId: 1,
+        transportadoraId: null,
+        configuracaoCobrancaId: null,
+        valor: 4,
+        origem: 'EstacionamentoConfiguracao',
+        valorUnitario: 4,
+        quantidadeUnidades: 1,
+        tipoTarifa: 1,
+        tipoCobranca: 'Avulso'
+      })
+    );
+
+    const fixture = TestBed.createComponent(MovimentosPageComponent);
+    const component = fixture.componentInstance;
+    component.abrirPermanencia(
+      {
+        id: 6123,
+        descricao: '',
+        motoristaId: 0,
+        nomeMotorista: '',
+        transportadoraId: 0,
+        nomeTransportadora: '',
+        veiculoId: 0,
+        placaVeiculo: 'QCC2123',
+        dataHoraEntrada: '2026-11-22T15:56:00',
+        dataHoraSaida: null,
+        avulso: true
+      },
+      'finalizar'
+    );
+
+    expect(component.minutosToleranciaPermanencia()).toBe(15);
+    component.onPermanenciaDataHoraChange('2026-11-22T15:57');
+    expect(component.saidaQuantidadeDiarias()).toBe(0);
+    expect(component.saidaValor()).toBe(0);
   });
 
   it('ao abrir Registrar saída com tarifa por hora deve rotular campos em horas', () => {

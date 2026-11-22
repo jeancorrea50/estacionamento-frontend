@@ -6,9 +6,10 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import {
   JanelaAgendamentoDetalhe,
   JanelaAgendamentoListItem,
-  MODALIDADE_JANELA_OPCOES,
+  MODALIDADE_JANELA_CRUD_OPCOES,
   ModalidadeJanela,
   modalidadeJanelaLabel,
+  parseModalidadeJanela,
 } from '../../models/janela-agendamento.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 
@@ -99,7 +100,7 @@ export interface JanelaDuplicarDialogResult {
               id="dup-modalidade"
               class="dup__input"
               [disabled]="!data.origem"
-              (change)="destino.set($any($event.target).value === '2' ? 2 : 1)"
+              (change)="destino.set(parseModalidadeJanela($any($event.target).value))"
             >
               @for (m of modalidades; track m.value) {
                 <option [value]="m.value" [selected]="m.value === destino()">{{ m.label }}</option>
@@ -145,8 +146,9 @@ export class JanelaDuplicarDialogComponent implements OnInit {
   private readonly toast = inject(ToastService);
   readonly data = inject<JanelaDuplicarDialogData>(MAT_DIALOG_DATA);
 
-  readonly modalidades = MODALIDADE_JANELA_OPCOES;
+  readonly modalidades = MODALIDADE_JANELA_CRUD_OPCOES;
   readonly modalidadeLabel = modalidadeJanelaLabel;
+  readonly parseModalidadeJanela = parseModalidadeJanela;
 
   readonly carregando = signal(false);
   readonly salvando = signal(false);
@@ -173,7 +175,7 @@ export class JanelaDuplicarDialogComponent implements OnInit {
   ngOnInit(): void {
     const origem = this.data.origem;
     if (origem) {
-      // Padrão: copiar para a outra modalidade.
+      // Padrão: copiar para a outra modalidade (1↔2; Ambos → Estacionamento).
       this.destino.set(origem.modalidade === 1 ? 2 : 1);
       this.nome.set(`${origem.nome} (cópia)`);
       return;

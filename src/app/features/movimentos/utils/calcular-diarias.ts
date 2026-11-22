@@ -26,13 +26,17 @@ export function calcularQuantidadeDiarias(
  * `Math.Ceiling(TotalHours|TotalDays)` com mínimo 1.
  * Tipo: 1=Hora, 2=Diaria (default Diaria).
  *
+ * Se `minutosTolerancia` > 0 e a permanência for ≤ tolerância, retorna 0 (sem cobrança).
+ *
  * @param timeZoneId Fuso de Gerenciamento → Horário (ex.: America/Cuiaba).
+ * @param minutosTolerancia Tolerância de `configuracaoValores` (0–1440).
  */
 export function calcularQuantidadeUnidades(
   dataHoraEntrada: string | null | undefined,
   dataHoraSaida: string | null | undefined,
   tipoTarifa: 1 | 2 | null | undefined,
-  timeZoneId?: string | null
+  timeZoneId?: string | null,
+  minutosTolerancia?: number | null
 ): number {
   const entrada = parsePatioWallClock(dataHoraEntrada, timeZoneId);
   const saida = parsePatioWallClock(dataHoraSaida, timeZoneId);
@@ -45,6 +49,14 @@ export function calcularQuantidadeUnidades(
   }
 
   const spanMs = fim.getTime() - ini.getTime();
+  const toleranciaMin =
+    minutosTolerancia != null && Number.isFinite(Number(minutosTolerancia))
+      ? Math.max(0, Math.trunc(Number(minutosTolerancia)))
+      : 0;
+  if (toleranciaMin > 0 && spanMs <= toleranciaMin * 60_000) {
+    return 0;
+  }
+
   const tipo = tipoTarifa === 1 ? 1 : 2;
   const quantidade =
     tipo === 1 ? Math.ceil(spanMs / 3_600_000) : Math.ceil(spanMs / 86_400_000);

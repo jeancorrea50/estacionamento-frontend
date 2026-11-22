@@ -75,7 +75,7 @@ function toHoraOrNull(value: unknown): string | null {
 }
 
 function modalidade(row: Row): ModalidadeJanela {
-  return num(row, 'modalidade', 1) === 2 ? 2 : 1;
+  return parseModalidadeAgendamento(pick(row, 'modalidade'));
 }
 
 function mapFaixa(row: Row): JanelaFaixa {

@@ -56,4 +56,46 @@ describe('calcular-diarias', () => {
     expect(calcularQuantidadeUnidades('2026-08-01T10:00:00', '2026-08-01T23:00', 2)).toBe(1);
     expect(calcularQuantidadeUnidades('2026-08-01T10:00:00', '2026-08-03T12:00', 2)).toBe(3);
   });
+
+  it('dentro da tolerância (min) não cobra unidades', () => {
+    expect(
+      calcularQuantidadeUnidades(
+        '2026-11-22T15:56:00',
+        '2026-11-22T15:57',
+        1,
+        'America/Cuiaba',
+        15
+      )
+    ).toBe(0);
+    expect(
+      calcularQuantidadeUnidades(
+        '2026-11-22T15:56:00',
+        '2026-11-22T16:11',
+        1,
+        null,
+        15
+      )
+    ).toBe(0);
+  });
+
+  it('acima da tolerância cobra com teto normal', () => {
+    expect(
+      calcularQuantidadeUnidades(
+        '2026-11-22T15:56:00',
+        '2026-11-22T16:12',
+        1,
+        null,
+        15
+      )
+    ).toBe(1);
+    expect(
+      calcularQuantidadeUnidades(
+        '2026-11-22T15:00:00',
+        '2026-11-22T16:01',
+        1,
+        null,
+        15
+      )
+    ).toBe(2);
+  });
 });

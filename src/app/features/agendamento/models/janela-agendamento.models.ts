@@ -4,16 +4,17 @@
  * JanelaPeriodicidadeTipo e JanelaExcecaoTipo.
  */
 
-/** 1 = Estacionamento, 2 = Limpeza (3 = Ambos não é aceito em janelas). */
-export type ModalidadeJanela = 1 | 2;
-export const MODALIDADE_ESTACIONAMENTO: ModalidadeJanela = 1;
-export const MODALIDADE_LIMPEZA: ModalidadeJanela = 2;
-
 /**
- * Modalidade do agendamento (EntradaSaida / consulta de slots).
+ * Modalidade da janela / destinação / agendamento.
  * 1 = Estacionamento, 2 = Limpeza, 3 = Ambos (ocupa as duas capacidades).
  */
-export type ModalidadeAgendamento = 1 | 2 | 3;
+export type ModalidadeJanela = 1 | 2 | 3;
+export const MODALIDADE_ESTACIONAMENTO: ModalidadeJanela = 1;
+export const MODALIDADE_LIMPEZA: ModalidadeJanela = 2;
+export const MODALIDADE_AMBOS: ModalidadeJanela = 3;
+
+/** Alias: mesma enum no agendamento/slots. */
+export type ModalidadeAgendamento = ModalidadeJanela;
 export const MODALIDADE_AGENDAMENTO_AMBOS: ModalidadeAgendamento = 3;
 
 /** 1 = Hora, 2 = Minuto. */
@@ -30,23 +31,28 @@ export type ExcecaoTipo = 1 | 2;
 export const MODALIDADE_JANELA_OPCOES: ReadonlyArray<{ value: ModalidadeJanela; label: string }> = [
   { value: 1, label: 'Estacionamento' },
   { value: 2, label: 'Limpeza' },
+  { value: 3, label: 'Ambos' },
 ];
+
+/** Opções de CRUD/lista de janelas — sem Ambos (só Estacionamento e Limpeza). */
+export const MODALIDADE_JANELA_CRUD_OPCOES: ReadonlyArray<{ value: ModalidadeJanela; label: string }> =
+  MODALIDADE_JANELA_OPCOES.filter((o) => o.value === 1 || o.value === 2);
 
 /** Opções do modal Novo agendamento / seletor de slot (inclui Ambos). */
 export const MODALIDADE_AGENDAMENTO_OPCOES: ReadonlyArray<{
   value: ModalidadeAgendamento;
   label: string;
-}> = [
-  { value: 1, label: 'Estacionamento' },
-  { value: 2, label: 'Limpeza' },
-  { value: 3, label: 'Ambos' },
-];
+}> = MODALIDADE_JANELA_OPCOES;
 
 export function parseModalidadeAgendamento(raw: unknown): ModalidadeAgendamento {
   const n = Number(raw);
   if (n === 2) return 2;
   if (n === 3) return 3;
   return 1;
+}
+
+export function parseModalidadeJanela(raw: unknown): ModalidadeJanela {
+  return parseModalidadeAgendamento(raw);
 }
 
 export const GRANULARIDADE_OPCOES: ReadonlyArray<{ value: GranularidadeUnidade; label: string }> = [

@@ -44,6 +44,7 @@ import {
   toLocalIsoDateTime
 } from '../../../../shared/utils/local-iso-datetime';
 import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
+import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { mapBuscarPorPlacaParaRegistroRapido, extrairMotoristasVinculados } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
 import { EntradaSaidaMotoristaVinculoItem } from '../../models/entrada-saida-buscar-por-placa.models';
 import {
@@ -169,9 +170,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly movimentacaoRelatorioPdf = inject(MovimentacaoRelatorioPdfService);
   private readonly reciboPdf = inject(ReciboPdfService);
   private readonly estacionamentoConfig = inject(EstacionamentoConfiguracaoService);
+  private readonly estacionamentoService = inject(EstacionamentoService);
 
   /** Fuso de Gerenciamento → Horário (`America/Cuiaba`, etc.). */
   readonly timeZoneId = signal<string | null>(null);
+  /** Tolerância (min) de Configuração Valores do estacionamento. */
+  readonly minutosToleranciaPermanencia = signal<number | null>(null);
 
   /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
   private get service(): EntradaSaidaService {
@@ -369,10 +373,18 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   readonly saidaHintCobranca = computed(() => {
     const unidade = this.saidaTipoTarifa() === 1 ? 'hora' : 'diária';
     const plural = this.saidaTipoTarifa() === 1 ? 'horas' : 'dias';
-    if (this.saidaValorBloqueado()) {
-      return `Tarifa por ${unidade} definida pela configuração. O total é ${unidade} × ${plural} desde a entrada.`;
+    const tolerancia = this.minutosToleranciaPermanencia();
+    const trechoTolerancia =
+      tolerancia != null && tolerancia > 0
+        ? ` Tolerância de ${tolerancia} min sem cobrança.`
+        : '';
+    if (this.saidaQuantidadeDiarias() === 0 && tolerancia != null && tolerancia > 0) {
+      return `Permanência dentro da tolerância de ${tolerancia} min. Total R$ 0,00.`;
     }
-    return `Informe o valor da ${unidade}. O total (${unidade} × ${plural}) será enviado no recibo.`;
+    if (this.saidaValorBloqueado()) {
+      return `Tarifa por ${unidade} definida pela configuração. O total é ${unidade} × ${plural} desde a entrada.${trechoTolerancia}`;
+    }
+    return `Informe o valor da ${unidade}. O total (${unidade} × ${plural}) será enviado no recibo.${trechoTolerancia}`;
   });
   /** Pré-visualização do recibo PDF (object URL sanitizado). */
   readonly reciboPreviewOpen = signal(false);
@@ -553,14 +565,44 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.garantirFusoPatio().subscribe();
   }
 
-  /** Garante fuso do pátio antes de abrir o modal (evita “agora” do computador). */
+  /**
+   * Atualiza fuso + tolerância do pátio (sempre refetch ao abrir saída,
+   * para respeitar Configuração Valores do cadastro).
+   */
   private garantirFusoPatio(): Observable<string | null> {
-    const atual = this.timeZoneId()?.trim();
-    if (atual) return of(atual);
     return this.estacionamentoConfig.obterAtual().pipe(
-      map((config) => config?.timeZoneId?.trim() || null),
       catchError(() => of(null)),
-      tap((tz) => this.timeZoneId.set(tz))
+      switchMap((config) => {
+        const tz = config?.timeZoneId?.trim();
+        if (tz) this.timeZoneId.set(tz);
+
+        const tolConfig = config?.minutosToleranciaPermanencia;
+        if (tolConfig != null && Number.isFinite(Number(tolConfig)) && Number(tolConfig) >= 0) {
+          this.minutosToleranciaPermanencia.set(Math.trunc(Number(tolConfig)));
+          return of(this.timeZoneId());
+        }
+
+        // Fallback: Configuração Valores no cadastro do estacionamento.
+        const estId = this.estacionamentoIdDaSessao();
+        if (estId == null || estId <= 0) {
+          this.minutosToleranciaPermanencia.set(0);
+          return of(this.timeZoneId());
+        }
+        return this.estacionamentoService.obterPorId(estId).pipe(
+          catchError(() => of(null)),
+          tap((est) => {
+            const tolCadastro = est?.minutosToleranciaPermanencia;
+            this.minutosToleranciaPermanencia.set(
+              tolCadastro != null &&
+                Number.isFinite(Number(tolCadastro)) &&
+                Number(tolCadastro) >= 0
+                ? Math.trunc(Number(tolCadastro))
+                : 0
+            );
+          }),
+          map(() => this.timeZoneId())
+        );
+      })
     );
   }
 
@@ -2241,20 +2283,19 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         return;
       }
       // Sem unitário: deriva unitário do total ÷ horas reais do formulário.
-      const qtd = Math.max(
-        calcularQuantidadeUnidades(
-          this.registroSelecionado()?.dataHoraEntrada,
-          this.permanenciaDataHora,
-          this.saidaTipoTarifa(),
-          this.timeZoneId()
-        ),
-        1
+      const qtdCalc = calcularQuantidadeUnidades(
+        this.registroSelecionado()?.dataHoraEntrada,
+        this.permanenciaDataHora,
+        this.saidaTipoTarifa(),
+        this.timeZoneId(),
+        this.minutosToleranciaPermanencia()
       );
+      const qtd = Math.max(qtdCalc, 1);
       const unitarioDerivado = Math.round((valorTotal / qtd) * 100) / 100;
-      this.saidaQuantidadeDiarias.set(qtd);
+      this.saidaQuantidadeDiarias.set(qtdCalc);
       this.saidaValorDiaria.set(unitarioDerivado);
       this.saidaValorDiariaTexto.set(formatarBrl(unitarioDerivado));
-      this.saidaValor.set(calcularTotalDiarias(unitarioDerivado, qtd));
+      this.saidaValor.set(calcularTotalDiarias(unitarioDerivado, qtdCalc));
       return;
     }
 
@@ -2275,7 +2316,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       entrada,
       this.permanenciaDataHora,
       this.saidaTipoTarifa(),
-      this.timeZoneId()
+      this.timeZoneId(),
+      this.minutosToleranciaPermanencia()
     );
     this.saidaQuantidadeDiarias.set(qtd);
     this.saidaValor.set(calcularTotalDiarias(this.saidaValorDiaria(), qtd));

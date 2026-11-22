@@ -1,0 +1,142 @@
+@use '../../../features/financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: block;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Eleva a linha aberta acima das irmãs (evita inputs seguintes cobrirem o painel). */
+:host(.periodo-hora-picker--open) {
+  z-index: 100;
+}
+
+.periodo-hora-picker {
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+}
+
+.periodo-hora-picker__control {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.periodo-hora-picker__control .rec-data-picker__trigger {
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 10px;
+  padding: 0 12px;
+}
+
+:host(.jn-hora-picker--dense) .periodo-hora-picker__control .rec-data-picker__trigger {
+  height: 30px;
+  min-height: 30px;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 0.78rem;
+}
+
+:host(.jn-hora-picker--dense) .periodo-hora-picker__clock {
+  font-size: 16px;
+}
+
+.periodo-hora-picker__control .rec-data-picker__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.periodo-hora-picker__clock {
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+.periodo-hora-picker__hint {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--rec-cal-muted, var(--text-muted, #94a3b8));
+}
+
+.ph-panel {
+  min-width: 280px;
+}
+
+.ph-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.ph-hora {
+  min-height: 34px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--rec-cal-border, #363642);
+  background: color-mix(in srgb, var(--rec-cal-text, #f1f1f5) 4%, transparent);
+  color: var(--rec-cal-text, #f1f1f5);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--jan-focus, #3d8bff) 55%, var(--rec-cal-border, #363642));
+  }
+}
+
+.ph-hora--range {
+  background: color-mix(in srgb, var(--jan-focus, #3d8bff) 18%, transparent);
+  border-color: color-mix(in srgb, var(--jan-focus, #3d8bff) 35%, var(--rec-cal-border, #363642));
+}
+
+.ph-hora--start,
+.ph-hora--end,
+.ph-hora--pendente {
+  background: var(--jan-focus, #3d8bff);
+  border-color: var(--jan-focus, #3d8bff);
+  color: #fff;
+}
+
+.periodo-hora-picker__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rec-cal-border, #363642);
+}
+
+.periodo-hora-picker__limpar {
+  border: 0;
+  background: transparent;
+  color: var(--rec-cal-muted, #92929f);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+
+  &:hover {
+    color: var(--rec-cal-text, #f1f1f5);
+    background: color-mix(in srgb, var(--rec-cal-text, #f1f1f5) 8%, transparent);
+  }
+}

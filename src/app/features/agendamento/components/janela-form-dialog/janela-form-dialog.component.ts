@@ -6,8 +6,9 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import {
   GranularidadeUnidade,
   JanelaAgendamentoDetalhe,
-  MODALIDADE_JANELA_OPCOES,
+  MODALIDADE_JANELA_CRUD_OPCOES,
   ModalidadeJanela,
+  parseModalidadeJanela,
 } from '../../models/janela-agendamento.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import {
@@ -61,7 +62,7 @@ export class JanelaFormDialogComponent {
   private readonly toast = inject(ToastService);
   readonly data = inject<JanelaFormDialogData>(MAT_DIALOG_DATA);
 
-  readonly modalidades = MODALIDADE_JANELA_OPCOES;
+  readonly modalidades = MODALIDADE_JANELA_CRUD_OPCOES;
   readonly editando = this.data.mode === 'edit' && !!this.data.janela;
 
   readonly aba = signal<JanelaFormAba>('horarios');
@@ -108,7 +109,7 @@ export class JanelaFormDialogComponent {
 
   onModalidade(raw: string): void {
     if (this.editando) return;
-    this.modalidade.set(Number(raw) === 2 ? 2 : 1);
+    this.modalidade.set(parseModalidadeJanela(raw));
   }
 
   /** Máscara numérica: só dígitos (vagas por slot). */

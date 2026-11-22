@@ -4,10 +4,15 @@
 :host {
   display: block;
   position: relative;
-  z-index: 40;
+  z-index: 1;
   overflow: visible;
   min-width: 0;
   width: 100%;
+}
+
+/* Eleva o calendário aberto acima dos campos/painéis seguintes. */
+:host(.periodo-data-picker--open) {
+  z-index: 100;
 }
 
 .periodo-data-picker {
@@ -23,6 +28,14 @@
 .periodo-data-picker__control {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+:host(.jn-data-picker--dense) .periodo-data-picker__control .rec-data-picker__trigger {
+  height: 34px;
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
 }
 
 .periodo-data-picker__control .rec-data-picker__trigger {

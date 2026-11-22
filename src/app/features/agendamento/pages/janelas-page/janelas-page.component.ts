@@ -21,9 +21,10 @@ import {
   JanelaFormDialogData,
   JanelaFormDialogResult,
 } from '../../components/janela-form-dialog/janela-form-dialog.component';
+import { JanelaFormWizardDialogComponent } from '../../components/janela-form-wizard-dialog/janela-form-wizard-dialog.component';
 import {
   JanelaAgendamentoListItem,
-  MODALIDADE_JANELA_OPCOES,
+  MODALIDADE_JANELA_CRUD_OPCOES,
   ModalidadeJanela,
   modalidadeJanelaLabel,
 } from '../../models/janela-agendamento.models';
@@ -57,7 +58,7 @@ export class JanelasPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly agendamentosRoute = AGENDAMENTO_PAINEL_ROUTE;
-  readonly modalidadeOpcoes = MODALIDADE_JANELA_OPCOES;
+  readonly modalidadeOpcoes = MODALIDADE_JANELA_CRUD_OPCOES;
   readonly modalidadeLabel = modalidadeJanelaLabel;
 
   readonly modalidade = signal<ModalidadeJanela>(1);
@@ -164,7 +165,17 @@ export class JanelasPageComponent implements OnInit {
       });
   }
 
+  /** Fluxo principal: assistente em passos (mesmo payload da API). */
   novaJanela(): void {
+    if (!this.podeCriar) {
+      this.toast.error('Sem permissão para criar janela (janelas.gravar).');
+      return;
+    }
+    this.abrirFormWizard({ mode: 'create', modalidade: this.modalidade() });
+  }
+
+  /** Alternativa interna: formulário clássico com abas (mantido até validação do assistente). */
+  novaJanelaClassica(): void {
     if (!this.podeCriar) {
       this.toast.error('Sem permissão para criar janela (janelas.gravar).');
       return;
@@ -182,7 +193,8 @@ export class JanelasPageComponent implements OnInit {
       .obterPorId(item.id)
       .pipe(finalize(() => this.abrindoId.set(null)))
       .subscribe({
-        next: (janela) => this.abrirForm({ mode: 'edit', modalidade: janela.modalidade, janela }),
+        next: (janela) =>
+          this.abrirFormWizard({ mode: 'edit', modalidade: janela.modalidade, janela }),
         error: (err: ApiError) => {
           if (!err?.toastShown) this.toast.error(err?.message || 'Não foi possível abrir a janela.');
         },
@@ -248,6 +260,24 @@ export class JanelasPageComponent implements OnInit {
       .open<JanelaFormDialogComponent, JanelaFormDialogData, JanelaFormDialogResult>(
         JanelaFormDialogComponent,
         { width: '900px', maxWidth: '96vw', autoFocus: false, panelClass: 'cfg-form-dialog-panel', data }
+      )
+      .afterClosed()
+      .subscribe((res) => {
+        if (res?.saved) this.focarModalidade(res.janela.modalidade);
+      });
+  }
+
+  private abrirFormWizard(data: JanelaFormDialogData): void {
+    this.dialog
+      .open<JanelaFormWizardDialogComponent, JanelaFormDialogData, JanelaFormDialogResult>(
+        JanelaFormWizardDialogComponent,
+        {
+          width: '1120px',
+          maxWidth: '98vw',
+          autoFocus: false,
+          panelClass: 'cfg-form-dialog-panel',
+          data,
+        }
       )
       .afterClosed()
       .subscribe((res) => {

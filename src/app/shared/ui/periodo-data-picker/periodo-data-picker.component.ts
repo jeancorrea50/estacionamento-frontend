@@ -49,6 +49,9 @@ function cloneDia(d: Date): Date {
   imports: [CommonModule, FaturamentoDataPickerPanelDirective],
   templateUrl: './periodo-data-picker.component.html',
   styleUrls: ['./periodo-data-picker.component.scss'],
+  host: {
+    '[class.periodo-data-picker--open]': 'panelAberto()',
+  },
 })
 export class PeriodoDataPickerComponent {
   private readonly themeService = inject(ThemeService);

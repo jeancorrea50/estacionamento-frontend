@@ -58,9 +58,19 @@
               </button>
               <button
                 type="button"
+                class="est-dash-btn est-dash-btn--neutral"
+                (click)="novaJanelaClassica()"
+                aria-label="Abrir formulário clássico de janela"
+                title="Formulário clássico (alternativa interna)"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">view_agenda</span>
+                Formulário clássico
+              </button>
+              <button
+                type="button"
                 class="est-dash-btn est-dash-btn--primary"
                 (click)="novaJanela()"
-                aria-label="Configurar janelas — nova janela"
+                aria-label="Configurar janelas — nova janela no assistente"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">add</span>
                 Configurar Janelas

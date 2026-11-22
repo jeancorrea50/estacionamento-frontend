@@ -456,6 +456,13 @@ export class CadastroVeiculosPageComponent implements OnInit {
     const v = this.veiculoForm.getRawValue();
     const marcaDescricao = String(v.marca ?? '').trim() || undefined;
     const modeloDescricao = String(v.modelo ?? '').trim() || undefined;
+    if (modeloDescricao && !marcaDescricao) {
+      this.setModalFrotaTab('veiculo');
+      this.veiculoForm.get('marca')?.markAsTouched();
+      this.toast.error('Informe a marca para gravar o modelo do veículo, ou deixe o modelo em branco.');
+      this.cdr.markForCheck();
+      return;
+    }
     const marcaModelo =
       [marcaDescricao, modeloDescricao].filter(Boolean).join(' ').trim() || undefined;
     const tipoCarga = parseTipoCarga(v.tipoCarga);

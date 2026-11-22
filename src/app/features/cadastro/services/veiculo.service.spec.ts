@@ -148,6 +148,8 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       tipoCarga: 1,
       ano: 2022,
       marca: { descricao: 'Volvo' },
+      marcaDescricao: 'Volvo',
+      modeloDescricao: 'FH 540',
       modelo: {
         descricao: 'FH 540',
         marca: { descricao: 'Volvo' }
@@ -161,6 +163,25 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
     expect(req.request.body.centroCusto).toBeUndefined();
     expect(req.request.body.dataCriacao).toBeUndefined();
     expect(req.request.body.veiculoDetalhe).toBeUndefined();
+    req.flush({ id: 99 });
+  });
+
+  it('gravar com modelo sem marca não deve enviar modelo (só placa é obrigatória)', () => {
+    service
+      .gravar({
+        placa: 'ABC1D23',
+        ativo: true,
+        transportadoraId: 3,
+        modeloDescricao: 'FH 540',
+        motoristas: [{ id: 10, principal: true }]
+      })
+      .subscribe();
+
+    const req = httpMock.expectOne((r) => r.url.includes('/Transportadora/') && r.url.endsWith('/Veiculo'));
+    expect(req.request.body.modelo).toBeUndefined();
+    expect(req.request.body.modeloDescricao).toBeUndefined();
+    expect(req.request.body.marca).toBeUndefined();
+    expect(req.request.body.motoristas).toEqual([{ id: 10, principal: true }]);
     req.flush({ id: 99 });
   });
 
@@ -192,6 +213,8 @@ describe('VeiculoService — POST/PUT motoristas (MotoristaVinculoInput)', () =>
       tipoCarga: 1,
       ano: 2022,
       marca: { descricao: 'Volvo' },
+      marcaDescricao: 'Volvo',
+      modeloDescricao: 'FH 540',
       modelo: {
         descricao: 'FH 540',
         marca: { descricao: 'Volvo' }

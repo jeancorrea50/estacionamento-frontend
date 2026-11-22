@@ -2488,7 +2488,8 @@ html.theme-dark .cfg-form-dialog-panel {
 
 .cfg-form-dialog-panel .mat-mdc-form-field .mat-mdc-form-field-flex {
   min-height: 44px;
-  align-items: center;
+  /* baseline evita label outline sobrepor o valor (center quebra o float do MDC). */
+  align-items: baseline;
 }
 
 .cfg-form-dialog-panel .mat-mdc-form-field input.mat-mdc-input-element,

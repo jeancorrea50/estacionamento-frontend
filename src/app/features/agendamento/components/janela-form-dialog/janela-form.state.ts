@@ -8,7 +8,21 @@ import {
   PeriodicidadeTipo,
 } from '../../models/janela-agendamento.models';
 
-/** Abas do dialog (usa botões próprios, não MatTabGroup). */
+/** Dados de abertura do modal de criar/editar janela. */
+export interface JanelaFormDialogData {
+  mode: 'create' | 'edit';
+  /** Modalidade pré-selecionada na criação. */
+  modalidade: ModalidadeJanela;
+  /** Detalhe completo (GET {id}) — obrigatório em `edit`. */
+  janela?: JanelaAgendamentoDetalhe;
+}
+
+export interface JanelaFormDialogResult {
+  saved: true;
+  janela: JanelaAgendamentoDetalhe;
+}
+
+/** Seções do formulário (validação / erros). */
 export type JanelaFormAba = 'horarios' | 'capacidade' | 'excecoes' | 'periodicidade';
 
 let uidSeq = 0;

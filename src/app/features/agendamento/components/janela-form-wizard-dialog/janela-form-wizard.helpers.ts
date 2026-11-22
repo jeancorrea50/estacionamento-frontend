@@ -54,6 +54,63 @@ export function formatPeriodicidadeResumo(lista: PeriodicidadeForm[]): string {
   return partes.join(' · ');
 }
 
+/** Ordem de exibição Seg→Dom (API: 1…6,0). */
+const ORDEM_DIAS_SEMANA = [1, 2, 3, 4, 5, 6, 0] as const;
+
+/** Compacto para lista: `Seg a Sáb`, `Diário`, `Dia 15`, etc. */
+export function formatRecorrenciaCompacta(lista: PeriodicidadeForm[]): string {
+  if (!lista.length) return '—';
+  const p = lista[0];
+  if (p.tipo === 1) return 'Diário';
+  if ((p.tipo === 2 || p.tipo === 3) && p.dias.length) {
+    return formatDiasSemanaCompacto(p.dias);
+  }
+  if (p.tipo === 4 && p.diaMes != null) return `Dia ${p.diaMes}`;
+  if (p.tipo === 5 && p.diaMes != null && p.mes != null) return `${p.diaMes}/${p.mes}`;
+  return PERIODICIDADE_OPCOES.find((o) => o.value === p.tipo)?.label ?? '—';
+}
+
+function formatDiasSemanaCompacto(dias: number[]): string {
+  const ordem = [...ORDEM_DIAS_SEMANA];
+  const unicos = [...new Set(dias.filter((d) => ordem.includes(d as (typeof ORDEM_DIAS_SEMANA)[number])))].sort(
+    (a, b) => ordem.indexOf(a as (typeof ORDEM_DIAS_SEMANA)[number]) - ordem.indexOf(b as (typeof ORDEM_DIAS_SEMANA)[number])
+  );
+  if (!unicos.length) return '—';
+  const abrev = (d: number) => DIAS_SEMANA_OPCOES.find((o) => o.value === d)?.abrev ?? String(d);
+  if (unicos.length === 1) return abrev(unicos[0]);
+  const indices = unicos.map((d) => ordem.indexOf(d as (typeof ORDEM_DIAS_SEMANA)[number]));
+  const consecutivo = indices.every((idx, i) => i === 0 || idx === indices[i - 1] + 1);
+  if (consecutivo) return `${abrev(unicos[0])} a ${abrev(unicos[unicos.length - 1])}`;
+  return unicos.map(abrev).join(', ');
+}
+
+/** Extremos das faixas: `06h às 18h`. */
+export function formatHorarioExtremosFaixas(
+  faixas: ReadonlyArray<{ horaInicio: string; horaFim: string }>
+): string {
+  const validas = faixas.filter((f) => f.horaInicio && f.horaFim);
+  if (!validas.length) return '—';
+  const ordenadas = [...validas].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+  const ini = ordenadas[0].horaInicio;
+  const fim = ordenadas[ordenadas.length - 1].horaFim;
+  return `${formatHoraCurta(ini)} às ${formatHoraCurta(fim)}`;
+}
+
+function formatHoraCurta(hhmm: string): string {
+  const m = /^(\d{2}):(\d{2})$/.exec(hhmm.trim());
+  if (!m) return hhmm;
+  const h = Number(m[1]);
+  const min = m[2];
+  return min === '00' ? `${h}h` : `${h}h${min}`;
+}
+
+export function totalDisponibilizacoesJanela(vagasPorSlot: number, qtdFaixas: number): number {
+  const v = Number(vagasPorSlot);
+  const q = Number(qtdFaixas);
+  if (!Number.isFinite(v) || !Number.isFinite(q) || v < 0 || q < 0) return 0;
+  return Math.trunc(v) * Math.trunc(q);
+}
+
 export interface FaixaResumoLinha {
   uid: number;
   inicio: string;

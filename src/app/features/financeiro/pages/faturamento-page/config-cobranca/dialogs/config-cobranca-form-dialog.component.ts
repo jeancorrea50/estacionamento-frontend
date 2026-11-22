@@ -19,12 +19,18 @@ import {
 import { ResponsavelFaturamentoLookupFieldComponent } from '../../../../../cadastro/components/responsavel-faturamento-lookup-field/responsavel-faturamento-lookup-field.component';
 import { TransportadoraLookupFieldComponent } from '../../../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import {
+  PeriodoDataPickerComponent,
+  type PeriodoDataSelecionado
+} from '../../../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
+import {
   acordoTemConteudo,
   acordoVazio,
-  cloneAcordo,
-  formatarPeriodoAcordo,
+  MESES_ACORDO,
+  mesesNoPeriodoAcordo,
+  mesesOcupados,
   normalizarAcordo,
-  resumoListagemAcordo,
+  novaListagemAcordo,
+  podarMesesForaDoPeriodoAcordo,
   sincronizarVagasDoAcordo,
   TIPO_COBRANCA_EXCEDENTE_OPCOES
 } from '../config-cobranca-acordo.util';
@@ -56,13 +62,13 @@ import type {
   ConfigCobrancaDefinicaoValor,
   ConfigCobrancaListaItem,
   ConfigCobrancaLookupOption,
+  ConfigCobrancaMesAcordo,
   ConfigCobrancaModalidade,
   ConfigCobrancaServicoKey,
   ConfigCobrancaServicos,
   ConfigCobrancaStatus,
   ConfigCobrancaTipoPagador
 } from '../faturamento-config-cobranca.types';
-import { ConfigCobrancaAcordoDialogComponent } from './config-cobranca-acordo-dialog.component';
 import { ConfigCobrancaViewRuleDialogComponent } from './config-cobranca-view-rule-dialog.component';
 import { ConfigCobrancaWeekdayDialogComponent } from './config-cobranca-weekday-dialog.component';
 
@@ -74,7 +80,10 @@ class ValorCobrancaErrorStateMatcher implements ErrorStateMatcher {
   }
 }
 
-export type ConfigCobrancaFormAba = 'regras' | 'valores' | 'responsavel';
+export type ConfigCobrancaFormAba = 'cadastro' | 'regraCobranca' | 'valores' | 'responsavel';
+
+/** Agrupa modalidades na UI da aba Regra de Cobrança. */
+export type ConfigCobrancaTipoRegra = 'acordo' | 'periodo';
 
 export type ConfigCobrancaFormMode = 'create' | 'edit' | 'duplicate';
 
@@ -110,6 +119,7 @@ interface ServicoOpcao {
     MatSelectModule,
     MatSlideToggleModule,
     MatSnackBarModule,
+    PeriodoDataPickerComponent,
     TransportadoraLookupFieldComponent,
     ResponsavelFaturamentoLookupFieldComponent
   ],
@@ -127,10 +137,14 @@ export class ConfigCobrancaFormDialogComponent {
 
   errosVisiveis: string[] = [];
   jurosMultaAberto = false;
-  abaAtiva: ConfigCobrancaFormAba = 'regras';
+  abaAtiva: ConfigCobrancaFormAba = 'cadastro';
 
   readonly modalidadeOpcoes = MODALIDADE_OPCOES;
+  readonly modalidadePeriodoOpcoes = MODALIDADE_OPCOES.filter((o) => o.value !== 'Acordo');
   readonly tipoExcedenteOpcoes = TIPO_COBRANCA_EXCEDENTE_OPCOES;
+  readonly mesesAcordo = MESES_ACORDO;
+  /** Sentinela só do UI; nunca entra nas vagas/API (meses válidos: 1–12). */
+  readonly todosMesesSentinel = 0;
 
   readonly servicosOpcoes: ServicoOpcao[] = [
     { key: 'lavagem', label: 'Cobrar lavagem', valorLabel: SERVICO_VALOR_LABELS.lavagem, icon: 'local_car_wash' },
@@ -156,6 +170,8 @@ export class ConfigCobrancaFormDialogComponent {
   responsavelFaturamentoId: number | null = null;
   responsavelFaturamentoNome = '';
   modalidade: ConfigCobrancaModalidade | '' = '';
+  /** Última frequência de “Por período” para restaurar ao voltar do acordo. */
+  private ultimaModalidadePeriodo: ConfigCobrancaModalidade = 'Mensal';
   /** ISO `yyyy-MM-dd`, exigida apenas na modalidade personalizada. */
   dataCobranca: string | null = null;
   diaFechamento: number | null = null;
@@ -195,7 +211,12 @@ export class ConfigCobrancaFormDialogComponent {
   }
 
   get subtitulo(): string {
-    return 'Defina como a transportadora será faturada.';
+    return 'Defina como e quando o cliente será faturado.';
+  }
+
+  get tipoRegraCobranca(): ConfigCobrancaTipoRegra | null {
+    if (!this.modalidade) return null;
+    return this.modalidade === 'Acordo' ? 'acordo' : 'periodo';
   }
 
   get cnpjTransportadoraFormatado(): string {
@@ -234,10 +255,6 @@ export class ConfigCobrancaFormDialogComponent {
     return acordoTemConteudo(this.acordo);
   }
 
-  get periodoAcordoLabel(): string {
-    return formatarPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim);
-  }
-
   get exigeVencimentoFatura(): boolean {
     return modalidadeExigeVencimentoFatura(this.modalidade);
   }
@@ -267,6 +284,7 @@ export class ConfigCobrancaFormDialogComponent {
       this.responsavelFaturamentoId = r.responsavelFaturamentoId ?? null;
       this.responsavelFaturamentoNome = (r.responsavelFaturamentoNome || '').trim();
       this.modalidade = r.modalidade;
+      if (r.modalidade && r.modalidade !== 'Acordo') this.ultimaModalidadePeriodo = r.modalidade;
       this.dataCobranca = r.dataCobranca ?? null;
       this.diaFechamento = r.diaFechamento;
       this.regraFechamento = r.regraFechamento || RegraFechamento.UltimoDiaDoMes;
@@ -291,6 +309,7 @@ export class ConfigCobrancaFormDialogComponent {
       this.status = r.status === 'Inativa' ? 'Inativa' : 'Ativa';
       this.servicos = servicosFromItem(r);
       this.acordo = normalizarAcordo(r.acordo);
+      if (r.modalidade === 'Acordo') this.garantirListagemAcordo();
       this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
       this.definicaoValor =
         r.definicaoValor && !(r.modalidade !== 'Acordo' && r.definicaoValor === 'porVaga')
@@ -368,13 +387,26 @@ export class ConfigCobrancaFormDialogComponent {
       });
   }
 
+  selecionarTipoRegra(tipo: ConfigCobrancaTipoRegra): void {
+    if (tipo === 'acordo') {
+      if (this.modalidade && this.modalidade !== 'Acordo') {
+        this.ultimaModalidadePeriodo = this.modalidade;
+      }
+      this.selecionarModalidade('Acordo');
+      return;
+    }
+    if (this.modalidade === 'Acordo' || !this.modalidade) {
+      this.selecionarModalidade(this.ultimaModalidadePeriodo || 'Mensal');
+    }
+  }
+
   /** Trocar a regra descarta valores específicos da modalidade anterior. */
   selecionarModalidade(value: ConfigCobrancaModalidade): void {
-    if (!this.gerarAuto) return;
     if (this.modalidade === value) {
       if (value === 'Semanal') this.abrirModalDiaSemana();
       return;
     }
+    if (value !== 'Acordo') this.ultimaModalidadePeriodo = value;
     this.modalidade = value;
     if (value !== 'Personalizada') this.dataCobranca = null;
     this.valorEstacionamento = null;
@@ -398,6 +430,7 @@ export class ConfigCobrancaFormDialogComponent {
 
     if (value === 'Acordo') {
       if (!acordoTemConteudo(this.acordo)) this.acordo = acordoVazio();
+      this.garantirListagemAcordo();
       this.definicaoValor = 'porVaga';
       return;
     }
@@ -412,35 +445,75 @@ export class ConfigCobrancaFormDialogComponent {
     this.definicaoValor = value;
   }
 
-  abrirEditorAcordo(): void {
-    if (!this.gerarAuto) return;
-    const ref = this.dialog.open(ConfigCobrancaAcordoDialogComponent, {
-      width: '520px',
-      maxWidth: '96vw',
-      panelClass: 'cfg-form-dialog-panel',
-      data: {
-        acordo: cloneAcordo(this.acordo),
-        editando: acordoTemConteudo(this.acordo)
-      }
-    });
-    ref.afterClosed().subscribe((resultado) => {
-      if (!resultado) return;
-      // Preserva excedente já preenchido na aba Valores.
-      const custoExcedente = this.acordo.custoExcedente;
-      const tipoCobrancaExcedente = this.acordo.tipoCobrancaExcedente;
-      this.acordo = cloneAcordo(resultado);
-      this.acordo.custoExcedente = custoExcedente;
-      this.acordo.tipoCobrancaExcedente = tipoCobrancaExcedente;
-      this.custoExcedenteTexto = formatarBrl(this.acordo.custoExcedente);
-    });
+  get mesesDoPeriodoAcordo(): typeof MESES_ACORDO {
+    const permitidos = new Set(mesesNoPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim));
+    return this.mesesAcordo.filter((m) => permitidos.has(m.mes));
   }
 
-  resumoListagem(listagem: ConfigCobrancaAcordoListagem): string {
-    return resumoListagemAcordo(listagem);
+  garantirListagemAcordo(): void {
+    if (!this.acordo.listagens?.length) {
+      this.acordo.listagens = [novaListagemAcordo()];
+    }
+  }
+
+  adicionarListagemAcordo(): void {
+    this.garantirListagemAcordo();
+    this.acordo.listagens = [...this.acordo.listagens, novaListagemAcordo()];
+  }
+
+  removerListagemAcordo(id: string): void {
+    if (this.acordo.listagens.length <= 1) return;
+    this.acordo.listagens = this.acordo.listagens.filter((l) => l.id !== id);
+  }
+
+  mesOcupadoAcordo(listagem: ConfigCobrancaAcordoListagem, mes: ConfigCobrancaMesAcordo): boolean {
+    return mesesOcupados(this.acordo, listagem.id).has(mes);
+  }
+
+  mesesDisponiveisAcordo(listagem: ConfigCobrancaAcordoListagem): ConfigCobrancaMesAcordo[] {
+    const ocupados = mesesOcupados(this.acordo, listagem.id);
+    return mesesNoPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim).filter((mes) => !ocupados.has(mes));
+  }
+
+  todosMesesSelecionadosAcordo(listagem: ConfigCobrancaAcordoListagem): boolean {
+    const disponiveis = this.mesesDisponiveisAcordo(listagem);
+    return disponiveis.length > 0 && disponiveis.every((mes) => listagem.meses.includes(mes));
+  }
+
+  onMesesAcordoChange(
+    listagem: ConfigCobrancaAcordoListagem,
+    meses: Array<ConfigCobrancaMesAcordo | number>
+  ): void {
+    const ocupados = mesesOcupados(this.acordo, listagem.id);
+    const doPeriodo = new Set(mesesNoPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim));
+    const raw = meses ?? [];
+    const pediuTodos = raw.some((mes) => Number(mes) === this.todosMesesSentinel);
+    if (pediuTodos) {
+      listagem.meses = this.todosMesesSelecionadosAcordo(listagem) ? [] : [...this.mesesDisponiveisAcordo(listagem)];
+      return;
+    }
+    listagem.meses = raw
+      .map((mes) => Number(mes))
+      .filter(
+        (mes): mes is ConfigCobrancaMesAcordo =>
+          mes >= 1 && mes <= 12 && doPeriodo.has(mes as ConfigCobrancaMesAcordo) && !ocupados.has(mes)
+      )
+      .sort((a, b) => a - b);
+  }
+
+  onPeriodoAcordoChange(periodo: PeriodoDataSelecionado): void {
+    if (!periodo.ativo || !periodo.dataInicial || !periodo.dataFinal) {
+      this.acordo.dataInicio = null;
+      this.acordo.dataFim = null;
+      for (const listagem of this.acordo.listagens) listagem.meses = [];
+      return;
+    }
+    this.acordo.dataInicio = periodo.dataInicial;
+    this.acordo.dataFim = periodo.dataFinal;
+    podarMesesForaDoPeriodoAcordo(this.acordo);
   }
 
   abrirModalDiaSemana(): void {
-    if (!this.gerarAuto) return;
     const ref = this.dialog.open(ConfigCobrancaWeekdayDialogComponent, {
       width: '420px',
       maxWidth: '96vw',
@@ -561,7 +634,7 @@ export class ConfigCobrancaFormDialogComponent {
       this.adicionarEmailDoRascunho();
       if (this.emailRascunho.trim()) {
         this.errosVisiveis = ['E-mail financeiro inválido.'];
-        this.abaAtiva = 'regras';
+        this.abaAtiva = 'cadastro';
         this.snack.open(this.errosVisiveis[0]!, 'Fechar', { duration: 5000 });
         return;
       }
@@ -651,7 +724,18 @@ export class ConfigCobrancaFormDialogComponent {
     ) {
       return 'valores';
     }
-    return 'regras';
+    if (
+      texto.includes('modalidade') ||
+      texto.includes('acordo') ||
+      texto.includes('fechamento') ||
+      texto.includes('dia da semana') ||
+      texto.includes('data da cobrança') ||
+      texto.includes('data de cobrança') ||
+      texto.includes('regra de cobrança')
+    ) {
+      return 'regraCobranca';
+    }
+    return 'cadastro';
   }
 
   private montarRegistro(id: number): ConfigCobrancaListaItem {

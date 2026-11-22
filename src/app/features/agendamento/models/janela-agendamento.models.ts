@@ -169,6 +169,12 @@ export interface JanelaAgendamentoListItem {
   vagasPorSlot: number;
   qtdFaixas: number;
   qtdPeriodicidades: number;
+  /** Derivado: `qtdFaixas × vagasPorSlot` (capacidade do dia na janela). */
+  totalDisponibilizacoes: number;
+  /** Preenchido via detalhe (ou se a lista já trouxer faixas/periodicidades). */
+  recorrenciaLabel?: string;
+  /** Ex.: `06h às 18h` (extremos das faixas). */
+  horarioResumo?: string;
 }
 
 export interface JanelaPagedResult {

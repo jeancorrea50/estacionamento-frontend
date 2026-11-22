@@ -1,9 +1,12 @@
 import {
   formatDuracaoFaixa,
   formatDuracaoSlot,
+  formatHorarioExtremosFaixas,
   formatPeriodicidadeResumo,
+  formatRecorrenciaCompacta,
   formatVigenciaResumo,
   mapFaixasResumo,
+  totalDisponibilizacoesJanela,
 } from './janela-form-wizard.helpers';
 
 describe('janela-form-wizard.helpers', () => {
@@ -43,5 +46,33 @@ describe('janela-form-wizard.helpers', () => {
         },
       ])
     ).toBe('Diário');
+  });
+
+  it('formata recorrência compacta Seg a Sáb', () => {
+    expect(
+      formatRecorrenciaCompacta([
+        {
+          uid: 1,
+          tipo: 3,
+          dias: [1, 2, 3, 4, 5, 6],
+          diaMes: null,
+          mes: null,
+          dataInicio: '2026-12-01',
+          dataFim: '',
+          ativo: true,
+          descricao: '',
+        },
+      ])
+    ).toBe('Seg a Sáb');
+  });
+
+  it('formata extremos de horário e total de disponibilizações', () => {
+    expect(
+      formatHorarioExtremosFaixas([
+        { horaInicio: '06:00', horaFim: '07:00' },
+        { horaInicio: '17:00', horaFim: '18:00' },
+      ])
+    ).toBe('6h às 18h');
+    expect(totalDisponibilizacoesJanela(10, 12)).toBe(120);
   });
 });

@@ -14,8 +14,10 @@ import {
   cloneAcordo,
   MESES_ACORDO,
   mensagensValidacaoAcordo,
+  mesesNoPeriodoAcordo,
   mesesOcupados,
   novaListagemAcordo,
+  podarMesesForaDoPeriodoAcordo,
   sincronizarVagasDoAcordo
 } from '../config-cobranca-acordo.util';
 import type {
@@ -57,6 +59,7 @@ export class ConfigCobrancaAcordoDialogComponent {
   acordo: ConfigCobrancaAcordo = (() => {
     const rascunho = cloneAcordo(this.data.acordo);
     if (!rascunho.listagens.length) rascunho.listagens = [novaListagemAcordo()];
+    podarMesesForaDoPeriodoAcordo(rascunho);
     return rascunho;
   })();
 
@@ -64,6 +67,12 @@ export class ConfigCobrancaAcordoDialogComponent {
 
   get titulo(): string {
     return this.data.editando ? 'Editar acordo' : 'Criar acordo';
+  }
+
+  /** Opções do select: só meses que caem no período do acordo. */
+  get mesesDoPeriodo(): typeof MESES_ACORDO {
+    const permitidos = new Set(mesesNoPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim));
+    return this.mesesAcordo.filter((m) => permitidos.has(m.mes));
   }
 
   adicionarListagem(): void {
@@ -81,7 +90,8 @@ export class ConfigCobrancaAcordoDialogComponent {
 
   mesesDisponiveis(listagem: ConfigCobrancaAcordoListagem): ConfigCobrancaMesAcordo[] {
     const ocupados = mesesOcupados(this.acordo, listagem.id);
-    return this.mesesAcordo.map((m) => m.mes).filter((mes) => !ocupados.has(mes));
+    const doPeriodo = mesesNoPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim);
+    return doPeriodo.filter((mes) => !ocupados.has(mes));
   }
 
   todosMesesSelecionados(listagem: ConfigCobrancaAcordoListagem): boolean {
@@ -91,6 +101,7 @@ export class ConfigCobrancaAcordoDialogComponent {
 
   onMesesChange(listagem: ConfigCobrancaAcordoListagem, meses: Array<ConfigCobrancaMesAcordo | number>): void {
     const ocupados = mesesOcupados(this.acordo, listagem.id);
+    const doPeriodo = new Set(mesesNoPeriodoAcordo(this.acordo.dataInicio, this.acordo.dataFim));
     const raw = meses ?? [];
     const pediuTodos = raw.some((mes) => Number(mes) === this.todosMesesSentinel);
     if (pediuTodos) {
@@ -99,7 +110,10 @@ export class ConfigCobrancaAcordoDialogComponent {
     }
     listagem.meses = raw
       .map((mes) => Number(mes))
-      .filter((mes): mes is ConfigCobrancaMesAcordo => mes >= 1 && mes <= 12 && !ocupados.has(mes))
+      .filter(
+        (mes): mes is ConfigCobrancaMesAcordo =>
+          mes >= 1 && mes <= 12 && doPeriodo.has(mes as ConfigCobrancaMesAcordo) && !ocupados.has(mes)
+      )
       .sort((a, b) => a - b);
   }
 
@@ -108,10 +122,12 @@ export class ConfigCobrancaAcordoDialogComponent {
     if (!periodo.ativo || !periodo.dataInicial || !periodo.dataFinal) {
       this.acordo.dataInicio = null;
       this.acordo.dataFim = null;
+      for (const listagem of this.acordo.listagens) listagem.meses = [];
       return;
     }
     this.acordo.dataInicio = periodo.dataInicial;
     this.acordo.dataFim = periodo.dataFinal;
+    podarMesesForaDoPeriodoAcordo(this.acordo);
   }
 
   cancelar(): void {

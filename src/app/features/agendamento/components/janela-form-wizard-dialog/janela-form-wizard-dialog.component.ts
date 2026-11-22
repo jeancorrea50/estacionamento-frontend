@@ -27,12 +27,10 @@ import {
 } from '../../models/janela-agendamento.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import {
-  JanelaFormDialogData,
-  JanelaFormDialogResult,
-} from '../janela-form-dialog/janela-form-dialog.component';
-import {
   ExcecaoForm,
   FaixaForm,
+  JanelaFormDialogData,
+  JanelaFormDialogResult,
   JanelaFormState,
   PeriodicidadeForm,
   formDeDetalhe,

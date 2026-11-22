@@ -65,7 +65,10 @@
                 >
                   {{ todosMesesSelecionados(listagem) ? 'Limpar todos' : 'Selecionar todos' }}
                 </mat-option>
-                @for (m of mesesAcordo; track m.mes) {
+                @if (mesesDoPeriodo.length === 0) {
+                  <mat-option disabled>Selecione o período primeiro</mat-option>
+                }
+                @for (m of mesesDoPeriodo; track m.mes) {
                   <mat-option [value]="m.mes" [disabled]="mesOcupado(listagem, m.mes)">
                     {{ m.label }}
                   </mat-option>

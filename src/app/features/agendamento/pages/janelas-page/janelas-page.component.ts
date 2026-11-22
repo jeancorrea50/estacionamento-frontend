@@ -1,7 +1,8 @@
 import { Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
@@ -17,10 +18,9 @@ import {
   JanelaDuplicarDialogResult,
 } from '../../components/janela-duplicar-dialog/janela-duplicar-dialog.component';
 import {
-  JanelaFormDialogComponent,
   JanelaFormDialogData,
   JanelaFormDialogResult,
-} from '../../components/janela-form-dialog/janela-form-dialog.component';
+} from '../../components/janela-form-dialog/janela-form.state';
 import { JanelaFormWizardDialogComponent } from '../../components/janela-form-wizard-dialog/janela-form-wizard-dialog.component';
 import {
   JanelaAgendamentoListItem,
@@ -31,6 +31,7 @@ import {
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
 import { formatIsoDateBr } from '../agendamentos-page/agendamento-dashboard.util';
+import { enriquecerJanelaListItem } from './janela-lista-resumo.util';
 
 type FiltroAtivo = 'todas' | 'ativas' | 'inativas';
 
@@ -151,12 +152,24 @@ export class JanelasPageComponent implements OnInit {
         numeroPagina: this.numeroPagina(),
         tamanhoPagina: TAMANHO_PAGINA,
       })
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe({
-        next: (p) => {
-          this.items.set(p.items);
+      .pipe(
+        switchMap((p) => {
           this.totalCount.set(p.totalCount);
-        },
+          if (!p.items.length) return of([] as JanelaAgendamentoListItem[]);
+          // Lista não traz faixas/periodicidades — completa com GET {id} da página atual.
+          return forkJoin(
+            p.items.map((item) =>
+              this.api.obterPorId(item.id).pipe(
+                map((detalhe) => enriquecerJanelaListItem(item, detalhe)),
+                catchError(() => of(item))
+              )
+            )
+          );
+        }),
+        finalize(() => this.loading.set(false))
+      )
+      .subscribe({
+        next: (items) => this.items.set(items),
         error: (err: ApiError) => {
           this.items.set([]);
           this.totalCount.set(0);
@@ -165,22 +178,12 @@ export class JanelasPageComponent implements OnInit {
       });
   }
 
-  /** Fluxo principal: assistente em passos (mesmo payload da API). */
   novaJanela(): void {
     if (!this.podeCriar) {
       this.toast.error('Sem permissão para criar janela (janelas.gravar).');
       return;
     }
     this.abrirFormWizard({ mode: 'create', modalidade: this.modalidade() });
-  }
-
-  /** Alternativa interna: formulário clássico com abas (mantido até validação do assistente). */
-  novaJanelaClassica(): void {
-    if (!this.podeCriar) {
-      this.toast.error('Sem permissão para criar janela (janelas.gravar).');
-      return;
-    }
-    this.abrirForm({ mode: 'create', modalidade: this.modalidade() });
   }
 
   editar(item: JanelaAgendamentoListItem): void {
@@ -253,18 +256,6 @@ export class JanelasPageComponent implements OnInit {
   vigenciaLabel(item: JanelaAgendamentoListItem): string {
     const ini = formatIsoDateBr(item.dataVigenciaInicio);
     return item.dataVigenciaFim ? `${ini} a ${formatIsoDateBr(item.dataVigenciaFim)}` : `${ini} (sem fim)`;
-  }
-
-  private abrirForm(data: JanelaFormDialogData): void {
-    this.dialog
-      .open<JanelaFormDialogComponent, JanelaFormDialogData, JanelaFormDialogResult>(
-        JanelaFormDialogComponent,
-        { width: '900px', maxWidth: '96vw', autoFocus: false, panelClass: 'cfg-form-dialog-panel', data }
-      )
-      .afterClosed()
-      .subscribe((res) => {
-        if (res?.saved) this.focarModalidade(res.janela.modalidade);
-      });
   }
 
   private abrirFormWizard(data: JanelaFormDialogData): void {

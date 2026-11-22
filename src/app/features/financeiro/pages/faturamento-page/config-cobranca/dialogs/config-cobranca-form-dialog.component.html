@@ -19,12 +19,23 @@
       type="button"
       role="tab"
       class="cfg-topbar__tab"
-      [class.cfg-topbar__tab--active]="abaAtiva === 'regras'"
-      [attr.aria-selected]="abaAtiva === 'regras'"
-      (click)="selecionarAba('regras')"
+      [class.cfg-topbar__tab--active]="abaAtiva === 'cadastro'"
+      [attr.aria-selected]="abaAtiva === 'cadastro'"
+      (click)="selecionarAba('cadastro')"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">badge</span>
+      Cadastro
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="cfg-topbar__tab"
+      [class.cfg-topbar__tab--active]="abaAtiva === 'regraCobranca'"
+      [attr.aria-selected]="abaAtiva === 'regraCobranca'"
+      (click)="selecionarAba('regraCobranca')"
     >
       <span class="material-symbols-outlined" aria-hidden="true">rule</span>
-      Regras
+      Regra de Cobrança
     </button>
     <button
       type="button"
@@ -62,14 +73,14 @@
   }
 
   <mat-dialog-content class="cfg-modal__body">
-    @if (abaAtiva === 'regras') {
+    @if (abaAtiva === 'cadastro') {
       <!-- 1 — Transportadora -->
       <section class="cfg-block">
         <div class="cfg-block__head">
           <span class="cfg-block__num">1</span>
           <h3 class="cfg-block__title">Transportadora</h3>
         </div>
-        <div class="cfg-block__grid cfg-block__grid--3">
+        <div class="cfg-block__grid cfg-block__grid--3 cfg-block__grid--transportadora">
           <div class="cfg-field cfg-field--lookup">
             <label class="cfg-field__label" for="cfg-trn-lookup">Transportadora</label>
             <app-transportadora-lookup-field
@@ -82,12 +93,13 @@
               (transportadoraNomeChange)="onTransportadoraLookupNome($event)"
             />
           </div>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" floatLabel="always" class="cfg-field">
             <mat-label>CNPJ</mat-label>
             <input
               matInput
               name="transportadoraCnpj"
-              [value]="cnpjTransportadoraFormatado"
+              [ngModel]="cnpjTransportadoraFormatado"
+              [ngModelOptions]="{ standalone: true }"
               placeholder="00.000.000/0000-00"
               readonly
               tabindex="-1"
@@ -105,137 +117,11 @@
         </div>
       </section>
 
-      <!-- 2 — Regra de cobrança -->
-      <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto">
-        <div class="cfg-block__head cfg-block__head--with-action">
-          <div class="cfg-block__head-main">
-            <span class="cfg-block__num">2</span>
-            <h3 class="cfg-block__title">Regra de cobrança</h3>
-          </div>
-          <mat-slide-toggle class="cfg-block__head-toggle" [(ngModel)]="gerarAuto" color="primary">
-            Gerar fatura automaticamente
-          </mat-slide-toggle>
-        </div>
-
-        <div class="cfg-block__body" [attr.aria-disabled]="!gerarAuto">
-          <div class="cfg-options" role="radiogroup" aria-label="Regra de cobrança">
-            @for (o of modalidadeOpcoes; track o.value) {
-              <button
-                type="button"
-                role="radio"
-                class="cfg-option"
-                [class.cfg-option--active]="modalidade === o.value"
-                [attr.aria-checked]="modalidade === o.value"
-                [disabled]="!gerarAuto"
-                (click)="selecionarModalidade(o.value)"
-              >
-                <span class="cfg-option__ico material-symbols-outlined" aria-hidden="true">{{ o.icon }}</span>
-                <span class="cfg-option__label">{{ o.label }}</span>
-              </button>
-            }
-          </div>
-
-          @if (exigeDataCobranca) {
-            <div class="cfg-block__grid cfg-block__grid--inset">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-                <mat-label>Data da cobrança</mat-label>
-                <input matInput type="date" [(ngModel)]="dataCobranca" [disabled]="!gerarAuto" required />
-                <mat-hint>Data em que a fatura será gerada.</mat-hint>
-              </mat-form-field>
-            </div>
-          }
-
-          @if (exigeDiaMensal) {
-            <div class="cfg-block__grid cfg-block__grid--inset">
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
-                <mat-label>Dia do fechamento</mat-label>
-                <input
-                  matInput
-                  type="number"
-                  name="diaCobranca"
-                  min="1"
-                  max="31"
-                  [(ngModel)]="diaFechamento"
-                  [disabled]="!gerarAuto"
-                  required
-                  placeholder="1 a 31"
-                />
-                <mat-hint>Dia do mês em que a cobrança mensal será gerada.</mat-hint>
-              </mat-form-field>
-            </div>
-          }
-
-          @if (exigeDiaSemanal) {
-            <div class="cfg-block__grid cfg-block__grid--inset cfg-weekday-summary">
-              <div class="cfg-weekday-summary__card">
-                <div class="cfg-weekday-summary__text">
-                  <span class="cfg-weekday-summary__label">Dia da semana</span>
-                  <strong class="cfg-weekday-summary__value">
-                    {{ diaSemanaSelecionadoLabel || 'Nenhum dia selecionado' }}
-                  </strong>
-                </div>
-                <button
-                  type="button"
-                  class="cfg-btn cfg-btn--outline cfg-btn--sm"
-                  [disabled]="!gerarAuto"
-                  (click)="abrirModalDiaSemana()"
-                >
-                  {{ diaSemanaSelecionadoLabel ? 'Alterar dia' : 'Selecionar dia' }}
-                </button>
-              </div>
-            </div>
-          }
-
-          @if (exigeAcordo) {
-            <div class="cfg-acordo">
-              @if (!acordoCriado) {
-                <div class="cfg-acordo-empty">
-                  <p class="cfg-acordo__desc">
-                    Crie o acordo com período e vagas por mês. O excedente fica na aba Valores.
-                  </p>
-                  <button
-                    type="button"
-                    class="cfg-btn cfg-btn--primary cfg-btn--block"
-                    [disabled]="!gerarAuto"
-                    (click)="abrirEditorAcordo()"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                    Criar acordo
-                  </button>
-                </div>
-              } @else {
-                <div class="cfg-acordo-lista">
-                  <article class="cfg-acordo-card">
-                    <div class="cfg-acordo-card__body">
-                      <h4 class="cfg-acordo-card__title">Acordo criado</h4>
-                      <p class="cfg-acordo-card__meta">{{ periodoAcordoLabel }}</p>
-                      <ul class="cfg-acordo-card__items">
-                        @for (l of acordo.listagens; track l.id) {
-                          <li>{{ resumoListagem(l) }}</li>
-                        }
-                      </ul>
-                    </div>
-                    <button
-                      type="button"
-                      class="cfg-btn cfg-btn--ghost cfg-btn--sm"
-                      [disabled]="!gerarAuto"
-                      (click)="abrirEditorAcordo()"
-                    >
-                      Editar
-                    </button>
-                  </article>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </section>
-
-      <!-- 3 — Vencimento e automações -->
+      <!-- 2 — Vencimento e automações -->
       <section class="cfg-block" [class.cfg-block--locked]="!gerarAuto && !envioAuto">
         <div class="cfg-block__head cfg-block__head--with-action">
           <div class="cfg-block__head-main">
-            <span class="cfg-block__num">3</span>
+            <span class="cfg-block__num">2</span>
             <h3 class="cfg-block__title">Vencimento e automações</h3>
           </div>
           <mat-slide-toggle class="cfg-block__head-toggle" [(ngModel)]="envioAuto" color="primary">
@@ -247,13 +133,18 @@
             @if (!exigeDiaMensal && !exigeDiaSemanal) {
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
                 <mat-label>Regra de fechamento</mat-label>
-                <mat-select [(ngModel)]="regraFechamento" [disabled]="!gerarAuto" required>
+                <mat-select [(ngModel)]="regraFechamento" required>
                   @for (r of regraFechamentoOpcoes; track r.value) {
                     <mat-option [value]="r.value">{{ r.label }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+              <mat-form-field
+                appearance="outline"
+                subscriptSizing="dynamic"
+                floatLabel="always"
+                class="cfg-field"
+              >
                 <mat-label>Dia de fechamento</mat-label>
                 <input
                   matInput
@@ -261,7 +152,7 @@
                   min="1"
                   max="31"
                   [(ngModel)]="diaFechamento"
-                  [disabled]="!gerarAuto || regraFechamento !== RegraFechamento.DiaFixo"
+                  [disabled]="regraFechamento !== RegraFechamento.DiaFixo"
                   placeholder="1 a 31"
                 />
               </mat-form-field>
@@ -277,7 +168,6 @@
                 max="365"
                 step="1"
                 [(ngModel)]="prazoVencimentoDias"
-                [disabled]="!gerarAuto"
                 required
               />
               <mat-hint>Dias após o fechamento</mat-hint>
@@ -329,6 +219,256 @@
           </div>
         </div>
       </section>
+    }
+
+    @if (abaAtiva === 'regraCobranca') {
+      <div class="cfg-regra-layout">
+        <div class="cfg-regra-layout__main">
+          <!-- 1 — Tipo da cobrança -->
+          <section class="cfg-block">
+            <div class="cfg-block__head">
+              <span class="cfg-block__num">1</span>
+              <h3 class="cfg-block__title">Como deseja realizar a cobrança?</h3>
+            </div>
+            <div class="cfg-choice" role="radiogroup" aria-label="Tipo de regra de cobrança">
+              <button
+                type="button"
+                role="radio"
+                class="cfg-choice__card"
+                [class.cfg-choice__card--active]="tipoRegraCobranca === 'acordo'"
+                [attr.aria-checked]="tipoRegraCobranca === 'acordo'"
+                (click)="selecionarTipoRegra('acordo')"
+              >
+                <span class="cfg-choice__ico material-symbols-outlined" aria-hidden="true">handshake</span>
+                <span class="cfg-choice__copy">
+                  <strong class="cfg-choice__title">Por acordo</strong>
+                  <span class="cfg-choice__desc">Segue as condições negociadas com o cliente.</span>
+                </span>
+                @if (tipoRegraCobranca === 'acordo') {
+                  <span class="cfg-choice__check material-symbols-outlined" aria-hidden="true">check_circle</span>
+                }
+              </button>
+              <button
+                type="button"
+                role="radio"
+                class="cfg-choice__card"
+                [class.cfg-choice__card--active]="tipoRegraCobranca === 'periodo'"
+                [attr.aria-checked]="tipoRegraCobranca === 'periodo'"
+                (click)="selecionarTipoRegra('periodo')"
+              >
+                <span class="cfg-choice__ico material-symbols-outlined" aria-hidden="true">calendar_month</span>
+                <span class="cfg-choice__copy">
+                  <strong class="cfg-choice__title">Por período</strong>
+                  <span class="cfg-choice__desc">Cobranças diárias, semanais, mensais ou personalizadas.</span>
+                </span>
+                @if (tipoRegraCobranca === 'periodo') {
+                  <span class="cfg-choice__check material-symbols-outlined" aria-hidden="true">check_circle</span>
+                }
+              </button>
+            </div>
+          </section>
+
+          <!-- 2 — Detalhe conforme tipo -->
+          @if (tipoRegraCobranca === 'acordo') {
+            <section class="cfg-block">
+              <div class="cfg-block__head cfg-block__head--with-action">
+                <div class="cfg-block__head-main">
+                  <span class="cfg-block__num">2</span>
+                  <h3 class="cfg-block__title">Configurar acordo</h3>
+                </div>
+                @if (acordoCriado) {
+                  <span class="cfg-badge cfg-badge--ok">Configurado</span>
+                }
+              </div>
+
+              <div class="cfg-acordo-inline">
+                <p class="cfg-acordo__desc">
+                  Defina o período e as listagens de vagas por mês. O excedente fica na aba Valores.
+                </p>
+
+                <div class="cfg-acordo-inline__periodo">
+                  <span class="cfg-acordo-inline__label">Período</span>
+                  <app-periodo-data-picker
+                    emptyLabel="Selecione o período"
+                    ariaLabel="Selecionar período do acordo"
+                    [exigirConfirmacao]="true"
+                    [dataInicial]="acordo.dataInicio || ''"
+                    [dataFinal]="acordo.dataFim || ''"
+                    (periodoChange)="onPeriodoAcordoChange($event)"
+                  />
+                  <p class="cfg-acordo-inline__hint">
+                    Escolha início e fim no calendário (dia, mês ou ano) e confirme a seleção.
+                  </p>
+                </div>
+
+                @for (listagem of acordo.listagens; track listagem.id; let i = $index) {
+                  <section class="cfg-acordo-inline__listagem">
+                    <div class="cfg-acordo-inline__listagem-head">
+                      <div class="cfg-acordo-inline__listagem-titles">
+                        <h4 class="cfg-acordo-inline__listagem-title">Listagem {{ i + 1 }}</h4>
+                        <p class="cfg-acordo-inline__hint">Meses e quantidade de vagas.</p>
+                      </div>
+                      @if (acordo.listagens.length > 1) {
+                        <button type="button" class="cfg-link-btn" (click)="removerListagemAcordo(listagem.id)">
+                          Remover
+                        </button>
+                      }
+                    </div>
+                    <div class="cfg-acordo-inline__grid">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                        <mat-label>Meses</mat-label>
+                        <mat-select
+                          multiple
+                          [name]="'mesesListagemInline' + listagem.id"
+                          [(ngModel)]="listagem.meses"
+                          panelClass="cfg-acordo-meses-panel"
+                          (ngModelChange)="onMesesAcordoChange(listagem, $event)"
+                          required
+                        >
+                          <mat-option
+                            class="cfg-acordo-meses-todos"
+                            [value]="todosMesesSentinel"
+                            [disabled]="mesesDisponiveisAcordo(listagem).length === 0"
+                          >
+                            {{ todosMesesSelecionadosAcordo(listagem) ? 'Limpar todos' : 'Selecionar todos' }}
+                          </mat-option>
+                          @if (mesesDoPeriodoAcordo.length === 0) {
+                            <mat-option disabled>Selecione o período primeiro</mat-option>
+                          }
+                          @for (m of mesesDoPeriodoAcordo; track m.mes) {
+                            <mat-option [value]="m.mes" [disabled]="mesOcupadoAcordo(listagem, m.mes)">
+                              {{ m.label }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                        <mat-label>Quantidade de vagas</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          min="0"
+                          step="1"
+                          inputmode="numeric"
+                          [(ngModel)]="listagem.quantidade"
+                          [name]="'qtdListagemInline' + listagem.id"
+                          required
+                        />
+                      </mat-form-field>
+                    </div>
+                  </section>
+                }
+
+                <button type="button" class="cfg-btn cfg-btn--ghost" (click)="adicionarListagemAcordo()">
+                  <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                  Adicionar listagem
+                </button>
+              </div>
+            </section>
+          }
+
+          @if (tipoRegraCobranca === 'periodo') {
+            <section class="cfg-block">
+              <div class="cfg-block__head">
+                <span class="cfg-block__num">2</span>
+                <h3 class="cfg-block__title">Frequência da cobrança</h3>
+              </div>
+              <div class="cfg-options" role="radiogroup" aria-label="Frequência da cobrança">
+                @for (o of modalidadePeriodoOpcoes; track o.value) {
+                  <button
+                    type="button"
+                    role="radio"
+                    class="cfg-option"
+                    [class.cfg-option--active]="modalidade === o.value"
+                    [attr.aria-checked]="modalidade === o.value"
+                    (click)="selecionarModalidade(o.value)"
+                  >
+                    <span class="cfg-option__ico material-symbols-outlined" aria-hidden="true">{{ o.icon }}</span>
+                    <span class="cfg-option__label">{{ o.label }}</span>
+                  </button>
+                }
+              </div>
+
+              @if (exigeDataCobranca) {
+                <div class="cfg-block__grid cfg-block__grid--inset">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-field">
+                    <mat-label>Data da cobrança</mat-label>
+                    <input matInput type="date" [(ngModel)]="dataCobranca" required />
+                    <mat-hint>Data em que a fatura será gerada.</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
+
+              @if (exigeDiaMensal) {
+                <div class="cfg-block__grid cfg-block__grid--inset">
+                  <mat-form-field
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                    floatLabel="always"
+                    class="cfg-field"
+                  >
+                    <mat-label>Dia do fechamento</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      name="diaCobranca"
+                      min="1"
+                      max="31"
+                      [(ngModel)]="diaFechamento"
+                      required
+                      placeholder="1 a 31"
+                    />
+                    <mat-hint>Dia do mês em que a cobrança mensal será gerada.</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
+
+              @if (exigeDiaSemanal) {
+                <div class="cfg-block__grid cfg-block__grid--inset cfg-weekday-summary">
+                  <div class="cfg-weekday-summary__card">
+                    <div class="cfg-weekday-summary__text">
+                      <span class="cfg-weekday-summary__label">Dia da semana</span>
+                      <strong class="cfg-weekday-summary__value">
+                        {{ diaSemanaSelecionadoLabel || 'Nenhum dia selecionado' }}
+                      </strong>
+                    </div>
+                    <button type="button" class="cfg-btn cfg-btn--outline cfg-btn--sm" (click)="abrirModalDiaSemana()">
+                      {{ diaSemanaSelecionadoLabel ? 'Alterar dia' : 'Selecionar dia' }}
+                    </button>
+                  </div>
+                </div>
+              }
+            </section>
+          }
+
+          <!-- 3 — Geração automática -->
+          <section class="cfg-block">
+            <div class="cfg-block__head cfg-block__head--with-action">
+              <div class="cfg-block__head-main">
+                <span class="cfg-block__num">3</span>
+                <h3 class="cfg-block__title">Geração automática</h3>
+              </div>
+              <span class="cfg-badge" [class.cfg-badge--ok]="gerarAuto" [class.cfg-badge--off]="!gerarAuto">
+                <span class="material-symbols-outlined" aria-hidden="true">{{ gerarAuto ? 'check' : 'pause' }}</span>
+                {{ gerarAuto ? 'Ativada' : 'Desativada' }}
+              </span>
+            </div>
+            <div class="cfg-auto-gen">
+              <div class="cfg-auto-gen__copy">
+                <p class="cfg-auto-gen__text">Gerar as faturas automaticamente conforme a regra configurada.</p>
+                @if (gerarAuto) {
+                  <p class="cfg-auto-gen__hint">
+                    As faturas serão geradas automaticamente conforme a frequência e o dia de fechamento configurados.
+                  </p>
+                }
+              </div>
+              <mat-slide-toggle [(ngModel)]="gerarAuto" color="primary" aria-label="Gerar fatura automaticamente">
+                {{ gerarAuto ? 'Ativada' : 'Desativada' }}
+              </mat-slide-toggle>
+            </div>
+          </section>
+        </div>
+      </div>
     }
 
     @if (abaAtiva === 'valores') {

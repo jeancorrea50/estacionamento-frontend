@@ -259,6 +259,7 @@ export function normalizarAcordo(origem: ConfigCobrancaAcordo | null | undefined
   if (!acordo.listagens.length) {
     acordo.listagens = listagensAPartirDasVagas(acordo.vagas, acordo.vagasCif);
   }
+  podarMesesForaDoPeriodoAcordo(acordo);
   acordo.vagas = vagasFromListagens(acordo.listagens);
   acordo.vagasCif = vagasCifFromListagens(acordo.listagens);
   return acordo;
@@ -269,6 +270,58 @@ export function acordoTemConteudo(acordo: ConfigCobrancaAcordo | null | undefine
   if (acordo.dataInicio || acordo.dataFim) return true;
   if ((acordo.listagens ?? []).some((l) => l.meses.length > 0)) return true;
   return MESES_ACORDO.some((m) => acordo.vagas?.[m.mes] != null);
+}
+
+/**
+ * Meses (1–12) cobertos pelo período ISO `yyyy-MM-dd` (granularidade mensal: o dia é ignorado).
+ * Ex.: 01/02/2026–31/03/2026 → [2, 3]. Sem período válido → [].
+ * Períodos multi-ano deduplicam o mês (domínio sem ano na vaga).
+ */
+export function mesesNoPeriodoAcordo(
+  dataInicio: string | null | undefined,
+  dataFim: string | null | undefined
+): ConfigCobrancaMesAcordo[] {
+  const ini = parseIsoAnoMes(dataInicio);
+  const fim = parseIsoAnoMes(dataFim);
+  if (!ini || !fim) return [];
+  if (fim.ano < ini.ano || (fim.ano === ini.ano && fim.mes < ini.mes)) return [];
+
+  const vistos = new Set<ConfigCobrancaMesAcordo>();
+  let y = ini.ano;
+  let m = ini.mes;
+  // Limite defensivo: no máx. 120 meses (10 anos).
+  for (let i = 0; i < 120; i++) {
+    vistos.add(m as ConfigCobrancaMesAcordo);
+    if (y === fim.ano && m === fim.mes) break;
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return [...vistos].sort((a, b) => a - b);
+}
+
+function parseIsoAnoMes(iso: string | null | undefined): { ano: number; mes: number } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? '').trim());
+  if (!m) return null;
+  const ano = Number(m[1]);
+  const mes = Number(m[2]);
+  if (!Number.isFinite(ano) || mes < 1 || mes > 12) return null;
+  return { ano, mes };
+}
+
+/**
+ * Remove das listagens meses fora do período.
+ * Sem período válido, não altera as listagens (evita apagar rascunho incompleto).
+ */
+export function podarMesesForaDoPeriodoAcordo(acordo: ConfigCobrancaAcordo): void {
+  const noPeriodo = mesesNoPeriodoAcordo(acordo.dataInicio, acordo.dataFim);
+  if (!noPeriodo.length) return;
+  const permitidos = new Set(noPeriodo);
+  for (const listagem of acordo.listagens ?? []) {
+    listagem.meses = listagem.meses.filter((mes) => permitidos.has(mes));
+  }
 }
 
 export function mesesOcupados(acordo: ConfigCobrancaAcordo, listagemId?: string): Set<number> {
@@ -302,6 +355,45 @@ export function resumoVagasAcordo(vagas: ConfigCobrancaVagasAcordo | undefined):
   return partes.length ? partes.join(' · ') : '—';
 }
 
+const MESES_NOME_COMPLETO: Record<ConfigCobrancaMesAcordo, string> = {
+  1: 'Janeiro',
+  2: 'Fevereiro',
+  3: 'Março',
+  4: 'Abril',
+  5: 'Maio',
+  6: 'Junho',
+  7: 'Julho',
+  8: 'Agosto',
+  9: 'Setembro',
+  10: 'Outubro',
+  11: 'Novembro',
+  12: 'Dezembro'
+};
+
+/** Rótulo de período da listagem (ex.: "Junho" ou "Julho a novembro"). */
+export function rotuloPeriodoListagemAcordo(meses: ConfigCobrancaMesAcordo[] | undefined): string {
+  const sorted = [...(meses ?? [])].sort((a, b) => a - b);
+  if (!sorted.length) return '—';
+  if (sorted.length === 1) return MESES_NOME_COMPLETO[sorted[0]!];
+  const consecutivo = sorted.every((mes, idx) => idx === 0 || mes === sorted[idx - 1]! + 1);
+  if (consecutivo) {
+    const ini = MESES_NOME_COMPLETO[sorted[0]!];
+    const fim = MESES_NOME_COMPLETO[sorted[sorted.length - 1]!];
+    return `${ini} a ${fim.toLowerCase()}`;
+  }
+  return sorted.map((mes) => MESES_ACORDO.find((m) => m.mes === mes)?.label ?? mes).join(', ');
+}
+
+export function distribuicaoListagemAcordo(listagem: ConfigCobrancaAcordoListagem): string {
+  if (listagem.quantidade == null) return '—';
+  const cif =
+    listagem.quantidadeCif == null || !Number.isFinite(Number(listagem.quantidadeCif))
+      ? Number(listagem.quantidade)
+      : Number(listagem.quantidadeCif);
+  const fob = vagasFobDoMes(listagem.quantidade, listagem.quantidadeCif) ?? 0;
+  return `CIF ${cif} / FOB ${fob}`;
+}
+
 export function resumoListagemAcordo(listagem: ConfigCobrancaAcordoListagem): string {
   const meses = listagem.meses
     .slice()
@@ -322,7 +414,7 @@ export function resumoListagemAcordo(listagem: ConfigCobrancaAcordoListagem): st
 
 export function formatarPeriodoAcordo(inicio: string | null | undefined, fim: string | null | undefined): string {
   if (!inicio && !fim) return 'Período não informado';
-  return `${formatarIsoBr(inicio)} até ${formatarIsoBr(fim)}`;
+  return `${formatarIsoBr(inicio)} a ${formatarIsoBr(fim)}`;
 }
 
 export interface ValidacaoAcordoOptions {
@@ -340,6 +432,9 @@ export function mensagensValidacaoAcordo(
   const fim = acordo.dataFim?.trim() || '';
   if (!inicio || !fim) m.push('Informe a data de início e a data de fim do acordo.');
   else if (inicio > fim) m.push('A data de início do acordo deve ser anterior ou igual à data de fim.');
+
+  const mesesPermitidos =
+    inicio && fim && inicio <= fim ? new Set(mesesNoPeriodoAcordo(inicio, fim)) : null;
 
   const listagens = (acordo.listagens ?? []).filter((l) => l.meses.length > 0);
   if (!listagens.length) {
@@ -363,6 +458,10 @@ export function mensagensValidacaoAcordo(
         }
       }
       for (const mes of listagem.meses) {
+        if (mesesPermitidos && !mesesPermitidos.has(mes)) {
+          m.push('Os meses da listagem devem estar dentro do período do acordo.');
+          return m;
+        }
         if (usados.has(mes)) {
           m.push('O mesmo mês não pode aparecer em mais de uma listagem.');
           return m;

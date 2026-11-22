@@ -133,6 +133,9 @@ export function mapJanelaDetalhe(row: Row): JanelaAgendamentoDetalhe {
 }
 
 function mapListItem(row: Row): JanelaAgendamentoListItem {
+  const vagasPorSlot = num(row, 'vagasPorSlot');
+  const faixasEmb = list(row, 'faixas');
+  const qtdFaixas = num(row, 'qtdFaixas') || faixasEmb.length;
   return {
     id: num(row, 'id'),
     estacionamentoId: num(row, 'estacionamentoId'),
@@ -142,9 +145,10 @@ function mapListItem(row: Row): JanelaAgendamentoListItem {
     dataVigenciaInicio: toIsoDate(pick(row, 'dataVigenciaInicio')),
     dataVigenciaFim: toIsoDateOrNull(pick(row, 'dataVigenciaFim')),
     ativo: bool(row, 'ativo'),
-    vagasPorSlot: num(row, 'vagasPorSlot'),
-    qtdFaixas: num(row, 'qtdFaixas'),
-    qtdPeriodicidades: num(row, 'qtdPeriodicidades'),
+    vagasPorSlot,
+    qtdFaixas,
+    qtdPeriodicidades: num(row, 'qtdPeriodicidades') || list(row, 'periodicidades').length,
+    totalDisponibilizacoes: Math.max(0, vagasPorSlot) * Math.max(0, qtdFaixas),
   };
 }
 

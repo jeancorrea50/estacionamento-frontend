@@ -104,6 +104,11 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'janelas.gravar',
     'janelas.alterar',
     'janelas.excluir',
+    // Destinação (`/app/patio/agendamentos/destinacao`)
+    'destinacao.visualizar',
+    'destinacao.gravar',
+    'destinacao.alterar',
+    'destinacao.excluir',
   ],
   // Menu Agendar (`/app/agendar`) — claims distintas; API aceita qualquer uma das duas.
   Agendar: [
@@ -129,6 +134,10 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'cobranca.gravar',
     'cobranca.alterar',
     'cobranca.excluir',
+    'acordos.visualizar',
+    'acordos.gravar',
+    'acordos.alterar',
+    'acordos.excluir',
   ],
   Relatórios: [
     'relatorios.visualizar',

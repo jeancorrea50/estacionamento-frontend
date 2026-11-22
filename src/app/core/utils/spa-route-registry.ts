@@ -1,5 +1,6 @@
 import { MENU_STRUCTURE } from '../../features/cadastro/constants/menu-structure';
 import {
+  FATURAMENTO_ACORDOS_ROUTE,
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_RELATORIO_ROUTE,
   FATURAMENTO_ROUTE,
@@ -51,6 +52,7 @@ function collectFaturamentoRoutes(): void {
   addRoute(PAGAMENTOS_RELATORIO_ROUTE);
   addRoute(FATURAMENTO_CONFIG_ROUTE);
   addRoute(FATURAMENTO_RELATORIO_ROUTE);
+  addRoute(FATURAMENTO_ACORDOS_ROUTE);
   for (const tab of FATURAMENTO_TABS) {
     addRoute(tab.route);
   }
@@ -70,6 +72,7 @@ function collectPatioRoutes(): void {
   addRoute(PATIO_MOVIMENTACOES_ROUTE);
   addRoute(PATIO_MOVIMENTACOES_RELATORIO_ROUTE);
   addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
+  addRoute('/app/patio/agendamentos/destinacao');
 }
 
 function collectStaticRoutes(): void {
@@ -84,6 +87,8 @@ function collectStaticRoutes(): void {
     '/app/patio/agendamentos',
     '/app/patio/agendamentos/painel',
     '/app/patio/agendamentos/janelas',
+    '/app/patio/agendamentos/destinacao',
+    '/app/financeiro/faturamento/acordos',
     '/app/agendamento',
     '/app/agendamento/agendamentos',
     '/app/agendamento/agendar',

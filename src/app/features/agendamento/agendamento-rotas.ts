@@ -22,6 +22,14 @@ export const JANELAS_LABEL = 'Janelas';
 export const JANELAS_PATH = 'janelas';
 export const JANELAS_ROUTE = '/app/patio/agendamentos/janelas';
 
+/**
+ * Destinação de vagas por acordo — submenu de Agendamentos.
+ * Canônico: `/app/patio/agendamentos/destinacao` — claims `destinacao.*`.
+ */
+export const DESTINACAO_LABEL = 'Destinação';
+export const DESTINACAO_PATH = 'destinacao';
+export const DESTINACAO_ROUTE = '/app/patio/agendamentos/destinacao';
+
 /** Alias legado da lista sob `/app/agendamento/...`. */
 export const AGENDAMENTOS_ROUTE = AGENDAMENTO_PAINEL_ROUTE;
 export const AGENDAMENTOS_PATH = 'agendamentos';

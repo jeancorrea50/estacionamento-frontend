@@ -4,6 +4,8 @@
  */
 import type { MenuSubItem } from '../cadastro/constants/menu-structure';
 import {
+  FATURAMENTO_ACORDOS_LABEL,
+  FATURAMENTO_ACORDOS_ROUTE,
   FATURAMENTO_CONFIG_LABEL,
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_RELATORIO_LABEL,
@@ -44,6 +46,11 @@ export const FINANCEIRO_FATURAMENTO_CHILDREN: MenuSubItem[] = [
         id: 'sub-faturamento-cobranca',
         label: FATURAMENTO_CONFIG_LABEL,
         route: FATURAMENTO_CONFIG_ROUTE,
+      },
+      {
+        id: 'sub-faturamento-acordos',
+        label: FATURAMENTO_ACORDOS_LABEL,
+        route: FATURAMENTO_ACORDOS_ROUTE,
       },
       {
         id: 'sub-faturamento-relatorio',

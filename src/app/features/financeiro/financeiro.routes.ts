@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { FaturamentoPageComponent } from './pages/faturamento-page/faturamento-page.component';
 import {
+  FATURAMENTO_ACORDOS_PATH,
   FATURAMENTO_CONFIG_PATH,
   FATURAMENTO_RELATORIO_PATH,
   PAGAMENTOS_PATH,
@@ -15,6 +16,14 @@ export const FATURAMENTO_ROUTES: Routes = [
       import('./pages/faturamento-page/config-cobranca/faturamento-config-cobranca.component').then(
         (m) => m.FaturamentoConfigCobrancaComponent
       ),
+  },
+  {
+    path: FATURAMENTO_ACORDOS_PATH,
+    loadComponent: () =>
+      import('./pages/faturamento-page/acordos/faturamento-acordos.component').then(
+        (m) => m.FaturamentoAcordosComponent
+      ),
+    title: 'Acordos',
   },
   {
     path: FATURAMENTO_RELATORIO_PATH,

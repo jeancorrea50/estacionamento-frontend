@@ -3,6 +3,7 @@ import { EntradaSaidaShellComponent } from '../movimentos/entrada-saida/entrada-
 import { EntradaSaidaFormComponent } from '../movimentos/entrada-saida/entrada-saida-form.component';
 import { MovimentosPageComponent } from '../movimentos/pages/movimentos-page/movimentos-page.component';
 import {
+  PATIO_AGENDAMENTOS_DESTINACAO_PATH,
   PATIO_AGENDAMENTOS_JANELAS_PATH,
   PATIO_AGENDAMENTOS_PAINEL_PATH,
   PATIO_AGENDAMENTOS_PATH,
@@ -65,6 +66,14 @@ export const PATIO_ROUTES: Routes = [
         (m) => m.AgendamentosPageComponent
       ),
     title: 'Painel de agendamentos',
+  },
+  {
+    path: PATIO_AGENDAMENTOS_DESTINACAO_PATH,
+    loadComponent: () =>
+      import('../agendamento/pages/destinacao-page/destinacao-page.component').then(
+        (m) => m.DestinacaoPageComponent
+      ),
+    title: 'Destinação',
   },
   // Agrupador sem tela → redireciona para o Painel.
   {

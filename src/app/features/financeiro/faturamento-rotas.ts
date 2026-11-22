@@ -31,6 +31,11 @@ export const FATURAMENTO_RELATORIO_ROUTE = '/app/financeiro/faturamento/relatori
 export const FATURAMENTO_RELATORIO_PATH = 'relatorio';
 export const FATURAMENTO_RELATORIO_LABEL = 'Relatório';
 
+/** Submenu Acordos — período/vagas/CIF-FOB (irmão de Cobrança). Claims `acordos.*`. */
+export const FATURAMENTO_ACORDOS_ROUTE = '/app/financeiro/faturamento/acordos';
+export const FATURAMENTO_ACORDOS_PATH = 'acordos';
+export const FATURAMENTO_ACORDOS_LABEL = 'Acordos';
+
 /** Prefixo legado (menu/API antigos). */
 const LEGACY_FATURAMENTO_PREFIX = '/app/faturamento';
 const LEGACY_CONFIG_SLUGS = [

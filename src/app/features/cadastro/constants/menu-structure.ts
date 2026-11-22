@@ -3,6 +3,8 @@
  * O login só filtra o que o usuário pode ver — não redefine hierarquia/ordem.
  */
 import {
+  FATURAMENTO_ACORDOS_LABEL,
+  FATURAMENTO_ACORDOS_ROUTE,
   FATURAMENTO_CONFIG_LABEL,
   FATURAMENTO_CONFIG_ROUTE,
   FATURAMENTO_RELATORIO_LABEL,
@@ -39,6 +41,8 @@ import {
   AGENDAMENTO_ROUTE,
   AGENDAR_LABEL,
   AGENDAR_ROUTE,
+  DESTINACAO_LABEL,
+  DESTINACAO_ROUTE,
   JANELAS_LABEL,
   JANELAS_ROUTE,
 } from '../../agendamento/agendamento-rotas';
@@ -102,6 +106,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
             route: AGENDAMENTO_PAINEL_ROUTE,
           },
           { id: 'sub-agendamentos-janelas', label: JANELAS_LABEL, route: JANELAS_ROUTE },
+          {
+            id: 'sub-agendamentos-destinacao',
+            label: DESTINACAO_LABEL,
+            route: DESTINACAO_ROUTE,
+          },
         ],
       },
     ],
@@ -133,6 +142,11 @@ export const MENU_STRUCTURE: MenuNode[] = [
             id: 'sub-faturamento-cobranca',
             label: FATURAMENTO_CONFIG_LABEL,
             route: FATURAMENTO_CONFIG_ROUTE,
+          },
+          {
+            id: 'sub-faturamento-acordos',
+            label: FATURAMENTO_ACORDOS_LABEL,
+            route: FATURAMENTO_ACORDOS_ROUTE,
           },
           {
             id: 'sub-faturamento-relatorio',

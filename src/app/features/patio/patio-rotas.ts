@@ -34,6 +34,11 @@ export const PATIO_AGENDAMENTOS_JANELAS_ROUTE = '/app/patio/agendamentos/janelas
 export const PATIO_AGENDAMENTOS_JANELAS_PATH = 'agendamentos/janelas';
 export const PATIO_AGENDAMENTOS_JANELAS_LABEL = 'Janelas';
 
+/** Destinação de vagas (claims `destinacao.*`) — filha de Agendamentos. */
+export const PATIO_AGENDAMENTOS_DESTINACAO_ROUTE = '/app/patio/agendamentos/destinacao';
+export const PATIO_AGENDAMENTOS_DESTINACAO_PATH = 'agendamentos/destinacao';
+export const PATIO_AGENDAMENTOS_DESTINACAO_LABEL = 'Destinação';
+
 const LEGACY_MOVIMENTOS_PREFIX = '/app/movimentos';
 
 function normalizePath(raw: string): string {

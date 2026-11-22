@@ -12,185 +12,156 @@
     <p class="error-msg">{{ erro() }}</p>
     <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
   } @else {
-    <div class="bd-list-card">
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Ambiente</th>
+            <th>Host</th>
+            <th>Database</th>
+            <th>Tipo</th>
+            <th>Estacionamentos</th>
+            <th>Migrations</th>
+            <th>Ativo</th>
+            <th>Criado por</th>
+            <th>Alterado por</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of listaPaginada(); track item.id) {
             <tr>
-              <th>Nome</th>
-              <th>Ambiente</th>
-              <th>Host</th>
-              <th>Database</th>
-              <th>Tipo</th>
-              <th>Estacionamentos</th>
-              <th>Migrations</th>
-              <th>Ativo</th>
-              <th>Criado por</th>
-              <th>Alterado por</th>
-              <th>Ações</th>
+              <td>{{ item.nome }}</td>
+              <td>{{ ambienteLabel[item.ambiente] || item.ambiente }}</td>
+              <td>{{ item.host }}{{ item.porta ? ':' + item.porta : '' }}</td>
+              <td>{{ item.nomeBanco }}</td>
+              <td>{{ tipoLabel[item.tipoBanco] || item.tipoBanco }}</td>
+              <td>{{ item.quantidadeEstacionamentos ?? item.estacionamentos?.length ?? 0 }}</td>
+              <td>{{ item.migration?.length ?? 0 }}</td>
+              <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+              <td class="meta-col">{{ labelAutor(item.criadoPorNome, item.criadoPorUsuarioId) }}</td>
+              <td class="meta-col">{{ labelAutor(item.alteradoPorNome, item.alteradoPorUsuarioId) }}</td>
+              <td class="acoes-cell">
+                <div class="table-actions" (click)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--sm acoes-menu-trigger"
+                    aria-label="Ações"
+                    aria-haspopup="menu"
+                    [attr.aria-expanded]="isMenuOpen(item.id)"
+                    (click)="toggleMenu(item.id, $event)"
+                  >
+                    ⋮
+                  </button>
+                  @if (isMenuOpen(item.id)) {
+                    <div class="acoes-menu" role="menu" (click)="$event.stopPropagation()">
+                      <button type="button" class="acoes-menu__item" role="menuitem" (click)="acaoEditar(item)">
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        class="acoes-menu__item"
+                        role="menuitem"
+                        (click)="acaoEstacionamentos(item)"
+                      >
+                        Estacionamentos
+                      </button>
+                      <button type="button" class="acoes-menu__item" role="menuitem" (click)="acaoMigrations(item)">
+                        Migrations
+                      </button>
+                      <button
+                        type="button"
+                        class="acoes-menu__item"
+                        role="menuitem"
+                        [disabled]="item.tipoBanco !== 1 || migrandoId() === item.id"
+                        [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : null"
+                        (click)="acaoMigrar(item)"
+                      >
+                        {{ migrandoId() === item.id ? 'Migrando...' : 'Migrar' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="acoes-menu__item"
+                        role="menuitem"
+                        [disabled]="item.tipoBanco !== 1"
+                        [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : null"
+                        (click)="acaoTransferir(item)"
+                      >
+                        Transferir
+                      </button>
+                      @if (item.tipoBanco === 1) {
+                        <button
+                          type="button"
+                          class="acoes-menu__item acoes-menu__item--danger"
+                          role="menuitem"
+                          [disabled]="limpandoId() === item.id"
+                          (click)="limparDados(item)"
+                        >
+                          {{ limpandoId() === item.id ? 'Limpando...' : 'Limpar dados' }}
+                        </button>
+                      }
+                      @if (podeExcluirBanco(item)) {
+                        <button
+                          type="button"
+                          class="acoes-menu__item acoes-menu__item--danger"
+                          role="menuitem"
+                          [disabled]="excluindoId() === item.id"
+                          (click)="acaoExcluir(item)"
+                        >
+                          {{ excluindoId() === item.id ? 'Excluindo...' : 'Excluir' }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            @for (item of listaPaginada(); track item.id) {
-              <tr>
-                <td>{{ item.nome }}</td>
-                <td>{{ ambienteLabel[item.ambiente] || item.ambiente }}</td>
-                <td>{{ item.host }}{{ item.porta ? ':' + item.porta : '' }}</td>
-                <td>{{ item.nomeBanco }}</td>
-                <td>{{ tipoLabel[item.tipoBanco] || item.tipoBanco }}</td>
-                <td>{{ item.quantidadeEstacionamentos ?? item.estacionamentos?.length ?? 0 }}</td>
-                <td>{{ item.migration?.length ?? 0 }}</td>
-                <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
-                <td class="meta-col">{{ labelAutor(item.criadoPorNome, item.criadoPorUsuarioId) }}</td>
-                <td class="meta-col">{{ labelAutor(item.alteradoPorNome, item.alteradoPorUsuarioId) }}</td>
-                <td class="acoes-cell">
-                  <div class="table-actions" (click)="$event.stopPropagation()">
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn--sm acoes-menu-trigger"
-                      aria-label="Ações"
-                      aria-haspopup="menu"
-                      [attr.aria-expanded]="isMenuOpen(item.id)"
-                      (click)="toggleMenu(item.id, $event)"
-                    >
-                      ⋮
-                    </button>
-                    @if (isMenuOpen(item.id)) {
-                      <div class="acoes-menu" role="menu" (click)="$event.stopPropagation()">
-                        <button type="button" class="acoes-menu__item" role="menuitem" (click)="acaoEditar(item)">
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          class="acoes-menu__item"
-                          role="menuitem"
-                          (click)="acaoEstacionamentos(item)"
-                        >
-                          Estacionamentos
-                        </button>
-                        <button type="button" class="acoes-menu__item" role="menuitem" (click)="acaoMigrations(item)">
-                          Migrations
-                        </button>
-                        <button
-                          type="button"
-                          class="acoes-menu__item"
-                          role="menuitem"
-                          [disabled]="item.tipoBanco !== 1 || migrandoId() === item.id"
-                          [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : null"
-                          (click)="acaoMigrar(item)"
-                        >
-                          {{ migrandoId() === item.id ? 'Migrando...' : 'Migrar' }}
-                        </button>
-                        <button
-                          type="button"
-                          class="acoes-menu__item"
-                          role="menuitem"
-                          [disabled]="item.tipoBanco !== 1"
-                          [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : null"
-                          (click)="acaoTransferir(item)"
-                        >
-                          Transferir
-                        </button>
-                        @if (item.tipoBanco === 1) {
-                          <button
-                            type="button"
-                            class="acoes-menu__item acoes-menu__item--danger"
-                            role="menuitem"
-                            [disabled]="limpandoId() === item.id"
-                            (click)="limparDados(item)"
-                          >
-                            {{ limpandoId() === item.id ? 'Limpando...' : 'Limpar dados' }}
-                          </button>
-                        }
-                        @if (podeExcluirBanco(item)) {
-                          <button
-                            type="button"
-                            class="acoes-menu__item acoes-menu__item--danger"
-                            role="menuitem"
-                            [disabled]="excluindoId() === item.id"
-                            (click)="acaoExcluir(item)"
-                          >
-                            {{ excluindoId() === item.id ? 'Excluindo...' : 'Excluir' }}
-                          </button>
-                        }
-                      </div>
-                    }
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+          }
+        </tbody>
+      </table>
+    </div>
 
-      @if (!lista().length) {
-        <p class="empty-msg">Nenhum perfil de conexão cadastrado.</p>
-      } @else {
-        <footer class="bd-paginacao" aria-label="Paginação das conexões">
-          <p class="bd-paginacao__info">
-            Mostrando <strong>{{ intervaloExibicao().de }}</strong> a
-            <strong>{{ intervaloExibicao().ate }}</strong> de
-            <strong>{{ totalCount() }}</strong>
-            {{ totalCount() === 1 ? 'conexão' : 'conexões' }}
-          </p>
-          <div class="bd-paginacao__right">
-            <label class="bd-page-size">
-              <span class="bd-page-size__label">Linhas por página</span>
-              <select
-                class="bd-page-size__select"
-                [value]="tamanhoPagina()"
-                (change)="onTamanhoPaginaChange(($any($event.target)).value)"
-                aria-label="Linhas por página"
-              >
-                @for (opt of opcoesTamanhoPagina; track opt) {
-                  <option [value]="opt">{{ opt }}</option>
-                }
-              </select>
-            </label>
-            <div class="bd-pager" aria-label="Navegação de páginas">
-              <button
-                type="button"
-                class="btn btn-secondary btn--sm"
-                [disabled]="numeroPagina() <= 1"
-                (click)="irParaPagina(1)"
-                aria-label="Primeira página"
-              >
-                «
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary btn--sm"
-                [disabled]="numeroPagina() <= 1"
-                (click)="irParaPagina(numeroPagina() - 1)"
-                aria-label="Página anterior"
-              >
-                ‹
-              </button>
-              <span class="bd-pager__current" aria-current="page">
-                {{ numeroPagina() }} / {{ totalPaginas() }}
-              </span>
-              <button
-                type="button"
-                class="btn btn-secondary btn--sm"
-                [disabled]="numeroPagina() >= totalPaginas()"
-                (click)="irParaPagina(numeroPagina() + 1)"
-                aria-label="Próxima página"
-              >
-                ›
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary btn--sm"
-                [disabled]="numeroPagina() >= totalPaginas()"
-                (click)="irParaPagina(totalPaginas())"
-                aria-label="Última página"
-              >
-                »
-              </button>
-            </div>
-          </div>
-        </footer>
-      }
+    @if (!lista().length) {
+      <p class="empty-msg">Nenhum perfil de conexão cadastrado.</p>
+    }
+
+    <div class="bd-paginacao" aria-label="Paginação das conexões">
+      <span class="bd-paginacao__info">
+        Página {{ numeroPagina() }} de {{ totalPaginas() }} · {{ totalCount() }} conexão(ões)
+        · {{ intervaloExibicao().de }}–{{ intervaloExibicao().ate }}
+      </span>
+      <div class="bd-paginacao__botoes">
+        <label class="bd-page-size">
+          <span class="bd-page-size__label">Linhas</span>
+          <select
+            class="bd-page-size__select"
+            [value]="tamanhoPagina()"
+            (change)="onTamanhoPaginaChange(($any($event.target)).value)"
+            aria-label="Linhas por página"
+          >
+            @for (opt of opcoesTamanhoPagina; track opt) {
+              <option [value]="opt">{{ opt }}</option>
+            }
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn btn-secondary btn--sm"
+          [disabled]="numeroPagina() <= 1"
+          (click)="irParaPagina(numeroPagina() - 1)"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary btn--sm"
+          [disabled]="numeroPagina() >= totalPaginas()"
+          (click)="irParaPagina(numeroPagina() + 1)"
+        >
+          Próxima
+        </button>
+      </div>
     </div>
   }
 </div>

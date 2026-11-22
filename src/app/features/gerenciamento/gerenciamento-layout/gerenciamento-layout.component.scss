@@ -85,18 +85,9 @@
 
 .page-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   overflow-y: auto;
   min-height: 0;
   padding: var(--space-lg, 16px) var(--space-lg, 16px) var(--space-xl, 20px);
-}
-
-/* Componente roteado (irmão do router-outlet) preenche a área útil. */
-.gerenciamento-content > :not(router-outlet) {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
 }
 
 @media (max-width: 768px) {

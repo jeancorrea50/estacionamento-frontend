@@ -1,10 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subscription, merge } from 'rxjs';
-import { debounceTime, distinctUntilChanged, finalize, map } from 'rxjs/operators';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { Observable, Subscription, merge } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, finalize, map, take } from 'rxjs/operators';
 import type { ApiError } from '../../../../core/api/models';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import {
+  CadastroConfirmDialogComponent,
+  type CadastroConfirmDialogData,
+} from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import {
   AMBIENTE_LABEL,
@@ -28,7 +33,7 @@ import { BancoDadosConexaoService } from '../../services/banco-dados-conexao.ser
 @Component({
   selector: 'app-banco-dados-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, MatDialogModule],
   templateUrl: './banco-dados-page.component.html',
   styleUrls: ['./banco-dados-page.component.scss'],
 })
@@ -36,6 +41,7 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(BancoDadosConexaoService);
   private readonly estacionamentoApi = inject(EstacionamentoService);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
   private formWatchSub?: Subscription;
   private sugerirSub?: Subscription;
@@ -699,34 +705,36 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const ok = window.confirm(
-      `Transferir "${conexao.nomeBanco}" de ${conexao.host} para ${host}:${porta}?`
-    );
-    if (!ok) return;
-
-    this.transferindo.set(true);
-    this.api
-      .transferir({
-        bancoDadosConexaoId: conexao.id,
-        hostFuturo: host,
-        portaFuturo: porta,
-        nomeBancoFuturo: conexao.nomeBanco ?? null,
-        usuarioFuturo: v.usuarioFuturo.trim(),
-        senhaFuturo: v.senhaFuturo,
-        trustServerCertificate: !!v.trustServerCertificate,
-        encrypt: !!v.encrypt,
-        sobrescreverDestinoSeExistir: !!v.sobrescreverDestinoSeExistir,
-      })
-      .pipe(finalize(() => this.transferindo.set(false)))
-      .subscribe({
-        next: (r) => {
-          this.toast.success(r?.mensagem || 'Transferência iniciada. Acompanhe pelo sino.');
-          if (r?.data) this.ultimaTransferencia.set(r.data);
-        },
-        error: (err: ApiError) => {
-          this.toast.error(err?.message ?? 'Não foi possível transferir.');
-        },
-      });
+    this.confirmar({
+      titulo: 'Transferir banco',
+      mensagem: `Transferir "${conexao.nomeBanco}" de ${conexao.host} para ${host}:${porta}?`,
+      confirmLabel: 'Transferir',
+      confirmColor: 'primary',
+    }).subscribe(() => {
+      this.transferindo.set(true);
+      this.api
+        .transferir({
+          bancoDadosConexaoId: conexao.id,
+          hostFuturo: host,
+          portaFuturo: porta,
+          nomeBancoFuturo: conexao.nomeBanco ?? null,
+          usuarioFuturo: v.usuarioFuturo.trim(),
+          senhaFuturo: v.senhaFuturo,
+          trustServerCertificate: !!v.trustServerCertificate,
+          encrypt: !!v.encrypt,
+          sobrescreverDestinoSeExistir: !!v.sobrescreverDestinoSeExistir,
+        })
+        .pipe(finalize(() => this.transferindo.set(false)))
+        .subscribe({
+          next: (r) => {
+            this.toast.success(r?.mensagem || 'Transferência iniciada. Acompanhe pelo sino.');
+            if (r?.data) this.ultimaTransferencia.set(r.data);
+          },
+          error: (err: ApiError) => {
+            this.toast.error(err?.message ?? 'Não foi possível transferir.');
+          },
+        });
+    });
   }
 
   statusLabel(status: number): string {
@@ -775,8 +783,10 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const ok = window.confirm(
-      `Limpar dados operacionais do banco "${item.nomeBanco}" (${item.host})?\n\n` +
+    this.confirmar({
+      titulo: 'Limpar dados operacionais',
+      mensagem:
+        `Limpar dados operacionais do banco "${item.nomeBanco}" (${item.host})?\n\n` +
         `MANTÉM:\n` +
         `• Cadastro de estacionamento (tenant)\n` +
         `• Configurações do sistema\n` +
@@ -787,29 +797,30 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
         `• Movimentações, agendamentos e histórico operacional\n` +
         `• Faturamento, cobranças e lançamentos financeiros\n` +
         `• Demais dados transacionais do banco do tenant\n\n` +
-        `Esta ação é irreversível no banco de destino.`
-    );
-    if (!ok) return;
-
-    this.limpandoId.set(item.id);
-    this.api
-      .limpar(item.id)
-      .pipe(finalize(() => this.limpandoId.set(null)))
-      .subscribe({
-        next: (r) => {
-          if (r?.sucesso === false) {
-            this.toast.error(r.mensagem || 'Falha ao limpar dados.');
-            return;
-          }
-          this.toast.success(
-            r?.mensagem || 'Limpeza enfileirada ou concluída. Acompanhe pelo sino, se aplicável.'
-          );
-          this.carregar();
-        },
-        error: (err: ApiError) => {
-          this.toast.error(err?.message ?? 'Não foi possível limpar os dados.');
-        },
-      });
+        `Esta ação é irreversível no banco de destino.`,
+      confirmLabel: 'Limpar dados',
+      confirmColor: 'warn',
+    }).subscribe(() => {
+      this.limpandoId.set(item.id);
+      this.api
+        .limpar(item.id)
+        .pipe(finalize(() => this.limpandoId.set(null)))
+        .subscribe({
+          next: (r) => {
+            if (r?.sucesso === false) {
+              this.toast.error(r.mensagem || 'Falha ao limpar dados.');
+              return;
+            }
+            this.toast.success(
+              r?.mensagem || 'Limpeza enfileirada ou concluída. Acompanhe pelo sino, se aplicável.'
+            );
+            this.carregar();
+          },
+          error: (err: ApiError) => {
+            this.toast.error(err?.message ?? 'Não foi possível limpar os dados.');
+          },
+        });
+    });
   }
 
   acaoEditar(item: BancoDadosConexao): void {
@@ -868,29 +879,32 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   }
 
   migrarTodos(): void {
-    const ok = window.confirm(
-      'Aplicar migrations pendentes do Gts em todos os perfis ativos (SQL Server)?\n\n' +
-        'Pode levar alguns minutos conforme a quantidade de bancos.'
-    );
-    if (!ok) return;
-
-    this.migrandoTodos.set(true);
-    this.api
-      .migrarTodos()
-      .pipe(finalize(() => this.migrandoTodos.set(false)))
-      .subscribe({
-        next: (r) => {
-          if (r?.sucesso === false) {
-            this.toast.error(r.mensagem || 'Falha ao migrar perfis.');
-            return;
-          }
-          this.toast.success(r?.mensagem || 'Migrations aplicadas nos perfis.');
-          this.carregar();
-        },
-        error: (err: ApiError) => {
-          this.toast.error(err?.message ?? 'Não foi possível migrar todos os perfis.');
-        },
-      });
+    this.confirmar({
+      titulo: 'Aplicar migrations',
+      mensagem:
+        'Aplicar migrations pendentes do Gts em todos os perfis ativos (SQL Server)?\n\n' +
+        'Pode levar alguns minutos conforme a quantidade de bancos.',
+      confirmLabel: 'Aplicar migrations',
+      confirmColor: 'primary',
+    }).subscribe(() => {
+      this.migrandoTodos.set(true);
+      this.api
+        .migrarTodos()
+        .pipe(finalize(() => this.migrandoTodos.set(false)))
+        .subscribe({
+          next: (r) => {
+            if (r?.sucesso === false) {
+              this.toast.error(r.mensagem || 'Falha ao migrar perfis.');
+              return;
+            }
+            this.toast.success(r?.mensagem || 'Migrations aplicadas nos perfis.');
+            this.carregar();
+          },
+          error: (err: ApiError) => {
+            this.toast.error(err?.message ?? 'Não foi possível migrar todos os perfis.');
+          },
+        });
+    });
   }
 
   excluirBanco(item: BancoDadosConexao): void {
@@ -906,26 +920,46 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
         ? `\n\nAtenção: ${qtd} estacionamento(s) vinculado(s) serão desvinculados e desativados no GtCentral.`
         : '';
 
-    const ok = window.confirm(
-      `Excluir permanentemente o banco "${item.nomeBanco}" em ${item.host} (${ambiente})?\n\n` +
+    this.confirmar({
+      titulo: 'Excluir banco',
+      mensagem:
+        `Excluir permanentemente o banco "${item.nomeBanco}" em ${item.host} (${ambiente})?\n\n` +
         `Isso executa DROP DATABASE no servidor, remove o perfil BancoDadosConexao do GtCentral ` +
         `e limpa vínculos (tenants, catálogo central, transferências e migrations).${avisoTenants}\n\n` +
-        `Esta ação não pode ser desfeita.`
-    );
-    if (!ok) return;
+        `Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+      confirmColor: 'warn',
+    }).subscribe(() => {
+      this.excluindoId.set(item.id);
+      this.api
+        .excluir(item.id)
+        .pipe(finalize(() => this.excluindoId.set(null)))
+        .subscribe({
+          next: (r) => {
+            this.toast.success(r?.mensagem || 'Exclusão enfileirada. Acompanhe pelo sino.');
+            this.carregar();
+          },
+          error: (err: ApiError) => {
+            this.toast.error(err?.message ?? 'Não foi possível enfileirar a exclusão.');
+          },
+        });
+    });
+  }
 
-    this.excluindoId.set(item.id);
-    this.api
-      .excluir(item.id)
-      .pipe(finalize(() => this.excluindoId.set(null)))
-      .subscribe({
-        next: (r) => {
-          this.toast.success(r?.mensagem || 'Exclusão enfileirada. Acompanhe pelo sino.');
-          this.carregar();
-        },
-        error: (err: ApiError) => {
-          this.toast.error(err?.message ?? 'Não foi possível enfileirar a exclusão.');
-        },
-      });
+  /** Confirmação padrão do projeto (Material dialog + feedback via Toast). */
+  private confirmar(data: CadastroConfirmDialogData): Observable<true> {
+    return this.dialog
+      .open(CadastroConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '96vw',
+        autoFocus: 'dialog',
+        panelClass: 'cad-confirm-dialog-panel',
+        data,
+      })
+      .afterClosed()
+      .pipe(
+        take(1),
+        filter((ok): ok is true => ok === true)
+      );
   }
 }

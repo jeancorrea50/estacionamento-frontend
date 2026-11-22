@@ -12,6 +12,8 @@ import {
   AgendamentoPagedResult,
   AgendamentoPostInput,
   AgendamentoSearchItem,
+  AgendamentoSlotHold,
+  AgendamentoSlotHoldPostInput,
   parseEntradaSaidaStatus,
 } from '../models/agendamento.models';
 
@@ -73,6 +75,65 @@ export class AgendamentoService {
       map((body) => this.readSuccess(body, 'Agendamento criado.')),
       catchError((err: unknown) => of(this.readHttpFailure(err)))
     );
+  }
+
+  /** POST `/api/Agendamento/vagas/holds` — reserva temporária (20 min). */
+  criarHold(input: AgendamentoSlotHoldPostInput): Observable<AgendamentoSlotHold> {
+    return this.http.post<unknown>(`${this.apiRoot}/vagas/holds`, input).pipe(
+      map((body) => this.mapHold(unwrapServiceResult<Record<string, unknown>>(body)))
+    );
+  }
+
+  obterHold(id: number): Observable<AgendamentoSlotHold> {
+    return this.http.get<unknown>(`${this.apiRoot}/vagas/holds/${id}`).pipe(
+      map((body) => this.mapHold(unwrapServiceResult<Record<string, unknown>>(body)))
+    );
+  }
+
+  /**
+   * DELETE `/api/Agendamento/vagas/holds/{id}`.
+   * Com `token`, permite cancelamento via beacon sem sessão.
+   */
+  cancelarHold(id: number, token?: string | null): Observable<AgendamentoMutationResult> {
+    let params = new HttpParams();
+    const t = (token ?? '').trim();
+    if (t) params = params.set('token', t);
+    return this.http.delete<unknown>(`${this.apiRoot}/vagas/holds/${id}`, { params }).pipe(
+      map((body) => this.readSuccess(body ?? {}, 'Reserva temporária cancelada.')),
+      catchError((err: unknown) => of(this.readHttpFailure(err)))
+    );
+  }
+
+  /** Cancelamento best-effort ao fechar aba/navegador (`fetch` + keepalive; sendBeacon só faz POST). */
+  cancelarHoldBeacon(id: number, token: string): void {
+    const t = (token ?? '').trim();
+    if (!id || !t || typeof fetch !== 'function') return;
+    const url = `${this.apiRoot}/vagas/holds/${id}?token=${encodeURIComponent(t)}`;
+    try {
+      void fetch(url, { method: 'DELETE', keepalive: true, credentials: 'omit' });
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  private mapHold(row: Record<string, unknown> | null | undefined): AgendamentoSlotHold {
+    const r = row && typeof row === 'object' ? row : {};
+    return {
+      id: this.pickNumber(r, 'id', 'Id'),
+      token: this.pickString(r, 'token', 'Token'),
+      estacionamentoId: this.pickNumber(r, 'estacionamentoId', 'EstacionamentoId'),
+      transportadoraId: this.pickNumber(r, 'transportadoraId', 'TransportadoraId'),
+      usuarioId: this.pickNumber(r, 'usuarioId', 'UsuarioId') || null,
+      data: this.pickString(r, 'data', 'Data'),
+      modalidadeAgendamento: this.pickNumber(r, 'modalidadeAgendamento', 'ModalidadeAgendamento') || 1,
+      horaInicio: this.pickString(r, 'horaInicio', 'HoraInicio'),
+      horaFim: this.pickString(r, 'horaFim', 'HoraFim'),
+      janelaAgendamentoId: this.pickNumber(r, 'janelaAgendamentoId', 'JanelaAgendamentoId') || null,
+      quantidade: this.pickNumber(r, 'quantidade', 'Quantidade'),
+      status: this.pickNumber(r, 'status', 'Status'),
+      criadoEm: this.pickString(r, 'criadoEm', 'CriadoEm'),
+      expiraEm: this.pickString(r, 'expiraEm', 'ExpiraEm'),
+    };
   }
 
   cancelar(id: number): Observable<AgendamentoMutationResult> {

@@ -8,7 +8,7 @@
         </p>
       </div>
       <div class="agendar-page__actions">
-        <button type="button" class="btn btn-secondary" (click)="carregar(); carregarVagas()">
+        <button type="button" class="btn btn-secondary" (click)="carregar()">
           <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           Atualizar
         </button>
@@ -29,45 +29,6 @@
         <p class="error-msg">{{ erro() }}</p>
       </div>
     } @else {
-      <div class="agendar-kpi-grid" aria-label="Indicadores">
-        <app-est-summary-metric
-          icon="event"
-          label="Meus agendamentos"
-          [value]="kpiMeusAgendamentos()"
-          variant="info"
-        />
-        <app-est-summary-metric
-          icon="local_parking"
-          label="Vagas estacionamento"
-          [value]="kpiDisponiveisEst()"
-          variant="success"
-          [hint]="'Reservadas: ' + kpiReservadasEst()"
-        />
-        <app-est-summary-metric
-          icon="water_drop"
-          label="Vagas limpeza"
-          [value]="kpiDisponiveisLimp()"
-          variant="info"
-          [hint]="'Reservadas: ' + kpiReservadasLimp()"
-        />
-        <app-est-summary-metric
-          icon="garage"
-          label="Controle ativo"
-          [value]="vagas()?.controleAtivo ? 'Sim' : 'Não'"
-          [variant]="vagas()?.controleAtivo ? 'success' : 'warning'"
-        />
-      </div>
-
-      @if (loadingVagas()) {
-        <p class="loading-msg">Carregando disponibilidade de vagas…</p>
-      } @else if (vagas(); as v) {
-        @if (!v.controleAtivo) {
-          <p class="agendar-note">
-            Este estacionamento ainda não disponibilizou controle de vagas para transportadoras.
-          </p>
-        }
-      }
-
       <section class="agendar-lista agendar-card" aria-label="Meus agendamentos">
         <div class="agendar-lista__head">
           <h2>Meus agendamentos</h2>

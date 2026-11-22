@@ -1,12 +1,11 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { EstSummaryMetricComponent } from '../../../cadastro/components/est-summary-metric/est-summary-metric.component';
 import { AGENDAR_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
 import {
@@ -15,8 +14,6 @@ import {
   EntradaSaidaStatus,
 } from '../../models/agendamento.models';
 import { AgendamentoService } from '../../services/agendamento.service';
-import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
-import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
 import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 
 /**
@@ -26,19 +23,12 @@ import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 @Component({
   selector: 'app-agendar-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    DatePipe,
-    EstSummaryMetricComponent,
-    AgendamentoNovoModalComponent,
-  ],
+  imports: [CommonModule, FormsModule, DatePipe, AgendamentoNovoModalComponent],
   templateUrl: './agendar-page.component.html',
   styleUrls: ['./agendar-page.component.scss'],
 })
 export class AgendarPageComponent implements OnInit {
   private readonly api = inject(AgendamentoService);
-  private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly auth = inject(AuthService);
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly permissions = inject(PermissionCacheService);
@@ -47,18 +37,10 @@ export class AgendarPageComponent implements OnInit {
   readonly formatPlaca = formatPlacaDisplay;
 
   readonly loading = signal(false);
-  readonly loadingVagas = signal(false);
   readonly items = signal<AgendamentoSearchItem[]>([]);
   readonly totalCount = signal(0);
-  readonly vagas = signal<VagaDisponibilidadeResumo | null>(null);
   readonly erro = signal<string | null>(null);
   readonly showForm = signal(false);
-
-  readonly kpiDisponiveisEst = computed(() => this.vagas()?.vagasDisponiveisEstacionamento ?? 0);
-  readonly kpiDisponiveisLimp = computed(() => this.vagas()?.vagasDisponiveisLimpeza ?? 0);
-  readonly kpiReservadasEst = computed(() => this.vagas()?.vagasReservadasEstacionamento ?? 0);
-  readonly kpiReservadasLimp = computed(() => this.vagas()?.vagasReservadasLimpeza ?? 0);
-  readonly kpiMeusAgendamentos = computed(() => this.totalCount());
 
   get canVisualizar(): boolean {
     return (
@@ -92,7 +74,6 @@ export class AgendarPageComponent implements OnInit {
       return;
     }
     this.carregar();
-    this.carregarVagas();
   }
 
   abrirNovo(): void {
@@ -110,7 +91,6 @@ export class AgendarPageComponent implements OnInit {
   onNovoSalvo(): void {
     this.showForm.set(false);
     this.carregar();
-    this.carregarVagas();
   }
 
   carregar(): void {
@@ -128,17 +108,6 @@ export class AgendarPageComponent implements OnInit {
           this.erro.set('Não foi possível carregar seus agendamentos.');
           this.toast.error('Falha ao carregar agendamentos.');
         },
-      });
-  }
-
-  carregarVagas(): void {
-    this.loadingVagas.set(true);
-    this.vagasApi
-      .resumoParaTransportadora()
-      .pipe(finalize(() => this.loadingVagas.set(false)))
-      .subscribe({
-        next: (r) => this.vagas.set(r),
-        error: () => this.vagas.set(null),
       });
   }
 

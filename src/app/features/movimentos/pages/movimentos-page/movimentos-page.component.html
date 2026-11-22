@@ -833,6 +833,21 @@
                 />
               </label>
               <label class="field">
+                <span>Telefone do motorista</span>
+                <input
+                  class="input-control"
+                  type="text"
+                  inputmode="tel"
+                  autocomplete="off"
+                  placeholder="(00) 00000-0000"
+                  appTelefoneFormat
+                  [(ngModel)]="registroRapido.motoristaTelefone"
+                  [readonly]="buscandoPlacaRegistroRapido"
+                  [attr.maxlength]="registroRapidoMaxTelefone"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </label>
+              <label class="field">
                 <span>Tipo de carga</span>
                 <select
                   class="input-control input-control--select"

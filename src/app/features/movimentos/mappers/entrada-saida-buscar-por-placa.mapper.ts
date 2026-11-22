@@ -59,6 +59,13 @@ function mapMotoristaItem(raw: unknown): EntradaSaidaMotoristaVinculoItem | null
     'nomeMotorista'
   );
   const cpf = pickStr([pessoa, obj], 'cpf', 'documento', 'cpfMotorista');
+  const celular = pickStr(
+    [pessoa, obj],
+    'celularMotorista',
+    'celular',
+    'telefone',
+    'telefoneMotorista'
+  );
   const principalRaw = obj['principal'] ?? obj['Principal'];
   const principal =
     typeof principalRaw === 'boolean'
@@ -73,6 +80,8 @@ function mapMotoristaItem(raw: unknown): EntradaSaidaMotoristaVinculoItem | null
     id: Number.isFinite(id) && id > 0 ? id : undefined,
     nome: nome || undefined,
     cpf: cpf || undefined,
+    celular: celular || undefined,
+    telefone: celular || undefined,
     principal
   };
 }
@@ -178,6 +187,17 @@ export function mapBuscarPorPlacaParaRegistroRapido(
       ? ''
       : pickStr([pessoaM, motorista, root], 'cpf', 'documento', 'cpfMotorista');
 
+  const motoristaTelefoneRaw =
+    motoristaSelecionado === null
+      ? ''
+      : pickStr(
+          [pessoaM, motorista, root],
+          'celularMotorista',
+          'celular',
+          'telefone',
+          'telefoneMotorista'
+        );
+
   const transportadoraRazaoSocial = pickStr(
     [pessoaT, transportadora, root],
     'razaoSocial',
@@ -236,6 +256,7 @@ export function mapBuscarPorPlacaParaRegistroRapido(
     placa,
     motoristaNome,
     motoristaCpf,
+    motoristaTelefone: motoristaTelefoneRaw ? formatTelefone(motoristaTelefoneRaw) : '',
     tipoCargaLabel: tipoCargaLabelResolved,
     transportadoraCnpj,
     transportadoraRazaoSocial,

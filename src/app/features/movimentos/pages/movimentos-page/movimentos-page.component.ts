@@ -426,6 +426,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     placa: '',
     motorista: '',
     motoristaCpf: '',
+    motoristaTelefone: '',
     transportadoraRazaoSocial: '',
     transportadoraCnpj: '',
     transportadoraResponsavelNome: '',
@@ -907,6 +908,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     if (this.motoristaAutoPreenchidoPorCpf && cpfDigits !== this.ultimaConsultaCpfRegistroRapido) {
       this.motoristaAutoPreenchidoPorCpf = false;
       this.registroRapido.motorista = '';
+      this.registroRapido.motoristaTelefone = '';
     }
 
     if (!this.cpfPossui11Digitos(cpfDigits)) {
@@ -1644,7 +1646,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         motorista: {
           id: Number(motorista?.id) > 0 ? Number(motorista?.id) : undefined,
           cpf: cpfDigits || undefined,
-          nome: String(this.registroRapido.motorista ?? '').trim() || undefined
+          nome: String(this.registroRapido.motorista ?? '').trim() || undefined,
+          celular: this.telefoneSomenteDigitosParaApi(this.registroRapido.motoristaTelefone)
         },
         transportadora: {
           id: Number(transportadora?.id) > 0 ? Number(transportadora?.id) : undefined,
@@ -1712,6 +1715,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       placa: '',
       motorista: '',
       motoristaCpf: '',
+      motoristaTelefone: '',
       transportadoraRazaoSocial: '',
       transportadoraCnpj: '',
       transportadoraResponsavelNome: '',
@@ -2661,6 +2665,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         }
         this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(dto.cpf || cpfDigits);
         this.registroRapido.motorista = this.encurtarTextoLivre(dto.nomeCompleto ?? '');
+        this.registroRapido.motoristaTelefone = this.formatarTelefoneRegistroRapido(dto.celular ?? '');
         this.motoristaAutoPreenchidoPorCpf = true;
       },
       error: () => {
@@ -2674,6 +2679,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private limparCamposVinculadosPlacaRegistroRapido(): void {
     this.registroRapido.motorista = '';
     this.registroRapido.motoristaCpf = '';
+    this.registroRapido.motoristaTelefone = '';
     this.motoristaAutoPreenchidoPorCpf = false;
     this.ultimaConsultaCpfRegistroRapido = '';
     this.consultaCpfSequencia++;
@@ -2723,6 +2729,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     }
     this.registroRapido.motorista = '';
     this.registroRapido.motoristaCpf = '';
+    this.registroRapido.motoristaTelefone = '';
     this.motoristaAutoPreenchidoPorCpf = false;
     if (campos.transportadoraRazaoSocial) {
       this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
@@ -2780,6 +2787,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.motoristaCpf = '';
       this.ultimaConsultaCpfRegistroRapido = '';
     }
+    this.registroRapido.motoristaTelefone = campos.motoristaTelefone
+      ? this.formatarTelefoneRegistroRapido(campos.motoristaTelefone)
+      : '';
     if (campos.transportadoraRazaoSocial) {
       this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
         campos.transportadoraRazaoSocial
@@ -2812,6 +2822,32 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       entrada.transportadoraId > 0
         ? entrada.transportadoraId
         : Number(entrada.transportadora?.id ?? 0) || 0;
+    this.completarTelefoneMotoristaAposPlacaSeNecessario();
+  }
+
+  /**
+   * Se a placa preencheu CPF mas não trouxe celular, consulta o motorista só para
+   * obter PessoaContato.Telefone — sem alterar flags de autofill do nome/CPF.
+   */
+  private completarTelefoneMotoristaAposPlacaSeNecessario(): void {
+    const telDigits = String(this.registroRapido.motoristaTelefone ?? '').replace(/\D/g, '');
+    if (telDigits.length === 10 || telDigits.length === 11) return;
+    const cpfDigits = String(this.registroRapido.motoristaCpf ?? '').replace(/\D/g, '');
+    const tid = this.registroRapidoTransportadoraId;
+    if (!this.cpfPossui11Digitos(cpfDigits) || !(tid > 0)) return;
+
+    const seq = ++this.consultaCpfSequencia;
+    this.motoristaService.obterPorCpf(cpfDigits, tid).subscribe({
+      next: (dto) => {
+        if (seq !== this.consultaCpfSequencia) return;
+        const cpfAtual = String(this.registroRapido.motoristaCpf ?? '').replace(/\D/g, '');
+        if (cpfAtual !== cpfDigits) return;
+        const telAtual = String(this.registroRapido.motoristaTelefone ?? '').replace(/\D/g, '');
+        if (telAtual.length === 10 || telAtual.length === 11) return;
+        if (!dto?.celular) return;
+        this.registroRapido.motoristaTelefone = this.formatarTelefoneRegistroRapido(dto.celular);
+      }
+    });
   }
 
   selecionarMotoristaVinculadoPlaca(item: EntradaSaidaMotoristaVinculoItem): void {

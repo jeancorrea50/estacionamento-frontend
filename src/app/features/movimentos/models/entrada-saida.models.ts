@@ -209,6 +209,8 @@ export interface EntradaSaidaPostInput {
     id?: number;
     cpf?: string;
     nome?: string;
+    /** Celular/telefone BR (DDD + número); API espera dígitos → PessoaContato.Telefone. */
+    celular?: string;
   };
   transportadora?: {
     id?: number;

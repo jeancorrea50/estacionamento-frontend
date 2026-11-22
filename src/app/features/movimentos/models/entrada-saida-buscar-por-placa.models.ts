@@ -16,6 +16,9 @@ export interface EntradaSaidaMotoristaVinculoItem {
   documento?: string | null;
   cpfMotorista?: string | null;
   cnh?: string | null;
+  celular?: string | null;
+  telefone?: string | null;
+  celularMotorista?: string | null;
   principal?: boolean | null;
   pessoaFisica?: Record<string, unknown> | null;
   pessoa?: Record<string, unknown> | null;
@@ -79,6 +82,7 @@ export interface EntradaSaidaBuscarPorPlacaResult {
   placaVeiculo?: string | null;
   nomeMotorista?: string | null;
   cpfMotorista?: string | null;
+  celularMotorista?: string | null;
   cnpj?: string | null;
   cnpjTransportadora?: string | null;
   razaoSocial?: string | null;
@@ -96,6 +100,7 @@ export interface RegistroRapidoPorPlacaCampos {
   placa: string;
   motoristaNome: string;
   motoristaCpf: string;
+  motoristaTelefone: string;
   tipoCargaLabel: string;
   transportadoraCnpj: string;
   transportadoraRazaoSocial: string;

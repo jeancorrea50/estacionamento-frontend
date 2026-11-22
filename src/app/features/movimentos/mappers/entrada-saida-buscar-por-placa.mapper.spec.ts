@@ -40,6 +40,7 @@ describe('mapBuscarPorPlacaParaRegistroRapido', () => {
     expect(campos.placa).toBe('ABC-1D23');
     expect(campos.motoristaNome).toBe('EA Eduardo Augusto Rezende');
     expect(campos.motoristaCpf).toBe('59319251270');
+    expect(campos.motoristaTelefone).toBe('');
     expect(campos.tipoCargaLabel).toBe('Seca');
     expect(campos.transportadoraCnpj).toBe('12345678000195');
     expect(campos.transportadoraRazaoSocial).toBe('Transportes Rápidos Paraná LTDA');

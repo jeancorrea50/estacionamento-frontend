@@ -926,7 +926,7 @@
             role="tab"
             (click)="setModalFrotaTab('motoristasVinculados')"
           >
-            Motoristas vinculados
+            Motoristas vinculados <span class="required" aria-hidden="true">*</span>
           </button>
         </div>
         <form [formGroup]="veiculoForm" novalidate>
@@ -1005,7 +1005,7 @@
             </div>
             <section class="frota-vinculos frota-tab-panel" [class.frota-tab-panel--hidden]="modalFrotaTabAtual !== 'motoristasVinculados'">
                 <div class="frota-vinculos__header">
-                  <h3>Motoristas vinculados</h3>
+                  <h3>Motoristas vinculados <span class="required">*</span></h3>
                 </div>
                 <div class="frota-vinculos__toolbar">
                   <div class="frota-vinculos__busca">
@@ -1023,11 +1023,11 @@
                         <span class="material-symbols-outlined" aria-hidden="true">search</span>
                       </button>
                     </div>
-                    <p class="frota-vinculos__search-hint">O campo de busca abre uma janela com a lista paginada para selecionar o motorista.</p>
+                    <p class="frota-vinculos__search-hint">Obrigatório vincular ao menos um motorista. A busca abre a lista paginada para seleção.</p>
                   </div>
                 </div>
                 @if (motoristasVinculadosFrota.length === 0) {
-                  <p class="frota-vinculos__empty">Nenhum motorista vinculado neste veículo.</p>
+                  <p class="frota-vinculos__empty" role="alert">Nenhum motorista vinculado. Vincule ao menos um para salvar o veículo.</p>
                 } @else {
                   <div class="table-wrap frota-vinculos-table-wrap">
                     <table class="data-table" aria-label="Motoristas vinculados ao veículo">
@@ -1103,7 +1103,7 @@
               <button
                 type="button"
                 class="btn btn-primary"
-                [disabled]="!placaFrotaValida || salvandoVeiculo"
+                [disabled]="!placaFrotaValida || motoristasVinculadosFrota.length === 0 || salvandoVeiculo"
                 (click)="salvarVeiculo()"
               >
                 {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}

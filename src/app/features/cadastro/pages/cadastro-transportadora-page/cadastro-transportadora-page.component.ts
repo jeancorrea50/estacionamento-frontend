@@ -217,8 +217,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   motoristaSomenteLeitura = false;
   salvandoVeiculo = false;
   /**
-   * Único critério de habilitação do botão "Salvar veículo" (app zoneless):
-   * placa BR com 7 caracteres. Demais campos do modal são opcionais.
+   * Placa BR completa (7 chars). Botão Salvar também exige ≥1 motorista vinculado.
+   * Demais campos do veículo (marca, modelo, etc.) são opcionais.
    */
   placaFrotaValida = false;
   modalFrotaTab: ModalFrotaTab = 'veiculo';
@@ -1612,6 +1612,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       this.setModalFrotaTab('veiculo');
       this.atualizarPlacaFrotaValida(placa);
       this.toast.error('Informe a placa completa no padrão Mercosul (ex.: ABC-1D23).');
+      return;
+    }
+    if (this.motoristasVinculadosFrota.length === 0) {
+      this.setModalFrotaTab('motoristasVinculados');
+      this.toast.error('Vincule ao menos um motorista ao veículo.');
+      this.cdr.markForCheck();
       return;
     }
     this.veiculoForm.patchValue({ placa: formatPlacaDisplay(placa) }, { emitEvent: false });

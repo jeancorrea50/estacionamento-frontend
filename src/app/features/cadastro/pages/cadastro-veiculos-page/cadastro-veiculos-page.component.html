@@ -200,7 +200,7 @@
         </div>
         <div class="frota-modal-topbar" role="tablist">
           <button type="button" class="frota-modal-tab" [class.frota-modal-tab--active]="modalFrotaTabAtual === 'veiculo'" (click)="setModalFrotaTab('veiculo')">Veículo</button>
-          <button type="button" class="frota-modal-tab" [class.frota-modal-tab--active]="modalFrotaTabAtual === 'motoristasVinculados'" (click)="setModalFrotaTab('motoristasVinculados')">Motoristas vinculados</button>
+          <button type="button" class="frota-modal-tab" [class.frota-modal-tab--active]="modalFrotaTabAtual === 'motoristasVinculados'" (click)="setModalFrotaTab('motoristasVinculados')">Motoristas vinculados <span class="required" aria-hidden="true">*</span></button>
         </div>
         <form [formGroup]="veiculoForm" novalidate>
           <div class="modal-body modal-body--frota">
@@ -271,7 +271,7 @@
                 }
               </div>
               @if (motoristasVinculadosFrota.length === 0) {
-                <p class="frota-vinculos__empty">Nenhum motorista vinculado.</p>
+                <p class="frota-vinculos__empty" role="alert">Nenhum motorista vinculado. Vincule ao menos um para salvar o veículo.</p>
               } @else {
                 <div class="table-wrap frota-vinculos-table-wrap">
                   <table class="data-table">
@@ -316,7 +316,7 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
             @if (podeSalvarVeiculo) {
-              <button type="button" class="btn btn-primary" [disabled]="!placaFrotaValida || salvandoVeiculo || veiculoForm.invalid" (click)="salvarVeiculo()">
+              <button type="button" class="btn btn-primary" [disabled]="!placaFrotaValida || motoristasVinculadosFrota.length === 0 || salvandoVeiculo || veiculoForm.invalid" (click)="salvarVeiculo()">
                 {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
               </button>
             }

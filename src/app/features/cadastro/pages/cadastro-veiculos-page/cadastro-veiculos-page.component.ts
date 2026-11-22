@@ -442,6 +442,12 @@ export class CadastroVeiculosPageComponent implements OnInit {
       this.toast.error('Informe a placa completa no padrão Mercosul (ex.: ABC-1D23).');
       return;
     }
+    if (this.motoristasVinculadosFrota.length === 0) {
+      this.setModalFrotaTab('motoristasVinculados');
+      this.toast.error('Vincule ao menos um motorista ao veículo.');
+      this.cdr.markForCheck();
+      return;
+    }
     const transportadoraId = this.transportadoraIdForm;
     if (transportadoraId == null) {
       this.toast.error('Selecione a transportadora.');

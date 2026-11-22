@@ -514,12 +514,18 @@ export class VeiculoService {
 
     if (marcaDesc) {
       payload['marca'] = { descricao: marcaDesc };
+      /** Atalho flat — BE resolve mesmo se o objeto aninhado não bindar. */
+      payload['marcaDescricao'] = marcaDesc;
     }
 
-    if (modeloDesc || modeloId != null) {
+    // Modelo sem marca: não envia (somente placa é obrigatória; evita 400 no BE).
+    if (modeloId != null || (modeloDesc && marcaDesc)) {
       const modelo: Record<string, unknown> = {};
       if (modeloId != null) modelo['id'] = modeloId;
-      if (modeloDesc) modelo['descricao'] = modeloDesc;
+      if (modeloDesc) {
+        modelo['descricao'] = modeloDesc;
+        payload['modeloDescricao'] = modeloDesc;
+      }
       if (marcaDesc) modelo['marca'] = { descricao: marcaDesc };
       payload['modelo'] = modelo;
     }

@@ -56,6 +56,31 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   readonly opcoes = signal<BancoDadosConexaoOpcoes | null>(null);
   readonly catalogoEstacionamentos = signal<EstacionamentoSelect[]>([]);
 
+  /** Paginação client-side da grade de conexões. */
+  readonly numeroPagina = signal(1);
+  readonly tamanhoPagina = signal(10);
+  readonly opcoesTamanhoPagina = [5, 10, 20, 50] as const;
+
+  readonly totalCount = computed(() => this.lista().length);
+  readonly totalPaginas = computed(() =>
+    Math.max(1, Math.ceil(this.totalCount() / Math.max(this.tamanhoPagina(), 1)))
+  );
+  readonly listaPaginada = computed(() => {
+    const page = Math.min(this.numeroPagina(), this.totalPaginas());
+    const size = this.tamanhoPagina();
+    const start = (page - 1) * size;
+    return this.lista().slice(start, start + size);
+  });
+  readonly intervaloExibicao = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return { de: 0, ate: 0 };
+    const page = Math.min(this.numeroPagina(), this.totalPaginas());
+    const size = this.tamanhoPagina();
+    const de = (page - 1) * size + 1;
+    const ate = Math.min(page * size, total);
+    return { de, ate };
+  });
+
   readonly modalConexaoOpen = signal(false);
   readonly modoNovo = signal(false);
   readonly selecionadoId = signal<number | null>(null);
@@ -269,12 +294,26 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
       });
   }
 
+  onTamanhoPaginaChange(raw: string | number): void {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return;
+    this.tamanhoPagina.set(n);
+    this.numeroPagina.set(1);
+  }
+
+  irParaPagina(pagina: number): void {
+    const p = Math.max(1, Math.min(pagina, this.totalPaginas()));
+    this.numeroPagina.set(p);
+    this.fecharMenu();
+  }
+
   carregar(): void {
     this.loading.set(true);
     this.erro.set(null);
     this.api.listar().subscribe({
       next: (lista) => {
         this.lista.set(lista ?? []);
+        this.numeroPagina.set(1);
         this.loading.set(false);
         const id = this.conexaoEstacs()?.id;
         if (id) {

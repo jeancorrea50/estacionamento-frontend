@@ -1,13 +1,18 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .tab-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .tab-content__actions {
@@ -15,6 +20,7 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .btn {
@@ -69,11 +75,103 @@
   flex-shrink: 0;
 }
 
-.table-wrap {
-  overflow-x: auto;
+.bd-list-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--ds-select-panel-border, var(--border-subtle));
   border-radius: var(--ds-select-radius, 10px);
   background: var(--surface-2, rgba(255, 255, 255, 0.03));
+  overflow: hidden;
+}
+
+.table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.bd-paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2) 88%, #000 8%);
+}
+
+.bd-paginacao__info {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+
+  strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+}
+
+.bd-paginacao__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bd-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.bd-page-size__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bd-page-size__select {
+  height: 30px;
+  min-width: 64px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg, var(--surface));
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.bd-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bd-pager__current {
+  min-width: 56px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .bd-paginacao {
+    align-items: stretch;
+  }
+
+  .bd-paginacao__right {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .data-table {

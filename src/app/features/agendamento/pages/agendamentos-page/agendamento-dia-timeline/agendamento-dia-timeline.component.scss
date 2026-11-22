@@ -5,6 +5,11 @@
 }
 
 .ag-timeline {
+  /* DISP. — dark mantém o success atual; light usa verde mais claro (legibilidade nas barras). */
+  --ag-occ-disp: var(--success, #10b981);
+  --ag-occ-agd: var(--warning, #f59e0b);
+  --ag-occ-ocup: var(--danger, #ef4444);
+
   width: 100%;
   border: 1px solid var(--border-subtle, var(--border));
   border-radius: 14px;
@@ -13,6 +18,10 @@
   padding: 0.75rem 0.9rem 0.85rem;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 4%, transparent);
   box-sizing: border-box;
+}
+
+:host-context(html.theme-light) .ag-timeline {
+  --ag-occ-disp: #4ade80;
 }
 
 .ag-timeline__head {
@@ -99,15 +108,15 @@
 }
 
 .ag-dot--disp {
-  background: var(--success, #10b981);
+  background: var(--ag-occ-disp);
 }
 
 .ag-dot--agd {
-  background: var(--warning, #f59e0b);
+  background: var(--ag-occ-agd);
 }
 
 .ag-dot--ocup {
-  background: var(--danger, #ef4444);
+  background: var(--ag-occ-ocup);
 }
 
 .ag-timeline__loading {
@@ -299,15 +308,15 @@
 }
 
 .ag-occ-bar__seg--disp {
-  background: var(--success, #10b981);
+  background: var(--ag-occ-disp);
 }
 
 .ag-occ-bar__seg--agd {
-  background: var(--warning, #f59e0b);
+  background: var(--ag-occ-agd);
 }
 
 .ag-occ-bar__seg--ocup {
-  background: var(--danger, #ef4444);
+  background: var(--ag-occ-ocup);
 }
 
 .ag-occ-bar__pct {
@@ -502,15 +511,15 @@
 }
 
 .ag-chart__seg--disp {
-  background: var(--success, #10b981);
+  background: var(--ag-occ-disp);
 }
 
 .ag-chart__seg--agd {
-  background: var(--warning, #f59e0b);
+  background: var(--ag-occ-agd);
 }
 
 .ag-chart__seg--ocup {
-  background: var(--danger, #ef4444);
+  background: var(--ag-occ-ocup);
 }
 
 .ag-chart__label {

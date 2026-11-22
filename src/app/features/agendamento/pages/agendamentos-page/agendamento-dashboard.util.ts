@@ -233,9 +233,9 @@ export function donutConicGradient(dia: AgendamentoOcupacaoDia): string {
     ocupado: dia.ocupado,
     cadastrado: dia.capacidade,
   });
-  const gDisp = 'var(--success, #10b981)';
-  const gAgd = 'var(--warning, #f59e0b)';
-  const gOcup = 'var(--danger, #ef4444)';
+  const gDisp = 'var(--ag-occ-disp, var(--success, #10b981))';
+  const gAgd = 'var(--ag-occ-agd, var(--warning, #f59e0b))';
+  const gOcup = 'var(--ag-occ-ocup, var(--danger, #ef4444))';
   const a = segs.pctDisponiveis;
   const b = a + segs.pctAgendado;
   return `conic-gradient(${gDisp} 0% ${a}%, ${gAgd} ${a}% ${b}%, ${gOcup} ${b}% 100%)`;

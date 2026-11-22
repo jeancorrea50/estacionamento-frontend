@@ -430,6 +430,30 @@
   .ag-dash-top__spacer {
     display: none;
   }
+
+  .ag-dash-filter.est-dash-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ag-dash-filter .est-dash-filter__lookup-wrap,
+  .ag-dash-filter__search.est-dash-filter__search,
+  .ag-dash-filter app-periodo-data-picker {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .ag-dash-filter__actions {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .ag-dash-filter .est-dash-btn {
+    flex: 1 1 calc(50% - 5px);
+  }
 }
 
 .ag-list-card {

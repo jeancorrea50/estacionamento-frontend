@@ -29,66 +29,80 @@
           </button>
         }
         @if (canTrocarEstacionamentoSessao()) {
-          <div class="session-estac-panel" title="Estacionamento da sessão">
-            <span class="material-symbols-outlined session-estac-panel__icon" aria-hidden="true">apartment</span>
+          <div
+            class="session-estac-panel"
+            [class.session-estac-panel--compact]="isMobile()"
+            title="Estacionamento da sessão"
+          >
+            @if (!isMobile()) {
+              <span class="material-symbols-outlined session-estac-panel__icon" aria-hidden="true">apartment</span>
+            }
             @if (sessionEstacionamento(); as estac) {
-              <div class="session-estac-panel__main">
-                <span class="session-estac-panel__caption">Pátio selecionado</span>
-                <span class="session-estac-panel__name" [attr.title]="estac.razaoSocial">{{ estac.razaoSocial }}</span>
-                <span class="session-estac-panel__cnpj">{{ formatCnpjDisplay(estac.cnpj) }}</span>
-              </div>
+              @if (!isMobile()) {
+                <div class="session-estac-panel__main">
+                  <span class="session-estac-panel__caption">Pátio selecionado</span>
+                  <span class="session-estac-panel__name" [attr.title]="estac.razaoSocial">{{ estac.razaoSocial }}</span>
+                  <span class="session-estac-panel__cnpj">{{ formatCnpjDisplay(estac.cnpj) }}</span>
+                </div>
+              }
               <button
                 type="button"
                 class="session-estac-panel__trocar"
                 (click)="trocarEstacionamento()"
-                title="Trocar estacionamento da sessão"
+                [attr.title]="isMobile() ? estac.razaoSocial : 'Trocar estacionamento da sessão'"
+                [attr.aria-label]="'Trocar de pátio: ' + estac.razaoSocial"
               >
-                Trocar pátio
+                Trocar de pátio
               </button>
             } @else {
-              <div class="session-estac-panel__main">
-                <span class="session-estac-panel__caption">Pátio da sessão</span>
-                <span class="session-estac-panel__name">Nenhum pátio selecionado</span>
-                <span class="session-estac-panel__cnpj">Use o botão ao lado para escolher</span>
-              </div>
+              @if (!isMobile()) {
+                <div class="session-estac-panel__main">
+                  <span class="session-estac-panel__caption">Pátio da sessão</span>
+                  <span class="session-estac-panel__name">Nenhum pátio selecionado</span>
+                  <span class="session-estac-panel__cnpj">Use o botão ao lado para escolher</span>
+                </div>
+              }
               <button
                 type="button"
                 class="session-estac-panel__trocar"
                 (click)="abrirSelecaoEstacionamento()"
                 title="Selecionar estacionamento da sessão"
+                aria-label="Selecionar pátio da sessão"
               >
-                Selecionar pátio
+                {{ isMobile() ? 'Trocar de pátio' : 'Selecionar pátio' }}
               </button>
             }
           </div>
         }
         <div class="top-bar__spacer"></div>
         <div class="top-bar__right">
-          @if (isAdminUser()) {
+          @if (!isMobile() && isAdminUser()) {
             <app-notification-bell />
           }
-          <div class="user-access-panel" title="Usuário e contexto de acesso">
-            <div class="user-access-panel__main">
-              <span class="user-access-panel__name">{{ loggedUsername() }}</span>
-              <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
+          @if (!isMobile()) {
+            <div class="user-access-panel" title="Usuário e contexto de acesso">
+              <div class="user-access-panel__main">
+                <span class="user-access-panel__name">{{ loggedUsername() }}</span>
+                <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
+              </div>
+              @if (hasMultipleContexts()) {
+                <label class="user-access-panel__switcher">
+                  <span class="user-access-panel__switcher-label">Acessar CNPJ</span>
+                  <select
+                    class="user-access-panel__select"
+                    [ngModel]="selectedContextKey()"
+                    (ngModelChange)="onAccessContextChange($event)"
+                  >
+                    @for (ctx of accessContexts(); track ctx.contextKey) {
+                      <option [ngValue]="ctx.contextKey">
+                        {{ ctx.cnpj ? (ctx.tipoAcesso + ' - ' + ctx.cnpj) : ctx.tipoAcesso }}
+                      </option>
+                    }
+                  </select>
+                </label>
+              }
             </div>
-            @if (hasMultipleContexts()) {
-              <label class="user-access-panel__switcher">
-                <span class="user-access-panel__switcher-label">Acessar CNPJ</span>
-                <select
-                  class="user-access-panel__select"
-                  [ngModel]="selectedContextKey()"
-                  (ngModelChange)="onAccessContextChange($event)"
-                >
-                  @for (ctx of accessContexts(); track ctx.contextKey) {
-                    <option [ngValue]="ctx.contextKey">
-                      {{ ctx.cnpj ? (ctx.tipoAcesso + ' - ' + ctx.cnpj) : ctx.tipoAcesso }}
-                    </option>
-                  }
-                </select>
-              </label>
-            }
-          </div>
+          }
           <button
             type="button"
             class="theme-switcher__btn"

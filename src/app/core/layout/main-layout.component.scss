@@ -429,60 +429,37 @@
     display: none;
   }
 
-  .user-access-panel {
+  /* Mobile: só hamburger + Trocar de pátio + tema — evita overflow na topbar. */
+  .session-estac-panel,
+  .session-estac-panel--compact {
+    max-width: none;
+    flex: 1 1 auto;
+    min-width: 0;
     padding: 0;
+    gap: 0;
     border: none;
     background: transparent;
-    min-width: 0;
   }
 
-  .user-access-panel__switcher,
-  .user-access-panel__switcher-label {
-    display: none;
-  }
-
-  .user-access-panel__main {
-    min-width: 0;
-  }
-
-  .user-access-panel__name {
-    max-width: min(96px, 22vw);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .user-access-panel__tipo {
-    max-width: min(110px, 26vw);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .session-estac-panel {
-    max-width: min(160px, 38vw);
-    padding: 4px 6px;
-    gap: 4px;
-    min-width: 0;
-  }
-
+  .session-estac-panel__icon,
+  .session-estac-panel__main,
   .session-estac-panel__caption,
+  .session-estac-panel__name,
   .session-estac-panel__cnpj {
     display: none;
   }
 
-  .session-estac-panel__name {
+  .session-estac-panel__trocar {
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.78rem;
-  }
-
-  .session-estac-panel__trocar {
-    padding: 0.25rem 0.35rem;
-    font-size: 0.65rem;
-    min-height: 32px;
-    white-space: nowrap;
+    border-radius: 10px;
   }
 
   .main-content {

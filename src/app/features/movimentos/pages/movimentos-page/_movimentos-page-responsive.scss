@@ -20,6 +20,7 @@
     min-width: 0;
   }
 
+  .filtros-grid,
   .filtros-grid--single {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -33,12 +34,41 @@
   .filtros-acoes .btn {
     flex: 1 1 auto;
     min-width: 120px;
+    min-height: 44px;
   }
 
   .historico-card {
     min-width: 0;
     max-width: 100%;
     overflow: visible;
+  }
+
+  .operacao-toolbar--compact .operacao-actions,
+  .operacao-toolbar .operacao-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .operacao-actions__chips {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .operacao-busca,
+  .operacao-actions__busca {
+    width: 100%;
+    max-width: none;
+    flex-wrap: wrap;
+  }
+
+  .operacao-busca__input,
+  .operacao-toolbar--compact .operacao-busca__input {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
   }
 }
 

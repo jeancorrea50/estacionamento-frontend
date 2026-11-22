@@ -809,37 +809,82 @@ label {
   .table-wrap,
   .table-wrapper,
   .dk-table-wrap,
-  .trn-list-table-scroll {
+  .trn-list-table-scroll,
+  .fat-table-wrap,
+  .monitor-table-wrap,
+  .aes-table-wrap,
+  .ag-vinculos__table-wrap,
+  .historico-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     max-width: 100%;
+    min-width: 0;
   }
 
   .table-wrap .data-table,
   .table-wrapper .data-table,
   .dk-table-wrap .dk-table,
   .trn-list-table-scroll .data-table,
-  .trn-list-table-scroll .trn-table {
+  .trn-list-table-scroll .trn-table,
+  .fat-table-wrap table,
+  .monitor-table-wrap table,
+  .aes-table-wrap .data-table {
     min-width: 720px;
   }
 
-  .est-dash-filter {
+  /* Filtros em coluna; campos sem overflow lateral */
+  .est-dash-filter,
+  .trn-dash-filter,
+  .ag-dash-filter,
+  .filtros-grid,
+  .filters-row,
+  .rec-filter-bar {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .filtros-grid {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .est-dash-filter__search,
   .est-dash-filter__select-wrap,
-  .est-dash-filter__select {
+  .est-dash-filter__select,
+  .est-dash-filter__lookup-wrap,
+  .ag-dash-filter__search,
+  .rec-table-search,
+  .filters-search-wrap,
+  .operacao-busca,
+  .operacao-busca__input,
+  app-periodo-data-picker,
+  app-transportadora-lookup-field {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 1 1 auto;
+  }
+
+  .input-control,
+  .dk-input,
+  select.input-control,
+  .est-dash-filter__search-input {
     width: 100%;
-    max-width: none;
+    max-width: 100%;
     min-width: 0;
+    box-sizing: border-box;
   }
 
   .est-dash-filter__actions,
-  .ag-dash-filter__actions {
+  .ag-dash-filter__actions,
+  .filtros-acoes,
+  .filters-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -873,6 +918,55 @@ label {
     flex: 0 0 auto;
     min-width: 44px;
     padding-inline: 12px;
+  }
+
+  /*
+   * Páginas com hero/KPI + filtros: no mobile, filtros sobem primeiro.
+   * (Filhos sem classe de filtro/KPI mantêm ordem natural.)
+   */
+  .trn-page-content--dashboard,
+  .page-content.trn-page-content--dashboard {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .trn-page-content--dashboard > .est-dash-filter,
+  .trn-page-content--dashboard > .trn-dash-filter,
+  .trn-page-content--dashboard > .ag-dash-filter {
+    order: 1;
+  }
+
+  .trn-page-content--dashboard > .ag-kpi-grid,
+  .trn-page-content--dashboard > .est-dash-kpis,
+  .trn-page-content--dashboard > .dashboard-kpis {
+    order: 2;
+  }
+
+  .trn-page-content--dashboard > .ag-dash-mid,
+  .trn-page-content--dashboard > .ag-list-card,
+  .trn-page-content--dashboard > .trn-list-card,
+  .trn-page-content--dashboard > .data-card {
+    order: 3;
+  }
+
+  .portaria-layout__main {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .portaria-layout__main > .operacao-toolbar,
+  .portaria-layout__main > .card.operacao-toolbar {
+    order: 1;
+  }
+
+  .portaria-layout__main > .dashboard-kpis,
+  .portaria-layout__main > .dashboard-kpis--portaria {
+    order: 2;
+  }
+
+  .portaria-layout__main > .portaria-hero,
+  .portaria-layout__main > .dashboard-card.portaria-hero {
+    order: 0;
   }
 }
 

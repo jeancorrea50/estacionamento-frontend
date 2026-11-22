@@ -14,6 +14,7 @@ import {
   EntradaSaidaStatus,
 } from '../../models/agendamento.models';
 import { AgendamentoService } from '../../services/agendamento.service';
+import { formatTelefone } from '../../../cadastro/directives/telefone-format.directive';
 import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 
 /**
@@ -35,6 +36,12 @@ export class AgendarPageComponent implements OnInit {
   private readonly toast = inject(ToastService);
 
   readonly formatPlaca = formatPlacaDisplay;
+
+  formatCelularMotorista(raw: string | null | undefined): string {
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (digits.length < 10) return '—';
+    return formatTelefone(digits);
+  }
 
   readonly loading = signal(false);
   readonly items = signal<AgendamentoSearchItem[]>([]);

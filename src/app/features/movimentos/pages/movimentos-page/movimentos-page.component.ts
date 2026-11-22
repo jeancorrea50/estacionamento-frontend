@@ -2841,6 +2841,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return formatTelefone(String(valor ?? ''));
   }
 
+  formatarCelularMotorista(raw: string | null | undefined): string {
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (digits.length < 10) return '—';
+    return formatTelefone(digits);
+  }
+
   private encurtarTextoLivre(valor: string | null | undefined): string {
     return this.cortarAte(String(valor ?? ''), this.registroRapidoMaxTexto);
   }

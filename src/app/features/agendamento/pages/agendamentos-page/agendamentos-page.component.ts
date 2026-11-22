@@ -10,6 +10,7 @@ import { PermissionCacheService } from '../../../../core/services/permission-cac
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
+import { formatTelefone } from '../../../cadastro/directives/telefone-format.directive';
 import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 import { EstSummaryMetricComponent } from '../../../cadastro/components/est-summary-metric/est-summary-metric.component';
 import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
@@ -648,6 +649,12 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
 
   formatPlaca(placa: string | null | undefined): string {
     return formatPlacaDisplay(placa) || placa || '—';
+  }
+
+  formatCelularMotorista(raw: string | null | undefined): string {
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (digits.length < 10) return '—';
+    return formatTelefone(digits);
   }
 
   formatDateTime(iso: string | null | undefined): string {

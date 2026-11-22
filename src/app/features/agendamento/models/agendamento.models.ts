@@ -23,6 +23,8 @@ export interface AgendamentoSearchItem {
   motoristaId: number;
   nomeMotorista: string;
   cpfMotorista?: string | null;
+  /** Celular/telefone do motorista (contato principal). */
+  celularMotorista?: string | null;
   transportadoraId: number;
   nomeTransportadora: string;
   veiculoId: number;

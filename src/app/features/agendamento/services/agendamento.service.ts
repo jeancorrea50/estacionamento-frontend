@@ -189,6 +189,13 @@ export class AgendamentoService {
       motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
       nomeMotorista: this.pickString(row, 'nomeMotorista', 'NomeMotorista'),
       cpfMotorista: this.pickStringOrNull(row, 'cpfMotorista', 'CpfMotorista'),
+      celularMotorista: this.pickStringOrNull(
+        row,
+        'celularMotorista',
+        'CelularMotorista',
+        'telefoneMotorista',
+        'TelefoneMotorista'
+      ),
       transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
       nomeTransportadora: this.pickString(row, 'nomeTransportadora', 'NomeTransportadora'),
       veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),

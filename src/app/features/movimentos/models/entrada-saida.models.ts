@@ -115,6 +115,8 @@ export interface EntradaSaidaSearchOutput {
   descricao: string;
   motoristaId: number;
   nomeMotorista: string;
+  /** Celular/telefone do motorista (contato principal). */
+  celularMotorista?: string | null;
   transportadoraId: number;
   nomeTransportadora: string;
   veiculoId: number;

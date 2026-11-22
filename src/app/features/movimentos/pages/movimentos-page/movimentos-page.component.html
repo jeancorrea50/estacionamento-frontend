@@ -409,6 +409,7 @@
                         <span class="data-table__sort-mark" aria-hidden="true">{{ sortIndicador('motorista') }}</span>
                       </button>
                     </th>
+                    <th scope="col">Telefone</th>
                     <th scope="col">
                       <button type="button" class="data-table__sort-btn" (click)="ordenarPor('transportadora')">
                         Transportadora
@@ -461,6 +462,12 @@
                         <span class="cell-ellipsis" [title]="item.nomeMotorista || ''">{{
                           item.nomeMotorista || '—'
                         }}</span>
+                      </td>
+                      <td>
+                        <span
+                          class="cell-ellipsis"
+                          [title]="formatarCelularMotorista(item.celularMotorista)"
+                        >{{ formatarCelularMotorista(item.celularMotorista) }}</span>
                       </td>
                       <td>
                         <span class="cell-ellipsis" [title]="item.nomeTransportadora || ''">{{
@@ -1051,6 +1058,7 @@
             <tr>
                     <th scope="col">Placa</th>
                     <th scope="col">Motorista</th>
+                    <th scope="col">Telefone</th>
                     <th scope="col">Transportadora</th>
                     <th scope="col">Horário de entrada</th>
                     <th scope="col">Tempo no pátio</th>
@@ -1066,6 +1074,11 @@
                 <td>{{ formatarPlaca(item.placaVeiculo) }}</td>
                 <td>
                         <span class="cell-ellipsis" [title]="item.nomeMotorista">{{ item.nomeMotorista || '—' }}</span>
+                </td>
+                <td>
+                        <span class="cell-ellipsis" [title]="formatarCelularMotorista(item.celularMotorista)">{{
+                          formatarCelularMotorista(item.celularMotorista)
+                        }}</span>
                 </td>
                 <td>
                   <span class="cell-ellipsis" [title]="item.nomeTransportadora">{{

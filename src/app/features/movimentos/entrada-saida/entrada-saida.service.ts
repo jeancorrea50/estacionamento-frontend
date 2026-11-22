@@ -226,6 +226,13 @@ export class EntradaSaidaService {
       descricao: this.pickString(row, 'descricao', 'Descricao'),
       motoristaId: this.pickNumber(row, 'motoristaId', 'MotoristaId'),
       nomeMotorista: this.pickString(row, 'nomeMotorista', 'NomeMotorista'),
+      celularMotorista: this.pickStringOrNull(
+        row,
+        'celularMotorista',
+        'CelularMotorista',
+        'telefoneMotorista',
+        'TelefoneMotorista'
+      ),
       transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
       nomeTransportadora: this.pickString(row, 'nomeTransportadora', 'NomeTransportadora'),
       veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),

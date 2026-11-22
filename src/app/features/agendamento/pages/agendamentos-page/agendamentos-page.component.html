@@ -187,6 +187,7 @@
                     <th scope="col">ID</th>
                     <th scope="col">Placa</th>
                     <th scope="col">Motorista</th>
+                    <th scope="col">Telefone</th>
                     @if (podeOperarPatio) {
                       <th scope="col">Transportadora</th>
                     }
@@ -202,6 +203,7 @@
                       <td>{{ item.id }}</td>
                       <td>{{ formatPlaca(item.placaVeiculo) }}</td>
                       <td>{{ item.nomeMotorista || '—' }}</td>
+                      <td>{{ formatCelularMotorista(item.celularMotorista) }}</td>
                       @if (podeOperarPatio) {
                         <td>{{ item.nomeTransportadora || '—' }}</td>
                       }

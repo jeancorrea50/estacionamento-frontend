@@ -52,6 +52,19 @@ export interface ConfiguracaoCobrancaAcordo {
   vagasOutubro: number | null;
   vagasNovembro: number | null;
   vagasDezembro: number | null;
+  /** Split CIF (fonte de verdade). FOB = max(0, total − CIF); CIF nulo ⇒ CIF = total. */
+  vagasCifJaneiro: number | null;
+  vagasCifFevereiro: number | null;
+  vagasCifMarco: number | null;
+  vagasCifAbril: number | null;
+  vagasCifMaio: number | null;
+  vagasCifJunho: number | null;
+  vagasCifJulho: number | null;
+  vagasCifAgosto: number | null;
+  vagasCifSetembro: number | null;
+  vagasCifOutubro: number | null;
+  vagasCifNovembro: number | null;
+  vagasCifDezembro: number | null;
   custoExcedente: number | null;
   tipoCobrancaExcedente: TipoCobrancaExcedente | null;
   /** Vigência do acordo; enviada somente na modalidade Acordo. */

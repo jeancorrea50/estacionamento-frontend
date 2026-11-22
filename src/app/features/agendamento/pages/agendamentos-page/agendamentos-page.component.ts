@@ -18,7 +18,7 @@ import {
   CadastroConfirmDialogComponent,
   CadastroConfirmDialogData,
 } from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
-import { AGENDAMENTO_PAINEL_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
+import { AGENDAMENTO_PAINEL_ROUTE, DESTINACAO_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
 import { AgendamentoService } from '../../services/agendamento.service';
 import {
   AgendamentoSearchItem,
@@ -32,10 +32,6 @@ import {
   PeriodoDataSelecionado,
 } from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
-import {
-  VagaReservaDialogComponent,
-  type VagaReservaDialogData,
-} from '../../components/vaga-reserva-dialog/vaga-reserva-dialog.component';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
@@ -442,19 +438,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
 
   abrirDestinarVagas(): void {
     if (!this.podeOperarPatio) return;
-    this.dialog
-      .open(VagaReservaDialogComponent, {
-        width: 'min(960px, 96vw)',
-        maxWidth: '96vw',
-        autoFocus: false,
-        panelClass: 'vaga-reserva-dialog-panel',
-        data: {
-          podeGerenciar:
-            this.podeCriar || this.permissions.allows('agendamentos', 'alterar'),
-        } satisfies VagaReservaDialogData,
-      })
-      .afterClosed()
-      .subscribe(() => this.onBuscar());
+    void this.router.navigateByUrl(DESTINACAO_ROUTE);
   }
 
   abrirNovo(): void {

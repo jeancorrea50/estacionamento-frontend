@@ -6,19 +6,110 @@ import type {
   ConfigCobrancaVagasAcordo
 } from './faturamento-config-cobranca.types';
 
-export const MESES_ACORDO: { mes: ConfigCobrancaMesAcordo; label: string; api: string; apiPascal: string }[] = [
-  { mes: 1, label: 'Jan', api: 'vagasJaneiro', apiPascal: 'VagasJaneiro' },
-  { mes: 2, label: 'Fev', api: 'vagasFevereiro', apiPascal: 'VagasFevereiro' },
-  { mes: 3, label: 'Mar', api: 'vagasMarco', apiPascal: 'VagasMarco' },
-  { mes: 4, label: 'Abr', api: 'vagasAbril', apiPascal: 'VagasAbril' },
-  { mes: 5, label: 'Mai', api: 'vagasMaio', apiPascal: 'VagasMaio' },
-  { mes: 6, label: 'Jun', api: 'vagasJunho', apiPascal: 'VagasJunho' },
-  { mes: 7, label: 'Jul', api: 'vagasJulho', apiPascal: 'VagasJulho' },
-  { mes: 8, label: 'Ago', api: 'vagasAgosto', apiPascal: 'VagasAgosto' },
-  { mes: 9, label: 'Set', api: 'vagasSetembro', apiPascal: 'VagasSetembro' },
-  { mes: 10, label: 'Out', api: 'vagasOutubro', apiPascal: 'VagasOutubro' },
-  { mes: 11, label: 'Nov', api: 'vagasNovembro', apiPascal: 'VagasNovembro' },
-  { mes: 12, label: 'Dez', api: 'vagasDezembro', apiPascal: 'VagasDezembro' }
+export const MESES_ACORDO: {
+  mes: ConfigCobrancaMesAcordo;
+  label: string;
+  api: string;
+  apiPascal: string;
+  apiCif: string;
+  apiCifPascal: string;
+}[] = [
+  {
+    mes: 1,
+    label: 'Jan',
+    api: 'vagasJaneiro',
+    apiPascal: 'VagasJaneiro',
+    apiCif: 'vagasCifJaneiro',
+    apiCifPascal: 'VagasCifJaneiro'
+  },
+  {
+    mes: 2,
+    label: 'Fev',
+    api: 'vagasFevereiro',
+    apiPascal: 'VagasFevereiro',
+    apiCif: 'vagasCifFevereiro',
+    apiCifPascal: 'VagasCifFevereiro'
+  },
+  {
+    mes: 3,
+    label: 'Mar',
+    api: 'vagasMarco',
+    apiPascal: 'VagasMarco',
+    apiCif: 'vagasCifMarco',
+    apiCifPascal: 'VagasCifMarco'
+  },
+  {
+    mes: 4,
+    label: 'Abr',
+    api: 'vagasAbril',
+    apiPascal: 'VagasAbril',
+    apiCif: 'vagasCifAbril',
+    apiCifPascal: 'VagasCifAbril'
+  },
+  {
+    mes: 5,
+    label: 'Mai',
+    api: 'vagasMaio',
+    apiPascal: 'VagasMaio',
+    apiCif: 'vagasCifMaio',
+    apiCifPascal: 'VagasCifMaio'
+  },
+  {
+    mes: 6,
+    label: 'Jun',
+    api: 'vagasJunho',
+    apiPascal: 'VagasJunho',
+    apiCif: 'vagasCifJunho',
+    apiCifPascal: 'VagasCifJunho'
+  },
+  {
+    mes: 7,
+    label: 'Jul',
+    api: 'vagasJulho',
+    apiPascal: 'VagasJulho',
+    apiCif: 'vagasCifJulho',
+    apiCifPascal: 'VagasCifJulho'
+  },
+  {
+    mes: 8,
+    label: 'Ago',
+    api: 'vagasAgosto',
+    apiPascal: 'VagasAgosto',
+    apiCif: 'vagasCifAgosto',
+    apiCifPascal: 'VagasCifAgosto'
+  },
+  {
+    mes: 9,
+    label: 'Set',
+    api: 'vagasSetembro',
+    apiPascal: 'VagasSetembro',
+    apiCif: 'vagasCifSetembro',
+    apiCifPascal: 'VagasCifSetembro'
+  },
+  {
+    mes: 10,
+    label: 'Out',
+    api: 'vagasOutubro',
+    apiPascal: 'VagasOutubro',
+    apiCif: 'vagasCifOutubro',
+    apiCifPascal: 'VagasCifOutubro'
+  },
+  {
+    mes: 11,
+    label: 'Nov',
+    api: 'vagasNovembro',
+    apiPascal: 'VagasNovembro',
+    apiCif: 'vagasCifNovembro',
+    apiCifPascal: 'VagasCifNovembro'
+  },
+  {
+    mes: 12,
+    label: 'Dez',
+    api: 'vagasDezembro',
+    apiPascal: 'VagasDezembro',
+    apiCif: 'vagasCifDezembro',
+    apiCifPascal: 'VagasCifDezembro'
+  }
 ];
 
 export const TIPO_COBRANCA_EXCEDENTE_OPCOES: { value: TipoCobrancaExcedente; label: string }[] = [
@@ -32,13 +123,15 @@ let listagemSeq = 0;
 
 export function novaListagemAcordo(
   meses: ConfigCobrancaMesAcordo[] = [],
-  quantidade: number | null = null
+  quantidade: number | null = null,
+  quantidadeCif: number | null = null
 ): ConfigCobrancaAcordoListagem {
   listagemSeq += 1;
   return {
     id: `lst-${Date.now()}-${listagemSeq}`,
     meses: [...meses],
-    quantidade
+    quantidade,
+    quantidadeCif
   };
 }
 
@@ -65,6 +158,7 @@ export function acordoVazio(): ConfigCobrancaAcordo {
     dataFim: null,
     listagens: [],
     vagas: vagasAcordoVazias(),
+    vagasCif: vagasAcordoVazias(),
     custoExcedente: null,
     tipoCobrancaExcedente: TipoCobrancaExcedente.PorVaga
   };
@@ -77,9 +171,11 @@ export function cloneAcordo(origem: ConfigCobrancaAcordo): ConfigCobrancaAcordo 
     listagens: (origem.listagens ?? []).map((l) => ({
       id: l.id,
       meses: [...l.meses],
-      quantidade: l.quantidade
+      quantidade: l.quantidade,
+      quantidadeCif: l.quantidadeCif ?? null
     })),
     vagas: { ...vagasAcordoVazias(), ...origem.vagas },
+    vagasCif: { ...vagasAcordoVazias(), ...(origem.vagasCif ?? {}) },
     custoExcedente: origem.custoExcedente,
     tipoCobrancaExcedente: origem.tipoCobrancaExcedente || TipoCobrancaExcedente.PorVaga
   };
@@ -100,32 +196,71 @@ export function vagasFromListagens(listagens: ConfigCobrancaAcordoListagem[] | u
   return vagas;
 }
 
+export function vagasCifFromListagens(
+  listagens: ConfigCobrancaAcordoListagem[] | undefined
+): ConfigCobrancaVagasAcordo {
+  const vagas = vagasAcordoVazias();
+  for (const listagem of listagens ?? []) {
+    if (!isQuantidadeVagasValida(listagem.quantidade)) continue;
+    const cif =
+      listagem.quantidadeCif == null || !isQuantidadeVagasValida(listagem.quantidadeCif)
+        ? Number(listagem.quantidade)
+        : Number(listagem.quantidadeCif);
+    for (const mes of listagem.meses) {
+      vagas[mes] = cif;
+    }
+  }
+  return vagas;
+}
+
 export function sincronizarVagasDoAcordo(acordo: ConfigCobrancaAcordo): ConfigCobrancaAcordo {
   acordo.vagas = vagasFromListagens(acordo.listagens);
+  acordo.vagasCif = vagasCifFromListagens(acordo.listagens);
   return acordo;
 }
 
-/** Reconstrói listagens agrupando meses com a mesma quantidade (resposta da API). */
-export function listagensAPartirDasVagas(vagas: ConfigCobrancaVagasAcordo | undefined): ConfigCobrancaAcordoListagem[] {
+/** FOB derivado: Total − CIF (compat: CIF nulo ⇒ FOB 0). */
+export function vagasFobDoMes(
+  total: number | null | undefined,
+  cif: number | null | undefined
+): number | null {
+  if (total == null || !Number.isFinite(Number(total))) return null;
+  const cifEfetivo = cif == null || !Number.isFinite(Number(cif)) ? Number(total) : Number(cif);
+  return Math.max(0, Number(total) - cifEfetivo);
+}
+
+/** Reconstrói listagens agrupando meses com a mesma quantidade total + CIF. */
+export function listagensAPartirDasVagas(
+  vagas: ConfigCobrancaVagasAcordo | undefined,
+  vagasCif?: ConfigCobrancaVagasAcordo | undefined
+): ConfigCobrancaAcordoListagem[] {
   if (!vagas) return [];
-  const grupos = new Map<number, ConfigCobrancaMesAcordo[]>();
+  const grupos = new Map<string, { quantidade: number; quantidadeCif: number | null; meses: ConfigCobrancaMesAcordo[] }>();
   for (const mes of MESES_ACORDO) {
     const qtd = vagas[mes.mes];
     if (qtd == null || !Number.isFinite(Number(qtd))) continue;
-    const chave = Number(qtd);
-    const atual = grupos.get(chave) ?? [];
-    atual.push(mes.mes);
+    const cifRaw = vagasCif?.[mes.mes];
+    const cif =
+      cifRaw == null || !Number.isFinite(Number(cifRaw)) ? Number(qtd) : Number(cifRaw);
+    const chave = `${Number(qtd)}|${cif}`;
+    const atual = grupos.get(chave) ?? {
+      quantidade: Number(qtd),
+      quantidadeCif: cif,
+      meses: []
+    };
+    atual.meses.push(mes.mes);
     grupos.set(chave, atual);
   }
-  return [...grupos.entries()].map(([quantidade, meses]) => novaListagemAcordo(meses, quantidade));
+  return [...grupos.values()].map((g) => novaListagemAcordo(g.meses, g.quantidade, g.quantidadeCif));
 }
 
 export function normalizarAcordo(origem: ConfigCobrancaAcordo | null | undefined): ConfigCobrancaAcordo {
   const acordo = cloneAcordo(origem ?? acordoVazio());
   if (!acordo.listagens.length) {
-    acordo.listagens = listagensAPartirDasVagas(acordo.vagas);
+    acordo.listagens = listagensAPartirDasVagas(acordo.vagas, acordo.vagasCif);
   }
   acordo.vagas = vagasFromListagens(acordo.listagens);
+  acordo.vagasCif = vagasCifFromListagens(acordo.listagens);
   return acordo;
 }
 
@@ -174,7 +309,15 @@ export function resumoListagemAcordo(listagem: ConfigCobrancaAcordoListagem): st
     .map((mes) => MESES_ACORDO.find((m) => m.mes === mes)?.label ?? mes)
     .join(', ');
   const qtd = listagem.quantidade == null ? '—' : String(listagem.quantidade);
-  return meses ? `${meses} · ${qtd} vaga(s)` : 'Sem meses selecionados';
+  const cif =
+    listagem.quantidadeCif == null ? qtd : String(listagem.quantidadeCif);
+  const fob =
+    listagem.quantidade == null
+      ? '—'
+      : String(
+          vagasFobDoMes(listagem.quantidade, listagem.quantidadeCif) ?? 0
+        );
+  return meses ? `${meses} · ${qtd} (CIF ${cif} / FOB ${fob})` : 'Sem meses selecionados';
 }
 
 export function formatarPeriodoAcordo(inicio: string | null | undefined, fim: string | null | undefined): string {
@@ -207,6 +350,17 @@ export function mensagensValidacaoAcordo(
       if (!isQuantidadeVagasValida(listagem.quantidade)) {
         m.push('Informe a quantidade de vagas de cada listagem (zero ou mais).');
         break;
+      }
+      const total = Number(listagem.quantidade);
+      if (listagem.quantidadeCif != null) {
+        if (!isQuantidadeVagasValida(listagem.quantidadeCif)) {
+          m.push('Vagas CIF devem ser um número inteiro ≥ 0.');
+          break;
+        }
+        if (Number(listagem.quantidadeCif) > total) {
+          m.push('Vagas CIF não podem ultrapassar o total da listagem.');
+          break;
+        }
       }
       for (const mes of listagem.meses) {
         if (usados.has(mes)) {

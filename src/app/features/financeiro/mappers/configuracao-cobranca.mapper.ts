@@ -20,7 +20,13 @@ import type {
   ConfigCobrancaServicos,
   ConfigCobrancaStatus
 } from '../pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
-import { acordoVazio, listagensAPartirDasVagas, MESES_ACORDO, vagasFromListagens } from '../pages/faturamento-page/config-cobranca/config-cobranca-acordo.util';
+import {
+  acordoVazio,
+  listagensAPartirDasVagas,
+  MESES_ACORDO,
+  vagasCifFromListagens,
+  vagasFromListagens
+} from '../pages/faturamento-page/config-cobranca/config-cobranca-acordo.util';
 import { normalizarEmailFinanceiro } from '../pages/faturamento-page/config-cobranca/config-cobranca-email.util';
 
 /** Rótulo de cada serviço adicional, usado no resumo textual e nas telas de visualização. */
@@ -181,12 +187,13 @@ function acordoFromDto(dto: ConfiguracaoCobrancaOutput): ConfigCobrancaAcordo {
   const acordo = acordoVazio();
   for (const mes of MESES_ACORDO) {
     acordo.vagas[mes.mes] = numeroOuNull(dto[mes.api as keyof ConfiguracaoCobrancaOutput]);
+    acordo.vagasCif[mes.mes] = numeroOuNull(dto[mes.apiCif as keyof ConfiguracaoCobrancaOutput]);
   }
   acordo.custoExcedente = numeroOuNull(dto.custoExcedente);
   acordo.tipoCobrancaExcedente = Number(dto.tipoCobrancaExcedente) || TipoCobrancaExcedente.PorVaga;
   acordo.dataInicio = toIsoDate(dto.dataInicioAcordo);
   acordo.dataFim = toIsoDate(dto.dataFimAcordo);
-  acordo.listagens = listagensAPartirDasVagas(acordo.vagas);
+  acordo.listagens = listagensAPartirDasVagas(acordo.vagas, acordo.vagasCif);
   return acordo;
 }
 
@@ -198,6 +205,11 @@ function acordoToPayload(item: ConfigCobrancaListaItem, isAcordo: boolean): Conf
       ? vagasFromListagens(origem.listagens)
       : origem.vagas
     : vazio.vagas;
+  const vagasCif = isAcordo
+    ? origem.listagens?.length
+      ? vagasCifFromListagens(origem.listagens)
+      : (origem.vagasCif ?? vazio.vagasCif)
+    : vazio.vagasCif;
   return {
     vagasJaneiro: vagas[1] ?? null,
     vagasFevereiro: vagas[2] ?? null,
@@ -211,6 +223,18 @@ function acordoToPayload(item: ConfigCobrancaListaItem, isAcordo: boolean): Conf
     vagasOutubro: vagas[10] ?? null,
     vagasNovembro: vagas[11] ?? null,
     vagasDezembro: vagas[12] ?? null,
+    vagasCifJaneiro: vagasCif[1] ?? null,
+    vagasCifFevereiro: vagasCif[2] ?? null,
+    vagasCifMarco: vagasCif[3] ?? null,
+    vagasCifAbril: vagasCif[4] ?? null,
+    vagasCifMaio: vagasCif[5] ?? null,
+    vagasCifJunho: vagasCif[6] ?? null,
+    vagasCifJulho: vagasCif[7] ?? null,
+    vagasCifAgosto: vagasCif[8] ?? null,
+    vagasCifSetembro: vagasCif[9] ?? null,
+    vagasCifOutubro: vagasCif[10] ?? null,
+    vagasCifNovembro: vagasCif[11] ?? null,
+    vagasCifDezembro: vagasCif[12] ?? null,
     custoExcedente: isAcordo ? origem.custoExcedente : null,
     tipoCobrancaExcedente: isAcordo ? origem.tipoCobrancaExcedente : null,
     dataInicioAcordo: isAcordo ? origem.dataInicio || null : null,
@@ -577,6 +601,18 @@ export function mapRawOutput(row: Record<string, unknown>, fallbackId = 0): Conf
     vagasOutubro: pickNumberOrNull(row, 'vagasOutubro', 'VagasOutubro'),
     vagasNovembro: pickNumberOrNull(row, 'vagasNovembro', 'VagasNovembro'),
     vagasDezembro: pickNumberOrNull(row, 'vagasDezembro', 'VagasDezembro'),
+    vagasCifJaneiro: pickNumberOrNull(row, 'vagasCifJaneiro', 'VagasCifJaneiro'),
+    vagasCifFevereiro: pickNumberOrNull(row, 'vagasCifFevereiro', 'VagasCifFevereiro'),
+    vagasCifMarco: pickNumberOrNull(row, 'vagasCifMarco', 'VagasCifMarco'),
+    vagasCifAbril: pickNumberOrNull(row, 'vagasCifAbril', 'VagasCifAbril'),
+    vagasCifMaio: pickNumberOrNull(row, 'vagasCifMaio', 'VagasCifMaio'),
+    vagasCifJunho: pickNumberOrNull(row, 'vagasCifJunho', 'VagasCifJunho'),
+    vagasCifJulho: pickNumberOrNull(row, 'vagasCifJulho', 'VagasCifJulho'),
+    vagasCifAgosto: pickNumberOrNull(row, 'vagasCifAgosto', 'VagasCifAgosto'),
+    vagasCifSetembro: pickNumberOrNull(row, 'vagasCifSetembro', 'VagasCifSetembro'),
+    vagasCifOutubro: pickNumberOrNull(row, 'vagasCifOutubro', 'VagasCifOutubro'),
+    vagasCifNovembro: pickNumberOrNull(row, 'vagasCifNovembro', 'VagasCifNovembro'),
+    vagasCifDezembro: pickNumberOrNull(row, 'vagasCifDezembro', 'VagasCifDezembro'),
     custoExcedente: pickNumberOrNull(row, 'custoExcedente', 'CustoExcedente'),
     tipoCobrancaExcedente: pickNumberOrNull(row, 'tipoCobrancaExcedente', 'TipoCobrancaExcedente') as
       | TipoCobrancaExcedente

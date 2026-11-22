@@ -38,7 +38,7 @@
         <div class="cfg-acordo-dlg__listagem-head">
           <div class="cfg-acordo-dlg__listagem-titles">
             <h3 class="cfg-acordo-dlg__listagem-title">Listagem {{ i + 1 }}</h3>
-            <p class="cfg-acordo-dlg__hint-text">Meses e quantidade de vagas.</p>
+            <p class="cfg-acordo-dlg__hint-text">Meses, total de vagas e split CIF (FOB = total − CIF).</p>
           </div>
           @if (acordo.listagens.length > 1) {
             <button type="button" class="cfg-acordo-dlg__link" (click)="removerListagem(listagem.id)">
@@ -74,7 +74,7 @@
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
-            <mat-label>Quantidade de vagas</mat-label>
+            <mat-label>Total de vagas</mat-label>
             <input
               matInput
               type="number"
@@ -86,7 +86,25 @@
               required
             />
           </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="cfg-acordo-dlg__field">
+            <mat-label>Vagas CIF</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [(ngModel)]="listagem.quantidadeCif"
+              [name]="'qtdCifListagem' + listagem.id"
+              [attr.max]="listagem.quantidade ?? null"
+            />
+          </mat-form-field>
         </div>
+        <p class="cfg-acordo-dlg__hint-text">
+          FOB desta listagem:
+          {{ fobListagem(listagem) }}
+          (deixe CIF vazio para considerar 100% CIF).
+        </p>
       </section>
     }
 

@@ -1,0 +1,23 @@
+<section class="destinacao-page" aria-labelledby="destinacao-title">
+  <header class="destinacao-page__head">
+    <div class="destinacao-page__copy">
+      <a class="destinacao-page__back" [routerLink]="painelRoute">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        Painel
+      </a>
+      <h1 id="destinacao-title">Destinação</h1>
+      <p>
+        Destine vagas do acordo por transportadora, horário e CIF/FOB. O saldo destinado alimenta o
+        agendamento e o painel do pátio.
+      </p>
+    </div>
+  </header>
+
+  @if (!podeVisualizar()) {
+    <p class="destinacao-page__empty" role="status">
+      Sem permissão para visualizar Destinação (destinacao.visualizar).
+    </p>
+  } @else {
+    <app-vaga-reserva-panel [podeGerenciar]="podeGerenciar()" [embedded]="false" />
+  }
+</section>

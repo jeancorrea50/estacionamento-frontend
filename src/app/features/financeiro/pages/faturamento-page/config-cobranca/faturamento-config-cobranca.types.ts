@@ -45,6 +45,8 @@ export interface ConfigCobrancaAcordoListagem {
   id: string;
   meses: ConfigCobrancaMesAcordo[];
   quantidade: number | null;
+  /** Vagas CIF do grupo; null = tratar como total (FOB 0). */
+  quantidadeCif: number | null;
 }
 
 export interface ConfigCobrancaAcordo {
@@ -54,6 +56,8 @@ export interface ConfigCobrancaAcordo {
   dataFim: string | null;
   listagens: ConfigCobrancaAcordoListagem[];
   vagas: ConfigCobrancaVagasAcordo;
+  /** Split CIF por mês (FOB derivado). */
+  vagasCif: ConfigCobrancaVagasAcordo;
   custoExcedente: number | null;
   tipoCobrancaExcedente: number;
 }

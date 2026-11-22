@@ -77,7 +77,7 @@ export class AgendamentoService {
     );
   }
 
-  /** POST `/api/Agendamento/vagas/holds` — reserva temporária (20 min). */
+  /** POST `/api/Agendamento/vagas/holds` — reserva temporária (30 min). */
   criarHold(input: AgendamentoSlotHoldPostInput): Observable<AgendamentoSlotHold> {
     return this.http.post<unknown>(`${this.apiRoot}/vagas/holds`, input).pipe(
       map((body) => this.mapHold(unwrapServiceResult<Record<string, unknown>>(body)))

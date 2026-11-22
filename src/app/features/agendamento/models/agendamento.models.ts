@@ -61,7 +61,7 @@ export interface AgendamentoPostInput {
   };
 }
 
-/** Hold temporário de vagas (20 min) — `POST/GET/DELETE /Agendamento/vagas/holds`. */
+/** Hold temporário de vagas (30 min) — `POST/GET/DELETE /Agendamento/vagas/holds`. */
 export interface AgendamentoSlotHold {
   id: number;
   token: string;

@@ -53,6 +53,10 @@ export interface DestinacaoSlotPrefill {
   ativa: boolean;
   modalidades: ModalidadeAgendamento[];
   quantidadeTotal: number;
+  /** Vagas destinadas CIF (sem pagador terceiro). */
+  quantidadeCif: number;
+  /** Vagas destinadas FOB (com pagador terceiro). */
+  quantidadeFob: number;
   temCif: boolean;
   temFob: boolean;
 }
@@ -203,7 +207,7 @@ export class JanelaSlotSelectComponent {
     this.destinacaoAtiva.set(false);
     this.modalidadeTravada.set(false);
     this.modalidadesOpcoes.set([...MODALIDADE_AGENDAMENTO_OPCOES]);
-    this.emitDestinacao(false, [], 0, false, false);
+    this.emitDestinacao(false, [], 0, 0, 0, false, false);
     this.pararTick();
   }
 
@@ -307,21 +311,29 @@ export class JanelaSlotSelectComponent {
       this.destinacaoAtiva.set(false);
       this.modalidadeTravada.set(false);
       this.modalidadesOpcoes.set([...MODALIDADE_AGENDAMENTO_OPCOES]);
-      this.emitDestinacao(false, [], 0, false, false);
+      this.emitDestinacao(false, [], 0, 0, 0, false, false);
       return;
     }
 
     const mods = new Set<ModalidadeAgendamento>();
     let qtd = 0;
+    let qtdCif = 0;
+    let qtdFob = 0;
     let temCif = false;
     let temFob = false;
     for (const r of cobrindo) {
       const m = parseModalidadeAgendamento(r.modalidade);
       mods.add(m);
-      qtd += Math.max(0, Math.trunc(Number(r.quantidade) || 0));
+      const q = Math.max(0, Math.trunc(Number(r.quantidade) || 0));
+      qtd += q;
       const pagador = Number(r.responsavelFaturamentoId ?? 0);
-      if (pagador > 0) temFob = true;
-      else temCif = true;
+      if (pagador > 0) {
+        temFob = true;
+        qtdFob += q;
+      } else {
+        temCif = true;
+        qtdCif += q;
+      }
     }
 
     // Ambos (3) na destinação cobre Estacionamento e Limpeza no cálculo do BE.
@@ -344,7 +356,7 @@ export class JanelaSlotSelectComponent {
       this.modalidade.set(opcoes[0].value);
     }
 
-    this.emitDestinacao(true, opcoes.map((o) => o.value), qtd, temCif, temFob);
+    this.emitDestinacao(true, opcoes.map((o) => o.value), qtd, qtdCif, qtdFob, temCif, temFob);
   }
 
   private preferirModalidade(mods: ModalidadeAgendamento[]): ModalidadeAgendamento {
@@ -423,6 +435,8 @@ export class JanelaSlotSelectComponent {
     ativa: boolean,
     modalidades: ModalidadeAgendamento[],
     quantidadeTotal: number,
+    quantidadeCif: number,
+    quantidadeFob: number,
     temCif: boolean,
     temFob: boolean
   ): void {
@@ -430,6 +444,8 @@ export class JanelaSlotSelectComponent {
       ativa,
       modalidades,
       quantidadeTotal,
+      quantidadeCif,
+      quantidadeFob,
       temCif,
       temFob,
     });

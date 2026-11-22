@@ -58,7 +58,7 @@ type EtapaWizard = 1 | 2;
 
 /**
  * Modal compartilhado de criação de agendamento (Pátio e Agendar/transportadora).
- * Fluxo em 2 etapas: (1) data/horário/qtd + hold 20 min → (2) placas/motoristas + CIF/FOB.
+ * Fluxo em 2 etapas: (1) data/horário/qtd + hold 30 min → (2) placas/motoristas + CIF/FOB.
  */
 @Component({
   selector: 'app-agendamento-novo-modal',
@@ -119,6 +119,9 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
   readonly destinacaoTemCif = signal(true);
   readonly destinacaoTemFob = signal(true);
   readonly destinacaoAtiva = signal(false);
+  /** Cotas de destinação (0 = sem cota específica / usa só o total de vagas reservadas). */
+  readonly destinacaoQtdCif = signal(0);
+  readonly destinacaoQtdFob = signal(0);
   private cobrancaPermiteFob = false;
 
   readonly form = this.fb.group({
@@ -155,6 +158,8 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     this.destinacaoAtiva.set(!!info.ativa);
     this.destinacaoTemCif.set(!info.ativa || info.temCif);
     this.destinacaoTemFob.set(!info.ativa || info.temFob);
+    this.destinacaoQtdCif.set(info.ativa ? Math.max(0, info.quantidadeCif || 0) : 0);
+    this.destinacaoQtdFob.set(info.ativa ? Math.max(0, info.quantidadeFob || 0) : 0);
     this.aplicarLiberacaoFob();
 
     if (info.ativa && info.quantidadeTotal > 0 && this.etapa() === 1) {
@@ -206,6 +211,69 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     };
   }
 
+  /** Saldo visual: vagas reservadas × incluídas × faltantes + CIF/FOB (quando destinadas). */
+  saldoVagas(): {
+    reservadas: number;
+    incluidas: number;
+    faltam: number;
+    cifUsado: number;
+    cifLimite: number | null;
+    cifRestante: number | null;
+    fobUsado: number;
+    fobLimite: number | null;
+    fobRestante: number | null;
+    ok: boolean;
+  } {
+    const reservadas = this.quantidade();
+    const incluidas = this.placasSelecionadas().length;
+    const faltam = Math.max(0, reservadas - incluidas);
+    const { cif, fob } = this.resumoCifFob();
+    const limCif = this.limiteCif();
+    const limFob = this.limiteFob();
+    const cifOk = limCif == null || cif <= limCif;
+    const fobOk = limFob == null || fob <= limFob;
+    return {
+      reservadas,
+      incluidas,
+      faltam,
+      cifUsado: cif,
+      cifLimite: limCif,
+      cifRestante: limCif == null ? null : Math.max(0, limCif - cif),
+      fobUsado: fob,
+      fobLimite: limFob,
+      fobRestante: limFob == null ? null : Math.max(0, limFob - fob),
+      ok: incluidas === reservadas && cifOk && fobOk,
+    };
+  }
+
+  /** Limite CIF: cota de destinação (se > 0) ou total reservado se só CIF. */
+  limiteCif(): number | null {
+    if (!this.destinacaoAtiva()) return null;
+    const cota = this.destinacaoQtdCif();
+    if (cota > 0) return Math.min(cota, this.quantidade());
+    if (this.destinacaoTemCif() && !this.destinacaoTemFob()) return this.quantidade();
+    if (!this.destinacaoTemCif()) return 0;
+    return null;
+  }
+
+  limiteFob(): number | null {
+    if (!this.fobLiberado()) return 0;
+    if (!this.destinacaoAtiva()) return null;
+    const cota = this.destinacaoQtdFob();
+    if (cota > 0) return Math.min(cota, this.quantidade());
+    if (this.destinacaoTemFob() && !this.destinacaoTemCif()) return this.quantidade();
+    if (!this.destinacaoTemFob()) return 0;
+    return null;
+  }
+
+  saldoCifFobOk(): boolean {
+    const s = this.saldoVagas();
+    return (
+      (s.cifLimite == null || s.cifUsado <= s.cifLimite) &&
+      (s.fobLimite == null || s.fobUsado <= s.fobLimite)
+    );
+  }
+
   private resetForm(): void {
     this.pararTimer();
     this.hold.set(null);
@@ -218,6 +286,8 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     this.destinacaoAtiva.set(false);
     this.destinacaoTemCif.set(true);
     this.destinacaoTemFob.set(true);
+    this.destinacaoQtdCif.set(0);
+    this.destinacaoQtdFob.set(0);
     this.cobrancaPermiteFob = false;
 
     const tid =
@@ -310,11 +380,7 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
   }
 
   onFrotaConfirmada(lista: AgendamentoPlacaSelecionada[]): void {
-    const destinoPadrao: DestinoFreteAgendamento = 'cif';
-    const mapeadas = lista.map((p) => ({
-      ...p,
-      destinoFrete: p.destinoFrete || destinoPadrao,
-    }));
+    const mapeadas = this.atribuirDestinosBalanceados(lista);
     this.placasSelecionadas.set(mapeadas);
     this.frotaModalAberto.set(false);
     if (mapeadas.length !== this.quantidade()) {
@@ -322,6 +388,43 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
         `Selecione exatamente ${this.quantidade()} veículo(s) para as vagas reservadas.`
       );
     }
+  }
+
+  /** Distribui CIF/FOB respeitando cotas de destinação e liberação de FOB. */
+  private atribuirDestinosBalanceados(
+    lista: AgendamentoPlacaSelecionada[]
+  ): AgendamentoPlacaSelecionada[] {
+    const limCif = this.limiteCif();
+    const limFob = this.limiteFob();
+    let cifRest = limCif == null ? Number.POSITIVE_INFINITY : limCif;
+    let fobRest = !this.fobLiberado()
+      ? 0
+      : limFob == null
+        ? Number.POSITIVE_INFINITY
+        : limFob;
+
+    return lista.map((p) => {
+      const preferido = (p.destinoFrete || 'cif') as DestinoFreteAgendamento;
+      let destino: DestinoFreteAgendamento = 'cif';
+
+      if (preferido === 'fob' && fobRest > 0) {
+        destino = 'fob';
+        fobRest -= 1;
+      } else if (preferido === 'cif' && cifRest > 0) {
+        destino = 'cif';
+        cifRest -= 1;
+      } else if (fobRest > 0) {
+        destino = 'fob';
+        fobRest -= 1;
+      } else if (cifRest > 0) {
+        destino = 'cif';
+        cifRest -= 1;
+      } else {
+        destino = this.fobLiberado() && limFob !== 0 ? 'fob' : 'cif';
+      }
+
+      return { ...p, destinoFrete: destino };
+    });
   }
 
   removerPlacaSelecionada(veiculoId: number): void {
@@ -333,9 +436,33 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
       this.toast.warning('FOB bloqueado: cobrança sem pagador terceiro configurado.');
       return;
     }
-    this.placasSelecionadas.update((lista) =>
-      lista.map((p) => (p.id === veiculoId ? { ...p, destinoFrete: destino } : p))
+
+    const atual = this.placasSelecionadas().find((p) => p.id === veiculoId);
+    if (!atual) return;
+    const destinoAtual = atual.destinoFrete || 'cif';
+    if (destinoAtual === destino) return;
+
+    const simulado = this.placasSelecionadas().map((p) =>
+      p.id === veiculoId ? { ...p, destinoFrete: destino } : p
     );
+    const cif = simulado.filter((p) => (p.destinoFrete || 'cif') === 'cif').length;
+    const fob = simulado.filter((p) => p.destinoFrete === 'fob').length;
+    const limCif = this.limiteCif();
+    const limFob = this.limiteFob();
+    if (limCif != null && cif > limCif) {
+      this.toast.warning(
+        `Limite de CIF atingido (${limCif}). Ajuste o destino de outra placa ou a quantidade.`
+      );
+      return;
+    }
+    if (limFob != null && fob > limFob) {
+      this.toast.warning(
+        `Limite de FOB atingido (${limFob}). Ajuste o destino de outra placa ou a quantidade.`
+      );
+      return;
+    }
+
+    this.placasSelecionadas.set(simulado);
   }
 
   formatPlaca(placa: string | null | undefined): string {
@@ -401,7 +528,7 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
           this.etapa.set(2);
           this.carregarCobranca(tid);
           this.toast.success(
-            `Reserva de ${qtd} vaga(s) por 20 minutos. Complete veículos e destino do frete.`
+            `Reserva de ${qtd} vaga(s) por 30 minutos. Complete veículos e destino do frete.`
           );
         },
         error: (err: { message?: string }) => {
@@ -441,6 +568,10 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     if (!this.todasPlacasComMotorista()) {
       this.toast.error('Defina o motorista de cada placa.');
       this.abrirFrotaModal();
+      return;
+    }
+    if (!this.saldoCifFobOk()) {
+      this.toast.error('CIF/FOB extrapolam as vagas destinadas. Ajuste o destino do frete.');
       return;
     }
 
@@ -629,7 +760,7 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
       this.segundosRestantes.set(restante);
       if (restante <= 0) {
         this.pararTimer();
-        this.toast.warning('Tempo da reserva esgotado (20 min). Selecione o horário novamente.');
+        this.toast.warning('Tempo da reserva esgotado (30 min). Selecione o horário novamente.');
         this.limparHoldLocal(false);
         this.etapa.set(1);
         this.placasSelecionadas.set([]);

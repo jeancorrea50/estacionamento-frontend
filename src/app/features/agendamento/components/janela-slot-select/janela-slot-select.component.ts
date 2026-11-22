@@ -1,19 +1,29 @@
-import { Component, effect, inject, input, model, signal, untracked } from '@angular/core';
-import { Subscription } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { Component, effect, inject, input, model, output, signal, untracked } from '@angular/core';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import { ApiError } from '../../../../core/api/models';
+import { reservaCobreDia } from '../../pages/agendamentos-page/agendamento-dashboard.util';
 import {
   JanelaSlotDisponivel,
   MODALIDADE_AGENDAMENTO_OPCOES,
   ModalidadeAgendamento,
   parseModalidadeAgendamento,
 } from '../../models/janela-agendamento.models';
+import type { VagaReservaTransportadoraItem } from '../../models/vaga-disponibilidade.models';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
+import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 
 /** Chave estável do slot (mesmo horário pode existir em janelas diferentes). */
 function slotKey(s: JanelaSlotDisponivel): string {
   return `${s.janelaAgendamentoId}|${s.horaInicio}|${s.horaFim}`;
+}
+
+function normHora(raw: string | null | undefined): string {
+  const s = String(raw ?? '').trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  return `${String(Number(m[1])).padStart(2, '0')}:${m[2]}`;
 }
 
 /**
@@ -34,18 +44,22 @@ function slotAindaNoFuturo(dataIso: string, horaInicio: string, agora = new Date
   const sec = Number.isFinite(partes[2]) ? partes[2] : 0;
   if (!Number.isFinite(h)) return false;
   const inicio = new Date(yy, mm - 1, dd, h, min, sec, 0);
-  // Compara em minutos para evitar flutuação de segundos no meio do segundo atual.
   const inicioMin = Math.floor(inicio.getTime() / 60_000);
   const agoraMin = Math.floor(agora.getTime() / 60_000);
   return inicioMin >= agoraMin;
 }
 
+export interface DestinacaoSlotPrefill {
+  ativa: boolean;
+  modalidades: ModalidadeAgendamento[];
+  quantidadeTotal: number;
+  temCif: boolean;
+  temFob: boolean;
+}
+
 /**
  * Modalidade + horário (slot) do agendamento.
- * Carrega `GET JanelaAgendamento/disponibilidade` ao mudar data/modalidade/transportadora e
- * sempre que `JanelaDisponibilidadeRealtimeService.versao` mudar (hub ou CRUD local).
- * O backend já omite slots com `disponiveis = 0`.
- * Modalidade Ambos (3) exige vaga no mesmo intervalo em Estacionamento e Limpeza.
+ * Com destinação para a transportadora no dia: restringe e pré-preenche modalidade/horário.
  */
 @Component({
   selector: 'app-janela-slot-select',
@@ -58,12 +72,16 @@ function slotAindaNoFuturo(dataIso: string, horaInicio: string, agora = new Date
       <select
         id="jsl-modalidade"
         class="input-control"
+        [disabled]="modalidadeTravada()"
         (change)="modalidade.set(parseModalidade($any($event.target).value))"
       >
-        @for (m of modalidades; track m.value) {
+        @for (m of modalidadesOpcoes(); track m.value) {
           <option [value]="m.value" [selected]="m.value === modalidade()">{{ m.label }}</option>
         }
       </select>
+      @if (destinacaoAtiva()) {
+        <p class="jsl__msg">Opções conforme destinação da transportadora neste dia.</p>
+      }
     </div>
 
     <div class="jsl__field">
@@ -91,11 +109,19 @@ function slotAindaNoFuturo(dataIso: string, horaInicio: string, agora = new Date
             {{
               soHorariosPassados()
                 ? 'Todos os horários desta data já passaram. Escolha outra data.'
-                : 'Nenhum horário disponível para esta data e modalidade. Escolha outra data ou verifique as Janelas configuradas.'
+                : destinacaoAtiva()
+                  ? 'Nenhum horário disponível na destinação desta transportadora para a data/modalidade.'
+                  : 'Nenhum horário disponível para esta data e modalidade. Escolha outra data ou verifique as Janelas configuradas.'
             }}
           </p>
         } @else if (slot(); as s) {
-          <p class="jsl__msg">{{ s.disponiveis }} vaga(s) disponível(is) neste horário.</p>
+          <p class="jsl__msg">
+            {{ s.disponiveis }} vaga(s) disponível(is) neste horário
+            @if (s.viaDestinacao) {
+              (destinadas)
+            }
+            .
+          </p>
         }
       </div>
     </div>
@@ -103,34 +129,35 @@ function slotAindaNoFuturo(dataIso: string, horaInicio: string, agora = new Date
 })
 export class JanelaSlotSelectComponent {
   private readonly api = inject(JanelaAgendamentoService);
+  private readonly vagasApi = inject(VagaDisponibilidadeService);
   private readonly realtime = inject(JanelaDisponibilidadeRealtimeService);
 
-  /** Só consulta enquanto o modal está aberto. */
   readonly ativo = input(false);
-  /** `yyyy-MM-dd` */
   readonly data = input('');
-  /** Destinação por transportadora (operador de pátio); transportadora logada é resolvida no backend. */
   readonly transportadoraId = input<number | null>(null);
 
   readonly modalidade = model<ModalidadeAgendamento>(1);
-  /** Slot escolhido (`null` = nenhum). */
   readonly slot = model<JanelaSlotDisponivel | null>(null);
 
-  readonly modalidades = MODALIDADE_AGENDAMENTO_OPCOES;
+  /** Resumo da destinação aplicada (pai usa para qty/CIF/FOB). */
+  readonly destinacaoChange = output<DestinacaoSlotPrefill>();
+
   readonly chave = slotKey;
   readonly parseModalidade = parseModalidadeAgendamento;
 
+  readonly modalidadesOpcoes = signal([...MODALIDADE_AGENDAMENTO_OPCOES]);
+  readonly modalidadeTravada = signal(false);
+  readonly destinacaoAtiva = signal(false);
   readonly slots = signal<JanelaSlotDisponivel[]>([]);
   readonly carregando = signal(false);
   readonly erro = signal<string | null>(null);
-  /** API trouxe slots, mas todos já passaram (hoje). */
   readonly soHorariosPassados = signal(false);
 
   private sub?: Subscription;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
-  /** Snapshot bruto da última resposta (para refiltrar sem novo GET a cada minuto). */
   private ultimoBruto: JanelaSlotDisponivel[] = [];
   private ultimaData = '';
+  private reservasDia: VagaReservaTransportadoraItem[] = [];
 
   constructor() {
     effect((onCleanup) => {
@@ -138,7 +165,7 @@ export class JanelaSlotSelectComponent {
       const data = this.data();
       const modalidade = this.modalidade();
       const transportadoraId = this.transportadoraId();
-      this.realtime.versao(); // dependência: refaz o GET quando alguma janela mudar
+      this.realtime.versao();
       onCleanup(() => {
         this.sub?.unsubscribe();
         this.pararTick();
@@ -172,15 +199,21 @@ export class JanelaSlotSelectComponent {
     this.soHorariosPassados.set(false);
     this.ultimoBruto = [];
     this.ultimaData = '';
+    this.reservasDia = [];
+    this.destinacaoAtiva.set(false);
+    this.modalidadeTravada.set(false);
+    this.modalidadesOpcoes.set([...MODALIDADE_AGENDAMENTO_OPCOES]);
+    this.emitDestinacao(false, [], 0, false, false);
     this.pararTick();
   }
 
   private iniciarTickSeHoje(data: string): void {
     this.pararTick();
-    const hoje = this.hojeIsoLocal();
-    if (data !== hoje) return;
-    // A cada minuto remove slots que acabaram de passar sem novo round-trip.
-    this.tickTimer = setInterval(() => this.aplicarFiltroFuturo(this.ultimaData, this.ultimoBruto), 60_000);
+    if (data !== this.hojeIsoLocal()) return;
+    this.tickTimer = setInterval(
+      () => this.aplicarFiltroFuturo(this.ultimaData, this.ultimoBruto),
+      60_000
+    );
   }
 
   private pararTick(): void {
@@ -205,7 +238,8 @@ export class JanelaSlotSelectComponent {
       return;
     }
     const agora = new Date();
-    const futuros = bruto.filter((s) => slotAindaNoFuturo(data, s.horaInicio, agora));
+    let futuros = bruto.filter((s) => slotAindaNoFuturo(data, s.horaInicio, agora));
+    futuros = this.filtrarSlotsPorDestinacao(futuros);
     this.soHorariosPassados.set(bruto.length > 0 && futuros.length === 0);
     this.slots.set(futuros);
     const atual = this.slot();
@@ -222,19 +256,28 @@ export class JanelaSlotSelectComponent {
     const anterior = this.slot();
     this.carregando.set(true);
     this.erro.set(null);
-    this.sub = this.api
-      .disponibilidade(data, modalidade, transportadoraId)
+
+    const tid = transportadoraId != null && transportadoraId > 0 ? transportadoraId : null;
+    const reservas$ = tid
+      ? this.vagasApi.listarReservas().pipe(catchError(() => of([] as VagaReservaTransportadoraItem[])))
+      : of([] as VagaReservaTransportadoraItem[]);
+
+    this.sub = forkJoin({
+      reservas: reservas$,
+      disp: this.api.disponibilidade(data, modalidade, transportadoraId),
+    })
       .pipe(finalize(() => this.carregando.set(false)))
       .subscribe({
-        next: (res) => {
-          this.ultimoBruto = res.slots ?? [];
+        next: ({ reservas, disp }) => {
+          this.aplicarDestinacao(data, tid, reservas);
+          // Se a destinação mudou a modalidade, o effect refaz o GET — evita slot stale.
+          if (this.modalidade() !== modalidade) {
+            return;
+          }
+          this.ultimoBruto = disp.slots ?? [];
           this.ultimaData = data;
           this.aplicarFiltroFuturo(data, this.ultimoBruto);
-          // Mantém a escolha só se o slot continua disponível e ainda não passou.
-          const mantido = anterior
-            ? this.slots().find((s) => slotKey(s) === slotKey(anterior))
-            : undefined;
-          this.slot.set(mantido ?? null);
+          this.preencherSlot(anterior);
         },
         error: (err: ApiError) => {
           this.ultimoBruto = [];
@@ -245,5 +288,150 @@ export class JanelaSlotSelectComponent {
           this.erro.set(err?.message || 'Não foi possível consultar os horários disponíveis.');
         },
       });
+  }
+
+  private aplicarDestinacao(
+    data: string,
+    transportadoraId: number | null,
+    reservas: VagaReservaTransportadoraItem[]
+  ): void {
+    const cobrindo = (reservas ?? []).filter(
+      (r) =>
+        r.ativo &&
+        (!transportadoraId || Number(r.transportadoraId) === transportadoraId) &&
+        reservaCobreDia(r, data)
+    );
+    this.reservasDia = cobrindo;
+
+    if (!transportadoraId || cobrindo.length === 0) {
+      this.destinacaoAtiva.set(false);
+      this.modalidadeTravada.set(false);
+      this.modalidadesOpcoes.set([...MODALIDADE_AGENDAMENTO_OPCOES]);
+      this.emitDestinacao(false, [], 0, false, false);
+      return;
+    }
+
+    const mods = new Set<ModalidadeAgendamento>();
+    let qtd = 0;
+    let temCif = false;
+    let temFob = false;
+    for (const r of cobrindo) {
+      const m = parseModalidadeAgendamento(r.modalidade);
+      mods.add(m);
+      qtd += Math.max(0, Math.trunc(Number(r.quantidade) || 0));
+      const pagador = Number(r.responsavelFaturamentoId ?? 0);
+      if (pagador > 0) temFob = true;
+      else temCif = true;
+    }
+
+    // Ambos (3) na destinação cobre Estacionamento e Limpeza no cálculo do BE.
+    if (mods.has(3)) {
+      mods.add(1);
+      mods.add(2);
+    }
+
+    const lista = MODALIDADE_AGENDAMENTO_OPCOES.filter((o) => mods.has(o.value));
+    const opcoes = lista.length ? lista : [...MODALIDADE_AGENDAMENTO_OPCOES];
+    this.modalidadesOpcoes.set(opcoes);
+    this.destinacaoAtiva.set(true);
+    this.modalidadeTravada.set(opcoes.length === 1);
+
+    const atual = this.modalidade();
+    if (!opcoes.some((o) => o.value === atual)) {
+      const preferida = this.preferirModalidade([...mods]);
+      this.modalidade.set(preferida);
+    } else if (opcoes.length === 1) {
+      this.modalidade.set(opcoes[0].value);
+    }
+
+    this.emitDestinacao(true, opcoes.map((o) => o.value), qtd, temCif, temFob);
+  }
+
+  private preferirModalidade(mods: ModalidadeAgendamento[]): ModalidadeAgendamento {
+    if (mods.includes(3) && mods.length === 1) return 3;
+    if (mods.includes(1)) return 1;
+    if (mods.includes(2)) return 2;
+    if (mods.includes(3)) return 3;
+    return 1;
+  }
+
+  private filtrarSlotsPorDestinacao(slots: JanelaSlotDisponivel[]): JanelaSlotDisponivel[] {
+    if (!this.destinacaoAtiva() || !this.reservasDia.length) return slots;
+    const modalidade = this.modalidade();
+    const faixas = this.reservasDia
+      .filter((r) => {
+        const m = parseModalidadeAgendamento(r.modalidade);
+        return m === modalidade || m === 3 || modalidade === 3;
+      })
+      .map((r) => ({
+        ini: normHora(r.horaInicio),
+        fim: normHora(r.horaFim),
+      }))
+      .filter((f) => !!f.ini);
+
+    // Destinação sem horário específico → todos os slots da modalidade (já limitados por quota).
+    if (!faixas.length) return slots;
+
+    return slots.filter((s) => {
+      const ini = normHora(s.horaInicio);
+      return faixas.some((f) => {
+        if (f.ini && f.fim) return ini >= f.ini && ini < f.fim;
+        return ini === f.ini;
+      });
+    });
+  }
+
+  private preencherSlot(anterior: JanelaSlotDisponivel | null): void {
+    const disponiveis = this.slots();
+    if (!disponiveis.length) {
+      this.slot.set(null);
+      return;
+    }
+
+    const mantido = anterior
+      ? disponiveis.find((s) => slotKey(s) === slotKey(anterior))
+      : undefined;
+    if (mantido) {
+      this.slot.set(mantido);
+      return;
+    }
+
+    // Prefere horário da destinação; se só houver um slot, seleciona automaticamente.
+    const preferido = this.slotPreferidoPorDestinacao(disponiveis);
+    this.slot.set(preferido ?? (disponiveis.length === 1 ? disponiveis[0] : null));
+  }
+
+  private slotPreferidoPorDestinacao(
+    slots: JanelaSlotDisponivel[]
+  ): JanelaSlotDisponivel | undefined {
+    if (!this.destinacaoAtiva()) return undefined;
+    const modalidade = this.modalidade();
+    const inis = new Set(
+      this.reservasDia
+        .filter((r) => {
+          const m = parseModalidadeAgendamento(r.modalidade);
+          return m === modalidade || m === 3 || modalidade === 3;
+        })
+        .map((r) => normHora(r.horaInicio))
+        .filter(Boolean)
+    );
+    if (!inis.size) return undefined;
+    return slots.find((s) => inis.has(normHora(s.horaInicio)));
+  }
+
+  private emitDestinacao(
+    ativa: boolean,
+    modalidades: ModalidadeAgendamento[],
+    quantidadeTotal: number,
+    temCif: boolean,
+    temFob: boolean
+  ): void {
+    this.destinacaoChange.emit({
+      ativa,
+      modalidades,
+      quantidadeTotal,
+      temCif,
+      temFob,
+    });
   }
 }

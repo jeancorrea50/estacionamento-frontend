@@ -51,6 +51,7 @@
               [transportadoraId]="transportadoraFormId()"
               [(modalidade)]="modalidadeJanela"
               [(slot)]="slotSelecionado"
+              (destinacaoChange)="onDestinacaoChange($event)"
             />
 
             @if (podeEscolherTransportadora()) {

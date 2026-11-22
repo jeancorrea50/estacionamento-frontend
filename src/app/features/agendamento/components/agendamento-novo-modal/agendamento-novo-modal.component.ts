@@ -43,7 +43,10 @@ import {
 import { JanelaSlotDisponivel, ModalidadeAgendamento } from '../../models/janela-agendamento.models';
 import { AgendamentoService } from '../../services/agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
-import { JanelaSlotSelectComponent } from '../janela-slot-select/janela-slot-select.component';
+import {
+  DestinacaoSlotPrefill,
+  JanelaSlotSelectComponent,
+} from '../janela-slot-select/janela-slot-select.component';
 import { AgendamentoVeiculosMotoristasModalComponent } from '../agendamento-veiculos-motoristas-modal/agendamento-veiculos-motoristas-modal.component';
 import type { AgendamentoPlacaSelecionada } from './agendamento-placa.model';
 
@@ -108,10 +111,15 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
   readonly quantidade = signal(1);
   readonly hold = signal<AgendamentoSlotHold | null>(null);
   readonly segundosRestantes = signal(0);
-  /** FOB liberado quando cobrança ativa usa pagador terceiro. */
+  /** FOB liberado quando cobrança ativa usa pagador terceiro (e destinação permitir). */
   readonly fobLiberado = signal(false);
   readonly pagadorFobId = signal<number | null>(null);
   readonly pagadorFobNome = signal('');
+  /** Destinação ativa limita CIF/FOB além da cobrança. */
+  readonly destinacaoTemCif = signal(true);
+  readonly destinacaoTemFob = signal(true);
+  readonly destinacaoAtiva = signal(false);
+  private cobrancaPermiteFob = false;
 
   readonly form = this.fb.group({
     dataAgendamento: ['', Validators.required],
@@ -141,6 +149,21 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
         untracked(() => this.quantidade.set(max));
       }
     });
+  }
+
+  onDestinacaoChange(info: DestinacaoSlotPrefill): void {
+    this.destinacaoAtiva.set(!!info.ativa);
+    this.destinacaoTemCif.set(!info.ativa || info.temCif);
+    this.destinacaoTemFob.set(!info.ativa || info.temFob);
+    this.aplicarLiberacaoFob();
+
+    if (info.ativa && info.quantidadeTotal > 0 && this.etapa() === 1) {
+      const maxSlot = Math.max(1, this.slotSelecionado()?.disponiveis ?? info.quantidadeTotal);
+      const sugerida = Math.max(1, Math.min(info.quantidadeTotal, maxSlot));
+      if (this.quantidade() === 1 || this.quantidade() > sugerida) {
+        this.quantidade.set(sugerida);
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -192,6 +215,10 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     this.fobLiberado.set(false);
     this.pagadorFobId.set(null);
     this.pagadorFobNome.set('');
+    this.destinacaoAtiva.set(false);
+    this.destinacaoTemCif.set(true);
+    this.destinacaoTemFob.set(true);
+    this.cobrancaPermiteFob = false;
 
     const tid =
       !this.podeEscolherTransportadora() && this.auth.isTransportadoraRole() && !this.auth.isAdmin()
@@ -562,20 +589,32 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
       )
       .subscribe((cfg) => {
         if (geracao !== this.geracaoCobranca) return;
-        const liberado = cfg?.tipoPagadorCobranca === TipoPagadorCobranca.Terceiro;
-        this.fobLiberado.set(!!liberado);
-        if (liberado) {
+        this.cobrancaPermiteFob = cfg?.tipoPagadorCobranca === TipoPagadorCobranca.Terceiro;
+        if (this.cobrancaPermiteFob) {
           const id = cfg?.responsavelFaturamentoId ?? null;
           this.pagadorFobId.set(id && id > 0 ? id : null);
           this.pagadorFobNome.set((cfg?.responsavelFaturamentoNome || '').trim());
         } else {
           this.pagadorFobId.set(null);
           this.pagadorFobNome.set('');
-          this.placasSelecionadas.update((lista) =>
-            lista.map((p) => ({ ...p, destinoFrete: 'cif' as const }))
-          );
         }
+        this.aplicarLiberacaoFob();
       });
+  }
+
+  /** FOB só se cobrança permitir terceiro e a destinação (quando houver) tiver FOB. */
+  private aplicarLiberacaoFob(): void {
+    const liberado = this.cobrancaPermiteFob && this.destinacaoTemFob();
+    this.fobLiberado.set(liberado);
+    if (!liberado) {
+      this.placasSelecionadas.update((lista) =>
+        lista.map((p) => ({ ...p, destinoFrete: 'cif' as const }))
+      );
+    } else if (this.destinacaoAtiva() && !this.destinacaoTemCif()) {
+      this.placasSelecionadas.update((lista) =>
+        lista.map((p) => ({ ...p, destinoFrete: 'fob' as const }))
+      );
+    }
   }
 
   private iniciarTimer(expiraEm: string): void {

@@ -1,0 +1,74 @@
+<div class="tab-content">
+  <div class="tab-content__actions auditoria-filtros">
+    <label class="form-group auditoria-filtros__entidade">
+      <span>Entidade</span>
+      <input
+        class="input-control"
+        type="text"
+        [ngModel]="entidadeFiltro()"
+        (ngModelChange)="entidadeFiltro.set($event)"
+        (keydown.enter)="aplicarFiltroEntidade()"
+        placeholder="BancoDadosConexao"
+        maxlength="120"
+      />
+    </label>
+    <button type="button" class="btn btn-secondary" [disabled]="loading()" (click)="aplicarFiltroEntidade()">
+      Filtrar
+    </button>
+    <button type="button" class="btn btn-secondary" [disabled]="loading()" (click)="carregar()">
+      Atualizar
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="loading-msg" role="status">Carregando...</p>
+  } @else if (erro()) {
+    <p class="error-msg">{{ erro() }}</p>
+    <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Entidade</th>
+            <th>Id</th>
+            <th>Ação</th>
+            <th>Usuário</th>
+            <th>Detalhe</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ev of itens(); track ev.id) {
+            <tr>
+              <td>{{ ev.dataEvento | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>{{ ev.entidade || '—' }}</td>
+              <td>{{ ev.entidadeId || '—' }}</td>
+              <td>{{ ev.acao || '—' }}</td>
+              <td>{{ usuarioLabel(ev) }}</td>
+              <td class="detalhe-col" [title]="ev.detalheJson || ''">{{ detalheResumido(ev.detalheJson) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (!itens().length) {
+      <p class="empty-msg">Nenhum evento de auditoria encontrado.</p>
+    }
+
+    <div class="auditoria-paginacao">
+      <span class="auditoria-paginacao__info">
+        Página {{ pagina() }} de {{ totalPaginas() }} · {{ total() }} registro(s)
+      </span>
+      <div class="auditoria-paginacao__botoes">
+        <button type="button" class="btn btn-secondary btn--sm" [disabled]="!podeAnterior() || loading()" (click)="paginaAnterior()">
+          Anterior
+        </button>
+        <button type="button" class="btn btn-secondary btn--sm" [disabled]="!podeProxima() || loading()" (click)="paginaProxima()">
+          Próxima
+        </button>
+      </div>
+    </div>
+  }
+</div>

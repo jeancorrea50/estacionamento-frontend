@@ -68,6 +68,38 @@ export interface BancoDadosConexao {
   estacionamentos?: BancoDadosConexaoEstacionamento[];
   /** Histórico GtCentral.BancoDadosConexaoMigration */
   migration?: BancoDadosConexaoMigration[];
+  dataCriacao?: string | null;
+  dataAtualizacao?: string | null;
+  criadoPorNome?: string | null;
+  alteradoPorNome?: string | null;
+  criadoPorUsuarioId?: number | null;
+  alteradoPorUsuarioId?: number | null;
+}
+
+export interface AuditoriaEvento {
+  id: number;
+  entidade: string;
+  entidadeId: number;
+  acao: string;
+  usuarioId?: number | null;
+  usuarioNome?: string | null;
+  detalheJson?: string | null;
+  dataEvento: string;
+}
+
+export interface AuditoriaListaResult {
+  itens: AuditoriaEvento[];
+  total: number;
+  pagina: number;
+  tamanho: number;
+}
+
+/** POST `/api/BancoDadosConexao/{id}/limpar` */
+export interface LimparDadosBancoResult {
+  sucesso?: boolean;
+  mensagem?: string;
+  hangfireJobId?: string;
+  limpezaEnfileirada?: boolean;
 }
 
 export interface BancoDadosConexaoSelect {

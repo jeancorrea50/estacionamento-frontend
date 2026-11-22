@@ -56,6 +56,13 @@ export const GERENCIAMENTO_ROUTES: Routes = [
           ),
       },
       {
+        path: 'auditoria',
+        loadComponent: () =>
+          import('./pages/auditoria-page/auditoria-page.component').then(
+            (m) => m.AuditoriaPageComponent
+          ),
+      },
+      {
         path: 'banco-dados',
         redirectTo: 'bancoDados',
         pathMatch: 'full',

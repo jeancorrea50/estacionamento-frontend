@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subscription, merge } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, map } from 'rxjs/operators';
@@ -48,6 +48,8 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   readonly salvandoVinculo = signal(false);
   readonly transferindo = signal(false);
   readonly excluindoId = signal<number | null>(null);
+  readonly limpandoId = signal<number | null>(null);
+  readonly menuAbertoId = signal<number | null>(null);
   readonly migrandoId = signal<number | null>(null);
   readonly migrandoTodos = signal(false);
   readonly lista = signal<BancoDadosConexao[]>([]);
@@ -695,6 +697,110 @@ export class BancoDadosPageComponent implements OnInit, OnDestroy {
   /** Exclusão física só para Desenvolvimento (1) ou Homologação (2). */
   podeExcluirBanco(item: BancoDadosConexao): boolean {
     return item.ambiente === 1 || item.ambiente === 2;
+  }
+
+  isMenuOpen(id: number): boolean {
+    return this.menuAbertoId() === id;
+  }
+
+  toggleMenu(id: number, event?: Event): void {
+    event?.stopPropagation();
+    if (this.menuAbertoId() === id) {
+      this.fecharMenu();
+      return;
+    }
+    this.menuAbertoId.set(id);
+  }
+
+  fecharMenu(): void {
+    if (this.menuAbertoId() == null) return;
+    this.menuAbertoId.set(null);
+  }
+
+  @HostListener('document:click')
+  onDocumentClickFecharMenu(): void {
+    this.fecharMenu();
+  }
+
+  labelAutor(nome?: string | null, usuarioId?: number | null): string {
+    const n = String(nome ?? '').trim();
+    if (n) return n;
+    if (usuarioId != null && usuarioId > 0) return `#${usuarioId}`;
+    return '—';
+  }
+
+  limparDados(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    if (item.tipoBanco !== 1) {
+      this.toast.error('Limpar dados disponível apenas para SQL Server.');
+      return;
+    }
+
+    const ok = window.confirm(
+      `Limpar dados operacionais do banco "${item.nomeBanco}" (${item.host})?\n\n` +
+        `MANTÉM:\n` +
+        `• Cadastro de estacionamento (tenant)\n` +
+        `• Configurações do sistema\n` +
+        `• Fotos armazenadas\n` +
+        `• CodExportacao e vínculos no GtCentral\n` +
+        `• Usuários/login do GtCentral\n\n` +
+        `REMOVE / ZERA:\n` +
+        `• Movimentações, agendamentos e histórico operacional\n` +
+        `• Faturamento, cobranças e lançamentos financeiros\n` +
+        `• Demais dados transacionais do banco do tenant\n\n` +
+        `Esta ação é irreversível no banco de destino.`
+    );
+    if (!ok) return;
+
+    this.limpandoId.set(item.id);
+    this.api
+      .limpar(item.id)
+      .pipe(finalize(() => this.limpandoId.set(null)))
+      .subscribe({
+        next: (r) => {
+          if (r?.sucesso === false) {
+            this.toast.error(r.mensagem || 'Falha ao limpar dados.');
+            return;
+          }
+          this.toast.success(
+            r?.mensagem || 'Limpeza enfileirada ou concluída. Acompanhe pelo sino, se aplicável.'
+          );
+          this.carregar();
+        },
+        error: (err: ApiError) => {
+          this.toast.error(err?.message ?? 'Não foi possível limpar os dados.');
+        },
+      });
+  }
+
+  acaoEditar(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    this.openEditar(item);
+  }
+
+  acaoEstacionamentos(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    this.openEstacionamentos(item);
+  }
+
+  acaoMigrations(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    this.openMigrations(item);
+  }
+
+  acaoMigrar(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    this.migrarConexao(item);
+  }
+
+  acaoTransferir(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    this.openTransferir(item);
+  }
+
+  acaoExcluir(item: BancoDadosConexao): void {
+    this.fecharMenu();
+    this.excluirBanco(item);
   }
 
   migrarConexao(item: BancoDadosConexao): void {

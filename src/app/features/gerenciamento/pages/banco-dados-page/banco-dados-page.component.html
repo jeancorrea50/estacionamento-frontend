@@ -24,6 +24,8 @@
             <th>Estacionamentos</th>
             <th>Migrations</th>
             <th>Ativo</th>
+            <th>Criado por</th>
+            <th>Alterado por</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -38,45 +40,79 @@
               <td>{{ item.quantidadeEstacionamentos ?? item.estacionamentos?.length ?? 0 }}</td>
               <td>{{ item.migration?.length ?? 0 }}</td>
               <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+              <td class="meta-col">{{ labelAutor(item.criadoPorNome, item.criadoPorUsuarioId) }}</td>
+              <td class="meta-col">{{ labelAutor(item.alteradoPorNome, item.alteradoPorUsuarioId) }}</td>
               <td class="acoes-cell">
-                <div class="table-actions">
-                  <button type="button" class="btn btn-primary btn--sm" (click)="openEditar(item)">
-                    Editar
-                  </button>
-                  <button type="button" class="btn btn-secondary btn--sm" (click)="openEstacionamentos(item)">
-                    Estacionamentos
-                  </button>
-                  <button type="button" class="btn btn-secondary btn--sm" (click)="openMigrations(item)">
-                    Migrations
-                  </button>
+                <div class="table-actions" (click)="$event.stopPropagation()">
                   <button
                     type="button"
-                    class="btn btn-secondary btn--sm"
-                    [disabled]="item.tipoBanco !== 1 || migrandoId() === item.id"
-                    [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : 'Aplicar migrations pendentes'"
-                    (click)="migrarConexao(item)"
+                    class="btn btn-secondary btn--sm acoes-menu-trigger"
+                    aria-label="Ações"
+                    aria-haspopup="menu"
+                    [attr.aria-expanded]="isMenuOpen(item.id)"
+                    (click)="toggleMenu(item.id, $event)"
                   >
-                    {{ migrandoId() === item.id ? 'Migrando...' : 'Migrar' }}
+                    ⋮
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn--sm"
-                    [disabled]="item.tipoBanco !== 1"
-                    [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : 'Transferir BACPAC'"
-                    (click)="openTransferir(item)"
-                  >
-                    Transferir
-                  </button>
-                  @if (podeExcluirBanco(item)) {
-                    <button
-                      type="button"
-                      class="btn btn-danger btn--sm"
-                      [disabled]="excluindoId() === item.id"
-                      [attr.title]="'Excluir banco físico (DROP) — somente Dev/Homolog'"
-                      (click)="excluirBanco(item)"
-                    >
-                      {{ excluindoId() === item.id ? 'Excluindo...' : 'Excluir' }}
-                    </button>
+                  @if (isMenuOpen(item.id)) {
+                    <div class="acoes-menu" role="menu" (click)="$event.stopPropagation()">
+                      <button type="button" class="acoes-menu__item" role="menuitem" (click)="acaoEditar(item)">
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        class="acoes-menu__item"
+                        role="menuitem"
+                        (click)="acaoEstacionamentos(item)"
+                      >
+                        Estacionamentos
+                      </button>
+                      <button type="button" class="acoes-menu__item" role="menuitem" (click)="acaoMigrations(item)">
+                        Migrations
+                      </button>
+                      <button
+                        type="button"
+                        class="acoes-menu__item"
+                        role="menuitem"
+                        [disabled]="item.tipoBanco !== 1 || migrandoId() === item.id"
+                        [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : null"
+                        (click)="acaoMigrar(item)"
+                      >
+                        {{ migrandoId() === item.id ? 'Migrando...' : 'Migrar' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="acoes-menu__item"
+                        role="menuitem"
+                        [disabled]="item.tipoBanco !== 1"
+                        [attr.title]="item.tipoBanco !== 1 ? 'Somente SQL Server' : null"
+                        (click)="acaoTransferir(item)"
+                      >
+                        Transferir
+                      </button>
+                      @if (item.tipoBanco === 1) {
+                        <button
+                          type="button"
+                          class="acoes-menu__item acoes-menu__item--danger"
+                          role="menuitem"
+                          [disabled]="limpandoId() === item.id"
+                          (click)="limparDados(item)"
+                        >
+                          {{ limpandoId() === item.id ? 'Limpando...' : 'Limpar dados' }}
+                        </button>
+                      }
+                      @if (podeExcluirBanco(item)) {
+                        <button
+                          type="button"
+                          class="acoes-menu__item acoes-menu__item--danger"
+                          role="menuitem"
+                          [disabled]="excluindoId() === item.id"
+                          (click)="acaoExcluir(item)"
+                        >
+                          {{ excluindoId() === item.id ? 'Excluindo...' : 'Excluir' }}
+                        </button>
+                      }
+                    </div>
                   }
                 </div>
               </td>

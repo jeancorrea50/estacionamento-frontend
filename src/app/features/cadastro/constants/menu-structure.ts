@@ -207,6 +207,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     children: [
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
       { id: 'sub-banco-dados', label: 'Banco de dados', route: '/app/gerenciamento/bancoDados' },
+      { id: 'sub-auditoria', label: 'Auditoria', route: '/app/gerenciamento/auditoria' },
       { id: 'sub-estacionamento', label: 'Estacionamento', route: '/app/gerenciamento/estacionamento' },
       { id: 'sub-horario', label: 'Horário', route: '/app/gerenciamento/horario' },
       { id: 'sub-custos', label: 'Custos gerenciais', route: '/app/gerenciamento/custos' },

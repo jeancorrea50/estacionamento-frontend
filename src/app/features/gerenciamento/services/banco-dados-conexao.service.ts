@@ -20,6 +20,9 @@ import type {
   TransferenciaBancoDados,
   TransferenciaEnfileiradaResult,
   ExcluirBancoEnfileiradoResult,
+  AuditoriaEvento,
+  AuditoriaListaResult,
+  LimparDadosBancoResult,
 } from '../models/banco-dados-conexao.models';
 
 const API = `${environment.API_BASE_URL}/BancoDadosConexao`;
@@ -281,5 +284,73 @@ export class BancoDadosConexaoService {
         return Array.isArray(raw) ? (raw as TransferenciaBancoDados[]) : [];
       })
     );
+  }
+
+  /** POST /api/BancoDadosConexao/{id}/limpar — zera dados operacionais (SQL Server). */
+  limpar(id: number): Observable<LimparDadosBancoResult> {
+    return this.http.post<unknown>(`${API}/${id}/limpar`, {}).pipe(
+      map((body) => {
+        if (!body || typeof body !== 'object') {
+          return { sucesso: false, mensagem: 'Resposta inválida.' };
+        }
+        const o = mergeServiceResultToRoot(body as Record<string, unknown>);
+        return {
+          sucesso: Boolean(o['sucesso'] ?? o['Sucesso'] ?? true),
+          mensagem: String(o['mensagem'] ?? o['Mensagem'] ?? '').trim() || undefined,
+          hangfireJobId: (o['hangfireJobId'] ?? o['HangfireJobId']) as string | undefined,
+          limpezaEnfileirada: Boolean(o['limpezaEnfileirada'] ?? o['LimpezaEnfileirada'] ?? false),
+        };
+      })
+    );
+  }
+
+  /** GET /api/BancoDadosConexao/auditoria */
+  listarAuditoria(params?: {
+    entidade?: string;
+    pagina?: number;
+    tamanho?: number;
+  }): Observable<AuditoriaListaResult> {
+    let httpParams = new HttpParams();
+    if (params?.entidade?.trim()) httpParams = httpParams.set('entidade', params.entidade.trim());
+    if (params?.pagina != null && params.pagina > 0) {
+      httpParams = httpParams.set('pagina', String(params.pagina));
+    }
+    if (params?.tamanho != null && params.tamanho > 0) {
+      httpParams = httpParams.set('tamanho', String(params.tamanho));
+    }
+    return this.http.get<unknown>(`${API}/auditoria`, { params: httpParams }).pipe(
+      map((body) => this.mapAuditoriaLista(peel<unknown>(body)))
+    );
+  }
+
+  private mapAuditoriaLista(raw: unknown): AuditoriaListaResult {
+    const empty: AuditoriaListaResult = { itens: [], total: 0, pagina: 1, tamanho: 20 };
+    if (!raw || typeof raw !== 'object') return empty;
+    const o = raw as Record<string, unknown>;
+    const listRaw = o['itens'] ?? o['Itens'] ?? o['items'] ?? o['Items'];
+    const itens = Array.isArray(listRaw)
+      ? listRaw
+          .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+          .map((r) => this.normalizeAuditoriaEvento(r))
+      : [];
+    return {
+      itens,
+      total: Number(o['total'] ?? o['Total'] ?? itens.length) || 0,
+      pagina: Number(o['pagina'] ?? o['Pagina'] ?? 1) || 1,
+      tamanho: Number(o['tamanho'] ?? o['Tamanho'] ?? 20) || 20,
+    };
+  }
+
+  private normalizeAuditoriaEvento(raw: Record<string, unknown>): AuditoriaEvento {
+    return {
+      id: Number(raw['id'] ?? raw['Id'] ?? 0),
+      entidade: String(raw['entidade'] ?? raw['Entidade'] ?? ''),
+      entidadeId: Number(raw['entidadeId'] ?? raw['EntidadeId'] ?? 0),
+      acao: String(raw['acao'] ?? raw['Acao'] ?? ''),
+      usuarioId: (raw['usuarioId'] ?? raw['UsuarioId'] ?? null) as number | null,
+      usuarioNome: (raw['usuarioNome'] ?? raw['UsuarioNome'] ?? null) as string | null,
+      detalheJson: (raw['detalheJson'] ?? raw['DetalheJson'] ?? null) as string | null,
+      dataEvento: String(raw['dataEvento'] ?? raw['DataEvento'] ?? ''),
+    };
   }
 }

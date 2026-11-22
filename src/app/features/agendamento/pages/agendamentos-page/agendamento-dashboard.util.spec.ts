@@ -3,9 +3,11 @@ import {
   mapTimelineSlots,
   reservaCobreDia,
   resolverKpiJanelasDia,
+  segmentosBarraSlot,
   somarAgendadosSlots,
   somarDestinacaoCifFob,
   somarDisponiveisSlots,
+  somarOcupacaoDia,
   type AgendamentoTimelineSlot,
 } from './agendamento-dashboard.util';
 import type { JanelaSlotDisponivel } from '../../models/janela-agendamento.models';
@@ -22,6 +24,7 @@ function slot(
     cadastrado: partial.cadastrado ?? 4,
     agendado: partial.agendado,
     disponiveis: partial.disponiveis,
+    ocupado: partial.ocupado ?? 0,
     ocupacaoPct: partial.ocupacaoPct ?? 0,
   };
 }
@@ -110,6 +113,30 @@ function reserva(
     ativo: partial.ativo ?? true,
   };
 }
+
+describe('agendamento-dashboard.util barra/donut', () => {
+  it('segmentosBarraSlot fecha 100% e prioriza DISP/AGEND/OCUP', () => {
+    const segs = segmentosBarraSlot({
+      cadastrado: 5,
+      disponiveis: 4,
+      agendado: 1,
+      ocupado: 0,
+    });
+    expect(segs.pctDisponiveis + segs.pctAgendado + segs.pctOcupado).toBe(100);
+    expect(segs.pctDisponiveis).toBe(80);
+    expect(segs.pctAgendado).toBe(20);
+    expect(segs.pctOcupado).toBe(0);
+  });
+
+  it('somarOcupacaoDia agrega slots do dia', () => {
+    expect(
+      somarOcupacaoDia([
+        slot({ cadastrado: 5, disponiveis: 4, agendado: 1 }),
+        slot({ cadastrado: 5, disponiveis: 5, agendado: 0 }),
+      ])
+    ).toEqual({ disponiveis: 9, agendado: 1, ocupado: 0, capacidade: 10 });
+  });
+});
 
 describe('agendamento-dashboard.util CIF/FOB destinacao', () => {
   it('reservaCobreDia usa vigência aberta quando dataFim é nula', () => {

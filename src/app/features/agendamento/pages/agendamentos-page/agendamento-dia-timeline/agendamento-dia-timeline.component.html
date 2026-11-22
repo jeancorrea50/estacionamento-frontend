@@ -28,6 +28,7 @@
       <div class="ag-timeline__legend" aria-hidden="true">
         <span><i class="ag-dot ag-dot--disp"></i> Disponível</span>
         <span><i class="ag-dot ag-dot--agd"></i> Agendado</span>
+        <span><i class="ag-dot ag-dot--ocup"></i> Ocupado</span>
       </div>
     </div>
   </header>
@@ -55,95 +56,177 @@
         </p>
       </div>
     </div>
-  } @else if (vista() === 'grafico') {
-    <div class="ag-chart" [attr.aria-busy]="loading()" role="img" aria-label="Gráfico de ocupação por horário">
-      <div class="ag-chart__y" aria-hidden="true">
-        <span>{{ maxEixo() }}</span>
-        <span>{{ meioEixo() }}</span>
-        <span>0</span>
-      </div>
-      <div class="ag-chart__plot">
-        <div class="ag-chart__grid" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <ul class="ag-chart__bars">
-          @for (s of slots(); track s.key) {
-            <li class="ag-chart__col">
-              <div
-                class="ag-chart__stack"
-                [attr.title]="
-                  s.label +
-                  ' — cadastrado ' +
-                  s.cadastrado +
-                  ', agendado ' +
-                  s.agendado +
-                  ', disponível ' +
-                  s.disponiveis
-                "
-              >
-                <span
-                  class="ag-chart__seg ag-chart__seg--agd"
-                  [style.height.%]="alturaPct(s.agendado)"
-                ></span>
-                <span
-                  class="ag-chart__seg ag-chart__seg--disp"
-                  [style.height.%]="alturaPct(s.disponiveis)"
-                ></span>
-              </div>
-              <span class="ag-chart__label">{{ rotuloCurto(s) }}</span>
-              <span class="ag-chart__meta">{{ s.ocupacaoPct }}%</span>
-            </li>
-          }
-        </ul>
-      </div>
-    </div>
   } @else {
-    <ol class="ag-timeline__rail" [attr.aria-busy]="loading()">
-      @for (s of slots(); track s.key) {
-        <li class="ag-timeline__slot">
-          <div class="ag-timeline__time">
-            <span class="ag-timeline__marker" aria-hidden="true"></span>
-            <time class="ag-timeline__hora" [attr.datetime]="s.horaInicio">{{ s.label }}</time>
-          </div>
-
-          <div class="ag-timeline__totals" aria-label="Totalizadores do horário">
-            <div class="ag-timeline__stat">
-              <span class="ag-timeline__stat-label">Cad.</span>
-              <span class="ag-timeline__stat-value">{{ s.cadastrado }}</span>
-            </div>
-            <div class="ag-timeline__stat">
-              <span class="ag-timeline__stat-label">Agend.</span>
-              <span class="ag-timeline__stat-value">{{ s.agendado }}</span>
-            </div>
-            <div class="ag-timeline__stat">
-              <span class="ag-timeline__stat-label">Disp.</span>
-              <span class="ag-timeline__stat-value">{{ s.disponiveis }}</span>
-            </div>
-            <div class="ag-timeline__stat ag-timeline__stat--pct">
-              <span class="ag-timeline__stat-label">Ocup.</span>
-              <span class="ag-timeline__stat-value">{{ s.ocupacaoPct }}%</span>
-            </div>
-          </div>
-
+    <div class="ag-timeline__layout">
+      <div class="ag-timeline__main">
+        @if (vista() === 'grafico') {
           <div
-            class="ag-occ-bar"
+            class="ag-chart"
+            [attr.aria-busy]="loading()"
             role="img"
-            [attr.aria-label]="
-              'Ocupação: ' +
-              s.agendado +
-              ' agendados, ' +
-              s.disponiveis +
-              ' disponíveis de ' +
-              s.cadastrado
-            "
+            aria-label="Gráfico de ocupação por horário"
           >
-            <span class="ag-occ-bar__agd" [style.flex]="flexBar(s.agendado)"></span>
-            <span class="ag-occ-bar__disp" [style.flex]="flexBar(s.disponiveis)"></span>
+            <div class="ag-chart__y" aria-hidden="true">
+              <span>{{ maxEixo() }}</span>
+              <span>{{ meioEixo() }}</span>
+              <span>0</span>
+            </div>
+            <div class="ag-chart__plot">
+              <div class="ag-chart__grid" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <ul class="ag-chart__bars">
+                @for (s of slots(); track s.key) {
+                  <li class="ag-chart__col">
+                    <div
+                      class="ag-chart__stack"
+                      [attr.title]="
+                        s.label +
+                        ' — CAP ' +
+                        s.cadastrado +
+                        ', AGEND ' +
+                        s.agendado +
+                        ', DISP ' +
+                        s.disponiveis +
+                        ', OCUP ' +
+                        s.ocupado
+                      "
+                    >
+                      <span
+                        class="ag-chart__seg ag-chart__seg--ocup"
+                        [style.height.%]="alturaPct(s.ocupado)"
+                      ></span>
+                      <span
+                        class="ag-chart__seg ag-chart__seg--agd"
+                        [style.height.%]="alturaPct(s.agendado)"
+                      ></span>
+                      <span
+                        class="ag-chart__seg ag-chart__seg--disp"
+                        [style.height.%]="alturaPct(s.disponiveis)"
+                      ></span>
+                    </div>
+                    <span class="ag-chart__label">{{ rotuloCurto(s) }}</span>
+                    <span class="ag-chart__meta">{{ s.ocupacaoPct }}%</span>
+                  </li>
+                }
+              </ul>
+            </div>
           </div>
-        </li>
-      }
-    </ol>
+        } @else {
+          <ol class="ag-timeline__rail" [attr.aria-busy]="loading()">
+            @for (s of slots(); track s.key) {
+              @let segs = segmentos(s);
+              <li class="ag-timeline__slot">
+                <div class="ag-timeline__time">
+                  <span class="ag-timeline__marker" aria-hidden="true"></span>
+                  <time class="ag-timeline__hora" [attr.datetime]="s.horaInicio">{{ s.label }}</time>
+                </div>
+
+                <div class="ag-timeline__totals" aria-label="Totalizadores do horário">
+                  <div class="ag-timeline__stat">
+                    <span class="ag-timeline__stat-label">Cap.</span>
+                    <span class="ag-timeline__stat-value">{{ s.cadastrado }}</span>
+                  </div>
+                  <div class="ag-timeline__stat">
+                    <span class="ag-timeline__stat-label">Agend.</span>
+                    <span class="ag-timeline__stat-value">{{ s.agendado }}</span>
+                  </div>
+                  <div class="ag-timeline__stat">
+                    <span class="ag-timeline__stat-label">Disp.</span>
+                    <span class="ag-timeline__stat-value">{{ s.disponiveis }}</span>
+                  </div>
+                  <div class="ag-timeline__stat">
+                    <span class="ag-timeline__stat-label">Ocup.</span>
+                    <span class="ag-timeline__stat-value">{{ s.ocupado }}</span>
+                  </div>
+                </div>
+
+                <div
+                  class="ag-occ-bar"
+                  role="img"
+                  [attr.aria-label]="
+                    'Disponível ' +
+                    segs.pctDisponiveis +
+                    '%, agendado ' +
+                    segs.pctAgendado +
+                    '%, ocupado ' +
+                    segs.pctOcupado +
+                    '%'
+                  "
+                >
+                  @if (segs.disponiveis > 0) {
+                    <span
+                      class="ag-occ-bar__seg ag-occ-bar__seg--disp"
+                      [style.flex]="flexBar(segs.disponiveis)"
+                    >
+                      @if (mostrarPct(segs.pctDisponiveis)) {
+                        <span class="ag-occ-bar__pct">{{ segs.pctDisponiveis }}%</span>
+                      }
+                    </span>
+                  }
+                  @if (segs.agendado > 0) {
+                    <span
+                      class="ag-occ-bar__seg ag-occ-bar__seg--agd"
+                      [style.flex]="flexBar(segs.agendado)"
+                    >
+                      @if (mostrarPct(segs.pctAgendado)) {
+                        <span class="ag-occ-bar__pct">{{ segs.pctAgendado }}%</span>
+                      }
+                    </span>
+                  }
+                  @if (segs.ocupado > 0) {
+                    <span
+                      class="ag-occ-bar__seg ag-occ-bar__seg--ocup"
+                      [style.flex]="flexBar(segs.ocupado)"
+                    >
+                      @if (mostrarPct(segs.pctOcupado)) {
+                        <span class="ag-occ-bar__pct">{{ segs.pctOcupado }}%</span>
+                      }
+                    </span>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </div>
+
+      <aside class="ag-donut" aria-label="Visão geral de ocupação do dia">
+        <h3 class="ag-donut__title">Visão Geral de Ocupação do Dia</h3>
+        @if (donutTemDados()) {
+          <div
+            class="ag-donut__ring"
+            [style.background]="donutBackground()"
+            aria-hidden="true"
+          >
+            <div class="ag-donut__hole">
+              <span class="ag-donut__hole-value">{{ ocupacaoDia().capacidade }}</span>
+              <span class="ag-donut__hole-label">CAP.</span>
+            </div>
+          </div>
+          <ul class="ag-donut__legend">
+            <li>
+              <i class="ag-dot ag-dot--disp" aria-hidden="true"></i>
+              <span>Disponível</span>
+              <strong>{{ ocupacaoDia().disponiveis }}</strong>
+            </li>
+            <li>
+              <i class="ag-dot ag-dot--agd" aria-hidden="true"></i>
+              <span>Agendado</span>
+              <strong>{{ ocupacaoDia().agendado }}</strong>
+            </li>
+            <li>
+              <i class="ag-dot ag-dot--ocup" aria-hidden="true"></i>
+              <span>Ocupado</span>
+              <strong>{{ ocupacaoDia().ocupado }}</strong>
+            </li>
+          </ul>
+        } @else {
+          <p class="ag-donut__empty">Sem dados de ocupação para o dia.</p>
+        }
+      </aside>
+    </div>
   }
 </section>

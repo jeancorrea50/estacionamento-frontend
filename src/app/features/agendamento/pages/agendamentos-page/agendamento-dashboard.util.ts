@@ -9,12 +9,41 @@ export interface AgendamentoTimelineSlot {
   label: string;
   horaInicio: string;
   horaFim: string;
-  /** Capacidade cadastrada na janela/slot. */
+  /** Capacidade cadastrada na janela/slot (CAP.). */
   cadastrado: number;
-  /** Já agendado / ocupado neste slot (contrato `ocupadas`). */
+  /**
+   * Vagas já tomadas no slot (contrato BE `ocupadas`).
+   * Na UI = AGEND. — o BE ainda não separa “agendado” de “em pátio”.
+   */
   agendado: number;
+  /** Vagas livres (DISP.). */
   disponiveis: number;
+  /**
+   * Em pátio / fisicamente ocupado (OCUP.).
+   * Reservado: hoje o contrato de disponibilidade não envia esse split → 0.
+   */
+  ocupado: number;
+  /** % de capacidade tomada (agendado + ocupado) sobre CAP. */
   ocupacaoPct: number;
+}
+
+/** Segmentos da barra empilhada (proporção visual). */
+export interface AgendamentoBarSegmentos {
+  disponiveis: number;
+  agendado: number;
+  ocupado: number;
+  total: number;
+  pctDisponiveis: number;
+  pctAgendado: number;
+  pctOcupado: number;
+}
+
+/** Totais do dia para o donut “Visão geral de ocupação”. */
+export interface AgendamentoOcupacaoDia {
+  disponiveis: number;
+  agendado: number;
+  ocupado: number;
+  capacidade: number;
 }
 
 export function toIsoDateLocal(d: Date): string {
@@ -71,8 +100,10 @@ export function mapTimelineSlots(slots: JanelaSlotDisponivel[]): AgendamentoTime
       const cadastrado = Math.max(0, Number(s.capacidade) || 0);
       const agendado = Math.max(0, Number(s.ocupadas) || 0);
       const disponiveis = Math.max(0, Number(s.disponiveis) || 0);
+      const ocupado = 0;
+      const tomadas = agendado + ocupado;
       const ocupacaoPct =
-        cadastrado > 0 ? Math.min(100, Math.round((agendado / cadastrado) * 100)) : 0;
+        cadastrado > 0 ? Math.min(100, Math.round((tomadas / cadastrado) * 100)) : 0;
       return {
         key: slotKey(s),
         label: formatHoraLabel(s.horaInicio, s.horaFim, s.label),
@@ -81,6 +112,7 @@ export function mapTimelineSlots(slots: JanelaSlotDisponivel[]): AgendamentoTime
         cadastrado,
         agendado,
         disponiveis,
+        ocupado,
         ocupacaoPct,
       };
     });
@@ -125,6 +157,88 @@ export function resolverKpiJanelasDia(opts: {
 
 export function flexBar(value: number): number {
   return Math.max(0, Number(value) || 0);
+}
+
+function pctPart(parte: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((parte / total) * 100)));
+}
+
+/** Proporções da barra (DISP + AGEND + OCUP). Normaliza para 100% quando há valores. */
+export function segmentosBarraSlot(
+  slot: Pick<AgendamentoTimelineSlot, 'disponiveis' | 'agendado' | 'ocupado' | 'cadastrado'>
+): AgendamentoBarSegmentos {
+  const disponiveis = Math.max(0, Number(slot.disponiveis) || 0);
+  const agendado = Math.max(0, Number(slot.agendado) || 0);
+  const ocupado = Math.max(0, Number(slot.ocupado) || 0);
+  let total = disponiveis + agendado + ocupado;
+  if (total <= 0) {
+    const cap = Math.max(0, Number(slot.cadastrado) || 0);
+    return {
+      disponiveis: cap > 0 ? cap : 1,
+      agendado: 0,
+      ocupado: 0,
+      total: cap > 0 ? cap : 1,
+      pctDisponiveis: 100,
+      pctAgendado: 0,
+      pctOcupado: 0,
+    };
+  }
+  let pctDisponiveis = pctPart(disponiveis, total);
+  let pctAgendado = pctPart(agendado, total);
+  let pctOcupado = pctPart(ocupado, total);
+  const soma = pctDisponiveis + pctAgendado + pctOcupado;
+  if (soma !== 100 && soma > 0) {
+    // Ajuste residual no maior segmento para fechar 100%.
+    const diff = 100 - soma;
+    if (pctDisponiveis >= pctAgendado && pctDisponiveis >= pctOcupado) {
+      pctDisponiveis += diff;
+    } else if (pctAgendado >= pctOcupado) {
+      pctAgendado += diff;
+    } else {
+      pctOcupado += diff;
+    }
+  }
+  return {
+    disponiveis,
+    agendado,
+    ocupado,
+    total,
+    pctDisponiveis,
+    pctAgendado,
+    pctOcupado,
+  };
+}
+
+/** Totais do dia para o donut (soma dos slots visíveis). */
+export function somarOcupacaoDia(
+  slots: ReadonlyArray<Pick<AgendamentoTimelineSlot, 'disponiveis' | 'agendado' | 'ocupado' | 'cadastrado'>>
+): AgendamentoOcupacaoDia {
+  return slots.reduce(
+    (acc, s) => ({
+      disponiveis: acc.disponiveis + Math.max(0, Number(s.disponiveis) || 0),
+      agendado: acc.agendado + Math.max(0, Number(s.agendado) || 0),
+      ocupado: acc.ocupado + Math.max(0, Number(s.ocupado) || 0),
+      capacidade: acc.capacidade + Math.max(0, Number(s.cadastrado) || 0),
+    }),
+    { disponiveis: 0, agendado: 0, ocupado: 0, capacidade: 0 }
+  );
+}
+
+/** Conic-gradient CSS do donut (DISP → AGEND → OCUP). */
+export function donutConicGradient(dia: AgendamentoOcupacaoDia): string {
+  const segs = segmentosBarraSlot({
+    disponiveis: dia.disponiveis,
+    agendado: dia.agendado,
+    ocupado: dia.ocupado,
+    cadastrado: dia.capacidade,
+  });
+  const gDisp = 'var(--success, #10b981)';
+  const gAgd = 'var(--warning, #f59e0b)';
+  const gOcup = 'var(--danger, #ef4444)';
+  const a = segs.pctDisponiveis;
+  const b = a + segs.pctAgendado;
+  return `conic-gradient(${gDisp} 0% ${a}%, ${gAgd} ${a}% ${b}%, ${gOcup} ${b}% 100%)`;
 }
 
 function isoDateOnly(value: string | null | undefined): string {

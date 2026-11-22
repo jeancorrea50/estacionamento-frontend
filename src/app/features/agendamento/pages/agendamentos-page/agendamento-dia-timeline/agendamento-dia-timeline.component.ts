@@ -1,7 +1,12 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import type { AgendamentoTimelineSlot } from '../agendamento-dashboard.util';
-import { flexBar } from '../agendamento-dashboard.util';
+import {
+  donutConicGradient,
+  flexBar,
+  segmentosBarraSlot,
+  somarOcupacaoDia,
+} from '../agendamento-dashboard.util';
 
 export type AgendamentoDiaVista = 'timeline' | 'grafico';
 
@@ -23,8 +28,17 @@ export class AgendamentoDiaTimelineComponent {
   readonly vista = signal<AgendamentoDiaVista>('timeline');
   readonly flexBar = flexBar;
 
+  readonly ocupacaoDia = computed(() => somarOcupacaoDia(this.slots()));
+  readonly donutBackground = computed(() => donutConicGradient(this.ocupacaoDia()));
+  readonly donutTemDados = computed(() => {
+    const d = this.ocupacaoDia();
+    return d.disponiveis + d.agendado + d.ocupado + d.capacidade > 0;
+  });
+
   readonly maxEixo = computed(() => {
-    const vals = this.slots().map((s) => Math.max(s.cadastrado, s.agendado + s.disponiveis, 1));
+    const vals = this.slots().map((s) =>
+      Math.max(s.cadastrado, s.agendado + s.ocupado + s.disponiveis, 1)
+    );
     const max = vals.length ? Math.max(...vals) : 1;
     return Math.max(1, Math.ceil(max));
   });
@@ -33,6 +47,10 @@ export class AgendamentoDiaTimelineComponent {
 
   definirVista(v: AgendamentoDiaVista): void {
     this.vista.set(v);
+  }
+
+  segmentos(s: AgendamentoTimelineSlot) {
+    return segmentosBarraSlot(s);
   }
 
   alturaPct(valor: number): number {
@@ -44,5 +62,10 @@ export class AgendamentoDiaTimelineComponent {
   rotuloCurto(s: AgendamentoTimelineSlot): string {
     const hi = (s.horaInicio || '').slice(0, 5);
     return hi || s.label;
+  }
+
+  /** Evita rótulo % em fatias estreitas demais. */
+  mostrarPct(pct: number): boolean {
+    return pct >= 12;
   }
 }

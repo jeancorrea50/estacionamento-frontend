@@ -1,3 +1,5 @@
+import { parsePatioWallClock } from '../../../shared/utils/local-iso-datetime';
+
 /**
  * Quantidade de diárias entre entrada e saída (datas locais, inclusivas).
  * Mesmo dia calendário = 1; mínimo sempre 1.
@@ -5,10 +7,11 @@
  */
 export function calcularQuantidadeDiarias(
   dataHoraEntrada: string | null | undefined,
-  dataHoraSaida: string | null | undefined
+  dataHoraSaida: string | null | undefined,
+  timeZoneId?: string | null
 ): number {
-  const entrada = parseDataLocal(dataHoraEntrada);
-  const saida = parseDataLocal(dataHoraSaida);
+  const entrada = parsePatioWallClock(dataHoraEntrada, timeZoneId);
+  const saida = parsePatioWallClock(dataHoraSaida, timeZoneId);
   if (!entrada || !saida) return 1;
 
   const inicio = inicioDoDiaLocal(entrada);
@@ -22,14 +25,17 @@ export function calcularQuantidadeDiarias(
  * Unidades cobradas (hora ou diária), espelhando o backend:
  * `Math.Ceiling(TotalHours|TotalDays)` com mínimo 1.
  * Tipo: 1=Hora, 2=Diaria (default Diaria).
+ *
+ * @param timeZoneId Fuso de Gerenciamento → Horário (ex.: America/Cuiaba).
  */
 export function calcularQuantidadeUnidades(
   dataHoraEntrada: string | null | undefined,
   dataHoraSaida: string | null | undefined,
-  tipoTarifa: 1 | 2 | null | undefined
+  tipoTarifa: 1 | 2 | null | undefined,
+  timeZoneId?: string | null
 ): number {
-  const entrada = parseDataLocal(dataHoraEntrada);
-  const saida = parseDataLocal(dataHoraSaida);
+  const entrada = parsePatioWallClock(dataHoraEntrada, timeZoneId);
+  const saida = parsePatioWallClock(dataHoraSaida, timeZoneId);
   if (!entrada || !saida) return 1;
 
   let ini = entrada;
@@ -41,25 +47,9 @@ export function calcularQuantidadeUnidades(
   const spanMs = fim.getTime() - ini.getTime();
   const tipo = tipoTarifa === 1 ? 1 : 2;
   const quantidade =
-    tipo === 1
-      ? Math.ceil(spanMs / 3_600_000)
-      : Math.ceil(spanMs / 86_400_000);
+    tipo === 1 ? Math.ceil(spanMs / 3_600_000) : Math.ceil(spanMs / 86_400_000);
 
   return Math.max(1, quantidade || 0);
-}
-
-function parseDataLocal(raw: string | null | undefined): Date | null {
-  const texto = String(raw ?? '').trim();
-  if (!texto) return null;
-
-  // datetime-local: YYYY-MM-DDTHH:mm[:ss]
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(texto)) {
-    const d = new Date(texto);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  const d = new Date(texto);
-  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function inicioDoDiaLocal(d: Date): Date {

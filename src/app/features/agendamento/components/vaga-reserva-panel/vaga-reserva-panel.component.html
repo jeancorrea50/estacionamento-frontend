@@ -12,7 +12,7 @@
       <button
         type="button"
         class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
-        (click)="carregar(); carregarSlots()"
+        (click)="carregar()"
         [disabled]="loading()"
       >
         <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
@@ -50,7 +50,7 @@
           <button
             type="button"
             class="vaga-reserva-panel__btn vaga-reserva-panel__btn--ghost vaga-reserva-panel__btn--sm"
-            (click)="carregar(); carregarSlots()"
+            (click)="carregar()"
             [disabled]="loading()"
             title="Atualizar"
             aria-label="Atualizar"
@@ -63,7 +63,7 @@
 
     @if (loading()) {
       <p class="vaga-reserva-panel__msg">Carregando…</p>
-    } @else if (resumoJanelas(); as v) {
+    } @else if (resumo(); as v) {
       <div class="vaga-reserva-panel__kpis">
         <article class="vaga-kpi vaga-kpi--est">
           <div class="vaga-kpi__top">
@@ -71,13 +71,13 @@
             <span class="vaga-kpi__label">Estacionamento</span>
           </div>
           <strong class="vaga-kpi__value">
-            {{ v.disponiveisEstacionamento }}
-            <small>/ {{ v.capacidadeEstacionamento }}</small>
+            {{ v.vagasDisponiveisEstacionamento ?? '—' }}
+            <small>/ {{ v.capacidadeEstacionamento ?? '—' }}</small>
           </strong>
           <div class="vaga-kpi__bar" aria-hidden="true">
-            <span [style.width.%]="pctDisponivel(v.disponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
+            <span [style.width.%]="pctDisponivel(v.vagasDisponiveisEstacionamento, v.capacidadeEstacionamento)"></span>
           </div>
-          <em class="vaga-kpi__hint">Ocupadas nas janelas: {{ v.ocupadasEstacionamento }}</em>
+          <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasEstacionamento }}</em>
         </article>
         <article class="vaga-kpi vaga-kpi--limp">
           <div class="vaga-kpi__top">
@@ -85,18 +85,18 @@
             <span class="vaga-kpi__label">Limpeza</span>
           </div>
           <strong class="vaga-kpi__value">
-            {{ v.disponiveisLimpeza }}
-            <small>/ {{ v.capacidadeLimpeza }}</small>
+            {{ v.vagasDisponiveisLimpeza ?? '—' }}
+            <small>/ {{ v.capacidadeLimpeza ?? '—' }}</small>
           </strong>
           <div class="vaga-kpi__bar" aria-hidden="true">
-            <span [style.width.%]="pctDisponivel(v.disponiveisLimpeza, v.capacidadeLimpeza)"></span>
+            <span [style.width.%]="pctDisponivel(v.vagasDisponiveisLimpeza, v.capacidadeLimpeza)"></span>
           </div>
-          <em class="vaga-kpi__hint">Ocupadas nas janelas: {{ v.ocupadasLimpeza }}</em>
+          <em class="vaga-kpi__hint">Reservadas: {{ v.vagasReservadasLimpeza }}</em>
         </article>
       </div>
-      @if (!v.temJanelas) {
+      @if (!v.controleAtivo) {
         <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
-          Nenhuma janela ativa para este dia. Configure as janelas de agendamento para liberar vagas.
+          Defina a capacidade no cadastro do estacionamento para ativar o controle.
         </p>
       }
     }
@@ -137,24 +137,7 @@
 
         <label class="vaga-field vaga-field--qtd">
           <span>Quantidade</span>
-          <input
-            class="input-control"
-            type="number"
-            min="1"
-            [attr.max]="maxQuantidade() ?? null"
-            formControlName="quantidade"
-          />
-          @if (maxQuantidade() != null) {
-            <small class="vaga-field__hint">
-              Máx. {{ maxQuantidade() }}
-              @if (slotAtual(); as s) {
-                · janela {{ s.disponiveis }}
-              }
-              @if (vagasAcordoMes() != null) {
-                · acordo {{ vagasAcordoMes() }}
-              }
-            </small>
-          }
+          <input class="input-control" type="number" min="1" formControlName="quantidade" />
         </label>
 
         <div class="vaga-field vaga-field--vigencia vaga-field--periodo">
@@ -179,111 +162,22 @@
           <small class="vaga-field__hint">{{ recorrenciaHint() }}</small>
         </label>
 
-        <div class="vaga-field vaga-field--pagador-tipo">
-          <span>Faturamento</span>
-          <div class="vaga-pagador-tipo" role="radiogroup" aria-label="Tipo de faturamento">
-            <button
-              type="button"
-              class="vaga-pagador-tipo__opt"
-              [class.is-active]="tipoPagador() === 'cif'"
-              [attr.aria-checked]="tipoPagador() === 'cif'"
-              role="radio"
-              (click)="selecionarTipoPagador('cif')"
-            >
-              <strong>CIF</strong>
-              <span>Transportadora</span>
-            </button>
-            <button
-              type="button"
-              class="vaga-pagador-tipo__opt"
-              [class.is-active]="tipoPagador() === 'fob'"
-              [attr.aria-checked]="tipoPagador() === 'fob'"
-              role="radio"
-              (click)="selecionarTipoPagador('fob')"
-            >
-              <strong>FOB</strong>
-              <span>Terceiro</span>
-            </button>
-          </div>
-        </div>
-
-        @if (exigePagadorFob()) {
-          <div class="vaga-field vaga-field--pagador">
-            <span>Pagador (terceiro)</span>
-            <app-responsavel-faturamento-lookup-field
-              [responsavelId]="pagadorId()"
-              (responsavelIdChange)="onPagadorIdChange($event)"
-              [responsavelNome]="pagadorNome()"
-              (responsavelNomeChange)="onPagadorNomeChange($event)"
-              placeholder="Buscar terceiro pagador…"
-            />
-            <small class="vaga-field__hint">Obrigatório para faturamento FOB.</small>
-          </div>
-        }
-      </div>
-
-      <div class="vaga-slots" aria-label="Horários disponíveis no dia">
-        <div class="vaga-slots__head">
-          <strong>Horários com vaga — {{ dataConsultaLabel() }}</strong>
-          <span class="vaga-slots__hint">Selecione o slot da destinação</span>
-        </div>
-
-        @if (loadingSlots()) {
-          <p class="vaga-reserva-panel__msg">Carregando horários…</p>
-        } @else if (slots().length === 0) {
-          <p class="vaga-reserva-panel__msg vaga-reserva-panel__msg--warn">
-            Nenhum horário com vaga livre neste dia/modalidade. Ajuste a data, a modalidade ou configure
-            as janelas.
-          </p>
-        } @else {
-          <div class="vaga-slots__grid" role="listbox" aria-label="Slots disponíveis">
-            @for (s of slots(); track chaveSlot(s)) {
-              <button
-                type="button"
-                class="vaga-slot-card"
-                role="option"
-                [class.is-selected]="chaveSlot(s) === slotSelecionadoKey()"
-                [attr.aria-selected]="chaveSlot(s) === slotSelecionadoKey()"
-                (click)="selecionarSlot(s)"
-              >
-                <span class="vaga-slot-card__hora">{{ slotHoraLabel(s) }}</span>
-                <strong class="vaga-slot-card__disp">
-                  {{ s.disponiveis }}
-                  <small>/ {{ s.capacidade }}</small>
-                </strong>
-                <div class="vaga-slot-card__bar" aria-hidden="true">
-                  <span [style.width.%]="pctDisponivel(s.disponiveis, s.capacidade)"></span>
-                </div>
-                <em class="vaga-slot-card__meta">
-                  {{ s.disponiveis === 1 ? '1 vaga livre' : s.disponiveis + ' vagas livres' }}
-                  · ocupadas {{ s.ocupadas }}
-                </em>
-              </button>
+        <label class="vaga-field vaga-field--periodo-dia">
+          <span>Período do dia</span>
+          <select class="input-control input-control--select" formControlName="periodoDia">
+            <option [ngValue]="null">Qualquer</option>
+            @for (p of periodosDia; track p.value) {
+              <option [ngValue]="p.value">{{ p.label }}</option>
             }
-          </div>
-        }
-      </div>
-
-      <div class="vaga-reserva-panel__transfer">
-        <mat-slide-toggle
-          class="vaga-reserva-panel__transfer-toggle"
-          color="primary"
-          formControlName="transferenciaAutomaticaSaldo"
-        >
-          <span class="vaga-reserva-panel__transfer-copy">
-            <strong class="vaga-reserva-panel__transfer-title">Transferência automática de saldo</strong>
-            <span class="vaga-reserva-panel__transfer-desc">
-              O saldo não utilizado pode ser transferido para a próxima janela, respeitando a capacidade.
-            </span>
-          </span>
-        </mat-slide-toggle>
+          </select>
+        </label>
       </div>
 
       <div class="vaga-reserva-panel__form-actions">
         <button
           type="submit"
           class="vaga-reserva-panel__btn vaga-reserva-panel__btn--primary"
-          [disabled]="salvando() || loadingSlots()"
+          [disabled]="salvando()"
         >
           {{ salvando() ? 'Salvando…' : 'Destinar vagas' }}
         </button>
@@ -320,9 +214,7 @@
               <th>Qtd</th>
               <th>Vigência</th>
               <th>Recorrência</th>
-              <th>Horário</th>
-              <th>Pagador</th>
-              <th>Transf. saldo</th>
+              <th>Período</th>
               <th>Situação</th>
               @if (podeGerenciar) {
                 <th></th>
@@ -342,28 +234,7 @@
                   }
                 </td>
                 <td>{{ r.periodicidadeLabel }}</td>
-                <td>{{ horarioReservaLabel(r) }}</td>
-                <td>
-                  @if (pagadorReservaLabel(r) === 'CIF') {
-                    <span class="vaga-status vaga-status--cif" title="Faturamento CIF">CIF</span>
-                  } @else {
-                    <span class="vaga-status vaga-status--fob" [title]="pagadorReservaLabel(r)">
-                      {{ pagadorReservaLabel(r) }}
-                    </span>
-                  }
-                </td>
-                <td>
-                  @if (r.transferenciaAutomaticaSaldo) {
-                    <span
-                      class="vaga-status vaga-status--transfer"
-                      title="Transferência automática de saldo ativa"
-                    >
-                      Sim
-                    </span>
-                  } @else {
-                    <span class="vaga-status vaga-status--off">Não</span>
-                  }
-                </td>
+                <td>{{ r.periodoDiaLabel || '—' }}</td>
                 <td>
                   <span
                     class="vaga-status"

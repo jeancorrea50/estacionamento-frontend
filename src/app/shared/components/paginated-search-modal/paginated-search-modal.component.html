@@ -1,5 +1,5 @@
 @if (aberto()) {
-  <div class="modal-overlay">
+  <div class="modal-overlay" (click)="fechar.emit()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <h2>{{ titulo() }}</h2>
       <div class="busca-topo">

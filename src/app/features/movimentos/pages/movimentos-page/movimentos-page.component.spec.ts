@@ -8,6 +8,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { VeiculoService } from '../../../cadastro/services/veiculo.service';
+import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentosPageComponent } from './movimentos-page.component';
 
@@ -73,6 +74,9 @@ describe('MovimentosPageComponent', () => {
     clearState: vi.fn(),
     reconnectForSession: vi.fn().mockResolvedValue(undefined)
   };
+  const estacionamentoConfigMock = {
+    obterAtual: vi.fn().mockReturnValue(of({ timeZoneId: 'America/Cuiaba' })),
+  };
 
   beforeEach(async () => {
     authServiceMock.isTransportadoraRole.mockReturnValue(false);
@@ -86,7 +90,8 @@ describe('MovimentosPageComponent', () => {
         { provide: Router, useValue: routerMock },
         { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: SignalrDashboardService, useValue: signalrDashboardServiceMock },
-        { provide: ActivatedRoute, useValue: { parent: {} } }
+        { provide: EstacionamentoConfiguracaoService, useValue: estacionamentoConfigMock },
+        { provide: ActivatedRoute, useValue: { parent: {}, snapshot: { data: {} } } }
       ]
     }).compileComponents();
   });
@@ -216,10 +221,12 @@ describe('MovimentosPageComponent', () => {
 
     expect(component.saidaTipoTarifa()).toBe(1);
     expect(component.saidaValorDiaria()).toBe(11);
-    expect(component.saidaQuantidadeDiarias()).toBe(2);
-    expect(component.saidaValor()).toBe(22);
     expect(component.saidaLabelValorUnitario()).toBe('Valor da hora');
     expect(component.saidaLabelQuantidade()).toBe('Quantidade de horas');
+    // Quantidade segue o relógio do formulário (não a quantidadeUnidades da API).
+    component.onPermanenciaDataHoraChange('2026-08-09T17:00');
+    expect(component.saidaQuantidadeDiarias()).toBe(2);
+    expect(component.saidaValor()).toBe(22);
   });
 
   it('quando valor-estacionamento retorna 404 deve deixar a diária editável', () => {

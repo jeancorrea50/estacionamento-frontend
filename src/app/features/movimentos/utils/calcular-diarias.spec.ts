@@ -29,6 +29,29 @@ describe('calcular-diarias', () => {
     expect(calcularQuantidadeUnidades('2026-08-09T15:25:00', '2026-08-09T15:40', 1)).toBe(1);
   });
 
+  it('ignora sufixo Z/offset e compara relógio do pátio (1h ≠ 5h por UTC-4)', () => {
+    expect(
+      calcularQuantidadeUnidades('2026-11-22T15:19:00Z', '2026-11-22T16:19', 1)
+    ).toBe(1);
+    expect(
+      calcularQuantidadeUnidades('2026-11-22T15:19:00.000Z', '2026-11-22T16:19:00', 1)
+    ).toBe(1);
+    expect(
+      calcularQuantidadeUnidades('2026-11-22T15:19:00+00:00', '2026-11-22T16:19', 1)
+    ).toBe(1);
+  });
+
+  it('mesmo com timeZoneId, dígitos da API são wall-clock (15:28Z → 16:28 = 1h)', () => {
+    expect(
+      calcularQuantidadeUnidades(
+        '2026-11-22T15:28:00Z',
+        '2026-11-22T16:28',
+        1,
+        'America/Cuiaba'
+      )
+    ).toBe(1);
+  });
+
   it('quantidade por diária usa teto de dias corridos', () => {
     expect(calcularQuantidadeUnidades('2026-08-01T10:00:00', '2026-08-01T23:00', 2)).toBe(1);
     expect(calcularQuantidadeUnidades('2026-08-01T10:00:00', '2026-08-03T12:00', 2)).toBe(3);

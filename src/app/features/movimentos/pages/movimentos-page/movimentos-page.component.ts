@@ -1,18 +1,11 @@
 import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
 import { MovimentoService } from '../../entrada-saida/movimento.service';
 import { PATIO_ENTRADA_SAIDA_ROUTE } from '../../../patio/patio-rotas';
-import {
-  SaidaPagamentoDialogComponent,
-  type SaidaPagamentoDialogResult
-} from '../../components/saida-pagamento-dialog/saida-pagamento-dialog.component';
-import { FaturaService } from '../../../financeiro/services/fatura.service';
-import { ModalidadeRecebimento } from '../../../financeiro/models/fatura.models';
 import {
   EntradaSaidaFiltro,
   EntradaSaidaOutput,
@@ -38,19 +31,19 @@ import {
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { MotoristaService } from '../../../cadastro/services/motorista.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
-import { formatCpf } from '../../../cadastro/directives/cpf-format.directive';
-import { formatCnpj } from '../../../cadastro/directives/cnpj-format.directive';
-import { Subject, forkJoin, map, of, throwError } from 'rxjs';
-import { catchError, finalize, takeUntil } from 'rxjs/operators';
+import { Observable, Subject, forkJoin, map, of, switchMap, throwError } from 'rxjs';
+import { catchError, finalize, takeUntil, tap } from 'rxjs/operators';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
 import { SignalrDashboardService } from '../../../../core/services/signalr-dashboard.service';
 import { PortariaAlertasStore } from '../../services/portaria-alertas.store';
 import { MovimentacaoAtualizadaItem } from '../../../../core/models/dashboard.models';
 import {
   datetimeLocalInputToApiIso,
-  toDateTimeLocalInputValue,
+  formatDateTimeInTimeZone,
+  toDateTimeLocalInputValueInTimeZone,
   toLocalIsoDateTime
 } from '../../../../shared/utils/local-iso-datetime';
+import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
 import { mapBuscarPorPlacaParaRegistroRapido, extrairMotoristasVinculados } from '../../mappers/entrada-saida-buscar-por-placa.mapper';
 import { EntradaSaidaMotoristaVinculoItem } from '../../models/entrada-saida-buscar-por-placa.models';
 import {
@@ -151,7 +144,6 @@ interface AlertaItemVm {
   imports: [
     CommonModule,
     FormsModule,
-    MatDialogModule,
     CameraPreviewComponent,
     TelefoneFormatDirective,
     MovimentosFiltrosPanelComponent,
@@ -176,8 +168,10 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly movimentacaoRelatorio = inject(MovimentacaoRelatorioService);
   private readonly movimentacaoRelatorioPdf = inject(MovimentacaoRelatorioPdfService);
   private readonly reciboPdf = inject(ReciboPdfService);
-  private readonly dialog = inject(MatDialog);
-  private readonly faturaApi = inject(FaturaService);
+  private readonly estacionamentoConfig = inject(EstacionamentoConfiguracaoService);
+
+  /** Fuso de Gerenciamento → Horário (`America/Cuiaba`, etc.). */
+  readonly timeZoneId = signal<string | null>(null);
 
   /** Operação (movimentações) → `/api/Movimento`; portaria → `/api/EntradaSaida`. */
   private get service(): EntradaSaidaService {
@@ -399,7 +393,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
   existeEntradaEmAbertoPorPlaca = false;
-  /** Placa possui agendamento no pátio da sessão (entrada permitida — converte o agendamento). */
+  /** Placa possui agendamento no pátio (entrada converte o agendamento). */
   placaComAgendamentoPendente = false;
   /** Movimento em aberto da placa consultada está com permanência suspensa. */
   registroRapidoSuspenso = false;
@@ -544,6 +538,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.viewMode.set(dataView);
     }
     if (!this.canVisualizar) return;
+    this.carregarFusoPatio();
     void this.signalrDashboardService.connect();
     if (this.viewMode() === 'operacao') {
       this.aplicarFiltroResumo('noPatio');
@@ -551,6 +546,26 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.iniciarRelogioPortaria();
       this.carregarMonitoramentoDoPatio();
     }
+  }
+
+  /** Carrega fuso de `app/gerenciamento/horario` para exibir/calcular entrada e saída. */
+  private carregarFusoPatio(): void {
+    this.garantirFusoPatio().subscribe();
+  }
+
+  /** Garante fuso do pátio antes de abrir o modal (evita “agora” do computador). */
+  private garantirFusoPatio(): Observable<string | null> {
+    const atual = this.timeZoneId()?.trim();
+    if (atual) return of(atual);
+    return this.estacionamentoConfig.obterAtual().pipe(
+      map((config) => config?.timeZoneId?.trim() || null),
+      catchError(() => of(null)),
+      tap((tz) => this.timeZoneId.set(tz))
+    );
+  }
+
+  private agoraNoPatioDateTimeLocal(): string {
+    return toDateTimeLocalInputValueInTimeZone(new Date(), this.timeZoneId());
   }
 
   ngOnDestroy(): void {
@@ -740,16 +755,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   formatarDataHora(raw: string | null | undefined): string {
-    if (!raw?.trim()) return '—';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return raw;
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDateTimeInTimeZone(raw, this.timeZoneId(), { year: '2-digit' });
   }
 
   placaDetalhe(d: EntradaSaidaOutput | null): string {
@@ -908,7 +914,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     if (this.motoristaAutoPreenchidoPorCpf && cpfDigits !== this.ultimaConsultaCpfRegistroRapido) {
       this.motoristaAutoPreenchidoPorCpf = false;
       this.registroRapido.motorista = '';
-      this.registroRapido.motoristaTelefone = '';
     }
 
     if (!this.cpfPossui11Digitos(cpfDigits)) {
@@ -1115,21 +1120,25 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       return;
     }
     this.permanenciaAcao = 'finalizar';
-    this.permanenciaDataHora = toDateTimeLocalInputValue();
     this.resetSaidaValorState();
-    this.service.getById(item.id).subscribe({
-      next: (detalhe) => {
-        if (!detalhe?.id) {
-          this.toast.error('Não foi possível carregar o registro selecionado.');
-          return;
-        }
-        this.registroSelecionado.set(detalhe);
-        this.permanenciaDataHora = toDateTimeLocalInputValue();
-        this.permanenciaOpen.set(true);
-        this.carregarValorEstacionamentoParaSaida(detalhe.id);
-      },
-      error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.')
-    });
+    this.garantirFusoPatio()
+      .pipe(switchMap(() => this.service.getById(item.id)))
+      .subscribe({
+        next: (detalhe) => {
+          if (!detalhe?.id) {
+            this.toast.error('Não foi possível carregar o registro selecionado.');
+            return;
+          }
+          // Fallback: detalhe sem DataHoraEntrada usa a da lista.
+          const entrada =
+            detalhe.dataHoraEntrada?.trim() || item.dataHoraEntrada?.trim() || detalhe.dataHoraEntrada;
+          this.registroSelecionado.set({ ...detalhe, dataHoraEntrada: entrada });
+          this.permanenciaDataHora = this.agoraNoPatioDateTimeLocal();
+          this.permanenciaOpen.set(true);
+          this.carregarValorEstacionamentoParaSaida(detalhe.id);
+        },
+        error: (err: ApiError) => this.handleApiError(err, 'Erro ao carregar registro.'),
+      });
   }
 
   fecharPermanencia(): void {
@@ -1143,45 +1152,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.toast.error('Registro sem id válido para atualizar permanência.');
       return;
     }
-
-    const tipoCobranca = this.saidaTipoCobranca();
-    const faturamento = isModalidadeFaturamento({
-      tipoCobranca,
-      acordoCobrancaId: item.acordoCobrancaId,
-      ehExcedente: item.ehExcedente
-    });
-
-    // Cobrança faturada/contrato: não há recebimento na portaria.
-    if (faturamento) {
-      this.confirmarSaidaComRecibo(item, null);
-      return;
-    }
-
-    const valor = this.saidaValor();
-    if (valor == null || !Number.isFinite(valor) || valor < 0) {
-      this.toast.error(
-        this.saidaTipoTarifa() === 1
-          ? 'Informe o valor da hora para calcular o total do recibo.'
-          : 'Informe o valor da diária para calcular o total do recibo.'
-      );
-      return;
-    }
-
-    const ref = this.dialog.open(SaidaPagamentoDialogComponent, {
-      width: '560px',
-      maxWidth: '96vw',
-      autoFocus: 'dialog',
-      panelClass: 'saida-pagamento-dialog-panel',
-      data: {
-        placa: this.formatarPlaca(this.placaSelecionada()),
-        valor
-      }
-    });
-
-    ref.afterClosed().subscribe((result: SaidaPagamentoDialogResult | undefined) => {
-      if (!result?.modalidadeRecebimento) return;
-      this.confirmarSaidaComRecibo(item, result.modalidadeRecebimento);
-    });
+    this.confirmarSaidaComRecibo(item);
   }
 
   excluir(item: EntradaSaidaSearchOutput): void {
@@ -1546,13 +1517,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
           next: (page) => {
             const lote = (page.items ?? [])
               .filter((item) => !item.dataHoraSaida)
-              .filter((item) => this.itemPertenceAoPatioSessao(item))
-              .filter((item) => {
-                const st = parseEntradaSaidaStatus(item.status);
-                return (
-                  st === EntradaSaidaStatus.Entrada || st === EntradaSaidaStatus.Suspenso
-                );
-              });
+              .filter((item) => this.itemPertenceAoPatioSessao(item));
             const todos = [...acumulado, ...lote];
             const total = Number(page.totalCount) || todos.length;
             const temMais = todos.length < total && lote.length > 0;
@@ -1646,8 +1611,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         motorista: {
           id: Number(motorista?.id) > 0 ? Number(motorista?.id) : undefined,
           cpf: cpfDigits || undefined,
-          nome: String(this.registroRapido.motorista ?? '').trim() || undefined,
-          celular: this.telefoneSomenteDigitosParaApi(this.registroRapido.motoristaTelefone)
+          nome: String(this.registroRapido.motorista ?? '').trim() || undefined
         },
         transportadora: {
           id: Number(transportadora?.id) > 0 ? Number(transportadora?.id) : undefined,
@@ -1807,17 +1771,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   formatarDataHoraEntrada(registro: EntradaSaidaOutput | null | undefined): string {
-    const raw = registro?.dataHoraEntrada?.trim();
-    if (!raw) return '—';
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return raw;
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDateTimeInTimeZone(registro?.dataHoraEntrada, this.timeZoneId());
   }
 
   /** Recibo disponível com id válido: entrada (ticket) ou saída (com valor). */
@@ -2146,10 +2100,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  private confirmarSaidaComRecibo(
-    item: EntradaSaidaOutput,
-    modalidadeRecebimento: ModalidadeRecebimento | null
-  ): void {
+  private confirmarSaidaComRecibo(item: EntradaSaidaOutput): void {
     const placa = this.placaSelecionada();
     if (!placa || placa === '—') {
       this.toast.error('Placa não encontrada para registrar a saída.');
@@ -2175,55 +2126,22 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.saidaProcessando.set(true);
     this.service
       .saida(placa)
-      .pipe(
-        finalize(() => this.saidaProcessando.set(false))
-      )
+      .pipe(finalize(() => this.saidaProcessando.set(false)))
       .subscribe({
         next: () => {
-          const concluir = () => {
-            void this.ofertarReciboAposOperacao({
-              id: item.id,
-              modo: ModoRecibo.Saida,
-              valor: faturamento ? null : valor,
-              placa,
-              tipoCobranca,
-              tipoTarifa: this.saidaTipoTarifa(),
-              ehExcedente: item.ehExcedente === true,
-              avulso: faturamento ? false : true,
-              acordoCobrancaId: item.acordoCobrancaId ?? null,
-              mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
-            });
-            this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
-            this.limparRegistroRapido();
-          };
-
-          // Avulso: grava fatura Pago com a forma escolhida (Financeiro/Pagamento).
-          if (
-            !faturamento &&
-            modalidadeRecebimento != null &&
-            valor != null &&
-            Number.isFinite(valor)
-          ) {
-            this.faturaApi
-              .gerarAvulso({
-                entradaSaidaId: item.id,
-                valor,
-                modalidadeRecebimento
-              })
-              .subscribe({
-                next: () => concluir(),
-                error: (err: ApiError) => {
-                  this.handleApiError(
-                    err,
-                    'Saída ok, mas falhou ao registrar o pagamento avulso.'
-                  );
-                  concluir();
-                }
-              });
-            return;
-          }
-
-          concluir();
+          void this.ofertarReciboAposOperacao({
+            id: item.id,
+            modo: ModoRecibo.Saida,
+            valor: faturamento ? null : valor,
+            placa,
+            tipoCobranca,
+            tipoTarifa: this.saidaTipoTarifa(),
+            ehExcedente: item.ehExcedente === true,
+            acordoCobrancaId: item.acordoCobrancaId ?? null,
+            mensagem: 'Saída registrada. Deseja visualizar o recibo de saída?'
+          });
+          this.finalizarAcaoPermanencia('Saída registrada com sucesso.');
+          this.limparRegistroRapido();
         },
         error: (err: ApiError) => this.handleApiError(err, 'Erro ao registrar saída.')
       });
@@ -2300,24 +2218,43 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     const origemFaturaItem = String(res.origem ?? '').toLowerCase() === 'faturaitem';
 
     if (unitario != null) {
+      // Unitário da config; quantidade SEMPRE pelo relógio do formulário no fuso do pátio.
+      // Ignora quantidadeUnidades/valor total da API na abertura (costuma vir com UTC errado).
+      this.saidaValorFixoDaFatura = false;
       this.aplicarValorEstacionamento(unitario, true);
-      if (qtdApi != null) {
-        this.saidaQuantidadeDiarias.set(qtdApi);
-        this.saidaValor.set(valorTotal ?? calcularTotalDiarias(unitario, qtdApi));
-      }
+      this.recalcularCobrancaSaida();
       return;
     }
 
     if (valorTotal != null) {
-      const qtd = qtdApi ?? Math.max(this.saidaQuantidadeDiarias() || 1, 1);
-      const unitarioDerivado =
-        qtd > 0 ? Math.round((valorTotal / qtd) * 100) / 100 : valorTotal;
       this.saidaValorFixoDaFatura = origemFaturaItem;
+      this.saidaValorBloqueado.set(true);
+      if (origemFaturaItem && qtdApi != null) {
+        // Total já faturado: mantém valor da API.
+        const qtd = Math.max(qtdApi, 1);
+        const unitarioDerivado =
+          qtd > 0 ? Math.round((valorTotal / qtd) * 100) / 100 : valorTotal;
+        this.saidaQuantidadeDiarias.set(qtd);
+        this.saidaValorDiaria.set(unitarioDerivado);
+        this.saidaValorDiariaTexto.set(formatarBrl(unitarioDerivado));
+        this.saidaValor.set(valorTotal);
+        return;
+      }
+      // Sem unitário: deriva unitário do total ÷ horas reais do formulário.
+      const qtd = Math.max(
+        calcularQuantidadeUnidades(
+          this.registroSelecionado()?.dataHoraEntrada,
+          this.permanenciaDataHora,
+          this.saidaTipoTarifa(),
+          this.timeZoneId()
+        ),
+        1
+      );
+      const unitarioDerivado = Math.round((valorTotal / qtd) * 100) / 100;
       this.saidaQuantidadeDiarias.set(qtd);
       this.saidaValorDiaria.set(unitarioDerivado);
       this.saidaValorDiariaTexto.set(formatarBrl(unitarioDerivado));
-      this.saidaValorBloqueado.set(true);
-      this.saidaValor.set(valorTotal);
+      this.saidaValor.set(calcularTotalDiarias(unitarioDerivado, qtd));
       return;
     }
 
@@ -2337,7 +2274,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     const qtd = calcularQuantidadeUnidades(
       entrada,
       this.permanenciaDataHora,
-      this.saidaTipoTarifa()
+      this.saidaTipoTarifa(),
+      this.timeZoneId()
     );
     this.saidaQuantidadeDiarias.set(qtd);
     this.saidaValor.set(calcularTotalDiarias(this.saidaValorDiaria(), qtd));
@@ -2564,7 +2502,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private aplicarMascaraCpf(value: string | null | undefined): string {
-    return formatCpf(String(value ?? ''));
+    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
   }
 
   /**
@@ -2611,7 +2553,14 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private aplicarMascaraCnpj(value: string | null | undefined): string {
-    return formatCnpj(String(value ?? ''));
+    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) {
+      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    }
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
   }
 
   private buscarTransportadoraPorCnpjRegistroRapido(cnpjDigits: string): void {
@@ -2665,7 +2614,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         }
         this.registroRapido.motoristaCpf = this.aplicarMascaraCpf(dto.cpf || cpfDigits);
         this.registroRapido.motorista = this.encurtarTextoLivre(dto.nomeCompleto ?? '');
-        this.registroRapido.motoristaTelefone = this.formatarTelefoneRegistroRapido(dto.celular ?? '');
         this.motoristaAutoPreenchidoPorCpf = true;
       },
       error: () => {
@@ -2729,7 +2677,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     }
     this.registroRapido.motorista = '';
     this.registroRapido.motoristaCpf = '';
-    this.registroRapido.motoristaTelefone = '';
     this.motoristaAutoPreenchidoPorCpf = false;
     if (campos.transportadoraRazaoSocial) {
       this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
@@ -2787,9 +2734,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       this.registroRapido.motoristaCpf = '';
       this.ultimaConsultaCpfRegistroRapido = '';
     }
-    this.registroRapido.motoristaTelefone = campos.motoristaTelefone
-      ? this.formatarTelefoneRegistroRapido(campos.motoristaTelefone)
-      : '';
     if (campos.transportadoraRazaoSocial) {
       this.registroRapido.transportadoraRazaoSocial = this.encurtarTextoLivre(
         campos.transportadoraRazaoSocial
@@ -2822,32 +2766,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       entrada.transportadoraId > 0
         ? entrada.transportadoraId
         : Number(entrada.transportadora?.id ?? 0) || 0;
-    this.completarTelefoneMotoristaAposPlacaSeNecessario();
-  }
-
-  /**
-   * Se a placa preencheu CPF mas não trouxe celular, consulta o motorista só para
-   * obter PessoaContato.Telefone — sem alterar flags de autofill do nome/CPF.
-   */
-  private completarTelefoneMotoristaAposPlacaSeNecessario(): void {
-    const telDigits = String(this.registroRapido.motoristaTelefone ?? '').replace(/\D/g, '');
-    if (telDigits.length === 10 || telDigits.length === 11) return;
-    const cpfDigits = String(this.registroRapido.motoristaCpf ?? '').replace(/\D/g, '');
-    const tid = this.registroRapidoTransportadoraId;
-    if (!this.cpfPossui11Digitos(cpfDigits) || !(tid > 0)) return;
-
-    const seq = ++this.consultaCpfSequencia;
-    this.motoristaService.obterPorCpf(cpfDigits, tid).subscribe({
-      next: (dto) => {
-        if (seq !== this.consultaCpfSequencia) return;
-        const cpfAtual = String(this.registroRapido.motoristaCpf ?? '').replace(/\D/g, '');
-        if (cpfAtual !== cpfDigits) return;
-        const telAtual = String(this.registroRapido.motoristaTelefone ?? '').replace(/\D/g, '');
-        if (telAtual.length === 10 || telAtual.length === 11) return;
-        if (!dto?.celular) return;
-        this.registroRapido.motoristaTelefone = this.formatarTelefoneRegistroRapido(dto.celular);
-      }
-    });
   }
 
   selecionarMotoristaVinculadoPlaca(item: EntradaSaidaMotoristaVinculoItem): void {
@@ -2863,6 +2781,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     this.entradaPendenteSelecaoMotorista = null;
   }
 
+  formatarCelularMotorista(raw: string | null | undefined): string {
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (digits.length < 10) return '—';
+    return formatTelefone(digits);
+  }
+
   formatarCpfListaMotorista(cpf: string | null | undefined): string {
     return this.aplicarMascaraCpf(cpf) || '—';
   }
@@ -2875,12 +2799,6 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   private formatarTelefoneRegistroRapido(valor: string | null | undefined): string {
     return formatTelefone(String(valor ?? ''));
-  }
-
-  formatarCelularMotorista(raw: string | null | undefined): string {
-    const digits = String(raw ?? '').replace(/\D/g, '');
-    if (digits.length < 10) return '—';
-    return formatTelefone(digits);
   }
 
   private encurtarTextoLivre(valor: string | null | undefined): string {

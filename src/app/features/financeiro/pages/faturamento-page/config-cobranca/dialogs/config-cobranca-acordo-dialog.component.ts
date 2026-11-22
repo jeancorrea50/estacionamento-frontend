@@ -16,8 +16,7 @@ import {
   mensagensValidacaoAcordo,
   mesesOcupados,
   novaListagemAcordo,
-  sincronizarVagasDoAcordo,
-  vagasFobDoMes
+  sincronizarVagasDoAcordo
 } from '../config-cobranca-acordo.util';
 import type {
   ConfigCobrancaAcordo,
@@ -113,11 +112,6 @@ export class ConfigCobrancaAcordoDialogComponent {
     }
     this.acordo.dataInicio = periodo.dataInicial;
     this.acordo.dataFim = periodo.dataFinal;
-  }
-
-  fobListagem(listagem: ConfigCobrancaAcordoListagem): string {
-    const fob = vagasFobDoMes(listagem.quantidade, listagem.quantidadeCif);
-    return fob == null ? '—' : String(fob);
   }
 
   cancelar(): void {

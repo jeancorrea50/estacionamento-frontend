@@ -38,8 +38,7 @@
           type="search"
           class="mov-filtros__input"
           maxlength="8"
-          placeholder="ABC-1D23"
-          appPlacaFormat
+          placeholder="ABC1D23"
           [ngModel]="draft().placa"
           (ngModelChange)="onPlacaChange($event)"
           [ngModelOptions]="{ standalone: true }"
@@ -58,22 +57,11 @@
             (ngModelChange)="onMotoristaTermo($event)"
             [ngModelOptions]="{ standalone: true }"
           />
-          <div class="mov-filtros__lookup-actions">
-            @if (draft().motoristaId) {
-              <button
-                type="button"
-                class="mov-filtros__action-ico"
-                aria-label="Limpar motorista"
-                title="Limpar"
-                (click)="limparMotorista()"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">close</span>
-              </button>
-            }
-            <span class="mov-filtros__action-ico mov-filtros__action-ico--search" aria-hidden="true">
-              <span class="material-symbols-outlined">search</span>
-            </span>
-          </div>
+          @if (draft().motoristaId) {
+            <button type="button" class="mov-filtros__clear-ico" aria-label="Limpar motorista" (click)="limparMotorista()">
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          }
         </div>
         @if (motoristaBuscando()) {
           <span class="mov-filtros__hint">Buscando...</span>

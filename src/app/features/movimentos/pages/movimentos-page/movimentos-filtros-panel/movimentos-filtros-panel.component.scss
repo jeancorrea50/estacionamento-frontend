@@ -124,17 +124,11 @@
   position: relative;
 }
 
-.mov-filtros__lookup-actions {
+.mov-filtros__clear-ico {
   position: absolute;
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.05rem;
-}
-
-.mov-filtros__action-ico {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -145,34 +139,10 @@
   background: transparent;
   color: var(--muted, #92929f);
   cursor: pointer;
-  padding: 0;
-
-  .material-symbols-outlined {
-    font-size: 1.125rem;
-    line-height: 1;
-  }
-
-  &:hover {
-    background: color-mix(in srgb, var(--text) 8%, transparent);
-    color: var(--text);
-  }
-}
-
-.mov-filtros__action-ico--search {
-  color: var(--primary, #4d7cfe);
-  cursor: default;
-  pointer-events: none;
 }
 
 .mov-filtros__lookup .mov-filtros__input {
-  padding-right: 64px;
-
-  /* Evita X nativo do type=search competindo com o clear custom. */
-  &::-webkit-search-cancel-button,
-  &::-webkit-search-decoration {
-    -webkit-appearance: none;
-    appearance: none;
-  }
+  padding-right: 36px;
 }
 
 .mov-filtros__hint {

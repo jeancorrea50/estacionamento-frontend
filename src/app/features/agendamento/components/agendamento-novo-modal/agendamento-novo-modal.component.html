@@ -1,5 +1,5 @@
 @if (aberto()) {
-  <div class="modal-overlay modal-overlay--frota" role="presentation">
+  <div class="modal-overlay modal-overlay--frota" (click)="fechar()" role="presentation">
     <div
       class="modal-content modal-content--frota modal-content--agendamento-novo"
       role="dialog"
@@ -8,351 +8,113 @@
       (click)="$event.stopPropagation()"
     >
       <div class="modal-header">
-        <div class="ag-novo-head-titles">
-          <h2 id="modal-agendamento-title">
-            {{ etapa() === 1 ? 'Novo agendamento' : 'Destinar vagas' }}
-          </h2>
-          <p class="ag-novo-head-step">Etapa {{ etapa() }} de 2</p>
-        </div>
-        <div class="ag-novo-head-right">
-          @if (etapa() === 2 && hold(); as h) {
-            <div
-              class="ag-hold-timer"
-              [class.ag-hold-timer--urgent]="segundosRestantes() <= 60"
-              role="timer"
-              [attr.aria-label]="'Tempo restante da reserva ' + timerLabel()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">timer</span>
-              <span>{{ timerLabel() }}</span>
-            </div>
-          }
-          <button type="button" class="modal-close" aria-label="Fechar" (click)="fechar()">
-            &times;
-          </button>
-        </div>
+        <h2 id="modal-agendamento-title">Novo agendamento</h2>
+        <button type="button" class="modal-close" aria-label="Fechar" (click)="fechar()">
+          &times;
+        </button>
       </div>
-
       <form [formGroup]="form" (ngSubmit)="salvar()">
         <div class="modal-body modal-body--frota-compact ag-novo-body">
-          @if (etapa() === 1) {
-            @if (podeEscolherTransportadora()) {
-              <div class="form-row ag-novo-field">
-                <label>Transportadora <span class="required">*</span></label>
-                <app-transportadora-lookup-field
-                  [transportadoraId]="transportadoraFormId()"
-                  [transportadoraNome]="transportadoraFormNome()"
-                  placeholder="Buscar por CNPJ, razão social ou fantasia…"
-                  (transportadoraIdChange)="onTransportadoraIdChange($event)"
-                  (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
-                />
-              </div>
-            }
+          <div class="form-row ag-novo-field">
+            <label>Data/hora <span class="required">*</span></label>
+            <app-agendamento-data-hora-picker
+              [value]="form.controls.dataAgendamento.value || ''"
+              (valueChange)="onDataHoraChange($event)"
+            />
+          </div>
 
-            <div
-              class="ag-novo-depois-transportadora"
-              [class.ag-novo-depois-transportadora--bloqueado]="!transportadoraPronta()"
-            >
-              @if (!transportadoraPronta()) {
-                <p class="ag-novo-hint ag-novo-hint--inline" role="status">
-                  Selecione a transportadora para liberar data, horário e quantidade de vagas.
-                </p>
-              }
-
-              <div class="form-row ag-novo-field">
-                <label>Data <span class="required">*</span></label>
-                <app-agendamento-data-hora-picker
-                  [somenteData]="true"
-                  ariaLabel="Selecionar data do agendamento"
-                  [value]="form.controls.dataAgendamento.value || ''"
-                  (valueChange)="onDataHoraChange($event)"
-                />
-              </div>
-
-              <app-janela-slot-select
-                [ativo]="aberto() && transportadoraPronta()"
-                [data]="dataSelecionada()"
+          @if (podeEscolherTransportadora()) {
+            <div class="form-row ag-novo-field">
+              <label>Transportadora <span class="required">*</span></label>
+              <app-transportadora-lookup-field
                 [transportadoraId]="transportadoraFormId()"
-                [(modalidade)]="modalidadeJanela"
-                [(slot)]="slotSelecionado"
-                (destinacaoChange)="onDestinacaoChange($event)"
+                [transportadoraNome]="transportadoraFormNome()"
+                placeholder="Buscar por CNPJ, razão social ou fantasia…"
+                (transportadoraIdChange)="onTransportadoraIdChange($event)"
+                (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
               />
-
-              <div class="form-row ag-novo-field">
-                <label for="ag-novo-qtd">Quantidade de vagas <span class="required">*</span></label>
-                <input
-                  id="ag-novo-qtd"
-                  class="input-control"
-                  type="number"
-                  min="1"
-                  [attr.max]="maxQuantidade()"
-                  [value]="quantidade()"
-                  [disabled]="!quantidadeLiberada()"
-                  (change)="onQuantidadeChange(($any($event.target)).value)"
-                  (input)="onQuantidadeChange(($any($event.target)).value)"
-                />
-                <small class="ag-novo-hint">
-                  @if (!transportadoraPronta()) {
-                    Informe a transportadora primeiro.
-                  } @else if (slotSelecionado(); as slot) {
-                    @if (slot.disponiveis > 0) {
-                      Disponível neste horário: {{ slot.disponiveis }} vaga(s)
-                      @if (slot.viaDestinacao) {
-                        (destinadas à transportadora)
-                      }
-                      @if (quantidade() > slot.disponiveis) {
-                        — quantidade acima do disponível.
-                      }
-                    } @else {
-                      Sem vagas disponíveis neste horário. Escolha outro horário.
-                    }
-                  } @else {
-                    Selecione o horário para liberar a quantidade.
-                  }
-                </small>
-              </div>
             </div>
-          } @else {
-            @if (saldoVagas(); as saldo) {
-              <div class="ag-saldo" aria-label="Controle de vagas e destino do frete">
-                <div class="ag-saldo__horario">
-                  {{
-                    slotSelecionado()?.label ||
-                      (slotSelecionado()?.horaInicio + ' às ' + slotSelecionado()?.horaFim)
-                  }}
-                  @if (slotSelecionado()?.disponiveis != null) {
-                    <span class="ag-saldo__slot-disp"
-                      >({{ slotSelecionado()?.disponiveis }} disponíveis no horário)</span
-                    >
-                  }
-                </div>
-                <div class="ag-saldo__grid">
-                  <div class="ag-saldo__card" [class.ag-saldo__card--ok]="saldo.incluidas === saldo.reservadas">
-                    <span class="ag-saldo__k">Vagas</span>
-                    <span class="ag-saldo__v">
-                      {{ saldo.incluidas }}/{{ saldo.reservadas }}
-                    </span>
-                    <span class="ag-saldo__s">
-                      @if (saldo.faltam > 0) {
-                        Faltam {{ saldo.faltam }}
-                      } @else if (saldo.incluidas > saldo.reservadas) {
-                        Excedeu
-                      } @else {
-                        Completo
-                      }
-                    </span>
-                  </div>
-                  <div
-                    class="ag-saldo__card ag-saldo__card--cif"
-                    [class.ag-saldo__card--warn]="saldo.cifLimite != null && saldo.cifUsado > saldo.cifLimite"
-                  >
-                    <span class="ag-saldo__k">CIF</span>
-                    <span class="ag-saldo__v">
-                      {{ saldo.cifUsado }}@if (saldo.cifLimite != null) { /{{ saldo.cifLimite }} }
-                    </span>
-                    <span class="ag-saldo__s">
-                      @if (saldo.cifRestante != null) {
-                        Restam {{ saldo.cifRestante }}
-                      } @else {
-                        Sem cota
-                      }
-                    </span>
-                  </div>
-                  <div
-                    class="ag-saldo__card ag-saldo__card--fob"
-                    [class.ag-saldo__card--warn]="saldo.fobLimite != null && saldo.fobUsado > saldo.fobLimite"
-                    [class.ag-saldo__card--muted]="!fobLiberado()"
-                  >
-                    <span class="ag-saldo__k">FOB</span>
-                    <span class="ag-saldo__v">
-                      {{ saldo.fobUsado }}@if (saldo.fobLimite != null) { /{{ saldo.fobLimite }} }
-                    </span>
-                    <span class="ag-saldo__s">
-                      @if (!fobLiberado()) {
-                        Bloqueado
-                      } @else if (saldo.fobRestante != null) {
-                        Restam {{ saldo.fobRestante }}
-                      } @else {
-                        Sem cota
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
-            }
+          }
 
-            <div class="ag-vinculos">
-              <div class="ag-vinculos__toolbar">
-                <div class="ag-vinculos__title">
-                  <h3>Veículos vinculados <span class="required">*</span></h3>
-                  <p>Selecione exatamente {{ quantidade() }} veículo(s) e defina CIF/FOB por linha.</p>
-                </div>
+          <div class="form-row ag-novo-field ag-placas-field">
+            <label>Placas <span class="required">*</span></label>
+            <div class="ag-placas-field__control">
+              <div class="ag-lookup">
                 <button
                   type="button"
-                  class="btn btn-secondary btn--sm"
-                  (click)="abrirFrotaModal()"
+                  class="input-control ag-lookup__trigger"
+                  (click)="abrirBuscaPlaca()"
                   [disabled]="!transportadoraFormId()"
+                  aria-label="Buscar placa"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">garage</span>
-                  {{ placasSelecionadas().length ? 'Editar veículos' : 'Selecionar veículos' }}
+                  <span class="ag-lookup__value ag-lookup__value--placeholder">
+                    {{
+                      transportadoraFormId()
+                        ? 'Buscar placa no cadastro…'
+                        : 'Selecione a transportadora para buscar placas'
+                    }}
+                  </span>
+                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">search</span>
                 </button>
               </div>
 
-              @if (!placasSelecionadas().length) {
-                <div class="ag-vinculos__empty" role="status">
-                  Nenhum veículo selecionado. Use “Selecionar veículos” para montar a frota desta reserva.
-                </div>
-              } @else {
-                <div class="table-wrap ag-vinculos__table-wrap">
-                  <table class="data-table ag-vinculos__table" aria-label="Veículos e destino do frete">
-                    <thead>
-                      <tr>
-                        <th scope="col">Placa</th>
-                        <th scope="col">Motorista</th>
-                        <th scope="col">Destino</th>
-                        <th scope="col" class="col-acoes">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (p of placasSelecionadas(); track p.id) {
-                        <tr [class.ag-vinculos__row--warn]="!(p.motoristaId && p.motoristaId > 0)">
-                          <td class="ag-vinculos__placa">{{ formatPlaca(p.placa) }}</td>
-                          <td>
-                            <span class="cell-ellipsis" [title]="labelMotorista(p) || 'Sem motorista'">
-                              {{ labelMotorista(p) || 'Sem motorista' }}
-                            </span>
-                          </td>
-                          <td>
-                            <div
-                              class="ag-destino-frete__toggle"
-                              role="radiogroup"
-                              [attr.aria-label]="'Destino do frete da placa ' + formatPlaca(p.placa)"
-                            >
-                              <button
-                                type="button"
-                                class="ag-destino-frete__opt ag-destino-frete__opt--cif"
-                                [class.is-active]="(p.destinoFrete || 'cif') === 'cif'"
-                                role="radio"
-                                [attr.aria-checked]="(p.destinoFrete || 'cif') === 'cif'"
-                                (click)="selecionarDestinoFrete(p.id, 'cif')"
-                              >
-                                CIF
-                              </button>
-                              <button
-                                type="button"
-                                class="ag-destino-frete__opt ag-destino-frete__opt--fob"
-                                [class.is-active]="p.destinoFrete === 'fob'"
-                                [class.is-disabled]="!fobLiberado()"
-                                [disabled]="!fobLiberado()"
-                                role="radio"
-                                [attr.aria-checked]="p.destinoFrete === 'fob'"
-                                [attr.title]="
-                                  fobLiberado()
-                                    ? null
-                                    : 'FOB bloqueado: cobrança sem opção de terceiro'
-                                "
-                                (click)="selecionarDestinoFrete(p.id, 'fob')"
-                              >
-                                FOB
-                              </button>
-                            </div>
-                          </td>
-                          <td class="col-acoes">
-                            <button
-                              type="button"
-                              class="btn btn-secondary btn--sm"
-                              (click)="abrirFrotaModal()"
-                              [attr.aria-label]="'Editar motorista da placa ' + formatPlaca(p.placa)"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              class="btn btn-secondary btn--sm btn--table-action-danger"
-                              (click)="removerPlacaSelecionada(p.id)"
-                              [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
-                            >
-                              Remover
-                            </button>
-                          </td>
-                        </tr>
+              @if (placasSelecionadas().length) {
+                <ul class="ag-placa-chips" aria-label="Placas selecionadas">
+                  @for (p of placasSelecionadas(); track p.id) {
+                    <li class="ag-placa-chip">
+                      <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
+                      @if (p.marcaModelo) {
+                        <span class="ag-placa-chip__modelo">{{ p.marcaModelo }}</span>
                       }
-                    </tbody>
-                  </table>
-                </div>
-              }
-
-              @if (placasSelecionadas().length && !todasPlacasComMotorista()) {
-                <p class="ag-placas-field__warn">Há placa(s) sem motorista. Edite a frota para vincular.</p>
-              }
-              @if (!quantidadePlacasOk()) {
-                <p class="ag-placas-field__warn">
-                  Inclua exatamente {{ quantidade() }} veículo(s). Agora:
-                  {{ placasSelecionadas().length }}.
-                </p>
-              }
-              @if (!saldoCifFobOk()) {
-                <p class="ag-placas-field__warn">
-                  CIF/FOB extrapolam as cotas destinadas. Ajuste o destino nas linhas da tabela.
-                </p>
-              }
-              @if (!fobLiberado()) {
-                <p class="ag-novo-hint ag-novo-hint--inline">
-                  FOB bloqueado — cobrança sem pagador terceiro. Somente CIF.
-                </p>
+                      <button
+                        type="button"
+                        class="ag-placa-chip__remove"
+                        (click)="removerPlacaSelecionada(p.id)"
+                        [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
               }
             </div>
+          </div>
 
-            <div class="form-row ag-novo-field ag-novo-field--obs">
-              <label for="ag-novo-obs">Observação</label>
-              <textarea
-                id="ag-novo-obs"
-                class="input-control ag-novo-obs"
-                formControlName="observacao"
-                rows="3"
-                maxlength="200"
-                placeholder="Opcional"
-              ></textarea>
-            </div>
-          }
+          <div class="form-row ag-novo-field ag-novo-field--obs">
+            <label for="ag-novo-obs">Observação</label>
+            <textarea
+              id="ag-novo-obs"
+              class="input-control ag-novo-obs"
+              formControlName="observacao"
+              rows="3"
+              maxlength="200"
+              placeholder="Opcional"
+            ></textarea>
+          </div>
         </div>
-
         <div class="modal-footer">
-          @if (etapa() === 1) {
-            <button type="button" class="btn btn-secondary" (click)="fechar()">Fechar</button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              [disabled]="reservando() || !podeContinuarEtapa1()"
-              (click)="continuarEtapa1()"
-            >
-              {{ reservando() ? 'Reservando...' : 'Continuar' }}
-            </button>
-          } @else {
-            <button type="button" class="btn btn-secondary" (click)="voltarEtapa1()">Voltar</button>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              [disabled]="
-                salvando() ||
-                !quantidadePlacasOk() ||
-                !todasPlacasComMotorista() ||
-                !saldoCifFobOk() ||
-                !hold()
-              "
-            >
-              {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
-            </button>
-          }
+          <button type="button" class="btn btn-secondary" (click)="fechar()">Fechar</button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="form.invalid || salvando() || placasSelecionadas().length === 0"
+          >
+            {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
+          </button>
         </div>
       </form>
     </div>
   </div>
 }
 
-<app-agendamento-veiculos-motoristas-modal
-  [aberto]="frotaModalAberto()"
-  [transportadoraId]="transportadoraFormId()"
-  [placas]="placasSelecionadas()"
-  (fechar)="fecharFrotaModal()"
-  (confirmar)="onFrotaConfirmada($event)"
-/>
+@if (aberto() || buscaPlacaAberta()) {
+  <app-modal-busca-veiculo
+    [aberto]="buscaPlacaAberta()"
+    [transportadoraId]="transportadoraFormId() ?? undefined"
+    [selecaoMultipla]="true"
+    [idsJaSelecionados]="idsPlacasJaSelecionadas()"
+    (fechar)="fecharBuscaPlaca()"
+    (itensSelecionados)="onPlacasBuscaSelecionadas($event)"
+  />
+}

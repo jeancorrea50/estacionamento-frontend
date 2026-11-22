@@ -1,66 +1,36 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  HostListener,
-  OnDestroy,
-  effect,
-  inject,
-  input,
-  output,
-  signal,
-  untracked,
-} from '@angular/core';
+import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable, Subject, from, of } from 'rxjs';
-import {
-  catchError,
-  concatMap,
-  finalize,
-  map,
-  switchMap,
-  takeUntil,
-  toArray,
-} from 'rxjs/operators';
+import { forkJoin, Observable, of, Subject } from 'rxjs';
+import { catchError, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { VeiculoService } from '../../../cadastro/services/veiculo.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
-import {
-  ModalidadeCobranca,
-  StatusConfiguracaoCobranca,
-  TipoPagadorCobranca,
-} from '../../../financeiro/models/configuracao-cobranca.models';
-import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
 import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
+import { ModalBuscaVeiculoComponent } from '../../../movimentos/entrada-saida/components/modal-busca-veiculo/modal-busca-veiculo.component';
 import { PortariaAlertasStore } from '../../../movimentos/services/portaria-alertas.store';
-import { datetimeLocalInputToApiIso } from '../../../../shared/utils/local-iso-datetime';
+import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
+import { datetimeLocalInputToApiIso, toDateTimeLocalInputValue } from '../../../../shared/utils/local-iso-datetime';
 import { AgendamentoDataHoraPickerComponent } from '../../pages/agendamentos-page/agendamento-data-hora-picker/agendamento-data-hora-picker.component';
-import { toIsoDateLocal } from '../../pages/agendamentos-page/agendamento-dashboard.util';
-import {
-  AgendamentoPostInput,
-  AgendamentoSlotHold,
-  DestinoFreteAgendamento,
-} from '../../models/agendamento.models';
-import { JanelaSlotDisponivel, ModalidadeAgendamento } from '../../models/janela-agendamento.models';
+import { AgendamentoPostInput } from '../../models/agendamento.models';
 import { AgendamentoService } from '../../services/agendamento.service';
-import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
-import {
-  DestinacaoSlotPrefill,
-  JanelaSlotSelectComponent,
-} from '../janela-slot-select/janela-slot-select.component';
-import { AgendamentoVeiculosMotoristasModalComponent } from '../agendamento-veiculos-motoristas-modal/agendamento-veiculos-motoristas-modal.component';
-import type { AgendamentoPlacaSelecionada } from './agendamento-placa.model';
+
+interface AgendamentoPlacaSelecionada {
+  id: number;
+  placa: string;
+  marcaModelo?: string;
+  motoristaId?: number | null;
+  motoristaNome?: string | null;
+  motoristaCpf?: string | null;
+}
 
 type ResolvePlacaResult =
   | { ok: true; payload: AgendamentoPostInput }
   | { ok: false; message: string };
 
-type EtapaWizard = 1 | 2;
-
 /**
  * Modal compartilhado de criação de agendamento (Pátio e Agendar/transportadora).
- * Fluxo em 2 etapas:
- * (1) transportadora → data/horário → qtd (só avança se couber no disponível) + hold 30 min
- * (2) placas/motoristas + CIF/FOB.
  */
 @Component({
   selector: 'app-agendamento-novo-modal',
@@ -69,9 +39,8 @@ type EtapaWizard = 1 | 2;
     CommonModule,
     ReactiveFormsModule,
     AgendamentoDataHoraPickerComponent,
-    JanelaSlotSelectComponent,
     TransportadoraLookupFieldComponent,
-    AgendamentoVeiculosMotoristasModalComponent,
+    ModalBuscaVeiculoComponent,
   ],
   templateUrl: './agendamento-novo-modal.component.html',
   styleUrls: ['./agendamento-novo-modal.component.scss'],
@@ -80,51 +49,31 @@ type EtapaWizard = 1 | 2;
     '[attr.aria-hidden]': 'overlayAtivo() ? null : "true"',
   },
 })
-export class AgendamentoNovoModalComponent implements OnDestroy {
+export class AgendamentoNovoModalComponent {
   private readonly auth = inject(AuthService);
   private readonly api = inject(AgendamentoService);
-  private readonly cobrancaApi = inject(ConfiguracaoCobrancaService);
+  private readonly veiculoApi = inject(VeiculoService);
   private readonly toast = inject(ToastService);
   private readonly portariaAlertas = inject(PortariaAlertasStore);
-  private readonly realtime = inject(JanelaDisponibilidadeRealtimeService);
   private readonly fb = inject(FormBuilder);
 
-  private readonly destroy$ = new Subject<void>();
-  private readonly cancelarCobranca$ = new Subject<void>();
-  private timerId: ReturnType<typeof setInterval> | null = null;
-  private geracaoCobranca = 0;
-
+  /** Quando true, exibe o modal e reinicia o formulário. */
   readonly aberto = input(false);
+  /** Operador de pátio escolhe transportadora; transportadora usa a da sessão. */
   readonly podeEscolherTransportadora = input(false);
 
   readonly fechado = output<void>();
   readonly salvo = output<void>();
 
-  readonly etapa = signal<EtapaWizard>(1);
   readonly salvando = signal(false);
-  readonly reservando = signal(false);
   readonly transportadoraFormId = signal<number | null>(null);
   readonly transportadoraFormNome = signal('');
   readonly placasSelecionadas = signal<AgendamentoPlacaSelecionada[]>([]);
-  readonly frotaModalAberto = signal(false);
-  readonly dataSelecionada = signal('');
-  readonly modalidadeJanela = signal<ModalidadeAgendamento>(1);
-  readonly slotSelecionado = signal<JanelaSlotDisponivel | null>(null);
-  readonly quantidade = signal(1);
-  readonly hold = signal<AgendamentoSlotHold | null>(null);
-  readonly segundosRestantes = signal(0);
-  /** FOB liberado quando cobrança ativa usa pagador terceiro (e destinação permitir). */
-  readonly fobLiberado = signal(false);
-  readonly pagadorFobId = signal<number | null>(null);
-  readonly pagadorFobNome = signal('');
-  /** Destinação ativa limita CIF/FOB além da cobrança. */
-  readonly destinacaoTemCif = signal(true);
-  readonly destinacaoTemFob = signal(true);
-  readonly destinacaoAtiva = signal(false);
-  /** Cotas de destinação (0 = sem cota específica / usa só o total de vagas reservadas). */
-  readonly destinacaoQtdCif = signal(0);
-  readonly destinacaoQtdFob = signal(0);
-  private cobrancaPermiteFob = false;
+  readonly buscaPlacaAberta = signal(false);
+
+  /** Cancela resoluções de placa em voo (troca de transportadora / fechar modal). */
+  private readonly cancelarResolucaoPlaca$ = new Subject<void>();
+  private geracaoSelecaoPlaca = 0;
 
   readonly form = this.fb.group({
     dataAgendamento: ['', Validators.required],
@@ -134,257 +83,56 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
 
   constructor() {
     effect(() => {
-      if (!this.aberto()) {
-        untracked(() => {
-          void this.realtime.disconnect();
-          this.limparHoldLocal(true);
-        });
-        return;
-      }
-      untracked(() => {
-        this.resetForm();
-        void this.realtime.connect();
-      });
-    });
-
-    effect(() => {
-      const slot = this.slotSelecionado();
-      const disponiveis = Number(slot?.disponiveis) || 0;
-      if (disponiveis < 1) {
-        if (this.quantidade() !== 1) {
-          untracked(() => this.quantidade.set(1));
-        }
-        return;
-      }
-      if (this.quantidade() > disponiveis) {
-        untracked(() => this.quantidade.set(disponiveis));
-      }
+      if (!this.aberto()) return;
+      untracked(() => this.resetForm());
     });
   }
 
-  onDestinacaoChange(info: DestinacaoSlotPrefill): void {
-    this.destinacaoAtiva.set(!!info.ativa);
-    this.destinacaoTemCif.set(!info.ativa || info.temCif);
-    this.destinacaoTemFob.set(!info.ativa || info.temFob);
-    this.destinacaoQtdCif.set(info.ativa ? Math.max(0, info.quantidadeCif || 0) : 0);
-    this.destinacaoQtdFob.set(info.ativa ? Math.max(0, info.quantidadeFob || 0) : 0);
-    this.aplicarLiberacaoFob();
-
-    if (info.ativa && info.quantidadeTotal > 0 && this.etapa() === 1) {
-      const disponiveis = Number(this.slotSelecionado()?.disponiveis) || 0;
-      if (disponiveis < 1) return;
-      const sugerida = Math.max(1, Math.min(info.quantidadeTotal, disponiveis));
-      if (this.quantidade() === 1 || this.quantidade() > sugerida) {
-        this.quantidade.set(sugerida);
-      }
-    }
+  private invalidarResolucoesPendentes(): void {
+    this.geracaoSelecaoPlaca += 1;
+    this.cancelarResolucaoPlaca$.next();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.cancelarCobranca$.next();
-    this.cancelarCobranca$.complete();
-    this.pararTimer();
-    this.limparHoldLocal(true);
-  }
-
-  @HostListener('window:pagehide')
-  @HostListener('window:beforeunload')
-  onPageHideCancelHold(): void {
-    const h = this.hold();
-    if (!h?.id || !h.token || h.status !== 1) return;
-    this.api.cancelarHoldBeacon(h.id, h.token);
-  }
-
+  /** Host cobre a viewport só enquanto algum overlay deste modal está ativo. */
   overlayAtivo(): boolean {
-    return this.aberto() || this.frotaModalAberto();
-  }
-
-  timerLabel(): string {
-    const s = Math.max(0, this.segundosRestantes());
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
-  }
-
-  /** Transportadora resolvida (lookup ou perfil transportadora). */
-  transportadoraPronta(): boolean {
-    const tid = this.transportadoraFormId();
-    return tid != null && tid > 0;
-  }
-
-  /** Quantidade só libera com horário que ainda tem vaga. */
-  quantidadeLiberada(): boolean {
-    const disp = this.slotSelecionado()?.disponiveis ?? 0;
-    return this.transportadoraPronta() && disp > 0;
-  }
-
-  maxQuantidade(): number {
-    const disp = this.slotSelecionado()?.disponiveis ?? 0;
-    return Math.max(0, disp);
-  }
-
-  /** Gate da etapa 1: transportadora + slot com disponibilidade suficiente. */
-  podeContinuarEtapa1(): boolean {
-    if (this.form.invalid || !this.transportadoraPronta()) return false;
-    const slot = this.slotSelecionado();
-    if (!slot) return false;
-    const disponiveis = Number(slot.disponiveis) || 0;
-    if (disponiveis < 1) return false;
-    const qtd = this.quantidade();
-    return Number.isInteger(qtd) && qtd >= 1 && qtd <= disponiveis;
-  }
-
-  resumoCifFob(): { cif: number; fob: number } {
-    const lista = this.placasSelecionadas();
-    return {
-      cif: lista.filter((p) => (p.destinoFrete || 'cif') === 'cif').length,
-      fob: lista.filter((p) => p.destinoFrete === 'fob').length,
-    };
-  }
-
-  /** Saldo visual: vagas reservadas × incluídas × faltantes + CIF/FOB (quando destinadas). */
-  saldoVagas(): {
-    reservadas: number;
-    incluidas: number;
-    faltam: number;
-    cifUsado: number;
-    cifLimite: number | null;
-    cifRestante: number | null;
-    fobUsado: number;
-    fobLimite: number | null;
-    fobRestante: number | null;
-    ok: boolean;
-  } {
-    const reservadas = this.quantidade();
-    const incluidas = this.placasSelecionadas().length;
-    const faltam = Math.max(0, reservadas - incluidas);
-    const { cif, fob } = this.resumoCifFob();
-    const limCif = this.limiteCif();
-    const limFob = this.limiteFob();
-    const cifOk = limCif == null || cif <= limCif;
-    const fobOk = limFob == null || fob <= limFob;
-    return {
-      reservadas,
-      incluidas,
-      faltam,
-      cifUsado: cif,
-      cifLimite: limCif,
-      cifRestante: limCif == null ? null : Math.max(0, limCif - cif),
-      fobUsado: fob,
-      fobLimite: limFob,
-      fobRestante: limFob == null ? null : Math.max(0, limFob - fob),
-      ok: incluidas === reservadas && cifOk && fobOk,
-    };
-  }
-
-  /** Limite CIF: cota de destinação (se > 0) ou total reservado se só CIF. */
-  limiteCif(): number | null {
-    if (!this.destinacaoAtiva()) return null;
-    const cota = this.destinacaoQtdCif();
-    if (cota > 0) return Math.min(cota, this.quantidade());
-    if (this.destinacaoTemCif() && !this.destinacaoTemFob()) return this.quantidade();
-    if (!this.destinacaoTemCif()) return 0;
-    return null;
-  }
-
-  limiteFob(): number | null {
-    if (!this.fobLiberado()) return 0;
-    if (!this.destinacaoAtiva()) return null;
-    const cota = this.destinacaoQtdFob();
-    if (cota > 0) return Math.min(cota, this.quantidade());
-    if (this.destinacaoTemFob() && !this.destinacaoTemCif()) return this.quantidade();
-    if (!this.destinacaoTemFob()) return 0;
-    return null;
-  }
-
-  saldoCifFobOk(): boolean {
-    const s = this.saldoVagas();
-    return (
-      (s.cifLimite == null || s.cifUsado <= s.cifLimite) &&
-      (s.fobLimite == null || s.fobUsado <= s.fobLimite)
-    );
+    return this.aberto() || this.buscaPlacaAberta();
   }
 
   private resetForm(): void {
-    this.pararTimer();
-    this.hold.set(null);
-    this.segundosRestantes.set(0);
-    this.etapa.set(1);
-    this.quantidade.set(1);
-    this.fobLiberado.set(false);
-    this.pagadorFobId.set(null);
-    this.pagadorFobNome.set('');
-    this.destinacaoAtiva.set(false);
-    this.destinacaoTemCif.set(true);
-    this.destinacaoTemFob.set(true);
-    this.destinacaoQtdCif.set(0);
-    this.destinacaoQtdFob.set(0);
-    this.cobrancaPermiteFob = false;
-
+    this.invalidarResolucoesPendentes();
     const tid =
       !this.podeEscolherTransportadora() && this.auth.isTransportadoraRole() && !this.auth.isAdmin()
         ? this.auth.resolveTransportadoraId()
         : null;
-    const hoje = toIsoDateLocal(new Date());
     this.form.reset({
-      dataAgendamento: hoje,
+      dataAgendamento: toDateTimeLocalInputValue(),
       transportadoraId: tid,
       observacao: '',
     });
-    this.dataSelecionada.set(hoje);
-    this.modalidadeJanela.set(1);
-    this.slotSelecionado.set(null);
     this.transportadoraFormId.set(tid && tid > 0 ? tid : null);
     this.transportadoraFormNome.set('');
     this.placasSelecionadas.set([]);
-    this.frotaModalAberto.set(false);
-    if (tid && tid > 0) this.carregarCobranca(tid);
+    this.buscaPlacaAberta.set(false);
   }
 
   fechar(): void {
-    this.frotaModalAberto.set(false);
-    this.limparHoldLocal(true);
+    this.invalidarResolucoesPendentes();
+    this.buscaPlacaAberta.set(false);
     this.fechado.emit();
-  }
-
-  voltarEtapa1(): void {
-    this.limparHoldLocal(true);
-    this.etapa.set(1);
-    this.placasSelecionadas.set([]);
-  }
-
-  todasPlacasComMotorista(): boolean {
-    const lista = this.placasSelecionadas();
-    return lista.length > 0 && lista.every((p) => !!p.motoristaId && p.motoristaId > 0);
-  }
-
-  quantidadePlacasOk(): boolean {
-    const q = this.quantidade();
-    return this.placasSelecionadas().length === q;
   }
 
   onDataHoraChange(value: string): void {
     this.form.controls.dataAgendamento.setValue(value);
     this.form.controls.dataAgendamento.markAsDirty();
-    this.dataSelecionada.set(value);
   }
 
   onTransportadoraIdChange(id: number | null): void {
     if (!this.podeEscolherTransportadora()) return;
+    this.invalidarResolucoesPendentes();
     this.transportadoraFormId.set(id);
     this.form.controls.transportadoraId.setValue(id && id > 0 ? id : null);
     this.form.controls.transportadoraId.markAsDirty();
     this.placasSelecionadas.set([]);
-    this.slotSelecionado.set(null);
-    this.quantidade.set(1);
-    if (id && id > 0) this.carregarCobranca(id);
-    else {
-      this.fobLiberado.set(false);
-      this.pagadorFobId.set(null);
-      this.pagadorFobNome.set('');
-    }
   }
 
   onTransportadoraNomeChange(nome: string): void {
@@ -392,221 +140,152 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     this.transportadoraFormNome.set(nome || '');
   }
 
-  onQuantidadeChange(raw: string | number): void {
-    if (!this.quantidadeLiberada()) {
-      this.quantidade.set(1);
-      return;
-    }
-    const n = Math.floor(Number(raw));
-    if (!Number.isFinite(n) || n < 1) {
-      this.quantidade.set(1);
-      return;
-    }
-    const max = this.maxQuantidade();
-    this.quantidade.set(max > 0 ? Math.min(n, max) : 1);
-  }
-
-  abrirFrotaModal(): void {
+  abrirBuscaPlaca(): void {
     const tid = this.transportadoraFormId();
     if (!tid) {
-      this.toast.error('Selecione a transportadora antes de gerenciar veículos.');
+      this.toast.error('Selecione a transportadora antes de buscar placas.');
       return;
     }
-    this.frotaModalAberto.set(true);
+    this.buscaPlacaAberta.set(true);
   }
 
-  fecharFrotaModal(): void {
-    this.frotaModalAberto.set(false);
+  fecharBuscaPlaca(): void {
+    this.buscaPlacaAberta.set(false);
   }
 
-  onFrotaConfirmada(lista: AgendamentoPlacaSelecionada[]): void {
-    const mapeadas = this.atribuirDestinosBalanceados(lista);
-    this.placasSelecionadas.set(mapeadas);
-    this.frotaModalAberto.set(false);
-    if (mapeadas.length !== this.quantidade()) {
+  /** IDs já no formulário — o modal marca como bloqueados. */
+  idsPlacasJaSelecionadas(): number[] {
+    return this.placasSelecionadas().map((p) => p.id);
+  }
+
+  /**
+   * Confirmação em lote do modal de busca (Agendar).
+   * Backend: 1 POST /Agendamento por placa; o save já faz forkJoin.
+   */
+  onPlacasBuscaSelecionadas(itens: PaginatedSearchItem[]): void {
+    if (!itens?.length) return;
+    this.buscaPlacaAberta.set(false);
+
+    const geracao = ++this.geracaoSelecaoPlaca;
+    const tidEsperada = this.transportadoraFormId() ?? 0;
+    let ignoradasInativas = 0;
+    let candidatas = 0;
+
+    for (const item of itens) {
+      const preparado = this.prepararPlacaDaBusca(item);
+      if (!preparado.ok) {
+        if (preparado.motivo === 'inativa') ignoradasInativas += 1;
+        continue;
+      }
+
+      candidatas += 1;
+      this.resolverMotoristaDaPlaca(preparado.base, tidEsperada)
+        .pipe(takeUntil(this.cancelarResolucaoPlaca$))
+        .subscribe({
+          next: (resolved) => {
+            if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
+            if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
+            if (!resolved.motoristaId || resolved.motoristaId <= 0) {
+              this.toast.error(
+                `A placa ${formatPlacaDisplay(resolved.placa) || resolved.placa} não possui motorista vinculado. Vincule um motorista no cadastro do veículo.`
+              );
+              return;
+            }
+            const jaNaLista = this.placasSelecionadas().some(
+              (p) =>
+                p.id === resolved.id ||
+                normalizePlaca(p.placa) === normalizePlaca(resolved.placa)
+            );
+            if (jaNaLista) return;
+            this.placasSelecionadas.update((lista) => [...lista, resolved]);
+          },
+          error: () => {
+            if (!this.aberto() || geracao !== this.geracaoSelecaoPlaca) return;
+            if (tidEsperada !== (this.transportadoraFormId() ?? 0)) return;
+            if (preparado.base.motoristaId && preparado.base.motoristaId > 0) {
+              const jaNaLista = this.placasSelecionadas().some((p) => p.id === preparado.base.id);
+              if (!jaNaLista) {
+                this.placasSelecionadas.update((lista) => [...lista, preparado.base]);
+              }
+              return;
+            }
+            this.toast.error(
+              `Não foi possível validar o motorista da placa ${formatPlacaDisplay(preparado.base.placa) || preparado.base.placa}.`
+            );
+          },
+        });
+    }
+
+    if (ignoradasInativas) {
       this.toast.warning(
-        `Selecione exatamente ${this.quantidade()} veículo(s) para as vagas reservadas.`
+        ignoradasInativas === 1
+          ? '1 placa inativa foi ignorada.'
+          : `${ignoradasInativas} placas inativas foram ignoradas.`
       );
+    }
+    if (!candidatas && !ignoradasInativas) {
+      this.toast.warning('As placas selecionadas já estavam na lista.');
     }
   }
 
-  /** Distribui CIF/FOB respeitando cotas de destinação e liberação de FOB. */
-  private atribuirDestinosBalanceados(
-    lista: AgendamentoPlacaSelecionada[]
-  ): AgendamentoPlacaSelecionada[] {
-    const limCif = this.limiteCif();
-    const limFob = this.limiteFob();
-    let cifRest = limCif == null ? Number.POSITIVE_INFINITY : limCif;
-    let fobRest = !this.fobLiberado()
-      ? 0
-      : limFob == null
-        ? Number.POSITIVE_INFINITY
-        : limFob;
+  private prepararPlacaDaBusca(
+    item: PaginatedSearchItem
+  ):
+    | { ok: true; base: AgendamentoPlacaSelecionada }
+    | { ok: false; motivo: 'invalida' | 'inativa' | 'duplicada' } {
+    const id = Number(item.id);
+    const placa = String(item.titulo || '').trim();
+    if (!Number.isFinite(id) || id <= 0 || !placa) return { ok: false, motivo: 'invalida' };
 
-    return lista.map((p) => {
-      const preferido = (p.destinoFrete || 'cif') as DestinoFreteAgendamento;
-      let destino: DestinoFreteAgendamento = 'cif';
+    if ((item.campo5 || '').trim().toLowerCase() === 'não') {
+      return { ok: false, motivo: 'inativa' };
+    }
 
-      if (preferido === 'fob' && fobRest > 0) {
-        destino = 'fob';
-        fobRest -= 1;
-      } else if (preferido === 'cif' && cifRest > 0) {
-        destino = 'cif';
-        cifRest -= 1;
-      } else if (fobRest > 0) {
-        destino = 'fob';
-        fobRest -= 1;
-      } else if (cifRest > 0) {
-        destino = 'cif';
-        cifRest -= 1;
-      } else {
-        destino = this.fobLiberado() && limFob !== 0 ? 'fob' : 'cif';
-      }
+    const placaNorm = normalizePlaca(placa);
+    const jaExiste = this.placasSelecionadas().some(
+      (p) => p.id === id || normalizePlaca(p.placa) === placaNorm
+    );
+    if (jaExiste) return { ok: false, motivo: 'duplicada' };
 
-      return { ...p, destinoFrete: destino };
-    });
+    const metaMotoristaId = Number(item.meta?.['motoristaId'] ?? 0);
+    const metaNome =
+      item.meta?.['motoristaNome'] != null ? String(item.meta['motoristaNome']) : null;
+    const metaCpf =
+      item.meta?.['motoristaCpf'] != null ? String(item.meta['motoristaCpf']) : null;
+
+    return {
+      ok: true,
+      base: {
+        id,
+        placa,
+        marcaModelo: item.campo2 && item.campo2 !== '—' ? item.campo2 : undefined,
+        motoristaId: metaMotoristaId > 0 ? metaMotoristaId : null,
+        motoristaNome: metaNome,
+        motoristaCpf: metaCpf,
+      },
+    };
   }
 
   removerPlacaSelecionada(veiculoId: number): void {
     this.placasSelecionadas.update((lista) => lista.filter((p) => p.id !== veiculoId));
   }
 
-  selecionarDestinoFrete(veiculoId: number, destino: DestinoFreteAgendamento): void {
-    if (destino === 'fob' && !this.fobLiberado()) {
-      this.toast.warning('FOB bloqueado: cobrança sem pagador terceiro configurado.');
-      return;
-    }
-
-    const atual = this.placasSelecionadas().find((p) => p.id === veiculoId);
-    if (!atual) return;
-    const destinoAtual = atual.destinoFrete || 'cif';
-    if (destinoAtual === destino) return;
-
-    const simulado = this.placasSelecionadas().map((p) =>
-      p.id === veiculoId ? { ...p, destinoFrete: destino } : p
-    );
-    const cif = simulado.filter((p) => (p.destinoFrete || 'cif') === 'cif').length;
-    const fob = simulado.filter((p) => p.destinoFrete === 'fob').length;
-    const limCif = this.limiteCif();
-    const limFob = this.limiteFob();
-    if (limCif != null && cif > limCif) {
-      this.toast.warning(
-        `Limite de CIF atingido (${limCif}). Ajuste o destino de outra placa ou a quantidade.`
-      );
-      return;
-    }
-    if (limFob != null && fob > limFob) {
-      this.toast.warning(
-        `Limite de FOB atingido (${limFob}). Ajuste o destino de outra placa ou a quantidade.`
-      );
-      return;
-    }
-
-    this.placasSelecionadas.set(simulado);
-  }
-
   formatPlaca(placa: string | null | undefined): string {
     return formatPlacaDisplay(placa) || placa || '—';
   }
 
-  labelMotorista(p: AgendamentoPlacaSelecionada): string {
-    const nome = (p.motoristaNome || '').trim();
-    if (nome) return nome;
-    if (p.motoristaId && p.motoristaId > 0) return `Motorista #${p.motoristaId}`;
-    return '';
-  }
-
-  continuarEtapa1(): void {
-    if (!this.transportadoraPronta()) {
-      this.toast.error('Selecione a transportadora antes de continuar.');
-      return;
-    }
-
+  salvar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.error('Informe a data do agendamento.');
+      this.toast.error('Informe a data/hora do agendamento.');
       return;
     }
 
-    const tid = this.resolverTransportadoraId();
-    if (!tid) {
-      this.toast.error('Selecione a transportadora.');
-      return;
-    }
+    const tid =
+      !this.podeEscolherTransportadora() && this.auth.isTransportadoraRole() && !this.auth.isAdmin()
+        ? this.auth.resolveTransportadoraId()
+        : Number(this.form.controls.transportadoraId.value) || null;
 
-    const slot = this.slotSelecionado();
-    if (!slot) {
-      this.toast.error('Selecione o horário do agendamento.');
-      return;
-    }
-
-    const disponiveis = Number(slot.disponiveis) || 0;
-    if (disponiveis < 1) {
-      this.toast.error('Não há vagas disponíveis neste horário. Escolha outro horário.');
-      return;
-    }
-
-    const qtd = this.quantidade();
-    if (qtd < 1 || qtd > disponiveis) {
-      this.toast.error(
-        `Informe uma quantidade entre 1 e ${disponiveis} (vagas disponíveis no horário).`
-      );
-      return;
-    }
-
-    if (!this.podeContinuarEtapa1()) {
-      this.toast.error('Preencha transportadora, horário e quantidade disponível para avançar.');
-      return;
-    }
-
-    const data = String(this.form.controls.dataAgendamento.value ?? '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      this.toast.error('Data inválida.');
-      return;
-    }
-
-    this.reservando.set(true);
-    this.api
-      .criarHold({
-        data,
-        modalidadeAgendamento: this.modalidadeJanela(),
-        horaInicio: slot.horaInicio,
-        horaFim: slot.horaFim,
-        janelaAgendamentoId: slot.janelaAgendamentoId ?? null,
-        quantidade: qtd,
-        transportadoraId: tid,
-      })
-      .pipe(finalize(() => this.reservando.set(false)))
-      .subscribe({
-        next: (h) => {
-          this.hold.set(h);
-          this.iniciarTimer(h.expiraEm);
-          this.etapa.set(2);
-          this.carregarCobranca(tid);
-          this.toast.success(
-            `Reserva de ${qtd} vaga(s) por 30 minutos. Complete veículos e destino do frete.`
-          );
-        },
-        error: (err: { message?: string }) => {
-          this.toast.error(err?.message || 'Não foi possível reservar as vagas.');
-        },
-      });
-  }
-
-  salvar(): void {
-    if (this.etapa() !== 2) {
-      this.continuarEtapa1();
-      return;
-    }
-
-    const hold = this.hold();
-    if (!hold || hold.status !== 1) {
-      this.toast.error('A reserva temporária expirou. Volte e selecione o horário novamente.');
-      this.voltarEtapa1();
-      return;
-    }
-
-    const tid = this.resolverTransportadoraId();
     if (!tid) {
       this.toast.error('Selecione a transportadora.');
       return;
@@ -614,93 +293,53 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
 
     const selecionados = this.placasSelecionadas();
     if (!selecionados.length) {
-      this.toast.error('Selecione os veículos das vagas reservadas.');
-      return;
-    }
-    if (!this.quantidadePlacasOk()) {
-      this.toast.error(`Selecione exatamente ${this.quantidade()} veículo(s).`);
-      return;
-    }
-    if (!this.todasPlacasComMotorista()) {
-      this.toast.error('Defina o motorista de cada placa.');
-      this.abrirFrotaModal();
-      return;
-    }
-    if (!this.saldoCifFobOk()) {
-      this.toast.error('CIF/FOB extrapolam as vagas destinadas. Ajuste o destino do frete.');
-      return;
-    }
-
-    const fobSemPagador =
-      this.fobLiberado() &&
-      selecionados.some((p) => p.destinoFrete === 'fob') &&
-      !(this.pagadorFobId() && this.pagadorFobId()! > 0);
-    if (fobSemPagador) {
-      this.toast.error('Cobrança FOB sem pagador terceiro cadastrado. Ajuste a configuração de cobrança.');
-      return;
-    }
-
-    const slot = this.slotSelecionado();
-    if (!slot) {
-      this.toast.error('Horário inválido.');
+      this.toast.error('Selecione ao menos uma placa cadastrada.');
       return;
     }
 
     const dataAgendamento = datetimeLocalInputToApiIso(
-      `${String(this.form.controls.dataAgendamento.value ?? '').slice(0, 10)}T${slot.horaInicio}`
+      String(this.form.controls.dataAgendamento.value ?? '')
     );
     if (!dataAgendamento) {
       this.toast.error('Data/hora inválida.');
       return;
     }
 
-    const modalidadeAgendamento = this.modalidadeJanela();
     const observacao = (this.form.controls.observacao.value ?? '').trim() || null;
     const isTransportadora = this.auth.isTransportadoraRole();
     const isAdmin = this.auth.isAdmin();
-    const holdId = hold.id;
 
     this.salvando.set(true);
-    from(selecionados)
-      .pipe(
-        concatMap((veiculo) =>
-          this.resolverPayloadPlaca(
-            veiculo,
-            tid,
-            dataAgendamento,
-            observacao,
-            isTransportadora,
-            isAdmin,
-            holdId
-          ).pipe(
-            switchMap((resolved) => {
-              if (!resolved.ok) {
-                return of({
-                  success: false as const,
-                  placa: veiculo.placa,
-                  message: resolved.message,
-                });
-              }
-              return this.api.gravar({ ...resolved.payload, modalidadeAgendamento }).pipe(
-                map((res) => ({
-                  success: res.success,
-                  placa: veiculo.placa,
-                  message: res.message,
-                }))
-              );
-            }),
-            catchError(() =>
-              of({
+    forkJoin(
+      selecionados.map((veiculo) =>
+        this.resolverPayloadPlaca(veiculo, tid, dataAgendamento, observacao, isTransportadora, isAdmin).pipe(
+          switchMap((resolved) => {
+            if (!resolved.ok) {
+              return of({
                 success: false as const,
                 placa: veiculo.placa,
-                message: 'Falha ao criar agendamento.',
-              })
-            )
+                message: resolved.message,
+              });
+            }
+            return this.api.gravar(resolved.payload).pipe(
+              map((res) => ({
+                success: res.success,
+                placa: veiculo.placa,
+                message: res.message,
+              }))
+            );
+          }),
+          catchError(() =>
+            of({
+              success: false as const,
+              placa: veiculo.placa,
+              message: 'Falha ao criar agendamento.',
+            })
           )
-        ),
-        toArray(),
-        finalize(() => this.salvando.set(false))
+        )
       )
+    )
+      .pipe(finalize(() => this.salvando.set(false)))
       .subscribe({
         next: (results) => {
           const ok = results.filter((r) => r.success);
@@ -722,8 +361,6 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
             this.toast.success(
               ok.length === 1 ? 'Agendamento criado.' : `${ok.length} agendamentos criados.`
             );
-            this.hold.set(null);
-            this.pararTimer();
             this.fechar();
             this.salvo.emit();
             return;
@@ -744,113 +381,13 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
       });
   }
 
-  private resolverTransportadoraId(): number | null {
-    if (!this.podeEscolherTransportadora() && this.auth.isTransportadoraRole() && !this.auth.isAdmin()) {
-      return this.auth.resolveTransportadoraId();
-    }
-    return Number(this.form.controls.transportadoraId.value) || this.transportadoraFormId() || null;
-  }
-
-  private carregarCobranca(transportadoraId: number): void {
-    this.cancelarCobranca$.next();
-    const geracao = ++this.geracaoCobranca;
-    const estacionamentoId = this.auth.resolveEstacionamentoId();
-    this.cobrancaApi
-      .buscar({
-        transportadoraId,
-        estacionamentoId: estacionamentoId ?? undefined,
-        status: StatusConfiguracaoCobranca.Ativa,
-        numeroPagina: 1,
-        tamanhoPagina: 30,
-      })
-      .pipe(
-        takeUntil(this.cancelarCobranca$),
-        switchMap((page) => {
-          const items = page.items ?? [];
-          const preferido =
-            items.find((i) => i.modalidadeCobranca === ModalidadeCobranca.Acordo) ?? items[0];
-          if (!preferido?.id) return of(null);
-          return this.cobrancaApi.obterPorId(preferido.id).pipe(catchError(() => of(null)));
-        }),
-        catchError(() => of(null))
-      )
-      .subscribe((cfg) => {
-        if (geracao !== this.geracaoCobranca) return;
-        this.cobrancaPermiteFob = cfg?.tipoPagadorCobranca === TipoPagadorCobranca.Terceiro;
-        if (this.cobrancaPermiteFob) {
-          const id = cfg?.responsavelFaturamentoId ?? null;
-          this.pagadorFobId.set(id && id > 0 ? id : null);
-          this.pagadorFobNome.set((cfg?.responsavelFaturamentoNome || '').trim());
-        } else {
-          this.pagadorFobId.set(null);
-          this.pagadorFobNome.set('');
-        }
-        this.aplicarLiberacaoFob();
-      });
-  }
-
-  /** FOB só se cobrança permitir terceiro e a destinação (quando houver) tiver FOB. */
-  private aplicarLiberacaoFob(): void {
-    const liberado = this.cobrancaPermiteFob && this.destinacaoTemFob();
-    this.fobLiberado.set(liberado);
-    if (!liberado) {
-      this.placasSelecionadas.update((lista) =>
-        lista.map((p) => ({ ...p, destinoFrete: 'cif' as const }))
-      );
-    } else if (this.destinacaoAtiva() && !this.destinacaoTemCif()) {
-      this.placasSelecionadas.update((lista) =>
-        lista.map((p) => ({ ...p, destinoFrete: 'fob' as const }))
-      );
-    }
-  }
-
-  private iniciarTimer(expiraEm: string): void {
-    this.pararTimer();
-    const tick = () => {
-      const fim = Date.parse(expiraEm);
-      if (!Number.isFinite(fim)) {
-        this.segundosRestantes.set(0);
-        return;
-      }
-      const restante = Math.max(0, Math.floor((fim - Date.now()) / 1000));
-      this.segundosRestantes.set(restante);
-      if (restante <= 0) {
-        this.pararTimer();
-        this.toast.warning('Tempo da reserva esgotado (30 min). Selecione o horário novamente.');
-        this.limparHoldLocal(false);
-        this.etapa.set(1);
-        this.placasSelecionadas.set([]);
-      }
-    };
-    tick();
-    this.timerId = setInterval(tick, 1000);
-  }
-
-  private pararTimer(): void {
-    if (this.timerId != null) {
-      clearInterval(this.timerId);
-      this.timerId = null;
-    }
-  }
-
-  private limparHoldLocal(cancelarNoServidor: boolean): void {
-    const h = this.hold();
-    this.pararTimer();
-    this.hold.set(null);
-    this.segundosRestantes.set(0);
-    if (cancelarNoServidor && h?.id && h.status === 1) {
-      this.api.cancelarHold(h.id, h.token).subscribe({ error: () => undefined });
-    }
-  }
-
   private resolverPayloadPlaca(
     veiculo: AgendamentoPlacaSelecionada,
     transportadoraId: number,
     dataAgendamento: string,
     observacao: string | null,
     isTransportadora: boolean,
-    isAdmin: boolean,
-    holdId: number
+    isAdmin: boolean
   ): Observable<ResolvePlacaResult> {
     const placa = normalizePlaca(veiculo.placa);
     if (!placaCompleta(placa)) {
@@ -860,49 +397,62 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
       });
     }
 
-    const motoristaId = veiculo.motoristaId && veiculo.motoristaId > 0 ? veiculo.motoristaId : null;
-    if (!motoristaId) {
-      return of({
-        ok: false,
-        message: `A placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} está sem motorista.`,
-      });
-    }
-
-    const payload: AgendamentoPostInput = {
-      dataAgendamento,
-      observacao,
-      transportadoraId,
-      holdId,
-      motorista: {
-        id: motoristaId,
-        cpf: veiculo.motoristaCpf || null,
-        nome: veiculo.motoristaNome || null,
-      },
-      veiculo: {
-        id: veiculo.id,
-        placa,
-      },
-    };
-
-    if (!(isTransportadora && !isAdmin)) {
-      return of({ ok: true, payload });
-    }
-
-    return this.api.obterPorPlaca(placa).pipe(
-      map((agg) => {
-        if (!agg) {
+    return this.resolverMotoristaDaPlaca(veiculo, transportadoraId).pipe(
+      map((resolved) => {
+        const motoristaId = resolved.motoristaId && resolved.motoristaId > 0 ? resolved.motoristaId : null;
+        if (!motoristaId) {
           return {
             ok: false as const,
-            message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
+            message: `A placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} não possui motorista vinculado. Vincule um motorista no cadastro do veículo.`,
           };
         }
-        if (agg.transportadoraId && agg.transportadoraId !== transportadoraId) {
-          return {
-            ok: false as const,
-            message: `A placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} não pertence à transportadora da sessão.`,
-          };
-        }
-        return { ok: true as const, payload };
+
+        return {
+          ok: true as const,
+          payload: {
+            dataAgendamento,
+            observacao,
+            transportadoraId,
+            motorista: {
+              id: motoristaId,
+              cpf: resolved.motoristaCpf || null,
+              nome: resolved.motoristaNome || null,
+            },
+            veiculo: {
+              id: resolved.id,
+              placa,
+            },
+          } satisfies AgendamentoPostInput,
+        };
+      }),
+      switchMap((result) => {
+        if (!result.ok) return of(result);
+        if (!(isTransportadora && !isAdmin)) return of(result);
+
+        // Garante que a placa pertence à transportadora da sessão.
+        return this.api.obterPorPlaca(placa).pipe(
+          map((agg) => {
+            if (!agg) {
+              return {
+                ok: false as const,
+                message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
+              };
+            }
+            if (agg.transportadoraId && agg.transportadoraId !== transportadoraId) {
+              return {
+                ok: false as const,
+                message: `A placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa} não pertence à transportadora da sessão.`,
+              };
+            }
+            return result;
+          }),
+          catchError(() =>
+            of({
+              ok: false as const,
+              message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
+            })
+          )
+        );
       }),
       catchError(() =>
         of({
@@ -910,6 +460,58 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
           message: `Não foi possível validar a placa ${formatPlacaDisplay(veiculo.placa) || veiculo.placa}.`,
         })
       )
+    );
+  }
+
+  /**
+   * Resolve motorista: chip/meta → GET Agendamento/por-placa → GET Veiculo por id.
+   */
+  private resolverMotoristaDaPlaca(
+    veiculo: AgendamentoPlacaSelecionada,
+    transportadoraId: number
+  ): Observable<AgendamentoPlacaSelecionada> {
+    if (veiculo.motoristaId && veiculo.motoristaId > 0) {
+      return of(veiculo);
+    }
+
+    const placa = normalizePlaca(veiculo.placa);
+    return this.api.obterPorPlaca(placa).pipe(
+      switchMap((agg) => {
+        if (agg?.motoristaId && agg.motoristaId > 0) {
+          return of({
+            ...veiculo,
+            id: agg.veiculoId > 0 ? agg.veiculoId : veiculo.id,
+            motoristaId: agg.motoristaId,
+            motoristaNome: agg.motoristaNome || veiculo.motoristaNome || null,
+            motoristaCpf: agg.motoristaCpf || veiculo.motoristaCpf || null,
+          });
+        }
+
+        if (!(transportadoraId > 0 && veiculo.id > 0)) {
+          return of(veiculo);
+        }
+
+        return this.veiculoApi.obterPorId(veiculo.id, transportadoraId).pipe(
+          map((detalhe) => {
+            if (!detalhe) return veiculo;
+            const vinculo =
+              detalhe.motoristasVinculos?.find((m) => m.principal === true) ??
+              detalhe.motoristasVinculos?.[0];
+            const mid =
+              (detalhe.motoristaId && detalhe.motoristaId > 0 ? detalhe.motoristaId : null) ??
+              (vinculo && vinculo.id > 0 ? vinculo.id : null);
+            if (!mid) return veiculo;
+            return {
+              ...veiculo,
+              motoristaId: mid,
+              motoristaNome: detalhe.motoristaNome || vinculo?.nome || veiculo.motoristaNome || null,
+              motoristaCpf: vinculo?.cpf || veiculo.motoristaCpf || null,
+            };
+          }),
+          catchError(() => of(veiculo))
+        );
+      }),
+      catchError(() => of(veiculo))
     );
   }
 }

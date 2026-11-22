@@ -10,8 +10,7 @@ import {
   type PeriodoDataSelecionado,
 } from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
-import { formatPlacaDisplay, normalizePlaca } from '../../../cadastro/utils/placa-br';
-import { PlacaFormatDirective } from '../../../cadastro/directives/placa-format.directive';
+import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 import { EstacionamentoConfiguracaoService } from '../../../configuracoes/services/estacionamento-configuracao.service';
 import {
   EntradaSaidaStatus,
@@ -34,14 +33,7 @@ import { RELATORIO_BOOL_OPCOES, RELATORIO_MOV_STATUS_OPCOES } from './movimentac
 @Component({
   selector: 'app-movimentacao-relatorio',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatSnackBarModule,
-    DatePipe,
-    PeriodoDataPickerComponent,
-    PlacaFormatDirective,
-  ],
+  imports: [CommonModule, FormsModule, MatSnackBarModule, DatePipe, PeriodoDataPickerComponent],
   templateUrl: './movimentacao-relatorio.component.html',
   styleUrls: ['./movimentacao-relatorio.component.scss'],
 })
@@ -269,7 +261,7 @@ export class MovimentacaoRelatorioComponent implements OnInit {
     return {
       dataInicial: this.dataInicial || null,
       dataFinal: this.dataFinal || null,
-      placa: normalizePlaca(this.placa) || null,
+      placa: this.placa.trim() || null,
       transportadoraId: this.transportadoraId,
       status: this.status,
       faturado: this.faturado,

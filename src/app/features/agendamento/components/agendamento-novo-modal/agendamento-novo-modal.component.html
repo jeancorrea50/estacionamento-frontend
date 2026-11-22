@@ -35,25 +35,6 @@
       <form [formGroup]="form" (ngSubmit)="salvar()">
         <div class="modal-body modal-body--frota-compact ag-novo-body">
           @if (etapa() === 1) {
-            <div class="form-row ag-novo-field">
-              <label>Data <span class="required">*</span></label>
-              <app-agendamento-data-hora-picker
-                [somenteData]="true"
-                ariaLabel="Selecionar data do agendamento"
-                [value]="form.controls.dataAgendamento.value || ''"
-                (valueChange)="onDataHoraChange($event)"
-              />
-            </div>
-
-            <app-janela-slot-select
-              [ativo]="aberto()"
-              [data]="dataSelecionada()"
-              [transportadoraId]="transportadoraFormId()"
-              [(modalidade)]="modalidadeJanela"
-              [(slot)]="slotSelecionado"
-              (destinacaoChange)="onDestinacaoChange($event)"
-            />
-
             @if (podeEscolherTransportadora()) {
               <div class="form-row ag-novo-field">
                 <label>Transportadora <span class="required">*</span></label>
@@ -67,28 +48,68 @@
               </div>
             }
 
-            <div class="form-row ag-novo-field">
-              <label for="ag-novo-qtd">Quantidade de vagas <span class="required">*</span></label>
-              <input
-                id="ag-novo-qtd"
-                class="input-control"
-                type="number"
-                min="1"
-                [attr.max]="maxQuantidade()"
-                [value]="quantidade()"
-                (change)="onQuantidadeChange(($any($event.target)).value)"
-                (input)="onQuantidadeChange(($any($event.target)).value)"
+            <div
+              class="ag-novo-depois-transportadora"
+              [class.ag-novo-depois-transportadora--bloqueado]="!transportadoraPronta()"
+            >
+              @if (!transportadoraPronta()) {
+                <p class="ag-novo-hint ag-novo-hint--inline" role="status">
+                  Selecione a transportadora para liberar data, horário e quantidade de vagas.
+                </p>
+              }
+
+              <div class="form-row ag-novo-field">
+                <label>Data <span class="required">*</span></label>
+                <app-agendamento-data-hora-picker
+                  [somenteData]="true"
+                  ariaLabel="Selecionar data do agendamento"
+                  [value]="form.controls.dataAgendamento.value || ''"
+                  (valueChange)="onDataHoraChange($event)"
+                />
+              </div>
+
+              <app-janela-slot-select
+                [ativo]="aberto() && transportadoraPronta()"
+                [data]="dataSelecionada()"
+                [transportadoraId]="transportadoraFormId()"
+                [(modalidade)]="modalidadeJanela"
+                [(slot)]="slotSelecionado"
+                (destinacaoChange)="onDestinacaoChange($event)"
               />
-              <small class="ag-novo-hint">
-                @if (slotSelecionado(); as slot) {
-                  Disponível neste horário: {{ slot.disponiveis }} vaga(s)
-                  @if (slot.viaDestinacao) {
-                    (destinadas à transportadora)
+
+              <div class="form-row ag-novo-field">
+                <label for="ag-novo-qtd">Quantidade de vagas <span class="required">*</span></label>
+                <input
+                  id="ag-novo-qtd"
+                  class="input-control"
+                  type="number"
+                  min="1"
+                  [attr.max]="maxQuantidade()"
+                  [value]="quantidade()"
+                  [disabled]="!quantidadeLiberada()"
+                  (change)="onQuantidadeChange(($any($event.target)).value)"
+                  (input)="onQuantidadeChange(($any($event.target)).value)"
+                />
+                <small class="ag-novo-hint">
+                  @if (!transportadoraPronta()) {
+                    Informe a transportadora primeiro.
+                  } @else if (slotSelecionado(); as slot) {
+                    @if (slot.disponiveis > 0) {
+                      Disponível neste horário: {{ slot.disponiveis }} vaga(s)
+                      @if (slot.viaDestinacao) {
+                        (destinadas à transportadora)
+                      }
+                      @if (quantidade() > slot.disponiveis) {
+                        — quantidade acima do disponível.
+                      }
+                    } @else {
+                      Sem vagas disponíveis neste horário. Escolha outro horário.
+                    }
+                  } @else {
+                    Selecione o horário para liberar a quantidade.
                   }
-                } @else {
-                  Selecione o horário para liberar a quantidade.
-                }
-              </small>
+                </small>
+              </div>
             </div>
           } @else {
             @if (saldoVagas(); as saldo) {
@@ -301,13 +322,7 @@
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="
-                form.invalid ||
-                reservando() ||
-                !slotSelecionado() ||
-                !transportadoraFormId() ||
-                quantidade() < 1
-              "
+              [disabled]="reservando() || !podeContinuarEtapa1()"
               (click)="continuarEtapa1()"
             >
               {{ reservando() ? 'Reservando...' : 'Continuar' }}

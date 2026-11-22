@@ -58,7 +58,9 @@ type EtapaWizard = 1 | 2;
 
 /**
  * Modal compartilhado de criação de agendamento (Pátio e Agendar/transportadora).
- * Fluxo em 2 etapas: (1) data/horário/qtd + hold 30 min → (2) placas/motoristas + CIF/FOB.
+ * Fluxo em 2 etapas:
+ * (1) transportadora → data/horário → qtd (só avança se couber no disponível) + hold 30 min
+ * (2) placas/motoristas + CIF/FOB.
  */
 @Component({
   selector: 'app-agendamento-novo-modal',
@@ -147,9 +149,15 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
 
     effect(() => {
       const slot = this.slotSelecionado();
-      const max = Math.max(1, slot?.disponiveis ?? 1);
-      if (this.quantidade() > max) {
-        untracked(() => this.quantidade.set(max));
+      const disponiveis = Number(slot?.disponiveis) || 0;
+      if (disponiveis < 1) {
+        if (this.quantidade() !== 1) {
+          untracked(() => this.quantidade.set(1));
+        }
+        return;
+      }
+      if (this.quantidade() > disponiveis) {
+        untracked(() => this.quantidade.set(disponiveis));
       }
     });
   }
@@ -163,8 +171,9 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     this.aplicarLiberacaoFob();
 
     if (info.ativa && info.quantidadeTotal > 0 && this.etapa() === 1) {
-      const maxSlot = Math.max(1, this.slotSelecionado()?.disponiveis ?? info.quantidadeTotal);
-      const sugerida = Math.max(1, Math.min(info.quantidadeTotal, maxSlot));
+      const disponiveis = Number(this.slotSelecionado()?.disponiveis) || 0;
+      if (disponiveis < 1) return;
+      const sugerida = Math.max(1, Math.min(info.quantidadeTotal, disponiveis));
       if (this.quantidade() === 1 || this.quantidade() > sugerida) {
         this.quantidade.set(sugerida);
       }
@@ -199,8 +208,32 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
   }
 
+  /** Transportadora resolvida (lookup ou perfil transportadora). */
+  transportadoraPronta(): boolean {
+    const tid = this.transportadoraFormId();
+    return tid != null && tid > 0;
+  }
+
+  /** Quantidade só libera com horário que ainda tem vaga. */
+  quantidadeLiberada(): boolean {
+    const disp = this.slotSelecionado()?.disponiveis ?? 0;
+    return this.transportadoraPronta() && disp > 0;
+  }
+
   maxQuantidade(): number {
-    return Math.max(1, this.slotSelecionado()?.disponiveis ?? 1);
+    const disp = this.slotSelecionado()?.disponiveis ?? 0;
+    return Math.max(0, disp);
+  }
+
+  /** Gate da etapa 1: transportadora + slot com disponibilidade suficiente. */
+  podeContinuarEtapa1(): boolean {
+    if (this.form.invalid || !this.transportadoraPronta()) return false;
+    const slot = this.slotSelecionado();
+    if (!slot) return false;
+    const disponiveis = Number(slot.disponiveis) || 0;
+    if (disponiveis < 1) return false;
+    const qtd = this.quantidade();
+    return Number.isInteger(qtd) && qtd >= 1 && qtd <= disponiveis;
   }
 
   resumoCifFob(): { cif: number; fob: number } {
@@ -344,6 +377,8 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
     this.form.controls.transportadoraId.setValue(id && id > 0 ? id : null);
     this.form.controls.transportadoraId.markAsDirty();
     this.placasSelecionadas.set([]);
+    this.slotSelecionado.set(null);
+    this.quantidade.set(1);
     if (id && id > 0) this.carregarCobranca(id);
     else {
       this.fobLiberado.set(false);
@@ -358,12 +393,17 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
   }
 
   onQuantidadeChange(raw: string | number): void {
+    if (!this.quantidadeLiberada()) {
+      this.quantidade.set(1);
+      return;
+    }
     const n = Math.floor(Number(raw));
     if (!Number.isFinite(n) || n < 1) {
       this.quantidade.set(1);
       return;
     }
-    this.quantidade.set(Math.min(n, this.maxQuantidade()));
+    const max = this.maxQuantidade();
+    this.quantidade.set(max > 0 ? Math.min(n, max) : 1);
   }
 
   abrirFrotaModal(): void {
@@ -477,6 +517,11 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
   }
 
   continuarEtapa1(): void {
+    if (!this.transportadoraPronta()) {
+      this.toast.error('Selecione a transportadora antes de continuar.');
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toast.error('Informe a data do agendamento.');
@@ -495,11 +540,22 @@ export class AgendamentoNovoModalComponent implements OnDestroy {
       return;
     }
 
+    const disponiveis = Number(slot.disponiveis) || 0;
+    if (disponiveis < 1) {
+      this.toast.error('Não há vagas disponíveis neste horário. Escolha outro horário.');
+      return;
+    }
+
     const qtd = this.quantidade();
-    if (qtd < 1 || qtd > slot.disponiveis) {
+    if (qtd < 1 || qtd > disponiveis) {
       this.toast.error(
-        `Informe uma quantidade entre 1 e ${slot.disponiveis} (vagas disponíveis no horário).`
+        `Informe uma quantidade entre 1 e ${disponiveis} (vagas disponíveis no horário).`
       );
+      return;
+    }
+
+    if (!this.podeContinuarEtapa1()) {
+      this.toast.error('Preencha transportadora, horário e quantidade disponível para avançar.');
       return;
     }
 

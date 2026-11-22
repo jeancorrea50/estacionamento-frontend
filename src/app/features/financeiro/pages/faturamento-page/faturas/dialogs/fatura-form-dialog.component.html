@@ -181,7 +181,7 @@
               <tbody>
                 @for (item of itensNormais; track item.id) {
                   <tr>
-                    <td>{{ item.placa }}</td>
+                    <td>{{ formatPlaca(item.placa) }}</td>
                     <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
                     <td>{{ item.dataHoraSaida | date: 'dd/MM/yy HH:mm' }}</td>
                     <td>{{ item.valorTotal | number: '1.2-2' }}</td>
@@ -208,7 +208,7 @@
               <tbody>
                 @for (item of itensExcedentes; track item.id) {
                   <tr>
-                    <td>{{ item.placa }}</td>
+                    <td>{{ formatPlaca(item.placa) }}</td>
                     <td>{{ item.dataHoraEntrada | date: 'dd/MM/yy HH:mm' }}</td>
                     <td>{{ item.dataHoraSaida | date: 'dd/MM/yy HH:mm' }}</td>
                     <td>{{ item.valorExcedente | number: '1.2-2' }}</td>

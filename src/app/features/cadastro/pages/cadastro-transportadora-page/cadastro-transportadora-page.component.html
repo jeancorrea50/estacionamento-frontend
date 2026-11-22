@@ -484,7 +484,7 @@
                                 <div class="form-row form-row--cep">
                                   <label for="cep">CEP</label>
                                   <div class="field__group field__group--cep">
-                                    <input id="cep" class="field__input est-field__control" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
+                                    <input id="cep" class="field__input est-field__control" type="text" formControlName="cep" appCepFormat inputmode="numeric" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
                                     <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
                                   </div>
                                 </div>

@@ -16,6 +16,10 @@ import { PaginatedSearchItem } from '../../../shared/models/paginated-search.mod
 import { VeiculoService } from '../../cadastro/services/veiculo.service';
 import { MotoristaPorPlacaAggregateVm } from '../../cadastro/models/motorista-por-placa.vm';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../cadastro/utils/placa-br';
+import { formatCpf } from '../../cadastro/directives/cpf-format.directive';
+import { formatCnpj } from '../../cadastro/directives/cnpj-format.directive';
+import { formatTelefone } from '../../cadastro/directives/telefone-format.directive';
+import { PlacaFormatDirective } from '../../cadastro/directives/placa-format.directive';
 import { EntradaSaidaService } from './entrada-saida.service';
 import { EntradaSaidaOutput } from '../models/entrada-saida.models';
 import {
@@ -49,6 +53,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    PlacaFormatDirective,
     ModalBuscaMotoristaComponent,
     ModalBuscaTransportadoraComponent,
     ModalBuscaVeiculoComponent
@@ -166,13 +171,19 @@ export class EntradaSaidaFormComponent implements OnInit {
   }
 
   onCampoMotoristaCpf(ev: Event): void {
-    this.detalhe.motoristaCpf = (ev.target as HTMLInputElement).value;
+    const input = ev.target as HTMLInputElement;
+    const formatted = formatCpf(input.value);
+    input.value = formatted;
+    this.detalhe.motoristaCpf = formatted;
     this.form.patchValue({ motoristaId: null }, { emitEvent: false });
     this.readonlyPorAutofill = false;
   }
 
   onCampoMotoristaTel(ev: Event): void {
-    this.detalhe.motoristaTelefone = (ev.target as HTMLInputElement).value;
+    const input = ev.target as HTMLInputElement;
+    const formatted = formatTelefone(input.value);
+    input.value = formatted;
+    this.detalhe.motoristaTelefone = formatted;
     this.form.patchValue({ motoristaId: null }, { emitEvent: false });
     this.readonlyPorAutofill = false;
   }
@@ -210,7 +221,10 @@ export class EntradaSaidaFormComponent implements OnInit {
   }
 
   onCampoTransportadoraCnpj(ev: Event): void {
-    this.detalhe.transportadoraCnpj = (ev.target as HTMLInputElement).value;
+    const input = ev.target as HTMLInputElement;
+    const formatted = formatCnpj(input.value);
+    input.value = formatted;
+    this.detalhe.transportadoraCnpj = formatted;
     this.form.patchValue({ transportadoraId: null }, { emitEvent: false });
     this.readonlyPorAutofill = false;
   }
@@ -447,15 +461,15 @@ export class EntradaSaidaFormComponent implements OnInit {
     this.detalhe = {
       ...this.detalhe,
       motoristaTexto: agg.motoristaNome,
-      motoristaCpf: agg.motoristaCpf,
-      motoristaTelefone: agg.motoristaTelefone,
+      motoristaCpf: formatCpf(agg.motoristaCpf ?? ''),
+      motoristaTelefone: formatTelefone(agg.motoristaTelefone ?? ''),
       motoristaCnh: agg.motoristaCnh,
       veiculoTexto: placaFmt,
       veiculoModelo: agg.veiculoModelo,
       veiculoMarca: agg.veiculoMarca,
       veiculoAno: agg.veiculoAno,
       transportadoraTexto: agg.transportadoraNome,
-      transportadoraCnpj: agg.transportadoraCnpj,
+      transportadoraCnpj: formatCnpj(agg.transportadoraCnpj ?? ''),
       transportadoraContato: agg.transportadoraContato
     };
 

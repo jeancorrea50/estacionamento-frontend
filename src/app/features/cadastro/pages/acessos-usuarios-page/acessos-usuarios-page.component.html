@@ -89,7 +89,10 @@
               id="u-cpf"
               type="text"
               class="input-control"
+              name="u-cpf"
               [(ngModel)]="form.cpf"
+              appCpfFormat
+              inputmode="numeric"
               placeholder="000.000.000-00"
               maxlength="14"
             />

@@ -37,6 +37,7 @@
                     class="input-control es-float__input"
                     placeholder=" "
                     formControlName="placaVeiculo"
+                    appPlacaFormat
                     (input)="onPlacaInput()"
                     (blur)="onPlacaBlurBusca()"
                     [readonly]="!modoNovo()"

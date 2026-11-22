@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { ModalidadeRecebimento } from '../../../financeiro/models/fatura.models';
 import { formatarBrl } from '../../../financeiro/pages/faturamento-page/config-cobranca/config-cobranca-moeda.util';
+import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 
 export interface SaidaPagamentoDialogData {
   placa: string;
@@ -35,6 +36,8 @@ export class SaidaPagamentoDialogComponent implements OnInit {
   );
   readonly data = inject<SaidaPagamentoDialogData>(MAT_DIALOG_DATA);
   private readonly estacionamentoApi = inject(EstacionamentoService);
+
+  readonly placaFormatada = formatPlacaDisplay(this.data.placa);
 
   readonly ModalidadeRecebimento = ModalidadeRecebimento;
   readonly formas: FormaOpcao[] = [

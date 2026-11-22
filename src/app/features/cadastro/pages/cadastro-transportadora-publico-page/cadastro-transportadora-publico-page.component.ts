@@ -4,6 +4,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CpfFormatDirective } from '../../directives/cpf-format.directive';
 import { CnpjFormatDirective } from '../../directives/cnpj-format.directive';
+import { TelefoneFormatDirective } from '../../directives/telefone-format.directive';
+import { CepFormatDirective } from '../../directives/cep-format.directive';
 import { cpfCompletoValidator } from '../../validators/cpf-celular.validator';
 import { ConviteTransportadoraService } from '../../services/convite-transportadora.service';
 import type {
@@ -17,7 +19,15 @@ type PageState = 'loading' | 'ready' | 'invalid' | 'expired' | 'done' | 'error';
 @Component({
   selector: 'app-cadastro-transportadora-publico-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, CpfFormatDirective, CnpjFormatDirective],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    CpfFormatDirective,
+    CnpjFormatDirective,
+    TelefoneFormatDirective,
+    CepFormatDirective,
+  ],
   templateUrl: './cadastro-transportadora-publico-page.component.html',
   styleUrl: './cadastro-transportadora-publico-page.component.scss',
 })

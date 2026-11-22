@@ -38,7 +38,8 @@
           type="search"
           class="mov-filtros__input"
           maxlength="8"
-          placeholder="ABC1D23"
+          placeholder="ABC-1D23"
+          appPlacaFormat
           [ngModel]="draft().placa"
           (ngModelChange)="onPlacaChange($event)"
           [ngModelOptions]="{ standalone: true }"

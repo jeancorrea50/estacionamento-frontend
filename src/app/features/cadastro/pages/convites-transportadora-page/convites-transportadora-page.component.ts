@@ -10,6 +10,9 @@ import {
 } from '../../../convite/services/convite-transportadora-api.service';
 import { CADASTRO_TRANSPORTADORAS_ROUTE } from '../../cadastro-rotas';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { formatCnpj } from '../../directives/cnpj-format.directive';
+import { formatTelefone } from '../../directives/telefone-format.directive';
+import { formatCep } from '../../directives/cep-format.directive';
 
 type StepKey = 1 | 2 | 3 | 4;
 
@@ -24,6 +27,18 @@ export class ConvitesTransportadoraPageComponent implements OnInit {
   private readonly api = inject(ConviteTransportadoraApiService);
   private readonly snack = inject(MatSnackBar);
   private readonly permissionCache = inject(PermissionCacheService);
+
+  formatCnpj(value: string | null | undefined): string {
+    return formatCnpj(String(value ?? ''));
+  }
+
+  formatTelefone(value: string | null | undefined): string {
+    return formatTelefone(String(value ?? ''));
+  }
+
+  formatCep(value: string | null | undefined): string {
+    return formatCep(String(value ?? ''));
+  }
 
   /** Convite usa as claims de transportadora: criar/reenviar = gravar, cancelar = alterar. */
   get canGravar(): boolean {

@@ -15,6 +15,8 @@ import { ThemeService } from '../../../../../core/services/theme.service';
 import { MotoristaService } from '../../../../cadastro/services/motorista.service';
 import { FaturamentoDataPickerPanelDirective } from '../../../../financeiro/pages/faturamento-page/shared/faturamento-data-picker-panel.directive';
 import { TransportadoraLookupFieldComponent } from '../../../entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
+import { PlacaFormatDirective } from '../../../../cadastro/directives/placa-format.directive';
+import { formatPlacaInput } from '../../../../cadastro/utils/placa-br';
 import { MovimentosFiltrosDropdownPanelDirective } from './movimentos-filtros-dropdown-panel.directive';
 import { MotoristaListItemDTO } from '../../../../cadastro/models/motorista.dto';
 import {
@@ -64,6 +66,7 @@ interface MesAnchor {
     FaturamentoDataPickerPanelDirective,
     MovimentosFiltrosDropdownPanelDirective,
     TransportadoraLookupFieldComponent,
+    PlacaFormatDirective,
   ],
   templateUrl: './movimentos-filtros-panel.component.html',
   styleUrls: ['./movimentos-filtros-panel.component.scss']
@@ -201,7 +204,7 @@ export class MovimentosFiltrosPanelComponent {
   }
 
   onPlacaChange(value: string): void {
-    this.patchDraft({ placa: value.toUpperCase() });
+    this.patchDraft({ placa: formatPlacaInput(value) });
   }
 
   onMotoristaTermo(value: string): void {

@@ -15,17 +15,29 @@ import type {
   TransportadoraRelatorioResumo,
 } from './transportadora-relatorio.types';
 import { RELATORIO_ATIVO_OPCOES } from './transportadora-relatorio.types';
+import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
+import { formatTelefone } from '../../directives/telefone-format.directive';
 
 @Component({
   selector: 'app-transportadora-relatorio',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSnackBarModule, DatePipe, PeriodoDataPickerComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatSnackBarModule,
+    DatePipe,
+    PeriodoDataPickerComponent,
+    CnpjFormatDirective,
+  ],
   templateUrl: './transportadora-relatorio.component.html',
   styleUrls: ['./transportadora-relatorio.component.scss'],
 })
 export class TransportadoraRelatorioComponent implements OnInit {
   private readonly api = inject(TransportadoraRelatorioService);
   private readonly snack = inject(MatSnackBar);
+
+  readonly formatCnpj = formatCnpj;
+  readonly formatTelefone = formatTelefone;
 
   readonly ativoOpcoes = RELATORIO_ATIVO_OPCOES;
 

@@ -66,7 +66,7 @@
             </label>
             <label class="pub-field">
               <span>Telefone</span>
-              <input formControlName="telefone" />
+              <input formControlName="telefone" appTelefoneFormat type="tel" inputmode="tel" placeholder="(00) 00000-0000" />
             </label>
           </div>
         </section>
@@ -88,7 +88,7 @@
             </label>
             <label class="pub-field">
               <span>Telefone</span>
-              <input formControlName="responsavelTelefone" />
+              <input formControlName="responsavelTelefone" appTelefoneFormat type="tel" inputmode="tel" placeholder="(00) 00000-0000" />
             </label>
           </div>
         </section>
@@ -98,7 +98,7 @@
           <div class="pub-grid">
             <label class="pub-field">
               <span>CEP</span>
-              <input formControlName="cep" />
+              <input formControlName="cep" appCepFormat inputmode="numeric" placeholder="00000-000" maxlength="9" />
             </label>
             <label class="pub-field pub-field--wide">
               <span>Logradouro</span>

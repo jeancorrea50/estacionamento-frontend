@@ -48,6 +48,7 @@ import { TipoPessoa, type EstacionamentoPayloadMergeContext } from '../../models
 import { CnpjFormatDirective, formatCnpj as formatCnpjDigits } from '../../directives/cnpj-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
+import { CepFormatDirective } from '../../directives/cep-format.directive';
 import {
   chavePixInputMode,
   chavePixMaxLength,
@@ -94,6 +95,7 @@ function telefoneContatoMinDigitosValidator(minDigitos = 10): ValidatorFn {
     CnpjFormatDirective,
     CpfFormatDirective,
     TelefoneFormatDirective,
+    CepFormatDirective,
     BrasilMapaComponent
   ],
   templateUrl: './estacionamento-form.component.html',

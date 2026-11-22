@@ -15,6 +15,7 @@ import type {
   FaturaStatusLabel,
   ModalidadeRecebimentoLabel
 } from '../faturamento-faturas.types';
+import { formatPlacaDisplay } from '../../../../../cadastro/utils/placa-br';
 
 export type FaturaFormMode = 'create' | 'view';
 
@@ -54,6 +55,8 @@ export class FaturaFormDialogComponent {
   readonly ref = inject(MatDialogRef<FaturaFormDialogComponent, FaturaFormDialogResult | undefined>);
   readonly data = inject<FaturaFormDialogData>(MAT_DIALOG_DATA);
   private readonly snack = inject(MatSnackBar);
+
+  readonly formatPlaca = formatPlacaDisplay;
 
   readonly isCreate = this.data.mode === 'create';
   readonly isView = this.data.mode === 'view';

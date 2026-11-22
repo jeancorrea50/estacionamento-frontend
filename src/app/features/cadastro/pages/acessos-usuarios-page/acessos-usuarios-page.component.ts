@@ -18,6 +18,7 @@ import { EstacionamentoLookupService, LookupOption as EstacionamentoOption } fro
 import { TransportadoraLookupService, LookupOption as TransportadoraOption } from '../../services/transportadora-lookup.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { PERMISSION_MODULES, PERMISSION_CATALOG, type PermissionModule } from '../../constants/permission-catalog';
+import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 
 const PERFIL_KEY_ADMIN = 'ADMIN';
 const PERFIL_KEY_Estacionamento = 'Estacionamento';
@@ -26,7 +27,7 @@ const PERFIL_KEY_TRANSPORTADORA = 'TRANSPORTADORA';
 @Component({
   selector: 'app-acessos-usuarios-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CpfFormatDirective],
   templateUrl: './acessos-usuarios-page.component.html',
   styleUrls: ['./acessos-usuarios-page.component.scss'],
 })
@@ -387,7 +388,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     this.form = {
       nome: item.nome ?? '',
       email: item.emailOuLogin ?? '',
-      cpf: (item as { cpf?: string }).cpf ?? '',
+      cpf: formatCpf((item as { cpf?: string }).cpf ?? ''),
       senha: '',
       ativo: item.ativo ?? true,
       perfilId: '',
@@ -628,7 +629,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     const payload = {
       nome: this.form.nome.trim(),
       email: this.form.email.trim(),
-      cpf: this.form.cpf.trim() || undefined,
+      cpf: this.form.cpf.replace(/\D/g, '').trim() || undefined,
       senha: this.form.senha || undefined,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,

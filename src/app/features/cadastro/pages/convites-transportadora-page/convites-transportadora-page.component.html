@@ -79,14 +79,14 @@
                   <td>
                     <strong>{{ c.responsavelNome?.trim() || '—' }}</strong>
                     @if (c.responsavelTelefone?.trim()) {
-                      <div class="cvl-table__sub">{{ c.responsavelTelefone }}</div>
+                      <div class="cvl-table__sub">{{ formatTelefone(c.responsavelTelefone) }}</div>
                     }
                   </td>
                   <td>{{ c.emailConvidado || '—' }}</td>
                   <td>
                     {{ c.razaoSocial?.trim() || c.nomeFantasia?.trim() || '—' }}
                     @if (c.cnpj?.trim()) {
-                      <div class="cvl-table__sub">{{ c.cnpj }}</div>
+                      <div class="cvl-table__sub">{{ formatCnpj(c.cnpj) }}</div>
                     }
                   </td>
                   <td>
@@ -239,10 +239,10 @@
 
       <dl class="cvl-dl">
         <div><dt>E-mail</dt><dd>{{ c.emailConvidado || '—' }}</dd></div>
-        <div><dt>Telefone</dt><dd>{{ c.responsavelTelefone?.trim() || '—' }}</dd></div>
+        <div><dt>Telefone</dt><dd>{{ c.responsavelTelefone?.trim() ? formatTelefone(c.responsavelTelefone) : '—' }}</dd></div>
         <div><dt>Usuário</dt><dd>{{ c.userName?.trim() || '—' }}</dd></div>
         <div><dt>Empresa</dt><dd>{{ c.razaoSocial?.trim() || c.nomeFantasia?.trim() || '—' }}</dd></div>
-        <div><dt>CNPJ</dt><dd>{{ c.cnpj?.trim() || '—' }}</dd></div>
+        <div><dt>CNPJ</dt><dd>{{ c.cnpj?.trim() ? formatCnpj(c.cnpj) : '—' }}</dd></div>
         <div>
           <dt>Endereço</dt>
           <dd>
@@ -250,7 +250,7 @@
               {{ c.logradouro }}{{ c.numero ? ', ' + c.numero : '' }}
               {{ c.bairro ? ' — ' + c.bairro : '' }}
               {{ c.cidade ? ' · ' + c.cidade : '' }}{{ c.estado ? '/' + c.estado : '' }}
-              {{ c.cep ? ' · CEP ' + c.cep : '' }}
+              {{ c.cep ? ' · CEP ' + formatCep(c.cep) : '' }}
             } @else {
               —
             }

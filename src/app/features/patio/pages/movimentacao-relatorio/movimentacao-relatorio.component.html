@@ -28,8 +28,12 @@
           <input
             type="text"
             class="rel-field__control"
+            name="rel-placa"
             [(ngModel)]="placa"
-            placeholder="ABC1D23"
+            appPlacaFormat
+            placeholder="ABC-1D23"
+            maxlength="8"
+            autocomplete="off"
           />
         </label>
 

@@ -38,6 +38,8 @@ import {
 import { TransportadoraService } from '../../../cadastro/services/transportadora.service';
 import { MotoristaService } from '../../../cadastro/services/motorista.service';
 import { formatPlacaDisplay, normalizePlaca, placaCompleta } from '../../../cadastro/utils/placa-br';
+import { formatCpf } from '../../../cadastro/directives/cpf-format.directive';
+import { formatCnpj } from '../../../cadastro/directives/cnpj-format.directive';
 import { Subject, forkJoin, map, of, throwError } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { EntradaSaidaPostInput } from '../../models/entrada-saida.models';
@@ -2558,11 +2560,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private aplicarMascaraCpf(value: string | null | undefined): string {
-    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 11);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    return formatCpf(String(value ?? ''));
   }
 
   /**
@@ -2609,14 +2607,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   private aplicarMascaraCnpj(value: string | null | undefined): string {
-    const digits = String(value ?? '').replace(/\D/g, '').slice(0, 14);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
-    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
-    if (digits.length <= 12) {
-      return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
-    }
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+    return formatCnpj(String(value ?? ''));
   }
 
   private buscarTransportadoraPorCnpjRegistroRapido(cnpjDigits: string): void {

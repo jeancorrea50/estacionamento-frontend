@@ -506,6 +506,8 @@
                                 class="field__input"
                                 type="text"
                                 formControlName="cep"
+                                appCepFormat
+                                inputmode="numeric"
                                 placeholder="00000-000"
                                 maxlength="9"
                                 (blur)="onCepBlur($index)"

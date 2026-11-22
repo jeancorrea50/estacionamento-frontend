@@ -17,6 +17,7 @@ import { mensagemToastPropagacao, PropagacaoCadastroResumo } from '../../models/
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
+import { CepFormatDirective } from '../../directives/cep-format.directive';
 import { PlacaFormatDirective } from '../../directives/placa-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -65,6 +66,7 @@ type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasi
     CnpjFormatDirective,
     CpfFormatDirective,
     TelefoneFormatDirective,
+    CepFormatDirective,
     PlacaFormatDirective,
     ModalBuscaMotoristaComponent,
     EstSummaryMetricComponent,

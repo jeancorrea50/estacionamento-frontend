@@ -38,8 +38,12 @@
           <input
             type="text"
             class="rel-field__control"
+            name="rel-cnpj"
             [(ngModel)]="cnpj"
-            placeholder="Somente números"
+            appCnpjFormat
+            inputmode="numeric"
+            placeholder="00.000.000/0000-00"
+            maxlength="18"
           />
         </label>
 
@@ -166,11 +170,11 @@
                 <tr>
                   <td>{{ item.razaoSocial || '—' }}</td>
                   <td>{{ item.fantasia || '—' }}</td>
-                  <td>{{ item.cnpj || '—' }}</td>
+                  <td>{{ item.cnpj ? formatCnpj(item.cnpj) : '—' }}</td>
                   <td>{{ item.email || '—' }}</td>
                   <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
                   <td>{{ item.responsavelLegal || '—' }}</td>
-                  <td>{{ item.responsavelTelefone || '—' }}</td>
+                  <td>{{ item.responsavelTelefone ? formatTelefone(item.responsavelTelefone) : '—' }}</td>
                   <td>{{ item.quantidadeVeiculo }}</td>
                   <td>
                     {{

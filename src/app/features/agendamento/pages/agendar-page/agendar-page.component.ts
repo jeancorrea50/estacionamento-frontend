@@ -17,6 +17,7 @@ import {
 import { AgendamentoService } from '../../services/agendamento.service';
 import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
 import type { VagaDisponibilidadeResumo } from '../../models/vaga-disponibilidade.models';
+import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
 
 /**
  * Tela Agendar (`/app/agendar`) — claims `agendar.*` (distintas de `agendamentos.*` do Pátio).
@@ -42,6 +43,8 @@ export class AgendarPageComponent implements OnInit {
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly permissions = inject(PermissionCacheService);
   private readonly toast = inject(ToastService);
+
+  readonly formatPlaca = formatPlacaDisplay;
 
   readonly loading = signal(false);
   readonly loadingVagas = signal(false);

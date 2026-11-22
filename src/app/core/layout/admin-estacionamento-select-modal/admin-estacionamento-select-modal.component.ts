@@ -18,6 +18,7 @@ import {
 } from '../../../features/cadastro/services/estacionamento-lookup.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../api/services/toast.service';
+import { formatCnpj as formatCnpjCanonical } from '../../../features/cadastro/directives/cnpj-format.directive';
 
 /**
  * Modal obrigatório: Admin/Transportadora escolhe o estacionamento operacional da sessão.
@@ -241,9 +242,10 @@ export class AdminEstacionamentoSelectModalComponent implements OnInit {
   }
 
   formatCnpj(value: string | null | undefined): string {
-    const d = String(value ?? '').replace(/\D/g, '');
-    if (d.length !== 14) return value?.trim() || '—';
-    return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    const raw = String(value ?? '').trim();
+    if (!raw) return '—';
+    const formatted = formatCnpjCanonical(raw);
+    return formatted || '—';
   }
 
   displayText(value: string | null | undefined): string {

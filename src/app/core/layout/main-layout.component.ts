@@ -13,6 +13,7 @@ import { PortariaAlertasStore } from '../../features/movimentos/services/portari
 import { NotificationBellComponent } from './notification-bell/notification-bell.component';
 import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
+import { formatCnpj as formatCnpjCanonical } from '../../features/cadastro/directives/cnpj-format.directive';
 
 const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
@@ -441,9 +442,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   private formatCnpj(value: string): string {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length !== 14) return value;
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+    return formatCnpjCanonical(value);
   }
 
   private buildContextKey(tipoAcesso: string, cnpj: string | null): string {

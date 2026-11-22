@@ -92,7 +92,7 @@
                 @for (item of items(); track item.id) {
                   <tr>
                     <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td>{{ item.placaVeiculo }}</td>
+                    <td>{{ formatPlaca(item.placaVeiculo) }}</td>
                     <td>{{ item.nomeMotorista }}</td>
                     <td>{{ statusLabel(item) }}</td>
                     <td>{{ item.observacao || '—' }}</td>

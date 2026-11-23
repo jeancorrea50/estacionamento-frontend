@@ -4,8 +4,7 @@ import {
   ChangeDetectorRef,
   signal,
   OnInit,
-  OnDestroy,
-  HostListener
+  OnDestroy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -133,8 +132,6 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   saveError = signal<string | null>(null);
   saving = signal(false);
   carregandoDetalhe = signal(false);
-  /** Id do usuário com menu ⋮ aberto. */
-  menuAcoesId = signal<string | null>(null);
   reenviandoId = signal<string | null>(null);
   usuarioSomenteLeitura = false;
   mostrarSenha = false;
@@ -1090,46 +1087,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     return msg || 'Erro ao salvar.';
   }
 
-  @HostListener('document:click')
-  onDocumentClickFecharMenu(): void {
-    if (this.menuAcoesId() != null) {
-      this.menuAcoesId.set(null);
-      this.cdr.markForCheck();
-    }
-  }
-
-  isMenuAcoesOpen(item: UsuarioGerenciamentoItem): boolean {
-    return !!item.id && this.menuAcoesId() === item.id;
-  }
-
-  toggleMenuAcoes(item: UsuarioGerenciamentoItem, event?: Event): void {
-    event?.stopPropagation();
-    if (!item.id) return;
-    this.menuAcoesId.set(this.menuAcoesId() === item.id ? null : item.id);
-    this.cdr.markForCheck();
-  }
-
-  fecharMenuAcoes(): void {
-    this.menuAcoesId.set(null);
-  }
-
-  acaoVisualizar(item: UsuarioGerenciamentoItem): void {
-    this.fecharMenuAcoes();
-    this.abrirVisualizar(item);
-  }
-
-  acaoEditar(item: UsuarioGerenciamentoItem): void {
-    this.fecharMenuAcoes();
-    this.abrirEditar(item);
-  }
-
-  acaoExcluir(item: UsuarioGerenciamentoItem): void {
-    this.fecharMenuAcoes();
-    this.excluir(item);
-  }
-
   reenviarConfirmacaoEmail(item: UsuarioGerenciamentoItem): void {
-    this.fecharMenuAcoes();
     if (!this.canAlterar || !item.id) {
       this.toast.error('Sem permissão para reenviar (usuario.alterar).');
       return;

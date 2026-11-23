@@ -143,63 +143,50 @@
                         }
                       </td>
                       <td class="acoes-cell usuarios-acoes">
-                        <div class="usuarios-acoes-menu" (click)="$event.stopPropagation()">
+                        <button
+                          type="button"
+                          class="usuarios-icon-btn"
+                          (click)="abrirVisualizar(item)"
+                          [disabled]="!canVisualizar"
+                          title="Visualizar"
+                          aria-label="Visualizar usuário"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+                        </button>
+                        @if (canAlterar && podeEditarUsuario(item)) {
                           <button
                             type="button"
-                            class="usuarios-icon-btn usuarios-menu-trigger"
-                            [attr.aria-expanded]="isMenuAcoesOpen(item)"
-                            aria-haspopup="menu"
-                            title="Ações"
-                            aria-label="Ações do usuário"
-                            (click)="toggleMenuAcoes(item, $event)"
+                            class="usuarios-icon-btn"
+                            (click)="abrirEditar(item)"
+                            title="Editar"
+                            aria-label="Editar usuário"
                           >
-                            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                           </button>
-                          @if (isMenuAcoesOpen(item)) {
-                            <div class="usuarios-acoes-dropdown" role="menu">
-                              <button
-                                type="button"
-                                class="usuarios-acoes-dropdown__item"
-                                role="menuitem"
-                                [disabled]="!canVisualizar"
-                                (click)="acaoVisualizar(item)"
-                              >
-                                Visualizar
-                              </button>
-                              @if (canAlterar && podeEditarUsuario(item)) {
-                                <button
-                                  type="button"
-                                  class="usuarios-acoes-dropdown__item"
-                                  role="menuitem"
-                                  (click)="acaoEditar(item)"
-                                >
-                                  Editar
-                                </button>
-                              }
-                              @if (canAlterar && item.emailConfirmed === false) {
-                                <button
-                                  type="button"
-                                  class="usuarios-acoes-dropdown__item"
-                                  role="menuitem"
-                                  [disabled]="reenviandoId() === item.id"
-                                  (click)="reenviarConfirmacaoEmail(item)"
-                                >
-                                  {{ reenviandoId() === item.id ? 'Reenviando...' : 'Reenviar e-mail de confirmação' }}
-                                </button>
-                              }
-                              @if (canExcluir) {
-                                <button
-                                  type="button"
-                                  class="usuarios-acoes-dropdown__item usuarios-acoes-dropdown__item--danger"
-                                  role="menuitem"
-                                  (click)="acaoExcluir(item)"
-                                >
-                                  Excluir
-                                </button>
-                              }
-                            </div>
-                          }
-                        </div>
+                        }
+                        @if (canAlterar && item.emailConfirmed === false) {
+                          <button
+                            type="button"
+                            class="usuarios-icon-btn"
+                            (click)="reenviarConfirmacaoEmail(item)"
+                            [disabled]="reenviandoId() === item.id"
+                            title="Reenviar e-mail de confirmação"
+                            aria-label="Reenviar e-mail de confirmação"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">forward_to_inbox</span>
+                          </button>
+                        }
+                        @if (canExcluir) {
+                          <button
+                            type="button"
+                            class="usuarios-icon-btn usuarios-icon-btn--danger"
+                            (click)="excluir(item)"
+                            title="Excluir"
+                            aria-label="Excluir usuário"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                          </button>
+                        }
                       </td>
                     </tr>
                   }

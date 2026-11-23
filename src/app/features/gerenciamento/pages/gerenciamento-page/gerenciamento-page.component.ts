@@ -8,8 +8,9 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { filter, finalize, take } from 'rxjs/operators';
 import { GerenciamentoService } from '../../services/gerenciamento.service';
 import {
   GerenciamentoFiltros,
@@ -28,6 +29,10 @@ import {
 import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import {
+  CadastroConfirmDialogComponent,
+  type CadastroConfirmDialogData
+} from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
 import type {
   RegistroResult,
   UsuarioDetalheOutput,
@@ -39,7 +44,7 @@ import { ApiError } from '../../../../core/api/models';
 @Component({
   selector: 'app-gerenciamento-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatDialogModule],
   templateUrl: './gerenciamento-page.component.html',
   styleUrls: ['./gerenciamento-page.component.scss']
 })
@@ -50,6 +55,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private profileStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
   private toast = inject(ToastService);
+  private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
 
   /** Permissões alinhadas ao back ([PermissionAuthorize]). Lidas do cache a cada checagem. */
@@ -1097,27 +1103,31 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const ok = window.confirm(
-      `Reenviar e-mail de confirmação para ${item.email || 'este usuário'}?`
-    );
-    if (!ok) return;
-
-    this.reenviandoId.set(item.id);
-    this.gerenciamentoService
-      .reenviarConfirmacaoEmail(item.id)
-      .pipe(finalize(() => this.reenviandoId.set(null)))
-      .subscribe({
-        next: (res) => {
-          const r = (res ?? {}) as RegistroResult & Record<string, unknown>;
-          const msg = String(r.mensagem ?? r.message ?? '').trim();
-          this.toast.success(msg || 'E-mail de confirmação reenviado.');
-          this.cdr.markForCheck();
-        },
-        error: (err: ApiError) => {
-          this.toast.error(err?.message ?? 'Falha ao reenviar e-mail de confirmação.');
-          this.cdr.markForCheck();
-        }
-      });
+    this.confirmar({
+      titulo: 'Reenviar confirmação',
+      mensagem: `Reenviar e-mail de confirmação para ${item.email || 'este usuário'}?`,
+      confirmLabel: 'Reenviar',
+      confirmColor: 'primary'
+    }).subscribe(() => {
+      this.reenviandoId.set(item.id!);
+      this.gerenciamentoService
+        .reenviarConfirmacaoEmail(item.id!)
+        .pipe(finalize(() => this.reenviandoId.set(null)))
+        .subscribe({
+          next: (res) => {
+            const r = (res ?? {}) as RegistroResult & Record<string, unknown>;
+            const msg = String(r.mensagem ?? r.message ?? '').trim();
+            this.toast.success(msg || 'E-mail de confirmação reenviado.');
+            this.cdr.markForCheck();
+          },
+          error: (err: ApiError) => {
+            if (!err?.toastShown) {
+              this.toast.error(err?.message ?? 'Falha ao reenviar e-mail de confirmação.');
+            }
+            this.cdr.markForCheck();
+          }
+        });
+    });
   }
 
   excluir(item: UsuarioGerenciamentoItem): void {
@@ -1125,19 +1135,42 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       this.toast.error('Sem permissão para excluir (usuario.excluir) ou dado inválido.');
       return;
     }
-    if (!window.confirm('Excluir este usuário? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-    this.gerenciamentoService.excluir(item.id).subscribe({
-      next: () => {
-        this.toast.success('Usuário excluído.');
-        this.buscar();
-        this.cdr.markForCheck();
-      },
-      error: (err: ApiError) => {
-        this.toast.error(err?.message ?? 'Falha ao excluir.');
-        this.cdr.markForCheck();
-      }
+    this.confirmar({
+      titulo: 'Excluir usuário',
+      mensagem: 'Excluir este usuário? Esta ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      confirmColor: 'warn'
+    }).subscribe(() => {
+      this.gerenciamentoService.excluir(item.id!).subscribe({
+        next: () => {
+          this.toast.success('Usuário excluído.');
+          this.buscar();
+          this.cdr.markForCheck();
+        },
+        error: (err: ApiError) => {
+          if (!err?.toastShown) {
+            this.toast.error(err?.message ?? 'Falha ao excluir.');
+          }
+          this.cdr.markForCheck();
+        }
+      });
     });
+  }
+
+  /** Confirmação do sistema (Material) + feedback via Toast — evita window.confirm nativo. */
+  private confirmar(data: CadastroConfirmDialogData) {
+    return this.dialog
+      .open(CadastroConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '96vw',
+        autoFocus: 'dialog',
+        panelClass: 'cad-confirm-dialog-panel',
+        data
+      })
+      .afterClosed()
+      .pipe(
+        take(1),
+        filter((ok): ok is true => ok === true)
+      );
   }
 }

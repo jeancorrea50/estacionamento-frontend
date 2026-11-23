@@ -4,11 +4,13 @@ import {
   ChangeDetectorRef,
   signal,
   OnInit,
-  OnDestroy
+  OnDestroy,
+  HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { GerenciamentoService } from '../../services/gerenciamento.service';
 import {
   GerenciamentoFiltros,
@@ -27,7 +29,12 @@ import {
 import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import type { UsuarioDetalheOutput, UsuarioCadastroOpcoes, UsuarioPapelOpcao } from '../../../../core/api/types/usuario-api.types';
+import type {
+  RegistroResult,
+  UsuarioDetalheOutput,
+  UsuarioCadastroOpcoes,
+  UsuarioPapelOpcao
+} from '../../../../core/api/types/usuario-api.types';
 import { ApiError } from '../../../../core/api/models';
 
 @Component({
@@ -126,6 +133,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   saveError = signal<string | null>(null);
   saving = signal(false);
   carregandoDetalhe = signal(false);
+  /** Id do usuário com menu ⋮ aberto. */
+  menuAcoesId = signal<string | null>(null);
+  reenviandoId = signal<string | null>(null);
   usuarioSomenteLeitura = false;
   mostrarSenha = false;
   mostrarConfirmarSenha = false;
@@ -1017,13 +1027,13 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       ? this.gerenciamentoService.alterar(payload)
       : this.gerenciamentoService.gravar(payload);
     req.subscribe({
-      next: () => {
+      next: (res) => {
         this.saving.set(false);
-        this.toast.success(
-          this.isEdit()
-            ? 'Usuário atualizado.'
-            : 'Cadastro realizado. Enviamos um e-mail de confirmação para usuário.'
-        );
+        if (this.isEdit()) {
+          this.toast.success('Usuário atualizado.');
+        } else {
+          this.toastCadastroComEmail(res);
+        }
         this.fecharModalForm();
         this.buscar();
         this.cdr.markForCheck();
@@ -1034,6 +1044,23 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  /** Toast alinhado ao resultado real do SMTP (não mascara falha de envio). */
+  private toastCadastroComEmail(res: unknown): void {
+    const r = (res ?? {}) as RegistroResult & Record<string, unknown>;
+    const enviado = Boolean(r.emailDeConfirmacaoEnviado ?? r.EmailDeConfirmacaoEnviado);
+    const msgApi = String(r.mensagem ?? r.message ?? '').trim();
+    if (enviado) {
+      this.toast.success(
+        msgApi || 'Cadastro realizado. Enviamos um e-mail de confirmação.'
+      );
+      return;
+    }
+    this.toast.error(
+      msgApi ||
+        'Cadastro realizado, mas o e-mail de confirmação não foi enviado. Use "Reenviar e-mail de confirmação" nas ações.'
+    );
   }
 
   /** Valida formato mínimo de e-mail (evita envio que gera 400 na API). */
@@ -1061,6 +1088,78 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       }
     }
     return msg || 'Erro ao salvar.';
+  }
+
+  @HostListener('document:click')
+  onDocumentClickFecharMenu(): void {
+    if (this.menuAcoesId() != null) {
+      this.menuAcoesId.set(null);
+      this.cdr.markForCheck();
+    }
+  }
+
+  isMenuAcoesOpen(item: UsuarioGerenciamentoItem): boolean {
+    return !!item.id && this.menuAcoesId() === item.id;
+  }
+
+  toggleMenuAcoes(item: UsuarioGerenciamentoItem, event?: Event): void {
+    event?.stopPropagation();
+    if (!item.id) return;
+    this.menuAcoesId.set(this.menuAcoesId() === item.id ? null : item.id);
+    this.cdr.markForCheck();
+  }
+
+  fecharMenuAcoes(): void {
+    this.menuAcoesId.set(null);
+  }
+
+  acaoVisualizar(item: UsuarioGerenciamentoItem): void {
+    this.fecharMenuAcoes();
+    this.abrirVisualizar(item);
+  }
+
+  acaoEditar(item: UsuarioGerenciamentoItem): void {
+    this.fecharMenuAcoes();
+    this.abrirEditar(item);
+  }
+
+  acaoExcluir(item: UsuarioGerenciamentoItem): void {
+    this.fecharMenuAcoes();
+    this.excluir(item);
+  }
+
+  reenviarConfirmacaoEmail(item: UsuarioGerenciamentoItem): void {
+    this.fecharMenuAcoes();
+    if (!this.canAlterar || !item.id) {
+      this.toast.error('Sem permissão para reenviar (usuario.alterar).');
+      return;
+    }
+    if (item.emailConfirmed === true) {
+      this.toast.error('Este e-mail já está confirmado.');
+      return;
+    }
+
+    const ok = window.confirm(
+      `Reenviar e-mail de confirmação para ${item.email || item.login || 'este usuário'}?`
+    );
+    if (!ok) return;
+
+    this.reenviandoId.set(item.id);
+    this.gerenciamentoService
+      .reenviarConfirmacaoEmail(item.id)
+      .pipe(finalize(() => this.reenviandoId.set(null)))
+      .subscribe({
+        next: (res) => {
+          const r = (res ?? {}) as RegistroResult & Record<string, unknown>;
+          const msg = String(r.mensagem ?? r.message ?? '').trim();
+          this.toast.success(msg || 'E-mail de confirmação reenviado.');
+          this.cdr.markForCheck();
+        },
+        error: (err: ApiError) => {
+          this.toast.error(err?.message ?? 'Falha ao reenviar e-mail de confirmação.');
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   excluir(item: UsuarioGerenciamentoItem): void {

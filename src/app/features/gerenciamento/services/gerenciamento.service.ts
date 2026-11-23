@@ -58,6 +58,10 @@ export class GerenciamentoService {
     return this.usuariosService.delete(id);
   }
 
+  reenviarConfirmacaoEmail(id: string): Observable<unknown> {
+    return this.usuariosService.reenviarConfirmacaoEmail(id);
+  }
+
   private normalizeList(
     body: unknown,
     filtros: GerenciamentoFiltros,

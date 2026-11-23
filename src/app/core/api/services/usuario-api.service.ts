@@ -147,6 +147,19 @@ export class UsuarioApiService {
     );
   }
 
+  /** POST api/auth/Usuario/{id}/reenviar-confirmacao-email */
+  reenviarConfirmacaoEmail(id: string | number): Observable<RegistroResult | unknown> {
+    return this.http
+      .post<unknown>(`${USUARIO_BASE}/${encodeURIComponent(idSeg(id))}/reenviar-confirmacao-email`, {})
+      .pipe(
+        timeout(HTTP_TIMEOUT_MS),
+        map((body) => {
+          throwIfServiceFailure(body);
+          return unwrapServiceResult<RegistroResult | unknown>(body);
+        })
+      );
+  }
+
   /** POST api/auth/Usuario/esqueci-senha (público, sem Bearer). */
   esqueciSenha(email: string): Observable<EsqueciSenhaFlowResult> {
     return this.http.post<unknown>(`${USUARIO_BASE}/esqueci-senha`, { email }).pipe(

@@ -266,6 +266,11 @@ export class AcessosUsuariosService {
     return this.api.excluir(id);
   }
 
+  /** Reenvio de confirmação: POST /api/auth/Usuario/{id}/reenviar-confirmacao-email */
+  reenviarConfirmacaoEmail(id: string): Observable<unknown> {
+    return this.api.reenviarConfirmacaoEmail(id);
+  }
+
   private inferTipoPessoa(input: UsuarioCreateInput): 1 | 2 {
     if (input.tipoPessoa === 1 || input.tipoPessoa === 2) {
       return input.tipoPessoa;

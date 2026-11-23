@@ -1383,6 +1383,58 @@
 .usuarios-acoes.acoes-cell {
   gap: 4px;
   padding: 8px 12px !important;
+  overflow: visible;
+}
+
+.usuarios-acoes-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.usuarios-menu-trigger {
+  font-weight: 700;
+}
+
+.usuarios-acoes-dropdown {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 80;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--usu-border);
+  background: var(--usu-table, var(--surface-2, #1a2332));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.usuarios-acoes-dropdown__item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--usu-text);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--usu-hover);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.usuarios-acoes-dropdown__item--danger {
+  color: #f06468;
 }
 
 .usuarios-icon-btn {

@@ -1,6 +1,7 @@
 import { Component, HostListener, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EntradaSaidaService } from '../../entrada-saida/entrada-saida.service';
@@ -23,6 +24,10 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { ApiError } from '../../../../core/api/models';
 import { CameraPreviewComponent } from '../../components/camera-preview/camera-preview.component';
+import {
+  SaidaPagamentoDialogComponent,
+  type SaidaPagamentoDialogResult
+} from '../../components/saida-pagamento-dialog/saida-pagamento-dialog.component';
 import { HistoricoMenuPortalDirective } from './historico-menu-portal.directive';
 import {
   TelefoneFormatDirective,
@@ -52,6 +57,8 @@ import {
   TIPO_CARGA_LABELS,
   tipoCargaLabel
 } from '../../../../shared/models/tipo-carga';
+import { FaturaService } from '../../../financeiro/services/fatura.service';
+import { ModalidadeRecebimento } from '../../../financeiro/models/fatura.models';
 import {
   formatarBrl,
   parseBrl
@@ -171,6 +178,8 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   private readonly reciboPdf = inject(ReciboPdfService);
   private readonly estacionamentoConfig = inject(EstacionamentoConfiguracaoService);
   private readonly estacionamentoService = inject(EstacionamentoService);
+  private readonly dialog = inject(MatDialog);
+  private readonly faturaService = inject(FaturaService);
 
   /** Fuso de Gerenciamento → Horário (`America/Cuiaba`, etc.). */
   readonly timeZoneId = signal<string | null>(null);
@@ -2165,10 +2174,66 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     }
     if (this.saidaProcessando()) return;
 
+    if (faturamento) {
+      this.executarSaidaComPagamento(item, placa, tipoCobranca, faturamento, valor, null);
+      return;
+    }
+
+    this.dialog
+      .open(SaidaPagamentoDialogComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        disableClose: true,
+        data: { placa, valor: valor ?? 0 }
+      })
+      .afterClosed()
+      .subscribe((result: SaidaPagamentoDialogResult | undefined) => {
+        if (!result?.modalidadeRecebimento) return;
+        this.executarSaidaComPagamento(
+          item,
+          placa,
+          tipoCobranca,
+          faturamento,
+          valor,
+          result.modalidadeRecebimento
+        );
+      });
+  }
+
+  private executarSaidaComPagamento(
+    item: EntradaSaidaOutput,
+    placa: string,
+    tipoCobranca: string,
+    faturamento: boolean,
+    valor: number | null,
+    modalidadeRecebimento: ModalidadeRecebimento | null
+  ): void {
     this.saidaProcessando.set(true);
     this.service
       .saida(placa)
-      .pipe(finalize(() => this.saidaProcessando.set(false)))
+      .pipe(
+        switchMap(() => {
+          if (faturamento || valor == null || !Number.isFinite(valor) || valor < 0) {
+            return of(null);
+          }
+          return this.faturaService
+            .gerarAvulso({
+              entradaSaidaId: item.id,
+              valor,
+              modalidadeRecebimento
+            })
+            .pipe(
+              catchError((err: ApiError) => {
+                this.handleApiError(
+                  err,
+                  'Saída registrada, mas não foi possível gravar valor/forma de pagamento.'
+                );
+                return of(null);
+              })
+            );
+        }),
+        finalize(() => this.saidaProcessando.set(false))
+      )
       .subscribe({
         next: () => {
           void this.ofertarReciboAposOperacao({

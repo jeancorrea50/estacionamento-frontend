@@ -1140,7 +1140,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     }
 
     const ok = window.confirm(
-      `Reenviar e-mail de confirmação para ${item.email || item.login || 'este usuário'}?`
+      `Reenviar e-mail de confirmação para ${item.email || 'este usuário'}?`
     );
     if (!ok) return;
 

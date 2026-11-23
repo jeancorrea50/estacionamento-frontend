@@ -1,3 +1,4 @@
+import { modalidadeRecebimentoLabel } from '../../../financeiro/mappers/fatura.mapper';
 import {
   EntradaSaidaStatus,
   ENTRADA_SAIDA_STATUS_LABEL,
@@ -149,6 +150,13 @@ export function rotuloExcedente(item: MovimentacaoRelatorioItem): string {
 export function formatarValorRelatorio(valor: number | null | undefined): string {
   if (valor == null || !Number.isFinite(valor)) return '—';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+}
+
+/** Forma de pagamento da fatura vinculada; "—" quando ausente. */
+export function rotuloPagamentoRelatorio(item: MovimentacaoRelatorioItem): string {
+  const desc = item.modalidadeRecebimentoDescricao?.trim();
+  if (desc) return desc;
+  return modalidadeRecebimentoLabel(item.modalidadeRecebimento);
 }
 
 export function rotuloFaturamento(item: MovimentacaoRelatorioItem): string {

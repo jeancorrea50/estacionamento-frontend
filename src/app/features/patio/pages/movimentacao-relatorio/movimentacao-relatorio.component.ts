@@ -24,6 +24,7 @@ import type {
   MovimentacaoRelatorioItem,
   MovimentacaoRelatorioResumo,
 } from './movimentacao-relatorio.types';
+import { modalidadeRecebimentoLabel } from '../../../financeiro/mappers/fatura.mapper';
 import {
   formatarValorRelatorio,
   rotuloPermanenciaRelatorio,
@@ -93,6 +94,12 @@ export class MovimentacaoRelatorioComponent implements OnInit {
 
   formatarValor(valor: number | null | undefined): string {
     return formatarValorRelatorio(valor);
+  }
+
+  rotuloPagamento(item: MovimentacaoRelatorioItem): string {
+    const desc = item.modalidadeRecebimentoDescricao?.trim();
+    if (desc) return desc;
+    return modalidadeRecebimentoLabel(item.modalidadeRecebimento);
   }
 
   /** Agendado/Cancelado → "—"; demais usam API ou entrada→saída/agora. */

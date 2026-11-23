@@ -80,6 +80,17 @@ function mapItem(raw: unknown): MovimentacaoRelatorioItem {
       'valorExcedente',
       'ValorExcedente'
     ),
+    modalidadeRecebimento: pickOptionalNum(
+      row,
+      'modalidadeRecebimento',
+      'ModalidadeRecebimento'
+    ),
+    modalidadeRecebimentoDescricao:
+      pickStr(
+        row,
+        'modalidadeRecebimentoDescricao',
+        'ModalidadeRecebimentoDescricao'
+      ) || null,
   };
 }
 

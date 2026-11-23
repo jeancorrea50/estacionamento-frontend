@@ -45,6 +45,8 @@ function item(parcial: Partial<MovimentacaoRelatorioItem> = {}): MovimentacaoRel
     ehExcedente: false,
     observacao: null,
     valor: null,
+    modalidadeRecebimento: null,
+    modalidadeRecebimentoDescricao: null,
     ...parcial,
   };
 }

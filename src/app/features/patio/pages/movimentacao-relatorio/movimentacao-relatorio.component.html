@@ -216,6 +216,7 @@
                 <th>Faturado</th>
                 <th>Avulso</th>
                 <th>Excedente</th>
+                <th>Pagamento</th>
                 <th>Valor</th>
               </tr>
             </thead>
@@ -269,11 +270,12 @@
                       >{{ item.ehExcedente ? 'Sim' : 'Não' }}</span
                     >
                   </td>
+                  <td>{{ rotuloPagamento(item) }}</td>
                   <td class="rel-valor">{{ formatarValor(item.valor) }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="11" class="rel-empty-row">
+                  <td colspan="12" class="rel-empty-row">
                     Nenhuma movimentação encontrada com os filtros informados.
                   </td>
                 </tr>

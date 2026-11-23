@@ -55,6 +55,9 @@ export interface MovimentacaoRelatorioItem {
    * `null` = ausente no contrato/payload — não exibir R$ 0,00 inventado.
    */
   valor: number | null;
+  /** Forma de pagamento da fatura vinculada (Pix, Cartão, Dinheiro…). */
+  modalidadeRecebimento: number | null;
+  modalidadeRecebimentoDescricao: string | null;
 }
 
 export interface MovimentacaoRelatorioOutput {

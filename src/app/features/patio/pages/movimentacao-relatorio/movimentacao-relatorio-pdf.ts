@@ -16,6 +16,7 @@ import {
   rotuloCobertura,
   rotuloExcedente,
   rotuloFaturamento,
+  rotuloPagamentoRelatorio,
   rotuloPermanenciaRelatorio,
   rotuloSituacao,
 } from './movimentacao-relatorio-pdf.helpers';
@@ -32,6 +33,7 @@ export {
   rotuloCobertura,
   rotuloExcedente,
   rotuloFaturamento,
+  rotuloPagamentoRelatorio,
   rotuloPermanenciaRelatorio,
   rotuloSituacao,
 } from './movimentacao-relatorio-pdf.helpers';
@@ -96,10 +98,12 @@ export function criarPdfMovimentacoes(entrada: MovimentacaoRelatorioPdfEntrada):
           formatarDataHoraRelatorio(item.dataHoraSaida, entrada.timeZoneId),
           rotuloPermanenciaRelatorio(item, entrada.emitidoEm),
           rotuloExcedente(item),
+          rotuloPagamentoRelatorio(item),
           formatarValorRelatorio(item.valor),
         ])
       : [
           [
+            '—',
             '—',
             '—',
             '—',
@@ -129,6 +133,7 @@ export function criarPdfMovimentacoes(entrada: MovimentacaoRelatorioPdfEntrada):
         'Saída',
         'Permanência',
         'Excedente',
+        'Pagamento',
         'Valor',
       ],
     ],
@@ -151,15 +156,16 @@ export function criarPdfMovimentacoes(entrada: MovimentacaoRelatorioPdfEntrada):
     },
     alternateRowStyles: { fillColor: ZEBRADO },
     columnStyles: {
-      0: { cellWidth: 18 },
-      1: { cellWidth: 28 },
-      2: { cellWidth: 40 },
-      3: { cellWidth: 42 },
-      4: { cellWidth: 34 },
-      5: { cellWidth: 34 },
-      6: { cellWidth: 28 },
-      7: { cellWidth: 24, halign: 'center' },
-      8: { cellWidth: 25, halign: 'right' },
+      0: { cellWidth: 16 },
+      1: { cellWidth: 26 },
+      2: { cellWidth: 36 },
+      3: { cellWidth: 38 },
+      4: { cellWidth: 30 },
+      5: { cellWidth: 30 },
+      6: { cellWidth: 24 },
+      7: { cellWidth: 20, halign: 'center' },
+      8: { cellWidth: 24 },
+      9: { cellWidth: 24, halign: 'right' },
     },
     didParseCell: (data) => {
       if (data.section !== 'body' || entrada.itens.length === 0) return;

@@ -39,6 +39,17 @@ export const PATIO_AGENDAMENTOS_DESTINACAO_ROUTE = '/app/patio/agendamentos/dest
 export const PATIO_AGENDAMENTOS_DESTINACAO_PATH = 'agendamentos/destinacao';
 export const PATIO_AGENDAMENTOS_DESTINACAO_LABEL = 'Destinação';
 
+/** @deprecated Redireciona para Destinação canônica. */
+export const PATIO_AGENDAMENTOS_DESTINACAO_LAB_ROUTE = '/app/patio/agendamentos/destinacao-lab';
+export const PATIO_AGENDAMENTOS_DESTINACAO_LAB_PATH = 'agendamentos/destinacao-lab';
+export const PATIO_AGENDAMENTOS_DESTINACAO_LAB_LABEL = 'Destinação';
+
+/** @deprecated Redireciona para Destinação com calendário no topbar. */
+export const PATIO_AGENDAMENTOS_DESTINACAO_DASHBOARD_ROUTE =
+  '/app/patio/agendamentos/destinacao-dashboard';
+export const PATIO_AGENDAMENTOS_DESTINACAO_DASHBOARD_PATH = 'agendamentos/destinacao-dashboard';
+export const PATIO_AGENDAMENTOS_DESTINACAO_DASHBOARD_LABEL = 'Calendário';
+
 const LEGACY_MOVIMENTOS_PREFIX = '/app/movimentos';
 
 function normalizePath(raw: string): string {

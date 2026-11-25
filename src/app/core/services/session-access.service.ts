@@ -104,6 +104,18 @@ export class SessionAccessService {
     if (isAccessGranted(current, allowed)) {
       return true;
     }
+    /** Destinação Lab / Dashboard reaproveitam o acesso da Destinação oficial. */
+    if (
+      current === '/app/patio/agendamentos/destinacao-lab' ||
+      current.startsWith('/app/patio/agendamentos/destinacao-lab/') ||
+      current === '/app/patio/agendamentos/destinacao-dashboard' ||
+      current.startsWith('/app/patio/agendamentos/destinacao-dashboard/')
+    ) {
+      return allowed.some((route) => {
+        const r = normalizeRoute(route);
+        return r === '/app/patio/agendamentos/destinacao' || r.startsWith('/app/patio/agendamentos/destinacao/');
+      });
+    }
     /** Estacionamento: Gerenciamento e Cadastro (legado/forms) compartilham o mesmo acesso. */
     if (
       current === '/app/gerenciamento/estacionamento' ||
@@ -155,6 +167,18 @@ export class SessionAccessService {
       const normalized = normalizeRoute(route);
       if (isSidebarRouteVisible(normalized, allowed)) {
         return true;
+      }
+      /** Destinação Lab / Dashboard: mesma liberação da Destinação oficial. */
+      if (
+        normalized === '/app/patio/agendamentos/destinacao-lab' ||
+        normalized.startsWith('/app/patio/agendamentos/destinacao-lab/') ||
+        normalized === '/app/patio/agendamentos/destinacao-dashboard' ||
+        normalized.startsWith('/app/patio/agendamentos/destinacao-dashboard/')
+      ) {
+        return allowed.some((r) => {
+          const a = normalizeRoute(r);
+          return a === '/app/patio/agendamentos/destinacao' || a.startsWith('/app/patio/agendamentos/destinacao/');
+        });
       }
       /** Estacionamento: login pode vir com rota de Gerenciamento ou Cadastro. */
       if (

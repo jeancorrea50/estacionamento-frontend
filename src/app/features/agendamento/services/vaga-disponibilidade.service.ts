@@ -34,9 +34,12 @@ export class VagaDisponibilidadeService {
     }
 
     return this.http
-      .get<ApiEnvelope<VagaDisponibilidadeResumo>>(`${this.base}/disponibilidade`, { params })
+      .get<ApiEnvelope<VagaDisponibilidadeResumo | Record<string, unknown>>>(
+        `${this.base}/disponibilidade`,
+        { params }
+      )
       .pipe(
-        map((r) => r.result ?? null),
+        map((r) => (r.result != null ? this.mapResumo(r.result) : null)),
         catchError(() => of(null))
       );
   }
@@ -53,8 +56,13 @@ export class VagaDisponibilidadeService {
   }
 
   criarReserva(input: VagaReservaTransportadoraInput): Observable<VagaReservaTransportadoraItem | null> {
+    const dias =
+      input.periodicidade === 2 && input.diasSemana != null && String(input.diasSemana).trim()
+        ? String(input.diasSemana).trim()
+        : null;
     const payload: VagaReservaTransportadoraInput = {
       ...input,
+      diasSemana: dias,
       transferenciaAutomaticaSaldo: !!input.transferenciaAutomaticaSaldo,
       responsavelFaturamentoId:
         input.responsavelFaturamentoId != null && input.responsavelFaturamentoId > 0
@@ -77,6 +85,50 @@ export class VagaDisponibilidadeService {
       map((r) => r.success !== false),
       catchError(() => of(false))
     );
+  }
+
+  private mapResumo(
+    row: VagaDisponibilidadeResumo | Record<string, unknown>
+  ): VagaDisponibilidadeResumo {
+    const r = row as Record<string, unknown>;
+    const base = row as VagaDisponibilidadeResumo;
+    const reservasRaw = r['reservas'] ?? r['Reservas'];
+    const reservas = Array.isArray(reservasRaw)
+      ? reservasRaw.map((item) => this.mapReserva(item as Record<string, unknown>))
+      : Array.isArray(base.reservas)
+        ? base.reservas.map((item) => this.mapReserva(item))
+        : [];
+    return {
+      capacidadeEstacionamento:
+        this.pickNumberOrNull(r, 'capacidadeEstacionamento', 'CapacidadeEstacionamento') ??
+        base.capacidadeEstacionamento ??
+        null,
+      capacidadeLimpeza:
+        this.pickNumberOrNull(r, 'capacidadeLimpeza', 'CapacidadeLimpeza') ??
+        base.capacidadeLimpeza ??
+        null,
+      vagasReservadasEstacionamento:
+        this.pickNumber(r, 'vagasReservadasEstacionamento', 'VagasReservadasEstacionamento') ||
+        base.vagasReservadasEstacionamento ||
+        0,
+      vagasReservadasLimpeza:
+        this.pickNumber(r, 'vagasReservadasLimpeza', 'VagasReservadasLimpeza') ||
+        base.vagasReservadasLimpeza ||
+        0,
+      vagasDisponiveisEstacionamento:
+        this.pickNumberOrNull(r, 'vagasDisponiveisEstacionamento', 'VagasDisponiveisEstacionamento') ??
+        base.vagasDisponiveisEstacionamento ??
+        null,
+      vagasDisponiveisLimpeza:
+        this.pickNumberOrNull(r, 'vagasDisponiveisLimpeza', 'VagasDisponiveisLimpeza') ??
+        base.vagasDisponiveisLimpeza ??
+        null,
+      controleAtivo:
+        'controleAtivo' in r || 'ControleAtivo' in r
+          ? this.pickBool(r, 'controleAtivo', 'ControleAtivo')
+          : base.controleAtivo !== false,
+      reservas,
+    };
   }
 
   private mapReserva(
@@ -115,6 +167,8 @@ export class VagaDisponibilidadeService {
         this.pickStringOrNull(r, 'periodoDiaLabel', 'PeriodoDiaLabel') ?? base.periodoDiaLabel ?? null,
       horaInicio: this.pickStringOrNull(r, 'horaInicio', 'HoraInicio') ?? base.horaInicio ?? null,
       horaFim: this.pickStringOrNull(r, 'horaFim', 'HoraFim') ?? base.horaFim ?? null,
+      diasSemana:
+        this.pickStringOrNull(r, 'diasSemana', 'DiasSemana') ?? base.diasSemana ?? null,
       responsavelFaturamentoId,
       responsavelFaturamentoNome:
         this.pickStringOrNull(r, 'responsavelFaturamentoNome', 'ResponsavelFaturamentoNome') ??

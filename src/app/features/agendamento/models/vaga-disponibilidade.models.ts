@@ -34,6 +34,10 @@ export interface VagaReservaTransportadoraItem {
   periodoDiaLabel: string | null;
   horaInicio?: string | null;
   horaFim?: string | null;
+  /**
+   * CSV `0..6` (Dom..Sáb), alinhado às Janelas — usado quando `periodicidade = 2` (Semanal).
+   */
+  diasSemana?: string | null;
   responsavelFaturamentoId?: number | null;
   responsavelFaturamentoNome?: string | null;
   avulso: boolean;
@@ -53,6 +57,8 @@ export interface VagaReservaTransportadoraInput {
   periodoDia?: PeriodoDiaVaga;
   horaInicio: string;
   horaFim: string;
+  /** CSV `0..6` (Dom..Sáb); enviar quando `periodicidade = 2`. */
+  diasSemana?: string | null;
   responsavelFaturamentoId?: number | null;
   avulso?: boolean;
   /** Default false; ativa monitoramento/transferência automática de saldo. */

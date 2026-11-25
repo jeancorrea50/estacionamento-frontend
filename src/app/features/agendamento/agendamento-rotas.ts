@@ -25,10 +25,21 @@ export const JANELAS_ROUTE = '/app/patio/agendamentos/janelas';
 /**
  * Destinação de vagas por acordo — submenu de Agendamentos.
  * Canônico: `/app/patio/agendamentos/destinacao` — claims `destinacao.*`.
+ * Calendário: mesma rota com `?view=calendario` (topbar).
  */
 export const DESTINACAO_LABEL = 'Destinação';
 export const DESTINACAO_PATH = 'destinacao';
 export const DESTINACAO_ROUTE = '/app/patio/agendamentos/destinacao';
+
+/** @deprecated Redireciona para {@link DESTINACAO_ROUTE}. */
+export const DESTINACAO_LAB_LABEL = 'Destinação';
+export const DESTINACAO_LAB_PATH = 'destinacao-lab';
+export const DESTINACAO_LAB_ROUTE = '/app/patio/agendamentos/destinacao-lab';
+
+/** @deprecated Redireciona para {@link DESTINACAO_ROUTE}?view=calendario. */
+export const DESTINACAO_DASHBOARD_LABEL = 'Calendário';
+export const DESTINACAO_DASHBOARD_PATH = 'destinacao-dashboard';
+export const DESTINACAO_DASHBOARD_ROUTE = '/app/patio/agendamentos/destinacao-dashboard';
 
 /** Alias legado da lista sob `/app/agendamento/...`. */
 export const AGENDAMENTOS_ROUTE = AGENDAMENTO_PAINEL_ROUTE;
@@ -80,6 +91,17 @@ export function normalizeAgendamentoAppRoute(raw: string | null | undefined): st
   }
   if (lower === AGENDAMENTO_PAINEL_ROUTE) {
     return AGENDAMENTO_PAINEL_ROUTE;
+  }
+  if (
+    lower === DESTINACAO_LAB_ROUTE ||
+    lower.startsWith(`${DESTINACAO_LAB_ROUTE}/`) ||
+    lower === DESTINACAO_DASHBOARD_ROUTE ||
+    lower.startsWith(`${DESTINACAO_DASHBOARD_ROUTE}/`)
+  ) {
+    return DESTINACAO_ROUTE;
+  }
+  if (lower === DESTINACAO_ROUTE || lower.startsWith(`${DESTINACAO_ROUTE}/`)) {
+    return lower === DESTINACAO_ROUTE ? DESTINACAO_ROUTE : lower;
   }
 
   // Agrupador canônico — NÃO reescreve para painel (necessário para nestSubMenusByRoute).

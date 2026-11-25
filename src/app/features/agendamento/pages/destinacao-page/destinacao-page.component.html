@@ -11,13 +11,40 @@
         agendamento e o painel do pátio.
       </p>
     </div>
+
+    <nav class="destinacao-page__topbar" role="tablist" aria-label="Visão da Destinação">
+      <button
+        type="button"
+        role="tab"
+        class="destinacao-page__topbar-btn"
+        [class.destinacao-page__topbar-btn--active]="visao() === 'destinar'"
+        [attr.aria-selected]="visao() === 'destinar'"
+        (click)="setVisao('destinar')"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
+        Destinar
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="destinacao-page__topbar-btn"
+        [class.destinacao-page__topbar-btn--active]="visao() === 'calendario'"
+        [attr.aria-selected]="visao() === 'calendario'"
+        (click)="setVisao('calendario')"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+        Calendário
+      </button>
+    </nav>
   </header>
 
   @if (!podeVisualizar()) {
     <p class="destinacao-page__empty" role="status">
       Sem permissão para visualizar Destinação (destinacao.visualizar).
     </p>
+  } @else if (visao() === 'calendario') {
+    <app-destinacao-calendario-panel />
   } @else {
-    <app-vaga-reserva-panel [podeGerenciar]="podeGerenciar()" [embedded]="false" />
+    <app-vaga-reserva-panel-lab [podeGerenciar]="podeGerenciar()" [embedded]="false" />
   }
 </section>

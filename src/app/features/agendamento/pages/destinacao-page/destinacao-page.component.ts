@@ -1,27 +1,40 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AGENDAMENTO_PAINEL_ROUTE, DESTINACAO_ROUTE } from '../../agendamento-rotas';
-import { VagaReservaPanelComponent } from '../../components/vaga-reserva-panel/vaga-reserva-panel.component';
+import { VagaReservaPanelLabComponent } from '../../components/vaga-reserva-panel-lab/vaga-reserva-panel-lab.component';
+import { DestinacaoCalendarioPanelComponent } from '../destinacao-dashboard-page/destinacao-calendario-panel.component';
+
+export type DestinacaoTopbarVisao = 'destinar' | 'calendario';
+
+function visaoFromQuery(view: string | null | undefined): DestinacaoTopbarVisao {
+  const v = String(view ?? '').toLowerCase();
+  return v === 'calendario' || v === 'dashboard' ? 'calendario' : 'destinar';
+}
 
 /**
- * Destinação por acordo — tela dedicada (substitui o modal legado do Painel).
- * Reutiliza o painel operacional (transportadora, horário, CIF/FOB, vigência).
+ * Destinação por acordo — tela canônica (ex-Lab).
+ * Topbar: Destinar | Calendário.
  */
 @Component({
   selector: 'app-destinacao-page',
   standalone: true,
-  imports: [RouterLink, VagaReservaPanelComponent],
+  imports: [RouterLink, VagaReservaPanelLabComponent, DestinacaoCalendarioPanelComponent],
   templateUrl: './destinacao-page.component.html',
   styleUrls: ['./destinacao-page.component.scss'],
 })
-export class DestinacaoPageComponent implements OnInit {
+export class DestinacaoPageComponent implements OnInit, OnDestroy {
   private readonly sessionAccess = inject(SessionAccessService);
   private readonly permissions = inject(PermissionCacheService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroy$ = new Subject<void>();
 
   readonly painelRoute = AGENDAMENTO_PAINEL_ROUTE;
+  readonly visao = signal<DestinacaoTopbarVisao>('destinar');
 
   readonly podeVisualizar = computed(
     () =>
@@ -40,6 +53,22 @@ export class DestinacaoPageComponent implements OnInit {
   ngOnInit(): void {
     if (!this.sessionAccess.canAccessRoute(DESTINACAO_ROUTE)) {
       void this.router.navigateByUrl('/app');
+      return;
     }
+
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      this.visao.set(visaoFromQuery(params.get('view')));
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  setVisao(v: DestinacaoTopbarVisao): void {
+    const url =
+      v === 'calendario' ? `${DESTINACAO_ROUTE}?view=calendario` : DESTINACAO_ROUTE;
+    void this.router.navigateByUrl(url, { replaceUrl: true });
   }
 }

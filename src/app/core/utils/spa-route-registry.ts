@@ -73,6 +73,9 @@ function collectPatioRoutes(): void {
   addRoute(PATIO_MOVIMENTACOES_RELATORIO_ROUTE);
   addRoute(PATIO_ENTRADA_SAIDA_ROUTE);
   addRoute('/app/patio/agendamentos/destinacao');
+  /** Legado: login/menu podem ainda enviar; app redireciona para Destinação. */
+  addRoute('/app/patio/agendamentos/destinacao-lab');
+  addRoute('/app/patio/agendamentos/destinacao-dashboard');
 }
 
 function collectStaticRoutes(): void {
@@ -88,6 +91,8 @@ function collectStaticRoutes(): void {
     '/app/patio/agendamentos/painel',
     '/app/patio/agendamentos/janelas',
     '/app/patio/agendamentos/destinacao',
+    '/app/patio/agendamentos/destinacao-lab',
+    '/app/patio/agendamentos/destinacao-dashboard',
     '/app/financeiro/faturamento/acordos',
     '/app/agendamento',
     '/app/agendamento/agendamentos',

@@ -1,0 +1,484 @@
+<section
+  class="vrp-lab"
+  [class.vrp-lab--embedded]="embedded"
+  aria-label="Destinação de vagas"
+>
+  <header class="vrp-lab__caput" aria-label="Resumo do pátio">
+    <div class="vrp-lab__caput-top">
+      <div class="vrp-lab__caput-copy">
+        @if (!embedded) {
+          <h2 class="vrp-lab__title">Destinar vagas</h2>
+        }
+        <p class="vrp-lab__subtitle">Disponibilidade e distribuição do pátio</p>
+      </div>
+
+      <div class="vrp-lab__caput-controls">
+        <div class="vrp-lab__caput-mods" role="tablist" aria-label="Modalidade do resumo">
+          <button
+            type="button"
+            role="tab"
+            class="vrp-lab__mod"
+            [class.vrp-lab__mod--on]="kpiModalidade() === 1"
+            [attr.aria-selected]="kpiModalidade() === 1"
+            (click)="selecionarKpiModalidade(1)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">local_parking</span>
+            Estacionamento
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="vrp-lab__mod vrp-lab__mod--limp"
+            [class.vrp-lab__mod--on]="kpiModalidade() === 2"
+            [attr.aria-selected]="kpiModalidade() === 2"
+            (click)="selecionarKpiModalidade(2)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">water_drop</span>
+            Limpeza
+          </button>
+        </div>
+
+        <div class="vrp-lab__day" aria-label="Filtro de disponibilidade por data">
+          <app-periodo-data-picker
+            class="vrp-lab__day-picker"
+            emptyLabel="Dia"
+            ariaLabel="Selecionar data da disponibilidade"
+            [modoDiaUnico]="true"
+            [dataInicial]="dataConsulta()"
+            [dataFinal]="dataConsulta()"
+            (periodoChange)="onFiltroPeriodoChange($event)"
+          />
+          <button
+            type="button"
+            class="vrp-lab__btn vrp-lab__btn--ghost"
+            (click)="irParaHoje()"
+            [disabled]="loading()"
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--icon"
+            (click)="carregar()"
+            [disabled]="loading()"
+            aria-label="Atualizar"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    @if (loading() && !kpiDia()) {
+      <div class="vrp-lab__kpi-grid vrp-lab__kpi-grid--skeleton" aria-busy="true" aria-label="Carregando indicadores">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="vrp-kpi vrp-kpi--skeleton"></div>
+        }
+      </div>
+    } @else if (kpiDia(); as k) {
+      <div class="vrp-lab__kpi-grid" role="group" aria-label="Indicadores do dia">
+        <article class="vrp-kpi vrp-kpi--cap" title="Campo capacidadeEstacionamento / capacidadeLimpeza">
+          <div class="vrp-kpi__head">
+            <span class="material-symbols-outlined vrp-kpi__icon" aria-hidden="true">layers</span>
+            <span class="vrp-kpi__label">Capacidade</span>
+          </div>
+          <strong class="vrp-kpi__value">{{ k.capacidade ?? '—' }}</strong>
+        </article>
+        <article class="vrp-kpi" title="Campo vagasReservadas — já destinadas no dia">
+          <div class="vrp-kpi__head">
+            <span class="material-symbols-outlined vrp-kpi__icon" aria-hidden="true">group</span>
+            <span class="vrp-kpi__label">Reservadas</span>
+          </div>
+          <strong class="vrp-kpi__value">{{ k.reservadas }}</strong>
+        </article>
+        <article class="vrp-kpi vrp-kpi--ok" title="Campo vagasDisponiveis — livres para destinar">
+          <div class="vrp-kpi__head">
+            <span class="material-symbols-outlined vrp-kpi__icon" aria-hidden="true">check_circle</span>
+            <span class="vrp-kpi__label">Disponíveis</span>
+          </div>
+          <strong class="vrp-kpi__value">{{ k.disponiveis ?? '—' }}</strong>
+          <span class="vrp-kpi__bar" aria-hidden="true">
+            <i [style.width.%]="k.pctLivres"></i>
+          </span>
+        </article>
+      </div>
+
+      @if (!k.controleAtivo) {
+        <p class="vrp-lab__status vrp-lab__status--warn" role="status">
+          Defina a capacidade no cadastro do estacionamento para ativar o controle.
+        </p>
+      }
+
+      <div class="vrp-lab__caput-meta">
+        @if (kpiMetaOutra(); as outra) {
+          <span class="vrp-lab__meta-item">
+            <span class="material-symbols-outlined" aria-hidden="true">{{ outra.icon }}</span>
+            {{ outra.label }}: {{ outra.disponiveis ?? '—' }}/{{ outra.capacidade ?? '—' }} disponíveis
+            · {{ outra.reservadas }} reservadas
+          </span>
+        }
+        <span class="vrp-lab__meta-item vrp-lab__meta-item--end">
+          <span class="material-symbols-outlined" aria-hidden="true">assignment</span>
+          {{ reservasAtivasCount() }} regras ativas · {{ reservasCadastradasCount() }} cadastradas
+        </span>
+      </div>
+    } @else {
+      <p class="vrp-lab__status">Sem dados de disponibilidade para este dia.</p>
+    }
+  </header>
+
+  <div class="vrp-lab__layout">
+    @if (podeGerenciar) {
+      <form class="vrp-lab__form" [formGroup]="form" (ngSubmit)="salvar()">
+        <h3 class="vrp-lab__form-title">Nova destinação</h3>
+
+        <section class="vrp-lab__group">
+          <div class="vrp-lab__row vrp-lab__row--lookup">
+            <div class="vrp-field vrp-field--grow">
+              <span class="vrp-field__label">Transportadoras</span>
+              <app-transportadora-lookup-field
+                [transportadoraId]="lookupId()"
+                [transportadoraNome]="lookupNome()"
+                [disabled]="!podeGerenciar || !!form.controls.avulso.value"
+                placeholder="Adicionar (uma ou várias)…"
+                (transportadoraIdChange)="onLookupIdChange($event)"
+                (transportadoraNomeChange)="onLookupNomeChange($event)"
+              />
+            </div>
+            <label class="vrp-check">
+              <input type="checkbox" formControlName="avulso" />
+              <span>Avulso</span>
+            </label>
+          </div>
+
+          @if (!form.controls.avulso.value) {
+            @if (destinos().length === 0) {
+              <p class="vrp-lab__status">
+                Busque e adicione transportadoras. A quantidade por horário fica ao marcar as janelas.
+              </p>
+            } @else {
+              <ul class="vrp-destinos">
+                @for (d of destinos(); track d.id) {
+                  <li
+                    class="vrp-destino"
+                    [class.vrp-destino--block]="maxDoDestino(d) !== null && (maxDoDestino(d) ?? 0) <= 0"
+                  >
+                    <strong class="vrp-destino__nome" [title]="d.nome">
+                      {{ d.nome }}
+                    </strong>
+                    <span class="vrp-destino__livres" [attr.title]="labelCota(d)">
+                      @if (d.loadingCota) {
+                        …
+                      } @else if (maxDoDestino(d) !== null) {
+                        Qtd. Livres {{ maxDoDestino(d) }}
+                        @if (totalReservadoTransportadora(d.id) > 0) {
+                          · neste form {{ totalReservadoTransportadora(d.id) }}
+                        }
+                      } @else {
+                        Sem cota
+                      }
+                    </span>
+                    <button
+                      type="button"
+                      class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--icon"
+                      (click)="removerDestino(d.id)"
+                      [attr.aria-label]="'Remover ' + d.nome"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </section>
+
+        <section class="vrp-lab__group">
+          <div class="vrp-lab__row">
+            <div class="vrp-field">
+              <span class="vrp-field__label">Modalidade</span>
+              <div class="vrp-seg" role="radiogroup" aria-label="Modalidade">
+                @for (m of modalidades; track m.value) {
+                  <button
+                    type="button"
+                    role="radio"
+                    class="vrp-seg__btn"
+                    [class.vrp-seg__btn--on]="form.controls.modalidade.value === m.value"
+                    [attr.aria-checked]="form.controls.modalidade.value === m.value"
+                    (click)="selecionarModalidade(m.value)"
+                  >
+                    {{ m.label }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="vrp-lab__row vrp-lab__row--2">
+            <div class="vrp-field">
+              <span class="vrp-field__label">Vigência</span>
+              <app-periodo-data-picker
+                emptyLabel="Período"
+                ariaLabel="Selecionar vigência"
+                [exigirConfirmacao]="true"
+                [dataInicial]="form.controls.dataInicio.value"
+                [dataFinal]="form.controls.dataFim.value || form.controls.dataInicio.value"
+                (periodoChange)="onVigenciaPeriodoChange($event)"
+              />
+            </div>
+            <label class="vrp-field">
+              <span class="vrp-field__label">Recorrência</span>
+              <select class="input-control input-control--select" formControlName="periodicidade">
+                @for (p of recorrencias; track p.value) {
+                  <option [ngValue]="p.value">{{ p.label }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          @if (mostraDiasSemana()) {
+            <div class="vrp-field">
+              <span class="vrp-field__label">Dias da semana</span>
+              <div class="vrp-seg vrp-seg--wrap" role="group" aria-label="Dias da semana">
+                @for (d of diasSemanaOpcoes; track d.value) {
+                  <button
+                    type="button"
+                    class="vrp-seg__btn vrp-seg__btn--sm"
+                    [class.vrp-seg__btn--on]="diaSemanaAtivo(d.value)"
+                    [attr.aria-pressed]="diaSemanaAtivo(d.value)"
+                    [title]="d.label"
+                    (click)="alternarDiaSemana(d.value)"
+                  >
+                    {{ d.abrev }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="vrp-field">
+            <span class="vrp-field__label">Horários (janelas) — pode marcar vários</span>
+            @if (loadingFaixas()) {
+              <p class="vrp-lab__status">Carregando faixas…</p>
+            } @else if (faixas().length === 0) {
+              <p class="vrp-lab__status vrp-lab__status--warn">
+                Nenhuma janela com horário neste dia. Cadastre ou ajuste a vigência em Janelas.
+              </p>
+            } @else {
+              <div class="vrp-seg vrp-seg--wrap" role="group" aria-label="Horários das janelas">
+                @for (f of faixas(); track f.key) {
+                  <button
+                    type="button"
+                    class="vrp-seg__btn vrp-seg__btn--sm"
+                    [class.vrp-seg__btn--on]="faixaEstaSelecionada(f.key)"
+                    [attr.aria-pressed]="faixaEstaSelecionada(f.key)"
+                    (click)="toggleFaixa(f)"
+                  >
+                    {{ f.label }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          @if (horariosSelecionados().length > 0) {
+            <div class="vrp-horarios-qtd">
+              <div class="vrp-horarios-qtd__topo">
+                <span class="vrp-field__label">Quantidade por horário</span>
+                <label class="vrp-qtd-todos">
+                  <span>Qtd. para todos</span>
+                  <input
+                    class="input-control"
+                    type="number"
+                    min="0"
+                    placeholder="ex.: 2"
+                    (change)="aplicarQtdParaTodos($any($event.target).value)"
+                    (keydown.enter)="$event.preventDefault(); aplicarQtdParaTodos($any($event.target).value)"
+                  />
+                </label>
+              </div>
+
+              <ul class="vrp-horarios-lista">
+                @for (h of horariosSelecionados(); track h.faixa.key) {
+                  <li class="vrp-horario-item" [class.vrp-horario-item--open]="h.expandido">
+                    <div class="vrp-horario-item__bar">
+                      <button
+                        type="button"
+                        class="vrp-horario-item__toggle"
+                        (click)="toggleExpandirHorario(h.faixa.key)"
+                        [attr.aria-expanded]="h.expandido"
+                        [attr.aria-label]="(h.expandido ? 'Recolher' : 'Expandir') + ' ' + h.faixa.label"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">
+                          {{ h.expandido ? 'expand_more' : 'chevron_right' }}
+                        </span>
+                        <span class="material-symbols-outlined vrp-horario-item__ico" aria-hidden="true">schedule</span>
+                        <strong>{{ h.faixa.label }}</strong>
+                      </button>
+
+                      @if (form.controls.avulso.value) {
+                        <label class="vrp-horario-item__qtd" (click)="$event.stopPropagation()">
+                          <span>Qtd.</span>
+                          <input
+                            class="input-control"
+                            type="number"
+                            min="0"
+                            [value]="qtdHorarioAvulso(h.faixa.key)"
+                            (change)="onQtdHorarioAvulso(h.faixa.key, $any($event.target).value)"
+                          />
+                        </label>
+                      } @else {
+                        <label class="vrp-horario-item__qtd" (click)="$event.stopPropagation()">
+                          <span>Qtd.</span>
+                          <input
+                            class="input-control"
+                            type="number"
+                            min="0"
+                            [value]="qtdPadraoHorario(h.faixa.key)"
+                            (change)="onQtdPadraoHorario(h.faixa.key, $any($event.target).value)"
+                            title="Quantidade para todas as transportadoras neste horário"
+                          />
+                        </label>
+                      }
+                    </div>
+
+                    @if (h.expandido && !form.controls.avulso.value) {
+                      <div class="vrp-horario-item__body">
+                        @if (destinos().length === 0) {
+                          <p class="vrp-lab__status">Adicione transportadoras para ajustar exceções.</p>
+                        } @else {
+                          <p class="vrp-horario-item__hint">
+                            Quantidade diferente só para quem precisar — as demais usam a Qtd. do horário.
+                          </p>
+                          @for (d of destinos(); track d.id) {
+                            <label
+                              class="vrp-horario-card__row"
+                              [class.vrp-horario-card__row--override]="temOverrideHorario(h.faixa.key, d.id)"
+                            >
+                              <span class="vrp-horario-card__nome" [title]="d.nome">{{ d.nome }}</span>
+                              <span class="vrp-horario-card__hint">
+                                @if (maxDoDestino(d) !== null) {
+                                  livres {{ restoLivreTransportadora(d) }}
+                                }
+                              </span>
+                              <input
+                                class="input-control"
+                                type="number"
+                                min="0"
+                                [attr.max]="maxDoDestino(d)"
+                                [value]="qtdHorarioTransportadora(h.faixa.key, d.id)"
+                                [disabled]="maxDoDestino(d) !== null && (maxDoDestino(d) ?? 0) <= 0"
+                                (change)="onQtdHorarioTransportadora(h.faixa.key, d.id, $any($event.target).value)"
+                              />
+                            </label>
+                          }
+                        }
+                      </div>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+
+        <div class="vrp-lab__form-actions">
+          <button type="submit" class="vrp-lab__btn vrp-lab__btn--primary" [disabled]="!podeSalvar()">
+            {{ salvando() ? 'Salvando…' : 'Destinar vagas' }}
+          </button>
+        </div>
+      </form>
+    } @else {
+      <div class="vrp-lab__locked" role="status">Sem permissão para gerenciar destinações.</div>
+    }
+
+    <section class="vrp-lab__reservas" aria-label="Destinações cadastradas">
+      <div class="vrp-lab__reservas-head">
+        <div>
+          <h3 class="vrp-lab__reservas-title">Destinações</h3>
+          <p class="vrp-lab__reservas-meta">
+            {{ reservasAtivasCount() }} ativas · {{ reservasCadastradasCount() }} nesta modalidade
+          </p>
+        </div>
+        <button
+          type="button"
+          class="vrp-lab__btn vrp-lab__btn--ghost"
+          (click)="toggleReservas()"
+          [attr.aria-expanded]="reservasAbertas()"
+        >
+          {{ reservasAbertas() ? 'Ocultar' : 'Mostrar' }}
+        </button>
+      </div>
+
+      @if (reservasAbertas()) {
+        @if (loading() && reservasNaModalidade().length === 0) {
+          <p class="vrp-lab__status">Carregando…</p>
+        } @else if (reservasNaModalidade().length === 0) {
+          <div class="vrp-lab__empty">
+            <p>Nenhuma destinação nesta modalidade.</p>
+          </div>
+        } @else {
+          <ul class="vrp-lab__list">
+            @for (r of reservasNaModalidade(); track r.id) {
+              <li class="vrp-res" [class.vrp-res--off]="!r.ativo">
+                <span
+                  class="vrp-res__tick"
+                  [class.vrp-res__tick--on]="r.ativo"
+                  [class.vrp-res__tick--off]="!r.ativo"
+                  [attr.title]="r.ativo ? 'Ativa' : 'Inativa'"
+                  [attr.aria-label]="r.ativo ? 'Ativa' : 'Inativa'"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">
+                    {{ r.ativo ? 'check_circle' : 'cancel' }}
+                  </span>
+                </span>
+
+                <strong class="vrp-res__nome" [title]="r.transportadoraNome || (r.avulso ? 'Avulso' : '')">
+                  {{ r.transportadoraNome || (r.avulso ? 'Avulso' : '—') }}
+                </strong>
+
+                <span class="vrp-res__meta" title="Modalidade">
+                  <span class="material-symbols-outlined" aria-hidden="true">
+                    {{ r.modalidade === 2 ? 'water_drop' : r.modalidade === 3 ? 'layers' : 'local_parking' }}
+                  </span>
+                  {{ r.modalidadeLabel }}
+                </span>
+
+                <span class="vrp-res__meta" title="Quantidade">
+                  <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
+                  {{ r.quantidade }} vaga{{ r.quantidade === 1 ? '' : 's' }}
+                </span>
+
+                @if (r.horaInicio && r.horaFim) {
+                  <span class="vrp-res__meta" title="Horário">
+                    <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+                    {{ r.horaInicio }}–{{ r.horaFim }}
+                  </span>
+                }
+
+                <span class="vrp-res__meta" title="Vigência">
+                  <span class="material-symbols-outlined" aria-hidden="true">event</span>
+                  {{ r.dataInicio | date: 'dd/MM/yyyy' }}
+                  @if (r.dataFim && r.dataFim !== r.dataInicio) {
+                    — {{ r.dataFim | date: 'dd/MM/yyyy' }}
+                  }
+                </span>
+
+                @if (podeGerenciar && r.ativo) {
+                  <button
+                    type="button"
+                    class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--danger"
+                    (click)="inativar(r.id)"
+                    title="Inativar"
+                  >
+                    Inativar
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      }
+    </section>
+  </div>
+</section>

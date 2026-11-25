@@ -43,9 +43,11 @@ export class TransportadoraLookupFieldComponent {
   onSelecionada(item: PaginatedSearchItem): void {
     const id = Number(item.id);
     if (!Number.isFinite(id) || id <= 0) return;
-    const nome = (item.titulo || item.campo3 || '').trim() || `Transportadora #${id}`;
-    this.transportadoraId.set(id);
+    const nome =
+      (item.titulo || item.campo3 || item.subtitulo || '').trim() || `Transportadora #${id}`;
+    // Nome antes do id: consumidores que reagem ao id já encontram o rótulo.
     this.transportadoraNome.set(nome);
+    this.transportadoraId.set(id);
     this.buscaAberta.set(false);
   }
 }

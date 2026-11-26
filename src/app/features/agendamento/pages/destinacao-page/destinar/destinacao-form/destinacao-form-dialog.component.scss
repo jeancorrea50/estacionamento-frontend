@@ -1,4 +1,4 @@
-// Modal de criar/editar destinação.
+// Modal de criar/editar destinação (layout v5).
 // .btn vem do styles.css global; .seg, .icon-btn, .pill, .input e .empty do kit local.
 @use '../destinacao-tokens' as tk;
 @use '../destinacao-kit' as kit;
@@ -441,11 +441,7 @@
 
 .slot {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-  min-height: 44px;
+  flex-direction: column;
   padding: 0 8px 0 12px;
   background: var(--dst-table);
 
@@ -458,9 +454,21 @@
     box-shadow: inset 3px 0 0 var(--dst-primary);
   }
 
+  &.is-error {
+    box-shadow: inset 3px 0 0 var(--dst-danger);
+  }
+
   &.is-full .slot__time {
     color: var(--dst-muted);
   }
+}
+
+.slot__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
 }
 
 .slot__check {
@@ -468,6 +476,7 @@
   align-items: center;
   gap: 10px;
   flex: 1;
+  min-width: 0;
   min-height: 44px;
   cursor: pointer;
 
@@ -488,36 +497,163 @@
   font-size: 12px;
   color: var(--dst-muted);
   white-space: nowrap;
+
+  strong {
+    color: var(--dst-text);
+  }
+
+  &.is-error,
+  &.is-error strong {
+    color: var(--dst-danger);
+  }
 }
 
-.qty {
-  display: inline-flex;
+.slot__ctrl {
+  display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
-.qty__input {
-  width: 52px;
-  height: 34px;
+.slot__todas {
+  font-size: 12px;
+  color: var(--dst-muted);
+}
+
+.slot__toggle {
+  position: relative;
+
+  &.is-open {
+    background: color-mix(in srgb, var(--dst-primary) 14%, transparent);
+    color: var(--dst-primary);
+  }
+}
+
+// Indica que as transportadoras têm quantidades diferentes neste horário.
+.slot__dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dst-primary);
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 10px 26px;
+  padding: 6px 0 0 12px;
+  list-style: none;
+  border-left: 1px dashed var(--dst-border);
+}
+
+.split__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+}
+
+.split__nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.slot__err {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px 26px;
+  font-size: 12px;
+  color: var(--dst-danger);
+
+  .material-symbols-outlined {
+    font-size: 16px;
+  }
+}
+
+// Quantidade padrão / por transportadora
+.bulk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
   border: 1px solid var(--dst-border);
-  border-radius: 6px;
-  background: var(--dst-input);
-  font: inherit;
-  font-size: 14px;
+  border-radius: var(--dst-radius-ctl);
+  background: var(--dst-table);
+}
+
+.bulk__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.bulk__label {
+  flex: 1 1 180px;
+  font-size: 13px;
   font-weight: 600;
-  text-align: center;
-  color: var(--dst-text);
-  -moz-appearance: textfield;
+}
 
-  &::-webkit-inner-spin-button,
-  &::-webkit-outer-spin-button {
-    -webkit-appearance: none;
+.bulk__por {
+  summary {
+    width: fit-content;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dst-primary);
+    cursor: pointer;
+    list-style-position: inside;
+
+    &:focus-visible {
+      outline: 2px solid var(--dst-primary);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--dst-primary);
-    outline-offset: 1px;
+  &[open] summary {
+    margin-bottom: 6px;
   }
+}
+
+.bulk__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+
+    & + li {
+      border-top: 1px solid var(--dst-border);
+    }
+  }
+}
+
+.bulk__nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.bulk__acordo {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .empty--inline {
@@ -620,8 +756,6 @@
 
 // ═══ Resumo ═════════════════════════════════════════════════════════════
 .resumo {
-  position: sticky;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -629,7 +763,6 @@
   border: 1px solid var(--dst-border);
   border-radius: var(--dst-radius-card);
   background: var(--dst-surface);
-  box-shadow: 0 -8px 24px rgb(0 0 0 / 0.18);
 }
 
 .resumo__list {
@@ -687,6 +820,66 @@
   border: 1px solid var(--dst-border);
   border-radius: 6px;
   font-size: 12px;
+
+  &.is-error {
+    border-color: var(--dst-danger);
+    color: var(--dst-danger);
+  }
+}
+
+.resumo__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    @include tk.t-label;
+    padding: 6px 0;
+    text-align: left;
+    color: var(--dst-muted);
+    border-bottom: 1px solid var(--dst-border);
+  }
+
+  td {
+    padding: 6px 0;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--dst-border);
+
+    .pill {
+      margin-left: 4px;
+    }
+  }
+
+  th + th,
+  td + td {
+    padding-left: 8px;
+  }
+
+  .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .resumo__nome {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.resumo__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--dst-muted);
+
+  .material-symbols-outlined {
+    font-size: 16px;
+    color: var(--dst-warning);
+  }
 }
 
 .resumo__total {
@@ -725,6 +918,23 @@
   }
 }
 
+.foot__total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 12px;
+  border-right: 1px solid var(--dst-border);
+  font-size: 12px;
+  color: var(--dst-muted);
+  white-space: nowrap;
+
+  strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dst-text);
+  }
+}
+
 .btn-primary[aria-disabled='true'] {
   opacity: 0.5;
   cursor: not-allowed;
@@ -744,11 +954,6 @@
       border-left: 0;
       border-top: 1px solid var(--dst-border);
     }
-  }
-
-  .resumo {
-    position: static;
-    box-shadow: none;
   }
 }
 
@@ -796,6 +1001,11 @@
     gap: 2px 10px;
   }
 
+  .split,
+  .slot__err {
+    margin-left: 0;
+  }
+
   .empty__actions {
     grid-column: 1 / -1;
   }
@@ -803,8 +1013,14 @@
   .dlg__foot {
     flex-wrap: wrap;
 
-    .foot__status {
+    .foot__status,
+    .foot__total {
       flex-basis: 100%;
+    }
+
+    .foot__total {
+      padding: 0;
+      border: 0;
     }
 
     .btn {
@@ -826,56 +1042,19 @@
   @include tk.tokens-light;
 }
 
-// ─── Ajuste de vagas por transportadora num horário ─────────────────────
-.qty__ajuste {
-  margin-left: 6px;
-  white-space: nowrap;
-}
-
-.ajuste {
-  flex: 1 1 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--dst-border);
-  border-radius: var(--dst-radius-ctl);
-  background: var(--dst-surface);
-}
-
-.ajuste__hint {
+// Explica a regra do pagador abaixo do "Quem paga".
+.sel__regra {
+  padding-left: 26px;
   margin: 0;
   font-size: 12px;
+  line-height: 1.4;
   color: var(--dst-muted);
-}
 
-.ajuste__list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.ajuste__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-left: 8px;
-
-  // Faixa lateral discreta indica quem foge do padrão.
-  &.is-custom {
-    box-shadow: inset 2px 0 0 var(--dst-primary);
+  strong {
+    color: var(--dst-text);
   }
-}
 
-.ajuste__nome {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  .muted {
+    display: block;
+  }
 }

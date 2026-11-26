@@ -361,6 +361,8 @@ export function montarInput(p: {
   quantidade: number;
   faturamento: Faturamento;
   transferencia: boolean;
+  /** Usuário confirmou destinar acima do acordo (excedente cobrado). */
+  confirmarExcedente?: boolean;
 }): VagaReservaTransportadoraInput {
   const rec = recorrenciaParaApi(p.recorrencia, p.diasOriginais);
   const avulso = !p.transportadoraId;
@@ -379,5 +381,6 @@ export function montarInput(p: {
       p.faturamento.tipo === 'terceiro' && p.faturamento.pagador ? p.faturamento.pagador.id : null,
     destinadorId: p.destinadorId > 0 ? p.destinadorId : null,
     transferenciaAutomaticaSaldo: p.transferencia,
+    confirmarExcedenteAcordo: !!p.confirmarExcedente,
   };
 }

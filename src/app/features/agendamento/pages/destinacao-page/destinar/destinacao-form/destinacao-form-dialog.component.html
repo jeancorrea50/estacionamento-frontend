@@ -155,23 +155,25 @@
                     >
                     <span class="sel__name">{{ t.nome }}</span>
                     @if (t.carregandoSaldo) {
-                      <span class="sel__saldo muted">Consultando acordo…</span>
+                      <span class="sel__saldo muted">Consultando regra de cobrança…</span>
+                    } @else if (t.semCobranca) {
+                      <span
+                        class="sel__saldo is-low"
+                        title="Sem regra de cobrança ativa: as vagas valem, mas não há fatura automática"
+                      >
+                        Sem regra de cobrança
+                      </span>
                     } @else if (t.saldoAcordo !== undefined) {
-                      @let pedido = vagasDaTransportadora(t.id);
                       <span
                         class="sel__saldo"
-                        [class.is-low]="t.saldoAcordo < pedido"
-                        [attr.title]="
-                          'Regra de cobrança (acordo): ' + t.saldoAcordo + ' vagas/dia livres'
-                        "
+                        [class.is-low]="t.saldoAcordo < totalPorDestino()[t.id]"
                       >
-                        Acordo
-                        <strong class="mono">{{ pedido }}/{{ t.saldoAcordo }}</strong> vagas/dia
+                        Saldo do acordo <strong class="mono">{{ t.saldoAcordo }}</strong>/dia
                       </span>
                     } @else {
                       <span
                         class="sel__saldo muted"
-                        title="Sem acordo com teto de vagas na regra de cobrança"
+                        title="Regra de cobrança sem teto de vagas (não é acordo)"
                       >
                         Sem teto de acordo
                       </span>
@@ -230,6 +232,22 @@
                       </select>
                     }
                   </div>
+                  <!-- Regra: a vaga é sempre da transportadora; só a fatura muda de pagador. -->
+                  <p class="sel__regra">
+                    @if (terceiro) {
+                      Vaga, agendamento e movimento ficam com a transportadora; a fatura dessas
+                      vagas vai para
+                      <strong>{{ s.faturamento.pagador?.nome ?? 'o terceiro escolhido' }}</strong>.
+                    } @else {
+                      Vaga, movimento e fatura ficam com a própria transportadora.
+                    }
+                    @if (
+                      t.pagadorPadrao &&
+                      (!terceiro || s.faturamento.pagador?.id !== t.pagadorPadrao.id)
+                    ) {
+                      <span class="muted">Regra de cobrança: paga {{ t.pagadorPadrao.nome }}.</span>
+                    }
+                  </p>
                 </li>
               }
             </ul>
@@ -337,7 +355,7 @@
           <div class="field__row">
             <h3 id="sec-hor" class="sec__title">
               <span class="sec__n">3</span>Horários
-              <span class="muted sec__hint">· vagas/dia para cada transportadora</span>
+              <span class="muted sec__hint">· vagas/dia</span>
             </h3>
             @if (janelasDoDia().length && !carregandoJanelas()) {
               <div class="field__actions">
@@ -364,129 +382,160 @@
               </div>
             </div>
           } @else if (janelasDoDia().length) {
+            <!-- Quantidade padrão: vale para todas as transportadoras e todos os horários -->
+            <div class="bulk">
+              <div class="bulk__row">
+                <span class="bulk__label" id="dst-padrao-lbl">
+                  {{
+                    multi() ? 'Vagas por transportadora, em cada horário' : 'Vagas em cada horário'
+                  }}
+                </span>
+                <app-qty-stepper
+                  label="Quantidade padrão por horário"
+                  [(value)]="padrao"
+                  [min]="1"
+                  [max]="99"
+                />
+                <button
+                  type="button"
+                  class="btn btn--sm btn-secondary"
+                  [disabled]="!totalHorarios() || padrao() === null"
+                  (click)="aplicarPadraoEmTudo()"
+                >
+                  Aplicar a todos
+                </button>
+              </div>
+
+              @if (multi()) {
+                <!-- Atalho: uma transportadora com quantidade diferente em todos os horários -->
+                <details class="bulk__por">
+                  <summary>Quantidade diferente para alguma transportadora</summary>
+                  <ul class="bulk__list">
+                    @for (d of destinos(); track d.id) {
+                      <li>
+                        <span class="bulk__nome" [title]="d.nome">{{ d.nome }}</span>
+                        @if (d.saldoAcordo !== undefined) {
+                          <span class="muted bulk__acordo">acordo {{ d.saldoAcordo }}/dia</span>
+                        }
+                        <app-qty-stepper
+                          [label]="'Vagas por horário para ' + d.nome"
+                          [value]="valorDestino(d.id)"
+                          (valueChange)="aplicarParaDestino(d.id, $event)"
+                          [min]="1"
+                          [max]="99"
+                          [disabled]="!totalHorarios()"
+                        />
+                      </li>
+                    }
+                  </ul>
+                  <p class="field__hint">
+                    Aplica nos horários marcados. Ajustes por horário continuam possíveis abaixo.
+                  </p>
+                </details>
+              }
+            </div>
+
             <ul class="slots">
               @for (j of janelasDoDia(); track j.id) {
                 @let marcada = janelaMarcada(j);
                 @let max = maxPara(j);
-                <li class="slot" [class.is-selected]="marcada" [class.is-full]="!max">
-                  <label class="slot__check">
-                    <input
-                      type="checkbox"
-                      [checked]="marcada"
-                      [disabled]="!max"
-                      (change)="alternarJanela(j, $any($event.target).checked)"
-                    />
-                    <span class="slot__time mono">{{ j.inicio }}–{{ j.fim }}</span>
-                    @if (marcada && totalNaJanela(j) > max) {
-                      <span
-                        class="pill"
-                        data-tone="warn"
-                        [title]="totalNaJanela(j) + ' vagas somando as transportadoras'"
-                      >
-                        {{ totalNaJanela(j) }} excede {{ max }} livres
-                      </span>
-                    } @else if (marcada && qtdDestinos() > 1) {
-                      <span class="slot__free">{{ totalNaJanela(j) }} de {{ max }} livres</span>
-                    } @else if (max) {
-                      <span class="slot__free">{{ max }} livres</span>
-                    } @else {
-                      <span class="pill" data-tone="danger">Sem saldo</span>
-                    }
-                  </label>
-
-                  @if (marcada) {
-                    <div class="qty">
-                      <button
-                        type="button"
-                        class="icon-btn icon-btn--sm"
-                        [attr.aria-label]="'Menos uma vaga em ' + j.inicio"
-                        [disabled]="qtdPorJanela()[j.id] <= 1"
-                        (click)="ajustarQtd(j, qtdPorJanela()[j.id] - 1)"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">remove</span>
-                      </button>
+                @let somaJ = marcada ? soma(j) : 0;
+                @let excede = somaJ > max;
+                @let aberto = marcada && multi() && detalhado(j);
+                <li
+                  class="slot"
+                  [attr.data-slot]="j.id"
+                  [class.is-selected]="marcada"
+                  [class.is-full]="!max"
+                  [class.is-error]="excede"
+                >
+                  <div class="slot__row">
+                    <label class="slot__check">
                       <input
-                        class="qty__input mono"
-                        type="number"
-                        inputmode="numeric"
-                        min="1"
-                        [max]="max"
-                        [attr.aria-label]="'Vagas em ' + j.inicio + '–' + j.fim"
-                        [value]="qtdPorJanela()[j.id]"
-                        (change)="ajustarQtd(j, $any($event.target).valueAsNumber)"
+                        type="checkbox"
+                        [checked]="marcada"
+                        [disabled]="!max"
+                        (change)="alternarJanela(j, $any($event.target).checked)"
                       />
-                      <button
-                        type="button"
-                        class="icon-btn icon-btn--sm"
-                        [attr.aria-label]="'Mais uma vaga em ' + j.inicio"
-                        [disabled]="qtdPorJanela()[j.id] >= max"
-                        (click)="ajustarQtd(j, qtdPorJanela()[j.id] + 1)"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                      </button>
-                      @if (!avulso() && selecionadas().length > 1) {
-                        <button
-                          type="button"
-                          class="link-btn qty__ajuste"
-                          [attr.aria-expanded]="ajusteAberto(j.id)"
-                          [attr.aria-controls]="'ajuste-' + j.id"
-                          (click)="alternarAjustes(j.id)"
-                        >
-                          {{
-                            qtdAjustes(j.id)
-                              ? 'Ajustada (' + qtdAjustes(j.id) + ')'
-                              : 'Por transportadora'
-                          }}
-                        </button>
+                      <span class="slot__time mono">{{ j.inicio }}–{{ j.fim }}</span>
+                      @if (!max) {
+                        <span class="pill" data-tone="danger">Sem saldo</span>
+                      } @else if (marcada) {
+                        <span class="slot__free" [class.is-error]="excede">
+                          <strong class="mono">{{ somaJ }}</strong> de {{ max }} livres
+                        </span>
+                      } @else {
+                        <span class="slot__free">{{ max }} livres</span>
                       }
-                    </div>
+                    </label>
 
-                    @if (!avulso() && selecionadas().length > 1 && ajusteAberto(j.id)) {
-                      <div
-                        class="ajuste"
-                        [id]="'ajuste-' + j.id"
-                        role="group"
-                        [attr.aria-label]="'Vagas por transportadora em ' + j.inicio + '–' + j.fim"
-                      >
-                        <p class="ajuste__hint">
-                          Padrão: <strong class="mono">{{ qtdPorJanela()[j.id] }}</strong> para
-                          cada. Altere só quem é diferente (0 = sem vaga neste horário).
-                        </p>
-                        <ul class="ajuste__list">
-                          @for (s of selecionadas(); track s.transportadora.id) {
-                            @let tid = s.transportadora.id;
-                            <li class="ajuste__item" [class.is-custom]="temAjuste(j.id, tid)">
-                              <span class="ajuste__nome" [title]="s.transportadora.nome">{{
-                                s.transportadora.nome
-                              }}</span>
-                              <input
-                                class="qty__input mono"
-                                type="number"
-                                inputmode="numeric"
-                                min="0"
-                                [max]="max"
-                                [attr.aria-label]="
-                                  'Vagas de ' + s.transportadora.nome + ' em ' + j.inicio
-                                "
-                                [value]="qtdPara(j.id, tid)"
-                                (change)="
-                                  ajustarQtdTransportadora(
-                                    j,
-                                    tid,
-                                    $any($event.target).valueAsNumber
-                                  )
-                                "
-                              />
-                            </li>
-                          }
-                        </ul>
-                        @if (qtdAjustes(j.id)) {
-                          <button type="button" class="link-btn" (click)="limparAjustes(j.id)">
-                            Voltar todas ao padrão
+                    @if (marcada) {
+                      <div class="slot__ctrl">
+                        @if (multi()) {
+                          <span class="slot__todas" aria-hidden="true">Todas</span>
+                        }
+                        <app-qty-stepper
+                          [label]="
+                            (multi() ? 'Vagas para todas as transportadoras em ' : 'Vagas em ') +
+                            j.inicio
+                          "
+                          [value]="valorTodos(j)"
+                          (valueChange)="setTodos(j, $event)"
+                          [max]="multi() ? maxTodos(j) : max"
+                          [invalid]="excede"
+                        />
+                        @if (multi()) {
+                          <button
+                            type="button"
+                            class="icon-btn icon-btn--sm slot__toggle"
+                            [class.is-open]="aberto"
+                            [attr.aria-expanded]="aberto"
+                            [attr.aria-controls]="'split-' + j.id"
+                            [attr.aria-label]="'Ajustar por transportadora em ' + j.inicio"
+                            [title]="
+                              aberto
+                                ? 'Fechar ajuste por transportadora'
+                                : 'Ajustar por transportadora'
+                            "
+                            (click)="alternarDetalhe(j)"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                            @if (valorTodos(j) === null) {
+                              <span class="slot__dot" aria-hidden="true"></span>
+                            }
                           </button>
                         }
                       </div>
                     }
+                  </div>
+
+                  @if (aberto) {
+                    <ul
+                      class="split"
+                      [id]="'split-' + j.id"
+                      [attr.aria-label]="'Vagas por transportadora em ' + j.inicio"
+                    >
+                      @for (d of destinos(); track d.id) {
+                        <li class="split__row">
+                          <span class="split__nome" [title]="d.nome">{{ d.nome }}</span>
+                          <app-qty-stepper
+                            [label]="'Vagas para ' + d.nome + ' em ' + j.inicio"
+                            [value]="qtdDe(j, d.id)"
+                            (valueChange)="setQtd(j, d.id, $event)"
+                            [max]="maxDestino(j, d.id)"
+                            [invalid]="excede"
+                          />
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (excede) {
+                    <p class="slot__err" role="alert">
+                      <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                      Soma {{ somaJ }} passa o saldo da janela ({{ max }}). Reduza alguma
+                      transportadora.
+                    </p>
                   }
                 </li>
               }
@@ -534,38 +583,6 @@
             <dd>{{ destinador()?.nome ?? '—' }}</dd>
           </div>
           <div>
-            <dt>Para</dt>
-            <dd>
-              @if (avulso()) {
-                Avulso
-              } @else if (selecionadas().length) {
-                <ul class="resumo__destinos">
-                  @for (s of selecionadas(); track s.transportadora.id) {
-                    <li>
-                      <span class="resumo__nome">{{ s.transportadora.nome }}</span>
-                      @if (horariosMarcados().length) {
-                        <span class="muted mono"
-                          >{{ vagasDaTransportadora(s.transportadora.id) }}/dia</span
-                        >
-                      }
-                      @if (s.faturamento.tipo === 'terceiro') {
-                        <span class="pill" data-tone="info">
-                          {{
-                            s.faturamento.pagador
-                              ? 'Paga: ' + s.faturamento.pagador.nome
-                              : 'Terceiro sem pagador'
-                          }}
-                        </span>
-                      }
-                    </li>
-                  }
-                </ul>
-              } @else {
-                <span class="muted">—</span>
-              }
-            </dd>
-          </div>
-          <div>
             <dt>Período</dt>
             <dd class="mono">
               {{ vigInicio() | date: 'dd/MM/yyyy' }} –
@@ -578,9 +595,9 @@
               @if (horariosMarcados().length) {
                 <span class="resumo__slots">
                   @for (j of horariosMarcados(); track j.id) {
-                    <span class="resumo__slot mono"
-                      >{{ j.inicio }} · {{ qtdPorJanela()[j.id] }}</span
-                    >
+                    <span class="resumo__slot mono" [class.is-error]="soma(j) > maxPara(j)">{{
+                      j.inicio
+                    }}</span>
                   }
                 </span>
               } @else {
@@ -589,12 +606,77 @@
             </dd>
           </div>
         </dl>
+
+        <!-- Vagas/dia por destino: cada transportadora tem sua regra de cobrança -->
+        @if (destinos().length) {
+          <table class="resumo__tabela">
+            <caption class="sr-only">
+              Vagas por dia por transportadora
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Para</th>
+                <th scope="col">Quem paga</th>
+                <th scope="col" class="num">Vagas/dia</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of destinos(); track d.id) {
+                @let fat = faturamentoDe(d.id);
+                @let acima = d.saldoAcordo !== undefined && totalPorDestino()[d.id] > d.saldoAcordo;
+                <tr>
+                  <td class="resumo__nome" [title]="d.nome">{{ d.nome }}</td>
+                  <td>
+                    @if (fat?.tipo === 'terceiro') {
+                      <span class="pill" data-tone="info">{{
+                        fat?.pagador?.nome ?? 'Terceiro sem pagador'
+                      }}</span>
+                    } @else {
+                      <span class="muted">{{ d.id === 'avulso' ? 'Motorista' : 'A própria' }}</span>
+                    }
+                  </td>
+                  <td class="num mono">
+                    <strong>{{ totalPorDestino()[d.id] }}</strong>
+                    @if (acima) {
+                      <span
+                        class="pill"
+                        data-tone="warn"
+                        [title]="'Saldo do acordo: ' + d.saldoAcordo + '/dia'"
+                      >
+                        excedente +{{ totalPorDestino()[d.id] - d.saldoAcordo! }}
+                      </span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (acimaDoAcordo().length) {
+          <p class="resumo__aviso" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">info</span>
+            Acima do saldo do acordo: {{ acimaDoAcordo().length }}
+            {{ acimaDoAcordo().length === 1 ? 'transportadora' : 'transportadoras' }}. O excedente
+            segue a regra de cobrança de cada uma.
+          </p>
+        }
+
+        @if (semCobranca().length) {
+          <p class="resumo__aviso" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            Sem regra de cobrança ativa:
+            {{
+              semCobranca().length === 1
+                ? semCobranca()[0].transportadora.nome
+                : semCobranca().length + ' transportadoras'
+            }}. As vagas valem, mas a fatura automática não será gerada até cadastrar a regra.
+          </p>
+        }
+
         <div class="resumo__total">
           <span>Total</span>
           <strong class="mono">{{ plural(totalVagasDia(), 'vaga', 'vagas') }}/dia</strong>
-          @if (qtdDestinos() > 1) {
-            <span class="muted">{{ qtdDestinos() }} transportadoras</span>
-          }
         </div>
       </aside>
     </div>
@@ -611,6 +693,14 @@
         <span>Pronto para {{ editando ? 'salvar' : 'gravar' }}.</span>
       }
     </div>
+    @if (totalVagasDia()) {
+      <p class="foot__total" aria-live="polite">
+        <strong class="mono">{{ totalVagasDia() }}</strong> vagas/dia
+        @if (destinos().length > 1) {
+          · {{ destinos().length }} transportadoras
+        }
+      </p>
+    }
     <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
     <button
       type="submit"

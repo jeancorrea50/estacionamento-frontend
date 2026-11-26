@@ -76,4 +76,6 @@ export interface VagaReservaTransportadoraInput {
   transferenciaAutomaticaSaldo?: boolean;
   /** Quem libera as vagas (responsável de faturamento); null = o próprio pátio. */
   destinadorId?: number | null;
+  /** Confirma destinar acima do saldo do acordo (vira excedente na cobrança). */
+  confirmarExcedenteAcordo?: boolean;
 }

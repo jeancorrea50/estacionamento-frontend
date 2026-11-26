@@ -124,7 +124,9 @@ export function mapJanelaDetalhe(row: Row): JanelaAgendamentoDetalhe {
     dataVigenciaInicio: toIsoDate(pick(row, 'dataVigenciaInicio')),
     dataVigenciaFim: toIsoDateOrNull(pick(row, 'dataVigenciaFim')),
     ativo: bool(row, 'ativo'),
-    granularidadeUnidade: (num(row, 'granularidadeUnidade', 1) === 2 ? 2 : 1) as GranularidadeUnidade,
+    granularidadeUnidade: (num(row, 'granularidadeUnidade', 1) === 2
+      ? 2
+      : 1) as GranularidadeUnidade,
     granularidadeValor: num(row, 'granularidadeValor', 1),
     vagasPorSlot: num(row, 'vagasPorSlot'),
     faixas: list(row, 'faixas').map(mapFaixa),
@@ -154,9 +156,15 @@ function mapListItem(row: Row): JanelaAgendamentoListItem {
 }
 
 /** Página `{ results|Results, rowCount, currentPage, pageSize }` (já sem envelope). */
-export function mapJanelaPaged(source: unknown, numeroPagina: number, tamanhoPagina: number): JanelaPagedResult {
+export function mapJanelaPaged(
+  source: unknown,
+  numeroPagina: number,
+  tamanhoPagina: number,
+): JanelaPagedResult {
   const root: Row = isRow(source) ? source : {};
-  const rows = Array.isArray(source) ? source : (pick(root, 'results') as unknown[] | undefined) ?? [];
+  const rows = Array.isArray(source)
+    ? source
+    : ((pick(root, 'results') as unknown[] | undefined) ?? []);
   const items = (Array.isArray(rows) ? rows : []).filter(isRow).map(mapListItem);
   return {
     items,
@@ -178,6 +186,8 @@ function mapSlot(row: Row): JanelaSlotDisponivel {
     disponiveis: num(row, 'disponiveis'),
     viaDestinacao: bool(row, 'viaDestinacao', false),
     label: str(row, 'label').trim() || `${horaInicio} - ${horaFim}`,
+    tipoPagador: tipoPagadorDe(pick(row, 'tipoPagador')),
+    pagadorNome: str(row, 'pagadorNome').trim() || null,
   };
 }
 
@@ -256,4 +266,14 @@ export function mapJanelaDisponibilidadePeriodo(source: unknown): JanelaDisponib
       horariosDisponiveis: Math.max(0, num(r, 'horariosDisponiveis')),
     }))
     .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.data));
+}
+
+/** `TipoPagadorCobranca` do backend (1 = Transportadora, 2 = Terceiro; ou o nome do enum). */
+function tipoPagadorDe(raw: unknown): 'transportadora' | 'terceiro' | null {
+  const s = String(raw ?? '')
+    .trim()
+    .toLowerCase();
+  if (s === '2' || s === 'terceiro') return 'terceiro';
+  if (s === '1' || s === 'transportadora') return 'transportadora';
+  return null;
 }

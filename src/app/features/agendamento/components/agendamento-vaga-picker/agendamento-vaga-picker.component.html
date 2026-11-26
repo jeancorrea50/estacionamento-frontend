@@ -108,9 +108,34 @@
               <span class="vp__slot-vagas"
                 >{{ s.disponiveis }} {{ s.disponiveis === 1 ? 'vaga' : 'vagas' }}</span
               >
+              @if (s.tipoPagador === 'terceiro') {
+                <span
+                  class="vp__slot-pagador"
+                  [title]="'Fatura para ' + (s.pagadorNome || 'terceiro')"
+                >
+                  Paga: {{ s.pagadorNome || 'terceiro' }}
+                </span>
+              }
             </button>
           }
         </div>
+
+        @if (slotSelecionado(); as s) {
+          <!-- Regra: a vaga é sempre da transportadora; a destinação só define quem paga. -->
+          <p class="vp__regra" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            @if (s.tipoPagador === 'terceiro') {
+              Vaga destinada à transportadora. A fatura deste horário vai para
+              <strong>{{ s.pagadorNome || 'o terceiro da destinação' }}</strong>.
+            } @else if (s.tipoPagador === 'transportadora') {
+              Vaga destinada à transportadora, que também paga a fatura.
+            } @else if (s.viaDestinacao) {
+              Vaga destinada à transportadora; quem paga segue a destinação usada no horário.
+            } @else {
+              Vaga livre (sem destinação); a fatura segue a regra de cobrança da transportadora.
+            }
+          </p>
+        }
       }
     </div>
   }

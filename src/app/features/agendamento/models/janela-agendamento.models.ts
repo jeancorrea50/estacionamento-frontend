@@ -35,8 +35,10 @@ export const MODALIDADE_JANELA_OPCOES: ReadonlyArray<{ value: ModalidadeJanela; 
 ];
 
 /** Opções de CRUD/lista de janelas — sem Ambos (só Estacionamento e Limpeza). */
-export const MODALIDADE_JANELA_CRUD_OPCOES: ReadonlyArray<{ value: ModalidadeJanela; label: string }> =
-  MODALIDADE_JANELA_OPCOES.filter((o) => o.value === 1 || o.value === 2);
+export const MODALIDADE_JANELA_CRUD_OPCOES: ReadonlyArray<{
+  value: ModalidadeJanela;
+  label: string;
+}> = MODALIDADE_JANELA_OPCOES.filter((o) => o.value === 1 || o.value === 2);
 
 /** Opções do modal Novo agendamento / seletor de slot (inclui Ambos). */
 export const MODALIDADE_AGENDAMENTO_OPCOES: ReadonlyArray<{
@@ -247,6 +249,10 @@ export interface JanelaSlotDisponivel {
   disponiveis: number;
   viaDestinacao: boolean;
   label: string;
+  /** Quem paga as vagas destinadas do horário (só com destinação). null = segue a regra de cobrança ou misto. */
+  tipoPagador?: 'transportadora' | 'terceiro' | null;
+  /** Nome do terceiro pagador, quando houver. */
+  pagadorNome?: string | null;
 }
 
 export interface JanelaDisponibilidade {

@@ -250,3 +250,33 @@
   font-size: 11px;
   color: var(--vp-muted);
 }
+
+.vp__slot-pagador {
+  max-width: 160px;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vp-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Quem é a vaga e quem paga (regra do pagador da destinação).
+.vp__regra {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--vp-muted);
+
+  .material-symbols-outlined {
+    font-size: 16px;
+    color: var(--vp-primary);
+  }
+
+  strong {
+    color: var(--vp-text);
+  }
+}

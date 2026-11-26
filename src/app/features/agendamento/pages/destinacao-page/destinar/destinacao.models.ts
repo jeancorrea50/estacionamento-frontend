@@ -20,6 +20,10 @@ export interface Transportadora extends Empresa {
   /** Saldo do acordo ainda não destinado (vagas/dia). `undefined` = sem acordo com teto. */
   saldoAcordo?: number;
   carregandoSaldo?: boolean;
+  /** Sem regra de cobrança ativa: a destinação vale, mas não gera fatura automática. */
+  semCobranca?: boolean;
+  /** Pagador padrão da regra de cobrança (FOB); null = a própria transportadora (CIF). */
+  pagadorPadrao?: Empresa | null;
 }
 
 /** Quem paga as vagas destinadas. */

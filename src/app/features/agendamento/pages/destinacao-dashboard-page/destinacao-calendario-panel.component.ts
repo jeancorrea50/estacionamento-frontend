@@ -261,7 +261,13 @@ export class DestinacaoCalendarioPanelComponent implements OnInit, OnDestroy {
                   Number.isFinite(totalCap) && totalCap >= 0
                     ? Math.trunc(totalCap)
                     : slots.reduce((acc, s) => acc + Math.max(0, Math.trunc(Number(s.capacidade) || 0)), 0);
-                return { iso, resumo, janelas };
+                // Agendados = contrato BE `ocupadas` / `totalOcupadas` (igual ao Painel).
+                const totalOcup = Number(disp?.totalOcupadas);
+                const agendados =
+                  Number.isFinite(totalOcup) && totalOcup >= 0
+                    ? Math.trunc(totalOcup)
+                    : slots.reduce((acc, s) => acc + Math.max(0, Math.trunc(Number(s.ocupadas) || 0)), 0);
+                return { iso, resumo, janelas, agendados };
               })
             ),
           4
@@ -306,6 +312,7 @@ export class DestinacaoCalendarioPanelComponent implements OnInit, OnDestroy {
                 reservadas,
                 disponiveis,
                 janelas: row?.janelas ?? 0,
+                agendados: row?.agendados ?? 0,
               };
             })
           );

@@ -31,6 +31,11 @@ export interface DiaCalendarioVm {
    * (`totalCapacidade` / soma de `capacidade` dos slots — alinhado a faixas × vagas/horário).
    */
   janelas: number | null;
+  /**
+   * Agendados no dia — contrato BE `totalOcupadas` / soma de `ocupadas` dos slots
+   * (mesmo significado de “Agendado” no Painel; BE ainda não separa agendado × em pátio).
+   */
+  agendados: number | null;
   loading: boolean;
 }
 
@@ -96,6 +101,7 @@ export function buildMonthGrid(ano: number, mes0: number): DiaCalendarioVm[] {
       reservadas: null,
       disponiveis: null,
       janelas: null,
+      agendados: null,
       loading: !foraDoMes,
     });
   }

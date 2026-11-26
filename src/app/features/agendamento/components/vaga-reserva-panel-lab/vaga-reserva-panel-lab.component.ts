@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import {
   Component,
+  HostListener,
   Input,
   OnChanges,
   OnDestroy,
@@ -11,6 +12,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { forkJoin, of, Subject, Subscription } from 'rxjs';
 import { catchError, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
 import { ToastService } from '../../../../core/api/services/toast.service';
@@ -18,6 +20,11 @@ import {
   PeriodoDataPickerComponent,
   type PeriodoDataSelecionado,
 } from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
+import {
+  ResponsavelFaturamentoFormDialogComponent,
+  type ResponsavelFaturamentoFormDialogResult,
+} from '../../../cadastro/components/responsavel-faturamento-form-dialog/responsavel-faturamento-form-dialog.component';
+import { ResponsavelFaturamentoLookupFieldComponent } from '../../../cadastro/components/responsavel-faturamento-lookup-field/responsavel-faturamento-lookup-field.component';
 import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import {
   ModalidadeCobranca,
@@ -42,9 +49,17 @@ import {
   type FaixaHorarioLab,
 } from './vaga-reserva-lab.util';
 import {
+  agruparDestinacoesLista,
+  type DestinacaoListaModalidade,
+  type DestinacaoListaSituacao,
+  type DestinacaoTransportadoraGrupo,
+} from './vaga-reserva-lista.util';
+import {
   DIAS_SEMANA_OPCOES,
   type ModalidadeAgendamento,
 } from '../../models/janela-agendamento.models';
+
+export type DestinoFaturamentoTipo = 'transportadora' | 'terceiro';
 
 function toIsoDateLocal(date: Date = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -67,6 +82,11 @@ export interface DestinoTransportadoraLab {
   nome: string;
   cota: CotaTransportadoraDia | null;
   loadingCota: boolean;
+  /** Padrão: faturar no CNPJ da própria transportadora. */
+  faturamentoTipo: DestinoFaturamentoTipo;
+  /** Preenchido só quando `faturamentoTipo === 'terceiro'` (`responsavelFaturamentoId` no POST). */
+  responsavelFaturamentoId: number | null;
+  responsavelFaturamentoNome: string;
 }
 
 /** Horário selecionado: qtd padrão para todas + overrides opcionais. */
@@ -93,6 +113,7 @@ export interface HorarioSelecionadoLab {
     DatePipe,
     PeriodoDataPickerComponent,
     TransportadoraLookupFieldComponent,
+    ResponsavelFaturamentoLookupFieldComponent,
   ],
   templateUrl: './vaga-reserva-panel-lab.component.html',
   styleUrls: ['./vaga-reserva-panel-lab.component.scss'],
@@ -103,6 +124,7 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
   private readonly cobrancaApi = inject(ConfiguracaoCobrancaService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
 
   @Input() podeGerenciar = false;
   @Input() embedded = false;
@@ -123,6 +145,15 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
   readonly horariosSelecionados = signal<HorarioSelecionadoLab[]>([]);
   readonly dataInicioSig = signal('');
 
+  /** Filtros compactos da listagem hierárquica. */
+  readonly filtroListaBusca = signal('');
+  readonly filtroListaModalidade = signal<DestinacaoListaModalidade>('todas');
+  readonly filtroListaSituacao = signal<DestinacaoListaSituacao>('ativas');
+  readonly expandidoTransportadoras = signal<ReadonlySet<string>>(new Set());
+  readonly expandidoPeriodos = signal<ReadonlySet<string>>(new Set());
+  readonly expandidoHistoricos = signal<ReadonlySet<string>>(new Set());
+  readonly menuAcaoHorarioId = signal<number | null>(null);
+
   /**
    * Regras da lista filtradas pela modalidade do caput.
    * Inclui `Ambos` (3) porque o backend aplica nas duas.
@@ -135,6 +166,18 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
     () => this.reservasNaModalidade().filter((r) => r.ativo).length
   );
   readonly reservasCadastradasCount = computed(() => this.reservasNaModalidade().length);
+
+  readonly destinacoesAgrupadas = computed((): DestinacaoTransportadoraGrupo[] =>
+    agruparDestinacoesLista(this.reservas(), {
+      busca: this.filtroListaBusca(),
+      modalidade: this.filtroListaModalidade(),
+      situacao: this.filtroListaSituacao(),
+    })
+  );
+  readonly destinacoesTransportadorasCount = computed(() => this.destinacoesAgrupadas().length);
+  readonly destinacoesAtivasVisiveisCount = computed(() =>
+    this.destinacoesAgrupadas().reduce((acc, g) => acc + g.ativosCount, 0)
+  );
 
   /**
    * KPIs 1:1 com `GET /Agendamento/vagas/disponibilidade`
@@ -179,27 +222,82 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
     };
   });
 
-  readonly podeSalvar = computed(() => {
-    if (this.salvando()) return false;
+  /** Motivos visíveis de por que o botão Destinar está bloqueado. */
+  readonly bloqueiosSalvar = computed((): string[] => {
+    const motivos: string[] = [];
+    if (this.salvando()) {
+      motivos.push('Aguarde o salvamento em andamento.');
+      return motivos;
+    }
+
+    const dataInicio = (this.dataInicioSig() || '').trim().slice(0, 10);
+    const dataFim = (this.dataFimSig() || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dataInicio)) {
+      motivos.push('Selecione a vigência (data início).');
+    }
+    const periodicidade = this.periodicidadeSig();
+    if (periodicidade !== 4 && !/^\d{4}-\d{2}-\d{2}$/.test(dataFim)) {
+      motivos.push('Informe o fim da vigência para a recorrência escolhida.');
+    } else if (
+      /^\d{4}-\d{2}-\d{2}$/.test(dataInicio) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(dataFim) &&
+      dataFim < dataInicio
+    ) {
+      motivos.push('A data fim deve ser igual ou posterior à data início.');
+    }
+    if (periodicidade === 2 && this.diasSemana().length === 0) {
+      motivos.push('Selecione ao menos um dia da semana para a recorrência “Toda semana”.');
+    }
+
     const horarios = this.horariosSelecionados();
-    if (!horarios.length) return false;
-
-    if (this.form.controls.avulso.value) {
-      return horarios.some((h) => h.quantidadeAvulsa >= 1);
+    if (!horarios.length) {
+      motivos.push('Selecione ao menos um horário das janelas.');
+    } else if (this.avulsoSig()) {
+      if (!horarios.some((h) => h.quantidadeAvulsa >= 1)) {
+        motivos.push('Informe quantidade (> 0) em ao menos um horário para o avulso.');
+      }
+    } else {
+      const list = this.destinos();
+      if (!list.length) {
+        motivos.push('Adicione ao menos uma transportadora (ou marque Avulso).');
+      }
+      if (list.some((d) => d.loadingCota)) {
+        motivos.push('Aguarde o cálculo da Qtd. Livres das transportadoras.');
+      }
+      for (const d of list) {
+        if (
+          d.faturamentoTipo === 'terceiro' &&
+          !(d.responsavelFaturamentoId != null && d.responsavelFaturamentoId > 0)
+        ) {
+          motivos.push(`${d.nome}: selecione o CNPJ/responsável de faturamento (Terceiro).`);
+        }
+        const usado = this.totalReservadoTransportadora(d.id, horarios);
+        const max = maxQuantidadePermitida(d.cota);
+        if (max != null && usado > max) {
+          motivos.push(
+            `${d.nome}: neste formulário ${usado} vaga${usado === 1 ? '' : 's'}, mas só há ${max} livre${
+              max === 1 ? '' : 's'
+            } no acordo.`
+          );
+        }
+      }
+      if (
+        list.length > 0 &&
+        !list.some((d) => d.loadingCota) &&
+        !list.some((d) => this.totalReservadoTransportadora(d.id, horarios) > 0)
+      ) {
+        motivos.push('Informe quantidade (> 0) em ao menos um horário.');
+      }
     }
 
-    const list = this.destinos();
-    if (!list.length || list.some((d) => d.loadingCota)) return false;
-
-    let algum = false;
-    for (const d of list) {
-      const usado = this.totalReservadoTransportadora(d.id, horarios);
-      if (usado > 0) algum = true;
-      const max = maxQuantidadePermitida(d.cota);
-      if (max != null && usado > max) return false;
+    if (!this.faixas().length && !this.loadingFaixas()) {
+      motivos.push('Não há janelas com horário neste dia — ajuste a vigência ou cadastre Janelas.');
     }
-    return algum;
+
+    return motivos;
   });
+
+  readonly podeSalvar = computed(() => this.bloqueiosSalvar().length === 0);
 
   private readonly cancelarCarregar$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
@@ -222,6 +320,8 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
   /** Dias selecionados quando recorrência = Toda semana (0=Dom … 6=Sáb). */
   readonly diasSemana = signal<number[]>([]);
   private readonly periodicidadeSig = signal<PeriodicidadeVagaReserva>(1);
+  private readonly avulsoSig = signal(false);
+  private readonly dataFimSig = signal('');
   readonly mostraDiasSemana = computed(() => this.periodicidadeSig() === 2);
 
   readonly form = this.fb.nonNullable.group({
@@ -230,10 +330,14 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
     dataFim: [''],
     periodicidade: [1 as PeriodicidadeVagaReserva, Validators.required],
     avulso: [false],
+    /** Saldo não usado passa para o próximo horário do mesmo dia (job BE). */
+    transferenciaAutomaticaSaldo: [false],
   });
 
   ngOnInit(): void {
+    this.avulsoSig.set(!!this.form.controls.avulso.value);
     this.form.controls.avulso.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((avulso) => {
+      this.avulsoSig.set(!!avulso);
       if (avulso) {
         this.destinos.set([]);
         this.sincronizarQuantidadesHorarios();
@@ -259,9 +363,13 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
       // Horários vêm das janelas do dia da vigência (ex.: janela só em dez. ⇒ nov. fica vazio).
       this.carregarFaixas(this.form.controls.modalidade.value);
     });
+    this.form.controls.dataFim.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((v) => {
+      this.dataFimSig.set(v || '');
+    });
     this.form.controls.dataInicio.setValue(this.dataConsulta(), { emitEvent: false });
     this.form.controls.dataFim.setValue(this.dataConsulta(), { emitEvent: false });
     this.dataInicioSig.set(this.dataConsulta());
+    this.dataFimSig.set(this.dataConsulta());
     this.carregar();
     this.carregarFaixas(this.form.controls.modalidade.value);
   }
@@ -324,12 +432,89 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
     }
     this.destinos.update((list) => [
       ...list,
-      { id, nome: nome || `Transportadora #${id}`, cota: null, loadingCota: true },
+      {
+        id,
+        nome: nome || `Transportadora #${id}`,
+        cota: null,
+        loadingCota: true,
+        faturamentoTipo: 'transportadora',
+        responsavelFaturamentoId: null,
+        responsavelFaturamentoNome: '',
+      },
     ]);
     this.sincronizarQuantidadesHorarios();
     this.carregarCotaDestino(id);
     this.lookupId.set(null);
     this.lookupNome.set('');
+  }
+
+  setFaturamentoTipo(destinoId: number, tipo: DestinoFaturamentoTipo): void {
+    this.destinos.update((list) =>
+      list.map((d) => {
+        if (d.id !== destinoId) return d;
+        if (tipo === 'transportadora') {
+          return {
+            ...d,
+            faturamentoTipo: 'transportadora',
+            responsavelFaturamentoId: null,
+            responsavelFaturamentoNome: '',
+          };
+        }
+        return { ...d, faturamentoTipo: 'terceiro' };
+      })
+    );
+  }
+
+  onResponsavelFaturamentoId(destinoId: number, id: number | null): void {
+    this.destinos.update((list) =>
+      list.map((d) => {
+        if (d.id !== destinoId) return d;
+        const rid = id != null && id > 0 ? id : null;
+        return {
+          ...d,
+          responsavelFaturamentoId: rid,
+          responsavelFaturamentoNome: rid ? d.responsavelFaturamentoNome : '',
+        };
+      })
+    );
+  }
+
+  onResponsavelFaturamentoNome(destinoId: number, nome: string): void {
+    this.destinos.update((list) =>
+      list.map((d) =>
+        d.id === destinoId ? { ...d, responsavelFaturamentoNome: (nome || '').trim() } : d
+      )
+    );
+  }
+
+  abrirNovoResponsavelFaturamento(destinoId: number): void {
+    if (!this.podeGerenciar) return;
+    this.dialog
+      .open(ResponsavelFaturamentoFormDialogComponent, {
+        width: '720px',
+        maxWidth: '96vw',
+        autoFocus: false,
+      })
+      .afterClosed()
+      .subscribe((res: ResponsavelFaturamentoFormDialogResult | undefined) => {
+        if (!res?.saved || !res.dto?.id) return;
+        const rid = Number(res.dto.id);
+        if (!Number.isFinite(rid) || rid <= 0) return;
+        const nome =
+          (res.dto.nomeFantasia || res.dto.razaoSocial || '').trim() || `Responsável #${rid}`;
+        this.destinos.update((list) =>
+          list.map((d) =>
+            d.id === destinoId
+              ? {
+                  ...d,
+                  faturamentoTipo: 'terceiro',
+                  responsavelFaturamentoId: rid,
+                  responsavelFaturamentoNome: nome,
+                }
+              : d
+          )
+        );
+      });
   }
 
   removerDestino(id: number): void {
@@ -366,6 +551,21 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
     const max = this.maxDoDestino(d);
     if (max == null) return null;
     return Math.max(0, max - this.totalReservadoTransportadora(d.id));
+  }
+
+  excedeCotaDestino(d: DestinoTransportadoraLab): boolean {
+    const max = this.maxDoDestino(d);
+    if (max == null) return false;
+    return this.totalReservadoTransportadora(d.id) > max;
+  }
+
+  motivoExcessoDestino(d: DestinoTransportadoraLab): string | null {
+    if (!this.excedeCotaDestino(d)) return null;
+    const max = this.maxDoDestino(d) ?? 0;
+    const usado = this.totalReservadoTransportadora(d.id);
+    return `Neste formulário ${usado} vaga${usado === 1 ? '' : 's'}, mas só há ${max} livre${
+      max === 1 ? '' : 's'
+    }. Reduza a quantidade nos horários.`;
   }
 
   faixaEstaSelecionada(key: string): boolean {
@@ -520,6 +720,91 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
     this.reservasAbertas.update((v) => !v);
   }
 
+  onFiltroListaBusca(value: string): void {
+    this.filtroListaBusca.set(value ?? '');
+  }
+
+  setFiltroListaModalidade(value: DestinacaoListaModalidade): void {
+    this.filtroListaModalidade.set(value);
+  }
+
+  onFiltroListaModalidadeChange(raw: string): void {
+    if (raw === '1' || raw === '2' || raw === '3') {
+      this.filtroListaModalidade.set(Number(raw) as 1 | 2 | 3);
+      return;
+    }
+    this.filtroListaModalidade.set('todas');
+  }
+
+  setFiltroListaSituacao(value: string): void {
+    if (value === 'ativas' || value === 'inativas' || value === 'todas') {
+      this.filtroListaSituacao.set(value);
+    }
+  }
+
+  isTransportadoraExpandida(key: string): boolean {
+    return this.expandidoTransportadoras().has(key);
+  }
+
+  isPeriodoExpandido(key: string): boolean {
+    return this.expandidoPeriodos().has(key);
+  }
+
+  isHistoricoExpandido(key: string): boolean {
+    return this.expandidoHistoricos().has(key);
+  }
+
+  toggleTransportadora(key: string): void {
+    this.menuAcaoHorarioId.set(null);
+    this.expandidoTransportadoras.update((set) => this.toggleSetKey(set, key));
+  }
+
+  togglePeriodo(key: string): void {
+    this.menuAcaoHorarioId.set(null);
+    this.expandidoPeriodos.update((set) => this.toggleSetKey(set, key));
+  }
+
+  toggleHistorico(key: string): void {
+    this.menuAcaoHorarioId.set(null);
+    this.expandidoHistoricos.update((set) => this.toggleSetKey(set, key));
+  }
+
+  expandirTodasDestinacoes(): void {
+    const grupos = this.destinacoesAgrupadas();
+    this.expandidoTransportadoras.set(new Set(grupos.map((g) => g.key)));
+    this.expandidoPeriodos.set(
+      new Set(grupos.flatMap((g) => g.periodosAtivos.map((p) => `${g.key}|${p.key}`)))
+    );
+  }
+
+  recolherTodasDestinacoes(): void {
+    this.expandidoTransportadoras.set(new Set());
+    this.expandidoPeriodos.set(new Set());
+    this.expandidoHistoricos.set(new Set());
+    this.menuAcaoHorarioId.set(null);
+  }
+
+  periodoExpandKey(transportadoraKey: string, periodoKey: string): string {
+    return `${transportadoraKey}|${periodoKey}`;
+  }
+
+  toggleMenuAcaoHorario(id: number, event: Event): void {
+    event.stopPropagation();
+    this.menuAcaoHorarioId.update((atual) => (atual === id ? null : id));
+  }
+
+  @HostListener('document:click')
+  onDocumentClickFechaMenu(): void {
+    if (this.menuAcaoHorarioId() != null) this.menuAcaoHorarioId.set(null);
+  }
+
+  private toggleSetKey(set: ReadonlySet<string>, key: string): Set<string> {
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  }
+
   irParaHoje(): void {
     this.onDataConsultaChange(toIsoDateLocal());
   }
@@ -582,12 +867,16 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
   onVigenciaPeriodoChange(periodo: PeriodoDataSelecionado): void {
     if (!periodo.ativo || !periodo.dataInicial) {
       this.form.patchValue({ dataInicio: '', dataFim: '' });
+      this.dataInicioSig.set('');
+      this.dataFimSig.set('');
       this.form.controls.dataInicio.markAsDirty();
       this.form.controls.dataFim.markAsDirty();
       return;
     }
     const fim = periodo.dataFinal || periodo.dataInicial;
     this.form.patchValue({ dataInicio: periodo.dataInicial, dataFim: fim });
+    this.dataInicioSig.set(periodo.dataInicial);
+    this.dataFimSig.set(fim);
     this.form.controls.dataInicio.markAsDirty();
     this.form.controls.dataFim.markAsDirty();
   }
@@ -763,7 +1052,12 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
   }
 
   salvar(): void {
-    if (!this.podeGerenciar || !this.podeSalvar()) return;
+    if (!this.podeGerenciar) return;
+    const bloqueios = this.bloqueiosSalvar();
+    if (bloqueios.length) {
+      this.toast.error(bloqueios[0]!);
+      return;
+    }
     const horarios = this.horariosSelecionados();
     if (!horarios.length) {
       this.toast.error('Selecione ao menos um horário das janelas.');
@@ -792,6 +1086,15 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
 
     if (!raw.avulso) {
       for (const d of this.destinos()) {
+        if (
+          d.faturamentoTipo === 'terceiro' &&
+          !(d.responsavelFaturamentoId != null && d.responsavelFaturamentoId > 0)
+        ) {
+          this.toast.error(
+            `${d.nome}: selecione o responsável de faturamento (terceiro) ou cadastre o CNPJ.`
+          );
+          return;
+        }
         const usado = this.totalReservadoTransportadora(d.id, horarios);
         const max = this.maxDoDestino(d);
         if (max != null && usado > max) {
@@ -822,6 +1125,8 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
             transportadoraId: 0,
             quantidade: h.quantidadeAvulsa,
             avulso: true,
+            responsavelFaturamentoId: null,
+            transferenciaAutomaticaSaldo: !!raw.transferenciaAutomaticaSaldo,
           });
         }
       } else {
@@ -834,6 +1139,13 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
             transportadoraId: d.id,
             quantidade: qtd,
             avulso: false,
+            responsavelFaturamentoId:
+              d.faturamentoTipo === 'terceiro' &&
+              d.responsavelFaturamentoId != null &&
+              d.responsavelFaturamentoId > 0
+                ? d.responsavelFaturamentoId
+                : null,
+            transferenciaAutomaticaSaldo: !!raw.transferenciaAutomaticaSaldo,
           });
         }
       }
@@ -876,9 +1188,12 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
       dataFim: dia,
       avulso: false,
       periodicidade: 1,
+      transferenciaAutomaticaSaldo: false,
     });
     this.dataInicioSig.set(dia);
+    this.dataFimSig.set(dia);
     this.periodicidadeSig.set(1);
+    this.avulsoSig.set(false);
     this.diasSemana.set([]);
     this.destinos.set([]);
     this.horariosSelecionados.set([]);
@@ -890,6 +1205,7 @@ export class VagaReservaPanelLabComponent implements OnInit, OnChanges, OnDestro
 
   inativar(id: number): void {
     if (!this.podeGerenciar) return;
+    this.menuAcaoHorarioId.set(null);
     this.api.inativarReserva(id).subscribe({
       next: (ok) => {
         if (!ok) {

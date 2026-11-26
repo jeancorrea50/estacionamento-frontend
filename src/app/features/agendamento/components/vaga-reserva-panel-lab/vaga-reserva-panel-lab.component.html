@@ -163,29 +163,94 @@
                     class="vrp-destino"
                     [class.vrp-destino--block]="maxDoDestino(d) !== null && (maxDoDestino(d) ?? 0) <= 0"
                   >
-                    <strong class="vrp-destino__nome" [title]="d.nome">
-                      {{ d.nome }}
-                    </strong>
-                    <span class="vrp-destino__livres" [attr.title]="labelCota(d)">
-                      @if (d.loadingCota) {
-                        …
-                      } @else if (maxDoDestino(d) !== null) {
-                        Qtd. Livres {{ maxDoDestino(d) }}
-                        @if (totalReservadoTransportadora(d.id) > 0) {
-                          · neste form {{ totalReservadoTransportadora(d.id) }}
+                    <div class="vrp-destino__top">
+                      <strong class="vrp-destino__nome" [title]="d.nome">
+                        {{ d.nome }}
+                      </strong>
+                      <span
+                        class="vrp-destino__livres"
+                        [class.vrp-destino__livres--erro]="excedeCotaDestino(d)"
+                        [attr.title]="labelCota(d)"
+                      >
+                        @if (d.loadingCota) {
+                          …
+                        } @else if (maxDoDestino(d) !== null) {
+                          Qtd. Livres {{ maxDoDestino(d) }}
+                          @if (totalReservadoTransportadora(d.id) > 0) {
+                            · neste form {{ totalReservadoTransportadora(d.id) }}
+                          }
+                        } @else {
+                          Sem cota
                         }
-                      } @else {
-                        Sem cota
-                      }
-                    </span>
-                    <button
-                      type="button"
-                      class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--icon"
-                      (click)="removerDestino(d.id)"
-                      [attr.aria-label]="'Remover ' + d.nome"
-                    >
-                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                    </button>
+                      </span>
+                      <button
+                        type="button"
+                        class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--icon"
+                        (click)="removerDestino(d.id)"
+                        [attr.aria-label]="'Remover ' + d.nome"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                      </button>
+                    </div>
+                    @if (motivoExcessoDestino(d); as motivoExc) {
+                      <p class="vrp-destino__erro" role="status">{{ motivoExc }}</p>
+                    }
+
+                    <div class="vrp-destino__fat">
+                      <span class="vrp-destino__fat-label">Faturamento</span>
+                      <div class="vrp-seg vrp-seg--compact" role="radiogroup" [attr.aria-label]="'Faturamento de ' + d.nome">
+                        <button
+                          type="button"
+                          role="radio"
+                          class="vrp-seg__btn"
+                          [class.vrp-seg__btn--on]="d.faturamentoTipo === 'transportadora'"
+                          [attr.aria-checked]="d.faturamentoTipo === 'transportadora'"
+                          [disabled]="!podeGerenciar"
+                          (click)="setFaturamentoTipo(d.id, 'transportadora')"
+                        >
+                          Transportadora
+                        </button>
+                        <button
+                          type="button"
+                          role="radio"
+                          class="vrp-seg__btn"
+                          [class.vrp-seg__btn--on]="d.faturamentoTipo === 'terceiro'"
+                          [attr.aria-checked]="d.faturamentoTipo === 'terceiro'"
+                          [disabled]="!podeGerenciar"
+                          (click)="setFaturamentoTipo(d.id, 'terceiro')"
+                        >
+                          Terceiro
+                        </button>
+                      </div>
+                    </div>
+
+                    @if (d.faturamentoTipo === 'terceiro') {
+                      <div class="vrp-destino__terceiro">
+                        <span class="vrp-field__label">CNPJ do terceiro *</span>
+                        <div class="vrp-destino__terceiro-row">
+                          <app-responsavel-faturamento-lookup-field
+                            class="vrp-destino__terceiro-lookup"
+                            [responsavelId]="d.responsavelFaturamentoId"
+                            [responsavelNome]="d.responsavelFaturamentoNome"
+                            [disabled]="!podeGerenciar"
+                            placeholder="Informar ou buscar CNPJ"
+                            ariaLabel="Responsável de faturamento terceiro"
+                            (responsavelIdChange)="onResponsavelFaturamentoId(d.id, $event)"
+                            (responsavelNomeChange)="onResponsavelFaturamentoNome(d.id, $event)"
+                          />
+                          <button
+                            type="button"
+                            class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--icon"
+                            title="Cadastrar responsável"
+                            aria-label="Cadastrar responsável de faturamento"
+                            [disabled]="!podeGerenciar"
+                            (click)="abrirNovoResponsavelFaturamento(d.id)"
+                          >
+                            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                          </button>
+                        </div>
+                      </div>
+                    }
                   </li>
                 }
               </ul>
@@ -382,6 +447,30 @@
           }
         </section>
 
+        <section class="vrp-lab__group vrp-lab__group--transfer">
+          <label class="vrp-check vrp-check--block">
+            <input type="checkbox" formControlName="transferenciaAutomaticaSaldo" />
+            <span>
+              <strong>Transferência automática de saldo</strong>
+              <small>
+                Se a transportadora não usar todas as vagas de um horário, o saldo sobra passa para o
+                próximo horário do mesmo dia. A regra encerra no fim do dia.
+              </small>
+            </span>
+          </label>
+        </section>
+
+        @if (bloqueiosSalvar().length > 0) {
+          <div class="vrp-lab__bloqueios" role="status" aria-live="polite">
+            <strong>Não é possível destinar ainda:</strong>
+            <ul>
+              @for (m of bloqueiosSalvar(); track m) {
+                <li>{{ m }}</li>
+              }
+            </ul>
+          </div>
+        }
+
         <div class="vrp-lab__form-actions">
           <button type="submit" class="vrp-lab__btn vrp-lab__btn--primary" [disabled]="!podeSalvar()">
             {{ salvando() ? 'Salvando…' : 'Destinar vagas' }}
@@ -397,82 +486,234 @@
         <div>
           <h3 class="vrp-lab__reservas-title">Destinações</h3>
           <p class="vrp-lab__reservas-meta">
-            {{ reservasAtivasCount() }} ativas · {{ reservasCadastradasCount() }} nesta modalidade
+            {{ destinacoesTransportadorasCount() }} transportadora{{
+              destinacoesTransportadorasCount() === 1 ? '' : 's'
+            }}
+            · {{ destinacoesAtivasVisiveisCount() }}
+            {{ destinacoesAtivasVisiveisCount() === 1 ? 'destinação ativa' : 'destinações ativas' }}
           </p>
         </div>
-        <button
-          type="button"
-          class="vrp-lab__btn vrp-lab__btn--ghost"
-          (click)="toggleReservas()"
-          [attr.aria-expanded]="reservasAbertas()"
-        >
-          {{ reservasAbertas() ? 'Ocultar' : 'Mostrar' }}
-        </button>
+        <div class="vrp-lab__reservas-actions">
+          @if (reservasAbertas() && destinacoesAgrupadas().length > 0) {
+            <button type="button" class="vrp-lab__btn vrp-lab__btn--ghost" (click)="expandirTodasDestinacoes()">
+              Expandir
+            </button>
+            <button type="button" class="vrp-lab__btn vrp-lab__btn--ghost" (click)="recolherTodasDestinacoes()">
+              Recolher
+            </button>
+          }
+          <button
+            type="button"
+            class="vrp-lab__btn vrp-lab__btn--ghost"
+            (click)="toggleReservas()"
+            [attr.aria-expanded]="reservasAbertas()"
+          >
+            {{ reservasAbertas() ? 'Ocultar' : 'Mostrar' }}
+          </button>
+        </div>
       </div>
 
       @if (reservasAbertas()) {
-        @if (loading() && reservasNaModalidade().length === 0) {
+        <div class="vrp-tree-filters" aria-label="Filtros das destinações">
+          <label class="vrp-tree-filters__busca">
+            <span class="vrp-sr-only">Transportadora</span>
+            <input
+              type="search"
+              [value]="filtroListaBusca()"
+              (input)="onFiltroListaBusca($any($event.target).value)"
+              placeholder="Transportadora…"
+            />
+          </label>
+          <select
+            [value]="filtroListaModalidade()"
+            (change)="onFiltroListaModalidadeChange($any($event.target).value)"
+            aria-label="Modalidade"
+          >
+            <option value="todas">Todas modalidades</option>
+            <option value="1">Estacionamento</option>
+            <option value="2">Limpeza</option>
+            <option value="3">Ambos</option>
+          </select>
+          <select
+            [value]="filtroListaSituacao()"
+            (change)="setFiltroListaSituacao($any($event.target).value)"
+            aria-label="Situação"
+          >
+            <option value="ativas">Ativas</option>
+            <option value="inativas">Inativas</option>
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+
+        @if (loading() && reservas().length === 0) {
           <p class="vrp-lab__status">Carregando…</p>
-        } @else if (reservasNaModalidade().length === 0) {
+        } @else if (destinacoesAgrupadas().length === 0) {
           <div class="vrp-lab__empty">
-            <p>Nenhuma destinação nesta modalidade.</p>
+            <p>Nenhuma destinação encontrada.</p>
           </div>
         } @else {
-          <ul class="vrp-lab__list">
-            @for (r of reservasNaModalidade(); track r.id) {
-              <li class="vrp-res" [class.vrp-res--off]="!r.ativo">
-                <span
-                  class="vrp-res__tick"
-                  [class.vrp-res__tick--on]="r.ativo"
-                  [class.vrp-res__tick--off]="!r.ativo"
-                  [attr.title]="r.ativo ? 'Ativa' : 'Inativa'"
-                  [attr.aria-label]="r.ativo ? 'Ativa' : 'Inativa'"
+          <ul class="vrp-tree">
+            @for (t of destinacoesAgrupadas(); track t.key) {
+              <li class="vrp-tree__item">
+                <button
+                  type="button"
+                  class="vrp-tree__row vrp-tree__row--transp"
+                  [attr.aria-expanded]="isTransportadoraExpandida(t.key)"
+                  (click)="toggleTransportadora(t.key)"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    {{ r.ativo ? 'check_circle' : 'cancel' }}
+                  <span class="vrp-tree__chev" aria-hidden="true">{{
+                    isTransportadoraExpandida(t.key) ? '▾' : '▸'
+                  }}</span>
+                  <strong class="vrp-tree__nome" [title]="t.nome">{{ t.nome }}</strong>
+                  <span class="vrp-tree__resumo">
+                    @if (t.horariosAtivosCount > 0) {
+                      {{ t.horariosAtivosCount }} horário{{ t.horariosAtivosCount === 1 ? '' : 's' }} ativo{{
+                        t.horariosAtivosCount === 1 ? '' : 's'
+                      }}
+                      · {{ t.vagasDiaAtivas }} vaga{{ t.vagasDiaAtivas === 1 ? '' : 's' }}/dia
+                    } @else if (t.inativosCount > 0) {
+                      {{ t.inativosCount }} no histórico
+                    } @else {
+                      Sem destinações
+                    }
                   </span>
-                </span>
-
-                <strong class="vrp-res__nome" [title]="r.transportadoraNome || (r.avulso ? 'Avulso' : '')">
-                  {{ r.transportadoraNome || (r.avulso ? 'Avulso' : '—') }}
-                </strong>
-
-                <span class="vrp-res__meta" title="Modalidade">
-                  <span class="material-symbols-outlined" aria-hidden="true">
-                    {{ r.modalidade === 2 ? 'water_drop' : r.modalidade === 3 ? 'layers' : 'local_parking' }}
-                  </span>
-                  {{ r.modalidadeLabel }}
-                </span>
-
-                <span class="vrp-res__meta" title="Quantidade">
-                  <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
-                  {{ r.quantidade }} vaga{{ r.quantidade === 1 ? '' : 's' }}
-                </span>
-
-                @if (r.horaInicio && r.horaFim) {
-                  <span class="vrp-res__meta" title="Horário">
-                    <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
-                    {{ r.horaInicio }}–{{ r.horaFim }}
-                  </span>
-                }
-
-                <span class="vrp-res__meta" title="Vigência">
-                  <span class="material-symbols-outlined" aria-hidden="true">event</span>
-                  {{ r.dataInicio | date: 'dd/MM/yyyy' }}
-                  @if (r.dataFim && r.dataFim !== r.dataInicio) {
-                    — {{ r.dataFim | date: 'dd/MM/yyyy' }}
+                  @if (t.ativosCount > 0) {
+                    <span class="vrp-tree__badge vrp-tree__badge--ok" title="Possui destinações ativas">●</span>
                   }
-                </span>
+                </button>
 
-                @if (podeGerenciar && r.ativo) {
-                  <button
-                    type="button"
-                    class="vrp-lab__btn vrp-lab__btn--ghost vrp-lab__btn--danger"
-                    (click)="inativar(r.id)"
-                    title="Inativar"
-                  >
-                    Inativar
-                  </button>
+                @if (isTransportadoraExpandida(t.key)) {
+                  <div class="vrp-tree__body">
+                    @if (t.periodosAtivos.length > 0) {
+                      <p class="vrp-tree__section-label">Períodos destinados</p>
+                      <ul class="vrp-tree__periodos">
+                        @for (p of t.periodosAtivos; track p.key) {
+                          <li class="vrp-tree__periodo">
+                            <button
+                              type="button"
+                              class="vrp-tree__row vrp-tree__row--periodo"
+                              [attr.aria-expanded]="isPeriodoExpandido(periodoExpandKey(t.key, p.key))"
+                              (click)="togglePeriodo(periodoExpandKey(t.key, p.key))"
+                            >
+                              <span class="vrp-tree__chev" aria-hidden="true">{{
+                                isPeriodoExpandido(periodoExpandKey(t.key, p.key)) ? '▾' : '▸'
+                              }}</span>
+                              <span class="vrp-tree__periodo-main">
+                                <strong>{{ p.periodoLabel }}</strong>
+                                <span
+                                  >{{ p.modalidadeLabel }} · {{ p.totalVagasDia }} vaga{{
+                                    p.totalVagasDia === 1 ? '' : 's'
+                                  }}/dia · {{ p.horarios.length }} horário{{
+                                    p.horarios.length === 1 ? '' : 's'
+                                  }}</span
+                                >
+                              </span>
+                              <span class="vrp-tree__situacao vrp-tree__situacao--on">Ativo</span>
+                            </button>
+
+                            @if (isPeriodoExpandido(periodoExpandKey(t.key, p.key))) {
+                              <div class="vrp-tree__horarios">
+                                <div class="vrp-tree__horarios-head" aria-hidden="true">
+                                  <span>Horário</span>
+                                  <span>Vagas</span>
+                                  <span>Faturamento</span>
+                                  <span>Situação</span>
+                                  <span></span>
+                                </div>
+                                @for (h of p.horarios; track h.id) {
+                                  <div class="vrp-tree__horario">
+                                    <span class="vrp-tree__horario-hora">{{ h.label }}</span>
+                                    <span class="vrp-tree__horario-qtd"
+                                      >{{ h.quantidade }} vaga{{ h.quantidade === 1 ? '' : 's' }}</span
+                                    >
+                                    <span
+                                      class="vrp-tree__horario-fat"
+                                      [title]="h.faturamentoLabel"
+                                    >
+                                      {{ h.faturamentoLabel }}
+                                    </span>
+                                    <span
+                                      class="vrp-tree__situacao"
+                                      [class.vrp-tree__situacao--on]="h.ativo"
+                                      [class.vrp-tree__situacao--off]="!h.ativo"
+                                    >
+                                      {{ h.ativo ? 'Ativo' : 'Inativo' }}
+                                      @if (h.transferenciaAutomaticaSaldo) {
+                                        · transf.
+                                      }
+                                    </span>
+                                    <div class="vrp-tree__menu">
+                                      @if (podeGerenciar && h.ativo) {
+                                        <button
+                                          type="button"
+                                          class="vrp-tree__menu-btn"
+                                          [attr.aria-expanded]="menuAcaoHorarioId() === h.id"
+                                          [attr.aria-label]="'Ações do horário ' + h.label"
+                                          (click)="toggleMenuAcaoHorario(h.id, $event)"
+                                        >
+                                          ⋮
+                                        </button>
+                                        @if (menuAcaoHorarioId() === h.id) {
+                                          <div class="vrp-tree__menu-pop" role="menu">
+                                            <button
+                                              type="button"
+                                              role="menuitem"
+                                              (click)="inativar(h.id); $event.stopPropagation()"
+                                            >
+                                              Inativar
+                                            </button>
+                                          </div>
+                                        }
+                                      }
+                                    </div>
+                                  </div>
+                                }
+                                <div class="vrp-tree__horarios-total">
+                                  <span>Total por dia</span>
+                                  <strong>{{ p.totalVagasDia }} vagas</strong>
+                                </div>
+                              </div>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    } @else if (filtroListaSituacao() !== 'inativas') {
+                      <p class="vrp-lab__status">Sem períodos ativos.</p>
+                    }
+
+                    @if (t.inativosCount > 0) {
+                      <button
+                        type="button"
+                        class="vrp-tree__hist-toggle"
+                        [attr.aria-expanded]="isHistoricoExpandido(t.key)"
+                        (click)="toggleHistorico(t.key)"
+                      >
+                        <span class="vrp-tree__chev" aria-hidden="true">{{
+                          isHistoricoExpandido(t.key) ? '▾' : '▸'
+                        }}</span>
+                        Histórico de destinações inativas ({{ t.inativosCount }})
+                      </button>
+                      @if (isHistoricoExpandido(t.key)) {
+                        <ul class="vrp-tree__historico">
+                          @for (p of t.periodosInativos; track p.key) {
+                            <li>
+                              <p class="vrp-tree__hist-periodo">
+                                {{ p.periodoLabel }} · {{ p.modalidadeLabel }}
+                              </p>
+                              @for (h of p.horarios; track h.id) {
+                                <div class="vrp-tree__hist-hora">
+                                  <span>{{ h.label }}</span>
+                                  <span
+                                    >{{ h.quantidade }} vagas · {{ h.faturamentoLabel }} · Inativo</span
+                                  >
+                                </div>
+                              }
+                            </li>
+                          }
+                        </ul>
+                      }
+                    }
+                  </div>
                 }
               </li>
             }

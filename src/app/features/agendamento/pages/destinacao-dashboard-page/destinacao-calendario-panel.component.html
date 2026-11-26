@@ -128,13 +128,17 @@
                   <i class="dcal__dot dcal__dot--cap" aria-hidden="true"></i>
                   {{ d.janelas ?? 0 }} janelas
                 </span>
-                <span class="dcal__day-meta" title="vagasReservadas">
+                <span class="dcal__day-meta" title="Destinadas (vagasReservadas)">
                   <i class="dcal__dot dcal__dot--res" aria-hidden="true"></i>
-                  {{ d.reservadas ?? 0 }} reservadas
+                  {{ d.reservadas ?? 0 }} destinadas
+                </span>
+                <span class="dcal__day-meta" title="Agendadas (totalOcupadas / ocupadas)">
+                  <i class="dcal__dot dcal__dot--agend" aria-hidden="true"></i>
+                  {{ d.agendados ?? 0 }} agendadas
                 </span>
                 <span class="dcal__day-meta dcal__day-meta--livres" title="vagasDisponiveis">
                   <i class="dcal__dot dcal__dot--livre" aria-hidden="true"></i>
-                  {{ d.disponiveis ?? '—' }} livres
+                  {{ d.disponiveis ?? '—' }} livre
                 </span>
               }
             }
@@ -144,11 +148,12 @@
 
       <footer class="dcal__legend" aria-label="Legenda de disponibilidade">
         <span><i class="dcal__dot dcal__dot--cap" aria-hidden="true"></i> janelas</span>
-        <span><i class="dcal__dot dcal__dot--res" aria-hidden="true"></i> reservadas</span>
-        <span><i class="dcal__dot dcal__dot--livre" aria-hidden="true"></i> livres</span>
-        <span><i class="dcal__dot dcal__dot--ok" aria-hidden="true"></i> ≥ 30 livres</span>
-        <span><i class="dcal__dot dcal__dot--warn" aria-hidden="true"></i> 10 – 29 livres</span>
-        <span><i class="dcal__dot dcal__dot--crit" aria-hidden="true"></i> &lt; 10 livres</span>
+        <span><i class="dcal__dot dcal__dot--res" aria-hidden="true"></i> destinadas</span>
+        <span><i class="dcal__dot dcal__dot--agend" aria-hidden="true"></i> agendadas</span>
+        <span><i class="dcal__dot dcal__dot--livre" aria-hidden="true"></i> livre</span>
+        <span><i class="dcal__dot dcal__dot--ok" aria-hidden="true"></i> ≥ 30 livre</span>
+        <span><i class="dcal__dot dcal__dot--warn" aria-hidden="true"></i> 10 – 29 livre</span>
+        <span><i class="dcal__dot dcal__dot--crit" aria-hidden="true"></i> &lt; 10 livre</span>
       </footer>
     </section>
 
@@ -176,8 +181,8 @@
                 <span class="dcal__slot-trailing">
                   <span class="dcal__slot-stats">
                     <em>{{ s.destinadas }} dest.</em>
-                    <em>{{ s.ocupadas }} ocup.</em>
-                    <strong>{{ s.disponiveis }} livres</strong>
+                    <em>{{ s.ocupadas }} agend.</em>
+                    <strong>{{ s.disponiveis }} livre</strong>
                   </span>
                   <span class="material-symbols-outlined dcal__slot-chev" aria-hidden="true">
                     {{ s.expandido ? 'expand_less' : 'expand_more' }}
@@ -254,8 +259,8 @@
       }
 
       <p class="dcal__hint">
-        Destinações e ocupação são por horário (não some capacidades de faixas diferentes). Clique no
-        horário e depois na transportadora para ver agendamentos do intervalo.
+        Destinações e agendados são por horário (não some capacidades de faixas diferentes). Clique no
+        horário e depois na transportadora para ver a lista de agendamentos do intervalo.
       </p>
     </aside>
   </div>

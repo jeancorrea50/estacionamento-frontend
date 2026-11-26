@@ -294,6 +294,10 @@
   background: var(--dcal-primary);
 }
 
+.dcal__dot--agend {
+  background: var(--dcal-warn);
+}
+
 .dcal__dot--ok {
   background: var(--dcal-ok);
 }

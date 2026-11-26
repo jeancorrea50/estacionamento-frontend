@@ -5,6 +5,7 @@ import {
   JanelaAgendamentoListItem,
   JanelaAgendamentoPayload,
   JanelaDisponibilidade,
+  JanelaDisponibilidadeDia,
   JanelaExcecao,
   JanelaFaixa,
   JanelaPagedResult,
@@ -241,4 +242,18 @@ export function montarPayloadJanela(form: JanelaAgendamentoPayload): JanelaAgend
       motivo: textoOuNull(e.motivo),
     })),
   };
+}
+
+/** `GET /JanelaAgendamento/disponibilidade/periodo` → um item por dia. */
+export function mapJanelaDisponibilidadePeriodo(source: unknown): JanelaDisponibilidadeDia[] {
+  const rows = Array.isArray(source) ? source.filter(isRow) : [];
+  return rows
+    .map((r) => ({
+      data: toIsoDate(pick(r, 'data')),
+      possuiJanelas: bool(r, 'possuiJanelas', false),
+      usouDestinacao: bool(r, 'usouDestinacao', false),
+      totalDisponiveis: Math.max(0, num(r, 'totalDisponiveis')),
+      horariosDisponiveis: Math.max(0, num(r, 'horariosDisponiveis')),
+    }))
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.data));
 }

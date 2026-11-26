@@ -6,6 +6,7 @@ import { throwIfServiceFailure, unwrapServiceResult } from '../../../core/api/ut
 import {
   mapJanelaDetalhe,
   mapJanelaDisponibilidade,
+  mapJanelaDisponibilidadePeriodo,
   mapJanelaPaged,
   montarPayloadJanela,
 } from '../mappers/janela-agendamento.mapper';
@@ -14,6 +15,7 @@ import {
   JanelaAgendamentoFiltro,
   JanelaAgendamentoPayload,
   JanelaDisponibilidade,
+  JanelaDisponibilidadeDia,
   JanelaDuplicarInput,
   JanelaPagedResult,
   ModalidadeAgendamento,
@@ -107,6 +109,29 @@ export class JanelaAgendamentoService {
     return this.http.get<unknown>(`${this.api}/disponibilidade`, { params }).pipe(
       timeout(REQUEST_TIMEOUT_MS),
       map((body) => mapJanelaDisponibilidade(unwrapServiceResult<unknown>(body)))
+    );
+  }
+
+  /**
+   * GET `/JanelaAgendamento/disponibilidade/periodo` — vagas por dia (calendário do agendamento).
+   * Respeita a destinação da transportadora (ou a da sessão). Máx. 62 dias.
+   */
+  disponibilidadePeriodo(
+    inicio: string,
+    fim: string,
+    modalidade: ModalidadeJanela | ModalidadeAgendamento,
+    transportadoraId?: number | null
+  ): Observable<JanelaDisponibilidadeDia[]> {
+    let params = new HttpParams()
+      .set('inicio', inicio)
+      .set('fim', fim)
+      .set('modalidade', String(modalidade));
+    if (typeof transportadoraId === 'number' && transportadoraId > 0) {
+      params = params.set('transportadoraId', String(transportadoraId));
+    }
+    return this.http.get<unknown>(`${this.api}/disponibilidade/periodo`, { params }).pipe(
+      timeout(REQUEST_TIMEOUT_MS * 2),
+      map((body) => mapJanelaDisponibilidadePeriodo(unwrapServiceResult<unknown>(body)))
     );
   }
 

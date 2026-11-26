@@ -15,14 +15,6 @@
       </div>
       <form [formGroup]="form" (ngSubmit)="salvar()">
         <div class="modal-body modal-body--frota-compact ag-novo-body">
-          <div class="form-row ag-novo-field">
-            <label>Data/hora <span class="required">*</span></label>
-            <app-agendamento-data-hora-picker
-              [value]="form.controls.dataAgendamento.value || ''"
-              (valueChange)="onDataHoraChange($event)"
-            />
-          </div>
-
           @if (podeEscolherTransportadora()) {
             <div class="form-row ag-novo-field">
               <label>Transportadora <span class="required">*</span></label>
@@ -35,6 +27,24 @@
               />
             </div>
           }
+
+          <div class="form-row ag-novo-field">
+            <label>Dia e horário <span class="required">*</span></label>
+            @if (transportadoraFormId()) {
+              <app-agendamento-vaga-picker
+                [ativo]="aberto()"
+                [transportadoraId]="transportadoraFormId()"
+                [(modalidade)]="modalidade"
+                [value]="form.controls.dataAgendamento.value || ''"
+                (valueChange)="onDataHoraChange($event)"
+                (slotChange)="onSlotChange($event)"
+              />
+            } @else {
+              <p class="ag-novo-hint">
+                Selecione a transportadora para ver os dias e horários com vaga.
+              </p>
+            }
+          </div>
 
           <div class="form-row ag-novo-field ag-placas-field">
             <label>Placas <span class="required">*</span></label>
@@ -54,7 +64,9 @@
                         : 'Selecione a transportadora para buscar placas'
                     }}
                   </span>
-                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true">search</span>
+                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true"
+                    >search</span
+                  >
                 </button>
               </div>
 
@@ -78,6 +90,19 @@
                   }
                 </ul>
               }
+              @if (vagasNoHorario(); as vagas) {
+                <p
+                  class="ag-novo-hint"
+                  [class.ag-novo-hint--erro]="placasSelecionadas().length > vagas"
+                >
+                  {{ placasSelecionadas().length }} de {{ vagas }}
+                  {{ vagas === 1 ? 'vaga disponível' : 'vagas disponíveis' }} no horário escolhido
+                  @if (placasSelecionadas().length > vagas) {
+                    — remova {{ placasSelecionadas().length - vagas }} placa(s) ou escolha outro
+                    horário.
+                  }
+                </p>
+              }
             </div>
           </div>
 
@@ -98,7 +123,12 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="form.invalid || salvando() || placasSelecionadas().length === 0"
+            [disabled]="
+              form.invalid ||
+              salvando() ||
+              placasSelecionadas().length === 0 ||
+              placasSelecionadas().length > (vagasNoHorario() ?? 0)
+            "
           >
             {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
           </button>

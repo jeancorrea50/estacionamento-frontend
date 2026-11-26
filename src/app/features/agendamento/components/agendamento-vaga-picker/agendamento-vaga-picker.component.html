@@ -1,0 +1,117 @@
+<div class="vp">
+  <!-- Modalidade -->
+  <div class="vp__mods" role="radiogroup" aria-label="Modalidade do agendamento">
+    @for (m of modalidades; track m.value) {
+      <button
+        type="button"
+        role="radio"
+        class="vp__mod"
+        [class.is-active]="modalidade() === m.value"
+        [attr.aria-checked]="modalidade() === m.value"
+        (click)="setModalidade(m.value)"
+      >
+        {{ m.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Calendário -->
+  <div class="vp__cal" [attr.aria-busy]="carregandoMes()">
+    <div class="vp__cal-head">
+      <button
+        type="button"
+        class="vp__nav"
+        aria-label="Mês anterior"
+        [disabled]="!podeVoltarMes()"
+        (click)="mudarMes(-1)"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+      </button>
+      <strong class="vp__mes">{{ tituloMes() }}</strong>
+      <button type="button" class="vp__nav" aria-label="Próximo mês" (click)="mudarMes(1)">
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+      </button>
+    </div>
+
+    <div class="vp__grid" role="grid" [attr.aria-label]="'Dias de ' + tituloMes()">
+      @for (d of diasSemana; track d) {
+        <span class="vp__dow" role="columnheader">{{ d }}</span>
+      }
+      @for (c of celulas(); track c.iso) {
+        @if (c.noMes) {
+          <button
+            type="button"
+            role="gridcell"
+            class="vp__dia"
+            [class.is-livre]="!c.passado && c.vagas > 0"
+            [class.is-selected]="diaSelecionado() === c.iso"
+            [class.is-destinacao]="c.info?.usouDestinacao"
+            [disabled]="c.passado || c.vagas <= 0 || carregandoMes()"
+            [attr.aria-label]="rotuloDia(c)"
+            [attr.aria-selected]="diaSelecionado() === c.iso"
+            (click)="escolherDia(c)"
+          >
+            <span class="vp__dia-num">{{ c.dia }}</span>
+            @if (!c.passado && c.vagas > 0) {
+              <span class="vp__dia-vagas">{{ c.vagas }}</span>
+            }
+          </button>
+        } @else {
+          <span class="vp__dia vp__dia--fora" aria-hidden="true"></span>
+        }
+      }
+    </div>
+
+    <p class="vp__status" role="status">
+      @if (carregandoMes()) {
+        Consultando vagas do mês…
+      } @else if (erroMes(); as e) {
+        <span class="vp__erro">{{ e }}</span>
+      } @else if (!diasComVaga()) {
+        {{
+          usouDestinacao()
+            ? 'Sem vagas destinadas a esta transportadora neste mês.'
+            : algumaJanela()
+              ? 'Sem vagas livres neste mês. Veja o próximo.'
+              : 'Nenhuma janela de agendamento neste mês.'
+        }}
+      } @else if (usouDestinacao()) {
+        <span class="material-symbols-outlined" aria-hidden="true">assignment_turned_in</span>
+        Mostrando as vagas destinadas à transportadora · {{ diasComVaga() }} dia(s) com vaga.
+      } @else {
+        Vagas livres das janelas · {{ diasComVaga() }} dia(s) com vaga.
+      }
+    </p>
+  </div>
+
+  <!-- Horários do dia -->
+  @if (diaSelecionado(); as dia) {
+    <div class="vp__horas" role="group" aria-label="Horários com vaga">
+      <span class="vp__label">Horário <span class="required">*</span></span>
+      @if (carregandoSlots()) {
+        <p class="vp__status">Carregando horários…</p>
+      } @else if (erroSlots(); as e) {
+        <p class="vp__status vp__erro" role="alert">{{ e }}</p>
+      } @else if (!slots().length) {
+        <p class="vp__status">Sem horários com vaga neste dia. Escolha outro dia.</p>
+      } @else {
+        <div class="vp__slots">
+          @for (s of slots(); track chave(s)) {
+            <button
+              type="button"
+              class="vp__slot"
+              [class.is-selected]="ehSlotSelecionado(s)"
+              [attr.aria-pressed]="ehSlotSelecionado(s)"
+              (click)="selecionarSlot(s)"
+            >
+              <span class="vp__slot-hora">{{ hora(s.horaInicio) }}–{{ hora(s.horaFim) }}</span>
+              <span class="vp__slot-vagas"
+                >{{ s.disponiveis }} {{ s.disponiveis === 1 ? 'vaga' : 'vagas' }}</span
+              >
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

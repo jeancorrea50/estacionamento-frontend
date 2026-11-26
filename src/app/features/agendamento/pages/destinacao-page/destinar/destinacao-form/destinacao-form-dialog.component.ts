@@ -159,7 +159,12 @@ export class DestinacaoFormDialogComponent {
   readonly vigInicio = signal(somarDias(hojeISO(), 1));
   readonly vigFim = signal('');
   readonly recorrencia = signal<Recorrencia>('todos');
+  /** Quantidade padrão por horário (vale para todas as transportadoras). */
   readonly qtdPorJanela = signal<Record<string, number>>({});
+  /** Ajustes por horário › transportadora (só quem difere do padrão; 0 = sem vaga nesse horário). */
+  readonly overrides = signal<Record<string, Record<number, number>>>({});
+  /** Horários com o painel "por transportadora" aberto. */
+  readonly ajustesAbertos = signal<ReadonlySet<string>>(new Set());
   readonly transferencia = signal(false);
   readonly salvando = signal(false);
 
@@ -281,26 +286,65 @@ export class DestinacaoFormDialogComponent {
       .slice(0, 8);
   });
 
-  readonly vagasPorTransportadora = computed(() =>
-    Object.values(this.qtdPorJanela()).reduce((s, n) => s + n, 0),
-  );
   readonly totalHorarios = computed(() => Object.keys(this.qtdPorJanela()).length);
   readonly qtdDestinos = computed(() =>
     this.avulso() ? 1 : Math.max(1, this.selecionadas().length),
-  );
-  readonly totalVagasDia = computed(
-    () => this.vagasPorTransportadora() * (this.avulso() ? 1 : this.selecionadas().length),
   );
   readonly fimInvalido = computed(() => !!this.vigFim() && this.vigFim() < this.vigInicio());
   readonly horariosMarcados = computed(() =>
     this.janelasDoDia().filter((j) => j.id in this.qtdPorJanela()),
   );
 
-  /** Horários em que (qtd × transportadoras) passa do saldo livre. */
+  /** Quantidade de uma transportadora num horário: ajuste próprio ou o padrão do horário. */
+  qtdPara(janelaId: string, transportadoraId: number): number {
+    const padrao = this.qtdPorJanela()[janelaId] ?? 0;
+    return this.overrides()[janelaId]?.[transportadoraId] ?? padrao;
+  }
+
+  temAjuste(janelaId: string, transportadoraId: number): boolean {
+    return this.overrides()[janelaId]?.[transportadoraId] !== undefined;
+  }
+
+  /** Total no horário somando todas as transportadoras (ou o avulso). */
+  totalNaJanela(j: Janela): number {
+    if (this.avulso() || !this.selecionadas().length) return this.qtdPorJanela()[j.id] ?? 0;
+    return this.selecionadas().reduce((s, sel) => s + this.qtdPara(j.id, sel.transportadora.id), 0);
+  }
+
+  /** Vagas/dia de uma transportadora somando os horários marcados. */
+  vagasDaTransportadora(transportadoraId: number): number {
+    return this.horariosMarcados().reduce((s, j) => s + this.qtdPara(j.id, transportadoraId), 0);
+  }
+
+  readonly totalVagasDia = computed(() =>
+    this.horariosMarcados().reduce((s, j) => s + this.totalNaJanela(j), 0),
+  );
+
+  /** Horários em que a soma das transportadoras passa do saldo livre da janela. */
   readonly janelasExcedidas = computed(() =>
-    this.horariosMarcados().filter(
-      (j) => this.qtdPorJanela()[j.id] * this.qtdDestinos() > j.livres,
-    ),
+    this.horariosMarcados().filter((j) => this.totalNaJanela(j) > j.livres),
+  );
+
+  /** Transportadoras cuja soma de vagas/dia passa do saldo do acordo (regra de cobrança). */
+  readonly acordosExcedidos = computed(() =>
+    this.selecionadas()
+      .filter(
+        (s) =>
+          s.transportadora.saldoAcordo !== undefined &&
+          this.vagasDaTransportadora(s.transportadora.id) > s.transportadora.saldoAcordo,
+      )
+      .map((s) => ({
+        nome: s.transportadora.nome,
+        pedido: this.vagasDaTransportadora(s.transportadora.id),
+        saldo: s.transportadora.saldoAcordo!,
+      })),
+  );
+
+  /** Transportadoras sem nenhuma vaga nos horários marcados (todos os ajustes em 0). */
+  readonly semVagas = computed(() =>
+    this.horariosMarcados().length
+      ? this.selecionadas().filter((s) => this.vagasDaTransportadora(s.transportadora.id) === 0)
+      : [],
   );
 
   readonly pendencias = computed(() => {
@@ -316,7 +360,14 @@ export class DestinacaoFormDialogComponent {
     else if (!this.janelasDoDia().length) p.push('janelas na vigência');
     else if (!this.totalHorarios()) p.push('ao menos um horário');
     const exc = this.janelasExcedidas();
-    if (exc.length) p.push(`saldo insuficiente em ${exc.map((j) => j.inicio).join(', ')}`);
+    if (exc.length)
+      p.push(`saldo da janela insuficiente em ${exc.map((j) => j.inicio).join(', ')}`);
+    for (const a of this.acordosExcedidos()) {
+      p.push(`acordo de ${a.nome}: ${a.pedido} de ${a.saldo} vagas/dia`);
+    }
+    const vazias = this.semVagas();
+    if (vazias.length)
+      p.push(`sem vagas para ${vazias.map((s) => s.transportadora.nome).join(', ')}`);
     return p;
   });
   readonly podeSalvar = computed(() => !this.pendencias().length && !this.salvando());
@@ -385,6 +436,7 @@ export class DestinacaoFormDialogComponent {
       this.vigFim(),
       this.recorrencia(),
       this.qtdPorJanela(),
+      this.overrides(),
       this.transferencia(),
     ]);
   }
@@ -553,6 +605,14 @@ export class DestinacaoFormDialogComponent {
 
   removerTransportadora(id: number): void {
     this.selecionadas.update((l) => l.filter((s) => s.transportadora.id !== id));
+    this.overrides.update((o) => {
+      const n: Record<string, Record<number, number>> = {};
+      for (const [k, v] of Object.entries(o)) {
+        const { [id]: _removido, ...resto } = v;
+        if (Object.keys(resto).length) n[k] = resto;
+      }
+      return n;
+    });
     this.buscaInput()?.nativeElement.focus();
   }
 
@@ -609,11 +669,54 @@ export class DestinacaoFormDialogComponent {
       delete resto[j.id];
       return marcado ? { ...resto, [j.id]: 1 } : resto;
     });
+    if (!marcado) this.limparAjustes(j.id);
   }
 
+  /** Quantidade padrão do horário (aplica a todas as transportadoras sem ajuste próprio). */
   ajustarQtd(j: Janela, valor: number): void {
     const v = Math.max(1, Math.min(Math.max(1, this.maxPara(j)), Math.trunc(Number(valor) || 1)));
     this.qtdPorJanela.update((m) => ({ ...m, [j.id]: v }));
+  }
+
+  /** Ajuste de uma transportadora no horário; igual ao padrão remove o ajuste. 0 = sem vaga nele. */
+  ajustarQtdTransportadora(j: Janela, transportadoraId: number, valor: number): void {
+    const v = Math.max(0, Math.min(Math.max(0, this.maxPara(j)), Math.trunc(Number(valor) || 0)));
+    const padrao = this.qtdPorJanela()[j.id] ?? 0;
+    this.overrides.update((o) => {
+      const doHorario = { ...(o[j.id] ?? {}) };
+      if (v === padrao) delete doHorario[transportadoraId];
+      else doHorario[transportadoraId] = v;
+      const n = { ...o };
+      if (Object.keys(doHorario).length) n[j.id] = doHorario;
+      else delete n[j.id];
+      return n;
+    });
+  }
+
+  ajusteAberto(janelaId: string): boolean {
+    return this.ajustesAbertos().has(janelaId);
+  }
+
+  alternarAjustes(janelaId: string): void {
+    this.ajustesAbertos.update((s) => {
+      const n = new Set(s);
+      if (n.has(janelaId)) n.delete(janelaId);
+      else n.add(janelaId);
+      return n;
+    });
+  }
+
+  /** Volta todas as transportadoras ao padrão do horário. */
+  limparAjustes(janelaId: string): void {
+    this.overrides.update((o) => {
+      const n = { ...o };
+      delete n[janelaId];
+      return n;
+    });
+  }
+
+  qtdAjustes(janelaId: string): number {
+    return Object.keys(this.overrides()[janelaId] ?? {}).length;
   }
 
   marcarTodas(): void {
@@ -625,6 +728,7 @@ export class DestinacaoFormDialogComponent {
 
   limparHorarios(): void {
     this.qtdPorJanela.set({});
+    this.overrides.set({});
   }
 
   // ─── Fechar / salvar ──────────────────────────────────────────────────
@@ -696,17 +800,20 @@ export class DestinacaoFormDialogComponent {
         recorrencia: this.recorrencia(),
         diasOriginais: this.data.destinacao?.diasSemana ?? null,
         janela: j,
-        quantidade: this.qtdPorJanela()[j.id],
+        quantidade: destino.transportadoraId
+          ? this.qtdPara(j.id, destino.transportadoraId)
+          : (this.qtdPorJanela()[j.id] ?? 0),
         faturamento: destino.faturamento,
         transferencia: this.transferencia(),
       });
 
     if (!this.editando) {
+      // Horário com ajuste 0 para a transportadora = sem reserva nele.
       return destinos.flatMap((destino) =>
-        this.horariosMarcados().map((j): Operacao => ({
-          tipo: 'criar',
-          input: inputPara(destino, j),
-        })),
+        this.horariosMarcados()
+          .map((j) => inputPara(destino, j))
+          .filter((input) => input.quantidade > 0)
+          .map((input): Operacao => ({ tipo: 'criar', input })),
       );
     }
 

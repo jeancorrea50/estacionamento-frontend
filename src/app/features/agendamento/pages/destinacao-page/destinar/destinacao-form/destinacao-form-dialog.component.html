@@ -157,11 +157,23 @@
                     @if (t.carregandoSaldo) {
                       <span class="sel__saldo muted">Consultando acordo…</span>
                     } @else if (t.saldoAcordo !== undefined) {
+                      @let pedido = vagasDaTransportadora(t.id);
                       <span
                         class="sel__saldo"
-                        [class.is-low]="t.saldoAcordo < vagasPorTransportadora()"
+                        [class.is-low]="t.saldoAcordo < pedido"
+                        [attr.title]="
+                          'Regra de cobrança (acordo): ' + t.saldoAcordo + ' vagas/dia livres'
+                        "
                       >
-                        Saldo do acordo <strong class="mono">{{ t.saldoAcordo }}</strong>/dia
+                        Acordo
+                        <strong class="mono">{{ pedido }}/{{ t.saldoAcordo }}</strong> vagas/dia
+                      </span>
+                    } @else {
+                      <span
+                        class="sel__saldo muted"
+                        title="Sem acordo com teto de vagas na regra de cobrança"
+                      >
+                        Sem teto de acordo
                       </span>
                     }
                     @if (!editando) {
@@ -365,14 +377,16 @@
                       (change)="alternarJanela(j, $any($event.target).checked)"
                     />
                     <span class="slot__time mono">{{ j.inicio }}–{{ j.fim }}</span>
-                    @if (marcada && qtdPorJanela()[j.id] * qtdDestinos() > max) {
+                    @if (marcada && totalNaJanela(j) > max) {
                       <span
                         class="pill"
                         data-tone="warn"
-                        [title]="qtdPorJanela()[j.id] + ' × ' + qtdDestinos() + ' transportadoras'"
+                        [title]="totalNaJanela(j) + ' vagas somando as transportadoras'"
                       >
-                        Excede {{ max }} livres
+                        {{ totalNaJanela(j) }} excede {{ max }} livres
                       </span>
+                    } @else if (marcada && qtdDestinos() > 1) {
+                      <span class="slot__free">{{ totalNaJanela(j) }} de {{ max }} livres</span>
                     } @else if (max) {
                       <span class="slot__free">{{ max }} livres</span>
                     } @else {
@@ -410,7 +424,69 @@
                       >
                         <span class="material-symbols-outlined" aria-hidden="true">add</span>
                       </button>
+                      @if (!avulso() && selecionadas().length > 1) {
+                        <button
+                          type="button"
+                          class="link-btn qty__ajuste"
+                          [attr.aria-expanded]="ajusteAberto(j.id)"
+                          [attr.aria-controls]="'ajuste-' + j.id"
+                          (click)="alternarAjustes(j.id)"
+                        >
+                          {{
+                            qtdAjustes(j.id)
+                              ? 'Ajustada (' + qtdAjustes(j.id) + ')'
+                              : 'Por transportadora'
+                          }}
+                        </button>
+                      }
                     </div>
+
+                    @if (!avulso() && selecionadas().length > 1 && ajusteAberto(j.id)) {
+                      <div
+                        class="ajuste"
+                        [id]="'ajuste-' + j.id"
+                        role="group"
+                        [attr.aria-label]="'Vagas por transportadora em ' + j.inicio + '–' + j.fim"
+                      >
+                        <p class="ajuste__hint">
+                          Padrão: <strong class="mono">{{ qtdPorJanela()[j.id] }}</strong> para
+                          cada. Altere só quem é diferente (0 = sem vaga neste horário).
+                        </p>
+                        <ul class="ajuste__list">
+                          @for (s of selecionadas(); track s.transportadora.id) {
+                            @let tid = s.transportadora.id;
+                            <li class="ajuste__item" [class.is-custom]="temAjuste(j.id, tid)">
+                              <span class="ajuste__nome" [title]="s.transportadora.nome">{{
+                                s.transportadora.nome
+                              }}</span>
+                              <input
+                                class="qty__input mono"
+                                type="number"
+                                inputmode="numeric"
+                                min="0"
+                                [max]="max"
+                                [attr.aria-label]="
+                                  'Vagas de ' + s.transportadora.nome + ' em ' + j.inicio
+                                "
+                                [value]="qtdPara(j.id, tid)"
+                                (change)="
+                                  ajustarQtdTransportadora(
+                                    j,
+                                    tid,
+                                    $any($event.target).valueAsNumber
+                                  )
+                                "
+                              />
+                            </li>
+                          }
+                        </ul>
+                        @if (qtdAjustes(j.id)) {
+                          <button type="button" class="link-btn" (click)="limparAjustes(j.id)">
+                            Voltar todas ao padrão
+                          </button>
+                        }
+                      </div>
+                    }
                   }
                 </li>
               }
@@ -467,6 +543,11 @@
                   @for (s of selecionadas(); track s.transportadora.id) {
                     <li>
                       <span class="resumo__nome">{{ s.transportadora.nome }}</span>
+                      @if (horariosMarcados().length) {
+                        <span class="muted mono"
+                          >{{ vagasDaTransportadora(s.transportadora.id) }}/dia</span
+                        >
+                      }
                       @if (s.faturamento.tipo === 'terceiro') {
                         <span class="pill" data-tone="info">
                           {{
@@ -512,7 +593,7 @@
           <span>Total</span>
           <strong class="mono">{{ plural(totalVagasDia(), 'vaga', 'vagas') }}/dia</strong>
           @if (qtdDestinos() > 1) {
-            <span class="muted mono">{{ qtdDestinos() }} × {{ vagasPorTransportadora() }}</span>
+            <span class="muted">{{ qtdDestinos() }} transportadoras</span>
           }
         </div>
       </aside>

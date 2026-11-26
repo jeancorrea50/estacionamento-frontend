@@ -629,3 +629,14 @@
     cursor: not-allowed;
   }
 }
+
+/* Dicas do seletor de vaga / limite de placas no horário */
+.ag-novo-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted, #92929f);
+}
+
+.ag-novo-hint--erro {
+  color: var(--danger, #f06468);
+}

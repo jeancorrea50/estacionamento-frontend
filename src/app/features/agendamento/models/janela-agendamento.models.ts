@@ -263,3 +263,14 @@ export interface JanelaDisponibilidade {
   totalDisponiveis?: number;
   slots: JanelaSlotDisponivel[];
 }
+
+/** Resumo de um dia para o calendário do agendamento (`/disponibilidade/periodo`). */
+export interface JanelaDisponibilidadeDia {
+  /** `yyyy-MM-dd` */
+  data: string;
+  possuiJanelas: boolean;
+  /** A transportadora tem destinação cobrindo o dia (vagas limitadas a ela). */
+  usouDestinacao: boolean;
+  totalDisponiveis: number;
+  horariosDisponiveis: number;
+}

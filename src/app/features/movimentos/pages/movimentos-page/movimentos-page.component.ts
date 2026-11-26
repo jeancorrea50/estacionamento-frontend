@@ -1728,7 +1728,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       return;
     }
     this.processandoRegistroRapido.set(true);
-    this.service.saida(placaNorm).subscribe({
+    this.service.saida(placaNorm, this.registroRapidoEntradaId).subscribe({
       next: () => {
         this.processandoRegistroRapido.set(false);
         this.toast.success('Saída registrada com sucesso.');
@@ -2229,7 +2229,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   ): void {
     this.saidaProcessando.set(true);
     this.service
-      .saida(placa)
+      .saida(placa, item.id)
       .pipe(
         switchMap(() => {
           if (faturamento || valor == null || !Number.isFinite(valor) || valor < 0) {

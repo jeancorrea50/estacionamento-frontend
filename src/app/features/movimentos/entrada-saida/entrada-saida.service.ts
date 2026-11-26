@@ -91,8 +91,10 @@ export class EntradaSaidaService {
     return this.http.patch<void>(`${this.apiRoot}/${id}/finalizar-permanencia`, null, { params });
   }
 
-  saida(placa: string): Observable<void> {
-    return this.http.post<void>(`${this.apiRoot}/saida`, { placa });
+  /** POST `/saida`: com `entradaSaidaId` finaliza exatamente aquele movimento (linha da lista). */
+  saida(placa: string, entradaSaidaId?: number | null): Observable<void> {
+    const id = entradaSaidaId && entradaSaidaId > 0 ? entradaSaidaId : undefined;
+    return this.http.post<void>(`${this.apiRoot}/saida`, { placa, entradaSaidaId: id });
   }
 
   /**

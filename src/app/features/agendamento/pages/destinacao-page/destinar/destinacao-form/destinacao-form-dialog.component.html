@@ -1,0 +1,552 @@
+<form class="dlg" novalidate (ngSubmit)="salvar()">
+  <!-- ═══ Cabeçalho ═══════════════════════════════════════════════════ -->
+  <header class="dlg__head">
+    <div class="dlg__head-main">
+      <h2 id="dst-dlg-title" class="dlg__title">{{ titulo }}</h2>
+      <p class="dlg__sub">
+        @if (editando && data.destinacao; as d) {
+          {{ d.transportadoraNome }} · registrado por {{ d.registradoPor }} em
+          {{ d.registradoEm | date: 'dd/MM/yyyy HH:mm' }}
+        } @else if (modo === 'duplicar') {
+          Cópia do período anterior, começando no dia seguinte ao fim.
+        } @else {
+          Libere vagas do acordo por transportadora, horário e modalidade.
+        }
+      </p>
+    </div>
+    <button type="button" class="icon-btn" aria-label="Fechar" title="Fechar" (click)="cancelar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <!-- ═══ Corpo ═══════════════════════════════════════════════════════ -->
+  <div #bodyEl class="dlg__body">
+    <!-- Coluna esquerda: quem, para quem, regras -->
+    <div class="dlg__col">
+      <section class="sec" aria-labelledby="sec-quem">
+        <h3 id="sec-quem" class="sec__title">
+          <span class="sec__n">1</span>Quem destina e para quem
+        </h3>
+
+        <div class="field-grid field-grid--who">
+          <div class="field">
+            <label for="dst-destinador" class="field__label">
+              Quem destina <span class="muted">· libera as vagas</span>
+            </label>
+            <!-- Pátio (sessão) + responsáveis de faturamento ativos -->
+            <select
+              id="dst-destinador"
+              class="input"
+              name="destinador"
+              required
+              aria-describedby="dst-destinador-hint"
+              [ngModel]="destinadorId()"
+              (ngModelChange)="destinadorId.set($event)"
+            >
+              @for (e of destinadores(); track e.id) {
+                <option [ngValue]="e.id">{{ e.nome }}</option>
+              }
+            </select>
+            <p id="dst-destinador-hint" class="field__hint">
+              Pátio ou cliente dono do acordo (cadastro de Responsável de faturamento).
+            </p>
+          </div>
+          <div class="field">
+            <span class="field__label">{{ editando ? 'Alterado por' : 'Registrado por' }}</span>
+            <p class="readonly">
+              <span class="material-symbols-outlined" aria-hidden="true">badge</span>
+              {{ usuario() }} <span class="muted">(você)</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field__row">
+            <label for="dst-transp" class="field__label">Para quem</label>
+            <label class="check" [class.is-disabled]="editando">
+              <input
+                type="checkbox"
+                name="avulso"
+                [disabled]="editando"
+                [ngModel]="avulso()"
+                (ngModelChange)="onAvulso($event)"
+              />
+              <span>Avulso <span class="muted">(sem transportadora)</span></span>
+            </label>
+          </div>
+
+          @if (!editando) {
+            <div class="combo" [class.is-disabled]="avulso()">
+              <input
+                #buscaInput
+                id="dst-transp"
+                class="combo__input"
+                type="text"
+                role="combobox"
+                autocomplete="off"
+                aria-autocomplete="list"
+                aria-controls="dst-transp-list"
+                aria-describedby="dst-transp-hint"
+                [attr.aria-expanded]="comboAberto() && !avulso()"
+                [attr.aria-activedescendant]="
+                  comboAberto() && sugestoesFiltradas().length ? 'dst-opt-' + comboAtivo() : null
+                "
+                [placeholder]="
+                  avulso()
+                    ? 'Destinação avulsa — sem transportadora'
+                    : 'Adicionar transportadora (nome ou CNPJ)…'
+                "
+                [disabled]="avulso()"
+                [value]="busca()"
+                (input)="onBusca(buscaInput.value)"
+                (click)="comboAberto.set(true)"
+                (blur)="fecharComboDepois()"
+                (keydown)="onComboKeydown($event)"
+              />
+              <span class="material-symbols-outlined combo__icon" aria-hidden="true">search</span>
+
+              @if (comboAberto() && !avulso()) {
+                <ul
+                  id="dst-transp-list"
+                  class="combo__list"
+                  role="listbox"
+                  aria-label="Transportadoras"
+                >
+                  @for (t of sugestoesFiltradas(); track t.id; let i = $index) {
+                    <li
+                      [id]="'dst-opt-' + i"
+                      role="option"
+                      class="combo__opt"
+                      [class.is-active]="i === comboAtivo()"
+                      [attr.aria-selected]="i === comboAtivo()"
+                      (mousedown)="$event.preventDefault(); adicionarTransportadora(t)"
+                    >
+                      <span>{{ t.nome }}</span>
+                      @if (t.cnpj) {
+                        <span class="muted mono">{{ t.cnpj }}</span>
+                      }
+                    </li>
+                  } @empty {
+                    <li class="combo__empty" role="presentation">
+                      {{
+                        buscandoTransportadoras()
+                          ? 'Buscando…'
+                          : 'Nenhuma transportadora encontrada.'
+                      }}
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+            <p id="dst-transp-hint" class="field__hint">
+              Pode adicionar várias — cada uma vira uma destinação. Para cada uma, defina quem paga.
+            </p>
+          }
+
+          @if (selecionadas().length) {
+            <ul class="sel" aria-label="Transportadoras selecionadas">
+              @for (s of selecionadas(); track s.transportadora.id) {
+                @let t = s.transportadora;
+                @let terceiro = s.faturamento.tipo === 'terceiro';
+                <li class="sel__item">
+                  <div class="sel__head">
+                    <span class="material-symbols-outlined sel__ico" aria-hidden="true"
+                      >local_shipping</span
+                    >
+                    <span class="sel__name">{{ t.nome }}</span>
+                    @if (t.carregandoSaldo) {
+                      <span class="sel__saldo muted">Consultando acordo…</span>
+                    } @else if (t.saldoAcordo !== undefined) {
+                      <span
+                        class="sel__saldo"
+                        [class.is-low]="t.saldoAcordo < vagasPorTransportadora()"
+                      >
+                        Saldo do acordo <strong class="mono">{{ t.saldoAcordo }}</strong>/dia
+                      </span>
+                    }
+                    @if (!editando) {
+                      <button
+                        type="button"
+                        class="icon-btn icon-btn--sm"
+                        [attr.aria-label]="'Remover ' + t.nome"
+                        (click)="removerTransportadora(t.id)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                      </button>
+                    }
+                  </div>
+
+                  <div class="sel__fat" role="group" [attr.aria-label]="'Quem paga — ' + t.nome">
+                    <span class="sel__fat-label">Quem paga</span>
+                    <div class="seg seg--sm">
+                      <label class="seg__item" [class.is-active]="!terceiro">
+                        <input
+                          class="sr-only"
+                          type="radio"
+                          [name]="'fat-' + t.id"
+                          [checked]="!terceiro"
+                          (change)="setFaturamento(t.id, 'transportadora')"
+                        />A própria
+                      </label>
+                      <label class="seg__item" [class.is-active]="terceiro">
+                        <input
+                          class="sr-only"
+                          type="radio"
+                          [name]="'fat-' + t.id"
+                          [checked]="terceiro"
+                          (change)="setFaturamento(t.id, 'terceiro')"
+                        />Terceiro
+                      </label>
+                    </div>
+                    @if (terceiro) {
+                      <select
+                        data-pagador
+                        class="input input--sm sel__pagador"
+                        [class.is-invalid]="!s.faturamento.pagador"
+                        [attr.aria-invalid]="!s.faturamento.pagador"
+                        [attr.aria-label]="'Empresa que paga por ' + t.nome"
+                        (change)="setPagador(t.id, $any($event.target).value)"
+                      >
+                        <option value="" disabled [selected]="!s.faturamento.pagador">
+                          Selecionar pagador…
+                        </option>
+                        @for (p of pagadores(); track p.id) {
+                          <option [value]="p.id" [selected]="p.id === s.faturamento.pagador?.id">
+                            {{ p.nome }}
+                          </option>
+                        }
+                      </select>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+
+      <section class="sec" aria-labelledby="sec-regras">
+        <h3 id="sec-regras" class="sec__title"><span class="sec__n">2</span>Regras do período</h3>
+
+        <fieldset class="field">
+          <legend class="field__label">Modalidade</legend>
+          <div class="seg seg--fill">
+            @for (m of modalidades; track m.id) {
+              <label class="seg__item" [class.is-active]="modalidade() === m.id">
+                <input
+                  class="sr-only"
+                  type="radio"
+                  name="modalidade"
+                  [value]="m.id"
+                  [ngModel]="modalidade()"
+                  (ngModelChange)="onModalidade($event)"
+                />
+                <span class="material-symbols-outlined" aria-hidden="true">{{ m.icon }}</span>{{
+                  m.label
+                }}
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        <div class="field-grid field-grid--3">
+          <div class="field">
+            <label for="dst-ini" class="field__label">Início</label>
+            <input
+              id="dst-ini"
+              class="input"
+              type="date"
+              name="vigInicio"
+              required
+              [ngModel]="vigInicio()"
+              (ngModelChange)="onVigInicio($event)"
+            />
+          </div>
+          <div class="field">
+            <label for="dst-fim" class="field__label"
+              >Fim <span class="muted">· opcional</span></label
+            >
+            <input
+              id="dst-fim"
+              class="input"
+              type="date"
+              name="vigFim"
+              aria-describedby="dst-fim-hint"
+              [min]="vigInicio()"
+              [class.is-invalid]="fimInvalido()"
+              [attr.aria-invalid]="fimInvalido()"
+              [ngModel]="vigFim()"
+              (ngModelChange)="vigFim.set($event)"
+            />
+            <p id="dst-fim-hint" class="field__hint" [class.is-error]="fimInvalido()">
+              {{ fimInvalido() ? 'Fim antes do início.' : 'Vazio = sem data fim.' }}
+            </p>
+          </div>
+          <div class="field">
+            <label for="dst-rec" class="field__label">Recorrência</label>
+            <select
+              id="dst-rec"
+              class="input"
+              name="recorrencia"
+              [ngModel]="recorrencia()"
+              (ngModelChange)="recorrencia.set($event)"
+            >
+              @for (r of recorrencias; track r.id) {
+                <option [value]="r.id">{{ r.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <label class="switch-row">
+          <input
+            class="switch"
+            type="checkbox"
+            role="switch"
+            name="transferencia"
+            [ngModel]="transferencia()"
+            (ngModelChange)="transferencia.set($event)"
+          />
+          <span class="switch-row__text">
+            <strong>Transferência automática de saldo</strong>
+            <span class="muted">
+              Vagas não usadas num horário passam para o próximo horário do mesmo dia. A regra
+              encerra no fim do dia.
+            </span>
+          </span>
+        </label>
+      </section>
+    </div>
+
+    <!-- Coluna direita: horários + resumo -->
+    <div class="dlg__col dlg__col--side">
+      <section class="sec" aria-labelledby="sec-hor">
+        <div #horariosGrupo class="field" role="group" aria-labelledby="sec-hor">
+          <div class="field__row">
+            <h3 id="sec-hor" class="sec__title">
+              <span class="sec__n">3</span>Horários
+              <span class="muted sec__hint">· vagas/dia para cada transportadora</span>
+            </h3>
+            @if (janelasDoDia().length && !carregandoJanelas()) {
+              <div class="field__actions">
+                <button type="button" class="link-btn" (click)="marcarTodas()">Marcar todas</button>
+                <button
+                  type="button"
+                  class="link-btn"
+                  [disabled]="!totalHorarios()"
+                  (click)="limparHorarios()"
+                >
+                  Limpar
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (carregandoJanelas()) {
+            <div class="empty empty--inline" role="status">
+              <span class="material-symbols-outlined empty__icon is-spinning" aria-hidden="true"
+                >progress_activity</span
+              >
+              <div class="empty__text">
+                <strong>Carregando janelas de {{ vigInicio() | date: 'dd/MM/yyyy' }}…</strong>
+              </div>
+            </div>
+          } @else if (janelasDoDia().length) {
+            <ul class="slots">
+              @for (j of janelasDoDia(); track j.id) {
+                @let marcada = janelaMarcada(j);
+                @let max = maxPara(j);
+                <li class="slot" [class.is-selected]="marcada" [class.is-full]="!max">
+                  <label class="slot__check">
+                    <input
+                      type="checkbox"
+                      [checked]="marcada"
+                      [disabled]="!max"
+                      (change)="alternarJanela(j, $any($event.target).checked)"
+                    />
+                    <span class="slot__time mono">{{ j.inicio }}–{{ j.fim }}</span>
+                    @if (marcada && qtdPorJanela()[j.id] * qtdDestinos() > max) {
+                      <span
+                        class="pill"
+                        data-tone="warn"
+                        [title]="qtdPorJanela()[j.id] + ' × ' + qtdDestinos() + ' transportadoras'"
+                      >
+                        Excede {{ max }} livres
+                      </span>
+                    } @else if (max) {
+                      <span class="slot__free">{{ max }} livres</span>
+                    } @else {
+                      <span class="pill" data-tone="danger">Sem saldo</span>
+                    }
+                  </label>
+
+                  @if (marcada) {
+                    <div class="qty">
+                      <button
+                        type="button"
+                        class="icon-btn icon-btn--sm"
+                        [attr.aria-label]="'Menos uma vaga em ' + j.inicio"
+                        [disabled]="qtdPorJanela()[j.id] <= 1"
+                        (click)="ajustarQtd(j, qtdPorJanela()[j.id] - 1)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">remove</span>
+                      </button>
+                      <input
+                        class="qty__input mono"
+                        type="number"
+                        inputmode="numeric"
+                        min="1"
+                        [max]="max"
+                        [attr.aria-label]="'Vagas em ' + j.inicio + '–' + j.fim"
+                        [value]="qtdPorJanela()[j.id]"
+                        (change)="ajustarQtd(j, $any($event.target).valueAsNumber)"
+                      />
+                      <button
+                        type="button"
+                        class="icon-btn icon-btn--sm"
+                        [attr.aria-label]="'Mais uma vaga em ' + j.inicio"
+                        [disabled]="qtdPorJanela()[j.id] >= max"
+                        (click)="ajustarQtd(j, qtdPorJanela()[j.id] + 1)"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                      </button>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="empty empty--inline" role="status">
+              <span class="material-symbols-outlined empty__icon" aria-hidden="true"
+                >event_busy</span
+              >
+              <div class="empty__text">
+                <strong>Nenhuma janela em {{ vigInicio() | date: 'dd/MM/yyyy' }}</strong>
+                <span>Cadastre janelas para este dia ou mude o início da vigência.</span>
+              </div>
+              <div class="empty__actions">
+                @if (proximoDiaComJanela(); as prox) {
+                  <button
+                    type="button"
+                    class="btn btn--sm btn-ghost"
+                    (click)="irParaProximoDiaComJanela()"
+                  >
+                    Ir para {{ prox | date: 'dd/MM' }}
+                  </button>
+                }
+                <!-- Abre em nova aba para não perder o que já foi preenchido -->
+                <a
+                  class="btn btn--sm btn-secondary"
+                  [href]="janelasRoute"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>Abrir
+                  Janelas
+                </a>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <aside class="resumo" aria-labelledby="sec-resumo">
+        <h3 id="sec-resumo" class="sec__title"><span class="sec__n">4</span>Resumo</h3>
+        <dl class="resumo__list">
+          <div>
+            <dt>Quem destina</dt>
+            <dd>{{ destinador()?.nome ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt>Para</dt>
+            <dd>
+              @if (avulso()) {
+                Avulso
+              } @else if (selecionadas().length) {
+                <ul class="resumo__destinos">
+                  @for (s of selecionadas(); track s.transportadora.id) {
+                    <li>
+                      <span class="resumo__nome">{{ s.transportadora.nome }}</span>
+                      @if (s.faturamento.tipo === 'terceiro') {
+                        <span class="pill" data-tone="info">
+                          {{
+                            s.faturamento.pagador
+                              ? 'Paga: ' + s.faturamento.pagador.nome
+                              : 'Terceiro sem pagador'
+                          }}
+                        </span>
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Período</dt>
+            <dd class="mono">
+              {{ vigInicio() | date: 'dd/MM/yyyy' }} –
+              {{ vigFim() ? (vigFim() | date: 'dd/MM/yyyy') : 'sem fim' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Horários</dt>
+            <dd>
+              @if (horariosMarcados().length) {
+                <span class="resumo__slots">
+                  @for (j of horariosMarcados(); track j.id) {
+                    <span class="resumo__slot mono"
+                      >{{ j.inicio }} · {{ qtdPorJanela()[j.id] }}</span
+                    >
+                  }
+                </span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </dd>
+          </div>
+        </dl>
+        <div class="resumo__total">
+          <span>Total</span>
+          <strong class="mono">{{ plural(totalVagasDia(), 'vaga', 'vagas') }}/dia</strong>
+          @if (qtdDestinos() > 1) {
+            <span class="muted mono">{{ qtdDestinos() }} × {{ vagasPorTransportadora() }}</span>
+          }
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ═══ Rodapé ══════════════════════════════════════════════════════ -->
+  <footer class="dlg__foot">
+    <div class="foot__status" id="dst-status" aria-live="polite">
+      @if (pendencias().length) {
+        <span class="material-symbols-outlined tone-warn" aria-hidden="true">error</span>
+        <span><strong>Falta:</strong> {{ pendencias().join(' · ') }}</span>
+      } @else {
+        <span class="material-symbols-outlined tone-ok" aria-hidden="true">check_circle</span>
+        <span>Pronto para {{ editando ? 'salvar' : 'gravar' }}.</span>
+      }
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+    <button
+      type="submit"
+      class="btn btn-primary"
+      [attr.aria-disabled]="!podeSalvar()"
+      aria-describedby="dst-status"
+    >
+      @if (salvando()) {
+        <span class="material-symbols-outlined is-spinning" aria-hidden="true"
+          >progress_activity</span
+        >Salvando…
+      } @else {
+        <span class="material-symbols-outlined" aria-hidden="true">{{
+          editando ? 'save' : 'add_task'
+        }}</span>
+        {{ editando ? 'Salvar alterações' : 'Gravar destinação' }}
+      }
+    </button>
+  </footer>
+</form>

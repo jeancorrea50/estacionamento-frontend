@@ -43,7 +43,18 @@ export interface VagaReservaTransportadoraItem {
   avulso: boolean;
   /** Quando true, job pode transferir saldo não usado para a próxima janela do dia. */
   transferenciaAutomaticaSaldo: boolean;
+  /** false = pausada (vagas voltam ao saldo livre). Excluídas não vêm na listagem. */
   ativo: boolean;
+  /** Empresa (responsável de faturamento) que liberou as vagas; null = o próprio pátio. */
+  destinadorId?: number | null;
+  destinadorNome?: string | null;
+  /** Auditoria. */
+  usuarioCriacao?: string | null;
+  dataCriacao?: string | null;
+  usuarioAtualizacao?: string | null;
+  dataAtualizacao?: string | null;
+  /** Consumo no dia consultado (`GET reservas?data=`). */
+  usadasNoDia?: number;
 }
 
 export interface VagaReservaTransportadoraInput {
@@ -63,4 +74,6 @@ export interface VagaReservaTransportadoraInput {
   avulso?: boolean;
   /** Default false; ativa monitoramento/transferência automática de saldo. */
   transferenciaAutomaticaSaldo?: boolean;
+  /** Quem libera as vagas (responsável de faturamento); null = o próprio pátio. */
+  destinadorId?: number | null;
 }

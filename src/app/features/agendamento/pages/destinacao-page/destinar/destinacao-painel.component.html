@@ -1,0 +1,512 @@
+<div class="dst">
+  <!-- ═══ Painel do dia ═══════════════════════════════════════════════ -->
+  <section class="card dispo" aria-labelledby="dispo-title">
+    <div class="dispo__bar">
+      <div class="dispo__title">
+        <h2 id="dispo-title" class="card__title">Disponibilidade do dia</h2>
+        <p class="card__meta">
+          {{ data() | date: 'EEEE, dd/MM/yyyy' }} ·
+          {{ plural(destinacoesAtivas(), 'destinação ativa', 'destinações ativas') }} ·
+          {{ vagasDestinadasDia() }} vagas/dia destinadas
+        </p>
+      </div>
+
+      <div class="dispo__actions">
+        <div class="seg seg--sm" role="radiogroup" aria-label="Modalidade exibida">
+          @for (m of modalidadesVisao; track m.id) {
+            <button
+              type="button"
+              role="radio"
+              class="seg__item"
+              [class.is-active]="visao() === m.id"
+              [attr.aria-checked]="visao() === m.id"
+              (click)="visao.set($any(m.id))"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{ m.icon }}</span>{{
+                m.label
+              }}
+            </button>
+          }
+        </div>
+
+        <div class="date-stepper">
+          <button type="button" class="icon-btn" aria-label="Dia anterior" (click)="mudarDia(-1)">
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+          </button>
+          <input
+            type="date"
+            class="input input--date"
+            aria-label="Data exibida"
+            [ngModel]="data()"
+            (ngModelChange)="setData($event)"
+          />
+          <button type="button" class="icon-btn" aria-label="Próximo dia" (click)="mudarDia(1)">
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn--sm btn-ghost"
+          [disabled]="ehHoje()"
+          (click)="irParaHoje()"
+        >
+          Hoje
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Atualizar disponibilidade"
+          title="Atualizar"
+          [attr.aria-busy]="carregando()"
+          (click)="atualizar()"
+        >
+          <span
+            class="material-symbols-outlined"
+            aria-hidden="true"
+            [class.is-spinning]="carregando()"
+            >refresh</span
+          >
+        </button>
+      </div>
+    </div>
+
+    <dl class="kpis" [attr.aria-busy]="carregando()">
+      <div class="kpi">
+        <dt class="kpi__label">Capacidade</dt>
+        <dd class="kpi__value">{{ dispo().capacidade ?? '—' }}</dd>
+        <dd class="kpi__hint">
+          {{ dispo().capacidade == null ? 'sem controle de capacidade' : 'vagas no dia' }}
+        </dd>
+      </div>
+      <div class="kpi">
+        <dt class="kpi__label">Destinadas</dt>
+        <dd class="kpi__value">{{ dispo().reservadas }}</dd>
+        <dd class="kpi__hint">vagas liberadas no dia</dd>
+      </div>
+      <div class="kpi kpi--wide">
+        <dt class="kpi__label">
+          Disponíveis
+          @if (dispo().capacidade != null) {
+            <span class="pill" [attr.data-tone]="nivel()">{{ nivelLabel() }}</span>
+          }
+        </dt>
+        <dd class="kpi__value">{{ disponiveis() ?? '—' }}</dd>
+        @if (dispo().capacidade != null) {
+          <dd class="kpi__meter">
+            <div
+              class="meter"
+              role="meter"
+              aria-label="Ocupação do dia"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="dispo().capacidade"
+              [attr.aria-valuenow]="dispo().reservadas"
+              [attr.aria-valuetext]="ocupacao() + '% destinado'"
+              [attr.data-tone]="nivel()"
+            >
+              <span class="meter__fill" [style.width.%]="ocupacao()"></span>
+            </div>
+          </dd>
+          <dd class="kpi__hint">{{ ocupacao() }}% destinado</dd>
+        } @else {
+          <dd class="kpi__hint">configure a capacidade no cadastro do estacionamento</dd>
+        }
+      </div>
+      <div class="kpi kpi--aside">
+        <dt class="kpi__label">{{ dispoOutra().label }}</dt>
+        @if (dispoOutra().capacidade != null) {
+          <dd class="kpi__value kpi__value--sm">
+            {{ dispoOutra().disponiveis
+            }}<span class="kpi__of">/{{ dispoOutra().capacidade }}</span>
+          </dd>
+          <dd class="kpi__hint">disponíveis · {{ dispoOutra().reservadas }} destinadas</dd>
+        } @else {
+          <dd class="kpi__value kpi__value--sm">—</dd>
+          <dd class="kpi__hint">sem controle · {{ dispoOutra().reservadas }} destinadas</dd>
+        }
+      </div>
+    </dl>
+  </section>
+
+  <!-- ═══ Destinações ═════════════════════════════════════════════════ -->
+  <section class="card list" aria-labelledby="lista-title">
+    <header class="list__head">
+      <div>
+        <h2 id="lista-title" class="card__title">Destinações</h2>
+        <p class="card__meta">
+          {{ plural(resumoLista().transportadoras, 'transportadora', 'transportadoras') }}
+          · {{ resumoLista().ativas }} ativas de {{ resumoLista().total }}
+        </p>
+      </div>
+      <div class="list__actions">
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Expandir todas desta página"
+          title="Expandir todas"
+          (click)="expandirPagina()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">unfold_more</span>
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Recolher todas"
+          title="Recolher todas"
+          (click)="recolherTodos()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">unfold_less</span>
+        </button>
+      </div>
+    </header>
+
+    <form class="toolbar list__filters" role="search" (ngSubmit)="buscar()">
+      <label class="input input--search">
+        <span class="material-symbols-outlined" aria-hidden="true">search</span>
+        <input
+          type="search"
+          name="busca"
+          placeholder="Transportadora, destinador ou pagador…"
+          aria-label="Buscar por transportadora, destinador ou pagador"
+          [ngModel]="buscaDigitada()"
+          (ngModelChange)="buscaDigitada.set($event)"
+        />
+      </label>
+      <select
+        class="input"
+        name="modalidade"
+        aria-label="Filtrar por modalidade"
+        [ngModel]="filtroModalidade()"
+        (ngModelChange)="setFiltroModalidade($event)"
+      >
+        <option value="todas">Todas modalidades</option>
+        <option value="estacionamento">Estacionamento</option>
+        <option value="limpeza">Limpeza</option>
+        <option value="ambos">Ambos</option>
+      </select>
+      <select
+        class="input"
+        name="status"
+        aria-label="Filtrar por status"
+        [ngModel]="filtroStatus()"
+        (ngModelChange)="setFiltroStatus($event)"
+      >
+        <option value="ativa">Ativas</option>
+        <option value="pausada">Pausadas</option>
+        <option value="encerrada">Encerradas</option>
+        <option value="todas">Todos os status</option>
+      </select>
+      <button type="submit" class="btn btn-secondary">Buscar</button>
+    </form>
+
+    @if (erroCarga() && !carregando()) {
+      <div class="empty" role="alert">
+        <span class="material-symbols-outlined empty__icon" aria-hidden="true">cloud_off</span>
+        <strong>Não foi possível carregar as destinações</strong>
+        <span>Verifique a conexão e tente de novo.</span>
+        <button type="button" class="btn btn--sm btn-secondary" (click)="atualizar()">
+          Tentar novamente
+        </button>
+      </div>
+    } @else if (grupos().length) {
+      <ul class="groups" [attr.aria-busy]="carregando() || ocupado()">
+        @for (g of gruposPagina(); track g.id) {
+          @let aberto = abertos().has(g.id);
+          <li class="group" [class.is-open]="aberto">
+            <div class="group__row">
+              <h3 class="group__h">
+                <button
+                  type="button"
+                  class="group__head"
+                  [attr.aria-expanded]="aberto"
+                  [attr.aria-controls]="'grp-' + g.id"
+                  (click)="alternarGrupo(g.id)"
+                >
+                  <span class="material-symbols-outlined group__chev" aria-hidden="true"
+                    >chevron_right</span
+                  >
+                  <span class="material-symbols-outlined group__ico" aria-hidden="true">
+                    {{ g.avulso ? 'person' : 'local_shipping' }}
+                  </span>
+                  <span class="group__name">{{ g.nome }}</span>
+                  @if (g.temTerceiro) {
+                    <span class="pill" data-tone="info">Terceiro paga</span>
+                  }
+                  <span class="group__meta">
+                    <span class="mono">{{ g.destinacoes.length }}</span>
+                    {{ g.destinacoes.length === 1 ? 'período' : 'períodos' }} ·
+                    <span class="mono">{{ g.horariosAtivos }}</span>
+                    {{ g.horariosAtivos === 1 ? 'horário' : 'horários' }} ·
+                    <span class="mono">{{ g.vagasDia }}</span> vagas/dia
+                  </span>
+                </button>
+              </h3>
+              @if (podeGerenciar()) {
+                <button
+                  type="button"
+                  class="icon-btn icon-btn--sm"
+                  [matMenuTriggerFor]="grupoMenu"
+                  [attr.aria-label]="'Ações de ' + g.nome"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                </button>
+                <mat-menu #grupoMenu="matMenu" xPosition="before" yPosition="below">
+                  <button mat-menu-item (click)="nova(g)">
+                    <span class="material-symbols-outlined" aria-hidden="true">add</span>Nova
+                    destinação para esta
+                  </button>
+                  <button mat-menu-item [disabled]="!g.horariosAtivos" (click)="pausarGrupo(g)">
+                    <span class="material-symbols-outlined" aria-hidden="true">pause_circle</span
+                    >Pausar todas
+                  </button>
+                </mat-menu>
+              }
+            </div>
+
+            @if (aberto) {
+              <div class="group__body" [id]="'grp-' + g.id">
+                @for (d of g.destinacoes; track d.id) {
+                  <section
+                    class="periodo"
+                    [class.is-paused]="d.status !== 'ativa'"
+                    [attr.aria-label]="'Período de ' + (d.inicio | date: 'dd/MM/yyyy')"
+                  >
+                    <header class="periodo__head">
+                      <div class="periodo__main">
+                        <span class="periodo__datas mono">
+                          {{ d.inicio | date: 'dd/MM' }} –
+                          {{ d.fim ? (d.fim | date: 'dd/MM/yyyy') : 'sem fim' }}
+                        </span>
+                        <span class="periodo__meta">
+                          {{ modalidadeLabel[d.modalidade] }} ·
+                          {{ recorrenciaLabel[d.recorrencia] }}
+                          @if (d.transferenciaSaldo) {
+                            ·
+                            <span class="periodo__transf">
+                              <span class="material-symbols-outlined" aria-hidden="true"
+                                >move_down</span
+                              >transfere saldo
+                            </span>
+                          }
+                        </span>
+                      </div>
+                      <div class="periodo__who">
+                        <span
+                          >Destinado por <strong>{{ d.destinador.nome }}</strong></span
+                        >
+                        <span class="muted">
+                          {{ d.registradoPor }}
+                          @if (d.registradoEm) {
+                            · {{ d.registradoEm | date: 'dd/MM HH:mm' }}
+                          }
+                        </span>
+                      </div>
+                      <span class="pill" [attr.data-tone]="d.status">{{
+                        statusLabel[d.status]
+                      }}</span>
+                      @if (podeGerenciar()) {
+                        <button
+                          type="button"
+                          class="icon-btn icon-btn--sm"
+                          [matMenuTriggerFor]="periodoMenu"
+                          aria-label="Ações do período"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true"
+                            >more_vert</span
+                          >
+                        </button>
+                        <mat-menu #periodoMenu="matMenu" xPosition="before" yPosition="below">
+                          <button mat-menu-item (click)="editar(d)">
+                            <span class="material-symbols-outlined" aria-hidden="true">edit</span
+                            >Alterar
+                          </button>
+                          <button mat-menu-item (click)="duplicar(d)">
+                            <span class="material-symbols-outlined" aria-hidden="true"
+                              >content_copy</span
+                            >Duplicar p/ próximo período
+                          </button>
+                          @if (d.status !== 'encerrada') {
+                            <button mat-menu-item (click)="alternarPausa(d)">
+                              <span class="material-symbols-outlined" aria-hidden="true">
+                                {{ d.status === 'ativa' ? 'pause' : 'play_arrow' }}
+                              </span>
+                              {{ d.status === 'ativa' ? 'Pausar' : 'Reativar' }}
+                            </button>
+                          }
+                          <button mat-menu-item class="menu-danger" (click)="excluir(d)">
+                            <span class="material-symbols-outlined" aria-hidden="true">delete</span
+                            >Excluir
+                          </button>
+                        </mat-menu>
+                      }
+                    </header>
+
+                    <div class="table-scroll">
+                      <table class="data-table data-table--compact">
+                        <caption class="sr-only">
+                          Horários de
+                          {{
+                            g.nome
+                          }},
+                          {{
+                            d.inicio | date: 'dd/MM'
+                          }}
+                          a
+                          {{
+                            d.fim ? (d.fim | date: 'dd/MM/yyyy') : 'sem fim'
+                          }}
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Horário</th>
+                            <th scope="col" class="num">Vagas/dia</th>
+                            <th scope="col" class="num">
+                              Usadas {{ ehHoje() ? 'hoje' : 'no dia' }}
+                            </th>
+                            <th scope="col">Quem paga</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col" class="actions"><span class="sr-only">Ações</span></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (i of d.itens; track i.id) {
+                            <tr [class.is-paused]="i.status !== 'ativa'">
+                              <td class="mono strong">{{ i.janela }}</td>
+                              <td class="num mono">{{ i.vagas }}</td>
+                              <td class="num mono" [class.tone-warn]="i.usadasHoje >= i.vagas">
+                                {{ i.usadasHoje }}<span class="muted">/{{ i.vagas }}</span>
+                              </td>
+                              <td>
+                                @if (i.faturamento.tipo === 'terceiro') {
+                                  <span class="payer">
+                                    <span class="pill" data-tone="info">Terceiro</span>
+                                    <span
+                                      class="payer__name"
+                                      [title]="i.faturamento.pagador?.nome ?? ''"
+                                    >
+                                      {{ i.faturamento.pagador?.nome ?? 'Pagador não informado' }}
+                                    </span>
+                                  </span>
+                                } @else {
+                                  <span class="muted">{{
+                                    g.avulso ? 'Motorista' : 'A própria transportadora'
+                                  }}</span>
+                                }
+                              </td>
+                              <td>
+                                <span class="pill" [attr.data-tone]="i.status">{{
+                                  statusLabel[i.status]
+                                }}</span>
+                              </td>
+                              <td class="actions">
+                                @if (podeGerenciar()) {
+                                  <button
+                                    type="button"
+                                    class="icon-btn icon-btn--sm"
+                                    [matMenuTriggerFor]="itemMenu"
+                                    [attr.aria-label]="'Ações do horário ' + i.janela"
+                                  >
+                                    <span class="material-symbols-outlined" aria-hidden="true"
+                                      >more_vert</span
+                                    >
+                                  </button>
+                                  <mat-menu
+                                    #itemMenu="matMenu"
+                                    xPosition="before"
+                                    yPosition="below"
+                                  >
+                                    <button mat-menu-item (click)="editar(d)">
+                                      <span class="material-symbols-outlined" aria-hidden="true"
+                                        >edit</span
+                                      >Alterar
+                                    </button>
+                                    @if (d.status !== 'encerrada') {
+                                      <button mat-menu-item (click)="alternarPausa(d, i)">
+                                        <span class="material-symbols-outlined" aria-hidden="true">
+                                          {{ i.status === 'ativa' ? 'pause' : 'play_arrow' }}
+                                        </span>
+                                        {{
+                                          i.status === 'ativa'
+                                            ? 'Pausar horário'
+                                            : 'Reativar horário'
+                                        }}
+                                      </button>
+                                    }
+                                    <button
+                                      mat-menu-item
+                                      class="menu-danger"
+                                      (click)="excluir(d, i)"
+                                    >
+                                      <span class="material-symbols-outlined" aria-hidden="true"
+                                        >delete</span
+                                      >Excluir horário
+                                    </button>
+                                  </mat-menu>
+                                }
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <th scope="row">Total por dia</th>
+                            <td class="num mono strong">
+                              {{ plural(vagasAtivas(d), 'vaga', 'vagas') }}
+                            </td>
+                            <td class="num mono">
+                              {{ usadasHoje(d) }}<span class="muted">/{{ vagasAtivas(d) }}</span>
+                            </td>
+                            <td colspan="3"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </section>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+
+      <mat-paginator
+        class="list__paginator"
+        aria-label="Paginação das destinações"
+        [length]="grupos().length"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="[5, 10, 25]"
+        [showFirstLastButtons]="true"
+        (page)="onPage($event)"
+      />
+    } @else if (carregando()) {
+      <div class="empty" role="status">
+        <span class="material-symbols-outlined empty__icon is-spinning" aria-hidden="true"
+          >progress_activity</span
+        >
+        <span>Carregando destinações…</span>
+      </div>
+    } @else {
+      <div class="empty" role="status">
+        <span class="material-symbols-outlined empty__icon" aria-hidden="true">inventory_2</span>
+        <strong>{{
+          temFiltro() ? 'Nada com esses filtros' : 'Nenhuma destinação cadastrada'
+        }}</strong>
+        <span>{{
+          temFiltro()
+            ? 'Ajuste a busca ou o status.'
+            : 'Comece liberando as primeiras vagas do acordo.'
+        }}</span>
+        @if (temFiltro()) {
+          <button type="button" class="btn btn--sm btn-secondary" (click)="limparFiltros()">
+            Limpar filtros
+          </button>
+        } @else if (podeGerenciar()) {
+          <button type="button" class="btn btn--sm btn-primary" (click)="nova()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>Nova destinação
+          </button>
+        }
+      </div>
+    }
+  </section>
+</div>

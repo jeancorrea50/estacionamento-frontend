@@ -52,6 +52,13 @@
   line-height: 1.45;
 }
 
+.destinacao-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .destinacao-page__topbar {
   display: inline-flex;
   flex-wrap: nowrap;

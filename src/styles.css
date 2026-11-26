@@ -2745,3 +2745,30 @@ html.theme-light .modal-content .btn--primary {
   color: #ffffff !important;
   border-color: var(--btn-primary-border, #2563eb) !important;
 }
+
+/* Modal "tela principal" (ex.: Destinação › Nova destinação). Abrir com panelClass: 'gts-dialog-main'. */
+.cdk-overlay-pane.gts-dialog-main .mat-mdc-dialog-container {
+  --mat-dialog-container-max-width: none;
+  --mat-dialog-container-shape: 12px;
+}
+
+.cdk-overlay-pane.gts-dialog-main .mat-mdc-dialog-surface {
+  overflow: hidden;
+  border: 1px solid var(--border, #363642);
+  background: var(--surface, #292934);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+
+@media (max-width: 640px) {
+  .cdk-overlay-pane.gts-dialog-main {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+  }
+
+  .cdk-overlay-pane.gts-dialog-main .mat-mdc-dialog-surface {
+    border: 0;
+    border-radius: 0;
+  }
+}

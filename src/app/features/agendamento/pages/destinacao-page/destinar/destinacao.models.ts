@@ -90,12 +90,6 @@ export interface GrupoDestinacao {
   temTerceiro: boolean;
 }
 
-export interface Disponibilidade {
-  /** null = controle de capacidade desativado para a modalidade. */
-  capacidade: number | null;
-  reservadas: number;
-}
-
 export const MODALIDADES: ReadonlyArray<{ id: Modalidade; label: string; icon: string }> = [
   { id: 'estacionamento', label: 'Estacionamento', icon: 'local_parking' },
   { id: 'limpeza', label: 'Limpeza', icon: 'water_drop' },

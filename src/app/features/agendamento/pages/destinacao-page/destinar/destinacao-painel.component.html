@@ -1,132 +1,19 @@
 <div class="dst">
   <!-- ═══ Painel do dia ═══════════════════════════════════════════════ -->
-  <section class="card dispo" aria-labelledby="dispo-title">
-    <div class="dispo__bar">
-      <div class="dispo__title">
-        <h2 id="dispo-title" class="card__title">Disponibilidade do dia</h2>
-        <p class="card__meta">
-          {{ data() | date: 'EEEE, dd/MM/yyyy' }} ·
-          {{ plural(destinacoesAtivas(), 'destinação ativa', 'destinações ativas') }} ·
-          {{ vagasDestinadasDia() }} vagas/dia destinadas
-        </p>
-      </div>
-
-      <div class="dispo__actions">
-        <div class="seg seg--sm" role="radiogroup" aria-label="Modalidade exibida">
-          @for (m of modalidadesVisao; track m.id) {
-            <button
-              type="button"
-              role="radio"
-              class="seg__item"
-              [class.is-active]="visao() === m.id"
-              [attr.aria-checked]="visao() === m.id"
-              (click)="visao.set($any(m.id))"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">{{ m.icon }}</span>{{
-                m.label
-              }}
-            </button>
-          }
-        </div>
-
-        <div class="date-stepper">
-          <button type="button" class="icon-btn" aria-label="Dia anterior" (click)="mudarDia(-1)">
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-          </button>
-          <input
-            type="date"
-            class="input input--date"
-            aria-label="Data exibida"
-            [ngModel]="data()"
-            (ngModelChange)="setData($event)"
-          />
-          <button type="button" class="icon-btn" aria-label="Próximo dia" (click)="mudarDia(1)">
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="btn btn--sm btn-ghost"
-          [disabled]="ehHoje()"
-          (click)="irParaHoje()"
-        >
-          Hoje
-        </button>
-        <button
-          type="button"
-          class="icon-btn"
-          aria-label="Atualizar disponibilidade"
-          title="Atualizar"
-          [attr.aria-busy]="carregando()"
-          (click)="atualizar()"
-        >
-          <span
-            class="material-symbols-outlined"
-            aria-hidden="true"
-            [class.is-spinning]="carregando()"
-            >refresh</span
-          >
-        </button>
-      </div>
-    </div>
-
-    <dl class="kpis" [attr.aria-busy]="carregando()">
-      <div class="kpi">
-        <dt class="kpi__label">Capacidade</dt>
-        <dd class="kpi__value">{{ dispo().capacidade ?? '—' }}</dd>
-        <dd class="kpi__hint">
-          {{ dispo().capacidade == null ? 'sem controle de capacidade' : 'vagas no dia' }}
-        </dd>
-      </div>
-      <div class="kpi">
-        <dt class="kpi__label">Destinadas</dt>
-        <dd class="kpi__value">{{ dispo().reservadas }}</dd>
-        <dd class="kpi__hint">vagas liberadas no dia</dd>
-      </div>
-      <div class="kpi kpi--wide">
-        <dt class="kpi__label">
-          Disponíveis
-          @if (dispo().capacidade != null) {
-            <span class="pill" [attr.data-tone]="nivel()">{{ nivelLabel() }}</span>
-          }
-        </dt>
-        <dd class="kpi__value">{{ disponiveis() ?? '—' }}</dd>
-        @if (dispo().capacidade != null) {
-          <dd class="kpi__meter">
-            <div
-              class="meter"
-              role="meter"
-              aria-label="Ocupação do dia"
-              aria-valuemin="0"
-              [attr.aria-valuemax]="dispo().capacidade"
-              [attr.aria-valuenow]="dispo().reservadas"
-              [attr.aria-valuetext]="ocupacao() + '% destinado'"
-              [attr.data-tone]="nivel()"
-            >
-              <span class="meter__fill" [style.width.%]="ocupacao()"></span>
-            </div>
-          </dd>
-          <dd class="kpi__hint">{{ ocupacao() }}% destinado</dd>
-        } @else {
-          <dd class="kpi__hint">configure a capacidade no cadastro do estacionamento</dd>
-        }
-      </div>
-      <div class="kpi kpi--aside">
-        <dt class="kpi__label">{{ dispoOutra().label }}</dt>
-        @if (dispoOutra().capacidade != null) {
-          <dd class="kpi__value kpi__value--sm">
-            {{ dispoOutra().disponiveis
-            }}<span class="kpi__of">/{{ dispoOutra().capacidade }}</span>
-          </dd>
-          <dd class="kpi__hint">disponíveis · {{ dispoOutra().reservadas }} destinadas</dd>
-        } @else {
-          <dd class="kpi__value kpi__value--sm">—</dd>
-          <dd class="kpi__hint">sem controle · {{ dispoOutra().reservadas }} destinadas</dd>
-        }
-      </div>
-    </dl>
-  </section>
+  <app-destinacao-dia
+    [(data)]="data"
+    [(visao)]="visao"
+    [modalidades]="painelModalidades()"
+    [horarios]="ocupacaoHorarios()"
+    [destinacoesAtivas]="destinacoesAtivas()"
+    [vagasDiaDestinadas]="vagasDestinadasDia()"
+    [carregando]="carregando()"
+    [ehHoje]="ehHoje()"
+    [horaAtual]="ehHoje() ? horaAtual() : ''"
+    (mudarDia)="mudarDia($event)"
+    (irParaHoje)="irParaHoje()"
+    (atualizar)="atualizar()"
+  />
 
   <!-- ═══ Destinações ═════════════════════════════════════════════════ -->
   <section class="card list" aria-labelledby="lista-title">

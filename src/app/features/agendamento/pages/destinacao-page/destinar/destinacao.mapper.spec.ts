@@ -5,6 +5,7 @@ import {
   agruparPorTransportadora,
   calcularJanelas,
   montarInput,
+  ocupacaoPorHorario,
   recorrenciaDaApi,
   recorrenciaParaApi,
   reservaCobreDia,
@@ -133,6 +134,22 @@ describe('calcularJanelas', () => {
     expect(
       calcularJanelas(slots, reservas, '2026-12-10', 'estacionamento', new Set([1]))[0].livres,
     ).toBe(10);
+  });
+
+  it('ocupação por horário soma o destinado sem limitar à capacidade', () => {
+    const reservas = [
+      reserva({ id: 1, quantidade: 8, horaInicio: '08:00', horaFim: '09:00' }),
+      reserva({ id: 2, quantidade: 4, horaInicio: '08:00', horaFim: '09:00', modalidade: 3 }),
+      reserva({ id: 3, quantidade: 5, horaInicio: '09:00', horaFim: '10:00', modalidade: 2 }),
+    ];
+    const slots = [
+      { horaInicio: '09:00', horaFim: '10:00', capacidade: 10 },
+      { horaInicio: '08:00', horaFim: '09:00', capacidade: 10 },
+    ];
+    expect(ocupacaoPorHorario(slots, reservas, '2026-12-10', 'estacionamento')).toEqual([
+      { inicio: '08:00', fim: '09:00', capacidade: 10, destinadas: 12 },
+      { inicio: '09:00', fim: '10:00', capacidade: 10, destinadas: 0 },
+    ]);
   });
 });
 

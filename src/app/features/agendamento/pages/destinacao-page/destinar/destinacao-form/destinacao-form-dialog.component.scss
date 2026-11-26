@@ -820,3 +820,7 @@
     transition: none;
   }
 }
+
+:host-context(html.theme-light) {
+  @include tk.tokens-light;
+}

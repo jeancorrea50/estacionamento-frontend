@@ -46,130 +46,6 @@
   }
 }
 
-// ═══ Painel do dia ═══════════════════════════════════════════════════════
-.dispo__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 14px 16px 0;
-}
-
-.dispo__title {
-  min-width: 0;
-}
-
-.dispo__actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.date-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-
-  .input--date {
-    width: 150px;
-    text-align: center;
-  }
-}
-
-.kpis {
-  display: grid;
-  grid-template-columns: 1fr 1fr 2fr 1.2fr;
-  margin: 14px 0 0;
-  border-top: 1px solid var(--dst-border);
-}
-
-.kpi {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 12px 14px 14px;
-  min-width: 0;
-
-  & + & {
-    border-left: 1px solid var(--dst-border);
-  }
-
-  dd {
-    margin: 0;
-  }
-}
-
-.kpi__label {
-  @include tk.t-label;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  text-transform: uppercase;
-  color: var(--dst-muted);
-}
-
-// DESIGN.md › KPI: valor 1.35rem bold
-.kpi__value {
-  font-size: 1.35rem;
-  line-height: 1.25;
-  font-weight: 700;
-  color: var(--dst-text);
-  font-variant-numeric: tabular-nums;
-
-  &--sm {
-    font-size: 1.15rem;
-  }
-}
-
-.kpi__of {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--dst-muted);
-}
-
-.kpi__hint {
-  font-size: 12px;
-  color: var(--dst-muted);
-}
-
-.kpi__meter {
-  margin-top: 6px !important;
-}
-
-.kpi--aside {
-  background: var(--dst-table);
-  border-bottom-right-radius: var(--dst-radius-card);
-}
-
-.meter {
-  --_tone: var(--dst-primary);
-  height: 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--dst-muted) 22%, transparent);
-  overflow: hidden;
-
-  &[data-tone='warn'] {
-    --_tone: var(--dst-warning);
-  }
-
-  &[data-tone='danger'] {
-    --_tone: var(--dst-danger);
-  }
-}
-
-.meter__fill {
-  display: block;
-  height: 100%;
-  min-width: 2px;
-  border-radius: inherit;
-  background: var(--_tone);
-  transition: width 0.25s ease;
-}
-
 // ═══ Lista ══════════════════════════════════════════════════════════════
 .list__head {
   display: flex;
@@ -433,18 +309,6 @@
 
 // ═══ Responsivo ═════════════════════════════════════════════════════════
 @media (max-width: 1100px) {
-  .kpis {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .kpi:nth-child(3) {
-    border-left: 0;
-  }
-
-  .kpi:nth-child(n + 3) {
-    border-top: 1px solid var(--dst-border);
-  }
-
   .list__filters {
     grid-template-columns: 1fr 1fr;
 
@@ -455,32 +319,6 @@
 }
 
 @media (max-width: 640px) {
-  .dispo__bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .dispo__actions {
-    justify-content: space-between;
-  }
-
-  .seg--sm {
-    width: 100%;
-
-    .seg__item {
-      flex: 1;
-    }
-  }
-
-  .date-stepper {
-    flex: 1 1 100%;
-
-    .input--date {
-      flex: 1;
-      width: auto;
-    }
-  }
-
   .list__filters {
     grid-template-columns: 1fr;
   }
@@ -518,9 +356,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .is-spinning,
-  .meter__fill,
   .group__chev {
     animation: none;
     transition: none;
   }
+}
+
+:host-context(html.theme-light) {
+  @include tk.tokens-light;
 }

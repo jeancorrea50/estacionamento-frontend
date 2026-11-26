@@ -65,16 +65,13 @@ describe('vaga-reserva-lab.util', () => {
           11: 10,
           12: null,
         },
-        11
-      )
+        11,
+      ),
     ).toBe(10);
   });
 
   it('calcula livres com hard stop (sem excedente)', () => {
-    const reservas = [
-      reserva({ quantidade: 7 }),
-      reserva({ id: 2, quantidade: 2, ativo: false }),
-    ];
+    const reservas = [reserva({ quantidade: 7 }), reserva({ id: 2, quantidade: 2, ativo: false })];
     expect(destinadasNoDia(reservas, '2026-11-24', 10)).toBe(7);
     const cota = calcularCotaDia({
       vagasAcordo: {

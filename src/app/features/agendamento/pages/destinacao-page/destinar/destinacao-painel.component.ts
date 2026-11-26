@@ -16,7 +16,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorIntl, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { Observable, Subject, firstValueFrom, forkJoin, from, of } from 'rxjs';
-import { catchError, concatMap, finalize, switchMap, toArray } from 'rxjs/operators';
+import { catchError, concatMap, finalize, map, switchMap, toArray } from 'rxjs/operators';
 
 import { ToastService } from '../../../../../core/api/services/toast.service';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -28,12 +28,18 @@ import type {
   VagaDisponibilidadeResumo,
   VagaReservaTransportadoraItem,
 } from '../../../models/vaga-disponibilidade.models';
+import type { ModalidadeAgendamento } from '../../../models/janela-agendamento.models';
+import { JanelaAgendamentoService } from '../../../services/janela-agendamento.service';
 import { VagaDisponibilidadeService } from '../../../services/vaga-disponibilidade.service';
+import {
+  DestinacaoDiaComponent,
+  type OcupacaoHorario,
+  type PainelModalidade,
+} from './destinacao-dia/destinacao-dia.component';
 import {
   Destinacao,
   DestinacaoFormData,
   DestinacaoFormResult,
-  Disponibilidade,
   Empresa,
   GrupoDestinacao,
   ItemDestinacao,
@@ -47,6 +53,7 @@ import {
   agruparDestinacoes,
   agruparPorTransportadora,
   hojeISO,
+  ocupacaoPorHorario,
   somarDias,
   vagasAtivas,
 } from './destinacao.mapper';
@@ -57,6 +64,11 @@ import {
 
 type FiltroStatus = StatusRegra | 'todas';
 type ModalidadeVisao = 'estacionamento' | 'limpeza';
+type SlotDia = { horaInicio: string; horaFim: string; capacidade: number };
+
+function horaLocal(d: Date = new Date()): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
 /** Rótulos pt-BR do paginador (o app não tem MatPaginatorIntl global). */
 @Injectable()
@@ -81,7 +93,7 @@ export class DestinacaoPaginatorIntl extends MatPaginatorIntl {
 @Component({
   selector: 'app-destinacao-painel',
   standalone: true,
-  imports: [FormsModule, DatePipe, MatMenuModule, MatPaginatorModule],
+  imports: [FormsModule, DatePipe, MatMenuModule, MatPaginatorModule, DestinacaoDiaComponent],
   providers: [{ provide: MatPaginatorIntl, useClass: DestinacaoPaginatorIntl }],
   templateUrl: './destinacao-painel.component.html',
   styleUrl: './destinacao-painel.component.scss',
@@ -89,6 +101,7 @@ export class DestinacaoPaginatorIntl extends MatPaginatorIntl {
 })
 export class DestinacaoPainelComponent implements OnInit {
   private readonly api = inject(VagaDisponibilidadeService);
+  private readonly janelasApi = inject(JanelaAgendamentoService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -124,39 +137,38 @@ export class DestinacaoPainelComponent implements OnInit {
   readonly data = signal(hojeISO());
   readonly ehHoje = computed(() => this.data() === hojeISO());
 
-  private dispoDe(m: ModalidadeVisao): Disponibilidade {
-    const r = this.resumo();
-    if (!r) return { capacidade: null, reservadas: 0 };
-    return m === 'estacionamento'
-      ? { capacidade: r.capacidadeEstacionamento, reservadas: r.vagasReservadasEstacionamento }
-      : { capacidade: r.capacidadeLimpeza, reservadas: r.vagasReservadasLimpeza };
-  }
+  /** Resumo do dia anterior (delta "vs. ontem"). */
+  private readonly resumoOntem = signal<VagaDisponibilidadeResumo | null>(null);
+  /** Slots das janelas do dia por modalidade (capacidade por horário). */
+  private readonly slotsDia = signal<Record<ModalidadeVisao, SlotDia[]>>({
+    estacionamento: [],
+    limpeza: [],
+  });
+  /** 'HH:mm' — atualizado a cada recarga para marcar a coluna "agora". */
+  readonly horaAtual = signal(horaLocal());
 
-  readonly dispo = computed(() => this.dispoDe(this.visao()));
-  readonly dispoOutra = computed(() => {
-    const id: ModalidadeVisao = this.visao() === 'estacionamento' ? 'limpeza' : 'estacionamento';
-    const d = this.dispoDe(id);
+  /** Destinadas por modalidade; "Ambos" conta nas duas (mesma regra do backend). */
+  readonly painelModalidades = computed<Record<ModalidadeVisao, PainelModalidade>>(() => {
+    const r = this.resumo();
+    const o = this.resumoOntem();
     return {
-      label: this.modalidadeLabel[id],
-      ...d,
-      disponiveis: d.capacidade == null ? null : Math.max(d.capacidade - d.reservadas, 0),
+      estacionamento: {
+        capacidade: r?.capacidadeEstacionamento ?? null,
+        destinadas: r?.vagasReservadasEstacionamento ?? 0,
+        destinadasOntem: o ? o.vagasReservadasEstacionamento : undefined,
+      },
+      limpeza: {
+        capacidade: r?.capacidadeLimpeza ?? null,
+        destinadas: r?.vagasReservadasLimpeza ?? 0,
+        destinadasOntem: o ? o.vagasReservadasLimpeza : undefined,
+      },
     };
   });
-  readonly disponiveis = computed(() => {
-    const { capacidade, reservadas } = this.dispo();
-    return capacidade == null ? null : Math.max(capacidade - reservadas, 0);
-  });
-  readonly ocupacao = computed(() => {
-    const { capacidade, reservadas } = this.dispo();
-    return capacidade ? Math.min(100, Math.round((reservadas / capacidade) * 100)) : 0;
-  });
-  readonly nivel = computed<'ok' | 'warn' | 'danger'>(() => {
-    const o = this.ocupacao();
-    return o >= 90 ? 'danger' : o >= 70 ? 'warn' : 'ok';
-  });
-  readonly nivelLabel = computed(
-    () => ({ ok: 'Com folga', warn: 'Atenção', danger: 'Lotando' })[this.nivel()],
+
+  readonly ocupacaoHorarios = computed<OcupacaoHorario[]>(() =>
+    ocupacaoPorHorario(this.slotsDia()[this.visao()], this.reservas(), this.data(), this.visao()),
   );
+
   readonly destinacoesAtivas = computed(
     () => this.destinacoes().filter((d) => d.status === 'ativa').length,
   );
@@ -211,16 +223,29 @@ export class DestinacaoPainelComponent implements OnInit {
         switchMap(() => {
           const data = this.data();
           this.carregando.set(true);
+          this.horaAtual.set(horaLocal());
+          const slots = (m: ModalidadeAgendamento) =>
+            this.janelasApi.disponibilidade(data, m).pipe(
+              map((d) => d.slots ?? []),
+              catchError(() => of([] as SlotDia[])),
+            );
           return forkJoin({
             resumo: this.api.resumoParaTransportadora(data).pipe(catchError(() => of(null))),
+            resumoOntem: this.api
+              .resumoParaTransportadora(somarDias(data, -1))
+              .pipe(catchError(() => of(null))),
             reservas: this.api.listarReservas(data).pipe(catchError(() => of(null))),
+            slotsEst: slots(1),
+            slotsLimp: slots(2),
           }).pipe(finalize(() => this.carregando.set(false)));
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(({ resumo, reservas }) => {
+      .subscribe(({ resumo, resumoOntem, reservas, slotsEst, slotsLimp }) => {
         this.erroCarga.set(reservas == null);
         this.resumo.set(resumo);
+        this.resumoOntem.set(resumoOntem);
+        this.slotsDia.set({ estacionamento: slotsEst, limpeza: slotsLimp });
         this.reservas.set(reservas ?? []);
         this.ajustarPagina();
       });

@@ -18,9 +18,33 @@
   --dst-warning: var(--warning, #e8a23a);
   --dst-danger: var(--danger, #f06468);
 
+  // Cores de MARCA de dado (barras, medidores, chips de ícone). No escuro = o próprio token.
+  --dst-mark-primary: var(--dst-primary);
+  --dst-mark-success: var(--dst-success);
+  --dst-mark-warning: var(--dst-warning);
+  --dst-mark-danger: var(--dst-danger);
+  // Fundo tingido dos chips de ícone / trilhos de medidor.
+  --dst-tint: 16%;
+  --dst-tint-base: var(--dst-surface);
+
   --dst-radius-ctl: var(--radius-sm, 8px);
+  --dst-radius-md: var(--radius-md, 10px);
   --dst-radius-card: var(--radius-lg, 12px);
   --dst-gap: var(--space-lg, 16px);
+  --dst-shadow-card: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+
+// Tema claro (html.theme-light). Superfícies já vêm dos tokens semânticos do tema;
+// aqui só ajusta marcas de dado (status escurecidos p/ contraste ≥ 3:1 no branco),
+// tinta dos chips e sombra. Nenhum hex novo: variações são color-mix dos tokens.
+@mixin tokens-light {
+  --dst-mark-primary: var(--dst-primary);
+  --dst-mark-success: color-mix(in srgb, var(--dst-success) 75%, #000);
+  --dst-mark-warning: color-mix(in srgb, var(--dst-warning) 75%, #000);
+  --dst-mark-danger: color-mix(in srgb, var(--dst-danger) 75%, #000);
+  --dst-tint: 11%;
+  --dst-tint-base: var(--dst-surface);
+  --dst-shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 12px rgb(15 23 42 / 0.04);
 }
 
 // Tipografia (DESIGN.md › Typography)

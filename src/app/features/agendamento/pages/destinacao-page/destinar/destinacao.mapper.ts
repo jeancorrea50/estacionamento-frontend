@@ -301,22 +301,51 @@ export function calcularJanelas(
   }
 
   for (const j of porKey.values()) {
-    const destinadas = reservas
-      .filter(
-        (r) =>
-          r.ativo &&
-          !ignorarIds.has(r.id) &&
-          janelaKey(r.horaInicio ?? '', r.horaFim ?? '') === j.id &&
-          (mod === 3 || r.modalidade === mod || r.modalidade === 3) &&
-          reservaCobreDia(r, dia),
-      )
-      .reduce((s, r) => s + r.quantidade, 0);
-    j.livres = Math.max(0, j.capacidade - destinadas);
+    j.livres = Math.max(0, j.capacidade - destinadasNaJanela(reservas, j.id, dia, mod, ignorarIds));
   }
 
   return [...porKey.values()].sort(
     (a, b) => a.inicio.localeCompare(b.inicio) || a.fim.localeCompare(b.fim),
   );
+}
+
+/** Soma das reservas ativas na janela (`HH:mm|HH:mm`), no dia, na modalidade (ou "Ambos"). */
+function destinadasNaJanela(
+  reservas: ReadonlyArray<VagaReservaTransportadoraItem>,
+  key: string,
+  dia: string,
+  mod: ModalidadeVagaAgendamento,
+  ignorarIds: ReadonlySet<number> = new Set(),
+): number {
+  return reservas
+    .filter(
+      (r) =>
+        r.ativo &&
+        !ignorarIds.has(r.id) &&
+        janelaKey(r.horaInicio ?? '', r.horaFim ?? '') === key &&
+        (mod === 3 || r.modalidade === mod || r.modalidade === 3) &&
+        reservaCobreDia(r, dia),
+    )
+    .reduce((s, r) => s + r.quantidade, 0);
+}
+
+/**
+ * Painel do dia › "Destinado por horário": capacidade de cada janela do dia e quanto
+ * já foi destinado nela (sem limitar à capacidade, para o excesso aparecer como 100%).
+ */
+export function ocupacaoPorHorario(
+  slots: ReadonlyArray<{ horaInicio: string; horaFim: string; capacidade: number }>,
+  reservas: ReadonlyArray<VagaReservaTransportadoraItem>,
+  dia: string,
+  modalidade: Exclude<Modalidade, 'ambos'>,
+): Array<{ inicio: string; fim: string; capacidade: number; destinadas: number }> {
+  const mod = modalidadeParaApi(modalidade);
+  return calcularJanelas(slots, [], dia, modalidade).map((j) => ({
+    inicio: j.inicio,
+    fim: j.fim,
+    capacidade: j.capacidade,
+    destinadas: destinadasNaJanela(reservas, j.id, dia, mod),
+  }));
 }
 
 // ─── Payload ─────────────────────────────────────────────────────────────

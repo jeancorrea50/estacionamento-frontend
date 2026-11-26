@@ -1,6 +1,9 @@
 import type { JanelaFaixa } from '../../../models/janela-agendamento.models';
 import type { VagaReservaTransportadoraItem } from '../../../models/vaga-disponibilidade.models';
-import type { ConfigCobrancaMesAcordo, ConfigCobrancaVagasAcordo } from '../../../../financeiro/pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
+import type {
+  ConfigCobrancaMesAcordo,
+  ConfigCobrancaVagasAcordo,
+} from '../../../../financeiro/pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
 
 function isoDateOnly(value: string | null | undefined): string {
   return (value || '').trim().slice(0, 10);
@@ -26,7 +29,7 @@ export interface CotaTransportadoraDia {
 /** Janela ativa cobrindo o dia (vigência início/fim; fim nulo = aberto). */
 export function janelaCobreDia(
   janela: { ativo?: boolean; dataVigenciaInicio?: string | null; dataVigenciaFim?: string | null },
-  dataIso: string
+  dataIso: string,
 ): boolean {
   if (janela.ativo === false) return false;
   const dia = isoDateOnly(dataIso);
@@ -50,7 +53,9 @@ export function faixaKey(horaInicio: string, horaFim: string): string {
 }
 
 /** Une faixas de janelas ativas em opções únicas de horário. */
-export function coletarFaixasUnicas(faixas: ReadonlyArray<Pick<JanelaFaixa, 'horaInicio' | 'horaFim'>>): FaixaHorarioLab[] {
+export function coletarFaixasUnicas(
+  faixas: ReadonlyArray<Pick<JanelaFaixa, 'horaInicio' | 'horaFim'>>,
+): FaixaHorarioLab[] {
   const map = new Map<string, FaixaHorarioLab>();
   for (const f of faixas ?? []) {
     const horaInicio = normHoraLab(f.horaInicio);
@@ -65,7 +70,9 @@ export function coletarFaixasUnicas(faixas: ReadonlyArray<Pick<JanelaFaixa, 'hor
       label: `${horaInicio} – ${horaFim}`,
     });
   }
-  return [...map.values()].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio) || a.horaFim.localeCompare(b.horaFim));
+  return [...map.values()].sort(
+    (a, b) => a.horaInicio.localeCompare(b.horaInicio) || a.horaFim.localeCompare(b.horaFim),
+  );
 }
 
 export function mesDeIso(iso: string | null | undefined): ConfigCobrancaMesAcordo | null {
@@ -78,7 +85,7 @@ export function mesDeIso(iso: string | null | undefined): ConfigCobrancaMesAcord
 
 export function cotaAcordoDoMes(
   vagas: ConfigCobrancaVagasAcordo | null | undefined,
-  mes: ConfigCobrancaMesAcordo | null
+  mes: ConfigCobrancaMesAcordo | null,
 ): number | null {
   if (!vagas || mes == null) return null;
   const raw = vagas[mes];
@@ -89,7 +96,7 @@ export function cotaAcordoDoMes(
 /** Reserva ativa cobrindo o dia (vigência início/fim; fim nulo = aberto). */
 export function reservaCobreDiaLab(
   reserva: Pick<VagaReservaTransportadoraItem, 'ativo' | 'dataInicio' | 'dataFim'>,
-  dataIso: string
+  dataIso: string,
 ): boolean {
   if (!reserva?.ativo) return false;
   const dia = isoDateOnly(dataIso);
@@ -105,7 +112,7 @@ export function reservaCobreDiaLab(
 export function destinadasNoDia(
   reservas: ReadonlyArray<VagaReservaTransportadoraItem>,
   dataIso: string,
-  transportadoraId: number
+  transportadoraId: number,
 ): number {
   if (!transportadoraId || transportadoraId <= 0) return 0;
   let total = 0;
@@ -127,8 +134,7 @@ export function calcularCotaDia(opts: {
   const mes = mesDeIso(opts.dataIso);
   const cotaMes = opts.temAcordo ? cotaAcordoDoMes(opts.vagasAcordo, mes) : null;
   const destinadas = destinadasNoDia(opts.reservas, opts.dataIso, opts.transportadoraId);
-  const livres =
-    cotaMes != null ? Math.max(0, cotaMes - destinadas) : null;
+  const livres = cotaMes != null ? Math.max(0, cotaMes - destinadas) : null;
   return {
     cotaMes,
     destinadas,

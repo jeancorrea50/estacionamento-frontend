@@ -77,11 +77,17 @@
         }}
       } @else if (usouDestinacao()) {
         <span class="material-symbols-outlined" aria-hidden="true">assignment_turned_in</span>
-        Mostrando as vagas destinadas à transportadora · {{ diasComVaga() }} dia(s) com vaga.
+        Mostrando as vagas destinadas à transportadora · {{ diasComVaga() }} {{ diasComVaga() === 1 ? 'dia' : 'dias' }} com vaga.
       } @else {
-        Vagas livres das janelas · {{ diasComVaga() }} dia(s) com vaga.
+        Vagas livres das janelas · {{ diasComVaga() }} {{ diasComVaga() === 1 ? 'dia' : 'dias' }} com vaga.
       }
     </p>
+    @if (mesAvancadoAuto() && !carregandoMes()) {
+      <p class="vp__status">
+        <span class="material-symbols-outlined" aria-hidden="true">fast_forward</span>
+        Aberto em {{ tituloMes() }}: os meses anteriores não têm vaga.
+      </p>
+    }
   </div>
 
   <!-- Horários do dia -->
@@ -108,7 +114,11 @@
               <span class="vp__slot-vagas"
                 >{{ s.disponiveis }} {{ s.disponiveis === 1 ? 'vaga' : 'vagas' }}</span
               >
-              @if (s.tipoPagador === 'terceiro') {
+              @if (ehMisto(s)) {
+                <span class="vp__slot-pagador" [title]="'Pagadores: ' + rotuloPagadores(s)">
+                  Misto: {{ rotuloPagadores(s) }}
+                </span>
+              } @else if (s.tipoPagador === 'terceiro') {
                 <span
                   class="vp__slot-pagador"
                   [title]="'Fatura para ' + (s.pagadorNome || 'terceiro')"
@@ -124,7 +134,10 @@
           <!-- Regra: a vaga é sempre da transportadora; a destinação só define quem paga. -->
           <p class="vp__regra" role="status">
             <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-            @if (s.tipoPagador === 'terceiro') {
+            @if (ehMisto(s)) {
+              Vaga destinada à transportadora. Horário misto ({{ rotuloPagadores(s) }}): escolha quem
+              paga no campo "Quem paga" abaixo.
+            } @else if (s.tipoPagador === 'terceiro') {
               Vaga destinada à transportadora. A fatura deste horário vai para
               <strong>{{ s.pagadorNome || 'o terceiro da destinação' }}</strong>.
             } @else if (s.tipoPagador === 'transportadora') {

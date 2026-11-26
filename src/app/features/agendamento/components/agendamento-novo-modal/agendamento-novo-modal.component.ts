@@ -27,10 +27,14 @@ import { datetimeLocalInputToApiIso } from '../../../../shared/utils/local-iso-d
 import { AgendamentoPostInput } from '../../models/agendamento.models';
 import type {
   JanelaSlotDisponivel,
+  PagadorSlot,
   ModalidadeAgendamento,
 } from '../../models/janela-agendamento.models';
 import { AgendamentoVagaPickerComponent } from '../agendamento-vaga-picker/agendamento-vaga-picker.component';
 import { AgendamentoService } from '../../services/agendamento.service';
+import { ResponsavelFaturamentoLookupFieldComponent } from '../../../cadastro/components/responsavel-faturamento-lookup-field/responsavel-faturamento-lookup-field.component';
+import { StatusConfiguracaoCobranca } from '../../../financeiro/models/configuracao-cobranca.models';
+import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
 
 interface AgendamentoPlacaSelecionada {
   id: number;
@@ -55,6 +59,7 @@ type ResolvePlacaResult =
     ReactiveFormsModule,
     AgendamentoVagaPickerComponent,
     TransportadoraLookupFieldComponent,
+    ResponsavelFaturamentoLookupFieldComponent,
     ModalBuscaVeiculoComponent,
   ],
   templateUrl: './agendamento-novo-modal.component.html',
@@ -71,6 +76,7 @@ export class AgendamentoNovoModalComponent {
   private readonly toast = inject(ToastService);
   private readonly portariaAlertas = inject(PortariaAlertasStore);
   private readonly fb = inject(FormBuilder);
+  private readonly cobrancaApi = inject(ConfiguracaoCobrancaService);
 
   /** Quando true, exibe o modal e reinicia o formulário. */
   readonly aberto = input(false);
@@ -89,6 +95,20 @@ export class AgendamentoNovoModalComponent {
   readonly modalidade = signal<ModalidadeAgendamento>(1);
   /** Vagas livres no horário escolhido (limita a quantidade de placas). null = sem horário. */
   readonly vagasNoHorario = signal<number | null>(null);
+
+  // ─── Quem paga (fatura) ───────────────────────────────────────────────
+  // A vaga é sempre da transportadora; aqui só se define quem recebe a fatura.
+  /** Terceiro pagador; null = a própria transportadora. */
+  readonly pagadorId = signal<number | null>(null);
+  readonly pagadorNome = signal('');
+  /** Valor vindo de regra (destinação/cobrança): cadeado até o usuário limpar no X. */
+  readonly pagadorBloqueado = signal(false);
+  readonly pagadorOrigem = signal<'destinacao' | 'cobranca' | 'manual' | null>(null);
+  /** Pagador padrão da regra de cobrança da transportadora (FOB). */
+  private readonly pagadorCobranca = signal<{ id: number; nome: string } | null>(null);
+  /** Opções do horário com destinação mista (a própria + terceiros). */
+  readonly pagadoresDoHorario = signal<PagadorSlot[]>([]);
+  private slotAtual: JanelaSlotDisponivel | null = null;
 
   /** Cancela resoluções de placa em voo (troca de transportadora / fechar modal). */
   private readonly cancelarResolucaoPlaca$ = new Subject<void>();
@@ -135,6 +155,94 @@ export class AgendamentoNovoModalComponent {
     this.transportadoraFormNome.set('');
     this.placasSelecionadas.set([]);
     this.buscaPlacaAberta.set(false);
+    this.slotAtual = null;
+    this.pagadoresDoHorario.set([]);
+    this.definirPagador(null, '', false, null);
+    this.carregarPagadorCobranca(tid && tid > 0 ? tid : null);
+  }
+
+  // ─── Quem paga ────────────────────────────────────────────────────────
+  private definirPagador(
+    id: number | null,
+    nome: string,
+    bloqueado: boolean,
+    origem: 'destinacao' | 'cobranca' | 'manual' | null,
+  ): void {
+    this.pagadorId.set(id && id > 0 ? id : null);
+    this.pagadorNome.set(id && id > 0 ? nome : '');
+    this.pagadorBloqueado.set(bloqueado && !!id);
+    this.pagadorOrigem.set(origem);
+  }
+
+  /** Regra de cobrança ativa da transportadora: se for FOB, o terceiro vira o padrão. */
+  private carregarPagadorCobranca(transportadoraId: number | null): void {
+    this.pagadorCobranca.set(null);
+    if (!transportadoraId) return;
+    this.cobrancaApi
+      .listar({
+        transportadoraId,
+        status: StatusConfiguracaoCobranca.Ativa,
+        numeroPagina: 1,
+        tamanhoPagina: 5,
+      })
+      .pipe(catchError(() => of(null)))
+      .subscribe((page) => {
+        if (transportadoraId !== this.transportadoraFormId()) return;
+        const regra = page?.items?.[0];
+        const padrao =
+          regra?.tipoPagador === 'terceiro' && regra.responsavelFaturamentoId
+            ? {
+                id: regra.responsavelFaturamentoId,
+                nome: regra.responsavelFaturamentoNome || `Pagador #${regra.responsavelFaturamentoId}`,
+              }
+            : null;
+        this.pagadorCobranca.set(padrao);
+        this.aplicarPagadorPadrao();
+      });
+  }
+
+  /**
+   * Padrão do "Quem paga": destinação do horário (1 pagador) > regra de cobrança > a própria.
+   * Não mexe se o usuário já escolheu manualmente.
+   */
+  private aplicarPagadorPadrao(): void {
+    if (this.pagadorOrigem() === 'manual') return;
+    const opcoes = this.slotAtual?.pagadores ?? [];
+    if (opcoes.length === 1) {
+      const p = opcoes[0];
+      this.definirPagador(p.responsavelFaturamentoId, p.nome ?? '', true, 'destinacao');
+      return;
+    }
+    if (opcoes.length > 1) {
+      // Misto: começa pelo primeiro com saldo; o usuário escolhe nos atalhos.
+      const p = opcoes.find((o) => o.disponiveis > 0) ?? opcoes[0];
+      this.definirPagador(p.responsavelFaturamentoId, p.nome ?? '', false, 'destinacao');
+      return;
+    }
+    const cobranca = this.pagadorCobranca();
+    if (cobranca) this.definirPagador(cobranca.id, cobranca.nome, true, 'cobranca');
+    else this.definirPagador(null, '', false, null);
+  }
+
+  /** Lookup: X limpa (volta para "a própria") e libera a busca; escolher outro = manual. */
+  onPagadorIdChange(id: number | null): void {
+    this.pagadorId.set(id && id > 0 ? id : null);
+    this.pagadorBloqueado.set(false);
+    this.pagadorOrigem.set('manual');
+    if (!id) this.pagadorNome.set('');
+  }
+
+  onPagadorNomeChange(nome: string): void {
+    this.pagadorNome.set(nome || '');
+  }
+
+  /** Atalho do horário misto. */
+  escolherPagadorDoHorario(p: PagadorSlot): void {
+    this.definirPagador(p.responsavelFaturamentoId, p.nome ?? '', false, 'manual');
+  }
+
+  pagadorEhOpcao(p: PagadorSlot): boolean {
+    return (p.responsavelFaturamentoId ?? null) === this.pagadorId();
   }
 
   fechar(): void {
@@ -150,6 +258,11 @@ export class AgendamentoNovoModalComponent {
 
   onSlotChange(slot: JanelaSlotDisponivel | null): void {
     this.vagasNoHorario.set(slot ? slot.disponiveis : null);
+    this.slotAtual = slot;
+    this.pagadoresDoHorario.set((slot?.pagadores?.length ?? 0) > 1 ? slot!.pagadores! : []);
+    // Novo horário: o padrão volta a valer (a escolha manual era para o horário anterior).
+    if (this.pagadorOrigem() === 'manual') this.pagadorOrigem.set(null);
+    this.aplicarPagadorPadrao();
   }
 
   onTransportadoraIdChange(id: number | null): void {
@@ -162,6 +275,10 @@ export class AgendamentoNovoModalComponent {
     // Vagas dependem da destinação da transportadora: escolhe dia/horário de novo.
     this.form.controls.dataAgendamento.setValue('');
     this.vagasNoHorario.set(null);
+    this.slotAtual = null;
+    this.pagadoresDoHorario.set([]);
+    this.definirPagador(null, '', false, null);
+    this.carregarPagadorCobranca(id && id > 0 ? id : null);
   }
 
   onTransportadoraNomeChange(nome: string): void {
@@ -370,7 +487,13 @@ export class AgendamentoNovoModalComponent {
                 });
               }
               return this.api
-                .gravar({ ...resolved.payload, modalidadeAgendamento: this.modalidade() })
+                .gravar({
+                  ...resolved.payload,
+                  modalidadeAgendamento: this.modalidade(),
+                  // Sempre explícito: o que está no campo "Quem paga" (1 = a própria, 2 = terceiro).
+                  tipoPagador: this.pagadorId() ? 2 : 1,
+                  responsavelFaturamentoId: this.pagadorId(),
+                })
                 .pipe(
                   map((res) => ({
                     success: res.success,

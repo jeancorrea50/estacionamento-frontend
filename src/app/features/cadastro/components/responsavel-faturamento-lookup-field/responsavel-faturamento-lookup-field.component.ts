@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, input, model } from '@angular/core';
+import { Component, computed, inject, input, model } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { EntityLookupFieldComponent } from '../../../../shared/components/entity-lookup-field/entity-lookup-field.component';
 import {
@@ -27,9 +27,17 @@ export class ResponsavelFaturamentoLookupFieldComponent {
   readonly placeholder = input('Buscar responsável de faturamento…');
   readonly showClear = input(true);
   readonly ariaLabel = input('Buscar responsável de faturamento');
+  /**
+   * Valor vindo de uma regra (destinação/cobrança): mostra o cadeado e não abre a busca,
+   * mas o X ainda limpa — depois de limpar, a busca volta a abrir para escolher outro.
+   */
+  readonly locked = input(false);
+
+  readonly searchIcon = computed(() => (this.locked() && this.responsavelId() ? 'lock' : 'search'));
+  readonly searchDisabled = computed(() => this.locked() && !!this.responsavelId());
 
   abrir(): void {
-    if (this.disabled()) return;
+    if (this.disabled() || this.searchDisabled()) return;
     const ref = this.dialog.open(ModalBuscaResponsavelFaturamentoComponent, {
       width: '540px',
       maxWidth: '95vw',

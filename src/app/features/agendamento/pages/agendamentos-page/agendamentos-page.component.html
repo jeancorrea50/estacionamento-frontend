@@ -205,7 +205,16 @@
                       <td>{{ item.nomeMotorista || '—' }}</td>
                       <td>{{ formatCelularMotorista(item.celularMotorista) }}</td>
                       @if (podeOperarPatio) {
-                        <td>{{ item.nomeTransportadora || '—' }}</td>
+                        <td>
+                          {{ item.nomeTransportadora || '—' }}
+                          @if (item.tipoPagador === 2) {
+                            <span
+                              class="ag-pagador-pill"
+                              [title]="'Fatura para ' + (item.pagadorNome || 'terceiro') + '; vaga e movimento da transportadora'"
+                              >Paga: {{ item.pagadorNome || 'terceiro' }}</span
+                            >
+                          }
+                        </td>
                       }
                       <td>{{ formatDateTime(item.dataHoraEntrada) }}</td>
                       <td>

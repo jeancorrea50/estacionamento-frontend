@@ -198,6 +198,8 @@ export class AgendamentoService {
       ),
       transportadoraId: this.pickNumber(row, 'transportadoraId', 'TransportadoraId'),
       nomeTransportadora: this.pickString(row, 'nomeTransportadora', 'NomeTransportadora'),
+      tipoPagador: this.pickNumber(row, 'tipoPagador', 'TipoPagador'),
+      pagadorNome: this.pickStringOrNull(row, 'pagadorNome', 'PagadorNome'),
       veiculoId: this.pickNumber(row, 'veiculoId', 'VeiculoId'),
       placaVeiculo: this.pickString(row, 'placaVeiculo', 'PlacaVeiculo'),
       dataHoraEntrada: this.pickString(row, 'dataHoraEntrada', 'DataHoraEntrada'),

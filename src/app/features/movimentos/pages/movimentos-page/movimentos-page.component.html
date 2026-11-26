@@ -499,8 +499,16 @@
                           </span>
                         } @else if (item.acordoCobrancaId) {
                           <span class="status-pill status-pill--acordo" title="Dentro do acordo">Acordo</span>
-                        } @else {
+                        } @else if (item.tipoPagador !== 2) {
                           —
+                        }
+                        @if (item.tipoPagador === 2) {
+                          <span
+                            class="status-pill status-pill--acordo"
+                            [title]="'Fatura para ' + (item.pagadorNome || 'terceiro') + '; movimento da transportadora'"
+                          >
+                            Paga: {{ item.pagadorNome || 'terceiro' }}
+                          </span>
                         }
                       </td>
                       <td class="acoes-cell">
@@ -923,6 +931,40 @@
               </label>
             </div>
           </section>
+
+          @if (temTransportadoraNoRegistro()) {
+            <!-- Quem paga a fatura: o movimento continua da transportadora. -->
+            <section class="registro-section" aria-labelledby="entrada-sec-pagador">
+              <h3 id="entrada-sec-pagador" class="registro-section__title">Quem paga</h3>
+              <div class="registro-grid">
+                <div class="field field--full">
+                  <app-responsavel-faturamento-lookup-field
+                    [responsavelId]="entradaPagadorId()"
+                    [responsavelNome]="entradaPagadorNome()"
+                    [locked]="entradaPagadorBloqueado()"
+                    placeholder="A própria transportadora — buscar terceiro…"
+                    ariaLabel="Quem paga a fatura (terceiro)"
+                    (responsavelIdChange)="onEntradaPagadorIdChange($event)"
+                    (responsavelNomeChange)="entradaPagadorNome.set($event || '')"
+                  />
+                  <small class="field-hint">
+                    @if (entradaPagadorId()) {
+                      Fatura para <strong>{{ entradaPagadorNome() }}</strong>
+                      @switch (entradaPagadorOrigem()) {
+                        @case ('agendamento') { (do agendamento) }
+                        @case ('cobranca') { (regra de cobrança) }
+                        @case ('manual') { (escolhido) }
+                      }
+                      — o movimento continua da transportadora.
+                      @if (entradaPagadorBloqueado()) { Clique no X para trocar. }
+                    } @else {
+                      A própria transportadora paga a fatura.
+                    }
+                  </small>
+                </div>
+              </div>
+            </section>
+          }
 
           <section class="registro-section registro-section--extras" aria-labelledby="entrada-sec-obs">
             <h3 id="entrada-sec-obs" class="registro-section__title">Observação</h3>

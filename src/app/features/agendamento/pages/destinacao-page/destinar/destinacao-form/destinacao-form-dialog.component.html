@@ -67,6 +67,7 @@
               <input
                 type="checkbox"
                 name="avulso"
+                aria-label="Avulso (sem transportadora)"
                 [disabled]="editando"
                 [ngModel]="avulso()"
                 (ngModelChange)="onAvulso($event)"
@@ -199,6 +200,7 @@
                           type="radio"
                           [name]="'fat-' + t.id"
                           [checked]="!terceiro"
+                          [attr.aria-label]="'A própria transportadora paga — ' + t.nome"
                           (change)="setFaturamento(t.id, 'transportadora')"
                         />A própria
                       </label>
@@ -208,6 +210,7 @@
                           type="radio"
                           [name]="'fat-' + t.id"
                           [checked]="terceiro"
+                          [attr.aria-label]="'Terceiro paga — ' + t.nome"
                           (change)="setFaturamento(t.id, 'terceiro')"
                         />Terceiro
                       </label>
@@ -267,6 +270,7 @@
                   class="sr-only"
                   type="radio"
                   name="modalidade"
+                  [attr.aria-label]="'Modalidade ' + m.label"
                   [value]="m.id"
                   [ngModel]="modalidade()"
                   (ngModelChange)="onModalidade($event)"
@@ -334,6 +338,7 @@
             type="checkbox"
             role="switch"
             name="transferencia"
+            aria-label="Transferência automática de saldo"
             [ngModel]="transferencia()"
             (ngModelChange)="transferencia.set($event)"
           />
@@ -455,6 +460,7 @@
                         type="checkbox"
                         [checked]="marcada"
                         [disabled]="!max"
+                        [attr.aria-label]="'Horário ' + j.inicio + ' a ' + j.fim + (max ? ', ' + max + ' livres' : ', sem saldo')"
                         (change)="alternarJanela(j, $any($event.target).checked)"
                       />
                       <span class="slot__time mono">{{ j.inicio }}–{{ j.fim }}</span>
@@ -695,7 +701,7 @@
     </div>
     @if (totalVagasDia()) {
       <p class="foot__total" aria-live="polite">
-        <strong class="mono">{{ totalVagasDia() }}</strong> vagas/dia
+        <strong class="mono">{{ totalVagasDia() }}</strong> {{ totalVagasDia() === 1 ? "vaga/dia" : "vagas/dia" }}
         @if (destinos().length > 1) {
           · {{ destinos().length }} transportadoras
         }

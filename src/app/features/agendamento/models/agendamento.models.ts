@@ -27,6 +27,9 @@ export interface AgendamentoSearchItem {
   celularMotorista?: string | null;
   transportadoraId: number;
   nomeTransportadora: string;
+  /** Quem paga a fatura (1 = a própria, 2 = terceiro; 0 = segue a regra de cobrança). */
+  tipoPagador?: number;
+  pagadorNome?: string | null;
   veiculoId: number;
   placaVeiculo: string;
   /** Data/hora agendada (backend: DataHoraEntrada com Status=Agendado). */
@@ -48,6 +51,9 @@ export interface AgendamentoPostInput {
   transportadoraId?: number | null;
   /** 1 = Estacionamento, 2 = Limpeza, 3 = Ambos (padrão backend = 1). */
   modalidadeAgendamento?: number;
+  /** Quem paga a fatura (1 = a própria transportadora, 2 = terceiro). Vaga e movimento seguem da transportadora. */
+  tipoPagador?: 1 | 2 | null;
+  responsavelFaturamentoId?: number | null;
   /** Hold temporário do passo 1 (`POST /Agendamento/vagas/holds`). */
   holdId?: number | null;
   motorista: {

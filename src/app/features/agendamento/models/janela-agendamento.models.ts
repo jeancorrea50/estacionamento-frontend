@@ -253,6 +253,8 @@ export interface JanelaSlotDisponivel {
   tipoPagador?: 'transportadora' | 'terceiro' | null;
   /** Nome do terceiro pagador, quando houver. */
   pagadorNome?: string | null;
+  /** Pagadores das vagas destinadas no horário com saldo de cada um (mais de 1 = misto). */
+  pagadores?: PagadorSlot[];
 }
 
 export interface JanelaDisponibilidade {
@@ -279,4 +281,13 @@ export interface JanelaDisponibilidadeDia {
   usouDestinacao: boolean;
   totalDisponiveis: number;
   horariosDisponiveis: number;
+}
+
+/** Um pagador possível num horário com destinação. `responsavelFaturamentoId` null = a própria. */
+export interface PagadorSlot {
+  tipoPagador: 'transportadora' | 'terceiro';
+  responsavelFaturamentoId: number | null;
+  nome: string | null;
+  destinadas: number;
+  disponiveis: number;
 }

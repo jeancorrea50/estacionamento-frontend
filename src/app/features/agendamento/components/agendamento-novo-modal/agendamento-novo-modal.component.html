@@ -46,6 +46,55 @@
             }
           </div>
 
+          @if (transportadoraFormId()) {
+            <!-- Quem paga a fatura: a vaga e o movimento são sempre da transportadora. -->
+            <div class="form-row ag-novo-field">
+              <label>Quem paga</label>
+              <div class="ag-pagador">
+                <app-responsavel-faturamento-lookup-field
+                  [responsavelId]="pagadorId()"
+                  [responsavelNome]="pagadorNome()"
+                  [locked]="pagadorBloqueado()"
+                  placeholder="A própria transportadora — buscar terceiro…"
+                  ariaLabel="Quem paga a fatura (terceiro)"
+                  (responsavelIdChange)="onPagadorIdChange($event)"
+                  (responsavelNomeChange)="onPagadorNomeChange($event)"
+                />
+                @if (pagadoresDoHorario().length) {
+                  <div class="ag-pagador__opcoes" role="group" aria-label="Pagadores destinados neste horário">
+                    @for (p of pagadoresDoHorario(); track p.responsavelFaturamentoId ?? 0) {
+                      <button
+                        type="button"
+                        class="ag-pagador__opcao"
+                        [class.is-active]="pagadorEhOpcao(p)"
+                        [attr.aria-pressed]="pagadorEhOpcao(p)"
+                        [disabled]="p.disponiveis <= 0"
+                        (click)="escolherPagadorDoHorario(p)"
+                      >
+                        {{ p.responsavelFaturamentoId ? p.nome || 'Terceiro' : 'A própria' }}
+                        <span class="ag-pagador__saldo">{{ p.disponiveis }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+                <p class="ag-novo-hint">
+                  @if (pagadorId()) {
+                    Fatura para <strong>{{ pagadorNome() }}</strong>
+                    @switch (pagadorOrigem()) {
+                      @case ('destinacao') { (da destinação) }
+                      @case ('cobranca') { (regra de cobrança) }
+                      @case ('manual') { (escolhido) }
+                    }
+                    — a vaga e o movimento continuam da transportadora.
+                    @if (pagadorBloqueado()) { Clique no X para trocar. }
+                  } @else {
+                    A própria transportadora paga a fatura.
+                  }
+                </p>
+              </div>
+            </div>
+          }
+
           <div class="form-row ag-novo-field ag-placas-field">
             <label>Placas <span class="required">*</span></label>
             <div class="ag-placas-field__control">
@@ -98,7 +147,8 @@
                   {{ placasSelecionadas().length }} de {{ vagas }}
                   {{ vagas === 1 ? 'vaga disponível' : 'vagas disponíveis' }} no horário escolhido
                   @if (placasSelecionadas().length > vagas) {
-                    — remova {{ placasSelecionadas().length - vagas }} placa(s) ou escolha outro
+                    — remova {{ placasSelecionadas().length - vagas }}
+                    {{ placasSelecionadas().length - vagas === 1 ? 'placa' : 'placas' }} ou escolha outro
                     horário.
                   }
                 </p>

@@ -88,6 +88,10 @@ import type {
   MovimentacaoRelatorioFiltro,
   MovimentacaoRelatorioOutput
 } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio.types';
+import { ResponsavelFaturamentoLookupFieldComponent } from '../../../cadastro/components/responsavel-faturamento-lookup-field/responsavel-faturamento-lookup-field.component';
+import { ResponsavelFaturamentoService } from '../../../cadastro/services/responsavel-faturamento.service';
+import { StatusConfiguracaoCobranca } from '../../../financeiro/models/configuracao-cobranca.models';
+import { ConfiguracaoCobrancaService } from '../../../financeiro/services/configuracao-cobranca.service';
 import { filtrarItensEntradaReal } from '../../../patio/pages/movimentacao-relatorio/movimentacao-relatorio-pdf.helpers';
 import {
   contarPorDia,
@@ -155,7 +159,8 @@ interface AlertaItemVm {
     CameraPreviewComponent,
     TelefoneFormatDirective,
     MovimentosFiltrosPanelComponent,
-    HistoricoMenuPortalDirective
+    HistoricoMenuPortalDirective,
+    ResponsavelFaturamentoLookupFieldComponent
   ],
   templateUrl: './movimentos-page.component.html',
   styleUrls: ['./movimentos-page.component.scss']
@@ -410,6 +415,15 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   /** Id/transportadora do movimento em aberto no registro rápido (para recibo). */
   registroRapidoEntradaId = 0;
   private registroRapidoTransportadoraId = 0;
+
+  // ─── Quem paga (fatura) na entrada ────────────────────────────────────
+  // Vem do agendamento (destinação) ou da regra de cobrança; o X libera para trocar.
+  readonly entradaPagadorId = signal<number | null>(null);
+  readonly entradaPagadorNome = signal('');
+  readonly entradaPagadorBloqueado = signal(false);
+  readonly entradaPagadorOrigem = signal<'agendamento' | 'cobranca' | 'manual' | null>(null);
+  private readonly configuracaoCobrancaService = inject(ConfiguracaoCobrancaService);
+  private readonly responsavelFaturamentoService = inject(ResponsavelFaturamentoService);
   processandoRegistroRapido = signal(false);
   buscandoPlacaRegistroRapido = false;
   camposBloqueadosPorPlaca = false;
@@ -1677,7 +1691,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         veiculo: {
           placa: placaNorm || undefined,
           tipoCarga: toTipoCargaEnum(this.registroRapido.tipoCarga)
-        }
+        },
+        // Só envia o pagador se o usuário trocou: sem isso o backend mantém o do agendamento.
+        ...(this.entradaPagadorOrigem() === 'manual'
+          ? { tipoPagador: this.entradaPagadorId() ? 2 : 1, responsavelFaturamentoId: this.entradaPagadorId() }
+          : {})
       } satisfies EntradaSaidaPostInput))
     );
   }
@@ -1726,6 +1744,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   limparRegistroRapido(): void {
+    this.limparPagadorEntrada();
     this.registroRapido = {
       placa: '',
       motorista: '',
@@ -2817,6 +2836,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       entrada.transportadoraId > 0
         ? entrada.transportadoraId
         : Number(entrada.transportadora?.id ?? 0) || 0;
+    this.preencherPagadorEntrada(entrada);
   }
 
   private aplicarRespostaEntradaPorPlacaComMotorista(
@@ -2873,6 +2893,78 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
       entrada.transportadoraId > 0
         ? entrada.transportadoraId
         : Number(entrada.transportadora?.id ?? 0) || 0;
+    this.preencherPagadorEntrada(entrada);
+  }
+
+  // ─── Quem paga (fatura) na entrada ────────────────────────────────────
+  temTransportadoraNoRegistro(): boolean {
+    return (
+      this.registroRapidoTransportadoraId > 0 ||
+      String(this.registroRapido.transportadoraCnpj ?? '').replace(/\D/g, '').length === 14
+    );
+  }
+
+  private limparPagadorEntrada(): void {
+    this.entradaPagadorId.set(null);
+    this.entradaPagadorNome.set('');
+    this.entradaPagadorBloqueado.set(false);
+    this.entradaPagadorOrigem.set(null);
+  }
+
+  /**
+   * Padrão do "Quem paga" na entrada: agendamento da placa (pagador da destinação) >
+   * regra de cobrança da transportadora (FOB) > a própria.
+   */
+  private preencherPagadorEntrada(entrada: EntradaSaidaOutput): void {
+    this.limparPagadorEntrada();
+    if (this.placaComAgendamentoPendente && entrada.tipoPagador) {
+      const id = entrada.tipoPagador === 2 ? (entrada.responsavelFaturamentoId ?? null) : null;
+      this.entradaPagadorOrigem.set('agendamento');
+      if (!id) return; // agendamento pago pela própria transportadora
+      this.entradaPagadorId.set(id);
+      this.entradaPagadorBloqueado.set(true);
+      this.entradaPagadorNome.set(entrada.pagadorNome || `Pagador #${id}`);
+      if (!entrada.pagadorNome) {
+        this.responsavelFaturamentoService
+          .obterPorId(id)
+          .pipe(catchError(() => of(null)))
+          .subscribe((r) => {
+            if (r && this.entradaPagadorId() === id) {
+              this.entradaPagadorNome.set((r.nomeFantasia || r.razaoSocial || '').trim() || `Pagador #${id}`);
+            }
+          });
+      }
+      return;
+    }
+    this.carregarPagadorCobrancaEntrada(this.registroRapidoTransportadoraId);
+  }
+
+  private carregarPagadorCobrancaEntrada(transportadoraId: number): void {
+    if (!(transportadoraId > 0)) return;
+    this.configuracaoCobrancaService
+      .listar({ transportadoraId, status: StatusConfiguracaoCobranca.Ativa, numeroPagina: 1, tamanhoPagina: 5 })
+      .pipe(catchError(() => of(null)))
+      .subscribe((page) => {
+        if (transportadoraId !== this.registroRapidoTransportadoraId) return;
+        if (this.entradaPagadorOrigem() === 'manual') return;
+        const regra = page?.items?.[0];
+        if (regra?.tipoPagador === 'terceiro' && regra.responsavelFaturamentoId) {
+          this.entradaPagadorId.set(regra.responsavelFaturamentoId);
+          this.entradaPagadorNome.set(
+            regra.responsavelFaturamentoNome || `Pagador #${regra.responsavelFaturamentoId}`,
+          );
+          this.entradaPagadorBloqueado.set(true);
+          this.entradaPagadorOrigem.set('cobranca');
+        }
+      });
+  }
+
+  /** X limpa (volta para "a própria") e libera a busca; escolher outro = manual. */
+  onEntradaPagadorIdChange(id: number | null): void {
+    this.entradaPagadorId.set(id && id > 0 ? id : null);
+    if (!id) this.entradaPagadorNome.set('');
+    this.entradaPagadorBloqueado.set(false);
+    this.entradaPagadorOrigem.set('manual');
   }
 
   selecionarMotoristaVinculadoPlaca(item: EntradaSaidaMotoristaVinculoItem): void {

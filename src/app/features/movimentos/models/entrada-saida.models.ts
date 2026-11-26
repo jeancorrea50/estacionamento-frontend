@@ -138,6 +138,10 @@ export interface EntradaSaidaSearchOutput {
   /** True quando a entrada foi marcada como excedente do acordo. */
   ehExcedente?: boolean;
   acordoCobrancaId?: number | null;
+  /** Quem paga a fatura do movimento (1 = a própria, 2 = terceiro; null = regra de cobrança). */
+  tipoPagador?: number | null;
+  responsavelFaturamentoId?: number | null;
+  pagadorNome?: string | null;
   /** Tipo de veículo quando a listagem expõe o campo (ex.: Carreta, Truck). */
   tipoVeiculo?: string | null;
   /** Enum/label de tipo de carga quando a listagem expõe o campo. */
@@ -178,6 +182,10 @@ export interface EntradaSaidaOutput {
   dataFaturado?: string | null;
   ehExcedente?: boolean;
   acordoCobrancaId?: number | null;
+  /** Quem paga a fatura do movimento (1 = a própria, 2 = terceiro; null = regra de cobrança). */
+  tipoPagador?: number | null;
+  responsavelFaturamentoId?: number | null;
+  pagadorNome?: string | null;
   /**
    * Enum byte do backend (`EntradaSaidaStatus`).
    * Aceita número/string cru da API; preferir `parseEntradaSaidaStatus` no consumo.
@@ -205,6 +213,9 @@ export interface EntradaSaidaPostInput {
   observacao?: string;
   /** Campo legado mantido por compatibilidade. */
   observao?: string;
+  /** Quem paga a fatura, só quando o usuário trocou na portaria (1 = a própria, 2 = terceiro). */
+  tipoPagador?: 1 | 2;
+  responsavelFaturamentoId?: number | null;
   motorista?: {
     id?: number;
     cpf?: string;

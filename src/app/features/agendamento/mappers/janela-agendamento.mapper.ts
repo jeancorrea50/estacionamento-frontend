@@ -188,6 +188,13 @@ function mapSlot(row: Row): JanelaSlotDisponivel {
     label: str(row, 'label').trim() || `${horaInicio} - ${horaFim}`,
     tipoPagador: tipoPagadorDe(pick(row, 'tipoPagador')),
     pagadorNome: str(row, 'pagadorNome').trim() || null,
+    pagadores: list(row, 'pagadores').map((p) => ({
+      tipoPagador: tipoPagadorDe(pick(p, 'tipoPagador')) ?? 'transportadora',
+      responsavelFaturamentoId: numOrNull(p, 'responsavelFaturamentoId'),
+      nome: str(p, 'nome').trim() || null,
+      destinadas: num(p, 'destinadas'),
+      disponiveis: num(p, 'disponiveis'),
+    })),
   };
 }
 

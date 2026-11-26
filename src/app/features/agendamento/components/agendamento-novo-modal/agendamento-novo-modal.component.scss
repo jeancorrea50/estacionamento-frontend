@@ -650,3 +650,54 @@
 .ag-novo-hint--erro {
   color: var(--danger, #f06468);
 }
+
+/* Quem paga: lookup do terceiro + atalhos do horário misto */
+.ag-pagador {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ag-pagador__opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ag-pagador__opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border, #363642);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &.is-active {
+    border-color: var(--primary, #3d8bff);
+    background: color-mix(in srgb, var(--primary, #3d8bff) 14%, transparent);
+    color: var(--primary, #3d8bff);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary, #3d8bff);
+    outline-offset: 1px;
+  }
+}
+
+.ag-pagador__saldo {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted, #92929f);
+}

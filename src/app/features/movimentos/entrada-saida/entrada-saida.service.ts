@@ -254,6 +254,9 @@ export class EntradaSaidaService {
       avulso: this.pickBool(row, 'avulso', 'Avulso'),
       ehExcedente: this.pickBool(row, 'ehExcedente', 'EhExcedente'),
       acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId'),
+      tipoPagador: this.pickNumberOrNull(row, 'tipoPagador', 'TipoPagador'),
+      responsavelFaturamentoId: this.pickNumberOrNull(row, 'responsavelFaturamentoId', 'ResponsavelFaturamentoId'),
+      pagadorNome: this.pickStringOrNull(row, 'pagadorNome', 'PagadorNome'),
       tipoVeiculo: this.pickString(row, 'tipoVeiculo', 'TipoVeiculo') || null,
       tipoCarga: this.pickRaw(row, 'tipoCarga', 'TipoCarga', 'tipoCargaDescricao', 'TipoCargaDescricao') as
         | number
@@ -318,6 +321,9 @@ export class EntradaSaidaService {
       dataFaturado: this.pickStringOrNull(row, 'dataFaturado', 'DataFaturado'),
       ehExcedente: this.pickBool(row, 'ehExcedente', 'EhExcedente'),
       acordoCobrancaId: this.pickNumberOrNull(row, 'acordoCobrancaId', 'AcordoCobrancaId'),
+      tipoPagador: this.pickNumberOrNull(row, 'tipoPagador', 'TipoPagador'),
+      responsavelFaturamentoId: this.pickNumberOrNull(row, 'responsavelFaturamentoId', 'ResponsavelFaturamentoId'),
+      pagadorNome: this.pickStringOrNull(row, 'pagadorNome', 'PagadorNome'),
       status: parseEntradaSaidaStatus(
         this.pickRaw(row, 'status', 'Status', 'situacao', 'Situacao') as number | string | undefined
       ),

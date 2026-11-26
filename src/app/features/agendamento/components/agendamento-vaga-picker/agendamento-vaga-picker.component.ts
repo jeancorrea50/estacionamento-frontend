@@ -100,6 +100,10 @@ export class AgendamentoVagaPickerComponent {
   readonly carregandoSlots = signal(false);
   readonly erroSlots = signal<string | null>(null);
   readonly slotSelecionado = signal<JanelaSlotDisponivel | null>(null);
+  /** True quando o calendário pulou meses sem vaga até achar o primeiro com vaga. */
+  readonly mesAvancadoAuto = signal(false);
+  private procurandoPrimeiroMes = true;
+  private saltosAutomaticos = 0;
 
   private readonly mes$ = new Subject<{
     ini: string;
@@ -179,6 +183,18 @@ export class AgendamentoVagaPickerComponent {
         this.erroMes.set(erro);
         this.diasInfo.set(new Map(dias.map((d) => [d.data, d])));
         this.validarDiaSelecionado();
+
+        // Abre no primeiro mês com vaga: sem vaga neste mês, avança sozinho (até 6 meses).
+        if (this.procurandoPrimeiroMes) {
+          if (!erro && this.diasComVaga() === 0 && this.saltosAutomaticos < 6) {
+            this.saltosAutomaticos++;
+            const ref = this.mesRef();
+            this.mesRef.set(new Date(ref.getFullYear(), ref.getMonth() + 1, 1));
+          } else {
+            this.procurandoPrimeiroMes = false;
+            this.mesAvancadoAuto.set(this.saltosAutomaticos > 0 && this.diasComVaga() > 0);
+          }
+        }
       });
 
     this.dia$
@@ -211,6 +227,21 @@ export class AgendamentoVagaPickerComponent {
         const mantido = atual ? (futuros.find((s) => slotKey(s) === slotKey(atual)) ?? null) : null;
         this.selecionarSlot(mantido ?? (futuros.length === 1 ? futuros[0] : null));
       });
+
+    // Nova transportadora/modalidade (ou reabrir): volta ao mês atual e procura o primeiro com vaga.
+    effect(() => {
+      this.ativo();
+      this.transportadoraId();
+      this.modalidade();
+      untracked(() => {
+        this.procurandoPrimeiroMes = true;
+        this.saltosAutomaticos = 0;
+        this.mesAvancadoAuto.set(false);
+        const hoje = new Date();
+        const atual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        if (this.mesRef().getTime() !== atual.getTime()) this.mesRef.set(atual);
+      });
+    });
 
     // Recarrega o mês quando muda transportadora, modalidade, mês ou há evento de disponibilidade.
     effect(() => {
@@ -245,6 +276,9 @@ export class AgendamentoVagaPickerComponent {
   }
 
   mudarMes(delta: number): void {
+    // Navegação manual encerra a busca automática pelo primeiro mês com vaga.
+    this.procurandoPrimeiroMes = false;
+    this.mesAvancadoAuto.set(false);
     const ref = this.mesRef();
     this.mesRef.set(new Date(ref.getFullYear(), ref.getMonth() + delta, 1));
   }
@@ -278,11 +312,24 @@ export class AgendamentoVagaPickerComponent {
     return normHora(raw);
   }
 
+  /** Horário com mais de um pagador destinado (a própria + terceiros). */
+  ehMisto(s: JanelaSlotDisponivel): boolean {
+    return (s.pagadores?.length ?? 0) > 1;
+  }
+
+  /** "a própria (2) · Yara (1)" — saldo de cada pagador no horário misto. */
+  rotuloPagadores(s: JanelaSlotDisponivel): string {
+    return (s.pagadores ?? [])
+      .map((p) => `${p.responsavelFaturamentoId ? p.nome || 'terceiro' : 'a própria'} (${p.disponiveis})`)
+      .join(' · ');
+  }
+
   rotuloDia(c: CelulaDia): string {
     const data = `${pad(c.dia)}/${pad(this.mesRef().getMonth() + 1)}`;
     if (c.passado) return `${data}, dia já passou`;
     if (!c.info?.possuiJanelas && !c.info?.usouDestinacao) return `${data}, sem janela`;
-    return c.vagas > 0 ? `${data}, ${c.vagas} vaga(s) disponível(is)` : `${data}, sem vagas`;
+    if (c.vagas <= 0) return `${data}, sem vagas`;
+    return c.vagas === 1 ? `${data}, 1 vaga disponível` : `${data}, ${c.vagas} vagas disponíveis`;
   }
 
   /** Dia escolhido sumiu (lotou/mudou modalidade): limpa a seleção. */

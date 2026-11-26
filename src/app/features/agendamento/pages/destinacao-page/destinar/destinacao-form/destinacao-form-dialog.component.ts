@@ -45,7 +45,7 @@ import {
 import type { ConfigCobrancaVagasAcordo } from '../../../../../financeiro/pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
 import { ConfiguracaoCobrancaService } from '../../../../../financeiro/services/configuracao-cobranca.service';
 import { JANELAS_ROUTE } from '../../../../agendamento-rotas';
-import { calcularCotaDia } from '../../../../components/vaga-reserva-panel-lab/vaga-reserva-lab.util';
+import { calcularCotaDia } from '../cota-acordo.util';
 import type { ModalidadeAgendamento } from '../../../../models/janela-agendamento.models';
 import type { VagaReservaTransportadoraInput } from '../../../../models/vaga-disponibilidade.models';
 import { JanelaAgendamentoService } from '../../../../services/janela-agendamento.service';

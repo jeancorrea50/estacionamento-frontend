@@ -1,6 +1,6 @@
-import type { JanelaFaixa } from '../../models/janela-agendamento.models';
-import type { VagaReservaTransportadoraItem } from '../../models/vaga-disponibilidade.models';
-import type { ConfigCobrancaMesAcordo, ConfigCobrancaVagasAcordo } from '../../../financeiro/pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
+import type { JanelaFaixa } from '../../../models/janela-agendamento.models';
+import type { VagaReservaTransportadoraItem } from '../../../models/vaga-disponibilidade.models';
+import type { ConfigCobrancaMesAcordo, ConfigCobrancaVagasAcordo } from '../../../../financeiro/pages/faturamento-page/config-cobranca/faturamento-config-cobranca.types';
 
 function isoDateOnly(value: string | null | undefined): string {
   return (value || '').trim().slice(0, 10);

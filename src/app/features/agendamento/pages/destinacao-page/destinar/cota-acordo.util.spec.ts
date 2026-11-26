@@ -8,8 +8,8 @@ import {
   maxQuantidadePermitida,
   mesDeIso,
   normHoraLab,
-} from './vaga-reserva-lab.util';
-import type { VagaReservaTransportadoraItem } from '../../models/vaga-disponibilidade.models';
+} from './cota-acordo.util';
+import type { VagaReservaTransportadoraItem } from '../../../models/vaga-disponibilidade.models';
 
 function reserva(partial: Partial<VagaReservaTransportadoraItem>): VagaReservaTransportadoraItem {
   return {

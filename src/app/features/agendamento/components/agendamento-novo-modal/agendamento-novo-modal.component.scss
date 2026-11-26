@@ -43,7 +43,17 @@
 .modal-content--agendamento-novo {
   width: min(820px, 96vw);
   max-width: 96vw;
-  overflow: visible;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+
+  // O form fica entre o conteúdo e o corpo: precisa ser flex para o corpo rolar
+  // e o rodapé (Salvar) continuar visível com o calendário de vagas aberto.
+  > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
 
 .modal-header {
@@ -145,7 +155,7 @@
 
 .modal-content--frota .modal-body.modal-body--frota-compact.ag-novo-body {
   overflow-x: hidden !important;
-  overflow-y: visible !important;
+  overflow-y: auto !important;
   display: flex;
   flex-direction: column;
   gap: 14px;

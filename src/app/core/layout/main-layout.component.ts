@@ -260,6 +260,13 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   trocarEstacionamento(): void {
     if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) return;
+    // Transportadora: abre a lista SEM limpar o pátio atual. A lista dos pátios dela depende de
+    // achar o CNPJ no banco do pátio da sessão; a troca acontece ao escolher outro pátio
+    // (ou "Continuar neste pátio" mantém o atual).
+    if (this.authService.isTransportadoraRole() && !this.authService.isAdmin()) {
+      this.showEstacionamentoModal.set(true);
+      return;
+    }
     this.authService.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
       next: (res) => {
         if (!res.success) {
@@ -296,7 +303,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const razaoSocial =
       session.razaoSocial?.trim() ||
       session.nome?.trim() ||
-      `#${session.id}`;
+      `Pátio ${session.id}`;
     this.sessionEstacionamento.set({
       razaoSocial,
       cnpj: session.cnpj?.trim() || '',

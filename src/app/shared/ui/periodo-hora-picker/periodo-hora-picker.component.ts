@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  ElementRef,
   HostListener,
   effect,
   inject,
@@ -45,6 +46,7 @@ function formatMinutos(total: number): string {
 })
 export class PeriodoHoraPickerComponent {
   private readonly themeService = inject(ThemeService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly emptyLabel = input('Selecionar horário');
   readonly ariaLabel = input('Selecionar intervalo de horário');
@@ -52,6 +54,10 @@ export class PeriodoHoraPickerComponent {
   readonly passoMinutos = input(30);
   readonly horaInicio = input<string>('');
   readonly horaFim = input<string>('');
+  /** Início mais cedo permitido (ex.: fim da faixa anterior). Vazio = sem limite. */
+  readonly minHora = input<string>('');
+  /** Fim mais tarde permitido (ex.: início da próxima faixa). Vazio = sem limite. */
+  readonly maxHora = input<string>('');
 
   readonly periodoChange = output<PeriodoHoraSelecionado>();
 
@@ -112,11 +118,39 @@ export class PeriodoHoraPickerComponent {
     }
     this.pendenteInicio.set(null);
     this.panelAberto.set(true);
+    // Abre já no horário atual (ou no primeiro permitido), não no 00:00.
+    setTimeout(() => this.rolarParaSelecao());
+  }
+
+  /**
+   * Fora dos limites: no 1º clique (início) vale [min, max); no 2º (fim) vale (início, max].
+   * Evita escolher uma faixa que passa por cima das vizinhas.
+   */
+  desabilitada(hora: string): boolean {
+    const mins = parseHoraMinutos(hora);
+    if (mins == null) return true;
+    const min = parseHoraMinutos(this.minHora()) ?? 0;
+    const max = parseHoraMinutos(this.maxHora()) ?? 24 * 60;
+    const pendente = parseHoraMinutos(this.pendenteInicio() ?? '');
+    const inicioValido = mins >= min && mins < max;
+    if (pendente == null) return !inicioValido;
+    // 2º clique: depois do início = fim (até o máximo); antes/igual = recomeça (se for início válido).
+    return mins > pendente ? mins > max : !inicioValido;
+  }
+
+  private rolarParaSelecao(): void {
+    const grid = this.host.nativeElement.querySelector<HTMLElement>('.ph-grid');
+    if (!grid) return;
+    const alvo =
+      grid.querySelector<HTMLElement>('.ph-hora--start') ??
+      grid.querySelector<HTMLElement>('.ph-hora:not([disabled])');
+    if (alvo) grid.scrollTop = Math.max(0, alvo.offsetTop - grid.offsetTop - 8);
   }
 
   selecionar(hora: string, event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
+    if (this.desabilitada(hora)) return;
     const pendente = this.pendenteInicio();
     if (!pendente) {
       this.pendenteInicio.set(hora);

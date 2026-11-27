@@ -140,3 +140,9 @@
     background: color-mix(in srgb, var(--rec-cal-text, #f1f1f5) 8%, transparent);
   }
 }
+
+/* Fora dos limites (ex.: passaria por cima da faixa vizinha). */
+.ph-hora:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}

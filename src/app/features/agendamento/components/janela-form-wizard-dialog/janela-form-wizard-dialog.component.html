@@ -294,6 +294,8 @@
                         [ariaLabel]="'Horário ' + (i + 1) + ' — início e fim'"
                         [horaInicio]="h.horaInicio"
                         [horaFim]="h.horaFim"
+                        [minHora]="limiteInicio(i)"
+                        [maxHora]="limiteFim(i)"
                         (periodoChange)="onHorarioPeriodo(h.uid, $event)"
                       />
                     </td>

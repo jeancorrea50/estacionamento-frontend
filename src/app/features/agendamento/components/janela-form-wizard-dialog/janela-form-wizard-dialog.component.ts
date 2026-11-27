@@ -420,7 +420,40 @@ export class JanelaFormWizardDialogComponent {
     });
   }
 
+  /** Início mais cedo da faixa `i`: o fim da faixa anterior (sem sobrepor). */
+  limiteInicio(i: number): string {
+    const ant = this.horarios()[i - 1];
+    return ant && horaParaMinutos(ant.horaFim) != null ? ant.horaFim : '';
+  }
+
+  /** Fim mais tarde da faixa `i`: o início da próxima faixa (sem sobrepor). */
+  limiteFim(i: number): string {
+    const prox = this.horarios()[i + 1];
+    return prox && horaParaMinutos(prox.horaInicio) != null ? prox.horaInicio : '';
+  }
+
   onHorarioPeriodo(uid: number, periodo: PeriodoHoraSelecionado): void {
+    // Defesa extra: não aceita faixa que passa por cima de outra.
+    const ini = horaParaMinutos(periodo.horaInicio);
+    const fim = horaParaMinutos(periodo.horaFim);
+    if (ini != null && fim != null) {
+      const conflito = this.horarios().find((h) => {
+        if (h.uid === uid) return false;
+        const a = horaParaMinutos(h.horaInicio);
+        const b = horaParaMinutos(h.horaFim);
+        return a != null && b != null && ini < b && fim > a;
+      });
+      if (conflito) {
+        this.toast.error(
+          `O horário ${periodo.horaInicio} → ${periodo.horaFim} passa por cima de ${conflito.horaInicio} → ${conflito.horaFim}.`
+        );
+        // Recria a linha (novo uid) para o seletor voltar ao valor anterior.
+        this.horarios.update((lista) =>
+          lista.map((h) => (h.uid === uid ? { ...h, uid: novoUid() } : h))
+        );
+        return;
+      }
+    }
     this.horarios.update((lista) =>
       lista.map((h) =>
         h.uid === uid

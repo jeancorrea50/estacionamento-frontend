@@ -30,6 +30,7 @@
                 class="ph-hora"
                 role="option"
                 [ngClass]="modificadores(hora)"
+                [disabled]="desabilitada(hora)"
                 (click)="selecionar(hora, $event)"
               >
                 {{ hora }}

@@ -613,7 +613,8 @@
   .ma__fab-bar {
     position: fixed;
     z-index: 30;
-    inset: auto 0 0 0;
+    // Acima da barra inferior do app no celular (definida no layout).
+    inset: auto 0 var(--gts-bottom-nav-h, 0px) 0;
     display: block;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--gts-border);

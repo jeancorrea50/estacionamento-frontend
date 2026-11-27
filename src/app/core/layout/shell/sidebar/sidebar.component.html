@@ -1,0 +1,169 @@
+<nav class="sb" [class.is-rail]="nav.rail()" aria-label="Menu principal">
+  <!-- Marca + recolher -->
+  <div class="sb__brand">
+    <a
+      class="sb__logo"
+      [routerLink]="nav.primeiraRota() ?? '/app/inicio'"
+      aria-label="GTS — ir para a tela inicial"
+    >
+      <img class="sb__logo-img" src="/logo-gts-transparent.png" alt="" />
+      @if (!nav.rail()) {
+        <span class="sb__logo-txt">Estacionamento</span>
+      }
+    </a>
+  </div>
+
+  <!-- Busca rápida: chega em qualquer tela sem abrir submenu -->
+  <button
+    type="button"
+    class="sb__search"
+    (click)="abrirBusca.emit()"
+    [matTooltip]="nav.rail() ? 'Buscar tela (Ctrl+K)' : ''"
+    matTooltipPosition="right"
+    aria-keyshortcuts="Control+K"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">search</span>
+    @if (!nav.rail()) {
+      <span class="sb__search-txt">Buscar tela…</span>
+      @if (!nav.celular()) {
+        <kbd class="sb__kbd">Ctrl K</kbd>
+      }
+    } @else {
+      <span class="sr-only">Buscar tela</span>
+    }
+  </button>
+
+  <div class="sb__scroll">
+    @for (g of nav.grupos(); track g.id) {
+      <section class="sb__group" [attr.aria-labelledby]="'sbg-' + g.id">
+        <h2 class="sb__label" [id]="'sbg-' + g.id" [class.sr-only]="nav.rail()">{{ g.label }}</h2>
+        <ul class="sb__list" role="list">
+          @for (it of g.items; track it.id) {
+            <li>
+              @if (!it.children) {
+                <!-- Item simples -->
+                <a
+                  class="sb__link"
+                  [routerLink]="it.route"
+                  routerLinkActive="is-active"
+                  ariaCurrentWhenActive="page"
+                  [matTooltip]="nav.rail() ? it.label : ''"
+                  matTooltipPosition="right"
+                >
+                  <span class="material-symbols-outlined sb__ico" aria-hidden="true">{{
+                    it.icon
+                  }}</span>
+                  <span class="sb__txt">{{ it.label }}</span>
+                </a>
+              } @else if (nav.rail()) {
+                <!-- Recolhido: submenu flutuante ao lado -->
+                <button
+                  type="button"
+                  class="sb__link"
+                  [class.has-active]="temAtivo(it)"
+                  [cdkMenuTriggerFor]="flyout"
+                  [cdkMenuPosition]="[
+                    {
+                      originX: 'end',
+                      originY: 'top',
+                      overlayX: 'start',
+                      overlayY: 'top',
+                      offsetX: 8,
+                    },
+                  ]"
+                  [matTooltip]="it.label"
+                  matTooltipPosition="right"
+                  [attr.aria-label]="it.label"
+                >
+                  <span class="material-symbols-outlined sb__ico" aria-hidden="true">{{
+                    it.icon
+                  }}</span>
+                </button>
+                <ng-template #flyout>
+                  <div class="sb-flyout" cdkMenu>
+                    <p class="sb-flyout__title" aria-hidden="true">{{ it.label }}</p>
+                    @for (c of it.children; track c.id) {
+                      <a
+                        cdkMenuItem
+                        class="sb-flyout__item"
+                        [routerLink]="c.route"
+                        routerLinkActive="is-active"
+                        ariaCurrentWhenActive="page"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">{{
+                          c.icon
+                        }}</span>{{ c.label }}
+                      </a>
+                    }
+                  </div>
+                </ng-template>
+              } @else {
+                <!-- Aberto: acordeão de 1 nível -->
+                @let aberto = nav.aberto() === it.id;
+                <button
+                  type="button"
+                  class="sb__link sb__toggle"
+                  [class.has-active]="temAtivo(it)"
+                  [attr.aria-expanded]="aberto"
+                  [attr.aria-controls]="'sbs-' + it.id"
+                  (click)="nav.alternarSecao(it.id)"
+                >
+                  <span class="material-symbols-outlined sb__ico" aria-hidden="true">{{
+                    it.icon
+                  }}</span>
+                  <span class="sb__txt">{{ it.label }}</span>
+                  @if (temAtivo(it) && !aberto) {
+                    <span class="sb__dot" aria-label="contém a tela atual"></span>
+                  }
+                  <span
+                    class="material-symbols-outlined sb__chev"
+                    [class.is-open]="aberto"
+                    aria-hidden="true"
+                    >expand_more</span
+                  >
+                </button>
+                @if (aberto) {
+                  <ul class="sb__sub" [id]="'sbs-' + it.id" role="list">
+                    @for (c of it.children; track c.id) {
+                      <li>
+                        <a
+                          class="sb__sublink"
+                          [routerLink]="c.route"
+                          routerLinkActive="is-active"
+                          ariaCurrentWhenActive="page"
+                        >
+                          {{ c.label }}
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+
+  <div class="sb__foot">
+    @if (!nav.celular()) {
+      <button
+        type="button"
+        class="sb__link sb__collapse"
+        (click)="nav.alternarRecolhido()"
+        [attr.aria-pressed]="nav.rail()"
+        [matTooltip]="nav.rail() ? 'Expandir menu' : ''"
+        matTooltipPosition="right"
+      >
+        <span class="material-symbols-outlined sb__ico" aria-hidden="true">
+          {{ nav.rail() ? 'left_panel_open' : 'left_panel_close' }}
+        </span>
+        <span class="sb__txt">{{ nav.rail() ? 'Expandir menu' : 'Recolher menu' }}</span>
+      </button>
+    }
+    @if (!nav.rail()) {
+      <span class="sb__versao">{{ versao }}</span>
+    }
+  </div>
+</nav>

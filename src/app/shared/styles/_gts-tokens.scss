@@ -3,6 +3,7 @@
 // os fallbacks são os hex do DESIGN.md (tema escuro). Nenhum hex novo: variações = color-mix.
 @mixin tokens {
   --gts-primary: var(--primary, #3d8bff);
+  --gts-bg: var(--color-bg-page, #1d1d27);
   --gts-surface: var(--surface, #292934);
   --gts-elevated: var(--surface-2, #2c2c37);
   --gts-table: var(--table-row-stripe, #252530);

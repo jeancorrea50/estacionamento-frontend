@@ -1,0 +1,59 @@
+<div class="ps">
+  <div class="ps__search">
+    <span class="material-symbols-outlined" aria-hidden="true">search</span>
+    <input
+      id="cp-busca"
+      type="search"
+      role="combobox"
+      autocomplete="off"
+      placeholder="Ir para… (ex.: veículos, destinação, entrada)"
+      aria-label="Buscar tela ou ação"
+      aria-controls="cp-lista"
+      aria-expanded="true"
+      aria-autocomplete="list"
+      [attr.aria-activedescendant]="ativo() ? 'cp-opt-' + ativo()!.id : null"
+      [value]="busca()"
+      (input)="onBusca($any($event.target).value)"
+      (keydown)="onKeydown($event)"
+    />
+  </div>
+
+  <div id="cp-lista" class="ps__lista" role="listbox" aria-label="Resultados">
+    @if (!busca()) {
+      <p class="ps__secao" aria-hidden="true">Sugestões</p>
+    }
+    @for (r of resultados(); track r.id; let i = $index) {
+      <div
+        class="ps__opt"
+        role="option"
+        [id]="'cp-opt-' + r.id"
+        [class.is-active]="ativoIdx() === i"
+        [attr.aria-selected]="ativoIdx() === i"
+        (mouseenter)="ativoIdx.set(i)"
+        (click)="ir(r)"
+      >
+        <span class="ps__mono" aria-hidden="true"
+          ><span class="material-symbols-outlined">{{ r.icon }}</span></span
+        >
+        <span class="ps__info">
+          <span class="ps__nome">{{ r.label }}</span>
+          <span class="ps__meta">{{ r.onde }}</span>
+        </span>
+        <span class="material-symbols-outlined ps__go" aria-hidden="true">{{
+          r.rota ? 'arrow_forward' : 'bolt'
+        }}</span>
+      </div>
+    } @empty {
+      <p class="ps__vazio" role="status">
+        <span class="material-symbols-outlined" aria-hidden="true">search_off</span>
+        Nada encontrado para "{{ busca() }}".
+      </p>
+    }
+  </div>
+
+  <footer class="ps__foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+    <span><kbd>Enter</kbd> abrir</span>
+    <span><kbd>Esc</kbd> fechar</span>
+  </footer>
+</div>

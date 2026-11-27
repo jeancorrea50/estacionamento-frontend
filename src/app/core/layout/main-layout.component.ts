@@ -1,16 +1,36 @@
-import { Component, signal, computed, OnInit, OnDestroy, HostListener, PLATFORM_ID, inject } from '@angular/core';
+import {
+  Component,
+  signal,
+  computed,
+  effect,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  PLATFORM_ID,
+  inject,
+  untracked,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet, Router, RouterModule, NavigationEnd } from '@angular/router';
-import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { A11yModule } from '@angular/cdk/a11y';
+import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
+import { NavService } from './shell/nav.service';
+import { ShellSidebarComponent } from './shell/sidebar/sidebar.component';
+import { ShellTopbarComponent, TopbarContexto, TopbarPatio } from './shell/topbar/topbar.component';
+import {
+  AcaoPalette,
+  COMMAND_PALETTE_CONFIG,
+  CommandPaletteDialog,
+} from './shell/command-palette/command-palette.dialog';
 import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { SignalrDashboardService } from '../services/signalr-dashboard.service';
 import { SignalrNotificationService } from '../services/signalr-notification.service';
 import { PortariaAlertasStore } from '../../features/movimentos/services/portaria-alertas.store';
-import { NotificationBellComponent } from './notification-bell/notification-bell.component';
 import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
 import { formatCnpj as formatCnpjCanonical } from '../../features/cadastro/directives/cnpj-format.directive';
@@ -33,14 +53,73 @@ interface AccessContext {
     FormsModule,
     RouterOutlet,
     RouterModule,
-    SidebarComponent,
-    NotificationBellComponent,
+    A11yModule,
+    ShellSidebarComponent,
+    ShellTopbarComponent,
     AdminEstacionamentoSelectModalComponent,
   ],
   templateUrl: './main-layout.component.html',
-  styleUrls: ['./main-layout.component.scss']
+  styleUrls: ['./main-layout.component.scss'],
+  host: {
+    '[class.is-rail]': 'nav.rail()',
+  },
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
+  readonly nav = inject(NavService);
+  private readonly dialog = inject(MatDialog);
+
+  /** Pátio da sessão no formato da barra do topo. */
+  readonly patioTopbar = computed<TopbarPatio | null>(() => {
+    const e = this.sessionEstacionamento();
+    return e ? { nome: e.razaoSocial, cnpj: e.cnpj ? this.formatCnpj(e.cnpj) : '' } : null;
+  });
+
+  readonly contextosTopbar = computed<TopbarContexto[]>(() =>
+    this.accessContexts().map((c) => ({
+      key: c.contextKey,
+      label: c.cnpj ? `${c.tipoAcesso} - ${this.formatCnpj(c.cnpj)}` : c.tipoAcesso,
+    }))
+  );
+
+  /** Ctrl/⌘+K abre a busca de telas; Esc fecha a gaveta do celular. */
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      void this.abrirBusca();
+    } else if (e.key === 'Escape' && this.nav.gavetaAberta()) {
+      this.nav.fecharGaveta();
+    }
+  }
+
+  async abrirBusca(): Promise<void> {
+    if (this.dialog.openDialogs.length) return;
+    this.nav.fecharGaveta();
+    const ref = this.dialog.open<CommandPaletteDialog, void, AcaoPalette>(
+      CommandPaletteDialog,
+      COMMAND_PALETTE_CONFIG
+    );
+    const acoes: AcaoPalette[] = ['alternar-tema'];
+    if (this.canTrocarEstacionamentoSessao()) acoes.push('trocar-patio');
+    if (this.nav.destinos().some((d) => d.item.id === 'agendar')) acoes.push('novo-agendamento');
+    ref.componentInstance.permitirAcoes(acoes);
+    const acao = await firstValueFrom(ref.afterClosed());
+    if (acao === 'trocar-patio') this.onTrocarPatio();
+    if (acao === 'alternar-tema') this.toggleTheme();
+    if (acao === 'novo-agendamento') void this.router.navigateByUrl('/app/agendar');
+  }
+
+  /** Botão do pátio na barra do topo: troca (com pátio) ou escolhe (sem pátio). */
+  onTrocarPatio(): void {
+    this.nav.fecharGaveta();
+    if (this.sessionEstacionamento()) this.trocarEstacionamento();
+    else this.abrirSelecaoEstacionamento();
+  }
+
+  sair(): void {
+    this.authService.logout();
+    void this.router.navigate(['/']);
+  }
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
@@ -94,6 +173,20 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   constructor() {
     this.themeMode.set(this.themeService.getCurrentTheme().mode);
     this.themeService.theme$.subscribe((t) => this.themeMode.set(t.mode));
+
+    // Navegou → fecha a gaveta do celular.
+    effect(() => {
+      this.nav.url();
+      untracked(() => this.nav.fecharGaveta());
+    });
+
+    // Celular: barra inferior fixa. Botões fixos das telas (FAB) sobem acima dela.
+    effect(() => {
+      const celular = this.nav.celular();
+      if (isPlatformBrowser(this.platformId)) {
+        document.documentElement.classList.toggle('has-bottom-nav', celular);
+      }
+    });
   }
 
   /** Sino de notificações (migrations/infra) — somente Admin. */

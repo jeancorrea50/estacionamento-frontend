@@ -157,22 +157,25 @@
             <span class="ico-chip" aria-hidden="true"
               ><span class="material-symbols-outlined">payments</span></span
             >
-            <h2 class="kpi__label">Quem paga <span class="kpi__per">· no período</span></h2>
+            <h2 class="kpi__label">Modalidade <span class="kpi__per">· no período</span></h2>
           </header>
-          <p class="kpi__value kpi__value--split">
-            <span
-              >CIF <strong>{{ freteResumo().cif }}</strong></span
-            >
-            <span
-              >FOB <strong>{{ freteResumo().fob }}</strong></span
-            >
-          </p>
+          <div class="frete-kpis" role="group" aria-label="CIF e FOB no período">
+            <div class="frete-kpi frete-kpi--cif">
+              <span class="frete-kpi__label">CIF</span>
+              <strong class="frete-kpi__value">{{ freteResumo().cif }}</strong>
+            </div>
+            <div class="frete-kpi frete-kpi--fob">
+              <span class="frete-kpi__label">FOB</span>
+              <strong class="frete-kpi__value">{{ freteResumo().fob }}</strong>
+            </div>
+          </div>
           <div
             class="split"
             role="img"
             [attr.aria-label]="freteResumo().cif + ' CIF e ' + freteResumo().fob + ' FOB'"
           >
             <span class="split__cif" [style.width.%]="freteResumo().pCif"></span>
+            <span class="split__fob" [style.width.%]="freteResumo().pFob"></span>
           </div>
         </article>
       </section>
@@ -236,7 +239,7 @@
             </select>
             <select
               class="input"
-              aria-label="Quem paga"
+              aria-label="Modalidade"
               [ngModel]="frete()"
               (ngModelChange)="frete.set($event)"
             >
@@ -250,7 +253,19 @@
         @if (loading() && !linhas().length) {
           <p class="lista__estado" role="status">Carregando agendamentos…</p>
         } @else if (grupos().length) {
-          <table class="tbl" [attr.aria-busy]="loading()">
+          <div class="ma-grid-wrap no-print" [attr.aria-busy]="loading()">
+            <ag-grid-angular
+              class="ag-theme-quartz ma-grid"
+              [rowData]="gridRows()"
+              [columnDefs]="columnDefs()"
+              [defaultColDef]="defaultColDef"
+              [gridOptions]="gridOptions"
+              [context]="gridContext()"
+            />
+          </div>
+
+          <!-- Impressão: tabela estática com as mesmas colunas -->
+          <table class="tbl print-only">
             <caption class="sr-only">
               Agendamentos da transportadora
             </caption>
@@ -258,11 +273,11 @@
               <tr>
                 <th scope="col">Horário</th>
                 <th scope="col">Placa</th>
-                <th scope="col" class="col-md">Motorista</th>
-                <th scope="col" class="col-md">Serviço</th>
-                <th scope="col">Quem paga</th>
+                <th scope="col">Transportadora</th>
+                <th scope="col">Motorista</th>
+                <th scope="col">Serviço</th>
+                <th scope="col">Modalidade</th>
                 <th scope="col">Situação</th>
-                <th scope="col" class="col-acoes no-print"><span class="sr-only">Ações</span></th>
               </tr>
             </thead>
             @for (g of grupos(); track g.data) {
@@ -283,84 +298,33 @@
                     </td>
                     <td>
                       <span class="placa mono">{{ formatPlaca(a.placa) }}</span>
-                      @if (podeEscolherTransportadora && a.transportadora) {
-                        <span class="tbl__transp">{{ a.transportadora }}</span>
+                    </td>
+                    <td>{{ a.transportadora || '—' }}</td>
+                    <td>{{ a.motorista || '—' }}</td>
+                    <td>
+                      @for (s of a.servicos; track s; let ultimo = $last) {
+                        {{ SERVICO_INFO[s].label }}@if (!ultimo) {
+                          +
+                        }
                       }
                     </td>
-                    <td class="col-md">{{ a.motorista || '—' }}</td>
-                    <td class="col-md">
-                      <span class="servico">
-                        @for (s of a.servicos; track s; let ultimo = $last) {
-                          <span class="servico__item">
-                            <span class="material-symbols-outlined" aria-hidden="true">{{
-                              SERVICO_INFO[s].icon
-                            }}</span>
-                            {{ SERVICO_INFO[s].label }}
-                          </span>
-                          @if (!ultimo) {
-                            <span class="servico__mais" aria-hidden="true">+</span>
-                          }
-                        }
-                      </span>
-                    </td>
                     <td>
-                      <span
-                        class="frete"
-                        [attr.data-frete]="a.frete"
-                        [title]="
-                          a.frete === 'FOB'
-                            ? 'Fatura para ' + (a.pagadorNome || 'terceiro')
-                            : 'A própria transportadora paga'
-                        "
-                        >{{ a.frete }}</span
-                      >
+                      <span class="frete" [attr.data-frete]="a.frete">{{ a.frete }}</span>
                       @if (a.frete === 'FOB' && a.pagadorNome) {
                         <span class="frete__pagador">{{ a.pagadorNome }}</span>
                       }
                     </td>
                     <td>
                       <span class="pill" [attr.data-tone]="SITUACAO[a.situacao].tone">
-                        <span class="material-symbols-outlined" aria-hidden="true">{{
-                          SITUACAO[a.situacao].icon
-                        }}</span>
                         {{ SITUACAO[a.situacao].label }}
                       </span>
-                    </td>
-                    <td class="col-acoes no-print">
-                      @if (podeCriar || (podeCancelar && a.situacao === 'agendado')) {
-                        <button
-                          type="button"
-                          class="icon-btn"
-                          [attr.aria-label]="'Ações da placa ' + formatPlaca(a.placa)"
-                          [matMenuTriggerFor]="rowMenu"
-                        >
-                          <span class="material-symbols-outlined" aria-hidden="true"
-                            >more_vert</span
-                          >
-                        </button>
-                        <mat-menu #rowMenu="matMenu" xPosition="before" yPosition="below">
-                          @if (podeCriar) {
-                            <button mat-menu-item (click)="agendarDeNovo(a)">
-                              <span class="material-symbols-outlined ma-menu-ico" aria-hidden="true"
-                                >event_repeat</span
-                              >Agendar de novo esta placa
-                            </button>
-                          }
-                          @if (podeCancelar && a.situacao === 'agendado') {
-                            <button mat-menu-item class="ma-menu-danger" (click)="cancelar(a)">
-                              <span class="material-symbols-outlined ma-menu-ico" aria-hidden="true"
-                                >event_busy</span
-                              >Cancelar agendamento
-                            </button>
-                          }
-                        </mat-menu>
-                      }
                     </td>
                   </tr>
                 }
               </tbody>
             }
           </table>
+
           @if (limitado()) {
             <p class="lista__estado no-print">
               Mostrando os {{ linhas().length }} mais recentes de {{ totalCount() }}. Use o período

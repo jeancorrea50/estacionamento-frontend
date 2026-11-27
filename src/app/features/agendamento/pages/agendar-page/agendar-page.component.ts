@@ -4,6 +4,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
+import { AgGridAngular } from 'ag-grid-angular';
+import {
+  AllCommunityModule,
+  ModuleRegistry,
+  type ColDef,
+  type GridOptions,
+  type IsFullWidthRowParams,
+  type ValueGetterParams,
+} from 'ag-grid-community';
 import { Subject, of } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -30,6 +39,12 @@ import type { ModalidadeAgendamento } from '../../models/janela-agendamento.mode
 import { AgendamentoService } from '../../services/agendamento.service';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
+import {
+  AgendarGridActionsRenderer,
+  type AgendarGridActionsContext,
+} from './agendar-grid-actions.renderer';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 type Periodo = 'proximos' | 'hoje' | 'mes' | 'todos';
 type Situacao = 'agendado' | 'no_patio' | 'concluido' | 'cancelado';
@@ -55,6 +70,21 @@ interface Grupo {
   data: string;
   titulo: string;
   itens: Linha[];
+}
+
+/** Linha de dados ou cabeçalho de dia no AG Grid. */
+type GridRow = Linha | { __grupo: true; id: string; data: string; titulo: string; count: number };
+
+function ehGrupo(row: GridRow | undefined | null): row is Extract<GridRow, { __grupo: true }> {
+  return !!row && '__grupo' in row && row.__grupo === true;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 const SITUACAO: Record<Situacao, { label: string; icon: string; tone: string; ajuda: string }> = {
@@ -141,7 +171,7 @@ function linhaDe(item: AgendamentoSearchItem): Linha {
 @Component({
   selector: 'app-agendar-page',
   standalone: true,
-  imports: [FormsModule, DatePipe, MatMenuModule, AgendamentoNovoModalComponent],
+  imports: [FormsModule, DatePipe, MatMenuModule, AgGridAngular, AgendamentoNovoModalComponent],
   templateUrl: './agendar-page.component.html',
   styleUrls: ['./agendar-page.component.scss'],
 })
@@ -262,11 +292,13 @@ export class AgendarPageComponent implements OnInit {
     const ativos = this.filtradosSemFrete().filter((a) => a.situacao !== 'cancelado');
     const cif = ativos.filter((a) => a.frete === 'CIF').length;
     const fob = ativos.length - cif;
+    const total = ativos.length;
     return {
       cif,
       fob,
-      total: ativos.length,
-      pCif: ativos.length ? (cif / ativos.length) * 100 : 0,
+      total,
+      pCif: total ? (cif / total) * 100 : 0,
+      pFob: total ? (fob / total) * 100 : 0,
     };
   });
 
@@ -299,6 +331,173 @@ export class AgendarPageComponent implements OnInit {
     for (const a of this.filtrados()) m.set(a.data, [...(m.get(a.data) ?? []), a]);
     return [...m.entries()].map(([data, itens]) => ({ data, titulo: this.tituloDia(data), itens }));
   });
+
+  /** Linhas do AG Grid: cabeçalho de dia + itens. */
+  readonly gridRows = computed<GridRow[]>(() => {
+    const rows: GridRow[] = [];
+    for (const g of this.grupos()) {
+      rows.push({
+        __grupo: true,
+        id: `g-${g.data}`,
+        data: g.data,
+        titulo: g.titulo,
+        count: g.itens.length,
+      });
+      rows.push(...g.itens);
+    }
+    return rows;
+  });
+
+  readonly gridContext = computed<AgendarGridActionsContext>(() => ({
+    podeCriar: this.podeCriar,
+    podeCancelar: this.podeCancelar,
+    formatPlaca: (placa) => this.formatPlaca(placa),
+    agendarDeNovo: (row) => this.agendarDeNovo(row as Linha),
+    cancelar: (row) => this.cancelar(row as Linha),
+  }));
+
+  readonly columnDefs = computed<ColDef<GridRow>[]>(() => [
+    {
+      headerName: 'Horário',
+      field: 'hora',
+      width: 96,
+      minWidth: 88,
+      cellClass: 'ma-grid__hora',
+      valueGetter: (p: ValueGetterParams<GridRow>) =>
+        ehGrupo(p.data) ? '' : ((p.data as Linha | undefined)?.hora ?? ''),
+    },
+    {
+      headerName: 'Placa',
+      field: 'placa',
+      minWidth: 120,
+      flex: 0.8,
+      cellClass: 'ma-grid__placa',
+      valueGetter: (p: ValueGetterParams<GridRow>) => {
+        if (ehGrupo(p.data)) return '';
+        return this.formatPlaca((p.data as Linha | undefined)?.placa ?? '');
+      },
+    },
+    {
+      headerName: 'Transportadora',
+      field: 'transportadora',
+      minWidth: 160,
+      flex: 1.2,
+      valueGetter: (p: ValueGetterParams<GridRow>) => {
+        if (ehGrupo(p.data)) return '';
+        const nome = (p.data as Linha | undefined)?.transportadora?.trim();
+        return nome || '—';
+      },
+    },
+    {
+      headerName: 'Motorista',
+      field: 'motorista',
+      minWidth: 140,
+      flex: 1,
+      valueGetter: (p: ValueGetterParams<GridRow>) => {
+        if (ehGrupo(p.data)) return '';
+        return (p.data as Linha | undefined)?.motorista?.trim() || '—';
+      },
+    },
+    {
+      headerName: 'Serviço',
+      colId: 'servico',
+      minWidth: 140,
+      flex: 1,
+      valueGetter: (p: ValueGetterParams<GridRow>) => {
+        if (ehGrupo(p.data)) return '';
+        const servicos = (p.data as Linha | undefined)?.servicos ?? [];
+        return servicos.map((s) => SERVICO_INFO[s].label).join(' + ');
+      },
+      cellRenderer: (p: { data?: GridRow }) => {
+        if (ehGrupo(p.data)) return '';
+        const servicos = (p.data as Linha | undefined)?.servicos ?? [];
+        if (!servicos.length) return '—';
+        return `<span class="servico">${servicos
+          .map(
+            (s, i) =>
+              `<span class="servico__item"><span class="material-symbols-outlined" aria-hidden="true">${SERVICO_INFO[s].icon}</span>${SERVICO_INFO[s].label}</span>${
+                i < servicos.length - 1 ? '<span class="servico__mais" aria-hidden="true">+</span>' : ''
+              }`,
+          )
+          .join('')}</span>`;
+      },
+    },
+    {
+      headerName: 'Modalidade',
+      field: 'frete',
+      minWidth: 120,
+      flex: 0.9,
+      cellRenderer: (p: { data?: GridRow }) => {
+        if (ehGrupo(p.data)) return '';
+        const a = p.data as Linha | undefined;
+        if (!a) return '—';
+        const title =
+          a.frete === 'FOB'
+            ? `Fatura para ${a.pagadorNome || 'terceiro'}`
+            : 'A própria transportadora paga';
+        const pagador =
+          a.frete === 'FOB' && a.pagadorNome
+            ? `<span class="frete__pagador">${escapeHtml(a.pagadorNome)}</span>`
+            : '';
+        return `<span class="frete" data-frete="${a.frete}" title="${escapeHtml(title)}">${a.frete}</span>${pagador}`;
+      },
+    },
+    {
+      headerName: 'Situação',
+      field: 'situacao',
+      minWidth: 130,
+      flex: 0.9,
+      cellRenderer: (p: { data?: GridRow }) => {
+        if (ehGrupo(p.data)) return '';
+        const a = p.data as Linha | undefined;
+        if (!a) return '—';
+        const s = SITUACAO[a.situacao];
+        return `<span class="pill" data-tone="${s.tone}"><span class="material-symbols-outlined" aria-hidden="true">${s.icon}</span>${s.label}</span>`;
+      },
+    },
+    {
+      headerName: '',
+      colId: 'acoes',
+      width: 56,
+      maxWidth: 64,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      cellClass: 'ma-grid__acoes no-print',
+      cellRenderer: AgendarGridActionsRenderer,
+    },
+  ]);
+
+  readonly defaultColDef: ColDef = {
+    sortable: false,
+    filter: false,
+    resizable: true,
+    suppressMovable: true,
+  };
+
+  readonly gridOptions: GridOptions<GridRow> = {
+    animateRows: false,
+    suppressCellFocus: true,
+    headerHeight: 40,
+    rowHeight: 48,
+    getRowHeight: (p) => (ehGrupo(p.data) ? 40 : 48),
+    getRowId: (p) => String(p.data?.id ?? ''),
+    getRowClass: (p) => {
+      if (ehGrupo(p.data)) {
+        return p.data.data === this.hoje ? 'ma-grid__grupo is-hoje' : 'ma-grid__grupo';
+      }
+      return (p.data as Linha | undefined)?.situacao === 'cancelado' ? 'is-cancel' : undefined;
+    },
+    isFullWidthRow: (p: IsFullWidthRowParams<GridRow>) => ehGrupo(p.rowNode.data),
+    fullWidthCellRenderer: (p: { data?: GridRow }) => {
+      if (!ehGrupo(p.data)) return '';
+      const g = p.data;
+      const dataBr = g.data.split('-').reverse().join('/');
+      return `<div class="ma-grid__grupo-cell">${escapeHtml(g.titulo)} <span class="muted">· ${escapeHtml(dataBr)} · ${g.count} ${
+        g.count === 1 ? 'agendamento' : 'agendamentos'
+      }</span></div>`;
+    },
+  };
 
   readonly limitado = computed(() => this.totalCount() > this.linhas().length);
 
@@ -561,10 +760,11 @@ export class AgendarPageComponent implements OnInit {
       'Dia',
       'Horário',
       'Placa',
+      'Transportadora',
       'Motorista',
       'Serviço',
-      'Frete',
-      'Quem paga',
+      'Modalidade',
+      'Pagador',
       'Situação',
       'Observação',
     ];
@@ -573,6 +773,7 @@ export class AgendarPageComponent implements OnInit {
       this.tituloDia(a.data),
       a.hora,
       this.formatPlaca(a.placa),
+      a.transportadora || '',
       a.motorista,
       a.servicos.map((s) => SERVICO_INFO[s].label).join(' + '),
       a.frete,

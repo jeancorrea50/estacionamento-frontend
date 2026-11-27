@@ -4,17 +4,24 @@
 @use '../../../../shared/styles/gts-tokens' as tk;
 @use '../destinacao-page/destinar/destinacao-tokens' as dst;
 @use '../destinacao-page/destinar/destinacao-kit' as kit;
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 :host {
   @include dst.tokens;
   @include tk.tokens;
   display: block;
   color: var(--gts-text);
+  // CIF / FOB — cores próprias (escuro)
+  --ma-cif: #36c98f;
+  --ma-fob: #3d8bff;
 }
 
 :host-context(html.theme-light) {
   @include dst.tokens-light;
   @include tk.tokens-light;
+  --ma-cif: #059669;
+  --ma-fob: #2563eb;
 }
 
 @include kit.kit;
@@ -251,25 +258,160 @@
   }
 }
 
+.frete-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.frete-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--_frete) 40%, var(--gts-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--_frete) 14%, var(--gts-surface));
+
+  &--cif {
+    --_frete: var(--ma-cif);
+  }
+
+  &--fob {
+    --_frete: var(--ma-fob);
+  }
+}
+
+.frete-kpi__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--_frete);
+}
+
+.frete-kpi__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--gts-text);
+}
+
 .split {
   display: flex;
   height: 8px;
-  margin-top: 4px;
+  margin-top: 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--gts-primary) 30%, var(--gts-surface)); // FOB
+  background: var(--gts-border);
   overflow: hidden;
+  gap: 2px;
+}
+
+.split__cif,
+.split__fob {
+  display: block;
+  height: 100%;
+  min-width: 0;
 }
 
 .split__cif {
-  display: block;
-  height: 100%;
-  background: var(--gts-muted);
-  box-shadow: 2px 0 0 var(--gts-surface);
+  background: var(--ma-cif);
 }
 
-// ═══ Lista ══════════════════════════════════════════════════════════════
+.split__fob {
+  background: var(--ma-fob);
+}
+
+// ═══ Lista / AG Grid ════════════════════════════════════════════════════
 .lista {
   overflow: hidden;
+}
+
+.ma-grid-wrap {
+  width: 100%;
+  min-height: 280px;
+  padding: 0 0 8px;
+}
+
+.ma-grid {
+  --ag-background-color: var(--gts-surface);
+  --ag-header-background-color: var(--gts-table);
+  --ag-odd-row-background-color: var(--gts-surface);
+  --ag-row-hover-color: color-mix(in srgb, var(--gts-primary) 10%, var(--gts-surface));
+  --ag-border-color: var(--gts-border);
+  --ag-header-foreground-color: var(--gts-muted);
+  --ag-foreground-color: var(--gts-text);
+  --ag-font-family: inherit;
+  --ag-font-size: 14px;
+  --ag-selected-row-background-color: color-mix(in srgb, var(--gts-primary) 14%, var(--gts-surface));
+  width: 100%;
+  height: min(62vh, 640px);
+  border: 0;
+  border-top: 1px solid var(--gts-border);
+}
+
+:host-context(html.theme-light) .ma-grid {
+  --ag-background-color: #fff;
+  --ag-header-background-color: #f5f7fa;
+  --ag-odd-row-background-color: #fff;
+  --ag-row-hover-color: color-mix(in srgb, var(--ma-fob) 8%, #fff);
+}
+
+.ma-grid__hora {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ma-grid__placa {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ma-grid__grupo {
+  background: var(--gts-table) !important;
+}
+
+.ma-grid__grupo.is-hoje {
+  box-shadow: inset 3px 0 0 var(--gts-primary);
+}
+
+.ma-grid__grupo-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gts-text);
+}
+
+::ng-deep .ma-grid {
+  .ag-root-wrapper {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .ag-header-cell-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .ag-cell {
+    display: flex;
+    align-items: center;
+    line-height: 1.35;
+  }
+
+  .ag-full-width-row .ag-cell-wrapper.ag-row-group {
+    align-items: center;
+  }
+
+  .is-cancel {
+    opacity: 0.72;
+  }
 }
 
 .lista__head {
@@ -467,24 +609,27 @@
   color: var(--gts-text);
 }
 
-// Frete: categorias, não status — CIF neutro, FOB azul.
+// Modalidade CIF / FOB — cada uma com cor própria (claro e escuro via --ma-*).
 .frete {
   display: inline-grid;
   place-items: center;
   min-width: 40px;
   height: 22px;
   padding: 0 6px;
-  border: 1px solid var(--gts-border);
+  border: 1px solid color-mix(in srgb, var(--_frete) 55%, transparent);
   border-radius: 6px;
+  background: color-mix(in srgb, var(--_frete) var(--gts-tint, 16%), transparent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--gts-text);
+  color: var(--_frete);
+
+  &[data-frete='CIF'] {
+    --_frete: var(--ma-cif);
+  }
 
   &[data-frete='FOB'] {
-    border-color: color-mix(in srgb, var(--gts-primary) 55%, transparent);
-    background: color-mix(in srgb, var(--gts-primary) var(--gts-tint), transparent);
-    color: var(--gts-primary);
+    --_frete: var(--ma-fob);
   }
 }
 

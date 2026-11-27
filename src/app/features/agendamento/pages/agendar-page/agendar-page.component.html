@@ -255,7 +255,8 @@
         } @else if (grupos().length) {
           <div class="ma-grid-wrap no-print" [attr.aria-busy]="loading()">
             <ag-grid-angular
-              class="ag-theme-quartz ma-grid"
+              class="ma-grid"
+              [theme]="gridTheme()"
               [rowData]="gridRows()"
               [columnDefs]="columnDefs()"
               [defaultColDef]="defaultColDef"

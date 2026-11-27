@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
@@ -8,6 +8,9 @@ import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
   ModuleRegistry,
+  colorSchemeDark,
+  colorSchemeLight,
+  themeQuartz,
   type ColDef,
   type GridOptions,
   type IsFullWidthRowParams,
@@ -18,6 +21,7 @@ import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
+import { ThemeService } from '../../../../core/services/theme.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import {
   CadastroConfirmDialogComponent,
@@ -185,6 +189,26 @@ export class AgendarPageComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly tema = inject(ThemeService);
+  private readonly temaCfg = toSignal(this.tema.theme$, {
+    initialValue: this.tema.getCurrentTheme(),
+  });
+
+  /** Tema JS do AG Grid (evita CSS de 300kb+ que quebra o budget de deploy). */
+  readonly gridTheme = computed(() => {
+    const claro = this.temaCfg().mode === 'light';
+    return themeQuartz
+      .withPart(claro ? colorSchemeLight : colorSchemeDark)
+      .withParams({
+        fontFamily: 'inherit',
+        fontSize: 14,
+        headerFontSize: 12,
+        headerFontWeight: 700,
+        borderRadius: 0,
+        wrapperBorderRadius: 0,
+        spacing: 6,
+      });
+  });
 
   readonly SITUACAO = SITUACAO;
   readonly SERVICO_INFO = SERVICO_INFO;

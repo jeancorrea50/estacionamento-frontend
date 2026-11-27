@@ -4,8 +4,6 @@
 @use '../../../../shared/styles/gts-tokens' as tk;
 @use '../destinacao-page/destinar/destinacao-tokens' as dst;
 @use '../destinacao-page/destinar/destinacao-kit' as kit;
-@import 'ag-grid-community/styles/ag-grid.css';
-@import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 :host {
   @include dst.tokens;
@@ -334,27 +332,10 @@
 }
 
 .ma-grid {
-  --ag-background-color: var(--gts-surface);
-  --ag-header-background-color: var(--gts-table);
-  --ag-odd-row-background-color: var(--gts-surface);
-  --ag-row-hover-color: color-mix(in srgb, var(--gts-primary) 10%, var(--gts-surface));
-  --ag-border-color: var(--gts-border);
-  --ag-header-foreground-color: var(--gts-muted);
-  --ag-foreground-color: var(--gts-text);
-  --ag-font-family: inherit;
-  --ag-font-size: 14px;
-  --ag-selected-row-background-color: color-mix(in srgb, var(--gts-primary) 14%, var(--gts-surface));
   width: 100%;
   height: min(62vh, 640px);
   border: 0;
   border-top: 1px solid var(--gts-border);
-}
-
-:host-context(html.theme-light) .ma-grid {
-  --ag-background-color: #fff;
-  --ag-header-background-color: #f5f7fa;
-  --ag-odd-row-background-color: #fff;
-  --ag-row-hover-color: color-mix(in srgb, var(--ma-fob) 8%, #fff);
 }
 
 .ma-grid__hora {

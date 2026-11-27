@@ -19,9 +19,15 @@ on:
       - main
       - master
 
+# Evita dois docker compose --build na mesma VPS ao mesmo tempo (causa 502).
+concurrency:
+  group: deploy-vps-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Validar secrets
         shell: bash
@@ -69,18 +75,31 @@ jobs:
         run: |
           set -euo pipefail
           PORT="${VPS_SSH_PORT:-22}"
-          ssh -p "$PORT" -o StrictHostKeyChecking=accept-new "${VPS_USER}@${VPS_HOST}" \
+          ssh -p "$PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o ServerAliveInterval=20 \
+            -o ServerAliveCountMax=15 \
+            "${VPS_USER}@${VPS_HOST}" \
             "set -euo pipefail
              cd '${VPS_APP_PATH}'
              echo '==> Branch: ${BRANCH}'
              git fetch --all --prune
              git checkout '${BRANCH}'
              git pull --ff-only origin '${BRANCH}'
-             echo '==> docker compose up -d --build'
-             docker compose up -d --build
+             echo \"==> HEAD: \$(git rev-parse --short HEAD)\"
+             export DOCKER_BUILDKIT=1
+             export COMPOSE_DOCKER_CLI_BUILD=1
+             export BUILDKIT_PROGRESS=plain
+             echo '==> docker compose build (progresso plain — pode demorar 10–20 min)'
+             docker compose build --progress=plain
+             echo '==> docker compose up -d'
+             docker compose up -d --remove-orphans
              docker compose ps
              # Após recreate do front, o gateway precisa re-resolver o IP (senão 502 em /).
              if docker ps -a --format '{{.Names}}' | grep -qx 'estacionamento-gateway'; then
                echo '==> Restart estacionamento-gateway'
                docker restart estacionamento-gateway
-             fi"
+               sleep 2
+               docker ps --filter name=estacionamento-gateway --filter name=estacionamento-frontend --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+             fi
+             echo '==> Deploy OK'"

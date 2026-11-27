@@ -4,13 +4,14 @@ WORKDIR /app
 
 ENV NG_CLI_ANALYTICS=false
 ENV CI=true
-ENV NODE_OPTIONS=--max-old-space-size=2048
+# AG Grid + Angular 21: build de produção precisa de mais heap.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 COPY . .
-RUN npx ng build --configuration=production
+RUN npx ng build --configuration=production --verbose=false
 
 FROM nginx:1.27-alpine
 

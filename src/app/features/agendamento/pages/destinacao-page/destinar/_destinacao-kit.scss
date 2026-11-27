@@ -1,0 +1,321 @@
+// Primitivos visuais da Destinação (card, seg, icon-btn, pill, input, empty…).
+// Escopados no componente via `@include kit.kit;` — não vazam para o resto do app.
+// `.btn`, `.btn-primary`, `.btn-secondary`, `.btn--sm` e `.data-table` vêm do styles.css global.
+@use './destinacao-tokens' as tk;
+
+@mixin kit {
+  // Sem padding: cada bloco interno (barra, filtros, lista) define o seu.
+  .card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--dst-border);
+    border-radius: var(--dst-radius-card);
+    background: var(--dst-surface);
+    color: var(--dst-text);
+  }
+
+  .card__title {
+    @include tk.t-section;
+    margin: 0;
+    color: var(--dst-text);
+  }
+
+  .card__meta {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--dst-muted);
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  // Botão "fantasma" (sem borda) — complementa .btn global.
+  .btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--dst-primary);
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--dst-primary) 10%, transparent);
+    }
+
+    &:disabled {
+      color: var(--dst-muted);
+      cursor: default;
+    }
+  }
+
+  .icon-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--dst-radius-ctl);
+    background: transparent;
+    color: var(--dst-muted);
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+
+    .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    &:hover:not(:disabled) {
+      background: var(--dst-row-hover);
+      color: var(--dst-text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--dst-primary);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    &--sm {
+      width: 30px;
+      height: 30px;
+
+      .material-symbols-outlined {
+        font-size: 18px;
+      }
+    }
+  }
+
+  // Segmented control (botões ou labels com radio .sr-only).
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--dst-border);
+    border-radius: var(--dst-radius-ctl);
+    background: var(--dst-input);
+
+    &--fill {
+      display: flex;
+
+      .seg__item {
+        flex: 1 1 0;
+      }
+    }
+  }
+
+  .seg__item {
+    appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dst-muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    .material-symbols-outlined {
+      font-size: 18px;
+    }
+
+    &:hover {
+      color: var(--dst-text);
+    }
+
+    &.is-active {
+      background: color-mix(in srgb, var(--dst-primary) 16%, transparent);
+      color: var(--dst-primary);
+    }
+
+    &:focus-visible,
+    &:has(input:focus-visible) {
+      outline: 2px solid var(--dst-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .seg--sm .seg__item {
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  // Status pill: borda semântica (DESIGN.md › Status ≠ linha).
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    border: 1px solid color-mix(in srgb, var(--pill-c, var(--dst-muted)) 55%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pill-c, var(--dst-muted)) 12%, transparent);
+    color: var(--pill-c, var(--dst-muted));
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    white-space: nowrap;
+
+    &[data-tone='ativa'],
+    &[data-tone='ok'] {
+      --pill-c: var(--dst-success);
+    }
+
+    &[data-tone='pausada'],
+    &[data-tone='warn'] {
+      --pill-c: var(--dst-warning);
+    }
+
+    &[data-tone='danger'] {
+      --pill-c: var(--dst-danger);
+    }
+
+    &[data-tone='info'] {
+      --pill-c: var(--dst-primary);
+    }
+
+    &[data-tone='encerrada'] {
+      --pill-c: var(--dst-muted);
+    }
+  }
+
+  .input {
+    box-sizing: border-box;
+    min-width: 0;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--dst-input-border);
+    border-radius: var(--dst-radius-ctl);
+    background: var(--dst-input);
+    color: var(--dst-text);
+    font: inherit;
+    font-size: 14px;
+    color-scheme: light dark;
+
+    &:focus,
+    &:focus-within {
+      outline: none;
+      border-color: var(--dst-primary);
+      box-shadow: var(
+        --focus-ring,
+        0 0 0 2px color-mix(in srgb, var(--dst-primary) 32%, transparent)
+      );
+    }
+
+    &:disabled {
+      opacity: 0.55;
+    }
+  }
+
+  select.input {
+    padding-right: 28px;
+  }
+
+  .input--search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 280px;
+
+    .material-symbols-outlined {
+      font-size: 20px;
+      color: var(--dst-muted);
+    }
+
+    input {
+      flex: 1 1 auto;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      outline: none;
+    }
+  }
+
+  .link-btn {
+    appearance: none;
+    padding: 2px 4px;
+    border: 0;
+    background: none;
+    color: var(--dst-primary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      color: var(--dst-muted);
+      cursor: default;
+    }
+  }
+
+  .data-table--compact {
+    th,
+    td {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+  }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 32px 16px;
+    color: var(--dst-muted);
+    text-align: center;
+
+    strong {
+      color: var(--dst-text);
+      font-size: 14px;
+    }
+
+    .btn {
+      margin-top: 6px;
+    }
+  }
+
+  .empty__icon {
+    font-size: 32px;
+    color: var(--dst-muted);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

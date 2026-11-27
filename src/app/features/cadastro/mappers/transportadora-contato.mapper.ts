@@ -1,0 +1,83 @@
+import { TransportadoraContatoPayload } from '../models/transportadora.dto';
+
+/** Prefixo em `observacao` para metadados do contato (nome, CPF, e-mail, cargo) — contrato interno front/API. */
+export const TRSPC1_PREFIX = 'trspc1:';
+
+export interface Trspc1Meta {
+  n?: string;
+  c?: string;
+  e?: string;
+  g?: string;
+}
+
+export function decodeTrspc1Meta(observacao: string | null | undefined): Trspc1Meta {
+  const raw = String(observacao ?? '').trim();
+  if (!raw.startsWith(TRSPC1_PREFIX)) return {};
+  try {
+    const parsed = JSON.parse(raw.slice(TRSPC1_PREFIX.length)) as Trspc1Meta;
+    return typeof parsed === 'object' && parsed != null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Telefone opcional em JSON legado (`t`) fora do contrato `Trspc1Meta`. */
+export type ContatoObservacaoParsed = Trspc1Meta & { t?: string };
+
+/**
+ * Interpreta `observacao` ao ler GET/respostas antigas:
+ * - `trspc1:{...}` (legado interno)
+ * - JSON `{ "n", "c", "e", "t", "g" }` sem prefixo (legado)
+ * - vazio / texto livre → sem metadados
+ */
+export function parseObservacaoContato(observacao: string | null | undefined): ContatoObservacaoParsed {
+  const raw = String(observacao ?? '').trim();
+  if (!raw) return {};
+  if (raw.startsWith(TRSPC1_PREFIX)) {
+    return decodeTrspc1Meta(raw) as ContatoObservacaoParsed;
+  }
+  if (raw.startsWith('{')) {
+    try {
+      const o = JSON.parse(raw) as Record<string, unknown>;
+      if (!o || typeof o !== 'object') return {};
+      const str = (x: unknown): string =>
+        typeof x === 'string' ? x : x != null && x !== '' ? String(x) : '';
+      return {
+        n: str(o['n']).trim() || undefined,
+        c: str(o['c']).replace(/\D/g, '') || undefined,
+        e: str(o['e']).trim() || undefined,
+        g: str(o['g']).trim() || undefined,
+        t: str(o['t']).trim() || undefined
+      };
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+export function buildContatoPayload(
+  opts: {
+    principal: boolean;
+    telefoneDigits: string;
+    meta: Trspc1Meta;
+  }
+): TransportadoraContatoPayload {
+  const nome = opts.meta.n?.trim();
+  const cpf = opts.meta.c?.replace(/\D/g, '');
+  const email = opts.meta.e?.trim();
+  return {
+    principal: opts.principal,
+    descricao: nome || (opts.principal ? 'Contato principal' : 'Contato complementar'),
+    cpf: cpf || '',
+    telefone: opts.telefoneDigits,
+    email: email || '',
+    /** Contrato API: campo livre; dados do contato vão em descricao/cpf/telefone/email — não serializar JSON aqui. */
+    observacao: ''
+  };
+}
+
+/** Contato só é enviado com telefone válido — `numero` vazio ou curto costuma gerar 400 na API. */
+export function contatoDeveSerEnviado(telefoneDigits: string, _meta: Trspc1Meta): boolean {
+  return telefoneDigits.length >= 10;
+}

@@ -1,0 +1,113 @@
+.destinacao-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.destinacao-page__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  min-width: 0;
+}
+
+.destinacao-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+  color: var(--muted, #94a3b8);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.destinacao-page__back:hover {
+  color: var(--primary, #60a5fa);
+}
+
+.destinacao-page__back .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.destinacao-page__copy {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.destinacao-page__copy h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 750;
+}
+
+.destinacao-page__copy p {
+  margin: 0;
+  color: var(--muted, #94a3b8);
+  max-width: 44rem;
+  line-height: 1.45;
+}
+
+.destinacao-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.destinacao-page__topbar {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle, #363642);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface, #1e1e28) 88%, #000 12%);
+  flex: 0 0 auto;
+}
+
+.destinacao-page__topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.destinacao-page__topbar-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.destinacao-page__topbar-btn:hover {
+  color: var(--text, #f1f5f9);
+  background: color-mix(in srgb, var(--text, #fff) 6%, transparent);
+}
+
+.destinacao-page__topbar-btn--active {
+  color: var(--primary, #60a5fa);
+  background: color-mix(in srgb, var(--primary, #60a5fa) 16%, transparent);
+}
+
+.destinacao-page__topbar-btn:focus-visible {
+  outline: 2px solid var(--primary, #60a5fa);
+  outline-offset: 1px;
+}
+
+.destinacao-page__empty {
+  margin: 0;
+  color: var(--muted);
+}

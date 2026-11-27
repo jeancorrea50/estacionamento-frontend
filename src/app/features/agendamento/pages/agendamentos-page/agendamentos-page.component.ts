@@ -1,0 +1,786 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { Router, RouterLink } from '@angular/router';
+import { Subscription, of } from 'rxjs';
+import { catchError, finalize, map } from 'rxjs/operators';
+import { AuthService } from '../../../../core/services/auth.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
+import { ToastService } from '../../../../core/api/services/toast.service';
+import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
+import { formatTelefone } from '../../../cadastro/directives/telefone-format.directive';
+import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
+import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
+import {
+  CadastroConfirmDialogComponent,
+  CadastroConfirmDialogData,
+} from '../../../cadastro/components/cadastro-confirm-dialog/cadastro-confirm-dialog.component';
+import { AGENDAMENTO_PAINEL_ROUTE, DESTINACAO_ROUTE, JANELAS_ROUTE } from '../../agendamento-rotas';
+import { AgendamentoService } from '../../services/agendamento.service';
+import {
+  AgendamentoSearchItem,
+  EntradaSaidaStatus,
+  entradaSaidaStatusLabel,
+  parseEntradaSaidaStatus,
+} from '../../models/agendamento.models';
+import { baixarPdfReciboAgendamento } from '../../recibo/agendamento-recibo-pdf';
+import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
+import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
+import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
+import { VagaDisponibilidadeService } from '../../services/vaga-disponibilidade.service';
+import {
+  formatIsoDateBr,
+  mapTimelineSlots,
+  modalidadeApi,
+  parseIsoDateLocal,
+  somarDestinacaoCifFob,
+  toIsoDateLocal,
+  type AgendamentoModalidadeUi,
+  type AgendamentoTimelineSlot,
+} from './agendamento-dashboard.util';
+import {
+  exportarPainelAgendamentosExcel,
+  exportarPainelAgendamentosPdf,
+} from './agendamento-painel-export';
+
+type Nivel = 'ok' | 'warn' | 'danger';
+
+interface TotaisDia {
+  capacidade: number;
+  ocupadas: number;
+  noPatio: number;
+  disponiveis: number;
+}
+
+const TOTAIS_VAZIOS: TotaisDia = { capacidade: 0, ocupadas: 0, noPatio: 0, disponiveis: 0 };
+
+/** Uma linha da linha do tempo do dia (janela de horário). */
+interface LinhaTempo {
+  key: string;
+  inicio: string;
+  fim: string;
+  capacidade: number;
+  agendados: number;
+  noPatio: number;
+  livres: number;
+  pAgendado: number;
+  pPatio: number;
+  pct: number;
+  nivel: Nivel;
+  nivelLabel: string;
+  vazio: boolean;
+  agora: boolean;
+  passou: boolean;
+}
+
+const pct = (parte: number, total: number): number =>
+  total > 0 ? Math.max(0, Math.min(100, Math.round((parte / total) * 100))) : 0;
+/** Âmbar a partir de 70% e vermelho a partir de 90% de ocupação. */
+const nivelDe = (p: number): Nivel => (p >= 90 ? 'danger' : p >= 70 ? 'warn' : 'ok');
+const NIVEL_LABEL: Record<Nivel, string> = { ok: 'Com folga', warn: 'Atenção', danger: 'Lotando' };
+const horaAtualHHmm = (): string => new Date().toTimeString().slice(0, 5);
+
+@Component({
+  selector: 'app-agendamentos-page',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatMenuModule,
+    RouterLink,
+    AgendamentoNovoModalComponent,
+    TransportadoraLookupFieldComponent,
+  ],
+  templateUrl: './agendamentos-page.component.html',
+  styleUrls: ['./agendamentos-page.component.scss', './painel-patio.scss'],
+})
+export class AgendamentosPageComponent implements OnInit, OnDestroy {
+  private readonly auth = inject(AuthService);
+  private readonly sessionAccess = inject(SessionAccessService);
+  private readonly permissions = inject(PermissionCacheService);
+  private readonly router = inject(Router);
+  private readonly api = inject(AgendamentoService);
+  private readonly estacionamentoService = inject(EstacionamentoService);
+  private readonly janelasApi = inject(JanelaAgendamentoService);
+  private readonly janelasRealtime = inject(JanelaDisponibilidadeRealtimeService);
+  private readonly vagasApi = inject(VagaDisponibilidadeService);
+  private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
+  private timelineSub?: Subscription;
+  private destinacaoSub?: Subscription;
+
+  readonly isAdmin = this.auth.isAdmin();
+  readonly isTransportadora = this.auth.isTransportadoraRole();
+
+  get canVisualizar(): boolean {
+    return (
+      this.sessionAccess.canAccessRoute(this.router.url) ||
+      this.sessionAccess.canAccessRoute(AGENDAMENTO_PAINEL_ROUTE) ||
+      this.permissions.allows('agendamentos', 'visualizar')
+    );
+  }
+
+  /**
+   * POST /Agendamento — claim da tela Pátio `agendamentos.gravar`
+   * (aceita também `agendar.gravar` se o perfil só tiver a outra tela).
+   */
+  get podeCriar(): boolean {
+    return (
+      this.canVisualizar &&
+      (this.permissions.allows('agendamentos', 'gravar') ||
+        this.permissions.allows('agendar', 'gravar'))
+    );
+  }
+
+  /** PATCH cancelar — claim `agendamentos.alterar|excluir`. */
+  get podeCancelar(): boolean {
+    return (
+      this.canVisualizar &&
+      (this.permissions.allows('agendamentos', 'alterar') ||
+        this.permissions.allows('agendamentos', 'excluir'))
+    );
+  }
+
+  get podeOperarPatio(): boolean {
+    return this.canVisualizar && !this.isTransportadora;
+  }
+
+  readonly janelasRoute = JANELAS_ROUTE;
+
+  /** Atalho para Janelas: operador de pátio com acesso à rota/claim `janelas.visualizar`. */
+  get podeVerJanelas(): boolean {
+    return (
+      this.podeOperarPatio &&
+      (this.sessionAccess.canAccessRoute(JANELAS_ROUTE) ||
+        this.permissions.allows('janelas', 'visualizar'))
+    );
+  }
+
+  /** PATCH confirmar-entrada — claim `agendamentos.alterar` + operação de pátio. */
+  get podeConfirmarEntrada(): boolean {
+    return this.podeOperarPatio && this.permissions.allows('agendamentos', 'alterar');
+  }
+
+  readonly loadingList = signal(false);
+  readonly jaBuscou = signal(false);
+  readonly erroList = signal<string | null>(null);
+  readonly showForm = signal(false);
+
+  readonly items = signal<AgendamentoSearchItem[]>([]);
+  readonly totalCount = signal(0);
+  readonly numeroPagina = signal(1);
+  readonly tamanhoPagina = signal(20);
+  readonly modalidadeUi = signal<AgendamentoModalidadeUi>('estacionamento');
+  readonly dataSelecionadaIso = signal(toIsoDateLocal(new Date()));
+  readonly timelineSlots = signal<AgendamentoTimelineSlot[]>([]);
+  /**
+   * Totais do dia (BE) da modalidade ativa — mesma fonte da linha do tempo.
+   * `ocupadas` = agendados + no pátio; `noPatio` = já entraram (Entrada/Suspenso).
+   */
+  readonly totaisDia = signal<TotaisDia>(TOTAIS_VAZIOS);
+  /** Destinação CIF/FOB — soma de reservas ativas no dia/filtro. */
+  readonly kpiDestinacaoCifFob = signal<{ cif: number; fob: number }>({ cif: 0, fob: 0 });
+  readonly loadingTimeline = signal(false);
+  readonly erroTimeline = signal<string | null>(null);
+
+  // ─── UI do painel ───────────────────────────────────────────────────
+  /** Celular: filtros secundários recolhidos atrás do botão "Filtros". */
+  readonly filtrosAbertos = signal(false);
+  readonly soComMovimento = signal(false);
+  /** 'HH:mm' atual — marca o horário "agora" quando o dia exibido é hoje. */
+  readonly horaAtual = signal(horaAtualHHmm());
+  private relogio?: ReturnType<typeof setInterval>;
+  /** Transportadora do filtro (signal espelho para o contador de filtros ativos). */
+  private readonly transportadoraFiltrada = signal(false);
+
+  readonly dataSelecionadaLabel = computed(() => formatIsoDateBr(this.dataSelecionadaIso()));
+  readonly ehHoje = computed(() => this.dataSelecionadaIso() === toIsoDateLocal(new Date()));
+  readonly dataPorExtenso = computed(() => {
+    const d = parseIsoDateLocal(this.dataSelecionadaIso());
+    const txt = d.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  });
+  /** Filtros escondidos no celular que estão ativos (badge do botão "Filtros"). */
+  readonly filtrosAtivos = computed(
+    () => Number(this.transportadoraFiltrada() && this.podeOperarPatio) + Number(!this.ehHoje())
+  );
+
+  readonly kpiCapacidade = computed(() => this.totaisDia().capacidade);
+  readonly kpiNoPatio = computed(() => this.totaisDia().noPatio);
+  /** Agendados que ainda não entraram (ocupadas − no pátio). */
+  readonly kpiAgendados = computed(() =>
+    Math.max(0, this.totaisDia().ocupadas - this.totaisDia().noPatio)
+  );
+  /** Vagas livres do dia (BE: capacidade − ocupadas − holds, respeitando destinação). */
+  readonly kpiDisponiveis = computed(() => this.totaisDia().disponiveis);
+  readonly ocupacaoPct = computed(() =>
+    pct(this.kpiCapacidade() - this.kpiDisponiveis(), this.kpiCapacidade())
+  );
+  readonly nivel = computed(() => nivelDe(this.ocupacaoPct()));
+  readonly nivelLabel = computed(() => NIVEL_LABEL[this.nivel()]);
+  readonly kpiCifGeral = computed(() => this.kpiDestinacaoCifFob().cif);
+  readonly kpiFobGeral = computed(() => this.kpiDestinacaoCifFob().fob);
+  /** % da barra do card principal (agendados | no pátio | resto = livre). */
+  readonly barraDia = computed(() => ({
+    agendado: pct(this.kpiAgendados(), this.kpiCapacidade()),
+    patio: pct(this.kpiNoPatio(), this.kpiCapacidade()),
+  }));
+
+  readonly linhas = computed<LinhaTempo[]>(() => {
+    const agora = this.ehHoje() ? this.horaAtual() : '';
+    return this.timelineSlots().map((s) => {
+      const cap = s.cadastrado;
+      const p = pct(cap - s.disponiveis, cap);
+      const nivel = nivelDe(p);
+      return {
+        key: s.key,
+        inicio: s.horaInicio,
+        fim: s.horaFim,
+        capacidade: cap,
+        agendados: s.agendado,
+        noPatio: s.ocupado,
+        livres: s.disponiveis,
+        pAgendado: pct(s.agendado, cap),
+        pPatio: pct(s.ocupado, cap),
+        pct: p,
+        nivel,
+        nivelLabel: NIVEL_LABEL[nivel],
+        vazio: s.agendado + s.ocupado === 0,
+        agora: !!agora && agora >= s.horaInicio && agora < s.horaFim,
+        passou: !!agora && s.horaFim <= agora,
+      };
+    });
+  });
+  readonly linhasVisiveis = computed(() =>
+    this.soComMovimento() ? this.linhas().filter((l) => !l.vazio || l.agora) : this.linhas()
+  );
+  readonly ocultas = computed(() => this.linhas().length - this.linhasVisiveis().length);
+  readonly linhaAgora = computed(() => this.linhas().find((l) => l.agora) ?? null);
+  /** Horário mais cheio do dia — 4º indicador. */
+  readonly pico = computed(() => {
+    const ls = this.linhas();
+    if (!ls.length) return null;
+    const p = ls.reduce((m, l) => (l.pct > m.pct ? l : m), ls[0]);
+    return p.pct > 0 ? p : null;
+  });
+
+  /** Placa, nome do motorista ou CPF. */
+  filtroBusca = '';
+  filtroDataInicial = '';
+  filtroDataFinal = '';
+  filtroTransportadoraId: number | null = null;
+  filtroTransportadoraNome = '';
+  readonly gerandoReciboId = signal<number | null>(null);
+  readonly exportando = signal(false);
+
+  constructor() {
+    // Recarrega a timeline ao mudar modalidade/data ou quando janelas mudarem (hub/CRUD).
+    effect((onCleanup) => {
+      const data = this.dataSelecionadaIso();
+      const modalidade = this.modalidadeUi();
+      this.janelasRealtime.versao();
+      onCleanup(() => this.timelineSub?.unsubscribe());
+      untracked(() => {
+        if (!this.canVisualizar) return;
+        this.carregarTimeline(data, modalidade);
+      });
+    });
+  }
+
+  ngOnInit(): void {
+    if (!this.canVisualizar) return;
+
+    if (this.auth.needsEstacionamentoSelection()) {
+      const msg = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
+      this.erroList.set(msg);
+      this.toast.error(msg);
+      return;
+    }
+
+    if (this.isTransportadora && !this.isAdmin) {
+      this.filtroTransportadoraId = this.auth.resolveTransportadoraId();
+    }
+
+    this.aplicarDataSelecionadaNoFiltro(this.dataSelecionadaIso(), false);
+    this.onBuscar();
+    // Atualiza o destaque "agora" da linha do tempo a cada 30s.
+    this.relogio = setInterval(() => this.horaAtual.set(horaAtualHHmm()), 30_000);
+  }
+
+  ngOnDestroy(): void {
+    this.timelineSub?.unsubscribe();
+    this.destinacaoSub?.unsubscribe();
+    if (this.relogio) clearInterval(this.relogio);
+  }
+
+  onFiltroTransportadoraId(id: number | null): void {
+    this.filtroTransportadoraId = id && id > 0 ? id : null;
+    this.transportadoraFiltrada.set(this.filtroTransportadoraId != null);
+  }
+
+  /** Setas de dia anterior / próximo dia. */
+  mudarDia(n: number): void {
+    const d = parseIsoDateLocal(this.dataSelecionadaIso());
+    d.setDate(d.getDate() + n);
+    this.aplicarDia(toIsoDateLocal(d));
+  }
+
+  irParaHoje(): void {
+    this.aplicarDia(toIsoDateLocal(new Date()));
+  }
+
+  /** Campo de data: vazio não é aceito (a data é obrigatória no painel). */
+  onDataInput(iso: string): void {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return;
+    this.aplicarDia(iso);
+  }
+
+  private aplicarDia(iso: string): void {
+    if (iso === this.dataSelecionadaIso()) return;
+    this.filtroDataInicial = iso;
+    this.filtroDataFinal = iso;
+    // A linha do tempo recarrega pelo effect (data); aqui só lista e CIF/FOB.
+    this.dataSelecionadaIso.set(iso);
+    this.numeroPagina.set(1);
+    this.carregar();
+    this.carregarKpisDestinacao();
+  }
+
+  /** Buscar a partir da barra (no celular também recolhe os filtros). */
+  buscarPelaBarra(): void {
+    this.filtrosAbertos.set(false);
+    this.onBuscar();
+  }
+
+  onFiltroTransportadoraNome(nome: string): void {
+    this.filtroTransportadoraNome = nome || '';
+  }
+
+  selecionarModalidade(ui: AgendamentoModalidadeUi): void {
+    this.modalidadeUi.set(ui);
+  }
+
+  private aplicarDataSelecionadaNoFiltro(iso: string, buscar: boolean): void {
+    this.filtroDataInicial = iso;
+    this.filtroDataFinal = iso;
+    if (buscar) this.onBuscar();
+  }
+
+  private carregarTimeline(dataIso: string, ui: AgendamentoModalidadeUi): void {
+    const data = (dataIso || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      this.timelineSlots.set([]);
+      this.totaisDia.set(TOTAIS_VAZIOS);
+      this.erroTimeline.set(null);
+      this.loadingTimeline.set(false);
+      return;
+    }
+
+    // Transportadora autenticada: backend resolve destinacão; passa id da sessão.
+    // Filtro de transportadora do operador NÃO entra aqui — KPIs de vagas = janelas do pátio.
+    const transportadoraId =
+      this.isTransportadora && !this.isAdmin
+        ? this.auth.resolveTransportadoraId()
+        : null;
+
+    this.loadingTimeline.set(true);
+    this.erroTimeline.set(null);
+    this.timelineSub?.unsubscribe();
+
+    const modalidadeAtual = modalidadeApi(ui);
+    this.timelineSub = this.janelasApi
+      // Painel = grade completa do dia (horários lotados também aparecem).
+      .disponibilidade(data, modalidadeAtual, transportadoraId, { incluirEsgotados: true })
+      .pipe(finalize(() => this.loadingTimeline.set(false)))
+      .subscribe({
+        next: (atual) => {
+          const slots = mapTimelineSlots(atual.slots ?? []);
+          this.timelineSlots.set(slots);
+          const soma = (f: (s: AgendamentoTimelineSlot) => number) =>
+            slots.reduce((acc, s) => acc + f(s), 0);
+          this.totaisDia.set({
+            capacidade: atual.totalCapacidade ?? soma((s) => s.cadastrado),
+            ocupadas: atual.totalOcupadas ?? soma((s) => s.agendado + s.ocupado),
+            noPatio: atual.totalNoPatio ?? soma((s) => s.ocupado),
+            disponiveis: atual.totalDisponiveis ?? soma((s) => s.disponiveis),
+          });
+          this.erroTimeline.set(null);
+        },
+        error: (err: { message?: string } | unknown) => {
+          this.timelineSlots.set([]);
+          this.totaisDia.set(TOTAIS_VAZIOS);
+          const msg =
+            err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+              ? err.message
+              : 'Não foi possível carregar as janelas do dia.';
+          this.erroTimeline.set(msg);
+        },
+      });
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.totalCount() / this.tamanhoPagina()));
+  }
+
+  get intervaloLista(): { de: number; ate: number } {
+    const total = this.totalCount();
+    if (total === 0) return { de: 0, ate: 0 };
+    const de = (this.numeroPagina() - 1) * this.tamanhoPagina() + 1;
+    const ate = Math.min(this.numeroPagina() * this.tamanhoPagina(), total);
+    return { de, ate };
+  }
+
+  onBuscar(): void {
+    this.numeroPagina.set(1);
+    this.carregar();
+    // Ocupação das grades e KPIs de janelas acompanham a busca (novo/cancelamento/confirmação).
+    this.carregarTimeline(this.dataSelecionadaIso(), this.modalidadeUi());
+    this.carregarKpisDestinacao();
+  }
+
+  private carregarKpisDestinacao(): void {
+    if (!this.podeOperarPatio) {
+      this.kpiDestinacaoCifFob.set({ cif: 0, fob: 0 });
+      return;
+    }
+    const dataIso = this.dataSelecionadaIso();
+    const transportadoraId =
+      this.isTransportadora && !this.isAdmin
+        ? this.auth.resolveTransportadoraId()
+        : this.filtroTransportadoraId;
+
+    this.destinacaoSub?.unsubscribe();
+    this.destinacaoSub = this.vagasApi.listarReservas().subscribe({
+      next: (reservas) => {
+        this.kpiDestinacaoCifFob.set(
+          somarDestinacaoCifFob(reservas, {
+            dataIso,
+            transportadoraId,
+          })
+        );
+      },
+      error: () => this.kpiDestinacaoCifFob.set({ cif: 0, fob: 0 }),
+    });
+  }
+
+  exportarPdf(): void {
+    this.executarExportacao('pdf');
+  }
+
+  exportarExcel(): void {
+    this.executarExportacao('excel');
+  }
+
+  private executarExportacao(tipo: 'pdf' | 'excel'): void {
+    if (!this.canVisualizar || this.exportando()) return;
+    if (this.loadingTimeline() || this.loadingList()) {
+      this.toast.error('Aguarde o carregamento dos dados da tela antes de exportar.');
+      return;
+    }
+
+    const entrada = {
+      dataLabel: this.dataSelecionadaLabel(),
+      modalidadeLabel: this.modalidadeUi() === 'limpeza' ? 'Limpeza' : 'Estacionamento',
+      transportadoraNome: this.filtroTransportadoraNome.trim() || null,
+      busca: this.filtroBusca.trim() || null,
+      kpis: {
+        agendados: this.kpiAgendados(),
+        disponiveis: this.kpiDisponiveis(),
+        ocupados: this.kpiNoPatio(),
+        cif: this.kpiCifGeral(),
+        fob: this.kpiFobGeral(),
+      },
+      slots: this.timelineSlots(),
+      emitidoEm: new Date(),
+    };
+
+    this.exportando.set(true);
+    try {
+      if (tipo === 'pdf') {
+        exportarPainelAgendamentosPdf(entrada);
+        this.toast.success('Abra a impressão do navegador e salve como PDF.');
+      } else {
+        exportarPainelAgendamentosExcel(entrada);
+        this.toast.success('Excel gerado.');
+      }
+    } catch {
+      this.toast.error(
+        tipo === 'pdf' ? 'Não foi possível gerar o PDF.' : 'Não foi possível gerar o Excel.'
+      );
+    } finally {
+      this.exportando.set(false);
+    }
+  }
+
+  carregar(): void {
+    if (!this.canVisualizar) return;
+
+    if (this.auth.needsEstacionamentoSelection()) {
+      const msg = 'Selecione o estacionamento da sessão antes de consultar agendamentos.';
+      this.erroList.set(msg);
+      this.toast.error(msg);
+      this.items.set([]);
+      this.totalCount.set(0);
+      this.jaBuscou.set(true);
+      return;
+    }
+
+    this.loadingList.set(true);
+    this.erroList.set(null);
+    this.jaBuscou.set(true);
+
+    this.api
+      .buscar({
+        busca: this.filtroBusca.trim() || undefined,
+        dataInicial: this.filtroDataInicial || this.filtroDataFinal || undefined,
+        dataFinal: this.filtroDataFinal || this.filtroDataInicial || undefined,
+        transportadoraId: this.podeOperarPatio ? this.filtroTransportadoraId ?? undefined : undefined,
+        numeroPagina: this.numeroPagina(),
+        tamanhoPagina: this.tamanhoPagina(),
+      })
+      .subscribe({
+        next: (res) => {
+          this.items.set(res.items);
+          this.totalCount.set(res.totalCount);
+          this.loadingList.set(false);
+        },
+        error: (err: { message?: string } | unknown) => {
+          this.loadingList.set(false);
+          this.items.set([]);
+          this.totalCount.set(0);
+          const msg =
+            err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+              ? err.message
+              : 'Não foi possível carregar os agendamentos.';
+          this.erroList.set(msg);
+          this.toast.error(msg);
+        },
+      });
+  }
+
+  abrirDestinarVagas(): void {
+    if (!this.podeOperarPatio) return;
+    void this.router.navigateByUrl(DESTINACAO_ROUTE);
+  }
+
+  abrirNovo(): void {
+    if (!this.podeCriar) {
+      this.toast.error('Sem permissão para criar agendamento (agendamentos.gravar).');
+      return;
+    }
+    this.showForm.set(true);
+  }
+
+  fecharForm(): void {
+    this.showForm.set(false);
+  }
+
+  onNovoSalvo(): void {
+    this.showForm.set(false);
+    this.onBuscar();
+  }
+
+  podeConfirmarItem(item: AgendamentoSearchItem): boolean {
+    return this.podeConfirmarEntrada && this.isStatusAgendado(item);
+  }
+
+  podeCancelarItem(item: AgendamentoSearchItem): boolean {
+    return this.podeCancelar && this.isStatusAgendado(item);
+  }
+
+  temAcoes(item: AgendamentoSearchItem): boolean {
+    return this.podeConfirmarItem(item) || this.podeCancelarItem(item) || this.canVisualizar;
+  }
+
+  emitirRecibo(item: AgendamentoSearchItem): void {
+    if (!this.canVisualizar || !item?.id) return;
+    if (this.gerandoReciboId() === item.id) return;
+
+    const session = this.auth.getSessionEstacionamento();
+    const estId = this.auth.resolveEstacionamentoId();
+    const base = {
+      id: item.id,
+      placa: item.placaVeiculo,
+      dataHoraAgendada: item.dataHoraEntrada,
+      motoristaNome: item.nomeMotorista || '—',
+      motoristaCpf: item.cpfMotorista || '',
+      transportadoraNome: item.nomeTransportadora || null,
+      observacao: item.observacao || null,
+      estacionamentoNome:
+        session?.nome?.trim() ||
+        session?.razaoSocial?.trim() ||
+        'Estacionamento',
+      estacionamentoCnpj: session?.cnpj || null,
+      enderecoLinha1: null as string | null,
+      enderecoLinha2: null as string | null,
+    };
+
+    this.gerandoReciboId.set(item.id);
+    const loadEndereco$ =
+      estId && estId > 0
+        ? this.estacionamentoService.obterPorId(estId, session?.codExportacao).pipe(
+            map((det) => {
+              if (!det) return base;
+              const end = det.enderecos?.[0] as
+                | {
+                    logradouro?: string;
+                    numero?: string;
+                    bairro?: string;
+                    cidade?: string;
+                    estado?: string;
+                    uf?: string;
+                    cep?: string;
+                  }
+                | undefined;
+              const linha1 = end
+                ? [end.logradouro, end.numero].filter(Boolean).join(', ')
+                : '';
+              const linha2 = end
+                ? [end.bairro, end.cidade, end.estado || end.uf, end.cep]
+                    .filter(Boolean)
+                    .join(' - ')
+                : '';
+              return {
+                ...base,
+                estacionamentoNome:
+                  det.pessoa?.nomeFantasia?.trim() ||
+                  det.pessoa?.nomeRazaoSocial?.trim() ||
+                  det.descricao?.trim() ||
+                  base.estacionamentoNome,
+                estacionamentoCnpj: det.pessoa?.cnpj || base.estacionamentoCnpj,
+                enderecoLinha1: linha1 || null,
+                enderecoLinha2: linha2 || null,
+              };
+            }),
+            catchError(() => of(base))
+          )
+        : of(base);
+
+    loadEndereco$.pipe(finalize(() => this.gerandoReciboId.set(null))).subscribe({
+      next: (dados) => {
+        try {
+          baixarPdfReciboAgendamento(dados);
+          this.toast.success('Recibo gerado.');
+        } catch {
+          this.toast.error('Não foi possível gerar o recibo PDF.');
+        }
+      },
+      error: () => this.toast.error('Não foi possível gerar o recibo PDF.'),
+    });
+  }
+
+  confirmarEntrada(item: AgendamentoSearchItem): void {
+    if (!this.podeConfirmarItem(item)) return;
+    if (!item.id || item.id <= 0) {
+      this.toast.error('Agendamento sem id válido para confirmar a entrada.');
+      return;
+    }
+    const ref = this.dialog.open(CadastroConfirmDialogComponent, {
+      width: '420px',
+      maxWidth: '96vw',
+      autoFocus: 'dialog',
+      panelClass: 'cad-confirm-dialog-panel',
+      data: {
+        titulo: 'Confirmar entrada',
+        mensagem: `Confirmar entrada do veículo ${this.formatPlaca(item.placaVeiculo)} no pátio?`,
+        confirmLabel: 'Confirmar entrada',
+        confirmColor: 'primary',
+      } satisfies CadastroConfirmDialogData,
+    });
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+      this.api.confirmarEntrada(item.id).subscribe({
+        next: (res) => {
+          if (!res.success) {
+            if (!res.toastShown) {
+              this.toast.error(res.message || 'Não foi possível confirmar a entrada.');
+            }
+            this.onBuscar();
+            return;
+          }
+          this.toast.success(res.message || 'Entrada confirmada.');
+          this.onBuscar();
+        },
+        error: () => this.toast.error('Não foi possível confirmar a entrada.'),
+      });
+    });
+  }
+
+  cancelar(item: AgendamentoSearchItem): void {
+    if (!this.podeCancelarItem(item)) return;
+    if (!item.id || item.id <= 0) {
+      this.toast.error('Agendamento sem id válido para cancelar.');
+      return;
+    }
+    const ref = this.dialog.open(CadastroConfirmDialogComponent, {
+      width: '420px',
+      maxWidth: '96vw',
+      autoFocus: 'dialog',
+      panelClass: 'cad-confirm-dialog-panel',
+      data: {
+        titulo: 'Cancelar agendamento',
+        mensagem: `Cancelar o agendamento de ${this.formatPlaca(item.placaVeiculo)}?`,
+        confirmLabel: 'Cancelar agendamento',
+        confirmColor: 'warn',
+      } satisfies CadastroConfirmDialogData,
+    });
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+      this.api.cancelar(item.id).subscribe({
+        next: (res) => {
+          if (!res.success) {
+            if (!res.toastShown) {
+              this.toast.error(res.message || 'Não foi possível cancelar.');
+            }
+            this.onBuscar();
+            return;
+          }
+          this.toast.success(res.message || 'Agendamento cancelado.');
+          this.onBuscar();
+        },
+        error: () => this.toast.error('Não foi possível cancelar.'),
+      });
+    });
+  }
+
+  irParaPagina(p: number): void {
+    if (p < 1 || p > this.totalPaginas) return;
+    this.numeroPagina.set(p);
+    this.carregar();
+  }
+
+  statusLabel(value: AgendamentoSearchItem['status']): string {
+    return entradaSaidaStatusLabel(value) || '—';
+  }
+
+  formatPlaca(placa: string | null | undefined): string {
+    return formatPlacaDisplay(placa) || placa || '—';
+  }
+
+  formatCelularMotorista(raw: string | null | undefined): string {
+    const digits = String(raw ?? '').replace(/\D/g, '');
+    if (digits.length < 10) return '—';
+    return formatTelefone(digits);
+  }
+
+  formatDateTime(iso: string | null | undefined): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('pt-BR');
+  }
+
+  private isStatusAgendado(item: AgendamentoSearchItem): boolean {
+    return parseEntradaSaidaStatus(item.status) === EntradaSaidaStatus.Agendado;
+  }
+
+}

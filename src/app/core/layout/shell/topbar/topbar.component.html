@@ -1,0 +1,186 @@
+<header class="tb">
+  <!-- Celular: abre a gaveta do menu -->
+  <button
+    type="button"
+    class="tb__icon tb__only-mobile"
+    aria-label="Abrir menu"
+    aria-controls="gts-gaveta"
+    [attr.aria-expanded]="nav.gavetaAberta()"
+    (click)="nav.gavetaAberta.set(true)"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+  </button>
+
+  <!-- Pátio atual: um botão só, compacto; abre a escolha de pátio -->
+  @if (podeTrocarPatio() || patio()) {
+    <button
+      type="button"
+      class="tb__patio"
+      aria-haspopup="dialog"
+      [disabled]="!podeTrocarPatio()"
+      [attr.aria-label]="
+        patio()
+          ? 'Pátio atual: ' + patio()!.nome + '. Trocar de pátio'
+          : 'Nenhum pátio selecionado. Selecionar pátio'
+      "
+      (click)="trocarPatio.emit()"
+    >
+      <span class="tb__patio-ico" aria-hidden="true">
+        <span class="material-symbols-outlined">warehouse</span>
+      </span>
+      <span class="tb__patio-txt">
+        @if (patio(); as p) {
+          <span class="tb__patio-nome">{{ p.nome }}</span>
+          @if (p.cnpj) {
+            <span class="tb__patio-cnpj mono">{{ p.cnpj }}</span>
+          }
+        } @else {
+          <span class="tb__patio-nome">Selecionar pátio</span>
+          <span class="tb__patio-cnpj">Nenhum pátio na sessão</span>
+        }
+      </span>
+      @if (podeTrocarPatio()) {
+        <span class="material-symbols-outlined tb__patio-chev" aria-hidden="true">unfold_more</span>
+      }
+    </button>
+  }
+
+  <!-- Onde estou -->
+  @if (trilha().length) {
+    <nav class="tb__crumbs" aria-label="Você está em">
+      <ol>
+        @for (t of trilha(); track $index; let ultimo = $last) {
+          <li [attr.aria-current]="ultimo ? 'page' : null" [class.is-last]="ultimo">
+            {{ t }}
+            @if (!ultimo) {
+              <span class="material-symbols-outlined tb__sep" aria-hidden="true"
+                >chevron_right</span
+              >
+            }
+          </li>
+        }
+      </ol>
+    </nav>
+  }
+
+  <span class="tb__spacer"></span>
+
+  <!-- Buscar tela (Ctrl+K) -->
+  <button
+    type="button"
+    class="tb__search"
+    aria-keyshortcuts="Control+K"
+    (click)="abrirBusca.emit()"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">search</span>
+    <span class="tb__search-txt">Buscar</span>
+    <kbd>Ctrl K</kbd>
+  </button>
+
+  <!-- Tema: ícone só, com nome acessível -->
+  <button
+    type="button"
+    class="tb__icon tb__hide-xs"
+    [attr.aria-label]="claro() ? 'Mudar para tema escuro' : 'Mudar para tema claro'"
+    [matTooltip]="claro() ? 'Tema escuro' : 'Tema claro'"
+    (click)="alternarTema()"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">{{
+      claro() ? 'dark_mode' : 'light_mode'
+    }}</span>
+  </button>
+
+  <!-- Avisos (migrations/infra) — só Admin, como antes -->
+  @if (admin()) {
+    <span class="tb__bell tb__hide-xs">
+      <app-notification-bell />
+    </span>
+  }
+
+  <!-- Usuário: perfil de acesso, pátio, tema e sair -->
+  <button
+    type="button"
+    class="tb__user"
+    [attr.aria-label]="'Conta de ' + usuario()"
+    [cdkMenuTriggerFor]="userMenu"
+  >
+    <span class="tb__avatar" aria-hidden="true">{{ iniciais() }}</span>
+    <span class="tb__user-txt">
+      <span class="tb__user-nome">{{ usuario() }}</span>
+      <span class="tb__user-perfil">{{ perfil() }}</span>
+    </span>
+    <span class="material-symbols-outlined tb__user-chev" aria-hidden="true">expand_more</span>
+  </button>
+  <ng-template #userMenu>
+    <div class="tb-pop tb-pop--user" cdkMenu>
+      <div class="tb-pop__perfil">
+        <span class="tb__avatar tb__avatar--lg" aria-hidden="true">{{ iniciais() }}</span>
+        <span>
+          <strong>{{ usuario() }}</strong>
+          <small>{{ perfil() }}{{ patio() ? ' · ' + patio()!.nome : '' }}</small>
+        </span>
+      </div>
+      @if (podeTrocarPatio()) {
+        <button
+          cdkMenuItem
+          type="button"
+          class="tb-pop__item"
+          (cdkMenuItemTriggered)="trocarPatio.emit()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">warehouse</span>Trocar de pátio
+        </button>
+      }
+      @if (contextos().length > 1) {
+        <div class="tb-pop__sep" role="separator"></div>
+        <p class="tb-pop__label" id="tb-ctx-lbl">Acessar CNPJ</p>
+        <div cdkMenuGroup aria-labelledby="tb-ctx-lbl">
+          @for (c of contextos(); track c.key) {
+            <button
+              cdkMenuItemRadio
+              type="button"
+              class="tb-pop__item"
+              [cdkMenuItemChecked]="contextoAtual() === c.key"
+              (cdkMenuItemTriggered)="trocarContexto.emit(c.key)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">badge</span>{{ c.label }}
+              @if (contextoAtual() === c.key) {
+                <span class="material-symbols-outlined tb-pop__check" aria-hidden="true"
+                  >check</span
+                >
+              }
+            </button>
+          }
+        </div>
+      }
+      <div class="tb-pop__sep" role="separator"></div>
+      <p class="tb-pop__label" id="tb-tema-lbl">Tema</p>
+      <div cdkMenuGroup aria-labelledby="tb-tema-lbl">
+        @for (m of modos; track m.id) {
+          <button
+            cdkMenuItemRadio
+            type="button"
+            class="tb-pop__item"
+            [cdkMenuItemChecked]="modo() === m.id"
+            (cdkMenuItemTriggered)="definirTema(m.id)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ m.icon }}</span>{{
+              m.label
+            }}
+            @if (modo() === m.id) {
+              <span class="material-symbols-outlined tb-pop__check" aria-hidden="true">check</span>
+            }
+          </button>
+        }
+      </div>
+      <div class="tb-pop__sep" role="separator"></div>
+      <button
+        cdkMenuItem
+        type="button"
+        class="tb-pop__item tb-pop__item--danger"
+        (cdkMenuItemTriggered)="sair.emit()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">logout</span>Sair
+      </button>
+    </div>
+  </ng-template>
+</header>

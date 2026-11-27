@@ -1,0 +1,142 @@
+@if (aberto()) {
+  <div class="avm-overlay" role="presentation">
+    <div
+      class="avm-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="avm-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="avm-modal__header">
+        <div>
+          <h2 id="avm-title">Veículos e motoristas</h2>
+          <p class="avm-modal__sub">
+            Adicione quantas placas precisar e escolha o motorista de cada uma.
+          </p>
+        </div>
+        <button type="button" class="avm-modal__close" aria-label="Fechar" (click)="onVoltar()">
+          &times;
+        </button>
+      </header>
+
+      <div class="avm-modal__body">
+        <div class="avm-toolbar">
+          <button
+            type="button"
+            class="btn btn-primary avm-toolbar__add"
+            (click)="abrirBuscaPlaca()"
+            [disabled]="!transportadoraId() || resolvendoPlacas()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            Adicionar placas
+          </button>
+          <span class="avm-toolbar__count">
+            @if (resolvendoPlacas()) {
+              Resolvendo vínculos…
+            } @else {
+              {{ rascunho().length }}
+              {{ rascunho().length === 1 ? 'veículo' : 'veículos' }}
+              @if (pendentesMotorista() > 0) {
+                · {{ pendentesMotorista() }} sem motorista
+              }
+            }
+          </span>
+        </div>
+
+        @if (!rascunho().length) {
+          <div class="avm-empty" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
+            <p>Nenhuma placa ainda. Clique em <strong>Adicionar placas</strong> para começar.</p>
+          </div>
+        } @else {
+          <ul class="avm-list" aria-label="Veículos do agendamento">
+            @for (p of rascunho(); track p.id) {
+              <li class="avm-card" [class.avm-card--ok]="!!p.motoristaId" [class.avm-card--pendente]="!p.motoristaId">
+                <div class="avm-card__placa">
+                  <strong>{{ formatPlaca(p.placa) }}</strong>
+                  @if (p.marcaModelo) {
+                    <span>{{ p.marcaModelo }}</span>
+                  }
+                  <button
+                    type="button"
+                    class="avm-card__remove"
+                    (click)="removerPlaca(p.id)"
+                    [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                  </button>
+                </div>
+
+                <label class="avm-motorista">
+                  <span class="avm-motorista__label">Motorista <span class="required">*</span></span>
+                  <div
+                    class="avm-motorista__lookup"
+                    [class.avm-motorista__lookup--locked]="!!(p.motoristaBloqueado && p.motoristaId)"
+                  >
+                    <app-entity-lookup-field
+                      [valueLabel]="labelMotorista(p)"
+                      [placeholder]="
+                        p.motoristaBloqueado
+                          ? 'Sem motorista vinculado'
+                          : 'Buscar motorista da transportadora…'
+                      "
+                      [searchDisabled]="!!(p.motoristaBloqueado && p.motoristaId)"
+                      [searchIcon]="p.motoristaBloqueado && p.motoristaId ? 'lock' : 'search'"
+                      [ariaLabel]="'Buscar motorista da placa ' + formatPlaca(p.placa)"
+                      (openSearch)="abrirBuscaMotorista(p.id)"
+                      (clear)="limparMotorista(p.id)"
+                    />
+                  </div>
+                  @if (p.motoristaBloqueado && p.motoristaId) {
+                    <small class="avm-motorista__hint">
+                      Vinculado ao veículo. Use × para escolher outro motorista.
+                    </small>
+                  } @else if (!p.motoristaId) {
+                    <small class="avm-motorista__hint avm-motorista__hint--warn">
+                      Selecione o motorista que irá nesta placa.
+                    </small>
+                  }
+                </label>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <footer class="avm-modal__footer">
+        <button type="button" class="btn btn-secondary" (click)="onVoltar()">Voltar</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="onConfirmar()"
+          [disabled]="resolvendoPlacas() || !rascunho().length || pendentesMotorista() > 0"
+        >
+          Confirmar frota
+          @if (rascunho().length) {
+            ({{ rascunho().length }})
+          }
+        </button>
+      </footer>
+    </div>
+  </div>
+}
+
+@if (aberto() || buscaPlacaAberta()) {
+  <app-modal-busca-veiculo
+    [aberto]="buscaPlacaAberta()"
+    [transportadoraId]="transportadoraId() ?? undefined"
+    [selecaoMultipla]="true"
+    [idsJaSelecionados]="idsJaSelecionados()"
+    (fechar)="fecharBuscaPlaca()"
+    (itensSelecionados)="onPlacasBuscadas($event)"
+  />
+}
+
+@if (aberto() || buscaMotoristaAberta()) {
+  <app-modal-busca-motorista
+    [aberto]="buscaMotoristaAberta()"
+    [transportadoraId]="transportadoraId() ?? undefined"
+    (fechar)="fecharBuscaMotorista()"
+    (itemSelecionado)="onMotoristaSelecionado($event)"
+  />
+}

@@ -1,0 +1,386 @@
+@use '../../../../shared/styles/relatorio-operacao-shell';
+
+/* ── Layout compacto (somente esta tela) ─────────────────────────────── */
+
+.rel-page--mov {
+  gap: 12px;
+}
+
+.rel-page--mov .cfg-page-head {
+  gap: 12px;
+}
+
+.rel-page--mov .cfg-page-head__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.rel-page--mov .cfg-page-head__icon .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.rel-page--mov .cfg-page-head__sub {
+  margin-top: 1px;
+  font-size: 0.8125rem;
+}
+
+/* Barra principal: período + placa + transportadora + ações */
+.rel-toolbar--compact {
+  gap: 10px;
+}
+
+.rel-filters__primary {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.35fr)
+    minmax(120px, 0.7fr)
+    minmax(160px, 1fr)
+    auto;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.rel-toolbar--compact .rel-field {
+  justify-content: flex-end;
+}
+
+.rel-toolbar--compact .rel-field--periodo {
+  grid-column: auto;
+  min-width: 0;
+  position: relative;
+}
+
+.rel-toolbar--compact .rel-field__control,
+.rel-toolbar--compact .rel-field input,
+.rel-toolbar--compact .rel-field select {
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 0.8125rem;
+}
+
+.rel-toolbar--compact .rel-field__label {
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+/*
+ * O botão “x” do período não pode competir na linha (flex ao lado do trigger).
+ * Overlay no próprio campo para manter Período/Placa/Transportadora alinhados.
+ */
+:host ::ng-deep .rel-toolbar--compact .rel-field--periodo {
+  app-periodo-data-picker {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .periodo-data-picker {
+    display: block;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    gap: 0;
+  }
+
+  .periodo-data-picker__control,
+  .rec-data-picker {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rec-data-picker__trigger {
+    min-height: 36px;
+    height: 36px;
+    border-radius: 9px;
+    box-sizing: border-box;
+    /* espaço p/ ícone do calendário + botão limpar sobreposto */
+    padding-right: 58px;
+  }
+
+  .periodo-data-picker__clear {
+    position: absolute;
+    top: 50%;
+    right: 30px;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    border-radius: 7px;
+    z-index: 2;
+  }
+
+  .periodo-data-picker__clear .material-symbols-outlined {
+    font-size: 16px;
+  }
+
+  .rec-data-picker__panel {
+    z-index: 20;
+  }
+}
+
+.rel-filters__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 0;
+  justify-content: flex-end;
+}
+
+.rel-toolbar--compact .btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 0.75rem;
+}
+
+.rel-filters__divider {
+  display: inline-block;
+  width: 1px;
+  height: 22px;
+  margin: 0 2px;
+  background: color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  flex: 0 0 auto;
+}
+
+.rel-filters__mais {
+  position: relative;
+}
+
+.rel-filters__mais--ativo {
+  border-color: color-mix(in srgb, var(--primary, #3b82f6) 55%, var(--border-subtle)) !important;
+  color: var(--primary, #3b82f6);
+}
+
+.rel-filters__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--primary, #3b82f6);
+  color: #fff;
+}
+
+/* Filtros avançados expansíveis */
+.rel-filters__advanced {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  background: color-mix(in srgb, var(--surface-2, var(--surface)) 55%, transparent);
+}
+
+.rel-filters__advanced .rel-field--wide {
+  grid-column: span 2;
+}
+
+/* KPIs mais baixos */
+.rel-kpi--compact {
+  gap: 6px;
+}
+
+.rel-kpi--compact .rel-kpi__chip {
+  min-width: 84px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  gap: 0;
+}
+
+.rel-kpi--compact .rel-kpi__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rel-kpi--compact .rel-kpi__value {
+  font-size: 0.9375rem;
+  line-height: 1.2;
+}
+
+/* Tabela densa — mais linhas visíveis */
+.rel-results-card--dense {
+  border-radius: 10px;
+}
+
+.rel-results-card--dense .data-table {
+  min-width: 860px;
+  font-size: 0.8125rem;
+}
+
+.rel-results-card--dense .data-table th,
+.rel-results-card--dense .data-table td {
+  padding: 7px 10px;
+}
+
+.rel-results-card--dense .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.rel-results-card--dense .rel-results-card__scroll {
+  max-height: min(62vh, 720px);
+  overflow: auto;
+}
+
+.rel-dt {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78125rem;
+  color: color-mix(in srgb, var(--text) 92%, var(--muted, #92929f));
+}
+
+.rel-perm {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rel-placa {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.rel-valor {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rel-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.rel-pill--entrada {
+  background: color-mix(in srgb, var(--success, #36c98f) 16%, transparent);
+  color: var(--success, #36c98f);
+  border-color: color-mix(in srgb, var(--success, #36c98f) 40%, transparent);
+}
+
+.rel-pill--saida {
+  background: color-mix(in srgb, var(--text-muted, #92929f) 14%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text-muted, #92929f) 32%, transparent);
+}
+
+.rel-pill--suspenso {
+  background: color-mix(in srgb, var(--warning, #e8a23a) 16%, transparent);
+  color: var(--warning, #e8a23a);
+  border-color: color-mix(in srgb, var(--warning, #e8a23a) 40%, transparent);
+}
+
+.rel-pill--agendado {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 16%, transparent);
+  color: var(--primary, #3d8bff);
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 40%, transparent);
+}
+
+.rel-pill--cancelado {
+  background: color-mix(in srgb, var(--danger, #f06468) 12%, transparent);
+  color: var(--danger, #f06468);
+  border-color: color-mix(in srgb, var(--danger, #f06468) 36%, transparent);
+}
+
+.rel-pill--sim {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 14%, transparent);
+  color: var(--primary, #3d8bff);
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 36%, transparent);
+}
+
+.rel-pill--nao {
+  background: color-mix(in srgb, var(--text-muted, #92929f) 10%, transparent);
+  color: var(--text-muted, #92929f);
+  border-color: color-mix(in srgb, var(--text-muted, #92929f) 26%, transparent);
+}
+
+.rel-pill--excedente {
+  background: color-mix(in srgb, var(--warning, #e8a23a) 16%, transparent);
+  color: var(--warning, #e8a23a);
+  border-color: color-mix(in srgb, var(--warning, #e8a23a) 42%, transparent);
+}
+
+.rel-row--excedente td:first-child {
+  box-shadow: inset 3px 0 0 var(--warning, #e8a23a);
+}
+
+.rel-page--mov .rel-empty,
+.rel-page--mov .rel-loading {
+  padding: 20px 10px;
+}
+
+/* ── Responsividade ──────────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .rel-filters__primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rel-filters__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .rel-filters__advanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rel-filters__advanced .rel-field--wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .rel-filters__primary {
+    grid-template-columns: 1fr;
+  }
+
+  .rel-filters__actions {
+    width: 100%;
+  }
+
+  .rel-filters__divider {
+    display: none;
+  }
+
+  .rel-toolbar--compact .btn {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  .rel-filters__advanced {
+    grid-template-columns: 1fr;
+  }
+
+  .rel-filters__advanced .rel-field--wide {
+    grid-column: span 1;
+  }
+
+  .rel-results-card--dense .rel-results-card__scroll {
+    max-height: min(55vh, 560px);
+  }
+}

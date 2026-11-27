@@ -1,0 +1,301 @@
+<section class="painel" aria-labelledby="painel-title" [attr.aria-busy]="carregando()">
+  <!-- ═══ Barra superior ══════════════════════════════════════════════ -->
+  <header class="painel__bar">
+    <div class="painel__title">
+      <span class="ico-chip" data-tone="primary" aria-hidden="true">
+        <span class="material-symbols-outlined">monitoring</span>
+      </span>
+      <div>
+        <h2 id="painel-title" class="painel__h">Disponibilidade do dia</h2>
+        <p class="painel__meta">
+          <span class="painel__date">{{ data() | date: 'EEEE, dd/MM/yyyy' }}</span>
+          · {{ destinacoesAtivas() }}
+          {{ destinacoesAtivas() === 1 ? 'destinação ativa' : 'destinações ativas' }} ·
+          {{ vagasDiaDestinadas() }} vagas/dia destinadas
+        </p>
+      </div>
+    </div>
+
+    <div class="painel__actions">
+      <div class="seg seg--sm" role="radiogroup" aria-label="Modalidade exibida">
+        @for (m of opcoes; track m.id) {
+          <button
+            type="button"
+            role="radio"
+            class="seg__item"
+            [class.is-active]="visao() === m.id"
+            [attr.aria-checked]="visao() === m.id"
+            (click)="visao.set(m.id)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ m.icon }}</span>{{
+              m.label
+            }}
+          </button>
+        }
+      </div>
+
+      <div class="date-stepper">
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Dia anterior"
+          (click)="mudarDia.emit(-1)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+        </button>
+        <input
+          type="date"
+          class="input input--date"
+          aria-label="Data exibida"
+          [ngModel]="data()"
+          (ngModelChange)="onData($event)"
+        />
+        <button type="button" class="icon-btn" aria-label="Próximo dia" (click)="mudarDia.emit(1)">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn--sm btn-ghost"
+        [disabled]="ehHoje()"
+        (click)="irParaHoje.emit()"
+      >
+        Hoje
+      </button>
+      <button
+        type="button"
+        class="icon-btn"
+        aria-label="Atualizar disponibilidade"
+        title="Atualizar"
+        (click)="atualizar.emit()"
+      >
+        <span
+          class="material-symbols-outlined"
+          aria-hidden="true"
+          [class.is-spinning]="carregando()"
+          >refresh</span
+        >
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ Indicadores ═════════════════════════════════════════════════ -->
+  <!-- GET /Agendamento/vagas/disponibilidade?data= (dia e dia anterior) -->
+  <dl class="tiles">
+    <!-- Capacidade -->
+    <div class="tile" data-tone="neutral">
+      <dt class="tile__label">
+        <span class="ico-chip" data-tone="neutral" aria-hidden="true">
+          <span class="material-symbols-outlined">garage</span>
+        </span>
+        Capacidade
+      </dt>
+      @if (atual().capacidade; as cap) {
+        <dd class="tile__value">{{ cap | number }}</dd>
+        <dd class="tile__hint">vagas no dia</dd>
+      } @else {
+        <dd class="tile__value">—</dd>
+        <dd class="tile__hint">sem controle de capacidade</dd>
+      }
+    </div>
+
+    <!-- Destinadas -->
+    <div class="tile" data-tone="primary">
+      <dt class="tile__label">
+        <span class="ico-chip" data-tone="primary" aria-hidden="true">
+          <span class="material-symbols-outlined">assignment_turned_in</span>
+        </span>
+        Destinadas
+      </dt>
+      <dd class="tile__value">
+        {{ atual().destinadas | number }}
+        @if (delta(); as d) {
+          <span
+            class="delta"
+            [attr.aria-label]="
+              (d.valor > 0 ? 'mais ' : d.valor < 0 ? 'menos ' : 'igual a ') +
+              (d.valor < 0 ? -d.valor : d.valor) +
+              ' em relação a ontem'
+            "
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ d.icone }}</span>{{
+              d.valor < 0 ? -d.valor : d.valor
+            }}
+            <span class="delta__ref">vs. ontem</span>
+          </span>
+        }
+      </dd>
+      <dd class="tile__hint">
+        {{ semControle() ? 'vagas liberadas no dia' : ocupacao() + '% da capacidade' }}
+      </dd>
+    </div>
+
+    <!-- Disponíveis -->
+    @if (semControle()) {
+      <div class="tile tile--wide" data-tone="neutral">
+        <dt class="tile__label">
+          <span class="ico-chip" data-tone="neutral" aria-hidden="true">
+            <span class="material-symbols-outlined">event_available</span>
+          </span>
+          Disponíveis
+        </dt>
+        <dd class="tile__value">—</dd>
+        <dd class="tile__hint">
+          Configure a capacidade no cadastro do estacionamento para acompanhar a ocupação.
+        </dd>
+      </div>
+    } @else {
+      <div class="tile tile--wide" [attr.data-tone]="nivel()">
+        <dt class="tile__label">
+          <span class="ico-chip" [attr.data-tone]="nivel()" aria-hidden="true">
+            <span class="material-symbols-outlined">
+              {{ nivel() === 'ok' ? 'event_available' : nivel() === 'warn' ? 'warning' : 'block' }}
+            </span>
+          </span>
+          Disponíveis
+          <span class="pill" [attr.data-tone]="nivel()">{{ nivelLabel() }}</span>
+        </dt>
+        <dd class="tile__value">{{ livres() | number }}</dd>
+        <dd class="tile__meter">
+          <div
+            class="meter"
+            role="meter"
+            aria-label="Ocupação do dia"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="atual().capacidade"
+            [attr.aria-valuenow]="atual().destinadas"
+            [attr.aria-valuetext]="ocupacao() + '% destinado, ' + nivelLabel()"
+            [attr.data-tone]="nivel()"
+          >
+            <span class="meter__fill" [style.width.%]="ocupacao()"></span>
+            <span class="meter__tick" style="left: 70%" aria-hidden="true"></span>
+            <span class="meter__tick" style="left: 90%" aria-hidden="true"></span>
+          </div>
+          <span class="tile__hint">
+            <strong>{{ ocupacao() }}%</strong> destinado · {{ livres() | number }} de
+            {{ atual().capacidade | number }} livres
+          </span>
+        </dd>
+      </div>
+    }
+
+    <!-- Outra modalidade -->
+    <div class="tile tile--aside" [attr.data-tone]="outra().nivel">
+      <dt class="tile__label">
+        <span class="ico-chip" [attr.data-tone]="outra().nivel" aria-hidden="true">
+          <span class="material-symbols-outlined">{{ outra().icon }}</span>
+        </span>
+        {{ outra().label }}
+      </dt>
+      @if (outra().capacidade == null) {
+        <dd class="tile__value tile__value--sm">—</dd>
+        <dd class="tile__hint">sem controle · {{ outra().destinadas }} destinadas</dd>
+      } @else {
+        <dd class="tile__value tile__value--sm">
+          <span
+            >{{ outra().livres | number
+            }}<span class="tile__of">/{{ outra().capacidade | number }}</span></span
+          >
+        </dd>
+        <dd class="tile__meter">
+          <div
+            class="meter meter--thin"
+            role="meter"
+            [attr.aria-label]="'Ocupação de ' + outra().label"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="outra().capacidade"
+            [attr.aria-valuenow]="outra().destinadas"
+            [attr.aria-valuetext]="outra().pct + '% destinado'"
+            [attr.data-tone]="outra().nivel"
+          >
+            <span class="meter__fill" [style.width.%]="outra().pct"></span>
+          </div>
+          <span class="tile__hint">disponíveis · {{ outra().destinadas }} destinadas</span>
+        </dd>
+      }
+    </div>
+  </dl>
+
+  <!-- ═══ Destinado por horário ═══════════════════════════════════════ -->
+  <!-- Janelas do dia (GET /JanelaAgendamento/disponibilidade) × reservas ativas que cobrem o dia -->
+  <div class="horas">
+    <div class="horas__head">
+      <h3 class="horas__title">Destinado por horário</h3>
+      <ul class="legend" aria-label="Legenda">
+        <li><span class="legend__key" data-tone="ok"></span>Com folga</li>
+        <li><span class="legend__key" data-tone="warn"></span>Atenção ≥ 70%</li>
+        <li><span class="legend__key" data-tone="danger"></span>Lotando ≥ 90%</li>
+      </ul>
+      <p class="horas__readout" aria-live="polite">
+        @if (foco(); as c) {
+          <span class="legend__key" [attr.data-tone]="c.nivel" aria-hidden="true"></span>
+          <strong>{{ c.inicio }}–{{ c.fim }}</strong>
+          <span
+            >{{ c.destinadas }} de {{ c.capacidade }} destinadas · {{ c.pct }}% ·
+            {{ c.nivelLabel }}</span
+          >
+        } @else if (resumoHorarios().atencao || resumoHorarios().lotando) {
+          <span class="material-symbols-outlined tone-warn" aria-hidden="true">priority_high</span>
+          <strong>
+            @if (resumoHorarios().lotando) {
+              {{ resumoHorarios().lotando }} lotando
+            }
+            @if (resumoHorarios().lotando && resumoHorarios().atencao) {
+              ·
+            }
+            @if (resumoHorarios().atencao) {
+              {{ resumoHorarios().atencao }} em atenção
+            }
+          </strong>
+        } @else {
+          <span class="muted">Passe o mouse num horário para ver o detalhe.</span>
+        }
+      </p>
+    </div>
+
+    @if (colunas().length) {
+      <ol class="cols" aria-label="Percentual destinado por janela de horário">
+        @for (c of colunas(); track c.inicio) {
+          <li
+            class="col"
+            tabindex="0"
+            [class.is-now]="c.agora"
+            [attr.data-tone]="c.nivel"
+            [attr.aria-label]="
+              c.inicio +
+              ' a ' +
+              c.fim +
+              ': ' +
+              c.destinadas +
+              ' de ' +
+              c.capacidade +
+              ' destinadas, ' +
+              c.pct +
+              '%, ' +
+              c.nivelLabel +
+              (c.agora ? ', horário atual' : '')
+            "
+            (mouseenter)="focoIdx.set($index)"
+            (mouseleave)="focoIdx.set(null)"
+            (focus)="focoIdx.set($index)"
+            (blur)="focoIdx.set(null)"
+          >
+            <span class="col__plot" aria-hidden="true">
+              @if (c.pico) {
+                <span class="col__label" [style.bottom.%]="c.pct">{{ c.pct }}%</span>
+              }
+              <span class="col__fill" [style.height.%]="c.pct"></span>
+            </span>
+            <span class="col__hour" aria-hidden="true">{{ c.hora }}</span>
+          </li>
+        }
+      </ol>
+    } @else {
+      <p class="horas__empty">
+        <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
+        Nenhuma janela de horário neste dia.
+      </p>
+    }
+  </div>
+</section>

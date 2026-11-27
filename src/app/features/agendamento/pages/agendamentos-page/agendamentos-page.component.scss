@@ -1,0 +1,104 @@
+// Painel do pátio — lista "Veículos agendados" (padrão trn-* do cadastro).
+// Cabeçalho, barra, indicadores e linha do tempo ficam em painel-patio.scss.
+@use '../../../cadastro/styles/cadastro-est-shared' as *;
+@use '../../../cadastro/styles/cadastro-dash-list' as *;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+@import '../../../cadastro/pages/cadastro-transportadora-page/cadastro-transportadora-page.component.scss';
+
+.ag-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 16%, transparent);
+  color: var(--primary, #1d4ed8);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Pagador terceiro do agendamento (a vaga segue da transportadora) */
+.ag-pagador-pill {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--primary, #3d8bff) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #3d8bff) 12%, transparent);
+  color: var(--primary, #3d8bff);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.trn-table__acoes,
+.trn-act-btns {
+  overflow: visible;
+}
+
+.trn-act-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+.ag-acoes-vazio {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+.ag-list-card {
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: 14px;
+  background: var(--surface, var(--card-bg));
+  color: var(--text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.ag-list-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+  padding: 0.85rem 1rem 0;
+
+  h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: var(--text);
+  }
+}
+
+/* Celular/tablet: tabela densa rola na horizontal; coluna de ações fixa à direita. */
+@media (max-width: 768px) {
+  .trn-list-table-card,
+  .trn-list-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .trn-table {
+    min-width: 720px;
+  }
+
+  .trn-table__acoes {
+    position: sticky;
+    right: 0;
+    background: inherit;
+    z-index: 1;
+  }
+
+  .trn-act-btns {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+}

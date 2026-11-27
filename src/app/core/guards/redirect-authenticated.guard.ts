@@ -4,16 +4,21 @@ import { AuthService } from '../services/auth.service';
 
 /**
  * Guard para a rota raiz (path: '').
- * Se o usuário estiver autenticado, redireciona para a primeira rota autorizada.
- * Caso contrário, permite a ativação (ex.: exibir login).
+ * Se o usuário estiver autenticado com sessão válida, redireciona para a primeira rota autorizada.
+ * Token expirado → limpa sessão e permanece no login.
  */
 export const redirectAuthenticatedToAppGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  if (auth.isLoggedIn()) {
-    return router.createUrlTree([auth.getDefaultAuthorizedRoute()]);
+  if (!auth.isLoggedIn()) {
+    return true;
   }
 
-  return true;
+  if (!auth.hasValidSession()) {
+    auth.clearLocalSessionForLogin();
+    return true;
+  }
+
+  return router.createUrlTree([auth.getDefaultAuthorizedRoute()]);
 };

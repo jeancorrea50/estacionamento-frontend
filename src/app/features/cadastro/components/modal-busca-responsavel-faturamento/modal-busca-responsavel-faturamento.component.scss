@@ -1,0 +1,78 @@
+.rfat-busca {
+  min-width: min(100vw - 32px, 520px);
+  color: var(--text, #e2e8f0);
+}
+
+.rfat-busca__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 16px 0;
+}
+
+.rfat-busca__title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.rfat-busca__close {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.rfat-busca__body {
+  padding: 12px 16px !important;
+  max-height: min(60vh, 420px);
+}
+
+.rfat-busca__filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rfat-busca__filter .input-control {
+  flex: 1 1 auto;
+}
+
+.rfat-busca__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rfat-busca__item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rfat-busca__item:hover {
+  border-color: var(--primary, #4d7cfe);
+}
+
+.rfat-busca__item-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.rfat-busca__item-meta {
+  font-size: 0.8125rem;
+  color: var(--muted, #94a3b8);
+}

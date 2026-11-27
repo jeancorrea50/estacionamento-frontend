@@ -1,0 +1,540 @@
+.vaga-reserva-panel {
+  margin: 0;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vaga-reserva-panel:not(.vaga-reserva-panel--embedded) {
+  margin: 1rem 0 1.25rem;
+  padding: 0.95rem 1rem 1.1rem;
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: 12px;
+  background: var(--surface, var(--card-bg));
+}
+
+.vaga-reserva-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vaga-reserva-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vaga-reserva-panel__sub {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.vaga-reserva-panel__top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.vaga-reserva-panel__filtro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: color-mix(in srgb, var(--surface-2, var(--card-bg)) 70%, transparent);
+}
+
+.vaga-reserva-panel__filtro-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.vaga-reserva-panel__filtro-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.vaga-reserva-panel__filtro-dia {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.vaga-reserva-panel__filtro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.vaga-reserva-panel__filtro-picker {
+  flex: 1 1 11rem;
+  min-width: min(180px, 100%);
+  max-width: 14rem;
+}
+
+.vaga-reserva-panel__msg {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.vaga-reserva-panel__msg--warn {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--warning, #e8a23a) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--warning, #e8a23a) 10%, transparent);
+  color: var(--text);
+}
+
+.vaga-reserva-panel__msg--empty {
+  text-align: center;
+  padding: 0.85rem 0.5rem;
+}
+
+.vaga-reserva-panel__kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.vaga-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: var(--surface-2, var(--card-bg));
+}
+
+.vaga-kpi--est {
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 28%, var(--border-subtle));
+}
+
+.vaga-kpi--limp {
+  border-color: color-mix(in srgb, var(--success, #36c98f) 28%, var(--border-subtle));
+}
+
+.vaga-kpi__top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vaga-kpi__icon {
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.vaga-kpi--est .vaga-kpi__icon {
+  color: var(--primary, #3d8bff);
+}
+
+.vaga-kpi--limp .vaga-kpi__icon {
+  color: var(--success, #36c98f);
+}
+
+.vaga-kpi__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.vaga-kpi__value {
+  font-size: 1.25rem;
+  font-weight: 750;
+  line-height: 1.15;
+  color: var(--text);
+
+  small {
+    font-size: 0.8rem;
+    font-weight: 550;
+    color: var(--muted);
+  }
+}
+
+.vaga-kpi__bar {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+  overflow: hidden;
+  margin-top: 0.1rem;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    min-width: 0;
+  }
+}
+
+.vaga-kpi--est .vaga-kpi__bar span {
+  background: var(--primary, #3d8bff);
+}
+
+.vaga-kpi--limp .vaga-kpi__bar span {
+  background: var(--success, #36c98f);
+}
+
+.vaga-kpi__hint {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.vaga-reserva-panel__form {
+  padding: 0.75rem 0.8rem 0.8rem;
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-2, var(--card-bg)) 55%, transparent);
+}
+
+.vaga-reserva-panel__form-head {
+  margin-bottom: 0.55rem;
+
+  h3 {
+    margin: 0;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+}
+
+.vaga-reserva-panel__form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(7.5rem, 0.7fr) minmax(0, 1.1fr) minmax(0, 1.6fr);
+  gap: 0.55rem 0.65rem;
+  align-items: start;
+}
+
+.vaga-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+
+  > span {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+
+  .input-control {
+    width: 100%;
+    min-height: 2.35rem;
+  }
+}
+
+.vaga-field--transportadora {
+  grid-column: 1 / 4;
+}
+
+.vaga-field--check {
+  grid-column: 4;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  margin-top: 1.05rem;
+
+  input {
+    width: 0.95rem;
+    height: 0.95rem;
+    accent-color: var(--primary, #2563eb);
+  }
+
+  span {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+.vaga-field--qtd {
+  grid-column: 2;
+}
+
+.vaga-field--vigencia {
+  grid-column: 3 / 5;
+}
+
+.vaga-field--periodo {
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+}
+
+.vaga-field--recorrencia {
+  grid-column: 1 / 3;
+}
+
+.vaga-field--periodo-dia {
+  grid-column: 3 / 5;
+}
+
+.vaga-field__hint {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.vaga-reserva-panel__form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.7rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+}
+
+.vaga-reserva-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.vaga-reserva-panel__list-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: color-mix(in srgb, var(--surface-2, var(--card-bg)) 60%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.vaga-reserva-panel__list-toggle:hover {
+  border-color: color-mix(in srgb, var(--primary, #3d8bff) 35%, var(--border-subtle));
+}
+
+.vaga-reserva-panel__list-toggle-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+
+  strong {
+    font-size: 0.84rem;
+    font-weight: 700;
+  }
+}
+
+.vaga-reserva-panel__list-chevron {
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.vaga-reserva-panel__list-toggle-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.vaga-reserva-panel__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.2rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary, #3d8bff);
+  background: color-mix(in srgb, var(--primary, #3d8bff) 14%, transparent);
+}
+
+.vaga-reserva-panel__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: 10px;
+  background: var(--surface, var(--card-bg));
+  max-height: min(28vh, 240px);
+  overflow-y: auto;
+}
+
+.vaga-reserva-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+
+  th,
+  td {
+    padding: 0.45rem 0.6rem;
+    text-align: left;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+    vertical-align: middle;
+    font-size: 0.78rem;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface-2, var(--card-bg));
+    color: var(--muted);
+    font-weight: 650;
+    white-space: nowrap;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td {
+    background: color-mix(in srgb, var(--primary, #3d8bff) 5%, transparent);
+  }
+}
+
+.vaga-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.vaga-status--on {
+  color: var(--success, #36c98f);
+  background: color-mix(in srgb, var(--success, #36c98f) 16%, transparent);
+}
+
+.vaga-status--off {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 16%, transparent);
+}
+
+.is-inactive td {
+  color: var(--muted);
+}
+
+.vaga-reserva-panel__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.vaga-reserva-panel__btn .material-symbols-outlined {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.vaga-reserva-panel__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vaga-reserva-panel__btn--sm {
+  min-height: 2rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.vaga-reserva-panel__btn--primary {
+  min-width: 9.5rem;
+  background: var(--primary, #2563eb);
+  border-color: var(--primary, #2563eb);
+  color: var(--on-primary, #fff);
+}
+
+.vaga-reserva-panel__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.vaga-reserva-panel__btn--ghost {
+  background: transparent;
+  border-color: var(--border-subtle, var(--border));
+  color: var(--text);
+}
+
+.vaga-reserva-panel__btn--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary, #3d8bff) 8%, transparent);
+}
+
+@media (max-width: 900px) {
+  .vaga-reserva-panel__form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vaga-field--transportadora,
+  .vaga-field--check,
+  .vaga-field--qtd,
+  .vaga-field--vigencia,
+  .vaga-field--recorrencia,
+  .vaga-field--periodo-dia {
+    grid-column: auto;
+  }
+
+  .vaga-field--transportadora {
+    grid-column: 1 / -1;
+  }
+
+  .vaga-field--check {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  .vaga-field--vigencia,
+  .vaga-field--recorrencia {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .vaga-reserva-panel__kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .vaga-reserva-panel__form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vaga-field--periodo-dia {
+    grid-column: 1 / -1;
+  }
+}

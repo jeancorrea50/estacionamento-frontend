@@ -1,0 +1,105 @@
+<section class="acordos-page" aria-labelledby="acordos-title">
+  <header class="acordos-page__head">
+    <div class="acordos-page__copy">
+      <h1 id="acordos-title">Acordos</h1>
+      <p>
+        Período, vagas contratadas e split CIF/FOB. A cobrança completa (valores, multa, e-mail)
+        continua em
+        <a [routerLink]="cobrancaRoute">Cobrança</a>.
+      </p>
+    </div>
+  </header>
+
+  @if (!podeVisualizar()) {
+    <p class="acordos-page__empty" role="status">Sem permissão para visualizar Acordos (acordos.visualizar).</p>
+  } @else {
+    <section class="est-dash-filter acordos-page__filter" aria-label="Filtros">
+      <div class="acordos-page__lookup">
+        <app-transportadora-lookup-field
+          [transportadoraId]="transportadoraId()"
+          [transportadoraNome]="transportadoraNome()"
+          placeholder="Filtrar por transportadora…"
+          (transportadoraIdChange)="onTransportadoraId($event)"
+          (transportadoraNomeChange)="onTransportadoraNome($event)"
+        />
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="carregar()" [disabled]="loading()">
+        {{ loading() ? 'Carregando…' : 'Atualizar' }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="editarAcordo()"
+        [disabled]="!selecionado() || salvando() || !podeAlterar()"
+      >
+        {{ salvando() ? 'Salvando…' : 'Editar período e vagas' }}
+      </button>
+    </section>
+
+    <div class="acordos-page__layout">
+      <div class="table-wrap acordos-page__list" role="region" aria-label="Lista de acordos">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Transportadora</th>
+              <th scope="col">Período</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (loading()) {
+              <tr>
+                <td colspan="3">Carregando acordos…</td>
+              </tr>
+            } @else if (!items().length) {
+              <tr>
+                <td colspan="3">Nenhum acordo ativo encontrado.</td>
+              </tr>
+            } @else {
+              @for (item of items(); track item.id) {
+                <tr
+                  [class.is-selected]="selecionadoId() === item.id"
+                  (click)="selecionar(item)"
+                  (keydown.enter)="selecionar(item)"
+                  tabindex="0"
+                  role="button"
+                  [attr.aria-pressed]="selecionadoId() === item.id"
+                >
+                  <td>{{ item.transportadora || '—' }}</td>
+                  <td>{{ periodoLabel(item) }}</td>
+                  <td>{{ item.status }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="acordos-page__detail" aria-label="Detalhe do acordo">
+        @if (selecionado(); as item) {
+          <h2>{{ item.transportadora }}</h2>
+          <dl>
+            <div>
+              <dt>Período</dt>
+              <dd>{{ periodoLabel(item) }}</dd>
+            </div>
+            <div>
+              <dt>Vagas / CIF·FOB</dt>
+              <dd>{{ vagasLabel(item) }}</dd>
+            </div>
+            <div>
+              <dt>Limpeza (contexto)</dt>
+              <dd>{{ limpezaLabel(item) }}</dd>
+            </div>
+            <div>
+              <dt>Operação padrão</dt>
+              <dd>{{ item.tipoOperacao || '—' }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="acordos-page__empty">Selecione um acordo na lista.</p>
+        }
+      </aside>
+    </div>
+  }
+</section>

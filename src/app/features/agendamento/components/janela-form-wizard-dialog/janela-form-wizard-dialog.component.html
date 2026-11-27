@@ -1,0 +1,371 @@
+<div class="jn-shell">
+  <header class="jn-header">
+    <div class="jn-header__main">
+      <div class="jn-header__icon" aria-hidden="true">
+        <span class="material-symbols-outlined">schedule</span>
+      </div>
+      <div class="jn-header__titles">
+        <h2 class="jn-header__title" mat-dialog-title>{{ titulo() }}</h2>
+        <p class="jn-header__sub">
+          Defina o período, a recorrência e os horários com vagas.
+        </p>
+      </div>
+    </div>
+    <button type="button" class="jn-close" aria-label="Fechar" (click)="cancelar()">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  @if (errosVisiveis().length) {
+    <div class="jn-erros" role="alert">
+      <span class="material-symbols-outlined" aria-hidden="true">error</span>
+      <div class="jn-erros__list">
+        @for (e of errosVisiveis(); track $index) {
+          <span>{{ e.mensagem }}</span>
+        }
+      </div>
+    </div>
+  }
+
+  <mat-dialog-content class="jn-body">
+    <div class="jn-layout">
+      <div class="jn-layout__main">
+        <section class="jn-panel" aria-label="Dados da janela">
+          <div class="jn-field">
+            <label class="jn-label" for="jn-nome">Nome da janela <span class="required">*</span></label>
+            <input
+              id="jn-nome"
+              class="jn-input"
+              type="text"
+              maxlength="150"
+              autocomplete="off"
+              [value]="nome()"
+              (input)="onTexto('nome', $event)"
+            />
+          </div>
+
+          <div class="jn-row jn-row--2">
+            <div class="jn-field">
+              <label class="jn-label" for="jn-modalidade">Modalidade</label>
+              <select
+                id="jn-modalidade"
+                class="jn-input"
+                [disabled]="editando"
+                (change)="onModalidade($any($event.target).value)"
+              >
+                @for (m of modalidades; track m.value) {
+                  <option [value]="m.value" [selected]="m.value === modalidade()">{{ m.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="jn-field jn-field--status">
+              <span class="jn-label">Status</span>
+              <label class="jn-switch">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  [checked]="ativo()"
+                  (change)="ativo.set($any($event.target).checked)"
+                />
+                <span class="jn-switch__track" aria-hidden="true"></span>
+                <span class="jn-switch__text">{{ ativo() ? 'Ativa' : 'Inativa' }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="jn-field jn-field--periodo">
+            <span class="jn-label">Período de vigência <span class="required">*</span></span>
+            <app-periodo-data-picker
+              class="jn-data-picker--dense"
+              emptyLabel="Selecione o período"
+              ariaLabel="Selecionar período de vigência da janela"
+              [exigirConfirmacao]="true"
+              [dataInicial]="vigenciaInicio()"
+              [dataFinal]="vigenciaFim() || vigenciaInicio()"
+              (periodoChange)="onVigenciaPeriodo($event)"
+            />
+          </div>
+        </section>
+
+        <section class="jn-panel jn-panel--recorrencia" aria-label="Recorrência">
+          <div class="jn-panel__head">
+            <h3 class="jn-panel__title">Recorrência</h3>
+            <p class="jn-panel__hint">{{ recorrenciaHint() }}</p>
+          </div>
+
+          <div class="jn-extra" [class.jn-extra--com-dia]="mostraDiaMes()">
+            <div class="jn-field jn-field--recorrencia">
+              <label class="jn-label" for="jn-recorrencia">Tipo</label>
+              <select
+                id="jn-recorrencia"
+                class="jn-input"
+                [value]="recorrenciaTipo()"
+                (change)="onPeriodicidadeTipo($any($event.target).value)"
+              >
+                @for (o of periodicidadeOpcoes; track o.value) {
+                  <option [value]="o.value" [selected]="o.value === recorrenciaTipo()">
+                    {{ o.label }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            @if (mostraDiaMes()) {
+              <div class="jn-field">
+                <label class="jn-label" for="jn-dia-mes">Dia do mês <span class="required">*</span></label>
+                <input
+                  id="jn-dia-mes"
+                  class="jn-input"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="2"
+                  autocomplete="off"
+                  [value]="recorrencia()?.diaMes ?? ''"
+                  (input)="onDiaMesRecorrencia($event)"
+                />
+              </div>
+            }
+
+            <div class="jn-field jn-field--periodo jn-field--recorrencia-vigencia">
+              <span class="jn-label">Vigência da recorrência <span class="required">*</span></span>
+              <app-periodo-data-picker
+                class="jn-data-picker--dense"
+                emptyLabel="Selecione o prazo"
+                ariaLabel="Selecionar vigência da recorrência"
+                [exigirConfirmacao]="true"
+                [dataInicial]="recorrencia()?.dataInicio || ''"
+                [dataFinal]="recorrencia()?.dataFim || recorrencia()?.dataInicio || ''"
+                (periodoChange)="onRecorrenciaVigencia($event)"
+              />
+            </div>
+          </div>
+
+          @if (mostraDiasSemana()) {
+            <div class="jn-dias" role="group" aria-label="Dias da semana">
+              <span class="jn-label">Dias da semana <span class="required">*</span></span>
+              <div class="jn-dias__chips">
+                @for (d of diasSemanaOpcoes; track d.value) {
+                  <button
+                    type="button"
+                    class="jn-chip"
+                    [class.jn-chip--on]="!!recorrencia()?.dias?.includes(d.value)"
+                    [attr.aria-pressed]="!!recorrencia()?.dias?.includes(d.value)"
+                    [attr.title]="d.label"
+                    (click)="alternarDiaSemana(d.value)"
+                  >
+                    {{ d.abrev }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="jn-field jn-field--desc">
+            <label class="jn-label" for="jn-descricao">Descrição</label>
+            <input
+              id="jn-descricao"
+              class="jn-input"
+              type="text"
+              maxlength="200"
+              placeholder="Opcional"
+              [value]="descricao()"
+              (input)="onTexto('descricao', $event)"
+            />
+          </div>
+        </section>
+
+        <div class="jn-accordion">
+          <button
+            type="button"
+            class="jn-accordion__toggle"
+            [attr.aria-expanded]="excecoesAbertas()"
+            (click)="alternarExcecoes()"
+          >
+            <span>Exceções e ajustes especiais</span>
+            <span class="jn-accordion__meta">{{ excecoes().length }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{ excecoesAbertas() ? 'expand_less' : 'expand_more' }}
+            </span>
+          </button>
+          @if (excecoesAbertas()) {
+            <div class="jn-accordion__body">
+              <app-janela-excecoes-tab [(excecoes)]="excecoes" [dataPadrao]="vigenciaInicio()" />
+            </div>
+          }
+        </div>
+      </div>
+
+      <section class="jn-layout__side jn-horarios" aria-labelledby="jn-horarios-title">
+        <div class="jn-horarios__head">
+          <div class="jn-horarios__title-row">
+            <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+            <h3 id="jn-horarios-title" class="jn-horarios__title">Horários e vagas</h3>
+          </div>
+        </div>
+
+        <div class="jn-gerar" aria-label="Gerar horários automaticamente">
+          <div class="jn-field jn-gerar__periodo">
+            <span class="jn-label">Período</span>
+            <app-periodo-hora-picker
+              class="jn-hora-picker--dense"
+              emptyLabel="Início → fim"
+              ariaLabel="Selecionar período para gerar horários"
+              [horaInicio]="gerarInicio()"
+              [horaFim]="gerarFim()"
+              (periodoChange)="onGerarPeriodo($event)"
+            />
+          </div>
+          <div class="jn-field jn-gerar__dur">
+            <label class="jn-label" for="jn-gerar-dur">Duração</label>
+            <select
+              id="jn-gerar-dur"
+              class="jn-input"
+              [value]="gerarDuracaoMin()"
+              (change)="onGerarDuracao($any($event.target).value)"
+            >
+              @for (o of duracaoGeracaoOpcoes; track o.value) {
+                <option [value]="o.value" [selected]="o.value === gerarDuracaoMin()">
+                  {{ o.label }}
+                </option>
+              }
+            </select>
+          </div>
+          <div class="jn-field jn-gerar__vagas">
+            <label class="jn-label" for="jn-gerar-vagas">Vagas</label>
+            <input
+              id="jn-gerar-vagas"
+              class="jn-input jn-input--vagas"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              [value]="gerarVagas() ?? ''"
+              (input)="onGerarVagas($event)"
+            />
+          </div>
+          <div class="jn-gerar__acoes">
+            <button
+              type="button"
+              class="jn-icon-btn jn-icon-btn--acao"
+              title="Gerar horários"
+              aria-label="Gerar horários automaticamente"
+              (click)="gerarHorariosAutomaticos()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">auto_fix</span>
+            </button>
+            <button
+              type="button"
+              class="jn-icon-btn jn-icon-btn--acao"
+              title="Adicionar horário"
+              aria-label="Adicionar horário"
+              (click)="adicionarHorario()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="jn-table-wrap">
+          <table class="jn-table">
+            <thead>
+              <tr>
+                <th scope="col" class="jn-table__col-ord">#</th>
+                <th scope="col">Horário</th>
+                <th scope="col" class="jn-table__col-vagas">Vagas</th>
+                <th scope="col" class="jn-table__col-acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (horarios().length === 0) {
+                <tr>
+                  <td colspan="4" class="jn-table__empty">
+                    Nenhum horário. Gere o período ou adicione uma faixa.
+                  </td>
+                </tr>
+              } @else {
+                @for (h of horarios(); track h.uid; let i = $index) {
+                  <tr>
+                    <td class="jn-table__col-ord">
+                      <span class="jn-ord">{{ i + 1 }}</span>
+                    </td>
+                    <td>
+                      <app-periodo-hora-picker
+                        class="jn-hora-picker--dense"
+                        emptyLabel="Selecionar horário"
+                        [ariaLabel]="'Horário ' + (i + 1) + ' — início e fim'"
+                        [horaInicio]="h.horaInicio"
+                        [horaFim]="h.horaFim"
+                        [minHora]="limiteInicio(i)"
+                        [maxHora]="limiteFim(i)"
+                        (periodoChange)="onHorarioPeriodo(h.uid, $event)"
+                      />
+                    </td>
+                    <td class="jn-table__col-vagas">
+                      <input
+                        class="jn-input jn-input--vagas"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="5"
+                        [value]="h.vagas ?? ''"
+                        (input)="onVagasLinha(h.uid, $event)"
+                        [attr.aria-label]="'Vagas do horário ' + (i + 1)"
+                      />
+                    </td>
+                    <td class="jn-table__col-acoes">
+                      <div class="jn-acoes">
+                        <button
+                          type="button"
+                          class="jn-icon-btn jn-icon-btn--replicar"
+                          title="Replicar para a próxima faixa"
+                          [attr.aria-label]="'Replicar horário ' + (i + 1) + ' para a próxima faixa'"
+                          (click)="replicarHorario(h.uid)"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="jn-icon-btn jn-icon-btn--danger"
+                          title="Remover horário"
+                          [attr.aria-label]="'Remover horário ' + (i + 1)"
+                          (click)="removerHorario(h.uid)"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="jn-sum" aria-label="Resumo de vagas">
+          <span class="jn-sum__item">
+            <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
+            Total nos horários:
+            <strong>{{ totalVagasHorarios() }}</strong>
+          </span>
+          <span class="jn-sum__sep" aria-hidden="true">·</span>
+          <span class="jn-sum__item">
+            <span class="material-symbols-outlined" aria-hidden="true">layers</span>
+            Por período:
+            <strong>{{ vagasPorSlot() ?? '—' }}</strong>
+          </span>
+        </div>
+      </section>
+    </div>
+  </mat-dialog-content>
+
+  <footer class="jn-footer">
+    <button type="button" class="jn-btn" (click)="cancelar()" [disabled]="salvando()">Cancelar</button>
+    <button
+      type="button"
+      class="jn-btn jn-btn--primary"
+      (click)="salvar()"
+      [disabled]="salvando()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">save</span>
+      {{ salvando() ? 'Salvando...' : 'Salvar' }}
+    </button>
+  </footer>
+</div>

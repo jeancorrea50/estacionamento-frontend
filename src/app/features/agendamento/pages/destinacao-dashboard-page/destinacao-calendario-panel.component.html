@@ -1,0 +1,267 @@
+<section class="dcal" aria-label="Calendário de destinação">
+  <header class="dcal__head">
+    <div class="dcal__copy">
+      <h2 class="dcal__title">Calendário de destinação</h2>
+      <p class="dcal__subtitle">Consulte as vagas por data, horário e transportadora.</p>
+    </div>
+    <button type="button" class="dcal__btn dcal__btn--primary" (click)="novaDestinacao()">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Nova destinação
+    </button>
+  </header>
+
+  <div class="dcal__layout">
+    <section class="dcal__cal" aria-label="Visão do calendário">
+      <div class="dcal__toolbar">
+        <div class="dcal__nav">
+          <button type="button" class="dcal__icon-btn" (click)="mesAnterior()" aria-label="Mês anterior">
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+          </button>
+          <strong class="dcal__mes">{{ mesLabel() }}</strong>
+          <button type="button" class="dcal__icon-btn" (click)="mesProximo()" aria-label="Próximo mês">
+            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+          </button>
+        </div>
+
+        <div class="dcal__visoes" role="tablist" aria-label="Tipo de visão">
+          <button
+            type="button"
+            role="tab"
+            class="dcal__chip"
+            [class.dcal__chip--on]="visao() === 'mes'"
+            (click)="setVisao('mes')"
+          >
+            Mensal
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="dcal__chip"
+            [class.dcal__chip--on]="visao() === 'semana'"
+            (click)="setVisao('semana')"
+          >
+            Semanal
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="dcal__chip"
+            [class.dcal__chip--on]="visao() === 'dia'"
+            (click)="setVisao('dia')"
+          >
+            Diária
+          </button>
+        </div>
+
+        <div class="dcal__mods" role="tablist" aria-label="Modalidade">
+          <button
+            type="button"
+            role="tab"
+            class="dcal__chip"
+            [class.dcal__chip--on]="modalidade() === 1"
+            (click)="setModalidade(1)"
+          >
+            Estacionamento
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="dcal__chip dcal__chip--limp"
+            [class.dcal__chip--on]="modalidade() === 2"
+            (click)="setModalidade(2)"
+          >
+            Limpeza
+          </button>
+        </div>
+      </div>
+
+      <div class="dcal__filtro">
+        <span class="dcal__filtro-label">Transportadora</span>
+        <app-transportadora-lookup-field
+          [transportadoraId]="transportadoraFiltroId()"
+          [transportadoraNome]="transportadoraFiltroNome()"
+          placeholder="Filtrar (opcional)…"
+          (transportadoraIdChange)="onFiltroTransportadoraId($event)"
+          (transportadoraNomeChange)="onFiltroTransportadoraNome($event)"
+        />
+      </div>
+
+      @if (loadingMes()) {
+        <p class="dcal__status">Carregando disponibilidade do mês…</p>
+      }
+
+      <div
+        class="dcal__grid"
+        [class.dcal__grid--semana]="visao() === 'semana'"
+        [class.dcal__grid--dia]="visao() === 'dia'"
+        role="grid"
+        aria-label="Dias do calendário"
+      >
+        @if (visao() === 'mes' || visao() === 'semana') {
+          @for (w of ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']; track w) {
+            <span class="dcal__wd">{{ w }}</span>
+          }
+        }
+
+        @for (d of diasVisiveis(); track d.iso) {
+          <button
+            type="button"
+            class="dcal__day"
+            role="gridcell"
+            [class.dcal__day--out]="d.foraDoMes && visao() === 'mes'"
+            [class.dcal__day--on]="d.iso === diaSelecionado()"
+            [class.dcal__day--ok]="!d.foraDoMes && livreTom(d.disponiveis) === 'ok'"
+            [class.dcal__day--warn]="!d.foraDoMes && livreTom(d.disponiveis) === 'warn'"
+            [class.dcal__day--crit]="!d.foraDoMes && livreTom(d.disponiveis) === 'crit'"
+            [disabled]="d.foraDoMes && visao() === 'mes'"
+            (click)="selecionarDia(d.iso)"
+          >
+            <span class="dcal__day-num">{{ d.dia }}</span>
+            @if (!d.foraDoMes || visao() !== 'mes') {
+              @if (d.loading) {
+                <span class="dcal__day-meta">…</span>
+              } @else {
+                <span
+                  class="dcal__day-meta dcal__day-meta--cap"
+                  title="Vagas das janelas no dia (faixas × vagas/horário)"
+                >
+                  <i class="dcal__dot dcal__dot--cap" aria-hidden="true"></i>
+                  {{ d.janelas ?? 0 }} janelas
+                </span>
+                <span class="dcal__day-meta" title="Destinadas (vagasReservadas)">
+                  <i class="dcal__dot dcal__dot--res" aria-hidden="true"></i>
+                  {{ d.reservadas ?? 0 }} destinadas
+                </span>
+                <span class="dcal__day-meta" title="Agendadas (totalOcupadas / ocupadas)">
+                  <i class="dcal__dot dcal__dot--agend" aria-hidden="true"></i>
+                  {{ d.agendados ?? 0 }} agendadas
+                </span>
+                <span class="dcal__day-meta dcal__day-meta--livres" title="vagasDisponiveis">
+                  <i class="dcal__dot dcal__dot--livre" aria-hidden="true"></i>
+                  {{ d.disponiveis ?? '—' }} livre
+                </span>
+              }
+            }
+          </button>
+        }
+      </div>
+
+      <footer class="dcal__legend" aria-label="Legenda de disponibilidade">
+        <span><i class="dcal__dot dcal__dot--cap" aria-hidden="true"></i> janelas</span>
+        <span><i class="dcal__dot dcal__dot--res" aria-hidden="true"></i> destinadas</span>
+        <span><i class="dcal__dot dcal__dot--agend" aria-hidden="true"></i> agendadas</span>
+        <span><i class="dcal__dot dcal__dot--livre" aria-hidden="true"></i> livre</span>
+        <span><i class="dcal__dot dcal__dot--ok" aria-hidden="true"></i> ≥ 30 livre</span>
+        <span><i class="dcal__dot dcal__dot--warn" aria-hidden="true"></i> 10 – 29 livre</span>
+        <span><i class="dcal__dot dcal__dot--crit" aria-hidden="true"></i> &lt; 10 livre</span>
+      </footer>
+    </section>
+
+    <aside class="dcal__detail" aria-label="Detalhe do dia">
+      <div class="dcal__detail-head">
+        <div>
+          <h3 class="dcal__detail-title">{{ diaSelecionadoLabel() }}</h3>
+          <p class="dcal__detail-sub">Detalhamento da destinação</p>
+        </div>
+        @if (capacidadeRef() != null) {
+          <span class="dcal__pill">{{ capacidadeRef() }} vagas (capacidade do dia)</span>
+        }
+      </div>
+
+      @if (loadingDia()) {
+        <p class="dcal__status">Carregando horários…</p>
+      } @else if (slots().length === 0) {
+        <p class="dcal__status">Nenhum horário de janela disponível neste dia.</p>
+      } @else {
+        <ul class="dcal__slots">
+          @for (s of slots(); track s.key) {
+            <li class="dcal__slot" [attr.data-slot-key]="s.key" [class.dcal__slot--open]="s.expandido">
+              <button type="button" class="dcal__slot-bar" (click)="toggleSlot(s.key)">
+                <span class="dcal__slot-hora">{{ s.label }}</span>
+                <span class="dcal__slot-trailing">
+                  <span class="dcal__slot-stats">
+                    <em>{{ s.destinadas }} dest.</em>
+                    <em>{{ s.ocupadas }} agend.</em>
+                    <strong>{{ s.disponiveis }} livre</strong>
+                  </span>
+                  <span class="material-symbols-outlined dcal__slot-chev" aria-hidden="true">
+                    {{ s.expandido ? 'expand_less' : 'expand_more' }}
+                  </span>
+                </span>
+              </button>
+
+              @if (s.expandido) {
+                <div class="dcal__slot-body">
+                  <div class="dcal__slot-foot" aria-label="Disponíveis neste horário">
+                    <span>Disponíveis neste horário</span>
+                    <strong>{{ s.disponiveis }}</strong>
+                  </div>
+
+                  @if (s.transportadoras.length === 0) {
+                    <p class="dcal__status">Sem destinações de transportadora neste horário.</p>
+                  } @else {
+                    <ul class="dcal__transp">
+                      @for (t of s.transportadoras; track t.id) {
+                        <li>
+                          <button
+                            type="button"
+                            class="dcal__transp-btn"
+                            [class.dcal__transp-btn--on]="transportadoraDetalheId() === t.id"
+                            [disabled]="!podeVerAgendamentos() || t.id <= 0"
+                            (click)="abrirTransportadora(t, s)"
+                            [title]="
+                              podeVerAgendamentos()
+                                ? 'Ver agendamentos'
+                                : 'Sem permissão para agendamentos'
+                            "
+                          >
+                            <span class="dcal__transp-nome" [attr.title]="t.nome">{{ t.nome }}</span>
+                            <span class="dcal__transp-meta">
+                              <span>{{ t.destinadas }} dest.</span>
+                              @if (transportadoraDetalheId() === t.id) {
+                                <span>{{ t.utilizadas }} agend.</span>
+                                <span>{{ t.restantes }} rest.</span>
+                              }
+                            </span>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (transportadoraDetalheId() != null) {
+                    <div class="dcal__agendamentos">
+                      <h4>Agendamentos no horário</h4>
+                      @if (loadingAgendamentos()) {
+                        <p class="dcal__status">Carregando…</p>
+                      } @else if (agendamentosDetalhe().length === 0) {
+                        <p class="dcal__status">
+                          Nenhum agendamento neste horário para a transportadora.
+                        </p>
+                      } @else {
+                        <ul>
+                          @for (a of agendamentosDetalhe(); track a.id) {
+                            <li>
+                              <strong>{{ a.placaVeiculo || '—' }}</strong>
+                              <span class="dcal__agendamentos-nome">{{ a.nomeMotorista || '—' }}</span>
+                              <span>{{ a.dataHoraEntrada | date: 'HH:mm' }}</span>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <p class="dcal__hint">
+        Destinações e agendados são por horário (não some capacidades de faixas diferentes). Clique no
+        horário e depois na transportadora para ver a lista de agendamentos do intervalo.
+      </p>
+    </aside>
+  </div>
+</section>

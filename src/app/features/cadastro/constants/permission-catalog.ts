@@ -1,6 +1,6 @@
 /**
  * Catálogo de permissões alinhado aos recursos/endpoints do backend.
- * Recursos: Estacionamento, Motorista, Transportadora, Veiculo, VeiculoModelo, Perfil, Usuario.
+ * Recursos: Estacionamento, Motorista, Transportadora, Veiculo, VeiculoModelo, Permissao, Usuario.
  * Ações por recurso: visualizar (Buscar + ObterPorId), gravar (Gravar), alterar (Alterar), excluir (Delete).
  * Módulos de app (Movimentos, Financeiro, Relatórios, Fotos) mantidos para uso na UI até o backend expor.
  */
@@ -10,9 +10,14 @@ export const PERMISSION_MODULES = [
   'Transportadora',
   'Veículo',
   'Veículo modelo',
-  'Perfil',
+  'Cadastro',
+  'Permissão',
   'Usuários',
+  'Movimentações',
   'Movimentos',
+  'Agendamentos',
+  'Janelas',
+  'Agendar',
   'Financeiro',
   'Relatórios',
   'Fotos',
@@ -52,28 +57,94 @@ export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
     'veiculoModelo.alterar',
     'veiculoModelo.excluir',
   ],
-  Perfil: [
-    'perfil.visualizar',
-    'perfil.gravar',
-    'perfil.alterar',
-    'perfil.excluir',
+  Cadastro: [
+    'responsavelfaturamento.visualizar',
+    'responsavelfaturamento.gravar',
+    'responsavelfaturamento.alterar',
+    'responsavelfaturamento.excluir',
+  ],
+  'Permissão': [
+    'permissao.visualizar',
+    'permissao.gravar',
+    'permissao.alterar',
+    'permissao.excluir',
   ],
   Usuários: [
     'usuarios.visualizar',
     'usuarios.gerenciar',
   ],
-  Movimentos: [
-    'movimentos.entrada',
-    'movimentos.saida',
-    'movimentos.consultar',
+  Movimentações: [
+    'movimentacoes.visualizar',
+    'movimentacoes.gravar',
+    'movimentacoes.alterar',
+    'movimentacoes.excluir',
+  ],
+  Movimentos: [ // módulo interno (permissões/API); exibição na UI: "Entrada e Saída"
+    'entradasaida.visualizar',
+    'entradasaida.gravar',
+    'entradasaida.alterar',
+    'entradasaida.excluir',
+  ],
+  // Pátio → Agendamentos → Painel (`/app/patio/agendamentos/painel`)
+  Agendamentos: [
+    'agendamentos.visualizar',
+    'agendamentos.gravar',
+    'agendamentos.alterar',
+    'agendamentos.excluir',
+    // alias singular legado
+    'agendamento.visualizar',
+    'agendamento.gravar',
+    'agendamento.alterar',
+    'agendamento.excluir',
+  ],
+  // Pátio → Agendamentos → Janelas (`/app/patio/agendamentos/janelas`).
+  // A consulta de disponibilidade (GET janela/disponibilidade) usa `agendamentos.visualizar`/`agendar.*`.
+  Janelas: [
+    'janelas.visualizar',
+    'janelas.gravar',
+    'janelas.alterar',
+    'janelas.excluir',
+    // Destinação (`/app/patio/agendamentos/destinacao`)
+    'destinacao.visualizar',
+    'destinacao.gravar',
+    'destinacao.alterar',
+    'destinacao.excluir',
+  ],
+  // Menu Agendar (`/app/agendar`) — claims distintas; API aceita qualquer uma das duas.
+  Agendar: [
+    'agendar.visualizar',
+    'agendar.gravar',
+    'agendar.alterar',
+    'agendar.excluir',
   ],
   Financeiro: [
     'financeiro.ver',
     'financeiro.exportar',
+    'faturamento.visualizar',
+    'faturamento.gravar',
+    'faturamento.alterar',
+    'faturamento.excluir',
+    'relatorio.visualizar',
+    'relatorio.exportar',
+    'pagamento.visualizar',
+    'pagamento.gravar',
+    'pagamento.alterar',
+    'pagamento.excluir',
+    'cobranca.visualizar',
+    'cobranca.gravar',
+    'cobranca.alterar',
+    'cobranca.excluir',
+    'acordos.visualizar',
+    'acordos.gravar',
+    'acordos.alterar',
+    'acordos.excluir',
   ],
   Relatórios: [
     'relatorios.visualizar',
     'relatorios.exportar',
+    'relatoriodetransportadoras.visualizar',
+    'relatoriodemovimentacoes.visualizar',
+    'relatoriodepagamentos.visualizar',
   ],
   Fotos: [
     'fotos.upload',

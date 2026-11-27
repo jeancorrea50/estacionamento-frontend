@@ -1,0 +1,241 @@
+<div class="cadastro-transportadora-shell">
+  <div class="page-container">
+    <div class="page-content trn-page-content--dashboard">
+      <header class="jan-top" aria-labelledby="jan-page-title">
+        <div class="jan-top__copy">
+          <a class="jan-top__back" [routerLink]="agendamentosRoute">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Agendamentos
+          </a>
+          <h1 id="jan-page-title" class="jan-top__title">Janelas de agendamento</h1>
+          <p class="jan-top__sub">
+            Configure os horários, a capacidade e a recorrência dos slots disponíveis para agendar.
+          </p>
+        </div>
+        <div class="jan-modalidade-toggle" role="group" aria-label="Modalidade">
+          @for (o of modalidadeOpcoes; track o.value) {
+            <button
+              type="button"
+              class="jan-modalidade-toggle__btn"
+              [class.is-active]="modalidade() === o.value"
+              [attr.aria-pressed]="modalidade() === o.value"
+              (click)="selecionarModalidade(o.value)"
+            >
+              {{ o.label }}
+            </button>
+          }
+        </div>
+      </header>
+
+      @if (!canVisualizar) {
+        <div class="trn-list-banner trn-list-banner--error" role="status">
+          <p class="error-msg">Sem permissão para visualizar Janelas (janelas.visualizar).</p>
+        </div>
+      } @else {
+        <section class="est-dash-filter trn-dash-filter jan-filter" aria-label="Filtros e ações">
+          <label class="jan-filter__status">
+            <span class="jan-filter__label">Situação</span>
+            <select
+              class="est-dash-filter__select est-dash-filter__select--plain"
+              aria-label="Filtrar por situação"
+              (change)="onFiltroAtivo($any($event.target).value)"
+            >
+              <option value="todas" [selected]="filtroAtivo() === 'todas'">Todas</option>
+              <option value="ativas" [selected]="filtroAtivo() === 'ativas'">Ativas</option>
+              <option value="inativas" [selected]="filtroAtivo() === 'inativas'">Inativas</option>
+            </select>
+          </label>
+          <div class="jan-filter__actions">
+            @if (podeCriar) {
+              <button
+                type="button"
+                class="est-dash-btn est-dash-btn--neutral"
+                (click)="duplicar()"
+                [attr.aria-label]="'Duplicar janela de ' + modalidadeLabel(outraModalidade())"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                Duplicar de {{ modalidadeLabel(outraModalidade()) }}
+              </button>
+              <button
+                type="button"
+                class="est-dash-btn est-dash-btn--primary"
+                (click)="novaJanela()"
+                aria-label="Configurar janelas — nova janela"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                Configurar Janelas
+              </button>
+            }
+          </div>
+        </section>
+
+        @if (erro(); as msg) {
+          <div class="trn-list-banner trn-list-banner--error" role="alert">
+            <p class="error-msg">{{ msg }}</p>
+          </div>
+        }
+
+        @if (loading()) {
+          <p class="loading-msg trn-loading">Carregando...</p>
+        }
+
+        @if (!erro()) {
+          <div class="trn-list-table-card">
+            <div class="trn-list-table-scroll">
+              <table class="data-table trn-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Vigência</th>
+                    <th scope="col">Recorrência</th>
+                    <th scope="col">Horários</th>
+                    <th scope="col">Vagas/horário</th>
+                    <th scope="col">Total janelas</th>
+                    <th scope="col">Situação</th>
+                    <th scope="col" class="trn-table__th-acoes">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of items(); track item.id) {
+                    <tr class="trn-table__row">
+                      <td>
+                        <span class="jan-nome">{{ item.nome }}</span>
+                        @if (item.descricao) {
+                          <span class="jan-desc">{{ item.descricao }}</span>
+                        }
+                      </td>
+                      <td>{{ vigenciaLabel(item) }}</td>
+                      <td>
+                        <span class="jan-meta">
+                          <span class="material-symbols-outlined" aria-hidden="true">event_repeat</span>
+                          {{ item.recorrenciaLabel || '—' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="jan-meta">
+                          <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+                          {{ item.horarioResumo || '—' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="jan-meta">
+                          <span class="material-symbols-outlined" aria-hidden="true">directions_car</span>
+                          {{ item.vagasPorSlot }} vagas
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          class="jan-meta"
+                          [attr.title]="
+                            'Total janelas: ' +
+                            item.totalDisponibilizacoes +
+                            ' (' +
+                            item.qtdFaixas +
+                            ' faixas × ' +
+                            item.vagasPorSlot +
+                            ' vagas)'
+                          "
+                        >
+                          {{ item.totalDisponibilizacoes }}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          class="jan-pill"
+                          [class.jan-pill--off]="!item.ativo"
+                        >{{ item.ativo ? 'Ativa' : 'Inativa' }}</span>
+                      </td>
+                      <td class="trn-table__acoes">
+                        <div
+                          class="trn-act-btns"
+                          role="group"
+                          [attr.aria-label]="'Ações para a janela ' + item.nome"
+                        >
+                          @if (podeAlterar) {
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--accent"
+                              title="Editar"
+                              aria-label="Editar janela"
+                              [disabled]="abrindoId() === item.id"
+                              (click)="editar(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                            </button>
+                          }
+                          @if (podeCriar) {
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--neutral"
+                              title="Duplicar"
+                              aria-label="Duplicar janela"
+                              (click)="duplicar(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                            </button>
+                          }
+                          @if (podeExcluir) {
+                            <button
+                              type="button"
+                              class="trn-act-btn trn-act-btn--danger"
+                              title="Excluir"
+                              aria-label="Excluir janela"
+                              (click)="excluir(item)"
+                            >
+                              <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (!loading() && items().length === 0) {
+              <div class="empty-state empty-state--compact empty-state--table trn-list-empty">
+                <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
+                <p class="empty-msg">
+                  Nenhuma janela de {{ modalidadeLabel(modalidade()) }} cadastrada.
+                </p>
+              </div>
+            }
+          </div>
+
+          <footer class="trn-list-footer">
+            <p class="trn-list-footer__info">
+              Mostrando <strong>{{ intervalo().de }}</strong> a <strong>{{ intervalo().ate }}</strong> de
+              <strong>{{ totalCount() }}</strong>
+              {{ totalCount() === 1 ? 'janela' : 'janelas' }}
+            </p>
+            <div class="trn-list-footer__right">
+              <div class="trn-footer-pager" aria-label="Paginação">
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() <= 1"
+                  (click)="irParaPagina(numeroPagina() - 1)"
+                  aria-label="Página anterior"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                </button>
+                <span class="trn-foot-current" aria-current="page">{{
+                  totalCount() === 0 ? 0 : numeroPagina()
+                }}</span>
+                <button
+                  type="button"
+                  class="trn-foot-page"
+                  [disabled]="numeroPagina() >= totalPaginas()"
+                  (click)="irParaPagina(numeroPagina() + 1)"
+                  aria-label="Próxima página"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                </button>
+              </div>
+            </div>
+          </footer>
+        }
+      }
+    </div>
+  </div>
+</div>

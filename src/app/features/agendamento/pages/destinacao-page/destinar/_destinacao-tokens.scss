@@ -1,0 +1,69 @@
+// Alias único de tokens da Destinação.
+// Usa os tokens semânticos globais (definidos para html.theme-light e html.theme-dark);
+// os fallbacks são os hex do DESIGN.md (tema escuro).
+@mixin tokens {
+  --dst-primary: var(--primary, #3d8bff);
+  --dst-bg-content: var(--color-bg-page, #1d1d27);
+  --dst-surface: var(--surface, #292934);
+  --dst-elevated: var(--surface-2, #2c2c37);
+  --dst-table: var(--table-row-stripe, #252530);
+  --dst-table-head: var(--table-header-bg, #30303c);
+  --dst-row-hover: var(--table-row-hover, #323240);
+  --dst-border: var(--border, #363642);
+  --dst-input: var(--input-bg, #23232d);
+  --dst-input-border: var(--input-border, #363642);
+  --dst-text: var(--text, #f1f1f5);
+  --dst-muted: var(--muted, #92929f);
+  --dst-success: var(--success, #36c98f);
+  --dst-warning: var(--warning, #e8a23a);
+  --dst-danger: var(--danger, #f06468);
+
+  // Cores de MARCA de dado (barras, medidores, chips de ícone). No escuro = o próprio token.
+  --dst-mark-primary: var(--dst-primary);
+  --dst-mark-success: var(--dst-success);
+  --dst-mark-warning: var(--dst-warning);
+  --dst-mark-danger: var(--dst-danger);
+  // Fundo tingido dos chips de ícone / trilhos de medidor.
+  --dst-tint: 16%;
+  --dst-tint-base: var(--dst-surface);
+
+  --dst-radius-ctl: var(--radius-sm, 8px);
+  --dst-radius-md: var(--radius-md, 10px);
+  --dst-radius-card: var(--radius-lg, 12px);
+  --dst-gap: var(--space-lg, 16px);
+  --dst-shadow-card: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+
+// Tema claro (html.theme-light). Superfícies já vêm dos tokens semânticos do tema;
+// aqui só ajusta marcas de dado (status escurecidos p/ contraste ≥ 3:1 no branco),
+// tinta dos chips e sombra. Nenhum hex novo: variações são color-mix dos tokens.
+@mixin tokens-light {
+  --dst-mark-primary: var(--dst-primary);
+  --dst-mark-success: color-mix(in srgb, var(--dst-success) 75%, #000);
+  --dst-mark-warning: color-mix(in srgb, var(--dst-warning) 75%, #000);
+  --dst-mark-danger: color-mix(in srgb, var(--dst-danger) 75%, #000);
+  --dst-tint: 11%;
+  --dst-tint-base: var(--dst-surface);
+  --dst-shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 12px rgb(15 23 42 / 0.04);
+}
+
+// Tipografia (DESIGN.md › Typography)
+@mixin t-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+@mixin t-section {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+@mixin t-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}

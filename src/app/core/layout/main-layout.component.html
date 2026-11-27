@@ -1,74 +1,88 @@
-<div class="layout" [class.sidebar-collapsed]="sidebarCollapsed" [class.layout--mobile]="isMobile()">
-  @if (isMobile() && mobileMenuOpen()) {
-    <div class="sidebar-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
-  }
-  <app-sidebar
-    [collapsed]="sidebarCollapsed"
-    [mobileOpen]="mobileMenuOpen()"
-    [isMobile]="isMobile()"
-    (collapsedChange)="onSidebarCollapsed($event)"
-    (closeMobile)="closeMobileMenu()"
-  ></app-sidebar>
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
-  <div class="layout-right">
-    <header class="top-bar">
-      <div class="top-bar__inner">
-        @if (isMobile() && !mobileMenuOpen()) {
-          <button
-            type="button"
-            class="top-bar__menu-btn"
-            (click)="toggleMobileMenu()"
-            aria-label="Abrir menu"
-          >
-            <span class="material-symbols-outlined">menu</span>
-          </button>
-        }
-        <div class="top-bar__spacer"></div>
-        <div class="top-bar__right">
-          <div class="user-access-panel" title="Usuário e contexto de acesso">
-            <div class="user-access-panel__main">
-              <span class="user-access-panel__name">{{ loggedUsername() }}</span>
-              <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
-            </div>
-            @if (hasMultipleContexts()) {
-              <label class="user-access-panel__switcher">
-                <span class="user-access-panel__switcher-label">Acessar CNPJ</span>
-                <select
-                  class="user-access-panel__select"
-                  [ngModel]="selectedContextKey()"
-                  (ngModelChange)="onAccessContextChange($event)"
-                >
-                  @for (ctx of accessContexts(); track ctx.contextKey) {
-                    <option [ngValue]="ctx.contextKey">
-                      {{ ctx.cnpj ? (ctx.tipoAcesso + ' - ' + ctx.cnpj) : ctx.tipoAcesso }}
-                    </option>
-                  }
-                </select>
-              </label>
-            }
-          </div>
-          <button
-            type="button"
-            class="theme-switcher__btn"
-            (click)="toggleTheme()"
-            [attr.aria-pressed]="currentMode() === 'light'"
-            [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
-          >
-            @if (currentMode() === 'dark') {
-              <span class="material-symbols-outlined theme-switcher__icon">dark_mode</span>
-              <span class="theme-switcher__label">Claro</span>
-            } @else {
-              <span class="material-symbols-outlined theme-switcher__icon">light_mode</span>
-              <span class="theme-switcher__label">Escuro</span>
-            }
-          </button>
-        </div>
-      </div>
-    </header>
-    <main class="main-content">
-      <div class="content-container" [class.content-container--full-width]="isFullWidthContent()">
-        <router-outlet></router-outlet>
-      </div>
-    </main>
-  </div>
+<!-- Desktop: menu fixo (expandido ou recolhido) -->
+@if (!nav.celular()) {
+  <aside class="shell__side">
+    <app-shell-sidebar (abrirBusca)="abrirBusca()" />
+  </aside>
+}
+
+<!-- Celular: gaveta por cima do conteúdo -->
+@if (nav.celular() && nav.gavetaAberta()) {
+  <div class="shell__backdrop" (click)="nav.fecharGaveta()" aria-hidden="true"></div>
+  <aside
+    id="gts-gaveta"
+    class="shell__drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Menu"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+  >
+    <app-shell-sidebar (abrirBusca)="abrirBusca()" />
+    <button
+      type="button"
+      class="shell__drawer-close"
+      aria-label="Fechar menu"
+      (click)="nav.fecharGaveta()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </aside>
+}
+
+<div class="shell__main layout-right">
+  <app-shell-topbar
+    [patio]="patioTopbar()"
+    [podeTrocarPatio]="canTrocarEstacionamentoSessao()"
+    [usuario]="loggedUsername()"
+    [perfil]="selectedContextLabel()"
+    [admin]="isAdminUser()"
+    [contextos]="contextosTopbar()"
+    [contextoAtual]="selectedContextKey()"
+    (abrirBusca)="abrirBusca()"
+    (trocarPatio)="onTrocarPatio()"
+    (trocarContexto)="onAccessContextChange($event)"
+    (sair)="sair()"
+  />
+  <!-- A rolagem das telas fica aqui (telas usam sticky dentro do main-content). -->
+  <main id="conteudo" class="main-content shell__content" tabindex="-1">
+    <div class="content-container" [class.content-container--full-width]="isFullWidthContent()">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
 </div>
+
+<!-- Celular: atalhos das telas mais usadas + "Menu" -->
+@if (nav.celular()) {
+  <nav class="shell__bottom" aria-label="Atalhos">
+    @for (d of nav.destinosMobile(); track d.item.id) {
+      <a
+        class="shell__tab"
+        [routerLink]="d.item.route"
+        routerLinkActive="is-active"
+        ariaCurrentWhenActive="page"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">{{ d.item.icon }}</span>
+        <span>{{ d.item.curto ?? d.item.label }}</span>
+      </a>
+    }
+    <button
+      type="button"
+      class="shell__tab"
+      aria-controls="gts-gaveta"
+      [attr.aria-expanded]="nav.gavetaAberta()"
+      (click)="nav.gavetaAberta.set(true)"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">menu</span>
+      <span>Menu</span>
+    </button>
+  </nav>
+}
+
+@if (showEstacionamentoModal()) {
+  <app-admin-estacionamento-select-modal
+    (selected)="onEstacionamentoSelected()"
+    (openEcossistema)="abrirEcossistemaSemPatio()"
+  />
+}

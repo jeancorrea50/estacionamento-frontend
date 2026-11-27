@@ -1,13 +1,39 @@
-import { Component, signal, computed, OnInit, OnDestroy, HostListener, PLATFORM_ID, inject } from '@angular/core';
+import {
+  Component,
+  signal,
+  computed,
+  effect,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  PLATFORM_ID,
+  inject,
+  untracked,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet, Router, RouterModule, NavigationEnd } from '@angular/router';
-import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { A11yModule } from '@angular/cdk/a11y';
+import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
+import { NavService } from './shell/nav.service';
+import { ShellSidebarComponent } from './shell/sidebar/sidebar.component';
+import { ShellTopbarComponent, TopbarContexto, TopbarPatio } from './shell/topbar/topbar.component';
+import {
+  AcaoPalette,
+  COMMAND_PALETTE_CONFIG,
+  CommandPaletteDialog,
+} from './shell/command-palette/command-palette.dialog';
 import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { SignalrDashboardService } from '../services/signalr-dashboard.service';
+import { SignalrNotificationService } from '../services/signalr-notification.service';
+import { PortariaAlertasStore } from '../../features/movimentos/services/portaria-alertas.store';
+import { AdminEstacionamentoSelectModalComponent } from './admin-estacionamento-select-modal/admin-estacionamento-select-modal.component';
 import { decodeJwtPayload } from '../auth/jwt.util';
+import { formatCnpj as formatCnpjCanonical } from '../../features/cadastro/directives/cnpj-format.directive';
 
 const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
@@ -22,17 +48,92 @@ interface AccessContext {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterModule, SidebarComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterOutlet,
+    RouterModule,
+    A11yModule,
+    ShellSidebarComponent,
+    ShellTopbarComponent,
+    AdminEstacionamentoSelectModalComponent,
+  ],
   templateUrl: './main-layout.component.html',
-  styleUrls: ['./main-layout.component.scss']
+  styleUrls: ['./main-layout.component.scss'],
+  host: {
+    '[class.is-rail]': 'nav.rail()',
+  },
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
+  readonly nav = inject(NavService);
+  private readonly dialog = inject(MatDialog);
+
+  /** Pátio da sessão no formato da barra do topo. */
+  readonly patioTopbar = computed<TopbarPatio | null>(() => {
+    const e = this.sessionEstacionamento();
+    return e ? { nome: e.razaoSocial, cnpj: e.cnpj ? this.formatCnpj(e.cnpj) : '' } : null;
+  });
+
+  readonly contextosTopbar = computed<TopbarContexto[]>(() =>
+    this.accessContexts().map((c) => ({
+      key: c.contextKey,
+      label: c.cnpj ? `${c.tipoAcesso} - ${this.formatCnpj(c.cnpj)}` : c.tipoAcesso,
+    }))
+  );
+
+  /** Ctrl/⌘+K abre a busca de telas; Esc fecha a gaveta do celular. */
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      void this.abrirBusca();
+    } else if (e.key === 'Escape' && this.nav.gavetaAberta()) {
+      this.nav.fecharGaveta();
+    }
+  }
+
+  async abrirBusca(): Promise<void> {
+    if (this.dialog.openDialogs.length) return;
+    this.nav.fecharGaveta();
+    const ref = this.dialog.open<CommandPaletteDialog, void, AcaoPalette>(
+      CommandPaletteDialog,
+      COMMAND_PALETTE_CONFIG
+    );
+    const acoes: AcaoPalette[] = ['alternar-tema'];
+    if (this.canTrocarEstacionamentoSessao()) acoes.push('trocar-patio');
+    if (this.nav.destinos().some((d) => d.item.id === 'agendar')) acoes.push('novo-agendamento');
+    ref.componentInstance.permitirAcoes(acoes);
+    const acao = await firstValueFrom(ref.afterClosed());
+    if (acao === 'trocar-patio') this.onTrocarPatio();
+    if (acao === 'alternar-tema') this.toggleTheme();
+    if (acao === 'novo-agendamento') void this.router.navigateByUrl('/app/agendar');
+  }
+
+  /** Botão do pátio na barra do topo: troca (com pátio) ou escolhe (sem pátio). */
+  onTrocarPatio(): void {
+    this.nav.fecharGaveta();
+    if (this.sessionEstacionamento()) this.trocarEstacionamento();
+    else this.abrirSelecaoEstacionamento();
+  }
+
+  sair(): void {
+    this.authService.logout();
+    void this.router.navigate(['/']);
+  }
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
   private authService = inject(AuthService);
+  private dashboardHub = inject(SignalrDashboardService);
+  private notificationHub = inject(SignalrNotificationService);
+  private portariaAlertas = inject(PortariaAlertasStore);
 
   sidebarCollapsed = false;
+  readonly showEstacionamentoModal = signal(false);
+  readonly sessionEstacionamento = signal<{
+    razaoSocial: string;
+    cnpj: string;
+  } | null>(null);
   private persistSidebarCollapsed(): void {
     if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(this.sidebarCollapsed));
@@ -50,6 +151,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   currentMode = computed(() => this.themeMode());
   isFullWidthContent = signal(false);
+  /** Rotas de Movimentos mantêm o cromado “card sobre card”; demais telas usam UI plana (styles.css). */
+  readonly isMovimentosRoute = signal(false);
   private routerSub?: { unsubscribe: () => void };
   readonly loggedUsername = signal<string>('Usuário');
   readonly loggedTipoAcesso = signal<string>('Acesso não identificado');
@@ -70,13 +173,41 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   constructor() {
     this.themeMode.set(this.themeService.getCurrentTheme().mode);
     this.themeService.theme$.subscribe((t) => this.themeMode.set(t.mode));
+
+    // Navegou → fecha a gaveta do celular.
+    effect(() => {
+      this.nav.url();
+      untracked(() => this.nav.fecharGaveta());
+    });
+
+    // Celular: barra inferior fixa. Botões fixos das telas (FAB) sobem acima dela.
+    effect(() => {
+      const celular = this.nav.celular();
+      if (isPlatformBrowser(this.platformId)) {
+        document.documentElement.classList.toggle('has-bottom-nav', celular);
+      }
+    });
+  }
+
+  /** Sino de notificações (migrations/infra) — somente Admin. */
+  isAdminUser(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  canTrocarEstacionamentoSessao(): boolean {
+    return this.authService.canTrocarEstacionamentoSessao();
   }
 
   ngOnInit(): void {
     this.loadLoggedUserContext();
+    this.refreshSessionEstacionamentoLabel();
     this.loadSidebarCollapsed();
     this.checkMobile();
     this.updateFullWidthContent(this.router.url);
+    this.bootstrapEstacionamentoSessao();
+    if (this.isAdminUser()) {
+      void this.notificationHub.connect();
+    }
     this.routerSub = this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
     ).subscribe((e) => {
@@ -85,17 +216,125 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Aplica pátio cadastrado silenciosamente; modal só via Trocar/Selecionar no topbar. */
+  private bootstrapEstacionamentoSessao(): void {
+    if (!this.authService.canTrocarEstacionamentoSessao()) {
+      this.refreshSessionEstacionamentoLabel();
+      return;
+    }
+
+    this.authService.bootstrapEstacionamentoSessao().subscribe({
+      next: (res) => {
+        this.refreshSessionEstacionamentoLabel();
+        if (res.applied) {
+          void this.dashboardHub.reconnectForSession();
+        }
+      },
+      error: () => this.refreshSessionEstacionamentoLabel(),
+    });
+  }
+
+  abrirSelecaoEstacionamento(): void {
+    if (!this.authService.canTrocarEstacionamentoSessao()) return;
+    this.showEstacionamentoModal.set(true);
+  }
+
+  onEstacionamentoSelected(): void {
+    this.showEstacionamentoModal.set(false);
+    this.refreshSessionEstacionamentoLabel();
+    // Hub + HTTP devem usar o JWT do pátio novo (EmpresaId/CodExportacao).
+    const url = this.router.url;
+    this.portariaAlertas.clear();
+    void this.dashboardHub.reconnectForSession().finally(() => {
+      void this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+        void this.router.navigateByUrl(url);
+      });
+    });
+  }
+
+  /** Atalho quando o lookup de pátios falha: abre o mapa sem sessão operacional. */
+  abrirEcossistemaSemPatio(): void {
+    this.showEstacionamentoModal.set(false);
+    void this.router.navigateByUrl('/app/administracao/ecossistema');
+  }
+
+  trocarEstacionamento(): void {
+    if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) return;
+    // Transportadora: abre a lista SEM limpar o pátio atual. A lista dos pátios dela depende de
+    // achar o CNPJ no banco do pátio da sessão; a troca acontece ao escolher outro pátio
+    // (ou "Continuar neste pátio" mantém o atual).
+    if (this.authService.isTransportadoraRole() && !this.authService.isAdmin()) {
+      this.showEstacionamentoModal.set(true);
+      return;
+    }
+    this.authService.selecionarEstacionamentoSessao({ limpar: true }).subscribe({
+      next: (res) => {
+        if (!res.success) {
+          // Mesmo com falha na API, limpa sessão local para reabrir o modal.
+          this.authService.clearSessionEstacionamento();
+        }
+        this.dashboardHub.clearState();
+        this.portariaAlertas.clear();
+        void this.dashboardHub.disconnect();
+        this.refreshSessionEstacionamentoLabel();
+        this.showEstacionamentoModal.set(true);
+      },
+      error: () => {
+        this.authService.clearSessionEstacionamento();
+        this.dashboardHub.clearState();
+        this.portariaAlertas.clear();
+        void this.dashboardHub.disconnect();
+        this.refreshSessionEstacionamentoLabel();
+        this.showEstacionamentoModal.set(true);
+      },
+    });
+  }
+
+  private refreshSessionEstacionamentoLabel(): void {
+    if (!this.authService.isAdmin() && !this.authService.isTransportadoraRole()) {
+      this.sessionEstacionamento.set(null);
+      return;
+    }
+    const session = this.authService.getSessionEstacionamento();
+    if (!session?.id) {
+      this.sessionEstacionamento.set(null);
+      return;
+    }
+    const razaoSocial =
+      session.razaoSocial?.trim() ||
+      session.nome?.trim() ||
+      `Pátio ${session.id}`;
+    this.sessionEstacionamento.set({
+      razaoSocial,
+      cnpj: session.cnpj?.trim() || '',
+    });
+  }
+
   private updateFullWidthContent(url: string): void {
-    const movimentos = url.includes('/movimentos');
+    const movimentos = url.includes('/movimentos') || url.includes('/patio');
+    this.isMovimentosRoute.set(movimentos);
     const estacionamento = url.includes('/cadastro/estacionamento');
-    const transportadora = url.includes('/cadastro/transportadora');
+    const transportadora = url.includes('/cadastro/transportadora') || url.includes('/cadastro/veiculo') || url.includes('/cadastro/motorista');
+    const financeiro = url.includes('/financeiro') || url.includes('/faturamento');
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');
-    this.isFullWidthContent.set(movimentos || estacionamento || transportadora || acessos || gerenciamento);
+    const redeCredenciada = url.includes('/rede-credenciada');
+    const ecossistema = url.includes('/administracao/ecossistema');
+    this.isFullWidthContent.set(
+      movimentos ||
+        estacionamento ||
+        transportadora ||
+        financeiro ||
+        acessos ||
+        gerenciamento ||
+        redeCredenciada ||
+        ecossistema
+    );
   }
 
   ngOnDestroy(): void {
     this.routerSub?.unsubscribe();
+    void this.notificationHub.disconnect();
   }
 
   @HostListener('window:resize')
@@ -296,10 +535,14 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     return digits.length === 14 ? digits : null;
   }
 
+  formatCnpjDisplay(value: string | null | undefined): string {
+    const raw = String(value ?? '').trim();
+    if (!raw) return 'CNPJ não informado';
+    return this.formatCnpj(raw);
+  }
+
   private formatCnpj(value: string): string {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length !== 14) return value;
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+    return formatCnpjCanonical(value);
   }
 
   private buildContextKey(tipoAcesso: string, cnpj: string | null): string {

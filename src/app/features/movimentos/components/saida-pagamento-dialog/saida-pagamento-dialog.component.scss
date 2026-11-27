@@ -1,0 +1,203 @@
+.saida-pag {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: min(520px, 92vw);
+  max-width: 560px;
+  padding: 1.15rem 1.25rem 1rem;
+  color: var(--mat-sys-on-surface, #e8eaed);
+}
+
+.saida-pag__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.saida-pag__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.saida-pag__sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.saida-pag__valor {
+  color: #34d399;
+}
+
+.saida-pag__close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 8px;
+  opacity: 0.75;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.saida-pag__formas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.saida-pag__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 118px;
+  padding: 0.85rem 0.6rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+
+  &:hover {
+    border-color: rgba(96, 165, 250, 0.55);
+    transform: translateY(-1px);
+  }
+
+  &--active {
+    border-color: #3b82f6;
+    background: rgba(37, 99, 235, 0.22);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+  }
+}
+
+.saida-pag__card-ico {
+  font-size: 1.85rem;
+  color: #93c5fd;
+}
+
+.saida-pag__card-label {
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.saida-pag__card-hint {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.saida-pag__pix {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.45);
+  padding: 0.9rem 1rem;
+}
+
+.saida-pag__pix-status,
+.saida-pag__pix-erro {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.saida-pag__pix-erro {
+  color: #fca5a5;
+}
+
+.saida-pag__pix-grid {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.saida-pag__qr {
+  width: 180px;
+  height: 180px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.35rem;
+}
+
+.saida-pag__pix-info {
+  flex: 1 1 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+
+  p {
+    margin: 0;
+    word-break: break-word;
+  }
+}
+
+.saida-pag__pix-k {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.65;
+  margin-bottom: 0.1rem;
+}
+
+.saida-pag__copia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  background: rgba(37, 99, 235, 0.18);
+  color: inherit;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+
+  &:hover {
+    background: rgba(37, 99, 235, 0.28);
+  }
+}
+
+.saida-pag__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+}
+
+.saida-pag__btn--ok {
+  min-width: 11rem;
+}
+
+@media (max-width: 560px) {
+  .saida-pag__formas {
+    grid-template-columns: 1fr;
+  }
+
+  .saida-pag__card {
+    min-height: 88px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+
+  .saida-pag__card-hint {
+    text-align: left;
+  }
+}

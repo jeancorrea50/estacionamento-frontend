@@ -1,0 +1,50 @@
+<div class="periodo-hora-picker" (click)="$event.stopPropagation()">
+  <div class="rec-data-picker periodo-hora-picker__control">
+    <button
+      type="button"
+      class="rec-data-picker__trigger"
+      [class.rec-data-picker__trigger--ativo]="panelAberto() || (!!inicio() && !!fim())"
+      (click)="togglePanel($event)"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-expanded]="panelAberto()"
+    >
+      <span class="rec-data-picker__label">
+        <span class="material-symbols-outlined periodo-hora-picker__clock" aria-hidden="true"
+          >schedule</span
+        >
+        {{ periodoLabel() }}
+      </span>
+      <span class="material-symbols-outlined rec-data-picker__ico" aria-hidden="true">schedule</span>
+    </button>
+
+    @if (panelAberto()) {
+      <div class="rec-data-picker__panel" role="dialog" aria-label="Selecionar intervalo de horário">
+        <div class="rec-cal ph-panel" [class.rec-cal--dark]="isDarkTheme()">
+          <h3 class="rec-cal__titulo">Horário</h3>
+          <p class="periodo-hora-picker__hint" role="status">{{ dicaSelecao() }}</p>
+
+          <div class="ph-grid" role="listbox" aria-label="Horários disponíveis">
+            @for (hora of opcoes(); track hora) {
+              <button
+                type="button"
+                class="ph-hora"
+                role="option"
+                [ngClass]="modificadores(hora)"
+                [disabled]="desabilitada(hora)"
+                (click)="selecionar(hora, $event)"
+              >
+                {{ hora }}
+              </button>
+            }
+          </div>
+
+          <div class="periodo-hora-picker__footer">
+            <button type="button" class="periodo-hora-picker__limpar" (click)="limpar($event)">
+              Limpar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

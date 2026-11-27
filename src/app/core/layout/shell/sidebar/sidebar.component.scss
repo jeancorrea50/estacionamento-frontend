@@ -1,0 +1,606 @@
+// Menu lateral — escuro: grafite (DESIGN.md: #292936 / hover #323240)
+// claro: navy da marca (DESIGN.md: #0a3890). Ativo = faixa + fundo, sem glow.
+:host {
+  --sb-bg: var(--dark-sidebar, #292936);
+  --sb-hover: var(--dark-sidebar-hover, #323240);
+  --sb-border: var(--dark-border, #363642);
+  --sb-text: var(--dark-text, #f1f1f5);
+  --sb-muted: var(--dark-text-muted, #92929f);
+  --sb-accent: var(--color-primary, #3d8bff);
+  --sb-active-bg: color-mix(in srgb, var(--sb-accent) 16%, var(--sb-bg));
+  --sb-active-text: var(--sb-text);
+  --sb-w: 248px;
+  --sb-w-rail: 72px;
+  display: block;
+  height: 100%;
+}
+
+:host-context(html.theme-light) {
+  --sb-bg: var(--sidebar-blue, #0a3890);
+  --sb-hover: color-mix(in srgb, #fff 10%, var(--sb-bg));
+  --sb-border: color-mix(in srgb, #fff 14%, var(--sb-bg));
+  --sb-text: #fff;
+  --sb-muted: color-mix(in srgb, #fff 68%, var(--sb-bg));
+  --sb-accent: #fff;
+  --sb-active-bg: color-mix(in srgb, #fff 16%, var(--sb-bg));
+}
+
+.sb {
+  display: flex;
+  flex-direction: column;
+  width: var(--sb-w);
+  height: 100%;
+  background: var(--sb-bg);
+  border-right: 1px solid var(--sb-border);
+  color: var(--sb-text);
+  transition: width 0.18s ease;
+
+  &.is-rail {
+    width: var(--sb-w-rail);
+  }
+}
+
+// ─── Marca ──────────────────────────────────────────────────────────────
+.sb__brand {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--sb-border);
+
+  .is-rail & {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+.sb__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: 3px;
+  }
+}
+
+.sb__logo-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--sb-accent);
+  color: var(--sb-bg);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+
+  :host-context(html.theme-light) & {
+    color: var(--sidebar-blue, #0a3890);
+  }
+}
+
+.sb__logo-txt {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+// ─── Busca ──────────────────────────────────────────────────────────────
+.sb__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin: 12px 12px 4px;
+  padding: 0 10px;
+  border: 1px solid var(--sb-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #000 12%, var(--sb-bg));
+  color: var(--sb-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--sb-text);
+    border-color: color-mix(in srgb, var(--sb-text) 30%, var(--sb-border));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: 2px;
+  }
+
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .is-rail & {
+    justify-content: center;
+    width: 48px;
+    margin-inline: auto;
+    padding: 0;
+  }
+}
+
+.sb__search-txt {
+  flex: 1;
+  text-align: left;
+}
+
+.sb__kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--sb-border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 11px;
+}
+
+// ─── Lista ──────────────────────────────────────────────────────────────
+.sb__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px 12px;
+  scrollbar-width: thin;
+
+  .is-rail & {
+    padding-inline: 12px;
+  }
+}
+
+.sb__group + .sb__group {
+  margin-top: 8px;
+
+  .is-rail & {
+    padding-top: 8px;
+    border-top: 1px solid var(--sb-border);
+  }
+}
+
+.sb__label {
+  margin: 12px 8px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+
+.sb__list,
+.sb__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Item de 1º nível: 40px, ícone + texto.
+.sb__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sb-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sb-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: -2px;
+  }
+
+  // Ativo: fundo + faixa à esquerda (um único destaque por tela).
+  &.is-active {
+    background: var(--sb-active-bg);
+    color: var(--sb-active-text);
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -12px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--sb-accent);
+    }
+
+    .sb__ico {
+      color: var(--sb-accent);
+    }
+  }
+
+  .is-rail & {
+    justify-content: center;
+    width: 48px;
+    height: 44px;
+    margin-inline: auto;
+    padding: 0;
+  }
+}
+
+.sb__ico {
+  flex-shrink: 0;
+  font-size: 22px;
+  color: var(--sb-muted);
+
+  .sb__link:hover & {
+    color: var(--sb-text);
+  }
+}
+
+.sb__txt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  // Recolhido: texto continua para leitor de tela.
+  .is-rail & {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+.sb__chev {
+  font-size: 20px;
+  color: var(--sb-muted);
+  transition: rotate 0.15s;
+
+  &.is-open {
+    rotate: 180deg;
+  }
+}
+
+// Pai de uma tela ativa: ícone colorido + ponto (sem disputar com o ativo).
+.sb__link.has-active .sb__ico {
+  color: var(--sb-accent);
+}
+
+.sb__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sb-accent);
+
+  .is-rail & {
+    display: none;
+  }
+}
+
+.is-rail .sb__link.has-active::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sb-accent);
+}
+
+// 2º nível: sem ícone, recuo alinhado ao texto do pai, linha-guia sutil.
+.sb__sub {
+  margin: 2px 0 6px 21px;
+  padding-left: 12px;
+  border-left: 1px solid var(--sb-border);
+  gap: 2px;
+}
+
+// Rótulo com quebra segura — evita sobreposição (height fixo era o bug).
+.sb__subtxt {
+  display: block;
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.sb__sublink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  height: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--sb-muted);
+  font-size: 13.5px;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--sb-hover);
+    color: var(--sb-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: -2px;
+  }
+
+  &.is-active {
+    background: var(--sb-active-bg);
+    color: var(--sb-active-text);
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -13px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 3px;
+      background: var(--sb-accent);
+    }
+  }
+
+  &--mid {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &--static {
+    cursor: default;
+
+    &:hover {
+      background: transparent;
+      color: var(--sb-muted);
+    }
+  }
+}
+
+// Linha do 2º nível com filhos: link + chevron do 3º nível.
+.sb__mid {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sb__nest-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 32px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sb-muted);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sb-hover);
+    color: var(--sb-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: -2px;
+  }
+
+  &.has-active .sb__chev {
+    color: var(--sb-accent);
+  }
+}
+
+// 3º nível: mais um recuo + linha-guia.
+.sb__nest {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px 10px;
+  padding: 0 0 0 10px;
+  list-style: none;
+  border-left: 1px solid var(--sb-border);
+}
+
+.sb__nestlink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  height: auto;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--sb-muted);
+  font-size: 13px;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--sb-hover);
+    color: var(--sb-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: -2px;
+  }
+
+  &.is-active {
+    background: var(--sb-active-bg);
+    color: var(--sb-active-text);
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -11px;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      border-radius: 3px;
+      background: var(--sb-accent);
+    }
+  }
+}
+
+// ─── Rodapé ─────────────────────────────────────────────────────────────
+.sb__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--sb-border);
+}
+
+.sb__collapse {
+  color: var(--sb-muted);
+}
+
+.sb__versao {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--sb-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb,
+  .sb__chev {
+    transition: none;
+  }
+}
+
+// ─── Submenu flutuante (modo recolhido) — renderizado no overlay, usa tokens globais ───
+.sb-flyout {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--border, #363642);
+  border-radius: 10px;
+  background: var(--surface, #2c2c37);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+  color: var(--text, #f1f1f5);
+}
+
+.sb-flyout__title {
+  margin: 4px 10px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted, #92929f);
+}
+
+.sb-flyout__group {
+  margin: 8px 10px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #92929f);
+}
+
+.sb-flyout__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  height: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  text-decoration: none;
+  outline: none;
+
+  .material-symbols-outlined {
+    flex-shrink: 0;
+    font-size: 20px;
+    color: var(--muted, #92929f);
+  }
+
+  &--nest {
+    padding-left: 22px;
+    font-size: 13px;
+    color: var(--muted, #92929f);
+
+    .material-symbols-outlined {
+      font-size: 18px;
+    }
+  }
+
+  &:hover,
+  &:focus,
+  &.cdk-menu-item-active {
+    background: var(--table-row-hover, #323240);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary, #3d8bff);
+    outline-offset: -2px;
+  }
+
+  &.is-active {
+    font-weight: 600;
+    color: inherit;
+
+    .material-symbols-outlined {
+      color: var(--primary, #3d8bff);
+    }
+  }
+}
+
+:host-context(html.theme-light) {
+  .sb-flyout {
+    border-color: color-mix(in srgb, #1f2937 12%, #fff);
+    background: var(--light-card, #fff);
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+    color: var(--light-text, #1f2937);
+  }
+
+  .sb-flyout__title,
+  .sb-flyout__item .material-symbols-outlined {
+    color: color-mix(in srgb, #1f2937 62%, #fff);
+  }
+
+  .sb-flyout__item:hover,
+  .sb-flyout__item:focus {
+    background: color-mix(in srgb, #1f2937 5%, #fff);
+  }
+
+  .sb-flyout__item.is-active .material-symbols-outlined {
+    color: var(--color-primary-deep, #2563eb);
+  }
+}
+
+// Logo real do sistema (public/logo-gts-transparent.png).
+.sb__logo-img {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}

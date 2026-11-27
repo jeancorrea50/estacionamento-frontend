@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T00:17:00.000Z",
+  "title": "Design System: GTS Estacionamento",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "canonical": "#3d8bff",
+        "tonalRamp": ["#0b1f3a", "#123056", "#1a4578", "#2563eb", "#3d8bff", "#5a9dff", "#93c5fd", "#dbeafe"]
+      },
+      "primary-deep": {
+        "role": "primary",
+        "displayName": "Deep Action Blue",
+        "canonical": "#2563eb",
+        "tonalRamp": ["#0b1f3a", "#123056", "#1a4578", "#1d4ed8", "#2563eb", "#3b82f6", "#93c5fd", "#dbeafe"]
+      },
+      "bg-main": {
+        "role": "neutral",
+        "displayName": "Graphite Main",
+        "canonical": "#181821",
+        "tonalRamp": ["#0e0e14", "#181821", "#1d1d27", "#252530", "#292934", "#363642", "#92929f", "#f1f1f5"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Card Surface",
+        "canonical": "#292934",
+        "tonalRamp": ["#181821", "#1d1d27", "#252530", "#292934", "#2c2c37", "#363642", "#92929f", "#f1f1f5"]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Snow Text",
+        "canonical": "#f1f1f5",
+        "tonalRamp": ["#181821", "#363642", "#72727e", "#92929f", "#cbd5e1", "#e2e8f0", "#f1f1f5", "#ffffff"]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Success Mint",
+        "canonical": "#36c98f",
+        "tonalRamp": ["#052e1a", "#0f5132", "#15803d", "#16a34a", "#36c98f", "#4ade80", "#86efac", "#dcfce7"]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Warning Amber",
+        "canonical": "#e8a23a",
+        "tonalRamp": ["#451a03", "#7c2d12", "#c2410c", "#ea580c", "#e8a23a", "#fbbf24", "#fcd34d", "#fef3c7"]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Danger Coral",
+        "canonical": "#f06468",
+        "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#dc2626", "#f06468", "#f87171", "#fca5a5", "#fee2e2"]
+      }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Page Title", "purpose": "Títulos de página e hero da portaria." },
+      "section": { "displayName": "Section", "purpose": "Cabeçalhos de card e seções de formulário." },
+      "body": { "displayName": "Body", "purpose": "Conteúdo e células de tabela." },
+      "label": { "displayName": "Label", "purpose": "Labels de KPI, th de tabela e pills." }
+    },
+    "shadows": [
+      {
+        "name": "card-ambient",
+        "value": "0 8px 24px rgba(0, 0, 0, 0.18)",
+        "purpose": "Cards e KPIs no tema dark."
+      },
+      {
+        "name": "button-rest",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.22)",
+        "purpose": "Botões preenchidos em repouso."
+      },
+      {
+        "name": "button-hover",
+        "value": "0 2px 6px rgba(0, 0, 0, 0.28)",
+        "purpose": "Hover leve em botões."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "0.2s ease",
+        "purpose": "Transição padrão de botões e hovers."
+      }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1200px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal (Registrar saída, Continuar, Salvar).",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Registrar saída</button>",
+      "css": ".ds-btn-primary { background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; border-radius: 8px; height: 40px; padding: 0 16px; font: 600 14px Inter, system-ui, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,0.22); cursor: pointer; transition: background 0.2s ease, box-shadow 0.2s ease; } .ds-btn-primary:hover { background: #5a9dff; box-shadow: 0 2px 6px rgba(0,0,0,0.28); } .ds-btn-primary:focus-visible { outline: 2px solid #3d8bff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ação secundária (Recibo, Cancelar, Excel).",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Recibo</button>",
+      "css": ".ds-btn-secondary { background: #334155; color: #f8fafc; border: 1px solid #475569; border-radius: 8px; height: 40px; padding: 0 16px; font: 600 14px Inter, system-ui, sans-serif; cursor: pointer; transition: background 0.2s ease; } .ds-btn-secondary:hover { background: #475569; } .ds-btn-secondary:focus-visible { outline: 2px solid #3d8bff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Ação destrutiva ou saída crítica.",
+      "html": "<button class=\"ds-btn-danger\" type=\"button\">Excluir</button>",
+      "css": ".ds-btn-danger { background: #b91c1c; color: #ffffff; border: 1px solid #991b1b; border-radius: 8px; height: 40px; padding: 0 16px; font: 600 14px Inter, system-ui, sans-serif; cursor: pointer; } .ds-btn-danger:hover { background: #dc2626; } .ds-btn-danger:focus-visible { outline: 2px solid #f06468; outline-offset: 2px; }"
+    },
+    {
+      "name": "KPI Card",
+      "kind": "card",
+      "refersTo": "kpi-card",
+      "description": "Indicador da portaria (entradas, pátio, suspensos).",
+      "html": "<article class=\"ds-kpi\"><p class=\"ds-kpi__label\">Entradas hoje</p><p class=\"ds-kpi__value\">42</p></article>",
+      "css": ".ds-kpi { background: #292934; border: 1px solid #363642; border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); font-family: Inter, system-ui, sans-serif; } .ds-kpi__label { margin: 0; color: #92929f; font-size: 12px; font-weight: 600; } .ds-kpi__value { margin: 6px 0 0; color: #f1f1f5; font-size: 1.35rem; font-weight: 700; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Container de seção (histórico, formulários).",
+      "html": "<section class=\"ds-card\"><h2 class=\"ds-card__title\">Movimentos</h2><p class=\"ds-card__body\">Conteúdo da seção.</p></section>",
+      "css": ".ds-card { background: #292934; border: 1px solid #363642; border-radius: 12px; padding: 16px; color: #f1f1f5; font-family: Inter, system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.18); } .ds-card__title { margin: 0 0 12px; font-size: 16px; font-weight: 600; } .ds-card__body { margin: 0; font-size: 14px; color: #92929f; }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-pill",
+      "description": "Badge de situação ou cobertura.",
+      "html": "<span class=\"ds-pill ds-pill--patio\">No pátio</span><span class=\"ds-pill ds-pill--excedente\">Excedente</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font: 600 11px Inter, system-ui, sans-serif; border: 1px solid transparent; margin-right: 6px; } .ds-pill--patio { background: rgba(34,197,94,0.18); color: #86efac; border-color: rgba(34,197,94,0.45); } .ds-pill--excedente { background: rgba(245,158,11,0.2); color: #fbbf24; border-color: rgba(245,158,11,0.5); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulário no tema dark.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">Placa</span><input class=\"ds-field__input\" placeholder=\"ABC1D23\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: Inter, system-ui, sans-serif; } .ds-field__label { color: #92929f; font-size: 12px; font-weight: 600; } .ds-field__input { background: #23232d; border: 1px solid #363642; border-radius: 8px; color: #f1f1f5; height: 40px; padding: 0 12px; font-size: 14px; } .ds-field__input::placeholder { color: #72727e; } .ds-field__input:focus { outline: none; border-color: #3d8bff; box-shadow: 0 0 0 2px rgba(61,139,255,0.32); }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Item de navegação lateral.",
+      "html": "<a class=\"ds-nav\" href=\"#\">Portaria</a><a class=\"ds-nav ds-nav--active\" href=\"#\">Movimentos</a>",
+      "css": ".ds-nav { display: block; padding: 10px 12px; border-radius: 8px; color: #f1f1f5; text-decoration: none; font: 500 14px Inter, system-ui, sans-serif; background: transparent; } .ds-nav:hover { background: #323240; } .ds-nav--active { background: #3a3a48; } .ds-nav:focus-visible { outline: 2px solid #3d8bff; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Torre de Controle do Pátio",
+    "overview": "A interface é um console operacional: densidades compactas, contraste alto no tema escuro e azul de ação discreto. O brand aparece em precisão (tabelas legíveis, badges de status, botões sem glow), não em ornamentação. Superfícies flat em grafite; profundidade vem de camadas tonais e bordas sutis, não de neon.\n\nHá tema claro para cadastros/admin, mas o mundo dominante das telas de pátio/movimentos é o dark premium. Novas telas operacionais devem herdar esse mundo; redesign amplo só com pedido explícito.",
+    "keyCharacteristics": [
+      "Grafite + azul de destaque, sem purple glow",
+      "Inter como família única",
+      "Cards/KPIs 10–12px; botões ~8px",
+      "Status como pills com borda colorida",
+      "Densidade de tabela operacional"
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Voice Rule",
+        "body": "Azul de ação é o único accent de marca. Não introduzir purple/violet gradients nem glow ciano.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Is Not the Row Rule",
+        "body": "Excedente/cobertura usam badge (e, se houver, faixa lateral discreta) — não tingir a linha inteira de âmbar.",
+        "section": "colors"
+      },
+      {
+        "name": "The Single Family Rule",
+        "body": "Uma família (Inter) em todo o produto; não misturar display serif em telas operacionais.",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Neon Rule",
+        "body": "Proibido glow / filter neon em botões e cards.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reutilizar tokens --dark-*, --btn-*, --radius-*, --space-* de styles.css / dark-theme.css.",
+      "Do manter badges de status/cobertura distintos (situação ≠ avulso ≠ faturado ≠ excedente).",
+      "Do preferir densidade operacional e contraste alto no dark.",
+      "Do alinhar novos componentes a botões .btn / .btn-primary existentes."
+    ],
+    "donts": [
+      "Don't introduzir purple gradients, glassmorphism neon ou tipografia display serif em telas de pátio.",
+      "Don't tingir a linha inteira de excedente; use badge e, se necessário, faixa lateral.",
+      "Don't inventar cores/hex fora dos tokens sem atualizar este arquivo e o CSS global.",
+      "Don't redesenhar o chrome (sidebar/topbar) em uma feature isolada sem pedido explícito."
+    ]
+  }
+}

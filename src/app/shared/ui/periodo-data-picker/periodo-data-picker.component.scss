@@ -1,0 +1,128 @@
+/* Estilos do calendário (rec-data-picker / rec-cal) — mesmo padrão de Movimentações. */
+@use '../../../features/financeiro/pages/faturamento-page/faturamento-shared-painel';
+
+:host {
+  display: block;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Eleva o calendário aberto acima dos campos/painéis seguintes. */
+:host(.periodo-data-picker--open) {
+  z-index: 100;
+}
+
+.periodo-data-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+}
+
+.periodo-data-picker__control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+:host(.jn-data-picker--dense) .periodo-data-picker__control .rec-data-picker__trigger {
+  height: 34px;
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+}
+
+.periodo-data-picker__control .rec-data-picker__trigger {
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 10px;
+  padding: 0 12px;
+}
+
+.periodo-data-picker__control .rec-data-picker__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.periodo-data-picker__control .rec-data-picker__panel {
+  left: 0;
+  right: auto;
+}
+
+.periodo-data-picker__hint {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--rec-cal-muted, var(--text-muted, #94a3b8));
+}
+
+.periodo-data-picker__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rec-cal-border, #363642);
+}
+
+.periodo-data-picker__resumo {
+  margin: 0;
+  min-height: 1.3em;
+  color: var(--rec-cal-text, #f1f1f5);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.periodo-data-picker__resumo--vazio {
+  color: var(--rec-cal-muted, #92929f);
+  font-weight: 500;
+}
+
+.periodo-data-picker__confirmar {
+  width: 100%;
+  min-height: 36px;
+}
+
+.periodo-data-picker__confirmar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.periodo-data-picker__confirmar:focus-visible {
+  outline: 2px solid var(--rec-cal-accent, #3d8bff);
+  outline-offset: 2px;
+}
+
+.periodo-data-picker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-2) 90%, #000);
+  color: var(--muted);
+  cursor: pointer;
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  &:hover {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--primary, #3d8bff) 40%, var(--border-subtle));
+  }
+}

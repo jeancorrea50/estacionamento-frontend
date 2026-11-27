@@ -1,0 +1,512 @@
+// Painel "Disponibilidade do dia" — escuro (padrão) + claro (html.theme-light).
+// Cor vem só dos tokens: azul de ação para "destinado", semânticas para o nível.
+// Sem glow, sem gradiente: vida por chips de ícone, faixas laterais e marcas de dado.
+// .seg, .icon-btn, .input e .btn-ghost vêm do kit local; .pill/.meter são locais (tons de nível).
+@use '../destinacao-tokens' as tk;
+@use '../destinacao-kit' as kit;
+
+:host {
+  @include tk.tokens;
+  display: block;
+}
+
+:host-context(html.theme-light) {
+  @include tk.tokens-light;
+}
+
+@include kit.kit;
+
+// ─── Tons (um lugar só) ──────────────────────────────────────────────────
+[data-tone] {
+  --_tone: var(--dst-muted);
+}
+
+[data-tone='primary'] {
+  --_tone: var(--dst-mark-primary);
+}
+
+[data-tone='ok'] {
+  --_tone: var(--dst-mark-success);
+}
+
+[data-tone='warn'] {
+  --_tone: var(--dst-mark-warning);
+}
+
+[data-tone='danger'] {
+  --_tone: var(--dst-mark-danger);
+}
+
+.is-spinning {
+  animation: painel-spin 0.9s linear infinite;
+}
+
+@keyframes painel-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+// ═══ Card ═══════════════════════════════════════════════════════════════
+.painel {
+  border: 1px solid var(--dst-border);
+  border-radius: var(--dst-radius-card);
+  background: var(--dst-surface);
+  box-shadow: var(--dst-shadow-card);
+  color: var(--dst-text);
+}
+
+.painel__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px 0;
+}
+
+.painel__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.painel__h {
+  @include tk.t-section;
+  margin: 0;
+}
+
+.painel__meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--dst-muted);
+}
+
+.painel__date {
+  display: inline-block;
+
+  &::first-letter {
+    text-transform: uppercase; // "Quinta-feira", não "Quinta-Feira"
+  }
+}
+
+.painel__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  .input--date {
+    width: 150px;
+    text-align: center;
+  }
+}
+
+// Chip de ícone tingido
+.ico-chip {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--dst-radius-ctl);
+  background: color-mix(in srgb, var(--_tone) var(--dst-tint), transparent);
+  color: var(--_tone);
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+// ═══ Indicadores ════════════════════════════════════════════════════════
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr 1.3fr;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 16px 0;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--dst-border);
+  border-radius: var(--dst-radius-md);
+  // Leve lavagem do tom — o tile "pertence" à sua cor sem virar bloco saturado.
+  background: color-mix(in srgb, var(--_tone) 5%, var(--dst-tint-base));
+  // Faixa lateral discreta (DESIGN.md) em vez de tingir o tile.
+  box-shadow: inset 3px 0 0 var(--_tone);
+  overflow: hidden;
+
+  dd {
+    margin: 0;
+  }
+}
+
+.tile__label {
+  @include tk.t-label;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--dst-muted);
+}
+
+// DESIGN.md › KPI: valor 1.35rem bold. Algarismos proporcionais (número solto).
+.tile__value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--dst-text);
+
+  &--sm {
+    font-size: 1.2rem;
+  }
+}
+
+.tile__of {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dst-muted);
+}
+
+.tile__hint {
+  font-size: 12px;
+  color: var(--dst-muted);
+
+  strong {
+    color: var(--dst-text);
+    font-weight: 600;
+  }
+}
+
+.tile__meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px !important;
+}
+
+// Delta vs. ontem: neutro (mais destinado não é bom nem ruim), só direção.
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px 1px 2px;
+  border: 1px solid var(--dst-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dst-text);
+
+  .material-symbols-outlined {
+    font-size: 14px;
+    color: var(--dst-muted);
+  }
+}
+
+.delta__ref {
+  margin-left: 4px;
+  font-weight: 400;
+  color: var(--dst-muted);
+}
+
+// Pill de nível (local, para garantir contraste nos dois temas)
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--_tone) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--_tone) var(--dst-tint), transparent);
+  color: var(--_tone);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// Medidor: preenchimento = severidade; trilho = passo claro do mesmo tom.
+.meter {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--_tone) 18%, var(--dst-tint-base));
+  overflow: hidden;
+
+  &--thin {
+    height: 4px;
+  }
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--_tone);
+  transition: width 0.3s ease;
+}
+
+// Marcas dos limiares 70% / 90% (vão de 2px na cor da superfície).
+.meter__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  translate: -1px 0;
+  background: var(--dst-tint-base);
+}
+
+// ═══ Destinado por horário ══════════════════════════════════════════════
+.horas {
+  margin: 12px 16px 16px;
+  padding: 12px 14px 10px;
+  border: 1px solid var(--dst-border);
+  border-radius: var(--dst-radius-md);
+  background: var(--dst-table);
+}
+
+.horas__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.horas__title {
+  @include tk.t-label;
+  margin: 0;
+  color: var(--dst-text);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--dst-muted);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.legend__key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--_tone);
+}
+
+// Linha de detalhe: mostra a coluna em foco; senão, o resumo de alertas.
+.horas__readout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin: 0 0 0 auto;
+  font-size: 12px;
+  color: var(--dst-muted);
+
+  strong {
+    color: var(--dst-text);
+    font-weight: 600;
+  }
+
+  .material-symbols-outlined {
+    font-size: 16px;
+  }
+}
+
+.tone-warn {
+  color: var(--dst-mark-warning);
+}
+
+.muted {
+  color: var(--dst-muted);
+}
+
+.cols {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 18px 0 2px;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.col {
+  position: relative;
+  flex: 1 0 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 2px;
+  border-radius: 6px;
+  outline: none;
+  cursor: default;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--dst-row-hover);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--dst-primary);
+  }
+}
+
+// Trilho = capacidade da janela (100%); preenchimento = destinado.
+.col__plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: min(24px, 100%);
+  height: 72px;
+  border-radius: 4px 4px 0 0;
+  background: color-mix(in srgb, var(--_tone) 14%, var(--dst-table));
+}
+
+.col__fill {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0; // ponta arredondada, base reta
+  background: var(--_tone);
+  transition: height 0.3s ease;
+}
+
+// Rótulo direto só no pico (seletivo, nunca em todas).
+.col__label {
+  position: absolute;
+  left: 50%;
+  translate: -50% -4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dst-text);
+  white-space: nowrap;
+}
+
+.col__hour {
+  font-size: 11px;
+  color: var(--dst-muted);
+  font-variant-numeric: tabular-nums;
+
+  .is-now & {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: var(--dst-mark-primary);
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.horas__empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 16px 0;
+  font-size: 13px;
+  color: var(--dst-muted);
+}
+
+// ═══ Responsivo ═════════════════════════════════════════════════════════
+@media (max-width: 1100px) {
+  .tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .painel__bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .painel__actions {
+    justify-content: space-between;
+  }
+
+  .seg--sm {
+    width: 100%;
+
+    .seg__item {
+      flex: 1;
+    }
+  }
+
+  .date-stepper {
+    flex: 1 1 100%;
+
+    .input--date {
+      flex: 1;
+      width: auto;
+    }
+  }
+
+  .tiles {
+    padding-inline: 12px;
+  }
+
+  .tile--wide {
+    grid-column: 1 / -1;
+    order: -1; // o que importa primeiro no celular
+  }
+
+  .horas {
+    margin-inline: 12px;
+  }
+
+  .horas__readout {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .tile--aside {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-spinning,
+  .meter__fill,
+  .col__fill {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .meter__fill,
+  .col__fill,
+  .legend__key {
+    background: CanvasText;
+  }
+}

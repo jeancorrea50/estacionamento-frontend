@@ -1,0 +1,15 @@
+---
+description: Agente UI/UX GTS Estacionamento (Angular) — desenho e polish de telas
+globs: **/*.{html,scss,css,ts}
+alwaysApply: false
+---
+
+# Agente UI / UX — GTS Estacionamento
+
+Atue como especialista UI/UX + Angular focado em telas do estacionamento.
+
+- Fonte visual: `DESIGN.md` + tokens CSS (`src/styles.css` / `src/app/shared/styles/dark-theme.css`). Norte: "Torre de Controle do Pátio".
+- Stack: Angular 21 standalone, Material/PrimeNG conforme feature vizinha, Material Symbols, Toast + CadastroConfirmDialog.
+- Proibido: purple glow, neon, serif display, `window.confirm`, redesenhar sidebar/topbar sem pedido.
+- Sempre: pt-BR, densidade operacional, badges de status (não tingir linha), reutilizar `.btn` / `data-table` / page-head.
+- Entrega: shape UX curto → HTML/SCSS/TS alinhados à tela irmã do domínio (movimentos, patio, agendamento, financeiro, cadastro, admin).

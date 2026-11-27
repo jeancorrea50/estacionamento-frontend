@@ -1,0 +1,915 @@
+// Painel do pátio — escuro (padrão) + claro (html.theme-light) + celular.
+// Cores: Agendado = azul de ação · No pátio = verde (DESIGN.md) · Livre = trilho neutro.
+// Âmbar/vermelho só para nível de lotação (≥ 70% / ≥ 90%), sempre com o percentual escrito.
+// .btn e .data-table vêm do styles.css global; .card, .seg, .icon-btn, .input, .empty e
+// .link-btn vêm do kit da Destinação (mesma gramática visual).
+@use '../../../../shared/styles/gts-tokens' as tk;
+@use '../destinacao-page/destinar/destinacao-tokens' as dst;
+@use '../destinacao-page/destinar/destinacao-kit' as kit;
+
+:host {
+  @include dst.tokens;
+  @include tk.tokens;
+}
+
+:host-context(html.theme-light) {
+  @include dst.tokens-light;
+  @include tk.tokens-light;
+}
+
+@include kit.kit;
+
+// ─── Papéis de cor (um lugar só) ────────────────────────────────────────
+[data-kind='agendado'] {
+  --_c: var(--gts-mark-agendado);
+}
+
+[data-kind='patio'] {
+  --_c: var(--gts-mark-patio);
+}
+
+[data-kind='livre'] {
+  --_c: var(--gts-track);
+}
+
+[data-tone] {
+  --_tone: var(--gts-muted);
+}
+
+[data-tone='ok'] {
+  --_tone: var(--gts-mark-patio);
+}
+
+[data-tone='warn'] {
+  --_tone: var(--gts-mark-warning);
+}
+
+[data-tone='danger'] {
+  --_tone: var(--gts-mark-danger);
+}
+
+[data-tone='info'] {
+  --_tone: var(--gts-primary);
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--gts-muted);
+}
+
+.is-spinning {
+  animation: pa-spin 0.9s linear infinite;
+}
+
+@keyframes pa-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.pa {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--gts-text);
+}
+
+// ═══ Cabeçalho ══════════════════════════════════════════════════════════
+.pa__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.pa__head-copy {
+  min-width: 0;
+}
+
+.pa__title {
+  @include tk.t-title;
+  margin: 0;
+  color: var(--gts-text);
+}
+
+.pa__desc {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--gts-muted);
+}
+
+.pa__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pa__novo,
+.pa__fab-bar .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pa__fab-bar {
+  display: none;
+}
+
+// ═══ Barra de filtros ═══════════════════════════════════════════════════
+// Hierarquia: busca (larga, primeira) > filtros (médios) > ações (discretas, à direita).
+.tb {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+}
+
+.tb__main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 2 1 300px;
+  min-width: 0;
+}
+
+.tb__busca {
+  flex: 1;
+  height: 40px;
+}
+
+.tb__only-mobile {
+  display: none;
+}
+
+.tb__filtros-btn {
+  position: relative;
+}
+
+.tb__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--gts-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tb__filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.tb__transp {
+  width: 260px;
+  min-width: 0;
+}
+
+.date-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  .input--date {
+    width: 150px;
+    text-align: center;
+  }
+}
+
+.tb__buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tb__acoes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.tb__caret {
+  margin-left: -2px;
+  font-size: 18px;
+}
+
+// ═══ Indicadores ════════════════════════════════════════════════════════
+.kpis {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  --_c: var(--gts-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--gts-border);
+  border-radius: var(--gts-radius-card);
+  background: var(--gts-surface);
+  box-shadow: var(--gts-shadow-card);
+  color: var(--gts-text);
+}
+
+// Card guiado por nível (pico): ícone no tom do nível. Papel (data-kind) tem prioridade.
+.kpi[data-tone] {
+  --_c: var(--_tone);
+}
+
+.kpi[data-kind='agendado'] {
+  --_c: var(--gts-mark-agendado);
+}
+
+.kpi[data-kind='patio'] {
+  --_c: var(--gts-mark-patio);
+}
+
+.kpi__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kpi__label {
+  @include tk.t-label;
+  margin: 0;
+  color: var(--gts-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi__value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-weight: 700;
+
+  &--hero {
+    font-size: 1.75rem; // único número maior da tela: o que o operador procura primeiro
+  }
+
+  &--muted {
+    color: var(--gts-muted);
+  }
+}
+
+.kpi__of {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gts-muted);
+}
+
+.kpi__sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--gts-muted);
+
+  strong {
+    color: var(--gts-text);
+    font-weight: 600;
+  }
+}
+
+.kpi--hero {
+  gap: 8px;
+  // Faixa lateral discreta no tom do nível (DESIGN.md), sem tingir o card.
+  box-shadow:
+    inset 3px 0 0 var(--_tone),
+    var(--gts-shadow-card);
+
+  .kpi__top {
+    justify-content: space-between;
+  }
+}
+
+.ico-chip {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--gts-radius-ctl);
+  background: color-mix(in srgb, var(--_c) var(--gts-tint), transparent);
+  color: var(--_c);
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+}
+
+// Barra empilhada: agendado | no pátio | (trilho = livre).
+.stack {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--gts-track);
+  overflow: hidden;
+
+  &--lg {
+    height: 12px;
+  }
+}
+
+.stack__seg {
+  display: block;
+  height: 100%;
+  background: var(--_c);
+  transition: width 0.3s ease;
+
+  &[data-kind='agendado'] {
+    box-shadow: 2px 0 0 var(--gts-surface); // separador entre as fatias
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--gts-muted);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  strong {
+    color: var(--gts-text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.legend__key {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--_c);
+
+  &[data-kind='livre'] {
+    box-shadow: inset 0 0 0 1px var(--gts-border);
+  }
+}
+
+// Pill de nível/“agora” (borda semântica).
+.pa-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--_tone) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--_tone) var(--gts-tint), transparent);
+  color: var(--_tone);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--sm {
+    justify-content: center;
+    min-width: 44px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+}
+
+// ═══ Linha do tempo ═════════════════════════════════════════════════════
+.tl {
+  overflow: hidden;
+}
+
+.tl__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gts-border);
+}
+
+.tl__title {
+  @include tk.t-section;
+  margin: 0;
+}
+
+.tl__meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--gts-muted);
+
+  strong {
+    color: var(--gts-text);
+  }
+}
+
+.tl__tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.tl__state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--gts-muted);
+
+  &--erro {
+    color: var(--gts-mark-danger);
+  }
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  // A regra global de toque (44px em inputs no celular) deformaria o switch;
+  // o alvo de toque é o rótulo inteiro (.toggle).
+  min-width: 34px;
+  min-height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gts-muted) 40%, transparent);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: translate 0.15s;
+  }
+
+  &:checked {
+    background: var(--gts-primary);
+
+    &::after {
+      translate: 14px 0;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gts-primary);
+    outline-offset: 2px;
+  }
+}
+
+.tl__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  thead th {
+    @include tk.t-label;
+    padding: 8px 16px;
+    text-align: left;
+    color: var(--gts-muted);
+    background: var(--gts-table-head);
+    white-space: nowrap;
+  }
+
+  .num {
+    width: 84px;
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.tl__col-bar {
+  width: 100%;
+}
+
+.tl__row {
+  th,
+  td {
+    height: 44px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--gts-border);
+    vertical-align: middle;
+  }
+
+  &:last-child th,
+  &:last-child td {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: var(--gts-row-hover);
+  }
+
+  // Sem movimento: números apagados, a barra vazia já diz tudo.
+  &.is-empty td.num {
+    color: var(--gts-muted);
+  }
+
+  // Horário já passou (só quando o dia exibido é hoje).
+  &.is-past {
+    th,
+    td {
+      color: var(--gts-muted);
+    }
+
+    .stack {
+      opacity: 0.55;
+    }
+  }
+
+  // Horário atual: faixa lateral + leve lavagem azul.
+  &.is-now {
+    background: color-mix(in srgb, var(--gts-primary) 7%, transparent);
+
+    th {
+      box-shadow: inset 3px 0 0 var(--gts-primary);
+    }
+  }
+}
+
+.tl__hora {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tl__fim {
+  font-weight: 400;
+  color: var(--gts-muted);
+}
+
+.tl__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .stack {
+    flex: 1;
+  }
+}
+
+.tl__pct {
+  min-width: 44px;
+  font-size: 12px;
+  color: var(--gts-muted);
+  text-align: right;
+}
+
+.tl__dot {
+  display: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: var(--_c);
+}
+
+// Rótulo só para leitor de tela (o cabeçalho visual já nomeia a coluna).
+.tl__num-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tl__livres strong {
+  font-weight: 700;
+}
+
+.tl__foot {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--gts-border);
+  font-size: 12px;
+  color: var(--gts-muted);
+}
+
+.empty {
+  gap: 6px;
+  padding: 28px 16px;
+}
+
+// Ícones dos itens do mat-menu (o painel do menu é renderizado fora do host).
+::ng-deep .mat-mdc-menu-item .pa-menu-ico {
+  margin-right: 10px;
+  font-size: 18px;
+  vertical-align: -4px;
+}
+
+// ═══ Responsivo ═════════════════════════════════════════════════════════
+@media (max-width: 1279px) {
+  .kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .kpi--hero {
+    grid-column: 1 / -1;
+  }
+
+  .tb__acoes {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .tl__table thead th:nth-child(2) {
+    color: transparent;
+  }
+}
+
+// Celular: menos coisa na tela, alvos de toque ≥ 44px.
+@media (max-width: 640px) {
+  .pa {
+    gap: 12px;
+    padding-bottom: 84px; // espaço da barra fixa
+  }
+
+  .pa__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pa__head-actions .seg {
+    display: flex;
+    width: 100%;
+
+    .seg__item {
+      flex: 1;
+      min-height: 36px;
+    }
+  }
+
+  .pa__novo {
+    display: none;
+  }
+
+  .pa__fab-bar {
+    position: fixed;
+    z-index: 30;
+    // Acima da barra inferior do app no celular (definida no layout).
+    inset: auto 0 var(--gts-bottom-nav-h, 0px) 0;
+    display: block;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--gts-border);
+    background: var(--gts-surface);
+
+    .btn {
+      width: 100%;
+      height: 48px;
+      font-size: 15px;
+    }
+  }
+
+  // Barra: só a busca à vista; filtros abrem sob demanda.
+  .tb {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .tb__main {
+    flex-basis: 100%;
+  }
+
+  .tb__busca {
+    height: 44px;
+  }
+
+  .tb__only-mobile {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+  }
+
+  .tb__filtros {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    flex-basis: 100%;
+    padding-top: 4px;
+
+    &.is-open {
+      display: flex;
+    }
+  }
+
+  .tb__transp,
+  .tb__buscar {
+    width: 100%;
+  }
+
+  .tb__buscar {
+    justify-content: center;
+    height: 44px;
+  }
+
+  .date-stepper {
+    width: 100%;
+
+    .input--date {
+      flex: 1;
+      width: auto;
+      height: 44px;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  .tb__acoes {
+    display: none;
+  }
+
+  // Indicadores: o principal inteiro; os 3 de apoio compactos lado a lado.
+  .kpis {
+    gap: 8px;
+  }
+
+  .kpi {
+    padding: 10px 12px;
+  }
+
+  .kpi:not(.kpi--hero) {
+    .ico-chip {
+      display: none;
+    }
+
+    .kpi__value {
+      font-size: 1.2rem;
+    }
+
+    .kpi__sub {
+      font-size: 11px;
+    }
+  }
+
+  .kpi__value--hero {
+    font-size: 1.6rem;
+  }
+
+  // Linha do tempo vira lista: hora + números em cima, barra embaixo.
+  .tl__head {
+    padding: 12px;
+  }
+
+  .tl__tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .toggle {
+    min-height: 44px;
+  }
+
+  .tl__table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .tl__table tbody {
+    display: block;
+  }
+
+  .tl__row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    grid-template-areas:
+      'hora ag pa li'
+      'bar bar bar bar';
+    align-items: center;
+    gap: 6px 14px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--gts-border);
+
+    th,
+    td {
+      height: auto;
+      padding: 0;
+      border: 0;
+    }
+
+    &.is-now {
+      box-shadow: inset 3px 0 0 var(--gts-primary);
+
+      th {
+        box-shadow: none;
+      }
+    }
+  }
+
+  .tl__hora {
+    grid-area: hora;
+    min-width: 0;
+  }
+
+  .tl__col-bar {
+    grid-area: bar;
+    width: auto;
+  }
+
+  .tl__row td.num {
+    width: auto;
+    font-size: 13px;
+
+    &:nth-of-type(2) {
+      grid-area: ag;
+    }
+
+    &:nth-of-type(3) {
+      grid-area: pa;
+    }
+
+    &:nth-of-type(4) {
+      grid-area: li;
+    }
+  }
+
+  .tl__dot {
+    display: inline-block;
+  }
+
+  .tl__fim {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-spinning,
+  .stack__seg,
+  .switch,
+  .switch::after {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .stack__seg,
+  .legend__key,
+  .tl__dot {
+    background: CanvasText;
+  }
+}

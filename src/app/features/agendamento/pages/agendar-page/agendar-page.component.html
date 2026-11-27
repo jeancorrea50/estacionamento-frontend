@@ -1,86 +1,435 @@
-<div class="agendar-page page-container">
-  <div class="page-content">
-    <header class="agendar-page__head" aria-labelledby="agendar-title">
-      <div class="agendar-page__copy">
-        <h1 id="agendar-title" class="agendar-page__title">Agendar</h1>
-        <p class="agendar-page__sub">
-          Consulte vagas liberadas e registre agendamentos conforme sua permissão.
-        </p>
+<div class="page-container">
+  <div class="page-content ma">
+    <!-- ═══ Cabeçalho ═══════════════════════════════════════════════════ -->
+    <header class="ma__head" aria-labelledby="agendar-title">
+      <div class="ma__head-copy">
+        <h1 id="agendar-title" class="ma__title">Meus agendamentos</h1>
+        @if (nomeTransportadora()) {
+          <p class="ma__empresa">
+            <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
+            {{ nomeTransportadora() }}
+          </p>
+        } @else {
+          <p class="ma__empresa">Vagas reservadas, chegadas e histórico do pátio.</p>
+        }
       </div>
-      <div class="agendar-page__actions">
-        <button type="button" class="btn btn-secondary" (click)="carregar()">
-          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-          Atualizar
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="abrirNovo()"
-          [attr.title]="podeCriar ? null : 'Requer permissão agendar.gravar'"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          Novo agendamento
-        </button>
-      </div>
+      @if (canVisualizar) {
+        <div class="ma__head-actions no-print">
+          <button type="button" class="btn btn-ghost ma__only-desktop" (click)="imprimir()">
+            <span class="material-symbols-outlined" aria-hidden="true">print</span>Imprimir
+            relatório
+          </button>
+          <button type="button" class="btn btn-ghost ma__only-desktop" (click)="exportarExcel()">
+            <span class="material-symbols-outlined" aria-hidden="true">table_view</span>Exportar
+            Excel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary ma__novo"
+            (click)="abrirNovo()"
+            [attr.title]="podeCriar ? null : 'Requer permissão agendar.gravar'"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>Novo agendamento
+          </button>
+          <!-- Celular: imprimir/Excel no menu -->
+          <button
+            type="button"
+            class="icon-btn ma__only-mobile"
+            aria-label="Imprimir ou exportar"
+            [matMenuTriggerFor]="maisMenu"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+          <mat-menu #maisMenu="matMenu" xPosition="before" yPosition="below">
+            <button mat-menu-item (click)="imprimir()">
+              <span class="material-symbols-outlined ma-menu-ico" aria-hidden="true">print</span
+              >Imprimir relatório
+            </button>
+            <button mat-menu-item (click)="exportarExcel()">
+              <span class="material-symbols-outlined ma-menu-ico" aria-hidden="true"
+                >table_view</span
+              >Exportar Excel
+            </button>
+          </mat-menu>
+        </div>
+      }
     </header>
 
-    @if (erro()) {
+    <!-- Só na impressão -->
+    <div class="print-only print-head">
+      <strong>Relatório de agendamentos</strong>
+      @if (nomeTransportadora()) {
+        · {{ nomeTransportadora() }}
+      }
+      <br />
+      Período:
+      {{
+        periodo() === 'proximos'
+          ? 'Próximos'
+          : periodo() === 'hoje'
+            ? 'Hoje'
+            : periodo() === 'mes'
+              ? 'Este mês'
+              : 'Todos'
+      }}
+      · Emitido em {{ emitidoEm | date: 'dd/MM/yyyy HH:mm' }}
+    </div>
+
+    @if (erro() && !linhas().length) {
       <div class="trn-list-banner trn-list-banner--error" role="alert">
         <p class="error-msg">{{ erro() }}</p>
+        @if (canVisualizar) {
+          <button type="button" class="btn btn-secondary btn--sm" (click)="atualizarTudo()">
+            Tentar de novo
+          </button>
+        }
       </div>
     } @else {
-      <section class="agendar-lista agendar-card" aria-label="Meus agendamentos">
-        <div class="agendar-lista__head">
-          <h2>Meus agendamentos</h2>
-          <span class="agendar-lista__count">{{ totalCount() }}</span>
+      <!-- ═══ Painel da transportadora ════════════════════════════════════ -->
+      <section class="kpis no-print" aria-label="Resumo da sua transportadora">
+        @if (!podeEscolherTransportadora) {
+          <article class="kpi kpi--hero">
+            <h2 class="kpi__label">Próxima vaga para você</h2>
+            @if (carregandoVaga()) {
+              <p class="kpi__value kpi__value--muted">Procurando…</p>
+            } @else if (proximaVaga(); as p) {
+              <p class="kpi__value">{{ diaLongo(p.data) }}</p>
+              <p class="kpi__sub">
+                <strong>{{ plural(p.vagas, 'vaga', 'vagas') }}</strong> nesse dia ·
+                {{
+                  plural(
+                    p.vagasMes,
+                    p.destinada ? 'vaga destinada' : 'vaga livre',
+                    p.destinada ? 'vagas destinadas' : 'vagas livres'
+                  )
+                }}
+                no mês
+              </p>
+              <button type="button" class="btn btn-primary kpi__cta" (click)="agendarProximaVaga()">
+                <span class="material-symbols-outlined" aria-hidden="true">event_available</span
+                >Agendar nesse dia
+              </button>
+            } @else {
+              <p class="kpi__value kpi__value--muted">Sem vaga nos próximos 60 dias</p>
+              <p class="kpi__sub">Fale com o pátio para liberar vagas.</p>
+            }
+          </article>
+        }
+
+        <article class="kpi" data-kind="hoje">
+          <header class="kpi__top">
+            <span class="ico-chip" aria-hidden="true"
+              ><span class="material-symbols-outlined">today</span></span
+            >
+            <h2 class="kpi__label">Hoje</h2>
+          </header>
+          <dl class="kpi__dl">
+            <div>
+              <dt>Chegando</dt>
+              <dd>{{ hojeResumo().chegando }}</dd>
+            </div>
+            <div>
+              <dt>No pátio</dt>
+              <dd>{{ hojeResumo().noPatio }}</dd>
+            </div>
+            <div>
+              <dt>Saíram</dt>
+              <dd>{{ hojeResumo().concluidos }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="kpi" data-kind="agendado">
+          <header class="kpi__top">
+            <span class="ico-chip" aria-hidden="true"
+              ><span class="material-symbols-outlined">date_range</span></span
+            >
+            <h2 class="kpi__label">Próximos 7 dias</h2>
+          </header>
+          <p class="kpi__value">{{ proximos7() }}</p>
+          <p class="kpi__sub">
+            {{ proximos7() === 1 ? 'agendamento marcado' : 'agendamentos marcados' }}
+          </p>
+        </article>
+
+        <article class="kpi" data-kind="frete">
+          <header class="kpi__top">
+            <span class="ico-chip" aria-hidden="true"
+              ><span class="material-symbols-outlined">payments</span></span
+            >
+            <h2 class="kpi__label">Quem paga <span class="kpi__per">· no período</span></h2>
+          </header>
+          <p class="kpi__value kpi__value--split">
+            <span
+              >CIF <strong>{{ freteResumo().cif }}</strong></span
+            >
+            <span
+              >FOB <strong>{{ freteResumo().fob }}</strong></span
+            >
+          </p>
+          <div
+            class="split"
+            role="img"
+            [attr.aria-label]="freteResumo().cif + ' CIF e ' + freteResumo().fob + ' FOB'"
+          >
+            <span class="split__cif" [style.width.%]="freteResumo().pCif"></span>
+          </div>
+        </article>
+      </section>
+
+      <!-- ═══ Lista ═══════════════════════════════════════════════════════ -->
+      <section class="card lista" aria-labelledby="lista-title">
+        <header class="lista__head no-print">
+          <h2 id="lista-title" class="lista__title">Agendamentos</h2>
+          <div class="chips" role="radiogroup" aria-label="Período">
+            @for (p of periodos; track p.id) {
+              <button
+                type="button"
+                role="radio"
+                class="chip"
+                [class.is-active]="periodo() === p.id"
+                [attr.aria-checked]="periodo() === p.id"
+                (click)="setPeriodo(p.id)"
+              >
+                {{ p.label }}
+              </button>
+            }
+          </div>
+        </header>
+
+        <div class="lista__filtros no-print">
+          <label class="input input--search lista__busca">
+            <span class="material-symbols-outlined" aria-hidden="true">search</span>
+            <input
+              type="search"
+              placeholder="Buscar placa ou motorista"
+              aria-label="Buscar placa ou motorista"
+              [ngModel]="busca()"
+              (ngModelChange)="busca.set($event)"
+            />
+          </label>
+          <button
+            type="button"
+            class="btn btn-ghost lista__filtros-btn"
+            aria-controls="lista-mais-filtros"
+            [attr.aria-expanded]="filtrosAbertos()"
+            (click)="filtrosAbertos.set(!filtrosAbertos())"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">tune</span>Filtros
+            @if (filtrosAtivos()) {
+              <span class="badge" [attr.aria-label]="filtrosAtivos() + ' ativos'">{{
+                filtrosAtivos()
+              }}</span>
+            }
+          </button>
+          <div id="lista-mais-filtros" class="lista__mais" [class.is-open]="filtrosAbertos()">
+            <select
+              class="input"
+              aria-label="Situação"
+              [ngModel]="situacao()"
+              (ngModelChange)="situacao.set($event)"
+            >
+              <option value="todas">Todas as situações</option>
+              @for (s of situacoes; track s) {
+                <option [value]="s">{{ SITUACAO[s].label }}</option>
+              }
+            </select>
+            <select
+              class="input"
+              aria-label="Quem paga"
+              [ngModel]="frete()"
+              (ngModelChange)="frete.set($event)"
+            >
+              <option value="todos">CIF e FOB</option>
+              <option value="CIF">Só CIF</option>
+              <option value="FOB">Só FOB</option>
+            </select>
+          </div>
         </div>
 
-        @if (loading()) {
-          <p class="loading-msg">Carregando…</p>
-        } @else {
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Placa</th>
-                  <th>Motorista</th>
-                  <th>Telefone</th>
-                  <th>Status</th>
-                  <th>Observação</th>
-                </tr>
-              </thead>
+        @if (loading() && !linhas().length) {
+          <p class="lista__estado" role="status">Carregando agendamentos…</p>
+        } @else if (grupos().length) {
+          <table class="tbl" [attr.aria-busy]="loading()">
+            <caption class="sr-only">
+              Agendamentos da transportadora
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Horário</th>
+                <th scope="col">Placa</th>
+                <th scope="col" class="col-md">Motorista</th>
+                <th scope="col" class="col-md">Serviço</th>
+                <th scope="col">Quem paga</th>
+                <th scope="col">Situação</th>
+                <th scope="col" class="col-acoes no-print"><span class="sr-only">Ações</span></th>
+              </tr>
+            </thead>
+            @for (g of grupos(); track g.data) {
               <tbody>
-                @for (item of items(); track item.id) {
-                  <tr>
-                    <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td>{{ formatPlaca(item.placaVeiculo) }}</td>
-                    <td>{{ item.nomeMotorista }}</td>
-                    <td>{{ formatCelularMotorista(item.celularMotorista) }}</td>
-                    <td>{{ statusLabel(item) }}</td>
-                    <td>{{ item.observacao || '—' }}</td>
+                <tr class="tbl__grupo" [class.is-hoje]="g.data === hoje">
+                  <th scope="colgroup" colspan="7">
+                    {{ g.titulo }}
+                    <span class="muted"
+                      >· {{ g.data | date: 'dd/MM/yyyy' }} ·
+                      {{ plural(g.itens.length, 'agendamento', 'agendamentos') }}</span
+                    >
+                  </th>
+                </tr>
+                @for (a of g.itens; track a.id) {
+                  <tr class="tbl__row" [class.is-cancel]="a.situacao === 'cancelado'">
+                    <td class="tbl__hora mono">
+                      <strong>{{ a.hora }}</strong>
+                    </td>
+                    <td>
+                      <span class="placa mono">{{ formatPlaca(a.placa) }}</span>
+                      @if (podeEscolherTransportadora && a.transportadora) {
+                        <span class="tbl__transp">{{ a.transportadora }}</span>
+                      }
+                    </td>
+                    <td class="col-md">{{ a.motorista || '—' }}</td>
+                    <td class="col-md">
+                      <span class="servico">
+                        @for (s of a.servicos; track s; let ultimo = $last) {
+                          <span class="servico__item">
+                            <span class="material-symbols-outlined" aria-hidden="true">{{
+                              SERVICO_INFO[s].icon
+                            }}</span>
+                            {{ SERVICO_INFO[s].label }}
+                          </span>
+                          @if (!ultimo) {
+                            <span class="servico__mais" aria-hidden="true">+</span>
+                          }
+                        }
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        class="frete"
+                        [attr.data-frete]="a.frete"
+                        [title]="
+                          a.frete === 'FOB'
+                            ? 'Fatura para ' + (a.pagadorNome || 'terceiro')
+                            : 'A própria transportadora paga'
+                        "
+                        >{{ a.frete }}</span
+                      >
+                      @if (a.frete === 'FOB' && a.pagadorNome) {
+                        <span class="frete__pagador">{{ a.pagadorNome }}</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="pill" [attr.data-tone]="SITUACAO[a.situacao].tone">
+                        <span class="material-symbols-outlined" aria-hidden="true">{{
+                          SITUACAO[a.situacao].icon
+                        }}</span>
+                        {{ SITUACAO[a.situacao].label }}
+                      </span>
+                    </td>
+                    <td class="col-acoes no-print">
+                      @if (podeCriar || (podeCancelar && a.situacao === 'agendado')) {
+                        <button
+                          type="button"
+                          class="icon-btn"
+                          [attr.aria-label]="'Ações da placa ' + formatPlaca(a.placa)"
+                          [matMenuTriggerFor]="rowMenu"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true"
+                            >more_vert</span
+                          >
+                        </button>
+                        <mat-menu #rowMenu="matMenu" xPosition="before" yPosition="below">
+                          @if (podeCriar) {
+                            <button mat-menu-item (click)="agendarDeNovo(a)">
+                              <span class="material-symbols-outlined ma-menu-ico" aria-hidden="true"
+                                >event_repeat</span
+                              >Agendar de novo esta placa
+                            </button>
+                          }
+                          @if (podeCancelar && a.situacao === 'agendado') {
+                            <button mat-menu-item class="ma-menu-danger" (click)="cancelar(a)">
+                              <span class="material-symbols-outlined ma-menu-ico" aria-hidden="true"
+                                >event_busy</span
+                              >Cancelar agendamento
+                            </button>
+                          }
+                        </mat-menu>
+                      }
+                    </td>
                   </tr>
                 }
               </tbody>
-            </table>
-            @if (items().length === 0) {
-              <div class="empty-state empty-state--compact">
-                <span class="material-symbols-outlined" aria-hidden="true">event_available</span>
-                <p class="empty-msg">Nenhum agendamento encontrado.</p>
-                <button type="button" class="btn btn-primary" (click)="abrirNovo()">
-                  Criar primeiro agendamento
-                </button>
-              </div>
             }
+          </table>
+          @if (limitado()) {
+            <p class="lista__estado no-print">
+              Mostrando os {{ linhas().length }} mais recentes de {{ totalCount() }}. Use o período
+              ou a busca para encontrar outros.
+            </p>
+          }
+        } @else {
+          <div class="empty" role="status">
+            <span class="material-symbols-outlined empty__icon" aria-hidden="true">event_note</span>
+            <strong>Nenhum agendamento aqui</strong>
+            <span>Troque o período ou os filtros, ou faça um novo agendamento.</span>
+            <div class="empty__acoes no-print">
+              <button type="button" class="btn btn-secondary" (click)="limparFiltros()">
+                Ver todos
+              </button>
+              @if (podeCriar) {
+                <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+                  Novo agendamento
+                </button>
+              }
+            </div>
           </div>
         }
+
+        <!-- Legenda: o que cada situação e CIF/FOB quer dizer -->
+        <footer class="legenda">
+          <h3 class="legenda__title">Legenda</h3>
+          <ul>
+            @for (s of situacoes; track s) {
+              <li>
+                <span class="pill" [attr.data-tone]="SITUACAO[s].tone">
+                  <span class="material-symbols-outlined" aria-hidden="true">{{
+                    SITUACAO[s].icon
+                  }}</span>{{ SITUACAO[s].label }}
+                </span>
+                <span>{{ SITUACAO[s].ajuda }}</span>
+              </li>
+            }
+            <li>
+              <span class="frete" data-frete="CIF">CIF</span
+              ><span>A própria transportadora paga a fatura.</span>
+            </li>
+            <li>
+              <span class="frete" data-frete="FOB">FOB</span
+              ><span>Um terceiro (quem recebe a carga) paga a fatura. A vaga continua sua.</span>
+            </li>
+          </ul>
+        </footer>
       </section>
     }
   </div>
 
+  <!-- Celular: ação principal sempre à mão -->
+  @if (canVisualizar && podeCriar) {
+    <div class="ma__fab-bar no-print">
+      <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>Novo agendamento
+      </button>
+    </div>
+  }
+
   <app-agendamento-novo-modal
     [aberto]="showForm()"
     [podeEscolherTransportadora]="podeEscolherTransportadora"
+    [diaInicial]="novoDia()"
+    [placasIniciais]="novoPlacas()"
+    [modalidadeInicial]="novoModalidade()"
+    [transportadoraNome]="nomeTransportadora()"
+    [transportadoraInicial]="novoTransportadora()"
     (fechado)="fecharForm()"
     (salvo)="onNovoSalvo()"
   />

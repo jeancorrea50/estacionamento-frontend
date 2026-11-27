@@ -13,6 +13,8 @@ export interface AgendamentoFiltro {
   dataInicial?: string;
   dataFinal?: string;
   transportadoraId?: number;
+  /** Inclui no pátio, concluídos e cancelados (tela Meus agendamentos). */
+  incluirTodosStatus?: boolean;
   numeroPagina: number;
   tamanhoPagina: number;
 }
@@ -36,6 +38,10 @@ export interface AgendamentoSearchItem {
   dataHoraEntrada: string;
   status?: EntradaSaidaStatus | number | string;
   observacao?: string | null;
+  /** Saída do pátio (quando já concluído). */
+  dataHoraSaida?: string | null;
+  /** Serviço: 1 Estacionamento, 2 Limpeza, 3 Ambos. */
+  modalidadeAgendamento?: 1 | 2 | 3;
 }
 
 export interface AgendamentoPagedResult {

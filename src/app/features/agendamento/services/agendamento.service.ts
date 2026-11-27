@@ -44,6 +44,7 @@ export class AgendamentoService {
     if (typeof filtro.transportadoraId === 'number' && filtro.transportadoraId > 0) {
       params = params.set('TransportadoraId', String(filtro.transportadoraId));
     }
+    if (filtro.incluirTodosStatus) params = params.set('IncluirTodosStatus', 'true');
 
     return this.http.get<unknown>(this.apiRoot, { params }).pipe(
       map((body) => this.normalizePaged(body, filtro.numeroPagina, filtro.tamanhoPagina))
@@ -63,7 +64,11 @@ export class AgendamentoService {
       timeout(15000),
       map((body) => mapMotoristaPorPlacaResponse(body)),
       catchError((err: unknown) => {
-        const status = err instanceof HttpErrorResponse ? err.status : 0;
+        // O errorInterceptor repassa `{ message, status }` (não HttpErrorResponse).
+        const status =
+          err instanceof HttpErrorResponse
+            ? err.status
+            : Number((err as { status?: number } | null)?.status) || 0;
         if (status === 404) return of(null);
         return throwError(() => err);
       })
@@ -207,6 +212,10 @@ export class AgendamentoService {
         this.pickRaw(row, 'status', 'Status') as number | string | undefined
       ),
       observacao: this.pickStringOrNull(row, 'observacao', 'Observacao'),
+      dataHoraSaida: this.pickStringOrNull(row, 'dataHoraSaida', 'DataHoraSaida'),
+      modalidadeAgendamento: modalidadeDe(
+        this.pickRaw(row, 'modalidadeAgendamento', 'ModalidadeAgendamento')
+      ),
     };
   }
 
@@ -320,4 +329,12 @@ export class AgendamentoService {
     }
     return undefined;
   }
+}
+
+/** Modalidade do agendamento (número ou nome do enum do backend). */
+function modalidadeDe(raw: unknown): 1 | 2 | 3 {
+  const s = String(raw ?? '').trim().toLowerCase();
+  if (s === '2' || s === 'limpeza') return 2;
+  if (s === '3' || s === 'ambos') return 3;
+  return 1;
 }

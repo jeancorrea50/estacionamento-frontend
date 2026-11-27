@@ -1,190 +1,552 @@
 @if (aberto()) {
-  <div class="modal-overlay modal-overlay--frota" (click)="fechar()" role="presentation">
-    <div
-      class="modal-content modal-content--frota modal-content--agendamento-novo"
+  <!-- Fecha só por X / Cancelar (não fecha clicando fora). -->
+  <div class="na-overlay" role="presentation">
+    <form
+      class="na"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-agendamento-title"
-      (click)="$event.stopPropagation()"
+      aria-labelledby="na-title"
+      novalidate
+      (submit)="$event.preventDefault(); salvar()"
     >
-      <div class="modal-header">
-        <h2 id="modal-agendamento-title">Novo agendamento</h2>
-        <button type="button" class="modal-close" aria-label="Fechar" (click)="fechar()">
-          &times;
-        </button>
-      </div>
-      <form [formGroup]="form" (ngSubmit)="salvar()">
-        <div class="modal-body modal-body--frota-compact ag-novo-body">
-          @if (podeEscolherTransportadora()) {
-            <div class="form-row ag-novo-field">
-              <label>Transportadora <span class="required">*</span></label>
-              <app-transportadora-lookup-field
-                [transportadoraId]="transportadoraFormId()"
-                [transportadoraNome]="transportadoraFormNome()"
-                placeholder="Buscar por CNPJ, razão social ou fantasia…"
-                (transportadoraIdChange)="onTransportadoraIdChange($event)"
-                (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
-              />
-            </div>
+      <!-- ═══ Cabeçalho ═══════════════════════════════════════════════ -->
+      <header class="na__head">
+        <div>
+          <h2 id="na-title" class="na__title">Novo agendamento</h2>
+          @if (!podeEscolherTransportadora() && transportadoraFormNome()) {
+            <p class="na__sub">
+              <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
+              {{ transportadoraFormNome() }}
+            </p>
           }
+        </div>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Fechar"
+          title="Fechar"
+          (click)="cancelar()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </header>
 
-          <div class="form-row ag-novo-field">
-            <label>Dia e horário <span class="required">*</span></label>
-            @if (transportadoraFormId()) {
-              <app-agendamento-vaga-picker
-                [ativo]="aberto()"
-                [transportadoraId]="transportadoraFormId()"
-                [(modalidade)]="modalidade"
-                [value]="form.controls.dataAgendamento.value || ''"
-                (valueChange)="onDataHoraChange($event)"
-                (slotChange)="onSlotChange($event)"
-              />
-            } @else {
-              <p class="ag-novo-hint">
-                Selecione a transportadora para ver os dias e horários com vaga.
+      <div #bodyEl class="na__body">
+        <!-- Transportadora (só operador do pátio) -->
+        @if (podeEscolherTransportadora()) {
+          <section class="step" aria-labelledby="st-transp">
+            <h3 id="st-transp" class="step__title">
+              <span class="step__n" [class.is-done]="passo().transportadora" aria-hidden="true">
+                @if (passo().transportadora) {
+                  <span class="material-symbols-outlined">check</span>
+                } @else {
+                  {{ n().transportadora }}
+                }
+              </span>
+              Qual transportadora?
+            </h3>
+            <app-transportadora-lookup-field
+              [transportadoraId]="transportadoraFormId()"
+              [transportadoraNome]="transportadoraFormNome()"
+              placeholder="Buscar por CNPJ, razão social ou fantasia…"
+              ariaLabel="Transportadora do agendamento"
+              (transportadoraIdChange)="onTransportadoraIdChange($event)"
+              (transportadoraNomeChange)="onTransportadoraNomeChange($event)"
+            />
+          </section>
+        }
+
+        @if (transportadoraFormId()) {
+          <!-- 1. Serviço (pode marcar os dois) -->
+          <fieldset class="step">
+            <legend class="step__title">
+              <span class="step__n" [class.is-done]="passo().servico" aria-hidden="true">
+                @if (passo().servico) {
+                  <span class="material-symbols-outlined">check</span>
+                } @else {
+                  {{ n().servico }}
+                }
+              </span>
+              Qual serviço? <span class="muted step__hint">· pode marcar os dois</span>
+            </legend>
+            <div class="choice-row">
+              @for (s of servicosOpcoes; track s) {
+                @let marcado = servicos().includes(s);
+                <label class="choice" [class.is-checked]="marcado">
+                  <input
+                    type="checkbox"
+                    name="servico"
+                    class="sr-only"
+                    [checked]="marcado"
+                    (change)="alternarServico(s, $any($event.target).checked)"
+                  />
+                  <span class="choice__check" aria-hidden="true">
+                    <span class="material-symbols-outlined">check</span>
+                  </span>
+                  <span class="material-symbols-outlined choice__ico" aria-hidden="true">{{
+                    SERVICO_INFO[s].icon
+                  }}</span>
+                  <span class="choice__text">
+                    <strong>{{ SERVICO_INFO[s].label }}</strong>
+                    <small>{{ SERVICO_INFO[s].ajuda }}</small>
+                  </span>
+                  @if (destinadoPorServico()[s]) {
+                    <span class="choice__tag">
+                      <span class="material-symbols-outlined" aria-hidden="true">verified</span>Vaga
+                      destinada
+                    </span>
+                  }
+                </label>
+              }
+            </div>
+            @if (doisServicos()) {
+              <p class="combo-info" role="status">
+                <span class="material-symbols-outlined" aria-hidden="true">join_inner</span>
+                <span>
+                  <strong>Estacionamento + Limpeza</strong> no mesmo horário: cada placa usa
+                  <strong>1 vaga de cada</strong>. O calendário mostra quantas placas cabem nos
+                  dois.
+                </span>
               </p>
             }
+          </fieldset>
+
+          <!-- 2 + 3. Dia e horário -->
+          <div class="step-pair">
+            <section class="step" aria-labelledby="st-dia">
+              <h3 id="st-dia" class="step__title">
+                <span class="step__n" [class.is-done]="passo().dia" aria-hidden="true">
+                  @if (passo().dia) {
+                    <span class="material-symbols-outlined">check</span>
+                  } @else {
+                    {{ n().dia }}
+                  }
+                </span>
+                Qual dia?
+              </h3>
+
+              @if (servicos().length && diasInfo().size) {
+                <p class="origem" [attr.data-origem]="usouDestinacao() ? 'destinacao' : 'patio'">
+                  <span class="material-symbols-outlined" aria-hidden="true">{{
+                    usouDestinacao() ? 'verified' : 'info'
+                  }}</span>
+                  <span>
+                    @if (usouDestinacao()) {
+                      Mostrando só as <strong>vagas destinadas</strong> para a transportadora.
+                    } @else {
+                      Neste mês não há vagas destinadas para {{ servicosLabel() }}. Mostrando as
+                      <strong>vagas livres do pátio</strong>.
+                    }
+                  </span>
+                </p>
+              }
+
+              <div class="cal">
+                <div class="cal__nav">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label="Mês anterior"
+                    [disabled]="!podeVoltarMes()"
+                    (click)="mudarMes(-1)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                  </button>
+                  <strong class="cal__mes" aria-live="polite">{{ tituloMes() }}</strong>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label="Próximo mês"
+                    (click)="mudarMes(1)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                  </button>
+                </div>
+
+                @if (avisoMes()) {
+                  <p class="cal__aviso" role="status">{{ avisoMes() }}</p>
+                }
+
+                <div
+                  class="cal__grid"
+                  role="group"
+                  [attr.aria-label]="'Dias de ' + tituloMes()"
+                  [attr.aria-busy]="carregandoMes()"
+                  [class.is-loading]="carregandoMes()"
+                  (keydown)="onGradeKeydown($event)"
+                >
+                  @for (d of semana; track d) {
+                    <span class="cal__dow" aria-hidden="true">{{ d }}</span>
+                  }
+                  @for (c of grade(); track $index) {
+                    @if (c.iso) {
+                      <button
+                        type="button"
+                        class="cal__day"
+                        [attr.data-iso]="c.iso"
+                        [attr.data-nivel]="c.nivel"
+                        [class.is-sel]="dia() === c.iso"
+                        [class.is-today]="c.hoje"
+                        [disabled]="!c.vagas"
+                        [attr.aria-pressed]="dia() === c.iso"
+                        [attr.aria-label]="celulaLabel(c)"
+                        (click)="escolherDia(c.iso)"
+                      >
+                        <span class="cal__num">{{ c.dia }}</span>
+                        @if (c.vagas) {
+                          <span class="cal__vagas">{{ c.vagas }}</span>
+                        }
+                      </button>
+                    } @else {
+                      <span class="cal__blank" aria-hidden="true"></span>
+                    }
+                  }
+                </div>
+
+                @if (erroMes(); as e) {
+                  <p class="cal__vazio is-error" role="alert">{{ e }}</p>
+                } @else if (!carregandoMes() && !diasComVaga()) {
+                  <p class="cal__vazio" role="status">
+                    <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
+                    Nenhum dia com vaga neste mês. Use a seta › para ver o próximo.
+                  </p>
+                }
+
+                <!-- Legenda sempre visível -->
+                <ul class="legend" aria-label="Legenda do calendário">
+                  <li>
+                    <span class="legend__key" data-nivel="ok">12</span>Dia com vaga
+                    <small>(nº = vagas)</small>
+                  </li>
+                  <li><span class="legend__key" data-nivel="pouca">2</span>Poucas vagas</li>
+                  <li><span class="legend__key is-sel">5</span>Dia escolhido</li>
+                  <li><span class="legend__key" data-nivel="sem"></span>Sem vaga</li>
+                  @if (doisServicos()) {
+                    <li class="legend__nota">
+                      Com os dois serviços, o número é o que cabe nos dois.
+                    </li>
+                  }
+                </ul>
+              </div>
+            </section>
+
+            <section class="step" aria-labelledby="st-hora">
+              <h3 id="st-hora" class="step__title">
+                <span class="step__n" [class.is-done]="passo().horario" aria-hidden="true">
+                  @if (passo().horario) {
+                    <span class="material-symbols-outlined">check</span>
+                  } @else {
+                    {{ n().horario }}
+                  }
+                </span>
+                Que horas chega?
+              </h3>
+
+              @if (!dia()) {
+                <p class="placeholder">
+                  <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+                  Primeiro escolha o dia no calendário.
+                </p>
+              } @else {
+                <p class="hora__dia">
+                  {{ dia() | date: 'dd/MM/yyyy' }} ·
+                  <span class="cap">{{ diaSemana(dia()!) }}</span>
+                </p>
+                @if (carregandoSlots()) {
+                  <p class="placeholder" role="status">Carregando horários…</p>
+                } @else if (erroSlots(); as e) {
+                  <p class="placeholder is-error" role="alert">{{ e }}</p>
+                } @else if (slotsLivres().length) {
+                  <div class="hora" role="radiogroup" aria-labelledby="st-hora">
+                    @for (s of slotsLivres(); track chave(s)) {
+                      <label class="hora__opt" [class.is-checked]="ehSlot(s)">
+                        <input
+                          type="radio"
+                          name="horario"
+                          class="sr-only"
+                          [checked]="ehSlot(s)"
+                          (change)="escolherSlot(s)"
+                        />
+                        <span class="hora__time mono"
+                          >{{ hora(s.horaInicio) }} – {{ hora(s.horaFim) }}</span
+                        >
+                        <span class="hora__vagas" [class.is-low]="s.disponiveis <= 1">
+                          {{ s.disponiveis }} {{ s.disponiveis === 1 ? 'vaga' : 'vagas' }}
+                        </span>
+                      </label>
+                    }
+                  </div>
+                } @else {
+                  <p class="placeholder" role="status">
+                    Todos os horários deste dia estão cheios. Escolha outro dia.
+                  </p>
+                }
+                @if (slotsCheios()) {
+                  <p class="hint">
+                    {{ slotsCheios() }}
+                    {{
+                      slotsCheios() === 1
+                        ? 'horário cheio não aparece'
+                        : 'horários cheios não aparecem'
+                    }}.
+                  </p>
+                }
+              }
+            </section>
           </div>
 
-          @if (transportadoraFormId()) {
-            <!-- Quem paga a fatura: a vaga e o movimento são sempre da transportadora. -->
-            <div class="form-row ag-novo-field">
-              <label>Quem paga</label>
-              <div class="ag-pagador">
+          <!-- 4. Placas -->
+          <section class="step" aria-labelledby="st-placa">
+            <h3 id="st-placa" class="step__title">
+              <span class="step__n" [class.is-done]="passo().placas" aria-hidden="true">
+                @if (passo().placas) {
+                  <span class="material-symbols-outlined">check</span>
+                } @else {
+                  {{ n().placa }}
+                }
+              </span>
+              <label for="na-placa">Qual a placa?</label>
+            </h3>
+            <div class="placa-row">
+              <input
+                #placaInput
+                id="na-placa"
+                class="input placa__input mono"
+                type="text"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                placeholder="ABC1D23"
+                aria-describedby="na-placa-hint"
+                [attr.aria-invalid]="!!placaErro() || placasDemais()"
+                [value]="placaDigitada()"
+                (input)="onPlaca($any($event.target).value)"
+                (keydown.enter)="$event.preventDefault(); adicionarPlaca()"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="!placaDigitada() || validandoPlaca()"
+                (click)="adicionarPlaca()"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  aria-hidden="true"
+                  [class.is-spinning]="validandoPlaca()"
+                  >{{ validandoPlaca() ? 'progress_activity' : 'add' }}</span>Adicionar
+              </button>
+            </div>
+            <p
+              id="na-placa-hint"
+              class="hint"
+              [class.is-error]="placaErro() || placasDemais()"
+              aria-live="polite"
+            >
+              @if (placaErro()) {
+                {{ placaErro() }}
+              } @else if (placasDemais()) {
+                Este horário tem só {{ vagasNoHorario() }}
+                {{ vagasNoHorario() === 1 ? 'vaga' : 'vagas' }}. Cada placa usa uma vaga.
+              } @else {
+                <span
+                  >Placa cadastrada, com motorista. Cada placa usa uma vaga — aperte
+                  <kbd>Enter</kbd> para adicionar mais de uma.</span
+                >
+              }
+            </p>
+            <button type="button" class="link-btn link-btn--sm" (click)="abrirBuscaPlaca()">
+              <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>Buscar
+              no cadastro de veículos
+            </button>
+            @if (placas().length) {
+              <ul class="placas" aria-label="Placas adicionadas">
+                @for (p of placas(); track p.id) {
+                  <li class="placa">
+                    <span class="placa__txt mono">{{ formatPlaca(p.placa) }}</span>
+                    @if (p.motoristaNome) {
+                      <span class="placa__mot">{{ p.motoristaNome }}</span>
+                    }
+                    <button
+                      type="button"
+                      class="placa__x"
+                      [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
+                      (click)="removerPlaca(p.id)"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <!-- 5. Quem paga (CIF / FOB) -->
+          <fieldset class="step" aria-describedby="na-frete-ajuda">
+            <legend class="step__title">
+              <span class="step__n" [class.is-done]="passo().frete" aria-hidden="true">
+                @if (passo().frete) {
+                  <span class="material-symbols-outlined">check</span>
+                } @else {
+                  {{ n().frete }}
+                }
+              </span>
+              Quem paga?
+            </legend>
+            <div class="choice-row">
+              @for (f of fretes; track f) {
+                @let bloqueado = freteTravado() && f === 'CIF';
+                <label
+                  class="choice choice--frete"
+                  [class.is-checked]="frete() === f"
+                  [class.is-disabled]="bloqueado"
+                >
+                  <input
+                    type="radio"
+                    name="frete"
+                    class="sr-only"
+                    [checked]="frete() === f"
+                    [disabled]="bloqueado"
+                    (change)="escolherFrete(f)"
+                  />
+                  <span class="choice__radio" aria-hidden="true"></span>
+                  <span class="choice__text">
+                    <strong class="mono">{{ f }}</strong>
+                    <small>{{ FRETE_INFO[f] }}</small>
+                  </span>
+                </label>
+              }
+            </div>
+
+            @if (pagadoresDoHorario().length) {
+              <div class="pag-opcoes" role="group" aria-label="Pagadores destinados neste horário">
+                <span class="hint">Este horário tem vagas de mais de um pagador:</span>
+                @for (p of pagadoresDoHorario(); track p.responsavelFaturamentoId ?? 0) {
+                  <button
+                    type="button"
+                    class="pag-opcao"
+                    [class.is-active]="pagadorEhOpcao(p)"
+                    [attr.aria-pressed]="pagadorEhOpcao(p)"
+                    [disabled]="p.disponiveis <= 0"
+                    (click)="escolherPagadorDoHorario(p)"
+                  >
+                    {{ p.responsavelFaturamentoId ? p.nome || 'Terceiro' : 'A própria (CIF)' }}
+                    <span class="pag-opcao__saldo">{{ p.disponiveis }}</span>
+                  </button>
+                }
+              </div>
+            }
+
+            @if (frete() === 'FOB') {
+              <div class="frete-busca">
                 <app-responsavel-faturamento-lookup-field
                   [responsavelId]="pagadorId()"
                   [responsavelNome]="pagadorNome()"
                   [locked]="pagadorBloqueado()"
-                  placeholder="A própria transportadora — buscar terceiro…"
+                  placeholder="Buscar quem paga (terceiro)…"
                   ariaLabel="Quem paga a fatura (terceiro)"
                   (responsavelIdChange)="onPagadorIdChange($event)"
                   (responsavelNomeChange)="onPagadorNomeChange($event)"
                 />
-                @if (pagadoresDoHorario().length) {
-                  <div class="ag-pagador__opcoes" role="group" aria-label="Pagadores destinados neste horário">
-                    @for (p of pagadoresDoHorario(); track p.responsavelFaturamentoId ?? 0) {
-                      <button
-                        type="button"
-                        class="ag-pagador__opcao"
-                        [class.is-active]="pagadorEhOpcao(p)"
-                        [attr.aria-pressed]="pagadorEhOpcao(p)"
-                        [disabled]="p.disponiveis <= 0"
-                        (click)="escolherPagadorDoHorario(p)"
-                      >
-                        {{ p.responsavelFaturamentoId ? p.nome || 'Terceiro' : 'A própria' }}
-                        <span class="ag-pagador__saldo">{{ p.disponiveis }}</span>
-                      </button>
-                    }
-                  </div>
-                }
-                <p class="ag-novo-hint">
-                  @if (pagadorId()) {
-                    Fatura para <strong>{{ pagadorNome() }}</strong>
-                    @switch (pagadorOrigem()) {
-                      @case ('destinacao') { (da destinação) }
-                      @case ('cobranca') { (regra de cobrança) }
-                      @case ('manual') { (escolhido) }
-                    }
-                    — a vaga e o movimento continuam da transportadora.
-                    @if (pagadorBloqueado()) { Clique no X para trocar. }
-                  } @else {
-                    A própria transportadora paga a fatura.
-                  }
-                </p>
               </div>
+            }
+
+            <p id="na-frete-ajuda" class="hint">
+              @if (freteTravado()) {
+                <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+                <span>
+                  {{
+                    pagadorOrigem() === 'destinacao'
+                      ? 'Definido na destinação'
+                      : 'Regra de cobrança'
+                  }}: <strong>{{ pagadorNome() }}</strong> paga. Clique no X para trocar.
+                </span>
+              } @else if (frete() === 'FOB') {
+                <span
+                  >A vaga e o movimento continuam da transportadora; só a fatura vai para o
+                  terceiro.</span
+                >
+              } @else {
+                <span>Na dúvida, deixe <strong>CIF</strong> (padrão).</span>
+              }
+            </p>
+          </fieldset>
+
+          <!-- Observação: escondida até pedir -->
+          @if (mostrarObs()) {
+            <div class="step step--plain">
+              <label for="na-obs" class="step__title step__title--sm"
+                >Observação <span class="muted">(opcional)</span></label
+              >
+              <textarea
+                id="na-obs"
+                class="input na__obs"
+                rows="3"
+                maxlength="200"
+                [value]="observacao()"
+                (input)="observacao.set($any($event.target).value)"
+              ></textarea>
             </div>
+          } @else {
+            <button type="button" class="link-btn" (click)="mostrarObs.set(true)">
+              <span class="material-symbols-outlined" aria-hidden="true">add_comment</span>Adicionar
+              observação
+            </button>
           }
+        }
+      </div>
 
-          <div class="form-row ag-novo-field ag-placas-field">
-            <label>Placas <span class="required">*</span></label>
-            <div class="ag-placas-field__control">
-              <div class="ag-lookup">
-                <button
-                  type="button"
-                  class="input-control ag-lookup__trigger"
-                  (click)="abrirBuscaPlaca()"
-                  [disabled]="!transportadoraFormId()"
-                  aria-label="Buscar placa"
-                >
-                  <span class="ag-lookup__value ag-lookup__value--placeholder">
-                    {{
-                      transportadoraFormId()
-                        ? 'Buscar placa no cadastro…'
-                        : 'Selecione a transportadora para buscar placas'
-                    }}
-                  </span>
-                  <span class="material-symbols-outlined ag-lookup__ico" aria-hidden="true"
-                    >search</span
-                  >
-                </button>
-              </div>
-
-              @if (placasSelecionadas().length) {
-                <ul class="ag-placa-chips" aria-label="Placas selecionadas">
-                  @for (p of placasSelecionadas(); track p.id) {
-                    <li class="ag-placa-chip">
-                      <span class="ag-placa-chip__placa">{{ formatPlaca(p.placa) }}</span>
-                      @if (p.marcaModelo) {
-                        <span class="ag-placa-chip__modelo">{{ p.marcaModelo }}</span>
-                      }
-                      <button
-                        type="button"
-                        class="ag-placa-chip__remove"
-                        (click)="removerPlacaSelecionada(p.id)"
-                        [attr.aria-label]="'Remover placa ' + formatPlaca(p.placa)"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                      </button>
-                    </li>
-                  }
-                </ul>
-              }
-              @if (vagasNoHorario(); as vagas) {
-                <p
-                  class="ag-novo-hint"
-                  [class.ag-novo-hint--erro]="placasSelecionadas().length > vagas"
-                >
-                  {{ placasSelecionadas().length }} de {{ vagas }}
-                  {{ vagas === 1 ? 'vaga disponível' : 'vagas disponíveis' }} no horário escolhido
-                  @if (placasSelecionadas().length > vagas) {
-                    — remova {{ placasSelecionadas().length - vagas }}
-                    {{ placasSelecionadas().length - vagas === 1 ? 'placa' : 'placas' }} ou escolha outro
-                    horário.
-                  }
-                </p>
-              }
-            </div>
+      <!-- ═══ Rodapé: resumo em linguagem simples ════════════════════════ -->
+      <footer class="na__foot">
+        @if (confirmandoSaida()) {
+          <div class="na__confirm" role="alertdialog" aria-labelledby="na-confirm-txt">
+            <span class="material-symbols-outlined tone-warn" aria-hidden="true">warning</span>
+            <span id="na-confirm-txt"
+              ><strong>Sair sem salvar?</strong> O que você preencheu será perdido.</span
+            >
           </div>
-
-          <div class="form-row ag-novo-field ag-novo-field--obs">
-            <label for="ag-novo-obs">Observação</label>
-            <textarea
-              id="ag-novo-obs"
-              class="input-control ag-novo-obs"
-              formControlName="observacao"
-              rows="3"
-              maxlength="200"
-              placeholder="Opcional"
-            ></textarea>
+          <button type="button" class="btn btn-secondary" (click)="confirmandoSaida.set(false)">
+            Continuar editando
+          </button>
+          <button type="button" class="btn btn-danger" (click)="fechar()">Sair sem salvar</button>
+        } @else {
+          <div class="na__resumo" aria-live="polite">
+            @if (falta()) {
+              <span class="material-symbols-outlined tone-warn" aria-hidden="true"
+                >arrow_forward</span
+              >
+              <span><strong>Próximo passo:</strong> {{ falta() }}.</span>
+            } @else {
+              <span class="material-symbols-outlined tone-ok" aria-hidden="true">check_circle</span>
+              <span>
+                <strong>{{ dia() | date: 'dd/MM' }}</strong> às
+                <strong class="mono">{{ hora(slot()!.horaInicio) }}</strong> ·
+                {{ servicosLabel() }} · {{ placas().length }}
+                {{ placas().length === 1 ? 'placa' : 'placas' }} · {{ frete() }}
+                @if (doisServicos()) {
+                  <span class="muted">(usa {{ placas().length }} de cada)</span>
+                }
+              </span>
+            }
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="fechar()">Fechar</button>
+          <button type="button" class="btn btn-secondary na__cancelar" (click)="cancelar()">
+            Cancelar
+          </button>
           <button
             type="submit"
-            class="btn btn-primary"
-            [disabled]="
-              form.invalid ||
-              salvando() ||
-              placasSelecionadas().length === 0 ||
-              placasSelecionadas().length > (vagasNoHorario() ?? 0)
-            "
+            class="btn btn-primary na__salvar"
+            [attr.aria-disabled]="!podeSalvar()"
           >
-            {{ salvando() ? 'Salvando...' : 'Salvar agendamento' }}
+            <span
+              class="material-symbols-outlined"
+              aria-hidden="true"
+              [class.is-spinning]="salvando()"
+              >{{ salvando() ? 'progress_activity' : 'event_available' }}</span>{{
+              salvando() ? 'Salvando…' : 'Salvar agendamento'
+            }}
           </button>
-        </div>
-      </form>
-    </div>
+        }
+      </footer>
+    </form>
   </div>
 }
 

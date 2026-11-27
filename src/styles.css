@@ -2772,3 +2772,28 @@ html.theme-light .modal-content .btn--primary {
     border-radius: 0;
   }
 }
+
+/* Impressão de relatórios (ex.: Meus agendamentos): some o "chrome" do app. */
+@media print {
+  app-sidebar,
+  .top-bar,
+  .sidebar-overlay,
+  .cdk-overlay-container {
+    display: none !important;
+  }
+
+  .layout-right,
+  .main-content,
+  .content-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+}

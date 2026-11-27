@@ -246,6 +246,8 @@ export interface JanelaSlotDisponivel {
   horaFim: string;
   capacidade: number;
   ocupadas: number;
+  /** Das ocupadas, quantas já estão no pátio (Entrada/Suspenso). O resto é agendado. */
+  noPatio?: number;
   disponiveis: number;
   viaDestinacao: boolean;
   label: string;
@@ -268,6 +270,8 @@ export interface JanelaDisponibilidade {
    */
   totalCapacidade?: number;
   totalOcupadas?: number;
+  /** Das ocupadas do dia, quantas já estão no pátio. */
+  totalNoPatio?: number;
   totalDisponiveis?: number;
   slots: JanelaSlotDisponivel[];
 }

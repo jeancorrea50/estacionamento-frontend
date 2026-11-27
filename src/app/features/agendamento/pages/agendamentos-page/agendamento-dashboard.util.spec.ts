@@ -85,6 +85,25 @@ describe('agendamento-dashboard.util KPIs de janelas', () => {
     expect(somarDisponiveisSlots(mapped)).toBe(7);
     expect(somarAgendadosSlots(mapped)).toBe(1);
   });
+
+  it('mapTimelineSlots separa agendado (vai chegar) de no pátio (noPatio do BE)', () => {
+    const [slot] = mapTimelineSlots([
+      {
+        janelaAgendamentoId: 1,
+        horaInicio: '08:00',
+        horaFim: '09:00',
+        capacidade: 10,
+        ocupadas: 5,
+        noPatio: 2,
+        disponiveis: 5,
+        viaDestinacao: false,
+        label: '08:00 às 09:00',
+      },
+    ]);
+    expect(slot.agendado).toBe(3);
+    expect(slot.ocupado).toBe(2);
+    expect(slot.ocupacaoPct).toBe(50);
+  });
 });
 
 function reserva(

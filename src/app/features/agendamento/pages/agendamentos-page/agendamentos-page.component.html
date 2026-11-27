@@ -1,32 +1,47 @@
 <div class="cadastro-transportadora-shell">
   <div class="page-container">
-    <div class="page-content trn-page-content--dashboard">
-      <header class="ag-dash-top" aria-labelledby="ag-dash-title">
-        <div class="ag-dash-top__copy">
-          <h1 id="ag-dash-title" class="ag-dash-top__title">Agendamentos</h1>
-          <p class="ag-dash-top__sub">Controle visual de vagas e veículos agendados no pátio.</p>
+    <div class="page-content trn-page-content--dashboard pa">
+      <!-- ═══ Cabeçalho: contexto + modalidade + ação principal ═══════════ -->
+      <header class="pa__head" aria-labelledby="ag-dash-title">
+        <div class="pa__head-copy">
+          <h1 id="ag-dash-title" class="pa__title">Painel do pátio</h1>
+          <p class="pa__desc">Vagas e veículos agendados por janela de horário.</p>
         </div>
-        <div class="ag-dash-top__tabs">
-          <div class="ag-modalidade-toggle" role="group" aria-label="Modalidade">
+        <div class="pa__head-actions">
+          <div class="seg" role="radiogroup" aria-label="Modalidade">
             <button
               type="button"
-              class="ag-modalidade-toggle__btn"
+              role="radio"
+              class="seg__item"
               [class.is-active]="modalidadeUi() === 'estacionamento'"
+              [attr.aria-checked]="modalidadeUi() === 'estacionamento'"
               (click)="selecionarModalidade('estacionamento')"
             >
-              Estacionamento
+              <span class="material-symbols-outlined" aria-hidden="true">local_parking</span
+              >Estacionamento
             </button>
             <button
               type="button"
-              class="ag-modalidade-toggle__btn"
+              role="radio"
+              class="seg__item"
               [class.is-active]="modalidadeUi() === 'limpeza'"
+              [attr.aria-checked]="modalidadeUi() === 'limpeza'"
               (click)="selecionarModalidade('limpeza')"
             >
-              Limpeza
+              <span class="material-symbols-outlined" aria-hidden="true">water_drop</span>Limpeza
             </button>
           </div>
+          @if (canVisualizar) {
+            <button
+              type="button"
+              class="btn btn-primary pa__novo"
+              (click)="abrirNovo()"
+              [attr.title]="podeCriar ? null : 'Requer permissão agendamentos.gravar'"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>Novo agendamento
+            </button>
+          }
         </div>
-        <div class="ag-dash-top__spacer" aria-hidden="true"></div>
       </header>
 
       @if (!canVisualizar) {
@@ -34,99 +49,159 @@
           <p class="error-msg">Sem permissão para visualizar Agendamentos.</p>
         </div>
       } @else {
-        <section
-          class="est-dash-filter trn-dash-filter ag-dash-filter"
-          aria-label="Filtros da listagem"
+        <!-- ═══ Barra: busca (principal) → filtros → ações secundárias ═══ -->
+        <form
+          class="card tb"
+          role="search"
+          aria-label="Filtrar agendamentos"
+          (ngSubmit)="buscarPelaBarra()"
         >
-          @if (podeOperarPatio) {
-            <div class="est-dash-filter__lookup-wrap">
-              <app-transportadora-lookup-field
-                [transportadoraId]="filtroTransportadoraId"
-                [transportadoraNome]="filtroTransportadoraNome"
-                placeholder="Todas as transportadoras"
-                ariaLabel="Filtrar por transportadora"
-                (transportadoraIdChange)="onFiltroTransportadoraId($event)"
-                (transportadoraNomeChange)="onFiltroTransportadoraNome($event)"
-              />
-            </div>
-          }
-          <label class="est-dash-filter__search ag-dash-filter__search">
-            <span class="material-symbols-outlined est-dash-filter__search-ico" aria-hidden="true"
-              >search</span
-            >
-            <input
-              type="text"
-              class="est-dash-filter__search-input"
-              placeholder="Placa, motorista ou CPF…"
-              [(ngModel)]="filtroBusca"
-              (keyup.enter)="onBuscar()"
-              autocomplete="off"
-              aria-label="Buscar por placa, motorista ou CPF"
-            />
-          </label>
-          <app-periodo-data-picker
-            emptyLabel="Qualquer dia"
-            ariaLabel="Selecionar dia"
-            [modoDiaUnico]="true"
-            [dataInicial]="filtroDataInicial"
-            [dataFinal]="filtroDataFinal"
-            (periodoChange)="onPeriodoChange($event)"
-          />
-          <div class="ag-dash-filter__actions">
-            <button
-              type="button"
-              class="est-dash-btn est-dash-btn--neutral trn-dash-btn-buscar"
-              (click)="onBuscar()"
-              aria-label="Buscar agendamentos"
-            >
+          <div class="tb__main">
+            <label class="input input--search tb__busca">
               <span class="material-symbols-outlined" aria-hidden="true">search</span>
-              Buscar
+              <input
+                type="search"
+                name="busca"
+                inputmode="search"
+                autocomplete="off"
+                placeholder="Placa, motorista ou CPF"
+                aria-label="Buscar por placa, motorista ou CPF"
+                [(ngModel)]="filtroBusca"
+              />
+            </label>
+
+            <!-- Só no celular: abre os filtros secundários -->
+            <button
+              type="button"
+              class="icon-btn tb__only-mobile tb__filtros-btn"
+              aria-controls="tb-filtros"
+              [attr.aria-expanded]="filtrosAbertos()"
+              [attr.aria-label]="
+                'Filtros' + (filtrosAtivos() ? ' (' + filtrosAtivos() + ' ativos)' : '')
+              "
+              (click)="filtrosAbertos.set(!filtrosAbertos())"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+              @if (filtrosAtivos()) {
+                <span class="tb__badge" aria-hidden="true">{{ filtrosAtivos() }}</span>
+              }
             </button>
             <button
               type="button"
-              class="est-dash-btn est-dash-btn--neutral"
-              (click)="exportarPdf()"
-              [disabled]="exportando()"
-              aria-label="Exportar painel em PDF"
-              title="Exportar dados da tela em PDF"
+              class="icon-btn tb__only-mobile"
+              aria-label="Mais ações"
+              [matMenuTriggerFor]="maisMenu"
             >
-              <span class="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
-              PDF
+              <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
             </button>
-            <button
-              type="button"
-              class="est-dash-btn est-dash-btn--neutral"
-              (click)="exportarExcel()"
-              [disabled]="exportando()"
-              aria-label="Exportar painel em Excel"
-              title="Exportar dados da tela em Excel"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">table_view</span>
-              Excel
-            </button>
+          </div>
+
+          <div id="tb-filtros" class="tb__filtros" [class.is-open]="filtrosAbertos()">
             @if (podeOperarPatio) {
+              <div class="tb__transp">
+                <app-transportadora-lookup-field
+                  [transportadoraId]="filtroTransportadoraId"
+                  [transportadoraNome]="filtroTransportadoraNome"
+                  placeholder="Todas as transportadoras"
+                  ariaLabel="Filtrar por transportadora"
+                  (transportadoraIdChange)="onFiltroTransportadoraId($event)"
+                  (transportadoraNomeChange)="onFiltroTransportadoraNome($event)"
+                />
+              </div>
+            }
+
+            <div class="date-stepper" role="group" aria-label="Data">
               <button
                 type="button"
-                class="est-dash-btn est-dash-btn--neutral"
-                (click)="abrirDestinarVagas()"
-                aria-label="Destinar vaga"
+                class="icon-btn"
+                aria-label="Dia anterior"
+                (click)="mudarDia(-1)"
               >
-                <span class="material-symbols-outlined" aria-hidden="true">garage</span>
-                Destinar vaga
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+              </button>
+              <input
+                type="date"
+                class="input input--date"
+                name="data"
+                aria-label="Data"
+                required
+                [ngModel]="dataSelecionadaIso()"
+                (ngModelChange)="onDataInput($event)"
+              />
+              <button type="button" class="icon-btn" aria-label="Próximo dia" (click)="mudarDia(1)">
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+              </button>
+              @if (!ehHoje()) {
+                <button type="button" class="btn btn--sm btn-ghost" (click)="irParaHoje()">
+                  Hoje
+                </button>
+              }
+            </div>
+
+            <button type="submit" class="btn btn-secondary tb__buscar">
+              <span
+                class="material-symbols-outlined"
+                aria-hidden="true"
+                [class.is-spinning]="loadingList() || loadingTimeline()"
+                >{{ loadingList() || loadingTimeline() ? 'progress_activity' : 'search' }}</span
+              >
+              Buscar
+            </button>
+          </div>
+
+          <!-- Desktop: ações secundárias agrupadas à direita -->
+          <div class="tb__acoes">
+            @if (podeOperarPatio) {
+              <button type="button" class="btn btn-ghost" (click)="abrirDestinarVagas()">
+                <span class="material-symbols-outlined" aria-hidden="true">assignment_add</span
+                >Destinar vagas
               </button>
             }
             <button
               type="button"
-              class="est-dash-btn est-dash-btn--primary"
-              (click)="abrirNovo()"
-              aria-label="Novo agendamento"
-              [attr.title]="podeCriar ? null : 'Requer permissão agendamentos.gravar'"
+              class="btn btn-ghost"
+              [disabled]="exportando()"
+              [matMenuTriggerFor]="exportMenu"
             >
-              <span class="material-symbols-outlined" aria-hidden="true">add</span>
-              Novo
+              <span class="material-symbols-outlined" aria-hidden="true">download</span>Exportar
+              <span class="material-symbols-outlined tb__caret" aria-hidden="true"
+                >expand_more</span
+              >
             </button>
           </div>
-        </section>
+
+          <mat-menu #exportMenu="matMenu" xPosition="before" yPosition="below">
+            <button mat-menu-item (click)="exportarPdf()">
+              <span class="material-symbols-outlined pa-menu-ico" aria-hidden="true"
+                >picture_as_pdf</span
+              >PDF
+            </button>
+            <button mat-menu-item (click)="exportarExcel()">
+              <span class="material-symbols-outlined pa-menu-ico" aria-hidden="true"
+                >table_view</span
+              >Excel
+            </button>
+          </mat-menu>
+          <mat-menu #maisMenu="matMenu" xPosition="before" yPosition="below">
+            @if (podeOperarPatio) {
+              <button mat-menu-item (click)="abrirDestinarVagas()">
+                <span class="material-symbols-outlined pa-menu-ico" aria-hidden="true"
+                  >assignment_add</span
+                >Destinar vagas
+              </button>
+            }
+            <button mat-menu-item [disabled]="exportando()" (click)="exportarPdf()">
+              <span class="material-symbols-outlined pa-menu-ico" aria-hidden="true"
+                >picture_as_pdf</span
+              >Exportar PDF
+            </button>
+            <button mat-menu-item [disabled]="exportando()" (click)="exportarExcel()">
+              <span class="material-symbols-outlined pa-menu-ico" aria-hidden="true"
+                >table_view</span
+              >Exportar Excel
+            </button>
+          </mat-menu>
+        </form>
 
         @if (erroList(); as erro) {
           <div class="trn-list-banner trn-list-banner--error" role="alert">
@@ -134,42 +209,266 @@
           </div>
         }
 
-        <div class="ag-kpi-grid" aria-label="Indicadores">
-          <app-est-summary-metric icon="event" label="Agendados" [value]="kpiAgendados()" variant="info" />
-          <app-est-summary-metric
-            icon="event_available"
-            label="Vagas disponíveis"
-            [value]="kpiDisponiveis()"
-            variant="success"
-          />
-          <app-est-summary-metric icon="garage" label="Ocupados" [value]="kpiOcupados()" variant="danger" />
-          @if (podeOperarPatio) {
-            <app-est-summary-metric
-              icon="payments"
-              label="CIF"
-              [value]="kpiCifGeral()"
-              variant="success"
-            />
-            <app-est-summary-metric
-              icon="handshake"
-              label="FOB"
-              [value]="kpiFobGeral()"
-              variant="warning"
-            />
-          }
-        </div>
+        <!-- ═══ Indicadores: 1 principal + 3 de apoio ═══════════════════════ -->
+        <section class="kpis" aria-label="Resumo do dia" [attr.aria-busy]="loadingTimeline()">
+          <article class="kpi kpi--hero" [attr.data-tone]="nivel()">
+            <header class="kpi__top">
+              <h2 class="kpi__label">Vagas livres</h2>
+              @if (kpiCapacidade() > 0) {
+                <span class="pa-pill" [attr.data-tone]="nivel()">{{ nivelLabel() }}</span>
+              }
+            </header>
+            <p class="kpi__value kpi__value--hero mono">
+              {{ kpiDisponiveis() | number
+              }}<span class="kpi__of">de {{ kpiCapacidade() | number }}</span>
+            </p>
+            <div
+              class="stack stack--lg"
+              role="img"
+              [attr.aria-label]="
+                kpiAgendados() +
+                ' agendados, ' +
+                kpiNoPatio() +
+                ' no pátio, ' +
+                kpiDisponiveis() +
+                ' livres'
+              "
+            >
+              <span
+                class="stack__seg"
+                data-kind="agendado"
+                [style.width.%]="barraDia().agendado"
+              ></span>
+              <span class="stack__seg" data-kind="patio" [style.width.%]="barraDia().patio"></span>
+            </div>
+            <ul class="legend legend--kpi">
+              <li>
+                <span class="legend__key" data-kind="agendado"></span>Agendados
+                <strong>{{ kpiAgendados() }}</strong>
+              </li>
+              <li>
+                <span class="legend__key" data-kind="patio"></span>No pátio
+                <strong>{{ kpiNoPatio() }}</strong>
+              </li>
+              <li>
+                <span class="legend__key" data-kind="livre"></span>Livres
+                <strong>{{ kpiDisponiveis() }}</strong>
+              </li>
+            </ul>
+          </article>
 
-        <div class="ag-dash-mid">
-          <app-agendamento-dia-timeline
-            [dataLabel]="dataSelecionadaLabel()"
-            [dataIso]="dataSelecionadaIso()"
-            [slots]="timelineSlots()"
-            [loading]="loadingTimeline()"
-            [erro]="erroTimeline()"
-            [janelasRoute]="janelasRoute"
-            [podeVerJanelas]="podeVerJanelas"
-          />
-        </div>
+          <article class="kpi" data-kind="agendado">
+            <header class="kpi__top">
+              <span class="ico-chip" aria-hidden="true"
+                ><span class="material-symbols-outlined">event_upcoming</span></span
+              >
+              <h2 class="kpi__label">Agendados</h2>
+            </header>
+            <p class="kpi__value mono">{{ kpiAgendados() | number }}</p>
+            @if (podeOperarPatio) {
+              <p class="kpi__sub" title="Vagas destinadas no dia por tipo de frete">
+                Destinadas: CIF <strong>{{ kpiCifGeral() }}</strong> · FOB
+                <strong>{{ kpiFobGeral() }}</strong>
+              </p>
+            } @else {
+              <p class="kpi__sub">ainda vão chegar</p>
+            }
+          </article>
+
+          <article class="kpi" data-kind="patio">
+            <header class="kpi__top">
+              <span class="ico-chip" aria-hidden="true"
+                ><span class="material-symbols-outlined">local_shipping</span></span
+              >
+              <h2 class="kpi__label">No pátio</h2>
+            </header>
+            <p class="kpi__value mono">{{ kpiNoPatio() | number }}</p>
+            <p class="kpi__sub">ocupando vaga agora</p>
+          </article>
+
+          <article class="kpi" [attr.data-tone]="pico()?.nivel ?? 'neutral'">
+            <header class="kpi__top">
+              <span class="ico-chip" aria-hidden="true"
+                ><span class="material-symbols-outlined">trending_up</span></span
+              >
+              <h2 class="kpi__label">Pico do dia</h2>
+            </header>
+            @if (pico(); as p) {
+              <p class="kpi__value mono">{{ p.inicio }}</p>
+              <p class="kpi__sub">
+                <strong>{{ p.pct }}%</strong> · {{ p.capacidade - p.livres }} de
+                {{ p.capacidade }} vagas
+              </p>
+            } @else {
+              <p class="kpi__value kpi__value--muted">—</p>
+              <p class="kpi__sub">sem movimento no dia</p>
+            }
+          </article>
+        </section>
+
+        <!-- ═══ Linha do tempo ═══════════════════════════════════════════ -->
+        <section class="card tl" aria-labelledby="tl-title">
+          <header class="tl__head">
+            <div>
+              <h2 id="tl-title" class="tl__title">Linha do tempo do dia</h2>
+              <p class="tl__meta">
+                {{ dataPorExtenso() }}
+                @if (linhaAgora(); as a) {
+                  · agora: <strong class="mono">{{ a.inicio }}–{{ a.fim }}</strong>
+                }
+              </p>
+            </div>
+            <div class="tl__tools">
+              <ul class="legend" aria-label="Legenda">
+                <li><span class="legend__key" data-kind="agendado"></span>Agendado</li>
+                <li><span class="legend__key" data-kind="patio"></span>No pátio</li>
+                <li><span class="legend__key" data-kind="livre"></span>Livre</li>
+              </ul>
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  class="switch"
+                  [checked]="soComMovimento()"
+                  (change)="soComMovimento.set($any($event.target).checked)"
+                />
+                Só com movimento
+              </label>
+            </div>
+          </header>
+
+          @if (loadingTimeline() && !linhas().length) {
+            <p class="tl__state" role="status">Carregando janelas do dia…</p>
+          } @else if (erroTimeline(); as erro) {
+            <div class="tl__state tl__state--erro" role="alert">
+              <span class="material-symbols-outlined" aria-hidden="true">error</span>
+              <span>{{ erro }}</span>
+              <button type="button" class="link-btn" (click)="onBuscar()">Tentar de novo</button>
+            </div>
+          } @else if (linhasVisiveis().length) {
+            <table class="tl__table">
+              <caption class="sr-only">
+                Ocupação por janela de horário
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Horário</th>
+                  <th scope="col" class="tl__col-bar">Ocupação</th>
+                  <th scope="col" class="num">Agend.</th>
+                  <th scope="col" class="num">No pátio</th>
+                  <th scope="col" class="num">Livres</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of linhasVisiveis(); track l.key) {
+                  <tr
+                    class="tl__row"
+                    [class.is-now]="l.agora"
+                    [class.is-past]="l.passou"
+                    [class.is-empty]="l.vazio"
+                    [attr.aria-current]="l.agora ? 'time' : null"
+                  >
+                    <th scope="row" class="tl__hora">
+                      <span class="mono"
+                        >{{ l.inicio }}<span class="tl__fim">–{{ l.fim }}</span></span
+                      >
+                      @if (l.agora) {
+                        <span class="pa-pill" data-tone="info">agora</span>
+                      }
+                    </th>
+                    <td class="tl__col-bar">
+                      <div class="tl__bar">
+                        <div
+                          class="stack"
+                          role="img"
+                          [attr.aria-label]="
+                            l.pct +
+                            '% ocupado: ' +
+                            l.agendados +
+                            ' agendados, ' +
+                            l.noPatio +
+                            ' no pátio, ' +
+                            l.livres +
+                            ' livres. ' +
+                            l.nivelLabel
+                          "
+                        >
+                          <span
+                            class="stack__seg"
+                            data-kind="agendado"
+                            [style.width.%]="l.pAgendado"
+                          ></span>
+                          <span
+                            class="stack__seg"
+                            data-kind="patio"
+                            [style.width.%]="l.pPatio"
+                          ></span>
+                        </div>
+                        @if (l.nivel !== 'ok') {
+                          <span class="pa-pill pa-pill--sm" [attr.data-tone]="l.nivel"
+                            >{{ l.pct }}%</span
+                          >
+                        } @else {
+                          <!-- Sempre presente para as barras terem a mesma largura -->
+                          <span class="tl__pct mono" [attr.aria-hidden]="l.vazio || null">{{
+                            l.vazio ? '' : l.pct + '%'
+                          }}</span>
+                        }
+                      </div>
+                    </td>
+                    <td class="num mono">
+                      <span class="tl__dot" data-kind="agendado" aria-hidden="true"></span
+                      ><span class="tl__num-label">Agend. </span>{{ l.agendados }}
+                    </td>
+                    <td class="num mono">
+                      <span class="tl__dot" data-kind="patio" aria-hidden="true"></span
+                      ><span class="tl__num-label">No pátio </span>{{ l.noPatio }}
+                    </td>
+                    <td class="num mono tl__livres">
+                      <strong>{{ l.livres }}</strong><span class="muted">/{{ l.capacidade }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if (ocultas()) {
+              <p class="tl__foot">
+                {{ ocultas() }}
+                {{
+                  ocultas() === 1
+                    ? 'horário sem movimento oculto'
+                    : 'horários sem movimento ocultos'
+                }}
+                ·
+                <button type="button" class="link-btn" (click)="soComMovimento.set(false)">
+                  Mostrar todos
+                </button>
+              </p>
+            }
+          } @else if (linhas().length) {
+            <div class="empty" role="status">
+              <span class="material-symbols-outlined empty__icon" aria-hidden="true"
+                >event_available</span
+              >
+              <strong>Nenhum horário com movimento</strong>
+              <button type="button" class="link-btn" (click)="soComMovimento.set(false)">
+                Mostrar todos os horários
+              </button>
+            </div>
+          } @else {
+            <div class="empty" role="status">
+              <span class="material-symbols-outlined empty__icon" aria-hidden="true"
+                >event_busy</span
+              >
+              <strong>Sem janelas neste dia</strong>
+              @if (podeVerJanelas) {
+                <a class="link-btn" [routerLink]="janelasRoute">Cadastrar janelas de agendamento</a>
+              } @else {
+                <span>Não há janelas de agendamento cadastradas para esta data.</span>
+              }
+            </div>
+          }
+        </section>
 
         @if (loadingList()) {
           <p class="loading-msg trn-loading">Carregando...</p>
@@ -210,7 +509,11 @@
                           @if (item.tipoPagador === 2) {
                             <span
                               class="ag-pagador-pill"
-                              [title]="'Fatura para ' + (item.pagadorNome || 'terceiro') + '; vaga e movimento da transportadora'"
+                              [title]="
+                                'Fatura para ' +
+                                (item.pagadorNome || 'terceiro') +
+                                '; vaga e movimento da transportadora'
+                              "
                               >Paga: {{ item.pagadorNome || 'terceiro' }}</span
                             >
                           }
@@ -236,7 +539,9 @@
                               [disabled]="gerandoReciboId() === item.id"
                               (click)="emitirRecibo(item)"
                             >
-                              <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+                              <span class="material-symbols-outlined" aria-hidden="true"
+                                >receipt_long</span
+                              >
                             </button>
                             @if (podeConfirmarItem(item)) {
                               <button
@@ -245,7 +550,9 @@
                                 title="Confirmar entrada"
                                 (click)="confirmarEntrada(item)"
                               >
-                                <span class="material-symbols-outlined" aria-hidden="true">login</span>
+                                <span class="material-symbols-outlined" aria-hidden="true"
+                                  >login</span
+                                >
                               </button>
                             }
                             @if (podeCancelarItem(item)) {
@@ -255,7 +562,9 @@
                                 title="Cancelar agendamento"
                                 (click)="cancelar(item)"
                               >
-                                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
+                                <span class="material-symbols-outlined" aria-hidden="true"
+                                  >cancel</span
+                                >
                               </button>
                             }
                           </div>
@@ -292,7 +601,9 @@
                   (click)="irParaPagina(1)"
                   aria-label="Primeira página"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_left</span>
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >keyboard_double_arrow_left</span
+                  >
                 </button>
                 <button
                   type="button"
@@ -322,7 +633,9 @@
                   (click)="irParaPagina(totalPaginas)"
                   aria-label="Última página"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">keyboard_double_arrow_right</span>
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >keyboard_double_arrow_right</span
+                  >
                 </button>
               </div>
             </div>
@@ -332,6 +645,14 @@
     </div>
   </div>
 
+  @if (canVisualizar) {
+    <!-- Celular: ação principal sempre ao alcance do polegar -->
+    <div class="pa__fab-bar">
+      <button type="button" class="btn btn-primary" (click)="abrirNovo()">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>Novo agendamento
+      </button>
+    </div>
+  }
   <app-agendamento-novo-modal
     [aberto]="showForm()"
     [podeEscolherTransportadora]="podeOperarPatio"

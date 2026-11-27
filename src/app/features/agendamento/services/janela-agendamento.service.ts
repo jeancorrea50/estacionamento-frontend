@@ -96,16 +96,21 @@ export class JanelaAgendamentoService {
     );
   }
 
-  /** Slots disponíveis (o backend já omite `disponiveis = 0`). Aceita Ambos (3). */
+  /**
+   * Slots disponíveis (o backend omite `disponiveis = 0`). Aceita Ambos (3).
+   * `incluirEsgotados` traz a grade completa do dia (Painel do pátio).
+   */
   disponibilidade(
     data: string,
     modalidade: ModalidadeJanela | ModalidadeAgendamento,
-    transportadoraId?: number | null
+    transportadoraId?: number | null,
+    opts?: { incluirEsgotados?: boolean }
   ): Observable<JanelaDisponibilidade> {
     let params = new HttpParams().set('data', data).set('modalidade', String(modalidade));
     if (typeof transportadoraId === 'number' && transportadoraId > 0) {
       params = params.set('transportadoraId', String(transportadoraId));
     }
+    if (opts?.incluirEsgotados) params = params.set('incluirEsgotados', 'true');
     return this.http.get<unknown>(`${this.api}/disponibilidade`, { params }).pipe(
       timeout(REQUEST_TIMEOUT_MS),
       map((body) => mapJanelaDisponibilidade(unwrapServiceResult<unknown>(body)))

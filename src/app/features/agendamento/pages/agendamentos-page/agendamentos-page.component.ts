@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Router } from '@angular/router';
+import { MatMenuModule } from '@angular/material/menu';
+import { Router, RouterLink } from '@angular/router';
 import { Subscription, of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -12,7 +13,6 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { EstacionamentoService } from '../../../cadastro/services/estacionamento.service';
 import { formatTelefone } from '../../../cadastro/directives/telefone-format.directive';
 import { formatPlacaDisplay } from '../../../cadastro/utils/placa-br';
-import { EstSummaryMetricComponent } from '../../../cadastro/components/est-summary-metric/est-summary-metric.component';
 import { TransportadoraLookupFieldComponent } from '../../../movimentos/entrada-saida/components/transportadora-lookup-field/transportadora-lookup-field.component';
 import {
   CadastroConfirmDialogComponent,
@@ -27,10 +27,6 @@ import {
   parseEntradaSaidaStatus,
 } from '../../models/agendamento.models';
 import { baixarPdfReciboAgendamento } from '../../recibo/agendamento-recibo-pdf';
-import {
-  PeriodoDataPickerComponent,
-  PeriodoDataSelecionado,
-} from '../../../../shared/ui/periodo-data-picker/periodo-data-picker.component';
 import { AgendamentoNovoModalComponent } from '../../components/agendamento-novo-modal/agendamento-novo-modal.component';
 import { JanelaAgendamentoService } from '../../services/janela-agendamento.service';
 import { JanelaDisponibilidadeRealtimeService } from '../../services/janela-disponibilidade-realtime.service';
@@ -39,17 +35,53 @@ import {
   formatIsoDateBr,
   mapTimelineSlots,
   modalidadeApi,
-  resolverKpiJanelasDia,
+  parseIsoDateLocal,
   somarDestinacaoCifFob,
   toIsoDateLocal,
   type AgendamentoModalidadeUi,
   type AgendamentoTimelineSlot,
 } from './agendamento-dashboard.util';
-import { AgendamentoDiaTimelineComponent } from './agendamento-dia-timeline/agendamento-dia-timeline.component';
 import {
   exportarPainelAgendamentosExcel,
   exportarPainelAgendamentosPdf,
 } from './agendamento-painel-export';
+
+type Nivel = 'ok' | 'warn' | 'danger';
+
+interface TotaisDia {
+  capacidade: number;
+  ocupadas: number;
+  noPatio: number;
+  disponiveis: number;
+}
+
+const TOTAIS_VAZIOS: TotaisDia = { capacidade: 0, ocupadas: 0, noPatio: 0, disponiveis: 0 };
+
+/** Uma linha da linha do tempo do dia (janela de horário). */
+interface LinhaTempo {
+  key: string;
+  inicio: string;
+  fim: string;
+  capacidade: number;
+  agendados: number;
+  noPatio: number;
+  livres: number;
+  pAgendado: number;
+  pPatio: number;
+  pct: number;
+  nivel: Nivel;
+  nivelLabel: string;
+  vazio: boolean;
+  agora: boolean;
+  passou: boolean;
+}
+
+const pct = (parte: number, total: number): number =>
+  total > 0 ? Math.max(0, Math.min(100, Math.round((parte / total) * 100))) : 0;
+/** Âmbar a partir de 70% e vermelho a partir de 90% de ocupação. */
+const nivelDe = (p: number): Nivel => (p >= 90 ? 'danger' : p >= 70 ? 'warn' : 'ok');
+const NIVEL_LABEL: Record<Nivel, string> = { ok: 'Com folga', warn: 'Atenção', danger: 'Lotando' };
+const horaAtualHHmm = (): string => new Date().toTimeString().slice(0, 5);
 
 @Component({
   selector: 'app-agendamentos-page',
@@ -58,14 +90,13 @@ import {
     CommonModule,
     FormsModule,
     MatDialogModule,
-    EstSummaryMetricComponent,
-    PeriodoDataPickerComponent,
+    MatMenuModule,
+    RouterLink,
     AgendamentoNovoModalComponent,
     TransportadoraLookupFieldComponent,
-    AgendamentoDiaTimelineComponent,
   ],
   templateUrl: './agendamentos-page.component.html',
-  styleUrls: ['./agendamentos-page.component.scss'],
+  styleUrls: ['./agendamentos-page.component.scss', './painel-patio.scss'],
 })
 export class AgendamentosPageComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
@@ -146,29 +177,101 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
   readonly modalidadeUi = signal<AgendamentoModalidadeUi>('estacionamento');
   readonly dataSelecionadaIso = signal(toIsoDateLocal(new Date()));
   readonly timelineSlots = signal<AgendamentoTimelineSlot[]>([]);
-  /** Totais do dia (BE) da modalidade ativa — preferidos aos somatórios parciais da lista. */
-  readonly kpiJanelasDia = signal<{ disponiveis: number; ocupados: number }>({
-    disponiveis: 0,
-    ocupados: 0,
-  });
+  /**
+   * Totais do dia (BE) da modalidade ativa — mesma fonte da linha do tempo.
+   * `ocupadas` = agendados + no pátio; `noPatio` = já entraram (Entrada/Suspenso).
+   */
+  readonly totaisDia = signal<TotaisDia>(TOTAIS_VAZIOS);
   /** Destinação CIF/FOB — soma de reservas ativas no dia/filtro. */
   readonly kpiDestinacaoCifFob = signal<{ cif: number; fob: number }>({ cif: 0, fob: 0 });
   readonly loadingTimeline = signal(false);
   readonly erroTimeline = signal<string | null>(null);
 
+  // ─── UI do painel ───────────────────────────────────────────────────
+  /** Celular: filtros secundários recolhidos atrás do botão "Filtros". */
+  readonly filtrosAbertos = signal(false);
+  readonly soComMovimento = signal(false);
+  /** 'HH:mm' atual — marca o horário "agora" quando o dia exibido é hoje. */
+  readonly horaAtual = signal(horaAtualHHmm());
+  private relogio?: ReturnType<typeof setInterval>;
+  /** Transportadora do filtro (signal espelho para o contador de filtros ativos). */
+  private readonly transportadoraFiltrada = signal(false);
+
   readonly dataSelecionadaLabel = computed(() => formatIsoDateBr(this.dataSelecionadaIso()));
-  /** Lista filtrada (dia + busca + transportadora) — status Agendado no pátio da sessão. */
-  readonly kpiAgendados = computed(() => this.totalCount());
-  /**
-   * Soma de disponíveis das janelas do dia/modalidade (mesma fonte da timeline).
-   * Sem janelas → 0. Não usa capacidade de destinação do pátio.
-   * Filtro de transportadora do painel (operador) não altera este KPI — capacidade das janelas.
-   */
-  readonly kpiDisponiveis = computed(() => this.kpiJanelasDia().disponiveis);
-  /** Ocupação nas janelas do dia/modalidade (totais BE ou soma dos slots). */
-  readonly kpiOcupados = computed(() => this.kpiJanelasDia().ocupados);
+  readonly ehHoje = computed(() => this.dataSelecionadaIso() === toIsoDateLocal(new Date()));
+  readonly dataPorExtenso = computed(() => {
+    const d = parseIsoDateLocal(this.dataSelecionadaIso());
+    const txt = d.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  });
+  /** Filtros escondidos no celular que estão ativos (badge do botão "Filtros"). */
+  readonly filtrosAtivos = computed(
+    () => Number(this.transportadoraFiltrada() && this.podeOperarPatio) + Number(!this.ehHoje())
+  );
+
+  readonly kpiCapacidade = computed(() => this.totaisDia().capacidade);
+  readonly kpiNoPatio = computed(() => this.totaisDia().noPatio);
+  /** Agendados que ainda não entraram (ocupadas − no pátio). */
+  readonly kpiAgendados = computed(() =>
+    Math.max(0, this.totaisDia().ocupadas - this.totaisDia().noPatio)
+  );
+  /** Vagas livres do dia (BE: capacidade − ocupadas − holds, respeitando destinação). */
+  readonly kpiDisponiveis = computed(() => this.totaisDia().disponiveis);
+  readonly ocupacaoPct = computed(() =>
+    pct(this.kpiCapacidade() - this.kpiDisponiveis(), this.kpiCapacidade())
+  );
+  readonly nivel = computed(() => nivelDe(this.ocupacaoPct()));
+  readonly nivelLabel = computed(() => NIVEL_LABEL[this.nivel()]);
   readonly kpiCifGeral = computed(() => this.kpiDestinacaoCifFob().cif);
   readonly kpiFobGeral = computed(() => this.kpiDestinacaoCifFob().fob);
+  /** % da barra do card principal (agendados | no pátio | resto = livre). */
+  readonly barraDia = computed(() => ({
+    agendado: pct(this.kpiAgendados(), this.kpiCapacidade()),
+    patio: pct(this.kpiNoPatio(), this.kpiCapacidade()),
+  }));
+
+  readonly linhas = computed<LinhaTempo[]>(() => {
+    const agora = this.ehHoje() ? this.horaAtual() : '';
+    return this.timelineSlots().map((s) => {
+      const cap = s.cadastrado;
+      const p = pct(cap - s.disponiveis, cap);
+      const nivel = nivelDe(p);
+      return {
+        key: s.key,
+        inicio: s.horaInicio,
+        fim: s.horaFim,
+        capacidade: cap,
+        agendados: s.agendado,
+        noPatio: s.ocupado,
+        livres: s.disponiveis,
+        pAgendado: pct(s.agendado, cap),
+        pPatio: pct(s.ocupado, cap),
+        pct: p,
+        nivel,
+        nivelLabel: NIVEL_LABEL[nivel],
+        vazio: s.agendado + s.ocupado === 0,
+        agora: !!agora && agora >= s.horaInicio && agora < s.horaFim,
+        passou: !!agora && s.horaFim <= agora,
+      };
+    });
+  });
+  readonly linhasVisiveis = computed(() =>
+    this.soComMovimento() ? this.linhas().filter((l) => !l.vazio || l.agora) : this.linhas()
+  );
+  readonly ocultas = computed(() => this.linhas().length - this.linhasVisiveis().length);
+  readonly linhaAgora = computed(() => this.linhas().find((l) => l.agora) ?? null);
+  /** Horário mais cheio do dia — 4º indicador. */
+  readonly pico = computed(() => {
+    const ls = this.linhas();
+    if (!ls.length) return null;
+    const p = ls.reduce((m, l) => (l.pct > m.pct ? l : m), ls[0]);
+    return p.pct > 0 ? p : null;
+  });
 
   /** Placa, nome do motorista ou CPF. */
   filtroBusca = '';
@@ -209,15 +312,53 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
 
     this.aplicarDataSelecionadaNoFiltro(this.dataSelecionadaIso(), false);
     this.onBuscar();
+    // Atualiza o destaque "agora" da linha do tempo a cada 30s.
+    this.relogio = setInterval(() => this.horaAtual.set(horaAtualHHmm()), 30_000);
   }
 
   ngOnDestroy(): void {
     this.timelineSub?.unsubscribe();
     this.destinacaoSub?.unsubscribe();
+    if (this.relogio) clearInterval(this.relogio);
   }
 
   onFiltroTransportadoraId(id: number | null): void {
     this.filtroTransportadoraId = id && id > 0 ? id : null;
+    this.transportadoraFiltrada.set(this.filtroTransportadoraId != null);
+  }
+
+  /** Setas de dia anterior / próximo dia. */
+  mudarDia(n: number): void {
+    const d = parseIsoDateLocal(this.dataSelecionadaIso());
+    d.setDate(d.getDate() + n);
+    this.aplicarDia(toIsoDateLocal(d));
+  }
+
+  irParaHoje(): void {
+    this.aplicarDia(toIsoDateLocal(new Date()));
+  }
+
+  /** Campo de data: vazio não é aceito (a data é obrigatória no painel). */
+  onDataInput(iso: string): void {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return;
+    this.aplicarDia(iso);
+  }
+
+  private aplicarDia(iso: string): void {
+    if (iso === this.dataSelecionadaIso()) return;
+    this.filtroDataInicial = iso;
+    this.filtroDataFinal = iso;
+    // A linha do tempo recarrega pelo effect (data); aqui só lista e CIF/FOB.
+    this.dataSelecionadaIso.set(iso);
+    this.numeroPagina.set(1);
+    this.carregar();
+    this.carregarKpisDestinacao();
+  }
+
+  /** Buscar a partir da barra (no celular também recolhe os filtros). */
+  buscarPelaBarra(): void {
+    this.filtrosAbertos.set(false);
+    this.onBuscar();
   }
 
   onFiltroTransportadoraNome(nome: string): void {
@@ -238,7 +379,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     const data = (dataIso || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
       this.timelineSlots.set([]);
-      this.kpiJanelasDia.set({ disponiveis: 0, ocupados: 0 });
+      this.totaisDia.set(TOTAIS_VAZIOS);
       this.erroTimeline.set(null);
       this.loadingTimeline.set(false);
       return;
@@ -257,24 +398,26 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
 
     const modalidadeAtual = modalidadeApi(ui);
     this.timelineSub = this.janelasApi
-      .disponibilidade(data, modalidadeAtual, transportadoraId)
+      // Painel = grade completa do dia (horários lotados também aparecem).
+      .disponibilidade(data, modalidadeAtual, transportadoraId, { incluirEsgotados: true })
       .pipe(finalize(() => this.loadingTimeline.set(false)))
       .subscribe({
         next: (atual) => {
           const slots = mapTimelineSlots(atual.slots ?? []);
           this.timelineSlots.set(slots);
-          this.kpiJanelasDia.set(
-            resolverKpiJanelasDia({
-              totalDisponiveis: atual.totalDisponiveis,
-              totalOcupadas: atual.totalOcupadas,
-              slots,
-            })
-          );
+          const soma = (f: (s: AgendamentoTimelineSlot) => number) =>
+            slots.reduce((acc, s) => acc + f(s), 0);
+          this.totaisDia.set({
+            capacidade: atual.totalCapacidade ?? soma((s) => s.cadastrado),
+            ocupadas: atual.totalOcupadas ?? soma((s) => s.agendado + s.ocupado),
+            noPatio: atual.totalNoPatio ?? soma((s) => s.ocupado),
+            disponiveis: atual.totalDisponiveis ?? soma((s) => s.disponiveis),
+          });
           this.erroTimeline.set(null);
         },
         error: (err: { message?: string } | unknown) => {
           this.timelineSlots.set([]);
-          this.kpiJanelasDia.set({ disponiveis: 0, ocupados: 0 });
+          this.totaisDia.set(TOTAIS_VAZIOS);
           const msg =
             err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
               ? err.message
@@ -352,7 +495,7 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
       kpis: {
         agendados: this.kpiAgendados(),
         disponiveis: this.kpiDisponiveis(),
-        ocupados: this.kpiOcupados(),
+        ocupados: this.kpiNoPatio(),
         cif: this.kpiCifGeral(),
         fob: this.kpiFobGeral(),
       },
@@ -376,18 +519,6 @@ export class AgendamentosPageComponent implements OnInit, OnDestroy {
     } finally {
       this.exportando.set(false);
     }
-  }
-
-  onPeriodoChange(periodo: PeriodoDataSelecionado): void {
-    const diaBruto = periodo.ativo
-      ? (periodo.dataInicial || periodo.dataFinal || '').trim()
-      : toIsoDateLocal(new Date());
-    // Contrato da tela: filtro sempre de um único dia (não intervalo).
-    const dia = /^\d{4}-\d{2}-\d{2}$/.test(diaBruto) ? diaBruto : toIsoDateLocal(new Date());
-    this.filtroDataInicial = dia;
-    this.filtroDataFinal = dia;
-    this.dataSelecionadaIso.set(dia);
-    this.onBuscar();
   }
 
   carregar(): void {

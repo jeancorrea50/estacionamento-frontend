@@ -183,6 +183,7 @@ function mapSlot(row: Row): JanelaSlotDisponivel {
     horaFim,
     capacidade: num(row, 'capacidade'),
     ocupadas: num(row, 'ocupadas'),
+    noPatio: num(row, 'noPatio'),
     disponiveis: num(row, 'disponiveis'),
     viaDestinacao: bool(row, 'viaDestinacao', false),
     label: str(row, 'label').trim() || `${horaInicio} - ${horaFim}`,
@@ -203,6 +204,7 @@ export function mapJanelaDisponibilidade(source: unknown): JanelaDisponibilidade
   const slots = list(root, 'slots').map(mapSlot);
   const totalCapacidade = numOrNull(root, 'totalCapacidade');
   const totalOcupadas = numOrNull(root, 'totalOcupadas');
+  const totalNoPatio = numOrNull(root, 'totalNoPatio');
   const totalDisponiveis = numOrNull(root, 'totalDisponiveis');
   return {
     data: toIsoDate(pick(root, 'data')),
@@ -210,6 +212,7 @@ export function mapJanelaDisponibilidade(source: unknown): JanelaDisponibilidade
     usouDestinacao: bool(root, 'usouDestinacao', false),
     ...(totalCapacidade != null ? { totalCapacidade } : {}),
     ...(totalOcupadas != null ? { totalOcupadas } : {}),
+    ...(totalNoPatio != null ? { totalNoPatio } : {}),
     ...(totalDisponiveis != null ? { totalDisponiveis } : {}),
     slots,
   };

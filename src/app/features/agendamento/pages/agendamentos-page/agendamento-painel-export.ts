@@ -76,12 +76,13 @@ export function exportarPainelAgendamentosPdf(entrada: AgendamentoPainelExportEn
               <td>${htmlEscape(s.label)}</td>
               <td class="num">${htmlEscape(s.cadastrado)}</td>
               <td class="num">${htmlEscape(s.agendado)}</td>
+              <td class="num">${htmlEscape(s.ocupado)}</td>
               <td class="num">${htmlEscape(s.disponiveis)}</td>
               <td class="num">${htmlEscape(s.ocupacaoPct)}%</td>
             </tr>`
           )
           .join('')
-      : `<tr><td colspan="5">Nenhuma janela para o dia.</td></tr>`;
+      : `<tr><td colspan="6">Nenhuma janela para o dia.</td></tr>`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -111,7 +112,7 @@ export function exportarPainelAgendamentosPdf(entrada: AgendamentoPainelExportEn
   <div class="kpi-grid" aria-label="Indicadores do painel">
     <div class="kpi-card"><span class="kpi-card__label">Agendados</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.agendados)}</span></div>
     <div class="kpi-card"><span class="kpi-card__label">Vagas disponíveis</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.disponiveis)}</span></div>
-    <div class="kpi-card"><span class="kpi-card__label">Ocupados</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.ocupados)}</span></div>
+    <div class="kpi-card"><span class="kpi-card__label">No pátio</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.ocupados)}</span></div>
     <div class="kpi-card"><span class="kpi-card__label">CIF</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.cif)}</span></div>
     <div class="kpi-card"><span class="kpi-card__label">FOB</span><span class="kpi-card__value">${htmlEscape(entrada.kpis.fob)}</span></div>
   </div>
@@ -122,6 +123,7 @@ export function exportarPainelAgendamentosPdf(entrada: AgendamentoPainelExportEn
         <th>Horário</th>
         <th>Cadastrado</th>
         <th>Agendado</th>
+        <th>No pátio</th>
         <th>Disponível</th>
         <th>Ocupação</th>
       </tr>
@@ -160,23 +162,24 @@ export function exportarPainelAgendamentosExcel(entrada: AgendamentoPainelExport
     ['Indicador', 'Valor'],
     ['Agendados', String(entrada.kpis.agendados)],
     ['Vagas disponíveis', String(entrada.kpis.disponiveis)],
-    ['Ocupados', String(entrada.kpis.ocupados)],
+    ['No pátio', String(entrada.kpis.ocupados)],
     ['CIF', String(entrada.kpis.cif)],
     ['FOB', String(entrada.kpis.fob)],
     [],
     ['Linha do tempo do dia'],
-    ['Horário', 'Cadastrado', 'Agendado', 'Disponível', 'Ocupação %'],
+    ['Horário', 'Cadastrado', 'Agendado', 'No pátio', 'Disponível', 'Ocupação %'],
     ...entrada.slots.map((s) => [
       s.label,
       String(s.cadastrado),
       String(s.agendado),
+      String(s.ocupado),
       String(s.disponiveis),
       String(s.ocupacaoPct),
     ]),
   ];
 
   if (entrada.slots.length === 0) {
-    rows.push(['—', '—', '—', '—', 'Nenhuma janela']);
+    rows.push(['—', '—', '—', '—', '—', 'Nenhuma janela']);
   }
 
   const xmlRows = rows

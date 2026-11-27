@@ -13,14 +13,14 @@ export interface AgendamentoTimelineSlot {
   cadastrado: number;
   /**
    * Vagas já tomadas no slot (contrato BE `ocupadas`).
-   * Na UI = AGEND. — o BE ainda não separa “agendado” de “em pátio”.
+   * Na UI = Agendado (ainda vai chegar): ocupadas − noPatio.
    */
   agendado: number;
   /** Vagas livres (DISP.). */
   disponiveis: number;
   /**
    * Em pátio / fisicamente ocupado (OCUP.).
-   * Reservado: hoje o contrato de disponibilidade não envia esse split → 0.
+   * Contrato BE `noPatio` (Entrada/Suspenso).
    */
   ocupado: number;
   /** % de capacidade tomada (agendado + ocupado) sobre CAP. */
@@ -98,9 +98,11 @@ export function mapTimelineSlots(slots: JanelaSlotDisponivel[]): AgendamentoTime
     })
     .map((s) => {
       const cadastrado = Math.max(0, Number(s.capacidade) || 0);
-      const agendado = Math.max(0, Number(s.ocupadas) || 0);
+      const ocupadas = Math.max(0, Number(s.ocupadas) || 0);
+      // BE separa quem já entrou (noPatio) de quem ainda vai chegar (agendado).
+      const ocupado = Math.min(ocupadas, Math.max(0, Number(s.noPatio) || 0));
+      const agendado = ocupadas - ocupado;
       const disponiveis = Math.max(0, Number(s.disponiveis) || 0);
-      const ocupado = 0;
       const tomadas = agendado + ocupado;
       const ocupacaoPct =
         cadastrado > 0 ? Math.min(100, Math.round((tomadas / cadastrado) * 100)) : 0;

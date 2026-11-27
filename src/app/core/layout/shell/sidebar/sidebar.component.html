@@ -40,7 +40,7 @@
         <ul class="sb__list" role="list">
           @for (it of g.items; track it.id) {
             <li>
-              @if (!it.children) {
+              @if (!it.children?.length) {
                 <!-- Item simples -->
                 <a
                   class="sb__link"
@@ -56,7 +56,7 @@
                   <span class="sb__txt">{{ it.label }}</span>
                 </a>
               } @else if (nav.rail()) {
-                <!-- Recolhido: submenu flutuante ao lado -->
+                <!-- Recolhido: submenu flutuante ao lado (até 3 níveis) -->
                 <button
                   type="button"
                   class="sb__link"
@@ -83,22 +83,42 @@
                   <div class="sb-flyout" cdkMenu>
                     <p class="sb-flyout__title" aria-hidden="true">{{ it.label }}</p>
                     @for (c of it.children; track c.id) {
-                      <a
-                        cdkMenuItem
-                        class="sb-flyout__item"
-                        [routerLink]="c.route"
-                        routerLinkActive="is-active"
-                        ariaCurrentWhenActive="page"
-                      >
-                        <span class="material-symbols-outlined" aria-hidden="true">{{
-                          c.icon
-                        }}</span>{{ c.label }}
-                      </a>
+                      @if (c.route) {
+                        <a
+                          cdkMenuItem
+                          class="sb-flyout__item"
+                          [routerLink]="c.route"
+                          routerLinkActive="is-active"
+                          [routerLinkActiveOptions]="{ exact: !!c.children?.length }"
+                          ariaCurrentWhenActive="page"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">{{
+                            c.icon
+                          }}</span
+                          >{{ c.label }}
+                        </a>
+                      } @else {
+                        <p class="sb-flyout__group">{{ c.label }}</p>
+                      }
+                      @for (n of c.children ?? []; track n.id) {
+                        <a
+                          cdkMenuItem
+                          class="sb-flyout__item sb-flyout__item--nest"
+                          [routerLink]="n.route"
+                          routerLinkActive="is-active"
+                          ariaCurrentWhenActive="page"
+                        >
+                          <span class="material-symbols-outlined" aria-hidden="true">{{
+                            n.icon
+                          }}</span
+                          >{{ n.label }}
+                        </a>
+                      }
                     }
                   </div>
                 </ng-template>
               } @else {
-                <!-- Aberto: acordeão de 1 nível -->
+                <!-- Aberto: acordeão (1º nível) + nested (2º → 3º) -->
                 @let aberto = nav.aberto() === it.id;
                 <button
                   type="button"
@@ -126,14 +146,70 @@
                   <ul class="sb__sub" [id]="'sbs-' + it.id" role="list">
                     @for (c of it.children; track c.id) {
                       <li>
-                        <a
-                          class="sb__sublink"
-                          [routerLink]="c.route"
-                          routerLinkActive="is-active"
-                          ariaCurrentWhenActive="page"
-                        >
-                          {{ c.label }}
-                        </a>
+                        @if (c.children?.length) {
+                          @let nestAberto = nav.abertoNested() === c.id;
+                          <div class="sb__mid">
+                            @if (c.route) {
+                              <a
+                                class="sb__sublink sb__sublink--mid"
+                                [routerLink]="c.route"
+                                routerLinkActive="is-active"
+                                [routerLinkActiveOptions]="{ exact: true }"
+                                ariaCurrentWhenActive="page"
+                              >
+                                <span class="sb__subtxt">{{ c.label }}</span>
+                              </a>
+                            } @else {
+                              <span class="sb__sublink sb__sublink--mid sb__sublink--static">
+                                <span class="sb__subtxt">{{ c.label }}</span>
+                              </span>
+                            }
+                            <button
+                              type="button"
+                              class="sb__nest-btn"
+                              [class.has-active]="temAtivo(c) && !nestAberto"
+                              [attr.aria-expanded]="nestAberto"
+                              [attr.aria-controls]="'sbn-' + c.id"
+                              [attr.aria-label]="'Abrir ' + c.label"
+                              (click)="nav.alternarSecaoNested(c.id)"
+                            >
+                              @if (temAtivo(c) && !nestAberto) {
+                                <span class="sb__dot" aria-hidden="true"></span>
+                              }
+                              <span
+                                class="material-symbols-outlined sb__chev"
+                                [class.is-open]="nestAberto"
+                                aria-hidden="true"
+                                >expand_more</span
+                              >
+                            </button>
+                          </div>
+                          @if (nestAberto) {
+                            <ul class="sb__nest" [id]="'sbn-' + c.id" role="list">
+                              @for (n of c.children; track n.id) {
+                                <li>
+                                  <a
+                                    class="sb__nestlink"
+                                    [routerLink]="n.route"
+                                    routerLinkActive="is-active"
+                                    ariaCurrentWhenActive="page"
+                                  >
+                                    <span class="sb__subtxt">{{ n.label }}</span>
+                                  </a>
+                                </li>
+                              }
+                            </ul>
+                          }
+                        } @else {
+                          <a
+                            class="sb__sublink"
+                            [routerLink]="c.route"
+                            routerLinkActive="is-active"
+                            ariaCurrentWhenActive="page"
+                          >
+                            <span class="sb__subtxt">{{ c.label }}</span>
+                          </a>
+                        }
                       </li>
                     }
                   </ul>

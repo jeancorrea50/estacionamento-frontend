@@ -7,9 +7,9 @@ import { NavService } from '../nav.service';
 import { NavItem } from '../nav.config';
 
 /**
- * Menu lateral: grupos com título (Operação / Planejamento / Gestão), no máximo 2 níveis,
- * acordeão (uma seção aberta por vez) e modo recolhido com ícones + tooltip + submenu
- * flutuante (CDK Menu, acessível por teclado).
+ * Menu lateral: grupos (Operação / Planejamento / Gestão), até 3 níveis
+ * (ex.: Cadastro → Transportadoras → Convites), acordeão e modo recolhido
+ * com ícones + tooltip + submenu flutuante (CDK Menu).
  */
 @Component({
   selector: 'app-shell-sidebar',
@@ -24,8 +24,8 @@ export class ShellSidebarComponent {
   readonly abrirBusca = output<void>();
   readonly versao = 'v1.0.0';
 
-  /** Algum filho está ativo? (o pai ganha um ponto, não o destaque cheio). */
+  /** Algum descendente (2º ou 3º nível) está ativo — pai ganha ponto, não o destaque cheio. */
   temAtivo(item: NavItem): boolean {
-    return this.nav.ativo()?.parent?.id === item.id;
+    return this.nav.temDescendenteAtivo(item);
   }
 }

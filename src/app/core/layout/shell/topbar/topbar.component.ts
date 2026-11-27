@@ -93,11 +93,13 @@ export class ShellTopbarComponent {
     ).toUpperCase();
   });
 
-  /** Trilha a partir do menu (não da URL): Grupo › Seção › Tela. */
+  /** Trilha a partir do menu (não da URL): Grupo › Seção › Subseção › Tela. */
   readonly trilha = computed(() => {
     const a = this.nav.ativo();
     if (!a) return [];
-    return [a.group.label, a.parent?.label, a.item.label].filter((x): x is string => !!x);
+    return [a.group.label, a.parent?.label, a.section?.label, a.item.label].filter(
+      (x): x is string => !!x,
+    );
   });
 
   alternarTema(): void {

@@ -6,7 +6,14 @@ import { filter, map } from 'rxjs';
 
 import { AuthService } from '../../services/auth.service';
 import { SessionAccessService } from '../../services/session-access.service';
-import { NAV, NavEntry, NavGroup, NavItem, flattenNav } from './nav.config';
+import {
+  NAV,
+  NavEntry,
+  NavGroup,
+  NavItem,
+  flattenNav,
+  navItemMatchesUrl,
+} from './nav.config';
 
 /** Mesma chave do layout antigo: quem tinha o menu recolhido continua com ele recolhido. */
 const CHAVE_RECOLHIDO = 'sidebarCollapsed';
@@ -55,7 +62,7 @@ export class NavService {
     { initialValue: this.router.url.split(/[?#]/)[0] },
   );
 
-  /** Item ativo = rota mais específica que casa com a URL. */
+  /** Item ativo = rota mais específica que casa com a URL (folha preferida). */
   readonly ativo = computed<NavEntry | null>(() => {
     const url = this.url();
     let melhor: NavEntry | null = null;
@@ -72,10 +79,22 @@ export class NavService {
   });
 
   /**
-   * Seção aberta no acordeão (uma por vez). Segue a rota ativa, mas o usuário pode
-   * abrir/fechar à vontade — volta a seguir a rota na próxima navegação.
+   * Seção de 1º nível aberta (Financeiro, Cadastro…). Segue a rota ativa; o usuário
+   * pode abrir/fechar — volta a seguir a rota na próxima navegação.
    */
   readonly aberto = linkedSignal<string | null>(() => this.ativo()?.parent?.id ?? null);
+
+  /**
+   * Seção intermediária aberta (Transportadoras, Faturamento…) quando há 3º nível.
+   * Abre o ancestral imediato da folha ativa, ou o próprio mid se ele for a tela atual.
+   */
+  readonly abertoNested = linkedSignal<string | null>(() => {
+    const a = this.ativo();
+    if (!a) return null;
+    if (a.section?.id) return a.section.id;
+    if (a.item.children?.length) return a.item.id;
+    return null;
+  });
 
   readonly celular = toSignal(this.bp.observe('(max-width: 768px)').pipe(map((r) => r.matches)), {
     initialValue: typeof window !== 'undefined' && window.innerWidth <= 768,
@@ -88,6 +107,16 @@ export class NavService {
 
   alternarSecao(id: string): void {
     this.aberto.update((a) => (a === id ? null : id));
+  }
+
+  alternarSecaoNested(id: string): void {
+    this.abertoNested.update((a) => (a === id ? null : id));
+  }
+
+  /** Algum descendente (2º ou 3º nível) está ativo sob este item. */
+  temDescendenteAtivo(item: NavItem): boolean {
+    const url = this.url();
+    return navItemMatchesUrl(item, url);
   }
 
   alternarRecolhido(): void {

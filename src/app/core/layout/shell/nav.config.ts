@@ -1,7 +1,6 @@
 // Menu do GTS — fonte única para sidebar, trilha (breadcrumb), busca rápida (Ctrl+K)
-// e barra inferior do celular. Regra: no máximo 2 níveis (o 3º nível virou item irmão).
-// As rotas são as REAIS do app: a liberação continua vindo do login (cadastro de Menu),
-// que filtra este menu pelas rotas permitidas (SessionAccessService.filterSidebarItems).
+// e barra inferior do celular. Até 3 níveis (ex.: Cadastro → Transportadoras → Convites),
+// alinhado a MENU_STRUCTURE. Liberação via login (SessionAccessService.filterSidebarItems).
 import {
   FATURAMENTO_ACORDOS_ROUTE,
   FATURAMENTO_CONFIG_ROUTE,
@@ -153,20 +152,27 @@ export const NAV: NavGroup[] = [
             icon: 'request_quote',
             route: FATURAMENTO_ROUTE,
             keywords: ['faturas', 'visão geral', 'fechamento'],
-          },
-          {
-            id: 'cobranca',
-            label: 'Cobrança',
-            icon: 'price_change',
-            route: FATURAMENTO_CONFIG_ROUTE,
-            keywords: ['regra de cobrança', 'tarifa', 'preço'],
-          },
-          { id: 'acordos', label: 'Acordos', icon: 'handshake', route: FATURAMENTO_ACORDOS_ROUTE },
-          {
-            id: 'faturamento-relatorio',
-            label: 'Relatório de faturamento',
-            icon: 'bar_chart',
-            route: FATURAMENTO_RELATORIO_ROUTE,
+            children: [
+              {
+                id: 'cobranca',
+                label: 'Cobrança',
+                icon: 'price_change',
+                route: FATURAMENTO_CONFIG_ROUTE,
+                keywords: ['regra de cobrança', 'tarifa', 'preço'],
+              },
+              {
+                id: 'acordos',
+                label: 'Acordos',
+                icon: 'handshake',
+                route: FATURAMENTO_ACORDOS_ROUTE,
+              },
+              {
+                id: 'faturamento-relatorio',
+                label: 'Relatório',
+                icon: 'bar_chart',
+                route: FATURAMENTO_RELATORIO_ROUTE,
+              },
+            ],
           },
           {
             id: 'pagamento',
@@ -174,12 +180,14 @@ export const NAV: NavGroup[] = [
             icon: 'account_balance_wallet',
             route: PAGAMENTOS_ROUTE,
             keywords: ['recebimentos', 'baixa'],
-          },
-          {
-            id: 'pagamento-relatorio',
-            label: 'Relatório de pagamentos',
-            icon: 'summarize',
-            route: PAGAMENTOS_RELATORIO_ROUTE,
+            children: [
+              {
+                id: 'pagamento-relatorio',
+                label: 'Relatório',
+                icon: 'summarize',
+                route: PAGAMENTOS_RELATORIO_ROUTE,
+              },
+            ],
           },
         ],
       },
@@ -193,18 +201,20 @@ export const NAV: NavGroup[] = [
             label: 'Transportadoras',
             icon: 'local_shipping',
             route: CADASTRO_TRANSPORTADORAS_ROUTE,
-          },
-          {
-            id: 'convites',
-            label: 'Convites de transportadora',
-            icon: 'forward_to_inbox',
-            route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
-          },
-          {
-            id: 'transportadoras-relatorio',
-            label: 'Relatório de transportadoras',
-            icon: 'summarize',
-            route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+            children: [
+              {
+                id: 'convites',
+                label: 'Convites',
+                icon: 'forward_to_inbox',
+                route: CADASTRO_TRANSPORTADORAS_CONVITES_ROUTE,
+              },
+              {
+                id: 'transportadoras-relatorio',
+                label: 'Relatório',
+                icon: 'summarize',
+                route: CADASTRO_TRANSPORTADORAS_RELATORIO_ROUTE,
+              },
+            ],
           },
           {
             id: 'motoristas',
@@ -308,16 +318,41 @@ export const NAV: NavGroup[] = [
 
 export interface NavEntry {
   group: NavGroup;
+  /** Seção de 1º nível com children (ex.: Financeiro). */
   parent: NavItem | null;
+  /** Seção intermediária quando o item é 3º nível (ex.: Transportadoras). */
+  section?: NavItem | null;
   item: NavItem;
 }
 
-/** Lista plana de destinos navegáveis (para busca rápida, trilha e barra inferior). */
-export const flattenNav = (groups: NavGroup[] = NAV): NavEntry[] =>
-  groups.flatMap((group) =>
-    group.items.flatMap((item): NavEntry[] =>
-      item.children
-        ? item.children.map((child) => ({ group, parent: item, item: child }))
-        : [{ group, parent: null, item }],
-    ),
-  );
+/** True se o nó ou algum descendente casa com a URL. */
+export function navItemMatchesUrl(item: NavItem, url: string): boolean {
+  for (const r of [item.route, ...(item.match ?? [])]) {
+    if (r && (url === r || url.startsWith(r + '/'))) return true;
+  }
+  return (item.children ?? []).some((c) => navItemMatchesUrl(c, url));
+}
+
+/** Lista plana de destinos navegáveis (busca rápida, trilha, barra inferior). */
+export const flattenNav = (groups: NavGroup[] = NAV): NavEntry[] => {
+  const out: NavEntry[] = [];
+  for (const group of groups) {
+    for (const item of group.items) {
+      if (!item.children?.length) {
+        out.push({ group, parent: null, item });
+        continue;
+      }
+      for (const child of item.children) {
+        if (child.route) {
+          out.push({ group, parent: item, section: null, item: child });
+        }
+        if (child.children?.length) {
+          for (const nest of child.children) {
+            out.push({ group, parent: item, section: child, item: nest });
+          }
+        }
+      }
+    }
+  }
+  return out;
+};

@@ -83,10 +83,16 @@ export class CommandPaletteDialog {
       id: d.item.id,
       label: d.item.label,
       icon: d.item.icon,
-      onde: [d.group.label, d.parent?.label].filter(Boolean).join(' › '),
+      onde: [d.group.label, d.parent?.label, d.section?.label].filter(Boolean).join(' › '),
       rota: d.item.route,
       texto: this.norm(
-        [d.item.label, d.parent?.label, d.group.label, ...(d.item.keywords ?? [])].join(' '),
+        [
+          d.item.label,
+          d.section?.label,
+          d.parent?.label,
+          d.group.label,
+          ...(d.item.keywords ?? []),
+        ].join(' '),
       ),
     })),
     ...this.acoes().map((a) => ({ ...a, texto: this.norm(a.label) })),

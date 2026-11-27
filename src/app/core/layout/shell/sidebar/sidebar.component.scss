@@ -310,17 +310,29 @@
   margin: 2px 0 6px 21px;
   padding-left: 12px;
   border-left: 1px solid var(--sb-border);
+  gap: 2px;
+}
+
+// Rótulo com quebra segura — evita sobreposição (height fixo era o bug).
+.sb__subtxt {
+  display: block;
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .sb__sublink {
   position: relative;
   display: flex;
   align-items: center;
-  height: 36px;
-  padding: 0 10px;
+  min-height: 36px;
+  height: auto;
+  padding: 8px 10px;
   border-radius: 8px;
   color: var(--sb-muted);
-  font-size: 14px;
+  font-size: 13.5px;
   text-decoration: none;
 
   &:hover {
@@ -344,6 +356,109 @@
       left: -13px;
       top: 8px;
       bottom: 8px;
+      width: 3px;
+      border-radius: 3px;
+      background: var(--sb-accent);
+    }
+  }
+
+  &--mid {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &--static {
+    cursor: default;
+
+    &:hover {
+      background: transparent;
+      color: var(--sb-muted);
+    }
+  }
+}
+
+// Linha do 2º nível com filhos: link + chevron do 3º nível.
+.sb__mid {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sb__nest-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 32px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sb-muted);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sb-hover);
+    color: var(--sb-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: -2px;
+  }
+
+  &.has-active .sb__chev {
+    color: var(--sb-accent);
+  }
+}
+
+// 3º nível: mais um recuo + linha-guia.
+.sb__nest {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px 10px;
+  padding: 0 0 0 10px;
+  list-style: none;
+  border-left: 1px solid var(--sb-border);
+}
+
+.sb__nestlink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  height: auto;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--sb-muted);
+  font-size: 13px;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--sb-hover);
+    color: var(--sb-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-accent);
+    outline-offset: -2px;
+  }
+
+  &.is-active {
+    background: var(--sb-active-bg);
+    color: var(--sb-active-text);
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -11px;
+      top: 6px;
+      bottom: 6px;
       width: 3px;
       border-radius: 3px;
       background: var(--sb-accent);
@@ -399,21 +514,43 @@
   color: var(--muted, #92929f);
 }
 
+.sb-flyout__group {
+  margin: 8px 10px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #92929f);
+}
+
 .sb-flyout__item {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 40px;
-  padding: 0 10px;
+  min-height: 40px;
+  height: auto;
+  padding: 8px 10px;
   border-radius: 8px;
   color: inherit;
   font-size: 14px;
+  line-height: 1.35;
   text-decoration: none;
   outline: none;
 
   .material-symbols-outlined {
+    flex-shrink: 0;
     font-size: 20px;
     color: var(--muted, #92929f);
+  }
+
+  &--nest {
+    padding-left: 22px;
+    font-size: 13px;
+    color: var(--muted, #92929f);
+
+    .material-symbols-outlined {
+      font-size: 18px;
+    }
   }
 
   &:hover,
@@ -429,6 +566,7 @@
 
   &.is-active {
     font-weight: 600;
+    color: inherit;
 
     .material-symbols-outlined {
       color: var(--primary, #3d8bff);

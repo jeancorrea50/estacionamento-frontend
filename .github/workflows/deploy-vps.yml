@@ -1,4 +1,4 @@
-# Deploy na VPS: git pull + docker compose up --build
+# Deploy na VPS: git pull + docker compose build/up
 #
 # Secrets (Settings → Secrets and variables → Actions):
 #   VPS_HOST       ex.: 108.174.145.123
@@ -19,15 +19,22 @@ on:
       - main
       - master
 
-# Evita dois docker compose --build na mesma VPS ao mesmo tempo (causa 502).
+# Serializa deploys na mesma branch. NÃO cancela build em andamento
+# (cancel mid-docker deixa o gateway com 502).
 concurrency:
   group: deploy-vps-${{ github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
+      VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+      BRANCH: ${{ github.ref_name }}
     steps:
       - name: Validar secrets
         shell: bash
@@ -42,10 +49,7 @@ jobs:
           done
           exit $missing
         env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
 
       - name: Configurar SSH
         uses: webfactory/ssh-agent@v0.9.1
@@ -54,9 +58,6 @@ jobs:
 
       - name: Conhecer host da VPS
         shell: bash
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
         run: |
           set -euo pipefail
           PORT="${VPS_SSH_PORT:-22}"
@@ -64,21 +65,15 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan -p "$PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: git pull + docker compose na VPS
+      - name: 1) git pull
         shell: bash
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_APP_PATH: ${{ secrets.VPS_APP_PATH }}
-          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
-          BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           PORT="${VPS_SSH_PORT:-22}"
           ssh -p "$PORT" \
             -o StrictHostKeyChecking=accept-new \
             -o ServerAliveInterval=20 \
-            -o ServerAliveCountMax=15 \
+            -o ServerAliveCountMax=30 \
             "${VPS_USER}@${VPS_HOST}" \
             "set -euo pipefail
              cd '${VPS_APP_PATH}'
@@ -87,19 +82,54 @@ jobs:
              git checkout '${BRANCH}'
              git pull --ff-only origin '${BRANCH}'
              echo \"==> HEAD: \$(git rev-parse --short HEAD)\"
+             echo \"==> free disk:\"
+             df -h '${VPS_APP_PATH}' | tail -1
+             docker ps --format 'table {{.Names}}\t{{.Status}}' | head -20
+            "
+
+      - name: 2) docker compose build
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${VPS_SSH_PORT:-22}"
+          echo "==> Início build $(date -u +%H:%M:%SZ) — progresso plain (pode levar 10–20 min)"
+          # stdbuf + tee: Action deixa de parecer “vazia” durante o build.
+          ssh -p "$PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o ServerAliveInterval=20 \
+            -o ServerAliveCountMax=30 \
+            "${VPS_USER}@${VPS_HOST}" \
+            "set -euo pipefail
+             cd '${VPS_APP_PATH}'
              export DOCKER_BUILDKIT=1
              export COMPOSE_DOCKER_CLI_BUILD=1
              export BUILDKIT_PROGRESS=plain
-             echo '==> docker compose build (progresso plain — pode demorar 10–20 min)'
-             docker compose build --progress=plain
+             docker builder prune -f --filter until=1h >/dev/null 2>&1 || true
+             stdbuf -oL -eL docker compose build --progress=plain 2>&1 | stdbuf -oL -eL tee /tmp/gts-frontend-build.log
+             echo '==> docker compose build exit OK'
+            "
+          echo "==> Build OK $(date -u +%H:%M:%SZ)"
+
+      - name: 3) docker up + restart gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${VPS_SSH_PORT:-22}"
+          ssh -p "$PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o ServerAliveInterval=20 \
+            -o ServerAliveCountMax=30 \
+            "${VPS_USER}@${VPS_HOST}" \
+            "set -euo pipefail
+             cd '${VPS_APP_PATH}'
              echo '==> docker compose up -d'
              docker compose up -d --remove-orphans
              docker compose ps
-             # Após recreate do front, o gateway precisa re-resolver o IP (senão 502 em /).
              if docker ps -a --format '{{.Names}}' | grep -qx 'estacionamento-gateway'; then
-               echo '==> Restart estacionamento-gateway'
+               echo '==> Restart estacionamento-gateway (re-resolve IP do front)'
                docker restart estacionamento-gateway
-               sleep 2
+               sleep 3
                docker ps --filter name=estacionamento-gateway --filter name=estacionamento-frontend --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
              fi
-             echo '==> Deploy OK'"
+             echo '==> Deploy OK'
+            "
